@@ -16,6 +16,7 @@ import { checkPhotoReminder } from '../logic/lifecycleEngine';
 import { getGardenSunExposure, calculateSunExposure } from '../services/sunExposureService';
 import { generateWinterPreparationPlan } from '../logic/winterPreparationEngine';
 import { WinterPreparationTask } from '../types';
+import { calculateTotalGardenWaterNeeds } from '../logic/waterRequirementEngine';
 
 interface DashboardProps {
   tasks: GardenTask[];
