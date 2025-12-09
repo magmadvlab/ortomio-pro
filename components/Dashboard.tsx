@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { GardenTask, Garden } from '../types';
-import { Sun, CloudRain, CalendarCheck, AlertTriangle, Settings, Save, Cloud, CloudLightning, Snowflake, CloudFog, Loader2, MapPin, Droplets, ThermometerSun, FlaskConical, Shovel, ChevronDown, Plus, Trash2, Home, Sparkles, CheckCircle, XCircle, Moon, Package, Plane, Camera } from 'lucide-react';
+import { Sun, CloudRain, CalendarCheck, Calendar, AlertTriangle, Settings, Save, Cloud, CloudLightning, Snowflake, CloudFog, Loader2, MapPin, Droplets, ThermometerSun, FlaskConical, Shovel, ChevronDown, Plus, Trash2, Home, Sparkles, CheckCircle, XCircle, Moon, Package, Plane, Camera } from 'lucide-react';
 import { getCurrentPositionWithRetry, getDefaultCoordinates } from '../services/geolocationService';
 import { checkLifecycleStatus, LifecycleAdvice } from '../logic/lifecycleEngine';
 import { getWeatherForecast, checkCriticalWeatherAlerts } from '../services/weatherService';
