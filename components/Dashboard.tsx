@@ -28,11 +28,12 @@ interface DashboardProps {
   onUpdateGarden: (g: Garden) => void;
   onDeleteGarden: (id: string) => void;
   onUpdateTask: (task: GardenTask) => void;
+  onAddTask?: (task: Omit<GardenTask, 'id' | 'completed' | 'gardenId'>) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
     tasks, onNavigateToJournal, gardens, activeGardenId, 
-    onSelectGarden, onAddGarden, onUpdateGarden, onDeleteGarden, onUpdateTask
+    onSelectGarden, onAddGarden, onUpdateGarden, onDeleteGarden, onUpdateTask, onAddTask
 }) => {
   const activeGarden = gardens.find(g => g.id === activeGardenId);
   const [isEditingSettings, setIsEditingSettings] = useState(false);
@@ -885,23 +886,48 @@ const Dashboard: React.FC<DashboardProps> = ({
                     
                     <button
                       onClick={() => {
-                        // Convert to GardenTask and add to journal
-                        const month = new Date().getMonth() + 1;
-                        const season = (month >= 4 && month <= 9) ? 'Summer' : 'Winter';
-                        const taskDate = new Date();
-                        taskDate.setMonth(task.dueMonth - 1);
-                        taskDate.setDate(15); // Middle of the month
-                        
-                        onUpdateTask({
-                          id: crypto.randomUUID(),
-                          plantName: task.title,
-                          taskType: task.category === 'Fertilization' ? 'Fertilize' : 'Treatment',
-                          date: taskDate.toISOString().split('T')[0],
-                          notes: `${task.description}\n\nMateriali: ${task.materials?.join(', ') || 'Nessuno'}\n\nIstruzioni:\n${task.instructions.map((i, idx) => `${idx + 1}. ${i}`).join('\n')}`,
-                          gardenId: activeGarden?.id || '',
-                          season,
-                          completed: false
-                        });
+                        try {
+                          if (!activeGarden?.id) {
+                            alert("⚠️ Nessun orto attivo. Configura un orto prima di aggiungere attività.");
+                            console.error("⚠️ Nessun orto attivo");
+                            return;
+                          }
+                          
+                          // Convert to GardenTask and add to journal
+                          const month = new Date().getMonth() + 1;
+                          const season = (month >= 4 && month <= 9) ? 'Summer' : 'Winter';
+                          const taskDate = new Date();
+                          taskDate.setMonth(task.dueMonth - 1);
+                          taskDate.setDate(15); // Middle of the month
+                          
+                          const taskData = {
+                            plantName: task.title,
+                            taskType: task.category === 'Fertilization' ? 'Fertilize' : task.category === 'Soil' ? 'Other' : 'Treatment',
+                            date: taskDate.toISOString().split('T')[0],
+                            notes: `${task.description}\n\nMateriali: ${task.materials?.join(', ') || 'Nessuno'}\n\nIstruzioni:\n${task.instructions.map((i, idx) => `${idx + 1}. ${i}`).join('\n')}`,
+                            season,
+                          };
+                          
+                          // Use onAddTask if available, otherwise fallback to onUpdateTask
+                          if (onAddTask) {
+                            onAddTask(taskData);
+                            console.log("✅ Lavoro preparatorio aggiunto al diario:", task.title);
+                            onNavigateToJournal();
+                          } else {
+                            // Fallback: use onUpdateTask with generated ID
+                            onUpdateTask({
+                              id: crypto.randomUUID(),
+                              ...taskData,
+                              gardenId: activeGarden.id,
+                              completed: false
+                            });
+                            console.log("✅ Lavoro preparatorio aggiunto al diario (fallback):", task.title);
+                            onNavigateToJournal();
+                          }
+                        } catch (error) {
+                          console.error("❌ Errore nell'aggiunta del lavoro preparatorio:", error);
+                          alert("❌ Errore nell'aggiunta del lavoro. Controlla la console per dettagli.");
+                        }
                       }}
                       className="mt-3 w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                     >

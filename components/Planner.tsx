@@ -324,13 +324,25 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
   // Unified function to add plant(s)
   const handlePlanPlanting = (method: 'Seed' | 'Seedling') => {
-      if (!specificResult) return;
+      if (!specificResult) {
+          console.error("⚠️ Nessun risultato selezionato");
+          alert("⚠️ Seleziona prima una pianta dalla ricerca.");
+          return;
+      }
+      
+      if (!garden || !garden.id) {
+          console.error("⚠️ Nessun orto configurato");
+          alert("⚠️ Configura prima un orto dalla Dashboard.");
+          return;
+      }
+      
       setSelectedMethod(method); // Track selected method
       const today = new Date();
       const soilAnalysis = getSoilAnalysis();
       const soilNote = soilAnalysis?.hasData ? `\n🌍 Suolo: ${soilAnalysis.phMsg}. ${soilAnalysis.typeMsg}` : '';
 
       // Create Batches
+      let tasksAdded = 0;
       for (let i = 0; i < numBatches; i++) {
           const plantingDate = new Date(today);
           plantingDate.setDate(today.getDate() + (i * batchInterval));
@@ -361,19 +373,25 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
           const moonPhase = calculateMoonPhase(plantingDateObj);
 
           // Add Main Task
-          onAddToJournal(
-              specificResult.name, 
-              notes, 
-              specificResult.variety, 
-              method, 
-              dateStr,
-              method === 'Seed' ? 'Sowing' : 'Transplant',
-              { 
-                ...harvestData, 
-                ...plantingStats,
-                moonPhase: moonPhase.phase // Salva fase lunare
-              } // Merge harvest and stats info
-          );
+          try {
+              onAddToJournal(
+                  specificResult.name, 
+                  notes, 
+                  specificResult.variety, 
+                  method, 
+                  dateStr,
+                  method === 'Seed' ? 'Sowing' : 'Transplant',
+                  { 
+                    ...harvestData, 
+                    ...plantingStats,
+                    moonPhase: moonPhase.phase // Salva fase lunare
+                  } // Merge harvest and stats info
+              );
+              tasksAdded++;
+          } catch (error) {
+              console.error("❌ Errore nell'aggiunta del task:", error);
+              alert(`❌ Errore nell'aggiunta del task ${i + 1}: ${error}`);
+          }
 
           // Add Fertilizer Reminders if enabled
           if (createFertilizerTasks && specificResult.fertilizer.scheduleDays) {
@@ -394,6 +412,15 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                    );
               });
           }
+      }
+      
+      // Feedback finale
+      if (tasksAdded > 0) {
+          console.log(`✅ ${tasksAdded} attività aggiunta/e al diario`);
+          // Il componente App gestirà il cambio tab e il feedback visivo
+      } else {
+          console.error("⚠️ Nessuna attività aggiunta");
+          alert("⚠️ Nessuna attività è stata aggiunta. Verifica la console per dettagli.");
       }
   };
 

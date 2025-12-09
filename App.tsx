@@ -23,6 +23,9 @@ const App: React.FC = () => {
   
   // Auto-scheduling feedback
   const [autoScheduleMessage, setAutoScheduleMessage] = useState<{ message: string; date: string } | null>(null);
+  
+  // Task added feedback
+  const [taskAddedMessage, setTaskAddedMessage] = useState<string | null>(null);
 
   // Initialization: Load data and handle migration
   useEffect(() => {
@@ -250,7 +253,11 @@ const App: React.FC = () => {
   };
 
   const addTask = (taskData: Omit<GardenTask, 'id' | 'completed' | 'gardenId'>) => {
-    if (!activeGardenId) return;
+    if (!activeGardenId) {
+      console.error("⚠️ Nessun orto attivo. Seleziona un orto prima di aggiungere attività.");
+      alert("⚠️ Nessun orto attivo. Seleziona un orto dalle impostazioni prima di aggiungere attività.");
+      return false;
+    }
     const newTask: GardenTask = {
       ...taskData,
       id: crypto.randomUUID(),
@@ -258,6 +265,13 @@ const App: React.FC = () => {
       completed: false,
     };
     setTasks(prev => [...prev, newTask]);
+    console.log("✅ Attività aggiunta al diario:", newTask.plantName, newTask.taskType);
+    
+    // Mostra feedback visivo
+    setTaskAddedMessage(`✅ ${newTask.plantName} aggiunto al diario!`);
+    setTimeout(() => setTaskAddedMessage(null), 3000);
+    
+    return true;
   };
 
   const toggleTask = (id: string) => {
@@ -367,6 +381,7 @@ const App: React.FC = () => {
             onUpdateGarden={handleUpdateGarden}
             onDeleteGarden={handleDeleteGarden}
             onUpdateTask={updateTask}
+            onAddTask={addTask}
         />;
       case Tab.PLANNER:
         return (
@@ -375,24 +390,30 @@ const App: React.FC = () => {
             tasks={gardenTasks}
             onUpdateTask={updateTask}
             onAddToJournal={(plantName, notes, variety, method, date, taskType, additionalData) => {
-              const month = new Date(date || new Date().toISOString()).getMonth() + 1;
-              const season = (month >= 4 && month <= 9) ? 'Summer' : 'Winter';
+              try {
+                const month = new Date(date || new Date().toISOString()).getMonth() + 1;
+                const season = (month >= 4 && month <= 9) ? 'Summer' : 'Winter';
 
-              addTask({
-                plantName,
-                variety,
-                plantingMethod: method,
-                taskType: taskType || (method === 'Seed' ? 'Sowing' : method === 'Seedling' ? 'Transplant' : 'Sowing'),
-                date: date || new Date().toISOString().split('T')[0],
-                notes,
-                season,
-                moonPhase: additionalData?.moonPhase,
-                initialQuantity: additionalData?.initialQuantity,
-                currentQuantity: additionalData?.currentQuantity,
-                locationType: additionalData?.locationType,
-                harvestReadyAnalysis: additionalData?.harvestReadyAnalysis,
-              });
-              setActiveTab(Tab.JOURNAL);
+                addTask({
+                  plantName,
+                  variety,
+                  plantingMethod: method,
+                  taskType: taskType || (method === 'Seed' ? 'Sowing' : method === 'Seedling' ? 'Transplant' : 'Sowing'),
+                  date: date || new Date().toISOString().split('T')[0],
+                  notes,
+                  season,
+                  moonPhase: additionalData?.moonPhase,
+                  initialQuantity: additionalData?.initialQuantity,
+                  currentQuantity: additionalData?.currentQuantity,
+                  locationType: additionalData?.locationType,
+                  harvestReadyAnalysis: additionalData?.harvestReadyAnalysis,
+                });
+                
+                setActiveTab(Tab.JOURNAL);
+              } catch (error) {
+                console.error("❌ Errore nell'aggiunta dell'attività:", error);
+                alert("❌ Errore nell'aggiunta dell'attività. Controlla la console per dettagli.");
+              }
             }} 
           />
         );
@@ -479,6 +500,22 @@ const App: React.FC = () => {
             <p className="font-bold text-sm">{autoScheduleMessage.message}</p>
             <button
               onClick={() => setAutoScheduleMessage(null)}
+              className="ml-2 text-white/80 hover:text-white"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Task Added Feedback Toast */}
+      {taskAddedMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-2">
+          <div className="bg-blue-600 text-white px-6 py-4 rounded-xl shadow-lg flex items-center gap-3 border-2 border-blue-700">
+            <CheckCircle size={24} className="flex-shrink-0" />
+            <p className="font-bold text-sm">{taskAddedMessage}</p>
+            <button
+              onClick={() => setTaskAddedMessage(null)}
               className="ml-2 text-white/80 hover:text-white"
             >
               <X size={18} />
