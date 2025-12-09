@@ -61,7 +61,6 @@ export const bioPrices: Record<string, number> = {
   // Altre
   'SPINACIO': 4,
   'BIETA': 3,
-  'RADICCHIO': 4,
   'RAVANELLO': 4,
   'RAPANELLO': 4,
   'PATATA': 2,
