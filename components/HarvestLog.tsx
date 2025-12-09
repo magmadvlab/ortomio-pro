@@ -1,7 +1,9 @@
 
 import React, { useState } from 'react';
-import { GardenTask, HarvestLogData, GrowingLocation } from '../types';
-import { ShoppingBasket, Star, Calendar, Camera, Scale, PlusCircle, Leaf, Snowflake, Sun, BarChart3, Box, Flower2, LayoutGrid, ArrowRight, X } from 'lucide-react';
+import { GardenTask, HarvestLogData, GrowingLocation, Recipe } from '../types';
+import { ShoppingBasket, Star, Calendar, Camera, Scale, PlusCircle, Leaf, Snowflake, Sun, BarChart3, Box, Flower2, LayoutGrid, ArrowRight, X, ChefHat } from 'lucide-react';
+import { getRecipesForHarvest } from '../services/recipeService';
+import RecipeCard from './RecipeCard';
 
 interface HarvestLogProps {
   tasks: GardenTask[];
@@ -24,6 +26,9 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
   const [harvestRating, setHarvestRating] = useState(3);
   const [harvestDate, setHarvestDate] = useState(new Date().toISOString().split('T')[0]);
   const [harvestPhoto, setHarvestPhoto] = useState<string | null>(null);
+  const [showRecipes, setShowRecipes] = useState(false);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loadingRecipes, setLoadingRecipes] = useState(false);
 
   // Grouped Data for Statistics
   const activeTasks = tasks.filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant'));
@@ -87,7 +92,7 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
     }
   };
 
-  const handleSubmitHarvest = (e: React.FormEvent) => {
+  const handleSubmitHarvest = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!selectedTaskForHarvest) return;
 
@@ -100,6 +105,28 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
           photo: harvestPhoto || undefined
       };
 
+      // Fetch recipes for this harvest
+      setLoadingRecipes(true);
+      let fetchedRecipes: Recipe[] = [];
+      try {
+          fetchedRecipes = await getRecipesForHarvest(
+              selectedTaskForHarvest.plantName,
+              newLog.quantity,
+              newLog.unit
+          );
+          newLog.suggestedRecipes = fetchedRecipes;
+          setRecipes(fetchedRecipes);
+          
+          // Show recipes modal if we have recipes
+          if (fetchedRecipes.length > 0) {
+              setShowRecipes(true);
+          }
+      } catch (error) {
+          console.error("Errore nel recupero delle ricette:", error);
+      } finally {
+          setLoadingRecipes(false);
+      }
+
       // Update the task with partial harvest history
       const updatedHistory = [...(selectedTaskForHarvest.harvestHistory || []), newLog];
       
@@ -110,9 +137,16 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
           notes: (selectedTaskForHarvest.notes || '') + `\n🧺 Raccolto parziale: ${newLog.quantity}${newLog.unit} il ${new Date(newLog.date).toLocaleDateString('it-IT')}`
       });
 
-      setSelectedTaskForHarvest(null);
+      // Reset form (but keep modal open if recipes are showing)
+      // Use fetchedRecipes instead of recipes since state updates are asynchronous
+      if (fetchedRecipes.length === 0) {
+          setSelectedTaskForHarvest(null);
+      }
+      // Reset all form fields to prevent stale data
       setHarvestQty('');
       setHarvestPhoto(null);
+      setHarvestRating(3); // Reset to default
+      setHarvestDate(new Date().toISOString().split('T')[0]); // Reset to today
   };
 
   const getLocationIcon = (loc?: GrowingLocation) => {
@@ -245,9 +279,63 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
                           <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                           {harvestPhoto ? <span className="text-green-600 font-bold text-sm">Foto caricata!</span> : <span className="text-gray-400 text-sm flex items-center justify-center gap-1"><Camera size={16}/> Aggiungi Foto</span>}
                       </label>
-                      <button type="submit" className="w-full py-3 bg-orange-600 text-white rounded-xl font-bold">Registra Raccolto</button>
+                      <button 
+                        type="submit" 
+                        disabled={loadingRecipes}
+                        className="w-full py-3 bg-orange-600 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {loadingRecipes ? (
+                          <>Caricamento ricette...</>
+                        ) : (
+                          <>Registra Raccolto</>
+                        )}
+                      </button>
                   </form>
                </div>
+          </div>
+      )}
+
+      {/* Recipes Modal */}
+      {showRecipes && recipes.length > 0 && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in zoom-in-95">
+                  <div className="flex justify-between items-start mb-4">
+                      <div>
+                          <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                              <ChefHat size={24} className="text-orange-600" />
+                              Ricette per {selectedTaskForHarvest?.plantName}
+                          </h3>
+                          <p className="text-sm text-gray-500 mt-1">Dall'orto alla tavola: ricette tradizionali italiane</p>
+                      </div>
+                      <button 
+                          onClick={() => {
+                              setShowRecipes(false);
+                              setSelectedTaskForHarvest(null);
+                              setRecipes([]);
+                          }}
+                          className="text-gray-400 hover:text-gray-600"
+                      >
+                          <X size={24} />
+                      </button>
+                  </div>
+
+                  <div className="space-y-4">
+                      {recipes.map((recipe, idx) => (
+                          <RecipeCard key={idx} recipe={recipe} />
+                      ))}
+                  </div>
+
+                  <button
+                      onClick={() => {
+                          setShowRecipes(false);
+                          setSelectedTaskForHarvest(null);
+                          setRecipes([]);
+                      }}
+                      className="w-full mt-6 py-3 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700 transition-colors"
+                  >
+                      Chiudi
+                  </button>
+              </div>
           </div>
       )}
 

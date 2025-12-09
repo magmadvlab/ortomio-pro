@@ -1,20 +1,30 @@
-import React, { useState } from 'react';
-import { GardenTask, HarvestLogData, GrowingLocation } from '../types';
+import React, { useState, useEffect } from 'react';
+import { GardenTask, HarvestLogData, GrowingLocation, Garden } from '../types';
 import { analyzePlantImage, checkHarvestReadiness } from '../services/geminiService';
-import { CheckCircle2, Circle, Calendar, Droplets, Shovel, Scissors, FlaskConical, Camera, Sparkles, Loader2, Sprout, X, PlusCircle, AlertCircle, Clock, Gauge, Scale, Star, ShoppingBasket, Snowflake, Sun, Box, Flower2, LayoutGrid, Users, History } from 'lucide-react';
+import { calculateNutrientNeeds } from '../logic/nutrientEngine';
+import { calculateHealthStrategy } from '../logic/healthEngine';
+import { getMasterSheet } from '../services/plantMasterService';
+import { calculatePlantDaysActive } from '../services/taskCalculationService';
+import { checkLifecycleStatus, LifecycleAdvice } from '../logic/lifecycleEngine';
+import { calculateMoonPhase, getMoonPhaseName, getMoonPhaseNameFromPhase, getMoonPhaseEmoji } from '../logic/lunarCalendar';
+import { CheckCircle2, Circle, Calendar, Droplets, Shovel, Scissors, FlaskConical, Camera, Sparkles, Loader2, Sprout, X, PlusCircle, AlertCircle, Clock, Gauge, Scale, Star, ShoppingBasket, Snowflake, Sun, Box, Flower2, LayoutGrid, Users, History, Leaf, Shield, CheckCircle, XCircle, Moon } from 'lucide-react';
 
 interface JournalProps {
   tasks: GardenTask[];
+  garden?: Garden;
   onToggleTask: (id: string) => void;
   onAddTask: (task: Omit<GardenTask, 'id' | 'completed' | 'gardenId'>) => void;
   onDeleteTask: (id: string) => void;
   onUpdateTask: (task: GardenTask) => void;
 }
 
-const Journal: React.FC<JournalProps> = ({ tasks, onToggleTask, onAddTask, onDeleteTask, onUpdateTask }) => {
+const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTask, onDeleteTask, onUpdateTask }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [analyzingImg, setAnalyzingImg] = useState<string | null>(null);
   const [checkingBrixId, setCheckingBrixId] = useState<string | null>(null);
+  
+  // Lifecycle Coach State
+  const [lifecycleAdvices, setLifecycleAdvices] = useState<Map<string, LifecycleAdvice>>(new Map());
   
   // Harvest Modal State
   const [harvestModalOpen, setHarvestModalOpen] = useState<string | null>(null);
@@ -215,6 +225,78 @@ const Journal: React.FC<JournalProps> = ({ tasks, onToggleTask, onAddTask, onDel
     setHarvestModalOpen(null);
   };
 
+  // Calculate lifecycle advices for active planting tasks
+  useEffect(() => {
+    if (!garden) return;
+    
+    const activePlantingTasks = tasks.filter(t => 
+      !t.completed && 
+      (t.taskType === 'Sowing' || t.taskType === 'Transplant') &&
+      t.gardenId === garden.id
+    );
+    
+    if (activePlantingTasks.length === 0) {
+      setLifecycleAdvices(new Map());
+      return;
+    }
+
+    const advicesMap = new Map<string, LifecycleAdvice>();
+
+    Promise.all(
+      activePlantingTasks.map(async (task) => {
+        const masterData = getMasterSheet(task.plantName);
+        if (!masterData) return;
+
+        try {
+          const advice = await checkLifecycleStatus(task, masterData, garden);
+          if (advice) {
+            advicesMap.set(task.id, advice);
+          }
+        } catch (error) {
+          console.error(`Error calculating lifecycle for ${task.plantName}:`, error);
+        }
+      })
+    ).then(() => {
+      setLifecycleAdvices(advicesMap);
+    });
+  }, [tasks, garden]);
+
+  const handleLifecycleResponse = (task: GardenTask, response: boolean, advice: LifecycleAdvice) => {
+    const updatedTask: GardenTask = {
+      ...task,
+      lifecycleState: advice.phase,
+      userResponses: {
+        ...task.userResponses,
+        ...(advice.phase === 'Germination' && { germinationConfirmed: response }),
+        ...(advice.phase === 'Transplanting' && { transplantReady: response }),
+      }
+    };
+
+    // Se l'utente risponde "Sì" alla germinazione, passa a Nursing
+    if (advice.phase === 'Germination' && response) {
+      updatedTask.lifecycleState = 'Nursing';
+    }
+
+    // Se l'utente risponde "Sì" al trapianto, passa a Production
+    if (advice.phase === 'Transplanting' && response) {
+      updatedTask.lifecycleState = 'Production';
+    }
+
+    onUpdateTask(updatedTask);
+  };
+
+  const getLifecyclePhaseLabel = (phase?: string) => {
+    const labels: Record<string, string> = {
+      'Sowing': 'Semina',
+      'Germination': 'Germinazione',
+      'Nursing': 'Cura Piantina',
+      'Hardening': 'Aclimatazione',
+      'Transplanting': 'Trapianto',
+      'Production': 'Produzione'
+    };
+    return labels[phase || ''] || phase || '—';
+  };
+
   const isPhotoNeeded = (task: GardenTask) => {
     if (task.completed || task.taskType !== 'Sowing') return false;
     const last = task.lastPhotoDate ? new Date(task.lastPhotoDate) : new Date(task.date);
@@ -401,12 +483,47 @@ const Journal: React.FC<JournalProps> = ({ tasks, onToggleTask, onAddTask, onDel
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap justify-between items-start gap-2">
                       <div>
-                        <h3 className={`font-bold text-lg text-gray-800 ${task.completed ? 'line-through text-gray-500' : ''}`}>
-                          {task.plantName}
-                        </h3>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className={`font-bold text-lg text-gray-800 ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                            {task.plantName}
+                          </h3>
+                          {task.lifecycleState && (
+                            <span className="text-xs font-bold uppercase bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                              {getLifecyclePhaseLabel(task.lifecycleState)}
+                            </span>
+                          )}
+                        </div>
                         {task.variety && (
                           <p className="text-sm text-green-700 font-medium italic">Varietà: {task.variety}</p>
                         )}
+                        {/* Lifecycle Coach Advice */}
+                        {!task.completed && lifecycleAdvices.has(task.id) && (() => {
+                          const advice = lifecycleAdvices.get(task.id)!;
+                          if (advice.type === 'CHECK' && advice.actionYes && advice.actionNo) {
+                            return (
+                              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <p className="text-sm font-medium text-blue-900 mb-2">{advice.message}</p>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleLifecycleResponse(task, true, advice)}
+                                    className="flex-1 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 flex items-center justify-center gap-1"
+                                  >
+                                    <CheckCircle size={14} />
+                                    Sì
+                                  </button>
+                                  <button
+                                    onClick={() => handleLifecycleResponse(task, false, advice)}
+                                    className="flex-1 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-300 flex items-center justify-center gap-1"
+                                  >
+                                    <XCircle size={14} />
+                                    No
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                       <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded-full flex items-center gap-1
                         ${task.taskType === 'Treatment' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}
@@ -416,7 +533,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, onToggleTask, onAddTask, onDel
                       </span>
                     </div>
                     
-                    <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                    <div className="flex items-center gap-2 mt-2 text-xs text-gray-500 flex-wrap">
                       <Calendar size={12} /> 
                       {new Date(task.date).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'long' })}
                       {task.season && (
@@ -424,6 +541,20 @@ const Journal: React.FC<JournalProps> = ({ tasks, onToggleTask, onAddTask, onDel
                           {task.season === 'Summer' ? <Sun size={10}/> : <Snowflake size={10}/>} {task.season === 'Summer' ? 'Estivo' : 'Invernale'}
                         </span>
                       )}
+                      {(task.taskType === 'Sowing' || task.taskType === 'Transplant') && (() => {
+                        // Use saved moonPhase if available, otherwise calculate from taskDate
+                        const moonName = task.moonPhase ? getMoonPhaseNameFromPhase(task.moonPhase) : getMoonPhaseName(new Date(task.date));
+                        const moonEmoji = task.moonPhase ? getMoonPhaseEmoji(task.moonPhase) : (() => {
+                          const taskDate = new Date(task.date);
+                          const moonInfo = calculateMoonPhase(taskDate);
+                          return moonInfo.isWaxing ? '🌒' : moonInfo.isWaning ? '🌘' : moonInfo.phase === 'Full' ? '🌕' : moonInfo.phase === 'New' ? '🌑' : '🌓';
+                        })();
+                        return (
+                          <span className="flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded bg-purple-50 text-purple-700">
+                            <Moon size={10}/> {moonEmoji} {moonName}
+                          </span>
+                        );
+                      })()}
                     </div>
 
                     {/* Location and Quantity Tracking */}
@@ -483,6 +614,133 @@ const Journal: React.FC<JournalProps> = ({ tasks, onToggleTask, onAddTask, onDel
                         ⏳ Prossimo: {new Date(task.nextDueDate).toLocaleDateString('it-IT')}
                       </div>
                     )}
+
+                    {/* Nutrient Advice Section */}
+                    {!task.completed && (task.taskType === 'Sowing' || task.taskType === 'Transplant') && (() => {
+                      const masterSheet = getMasterSheet(task.plantName);
+                      if (!masterSheet || !garden) return null;
+                      
+                      const daysActive = calculatePlantDaysActive(tasks, task.plantName, task.variety);
+                      if (daysActive === null) return null;
+                      
+                      const advice = calculateNutrientNeeds(masterSheet, daysActive, garden.soilType);
+                      if (!advice.shouldFertilize) return null;
+                      
+                      const elementColors = {
+                        'N': { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-800', icon: 'text-green-600', badge: 'bg-green-100 text-green-700' },
+                        'P': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-800', icon: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
+                        'K': { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-800', icon: 'text-orange-600', badge: 'bg-orange-100 text-orange-700' },
+                        'Micro': { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-800', icon: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
+                        'None': { bg: 'bg-gray-50', border: 'border-gray-200', text: 'text-gray-800', icon: 'text-gray-600', badge: 'bg-gray-100 text-gray-700' }
+                      };
+                      
+                      const colors = elementColors[advice.elementFocus] || elementColors['None'];
+                      const elementLabels = { 'N': 'Azoto', 'P': 'Fosforo', 'K': 'Potassio', 'Micro': 'Micronutrienti', 'None': 'Nessuno' };
+                      const phaseLabels = { 'Establishment': 'Radicazione', 'Vegetative': 'Vegetativa', 'Reproductive': 'Riproduttiva' };
+                      
+                      return (
+                        <div className={`mt-3 p-4 rounded-xl border-2 ${colors.border} ${colors.bg}`}>
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div className="flex items-center gap-2">
+                              <FlaskConical size={18} className={colors.icon} />
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${colors.badge}`}>
+                                    {elementLabels[advice.elementFocus]}
+                                  </span>
+                                  <span className="text-[10px] text-gray-500 uppercase">
+                                    {phaseLabels[advice.phase]}
+                                  </span>
+                                  <span className="text-[10px] text-gray-400">
+                                    ({daysActive} giorni)
+                                  </span>
+                                </div>
+                                <h4 className={`font-bold text-sm mt-1 ${colors.text}`}>
+                                  {advice.adviceTitle}
+                                </h4>
+                              </div>
+                            </div>
+                          </div>
+                          <p className={`text-sm ${colors.text} mb-2`}>
+                            {advice.adviceBody}
+                          </p>
+                          {advice.soilNote && (
+                            <div className={`mt-2 p-2 rounded-lg border ${colors.border} bg-white/50`}>
+                              <p className="text-xs leading-relaxed">{advice.soilNote}</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Health Protection Advice Section */}
+                    {!task.completed && (task.taskType === 'Sowing' || task.taskType === 'Transplant') && (() => {
+                      const masterSheet = getMasterSheet(task.plantName);
+                      if (!masterSheet || !garden) return null;
+                      
+                      const daysActive = calculatePlantDaysActive(tasks, task.plantName, task.variety);
+                      if (daysActive === null) return null;
+                      
+                      const healthAdvice = calculateHealthStrategy(masterSheet, daysActive);
+                      if (!healthAdvice) return null;
+                      
+                      const priorityColors = {
+                        'High': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-800', badge: 'bg-red-100 text-red-700', icon: 'text-red-600' },
+                        'Medium': { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-800', badge: 'bg-orange-100 text-orange-700', icon: 'text-orange-600' },
+                        'Low': { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-800', badge: 'bg-yellow-100 text-yellow-700', icon: 'text-yellow-600' }
+                      };
+                      
+                      const colors = priorityColors[healthAdvice.priority] || priorityColors['Low'];
+                      const actionLabels = { 'Prevent': 'Prevenzione', 'Monitor': 'Monitoraggio' };
+                      const seasonLabels = { 'Spring': 'Primavera', 'Summer': 'Estate', 'Autumn': 'Autunno', 'Winter': 'Inverno' };
+                      
+                      return (
+                        <div className={`mt-3 p-4 rounded-xl border-2 ${colors.border} ${colors.bg}`}>
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div className="flex items-center gap-2">
+                              <Shield size={18} className={colors.icon} />
+                              <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${colors.badge}`}>
+                                    {actionLabels[healthAdvice.actionType]}
+                                  </span>
+                                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${colors.badge}`}>
+                                    {healthAdvice.priority} Priority
+                                  </span>
+                                  {healthAdvice.season && (
+                                    <span className="text-[10px] text-gray-500 uppercase">
+                                      {seasonLabels[healthAdvice.season]}
+                                    </span>
+                                  )}
+                                </div>
+                                <h4 className={`font-bold text-sm mt-1 ${colors.text}`}>
+                                  {healthAdvice.productToUse}
+                                </h4>
+                              </div>
+                            </div>
+                          </div>
+                          <p className={`text-sm ${colors.text} mb-2`}>
+                            {healthAdvice.reason}
+                          </p>
+                          {healthAdvice.dosage && (
+                            <div className={`mt-2 p-2 rounded-lg border ${colors.border} bg-white/50`}>
+                              <p className="text-xs font-semibold mb-1">Dosaggio:</p>
+                              <p className="text-xs">{healthAdvice.dosage}</p>
+                            </div>
+                          )}
+                          {healthAdvice.applicationNotes && (
+                            <div className={`mt-2 p-2 rounded-lg border ${colors.border} bg-white/50`}>
+                              <p className="text-xs">{healthAdvice.applicationNotes}</p>
+                            </div>
+                          )}
+                          {healthAdvice.nextTreatmentDate && (
+                            <div className="mt-2 text-xs font-bold text-gray-600">
+                              Prossimo trattamento consigliato: {new Date(healthAdvice.nextTreatmentDate).toLocaleDateString('it-IT')}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Harvest History Preview */}
                     {task.harvestHistory && task.harvestHistory.length > 0 && (

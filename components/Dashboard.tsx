@@ -1,7 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { GardenTask, Garden } from '../types';
-import { Sun, CloudRain, CalendarCheck, AlertTriangle, Settings, Save, Cloud, CloudLightning, Snowflake, CloudFog, Loader2, MapPin, Droplets, ThermometerSun, FlaskConical, Shovel, ChevronDown, Plus, Trash2, Home } from 'lucide-react';
+import { Sun, CloudRain, CalendarCheck, AlertTriangle, Settings, Save, Cloud, CloudLightning, Snowflake, CloudFog, Loader2, MapPin, Droplets, ThermometerSun, FlaskConical, Shovel, ChevronDown, Plus, Trash2, Home, Sparkles, CheckCircle, XCircle, Moon, Package, Plane } from 'lucide-react';
+import { getCurrentPositionWithRetry, getDefaultCoordinates } from '../services/geolocationService';
+import { checkLifecycleStatus, LifecycleAdvice } from '../logic/lifecycleEngine';
+import { getMasterSheet } from '../services/plantMasterService';
+import { getActivePlants } from '../services/taskCalculationService';
+import SeedInventory from './SeedInventory';
+import { calculateMoonPhase, getMoonPhaseName } from '../logic/lunarCalendar';
+import { findAllSuccessionOpportunities, SuccessionSuggestion } from '../logic/successionEngine';
+import { hasUpcomingVacation, hasActiveVacation, getDaysUntilDeparture } from '../logic/vacationEngine';
+import VacationMode from './VacationMode';
 
 interface DashboardProps {
   tasks: GardenTask[];
@@ -12,11 +21,12 @@ interface DashboardProps {
   onAddGarden: (g: Garden) => void;
   onUpdateGarden: (g: Garden) => void;
   onDeleteGarden: (id: string) => void;
+  onUpdateTask: (task: GardenTask) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
     tasks, onNavigateToJournal, gardens, activeGardenId, 
-    onSelectGarden, onAddGarden, onUpdateGarden, onDeleteGarden 
+    onSelectGarden, onAddGarden, onUpdateGarden, onDeleteGarden, onUpdateTask
 }) => {
   const activeGarden = gardens.find(g => g.id === activeGardenId);
   const [isEditingSettings, setIsEditingSettings] = useState(false);
@@ -37,6 +47,19 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [weatherError, setWeatherError] = useState(false);
   
   const [seasonFilter, setSeasonFilter] = useState<'Summer' | 'Winter'>('Summer');
+  
+  // Lifecycle Coach State
+  const [lifecycleAdvices, setLifecycleAdvices] = useState<Map<string, LifecycleAdvice>>(new Map());
+  const [lifecycleLoading, setLifecycleLoading] = useState(false);
+  
+  // Seed Inventory State
+  const [showSeedInventory, setShowSeedInventory] = useState(false);
+  
+  // Succession Opportunities State
+  const [successionOpportunities, setSuccessionOpportunities] = useState<SuccessionSuggestion[]>([]);
+  
+  // Vacation Mode State
+  const [showVacationMode, setShowVacationMode] = useState(false);
 
   // Initialize form when opening settings or creating new
   useEffect(() => {
@@ -92,11 +115,12 @@ const Dashboard: React.FC<DashboardProps> = ({
             console.error("Weather fetch failed", e);
             setWeatherError(true);
             // Se il fetch fallisce, prova con coordinate di default (Roma) come fallback
-            if (lat !== 41.9028 || lng !== 12.4964) {
+            const defaultCoords = getDefaultCoordinates();
+            if (lat !== defaultCoords.latitude || lng !== defaultCoords.longitude) {
                 console.warn("Tentativo con coordinate di default (Roma)");
                 try {
                     const fallbackResponse = await fetch(
-                        `https://api.open-meteo.com/v1/forecast?latitude=41.9028&longitude=12.4964&current_weather=true&daily=precipitation_sum,weathercode&timezone=auto`
+                        `https://api.open-meteo.com/v1/forecast?latitude=${defaultCoords.latitude}&longitude=${defaultCoords.longitude}&current_weather=true&daily=precipitation_sum,weathercode&timezone=auto`
                     );
                     const fallbackData = await fallbackResponse.json();
                     if (fallbackData.current_weather && fallbackData.daily) {
@@ -117,28 +141,99 @@ const Dashboard: React.FC<DashboardProps> = ({
     };
 
     if (activeGarden?.coordinates) {
+        // Usa coordinate salvate dell'orto
         fetchWeather(activeGarden.coordinates.latitude, activeGarden.coordinates.longitude);
-    } else if (navigator.geolocation) {
-        setWeatherLoading(true);
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                fetchWeather(position.coords.latitude, position.coords.longitude);
-            },
-            (error) => {
-                console.warn("Geolocalizzazione non disponibile, uso coordinate di default (Roma)", error);
-                // Fallback a coordinate di default (Roma) per permettere il funzionamento anche senza geolocalizzazione
-                fetchWeather(41.9028, 12.4964);
-            },
-            { timeout: 10000, enableHighAccuracy: false }
-        );
     } else {
-        console.warn("Geolocalizzazione non supportata, uso coordinate di default (Roma)");
-        // Fallback a coordinate di default (Roma)
-        fetchWeather(41.9028, 12.4964);
+        // Prova geolocalizzazione con retry (silenzioso - non mostra errori all'utente)
+        setWeatherLoading(true);
+        getCurrentPositionWithRetry(2, {
+            timeout: 20000, // 20 secondi su mobile
+            enableHighAccuracy: false,
+            maximumAge: 300000, // 5 minuti
+        }).then((result) => {
+            if (result.success && result.latitude && result.longitude) {
+                fetchWeather(result.latitude, result.longitude);
+            } else {
+                // Fallback silenzioso a coordinate di default
+                console.warn("Geolocalizzazione non disponibile, uso coordinate di default:", result.error);
+                const defaultCoords = getDefaultCoordinates();
+                fetchWeather(defaultCoords.latitude, defaultCoords.longitude);
+            }
+        });
     }
   }, [activeGarden]);
 
-  const handleSaveGarden = () => {
+  // Calculate lifecycle advices for active plants
+  useEffect(() => {
+    if (!activeGarden) return;
+    
+    const activePlantTasks = getActivePlants(tasks.filter(t => t.gardenId === activeGardenId));
+    if (activePlantTasks.length === 0) {
+      setLifecycleAdvices(new Map());
+      return;
+    }
+
+    setLifecycleLoading(true);
+    const advicesMap = new Map<string, LifecycleAdvice>();
+
+    Promise.all(
+      activePlantTasks.map(async (task) => {
+        const masterData = getMasterSheet(task.plantName);
+        if (!masterData) return;
+
+        try {
+          const advice = await checkLifecycleStatus(task, masterData, activeGarden);
+          if (advice) {
+            advicesMap.set(task.id, advice);
+          }
+        } catch (error) {
+          console.error(`Error calculating lifecycle for ${task.plantName}:`, error);
+        }
+      })
+    ).then(() => {
+      setLifecycleAdvices(advicesMap);
+      setLifecycleLoading(false);
+    });
+  }, [tasks, activeGarden, activeGardenId]);
+
+  // Calculate succession opportunities
+  useEffect(() => {
+    if (!activeGarden || tasks.length === 0) {
+      setSuccessionOpportunities([]);
+      return;
+    }
+
+    // Filter tasks to only include those from the active garden
+    const activeGardenTasks = tasks.filter(task => task.gardenId === activeGardenId);
+    const opportunities = findAllSuccessionOpportunities(activeGardenTasks);
+    setSuccessionOpportunities(opportunities);
+  }, [tasks, activeGarden, activeGardenId]);
+
+  const handleLifecycleResponse = (task: GardenTask, response: boolean, advice: LifecycleAdvice) => {
+    const updatedTask: GardenTask = {
+      ...task,
+      lifecycleState: advice.phase,
+      userResponses: {
+        ...task.userResponses,
+        ...(advice.phase === 'Germination' && { germinationConfirmed: response }),
+        ...(advice.phase === 'Transplanting' && { transplantReady: response }),
+      }
+    };
+
+    // Se l'utente risponde "Sì" alla germinazione, passa a Nursing
+    if (advice.phase === 'Germination' && response) {
+      updatedTask.lifecycleState = 'Nursing';
+    }
+
+    // Se l'utente risponde "Sì" al trapianto, passa a Production
+    if (advice.phase === 'Transplanting' && response) {
+      updatedTask.lifecycleState = 'Production';
+    }
+
+    onUpdateTask(updatedTask);
+  };
+
+  const handleSaveGarden = async () => {
       const size = parseFloat(tempSize);
       const ph = parseFloat(tempPh);
       
@@ -150,24 +245,24 @@ const Dashboard: React.FC<DashboardProps> = ({
       };
 
       if (isCreatingNew) {
-          // Attempt to get location for new garden
-          if (navigator.geolocation) {
-              navigator.geolocation.getCurrentPosition((pos) => {
-                  onAddGarden({
-                      id: crypto.randomUUID(),
-                      createdAt: new Date().toISOString(),
-                      ...gardenData,
-                      coordinates: { latitude: pos.coords.latitude, longitude: pos.coords.longitude }
-                  });
-              }, () => {
-                   // Fallback without location
-                   onAddGarden({
-                      id: crypto.randomUUID(),
-                      createdAt: new Date().toISOString(),
-                      ...gardenData
-                  });
+          // Prova a ottenere la posizione con retry
+          const result = await getCurrentPositionWithRetry(2, {
+              timeout: 20000,
+              enableHighAccuracy: false,
+          });
+          
+          if (result.success && result.latitude && result.longitude) {
+              onAddGarden({
+                  id: crypto.randomUUID(),
+                  createdAt: new Date().toISOString(),
+                  ...gardenData,
+                  coordinates: { 
+                      latitude: result.latitude, 
+                      longitude: result.longitude 
+                  }
               });
           } else {
+              // Crea orto senza coordinate (silenzioso - non mostra errori)
               onAddGarden({
                   id: crypto.randomUUID(),
                   createdAt: new Date().toISOString(),
@@ -185,15 +280,30 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
   };
 
-  const updateLocation = () => {
-      if (!activeGarden || !navigator.geolocation) return;
-      navigator.geolocation.getCurrentPosition((pos) => {
+  const updateLocation = async () => {
+      if (!activeGarden) return;
+      
+      const result = await getCurrentPositionWithRetry(2, {
+          timeout: 20000,
+          enableHighAccuracy: false,
+      });
+      
+      if (result.success && result.latitude && result.longitude) {
           onUpdateGarden({
               ...activeGarden,
-              coordinates: { latitude: pos.coords.latitude, longitude: pos.coords.longitude }
+              coordinates: { 
+                  latitude: result.latitude, 
+                  longitude: result.longitude 
+              }
           });
-          alert("Posizione orto aggiornata con successo!");
-      }, () => alert("Errore nel recupero della posizione."));
+          // Mostra feedback positivo senza alert (usa un toast o stato)
+          // Per ora usiamo console.log, ma potresti aggiungere un sistema di notifiche
+          console.log("✅ Posizione orto aggiornata con successo!");
+      } else {
+          // Non mostrare alert fastidioso - l'utente può riprovare
+          // Se vuoi, puoi aggiungere un messaggio più elegante nell'UI
+          console.warn("❌ Impossibile aggiornare la posizione:", result.error);
+      }
   };
 
   const getSoilLabel = (type: string) => {
@@ -435,6 +545,34 @@ const Dashboard: React.FC<DashboardProps> = ({
           })()
       )}
 
+      {/* MOON PHASE WIDGET */}
+      {(() => {
+        const moonInfo = calculateMoonPhase(new Date());
+        const moonName = moonInfo.name; // Reuse the name from moonInfo instead of recalculating
+        const moonEmoji = moonInfo.isWaxing ? '🌒' : moonInfo.isWaning ? '🌘' : moonInfo.phase === 'Full' ? '🌕' : moonInfo.phase === 'New' ? '🌑' : '🌓';
+        
+        return (
+          <div className="bg-gradient-to-br from-indigo-400 to-purple-600 rounded-2xl p-5 text-white shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Moon size={32} className="text-yellow-200" />
+                <div>
+                  <h3 className="text-lg font-bold">Fase Lunare</h3>
+                  <p className="text-sm opacity-90">{moonName}</p>
+                </div>
+              </div>
+              <div className="text-4xl">{moonEmoji}</div>
+            </div>
+            <div className="mt-3 text-xs opacity-80">
+              {moonInfo.isWaxing && 'Luna Crescente: Ideale per semina foglie/frutti e trapianti'}
+              {moonInfo.isWaning && 'Luna Calante: Ideale per semina radici e raccolta foglie'}
+              {moonInfo.phase === 'Full' && 'Luna Piena: Evita semine, buona per raccolti'}
+              {moonInfo.phase === 'New' && 'Luna Nuova: Inizio nuovo ciclo, buona per semine'}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* SEASON TOGGLE */}
       <div className="bg-white p-2 rounded-xl border border-gray-200 flex gap-2 shadow-sm">
           <button onClick={() => setSeasonFilter('Summer')} className={`flex-1 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${seasonFilter === 'Summer' ? 'bg-yellow-100 text-yellow-800 shadow-sm' : 'text-gray-400 hover:bg-gray-50'}`}>
@@ -444,6 +582,238 @@ const Dashboard: React.FC<DashboardProps> = ({
               <Snowflake size={18}/> Orto Invernale
           </button>
       </div>
+
+      {/* Vacation Mode Alert */}
+      {activeGarden && !showVacationMode && (hasUpcomingVacation(activeGarden) || hasActiveVacation(activeGarden)) && (
+        <div className={`rounded-2xl p-5 shadow-lg border-2 ${
+          hasActiveVacation(activeGarden)
+            ? 'bg-green-50 border-green-300'
+            : 'bg-blue-50 border-blue-300'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`p-3 rounded-full ${
+                hasActiveVacation(activeGarden) ? 'bg-green-200' : 'bg-blue-200'
+              }`}>
+                <Plane size={24} className={hasActiveVacation(activeGarden) ? 'text-green-700' : 'text-blue-700'} />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">
+                  {hasActiveVacation(activeGarden) ? '🌴 Sei in vacanza!' : '⏰ Vacanza in arrivo'}
+                </h3>
+                <p className="text-sm opacity-80">
+                  {hasActiveVacation(activeGarden)
+                    ? `Le tue piante sono in modalità sopravvivenza fino al ${activeGarden.vacationMode && new Date(activeGarden.vacationMode.endDate).toLocaleDateString('it-IT')}`
+                    : activeGarden.vacationMode && `Parti tra ${getDaysUntilDeparture(new Date(activeGarden.vacationMode.startDate))} giorni - Completa il piano di sopravvivenza!`}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowVacationMode(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700"
+            >
+              Apri Piano
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Vacation Mode Button */}
+      {activeGarden && !showVacationMode && !hasUpcomingVacation(activeGarden) && !hasActiveVacation(activeGarden) && (
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-blue-100">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                <Plane size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-800">Modalità Vacanza</h3>
+                <p className="text-xs text-gray-500">Piano di sopravvivenza per le tue piante</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowVacationMode(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700"
+            >
+              Imposta Vacanza
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Vacation Mode Component */}
+      {showVacationMode && activeGarden && (
+        <VacationMode
+          garden={activeGarden}
+          tasks={tasks}
+          onUpdateGarden={(updatedGarden) => {
+            onUpdateGarden(updatedGarden);
+            setShowVacationMode(false);
+          }}
+        />
+      )}
+
+      {/* LIFECYCLE COACH SECTION */}
+      {activeGarden && !showVacationMode && (
+        <div>
+          <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <Sparkles size={20} className="text-purple-600" />
+            Coach delle Piante
+          </h3>
+          {lifecycleLoading ? (
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 text-center">
+              <Loader2 className="animate-spin mx-auto mb-2 text-green-600" size={24} />
+              <p className="text-sm text-gray-500">Analisi delle tue piante...</p>
+            </div>
+          ) : lifecycleAdvices.size === 0 ? (
+            <div className="bg-green-50 p-4 rounded-xl border border-green-100 text-center">
+              <p className="text-green-700">Nessuna pianta attiva al momento. Aggiungi una semina o trapianto per ricevere suggerimenti personalizzati!</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {Array.from(lifecycleAdvices.entries()).map(([taskId, advice]) => {
+                const task = tasks.find(t => t.id === taskId);
+                if (!task) return null;
+
+                const getAdviceColor = () => {
+                  switch (advice.type) {
+                    case 'WARNING': return 'bg-orange-50 border-orange-200 text-orange-900';
+                    case 'CHECK': return 'bg-blue-50 border-blue-200 text-blue-900';
+                    case 'TASK': return 'bg-purple-50 border-purple-200 text-purple-900';
+                    default: return 'bg-green-50 border-green-200 text-green-900';
+                  }
+                };
+
+                return (
+                  <div key={taskId} className={`${getAdviceColor()} p-5 rounded-2xl border-l-8 shadow-sm`}>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h4 className="font-bold text-lg mb-1">{task.plantName}</h4>
+                        <p className="text-sm font-medium opacity-90">{advice.message}</p>
+                      </div>
+                      <span className="text-xs font-bold uppercase bg-white/50 px-2 py-1 rounded">
+                        {advice.phase}
+                      </span>
+                    </div>
+
+                    {/* Bottoni Sì/No per CHECK */}
+                    {advice.type === 'CHECK' && advice.actionYes && advice.actionNo && (
+                      <div className="flex gap-2 mt-4">
+                        <button
+                          onClick={() => handleLifecycleResponse(task, true, advice)}
+                          className="flex-1 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 flex items-center justify-center gap-2"
+                        >
+                          <CheckCircle size={18} />
+                          Sì
+                        </button>
+                        <button
+                          onClick={() => handleLifecycleResponse(task, false, advice)}
+                          className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 flex items-center justify-center gap-2"
+                        >
+                          <XCircle size={18} />
+                          No
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Lista sub-tasks */}
+                    {advice.subTasks && advice.subTasks.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        <p className="text-xs font-bold uppercase opacity-75 mb-2">Cosa fare:</p>
+                        <ul className="space-y-1">
+                          {advice.subTasks.map((subTask, idx) => (
+                            <li key={idx} className="text-sm flex items-start gap-2">
+                              <span className="text-green-600 mt-1">•</span>
+                              <span>{subTask}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Related Advice (Nutrients/Health) */}
+                    {advice.relatedAdvice && (
+                      <div className="mt-4 pt-4 border-t border-white/30">
+                        {advice.relatedAdvice.nutrients && advice.relatedAdvice.nutrients.shouldFertilize && (
+                          <div className="text-xs mb-2">
+                            <span className="font-bold">💚 Nutrizione: </span>
+                            <span>{advice.relatedAdvice.nutrients.adviceTitle}</span>
+                          </div>
+                        )}
+                        {advice.relatedAdvice.health && (
+                          <div className="text-xs">
+                            <span className="font-bold">🛡️ Protezione: </span>
+                            <span>{advice.relatedAdvice.health.productToUse}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Prossime Successioni */}
+      {successionOpportunities.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <Sparkles size={20} className="text-purple-600" />
+            Prossime Successioni
+          </h3>
+          <div className="space-y-3">
+            {successionOpportunities.map((suggestion, idx) => {
+              const startSowingStr = suggestion.startSowingDate.toLocaleDateString('it-IT');
+              const transplantStr = suggestion.transplantDate.toLocaleDateString('it-IT');
+              
+              return (
+                <div key={idx} className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h4 className="font-bold text-lg text-gray-800 mb-1">
+                        {suggestion.plant.commonName.toLowerCase()} → {suggestion.plant.commonName.toLowerCase()}
+                      </h4>
+                      <p className="text-sm text-gray-600">{suggestion.reason}</p>
+                    </div>
+                    <span className="text-xs font-bold uppercase bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                      {suggestion.daysUntilSpaceFree} giorni
+                    </span>
+                  </div>
+                  
+                  <div className="bg-white/60 rounded-xl p-3 mb-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CalendarCheck size={16} className="text-purple-600" />
+                      <span className="font-medium text-gray-700">
+                        Semina: <span className="font-bold text-purple-700">{startSowingStr}</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm mt-2">
+                      <CheckCircle size={16} className="text-green-600" />
+                      <span className="font-medium text-gray-700">
+                        Trapianto: <span className="font-bold text-green-700">{transplantStr}</span>
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      // Navigate to Planner with pre-selected plant
+                      // This would require passing a callback or using navigation
+                      console.log("Pianifica successione:", suggestion.plant.commonName);
+                    }}
+                    className="w-full py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 flex items-center justify-center gap-2 text-sm"
+                  >
+                    <Plus size={16} />
+                    Pianifica Successione
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-green-100 flex flex-col justify-between h-32 cursor-pointer hover:bg-green-50 transition-colors" onClick={onNavigateToJournal}>
@@ -466,6 +836,34 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
         </div>
       </div>
+
+      {/* Seed Inventory Quick Access */}
+      {activeGarden && (
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-purple-100">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600">
+                <Package size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-800">Banca dei Semi</h3>
+                <p className="text-xs text-gray-500">Gestisci l'inventario dei tuoi semi</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowSeedInventory(!showSeedInventory)}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-bold hover:bg-purple-700"
+            >
+              {showSeedInventory ? 'Nascondi' : 'Apri'}
+            </button>
+          </div>
+          {showSeedInventory && (
+            <div className="mt-4">
+              <SeedInventory garden={activeGarden} />
+            </div>
+          )}
+        </div>
+      )}
 
       <div>
         <h3 className="text-lg font-bold text-gray-800 mb-3">Promemoria Urgente</h3>

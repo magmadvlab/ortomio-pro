@@ -306,11 +306,14 @@ const App: React.FC = () => {
             onAddGarden={handleAddGarden}
             onUpdateGarden={handleUpdateGarden}
             onDeleteGarden={handleDeleteGarden}
+            onUpdateTask={updateTask}
         />;
       case Tab.PLANNER:
         return (
           <Planner 
             garden={currentGarden}
+            tasks={gardenTasks}
+            onUpdateTask={updateTask}
             onAddToJournal={(plantName, notes, variety, method, date, taskType, additionalData) => {
               const month = new Date(date || new Date().toISOString()).getMonth() + 1;
               const season = (month >= 4 && month <= 9) ? 'Summer' : 'Winter';
@@ -323,6 +326,7 @@ const App: React.FC = () => {
                 date: date || new Date().toISOString().split('T')[0],
                 notes,
                 season,
+                moonPhase: additionalData?.moonPhase,
                 initialQuantity: additionalData?.initialQuantity,
                 currentQuantity: additionalData?.currentQuantity,
                 locationType: additionalData?.locationType,
@@ -353,6 +357,7 @@ const App: React.FC = () => {
       case Tab.JOURNAL:
         return <Journal 
             tasks={gardenTasks} 
+            garden={currentGarden}
             onToggleTask={toggleTask} 
             onAddTask={(t) => addTask(t)} // wrapper to handle gardenId in App
             onDeleteTask={deleteTask} 

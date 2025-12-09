@@ -2,11 +2,17 @@
 import React, { useState, useEffect } from 'react';
 import { getSeasonalSuggestions, getSpecificPlantDetails } from '../services/geminiService';
 import { PlantSuggestion, GeoLocation, SpecificPlantInfo, Garden, GrowingLocation } from '../types';
-import { MapPin, Loader2, PlusCircle, Search, Leaf, ArrowRight, Droplets, FlaskConical, Scale, Edit3, Sun, Thermometer, Layers, Clock, Info, CalendarPlus, Settings, Gauge, Sprout, AlertTriangle, CheckCircle, Calendar, Sparkles, Box, LayoutGrid, Flower2 } from 'lucide-react';
+import { MapPin, Loader2, PlusCircle, Search, Leaf, ArrowRight, Droplets, FlaskConical, Scale, Edit3, Sun, Thermometer, Layers, Clock, Info, CalendarPlus, Settings, Gauge, Sprout, AlertTriangle, CheckCircle, Calendar, Sparkles, Box, LayoutGrid, Flower2, Package, Map } from 'lucide-react';
+import { getCurrentPositionWithRetry, getDefaultCoordinates } from '../services/geolocationService';
+import { findSeedsForPlant, getExpiringSeeds } from '../services/seedInventoryService';
+import { calculateMoonPhase, getMoonPhaseName, isIdealPhaseFor } from '../logic/lunarCalendar';
+import VisualGardenPlanner from './VisualGardenPlanner';
 
 interface PlannerProps {
   onAddToJournal: (plantName: string, notes: string, variety?: string, method?: 'Seed' | 'Seedling', date?: string, taskType?: any, additionalData?: any) => void;
   garden: Garden;
+  tasks?: any[]; // Per il Visual Planner
+  onUpdateTask?: (task: any) => void; // Per il Visual Planner
 }
 
 const parseMonthsFromText = (text: string | undefined): number[] => {
@@ -96,7 +102,8 @@ const PlantCalendar: React.FC<{ sowing: string, transplant: string, harvest: str
     );
 };
 
-const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden }) => {
+const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], onUpdateTask }) => {
+  const [showVisualPlanner, setShowVisualPlanner] = useState(false);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<PlantSuggestion[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -166,24 +173,24 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden }) => {
       }
 
       if (lat && lng) {
-          fetchSugg(lat, lng);
-      } else if (navigator.geolocation) {
-           navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                fetchSugg(position.coords.latitude, position.coords.longitude);
-            },
-            (err) => {
-                setLoading(false);
-                // Fallback a coordinate di default (Roma)
-                console.warn("Geolocalizzazione non disponibile, uso coordinate di default (Roma)");
-                fetchSugg(41.9028, 12.4964);
-            },
-            { timeout: 10000, enableHighAccuracy: false }
-           );
+          // Usa coordinate salvate dell'orto
+          await fetchSugg(lat, lng);
       } else {
-           // Fallback a coordinate di default (Roma)
-           console.warn("Geolocalizzazione non supportata, uso coordinate di default (Roma)");
-           fetchSugg(41.9028, 12.4964);
+          // Prova geolocalizzazione con retry
+          const result = await getCurrentPositionWithRetry(2, {
+              timeout: 20000, // 20 secondi su mobile
+              enableHighAccuracy: false,
+              maximumAge: 300000, // 5 minuti
+          });
+          
+          if (result.success && result.latitude && result.longitude) {
+              await fetchSugg(result.latitude, result.longitude);
+          } else {
+              // Fallback silenzioso a coordinate di default
+              console.warn("Geolocalizzazione non disponibile, uso coordinate di default:", result.error);
+              const defaultCoords = getDefaultCoordinates();
+              await fetchSugg(defaultCoords.latitude, defaultCoords.longitude);
+          }
       }
   }
 
@@ -191,8 +198,10 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden }) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
-    let lat = garden.coordinates?.latitude || 41.9028; // Default Rome if no location
-    let lng = garden.coordinates?.longitude || 12.4964;
+    // Use garden coordinates if available, otherwise use default coordinates
+    const defaultCoords = getDefaultCoordinates();
+    let lat = garden.coordinates?.latitude || defaultCoords.latitude;
+    let lng = garden.coordinates?.longitude || defaultCoords.longitude;
 
     setSearchLoading(true);
     setSpecificResult(null);
@@ -340,6 +349,10 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden }) => {
               locationType: locationType
           };
 
+          // Salva fase lunare
+          const plantingDateObj = new Date(plantingDate);
+          const moonPhase = calculateMoonPhase(plantingDateObj);
+
           // Add Main Task
           onAddToJournal(
               specificResult.name, 
@@ -348,7 +361,11 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden }) => {
               method, 
               dateStr,
               method === 'Seed' ? 'Sowing' : 'Transplant',
-              { ...harvestData, ...plantingStats } // Merge harvest and stats info
+              { 
+                ...harvestData, 
+                ...plantingStats,
+                moonPhase: moonPhase.phase // Salva fase lunare
+              } // Merge harvest and stats info
           );
 
           // Add Fertilizer Reminders if enabled
@@ -379,10 +396,31 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden }) => {
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold text-green-800">Cosa vuoi coltivare?</h1>
-        <p className="text-green-600">Pianifica per: <b>{garden.name}</b></p>
+      <header className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-green-800">Cosa vuoi coltivare?</h1>
+          <p className="text-green-600">Pianifica per: <b>{garden.name}</b></p>
+        </div>
+        {onUpdateTask && (
+          <button
+            onClick={() => setShowVisualPlanner(true)}
+            className="bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+          >
+            <Map size={18} />
+            Mappa Orto
+          </button>
+        )}
       </header>
+
+      {/* Visual Planner Modal */}
+      {showVisualPlanner && onUpdateTask && (
+        <VisualGardenPlanner
+          garden={garden}
+          tasks={tasks}
+          onUpdateTask={onUpdateTask}
+          onClose={() => setShowVisualPlanner(false)}
+        />
+      )}
 
       {/* SEARCH SECTION - PRIMARY */}
       <div className="bg-white p-6 rounded-2xl shadow-lg border border-green-200">
@@ -428,6 +466,36 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden }) => {
                     <h3 className="font-bold text-xl text-green-900">{specificResult.name}</h3>
                     <p className="text-green-700 font-medium italic">Varietà: {specificResult.variety}</p>
                     <p className="text-sm text-gray-600 mt-2 bg-white p-3 rounded-lg border border-green-50">{specificResult.notes}</p>
+                    
+                    {/* Seed Availability */}
+                    {(() => {
+                      const availableSeeds = findSeedsForPlant(garden.id, specificResult.name, specificResult.variety);
+                      const expiringSeeds = getExpiringSeeds(garden.id, new Date().getFullYear()).filter(s => 
+                        s.speciesName.toLowerCase() === specificResult.name.toLowerCase()
+                      );
+                      
+                      if (availableSeeds.length > 0 || expiringSeeds.length > 0) {
+                        return (
+                          <div className="mt-3 bg-white p-3 rounded-lg border border-green-50">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Package size={16} className="text-green-600" />
+                              <span className="text-sm font-bold text-gray-700">Semi Disponibili:</span>
+                            </div>
+                            <div className="space-y-1">
+                              {availableSeeds.map(seed => (
+                                <div key={seed.id} className="text-xs flex items-center justify-between">
+                                  <span>{seed.varietyName} ({seed.quantityRemaining === 'High' ? 'Alta' : seed.quantityRemaining === 'Medium' ? 'Media' : 'Bassa'})</span>
+                                  {expiringSeeds.find(e => e.id === seed.id) && (
+                                    <span className="text-orange-600 font-bold">⚠️ Scade {seed.expiryYear}</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                 </div>
 
                 {/* VISUAL CALENDAR */}
@@ -710,6 +778,26 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden }) => {
                     <span><b>Raccolta:</b> {specificResult.harvest.visualSigns} {specificResult.harvest.minBrix ? `(Ideal >${specificResult.harvest.minBrix}° Brix)` : ''}</span>
                 </div>
 
+                {/* Moon Phase Indicator */}
+                {(() => {
+                  const today = new Date();
+                  const moonInfo = calculateMoonPhase(today);
+                  const moonCheck = isIdealPhaseFor('sowing', 'FRUITING', today); // Default, si può migliorare
+                  const moonEmoji = moonInfo.isWaxing ? '🌒' : moonInfo.isWaning ? '🌘' : moonInfo.phase === 'Full' ? '🌕' : moonInfo.phase === 'New' ? '🌑' : '🌓';
+                  
+                  return (
+                    <div className={`mb-4 p-3 rounded-xl border ${moonCheck.ideal ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'}`}>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-2xl">{moonEmoji}</span>
+                        <div>
+                          <span className="font-bold text-gray-800">Luna {moonInfo.name}</span>
+                          <p className="text-xs text-gray-600">{moonCheck.reason}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Scegli come iniziare:</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-white p-4 rounded-xl border-2 border-orange-100 hover:border-orange-300 transition-all shadow-sm flex flex-col justify-between">
@@ -784,6 +872,98 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden }) => {
                         </button>
                     </div>
                 </div>
+
+                {/* GUIDA COMPLETA "FOR DUMMIES" */}
+                {specificResult.guide && (
+                    <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                        <div className="bg-gradient-to-r from-green-50 to-blue-50 p-5 rounded-xl border-2 border-green-200">
+                            <h3 className="font-bold text-xl text-green-900 mb-2 flex items-center gap-2">
+                                <Sparkles size={24} className="text-green-600"/>
+                                Guida Completa "For Dummies"
+                            </h3>
+                            <p className="text-green-800 text-sm leading-relaxed">{specificResult.guide.introduction}</p>
+                        </div>
+
+                        {/* GUIDA SEMINA PASSO-PASSO */}
+                        <div className="bg-white p-5 rounded-xl border-2 border-orange-100 shadow-sm">
+                            <h4 className="font-bold text-orange-900 mb-4 flex items-center gap-2 text-lg">
+                                <Sprout size={20} className="text-orange-600"/>
+                                Guida Semina Passo-Passo
+                            </h4>
+                            <ol className="space-y-3">
+                                {specificResult.guide.sowingSteps.map((step, idx) => (
+                                    <li key={idx} className="flex gap-3">
+                                        <span className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-100 text-orange-700 font-bold flex items-center justify-center text-sm">
+                                            {idx + 1}
+                                        </span>
+                                        <p className="text-gray-700 leading-relaxed pt-1">{step}</p>
+                                    </li>
+                                ))}
+                            </ol>
+                        </div>
+
+                        {/* GUIDA TRAPIANTO */}
+                        <div className="bg-white p-5 rounded-xl border-2 border-green-100 shadow-sm">
+                            <h4 className="font-bold text-green-900 mb-4 flex items-center gap-2 text-lg">
+                                <ArrowRight size={20} className="text-green-600"/>
+                                Guida Trapianto
+                            </h4>
+                            <ol className="space-y-3">
+                                {specificResult.guide.transplantSteps.map((step, idx) => (
+                                    <li key={idx} className="flex gap-3">
+                                        <span className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold flex items-center justify-center text-sm">
+                                            {idx + 1}
+                                        </span>
+                                        <p className="text-gray-700 leading-relaxed pt-1">{step}</p>
+                                    </li>
+                                ))}
+                            </ol>
+                        </div>
+
+                        {/* CONSIGLI PER LA CURA */}
+                        <div className="bg-white p-5 rounded-xl border-2 border-blue-100 shadow-sm">
+                            <h4 className="font-bold text-blue-900 mb-4 flex items-center gap-2 text-lg">
+                                <Droplets size={20} className="text-blue-600"/>
+                                Consigli per la Cura
+                            </h4>
+                            <ul className="space-y-2">
+                                {specificResult.guide.careTips.map((tip, idx) => (
+                                    <li key={idx} className="flex gap-3">
+                                        <CheckCircle size={18} className="text-blue-600 flex-shrink-0 mt-0.5"/>
+                                        <p className="text-gray-700 leading-relaxed">{tip}</p>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* ERRORI COMUNI */}
+                        {specificResult.guide.commonMistakes && specificResult.guide.commonMistakes.length > 0 && (
+                            <div className="bg-white p-5 rounded-xl border-2 border-red-100 shadow-sm">
+                                <h4 className="font-bold text-red-900 mb-4 flex items-center gap-2 text-lg">
+                                    <AlertTriangle size={20} className="text-red-600"/>
+                                    Errori Comuni da Evitare
+                                </h4>
+                                <ul className="space-y-3">
+                                    {specificResult.guide.commonMistakes.map((mistake, idx) => (
+                                        <li key={idx} className="flex gap-3">
+                                            <AlertTriangle size={18} className="text-red-500 flex-shrink-0 mt-0.5"/>
+                                            <p className="text-gray-700 leading-relaxed">{mistake}</p>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        {/* GUIDA RACCOLTA */}
+                        <div className="bg-white p-5 rounded-xl border-2 border-purple-100 shadow-sm">
+                            <h4 className="font-bold text-purple-900 mb-4 flex items-center gap-2 text-lg">
+                                <Calendar size={20} className="text-purple-600"/>
+                                Guida Raccolta
+                            </h4>
+                            <p className="text-gray-700 leading-relaxed whitespace-pre-line">{specificResult.guide.harvestGuide}</p>
+                        </div>
+                    </div>
+                )}
             </div>
         )}
       </div>

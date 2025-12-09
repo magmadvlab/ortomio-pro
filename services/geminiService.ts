@@ -1,5 +1,7 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { PlantSuggestion, TreatmentAdvice, SpecificPlantInfo } from "../types";
+import { findSpecies, findVariety, getVarietyInfo, suggestVarieties } from "./plantDatabaseService";
+import { generateCompleteGuide, getVarietyInfo as getMasterVarietyInfo, findSpeciesFromVariety } from "./plantMasterService";
 
 // Per Vite: usa import.meta.env.VITE_* 
 // Crea un file .env nella root del progetto con: VITE_GEMINI_API_KEY=la_tua_chiave
@@ -132,9 +134,44 @@ const specificPlantSchema: Schema = {
         }
       },
       required: ["organicType", "organicDosageGm2", "classicType", "classicDosageGm2", "timing"]
+    },
+    guide: {
+      type: Type.OBJECT,
+      description: "Complete beginner-friendly guide with standardized step-by-step format",
+      properties: {
+        introduction: { 
+          type: Type.STRING, 
+          description: "Friendly introduction (2-3 sentences). Template: 'Il [nome pianta] è perfetto per i principianti perché [motivo 1]. [Motivo 2]. Con poche cure, otterrai [risultato atteso].'"
+        },
+        sowingSteps: { 
+          type: Type.ARRAY, 
+          items: { type: Type.STRING }, 
+          description: "EXACTLY 6 steps for sowing. Each step must start with 'Passo X:' and be 1-2 sentences. Format: 'Passo 1: [azione specifica con misurazioni]. Passo 2: [azione successiva].' Include depth, spacing, and timing."
+        },
+        transplantSteps: { 
+          type: Type.ARRAY, 
+          items: { type: Type.STRING }, 
+          description: "EXACTLY 5 steps for transplanting. Each step must start with 'Passo X:' and include visual cues. Format: 'Passo 1: [quando trapiantare - dimensione piantina]. Passo 2: [preparazione buca].'"
+        },
+        careTips: { 
+          type: Type.ARRAY, 
+          items: { type: Type.STRING }, 
+          description: "EXACTLY 6 weekly care tips. Each tip must be 1 sentence starting with action verb. Format: 'Controlla [cosa] ogni [quando].' or 'Innaffia [come] quando [condizione].'"
+        },
+        commonMistakes: { 
+          type: Type.ARRAY, 
+          items: { type: Type.STRING }, 
+          description: "EXACTLY 4 common mistakes. Format: 'Evita [errore] perché [conseguenza]. Invece [soluzione corretta].'"
+        },
+        harvestGuide: { 
+          type: Type.STRING, 
+          description: "Detailed harvest explanation (3-4 sentences). Template: 'Raccogli quando [segni visivi specifici]. [Come raccogliere - tecnica]. [Quando è il momento migliore della giornata]. [Come conservare].'"
+        }
+      },
+      required: ["introduction", "sowingSteps", "transplantSteps", "careTips", "harvestGuide"]
     }
   },
-  required: ["name", "seedSowingWindow", "transplantWindow", "harvestWindow", "irrigation", "fertilizer", "indoor", "soil", "harvest"]
+  required: ["name", "seedSowingWindow", "transplantWindow", "harvestWindow", "irrigation", "fertilizer", "indoor", "soil", "harvest", "guide"]
 };
 
 export const getSeasonalSuggestions = async (lat: number, lng: number): Promise<PlantSuggestion[]> => {
@@ -183,18 +220,276 @@ export const getSpecificPlantDetails = async (query: string, lat: number, lng: n
     throw new Error("API Key non configurata. Configura VITE_GEMINI_API_KEY nel file .env");
   }
 
+  // Cerca prima nel sistema di schede master
+  const varietyInfo = getMasterVarietyInfo(query);
+  let masterGuide = null;
+  let speciesName = query;
+  let varietyName: string | undefined = undefined;
+
+  if (varietyInfo) {
+    // Varietà trovata nel sistema master
+    speciesName = varietyInfo.speciesId;
+    varietyName = varietyInfo.varietyName;
+    masterGuide = generateCompleteGuide(speciesName, varietyName);
+  } else {
+    // Prova a trovare la specie direttamente
+    const speciesFromVariety = findSpeciesFromVariety(query);
+    if (speciesFromVariety) {
+      speciesName = speciesFromVariety.speciesId;
+      masterGuide = generateCompleteGuide(speciesName);
+    } else {
+      // Prova a cercare per nome specie
+      masterGuide = generateCompleteGuide(query);
+      if (masterGuide) {
+        speciesName = query;
+      }
+    }
+  }
+
+  // Verifica anche nel database varietà per retrocompatibilità
+  const dbVarietyInfo = getVarietyInfo(query);
+  const dbSpecies = findSpecies(query);
+  let validatedQuery = query;
+  let varietyContext = '';
+
+  if (dbVarietyInfo) {
+    validatedQuery = dbVarietyInfo.variety.name;
+    varietyContext = `\n\nNOTA: La varietà "${validatedQuery}" è registrata nel database italiano.`;
+  } else if (dbSpecies) {
+    varietyContext = `\n\nNOTA: La specie "${dbSpecies.commonName}" è presente nel database italiano.`;
+  }
+
   const model = "gemini-2.5-flash";
-  const prompt = `
-    User wants to plant: "${query}".
-    Location coords: ${lat}, ${lng}.
-    Provide detailed planting info.
-    Include Soil pH range (soil.phMin, soil.phMax).
-    Include Harvest maturity details (harvest.minBrix, harvest.visualSigns).
-    Include Indoor planting details.
-    Include Succession planting interval.
-    Include Fertilizer schedule.
-    Response in Italian.
-  `;
+  const today = new Date();
+  const month = today.toLocaleDateString('it-IT', { month: 'long' });
+  const season = today.getMonth() >= 2 && today.getMonth() <= 4 ? 'Primavera' : 
+                 today.getMonth() >= 5 && today.getMonth() <= 7 ? 'Estate' :
+                 today.getMonth() >= 8 && today.getMonth() <= 10 ? 'Autunno' : 'Inverno';
+
+  // Costruisci il prompt basato sulla scheda master se disponibile
+  let prompt = '';
+  
+  if (masterGuide) {
+    // Usa la scheda master come base
+    const { masterSheet, tags, additionalInstructions } = masterGuide;
+    
+    prompt = `
+CONTESTO:
+- Specie: ${masterSheet.commonName} (${masterSheet.scientificName})
+${varietyName ? `- Varietà: ${varietyName}` : ''}
+- Posizione: ${lat}, ${lng} (Italia)
+- Stagione attuale: ${season}
+- Mese: ${month}
+
+SCHEDA MASTER DISPONIBILE - Segui ESATTAMENTE questa struttura a 4 fasi:
+
+FASE 0: STRUMENTI NECESSARI
+${masterSheet.requiredTools.seedTray ? `- Semenzaio ${masterSheet.requiredTools.seedTrayType || 'alveolato'}` : ''}
+${masterSheet.requiredTools.seedSoil ? '- Terriccio da semina fine' : ''}
+${masterSheet.requiredTools.heatingMat ? '- Tappetino riscaldante (consigliato)' : ''}
+${masterSheet.requiredTools.sprayer ? '- Nebulizzatore d\'acqua' : ''}
+${masterSheet.requiredTools.additionalTools ? `- ${masterSheet.requiredTools.additionalTools.join(', ')}` : ''}
+
+FASE 1: GERMINAZIONE (Dati Parametrici)
+- Amollo: ${masterSheet.germination.preSoak ? 'Sì' : 'No'}
+- Profondità semina: ${masterSheet.germination.sowingDepth}cm
+- Temperatura ideale: ${masterSheet.germination.idealTemp}
+- Temperatura minima: ${masterSheet.germination.minTemp}°C
+- Luce per germinare: ${masterSheet.germination.lightRequirement === 'Dark' ? 'Buio' : masterSheet.germination.lightRequirement === 'Light' ? 'Luce' : 'Entrambi'}
+- Tempo emergenza: ${masterSheet.germination.emergenceDays}
+${masterSheet.germination.coveringNeeded ? `- Copertura: ${masterSheet.germination.coveringInstructions || 'Usa pellicola trasparente'}` : ''}
+
+FASE 2: GESTIONE PIANTINA (Nursing)
+- Quando travasare: ${masterSheet.seedlingCare.transplantWhen}
+- Luce necessaria: ${masterSheet.seedlingCare.lightNeeds}
+${masterSheet.seedlingCare.lightHours ? `- Ore di luce: ${masterSheet.seedlingCare.lightHours}h/giorno` : ''}
+- Acqua: ${masterSheet.seedlingCare.watering}
+${masterSheet.seedlingCare.warning ? `- Attenzione: ${masterSheet.seedlingCare.warning}` : ''}
+- Temperatura: ${masterSheet.seedlingCare.temperature}
+
+FASE 3: TRAPIANTO (Messa a dimora)
+- Quando: ${masterSheet.transplanting.when}
+- Distanza: ${masterSheet.transplanting.spacing}
+- Buca: ${masterSheet.transplanting.holeDepth}cm profondità, ${masterSheet.transplanting.holeWidth}cm larghezza
+- Terreno: ${masterSheet.transplanting.soilRequirements}
+${masterSheet.transplanting.buryStem ? `- Interrare gambo: ${masterSheet.transplanting.buryStemInstructions || 'Sì'}` : ''}
+${masterSheet.transplanting.protectionNeeded ? `- Protezione: ${masterSheet.transplanting.protectionInstructions || 'Necessaria'}` : ''}
+
+${tags.length > 0 ? `\nTAG COMPORTAMENTALI APPLICABILI:\n${tags.map(t => `- ${t.name}: ${t.description}\n  Istruzioni aggiuntive:\n  ${t.additionalInstructions.map(i => `  • ${i}`).join('\n')}`).join('\n\n')}` : ''}
+
+ISTRUZIONI BASE:
+- Introduzione: ${masterSheet.baseInstructions.introduction}
+- Errori comuni: ${masterSheet.baseInstructions.commonMistakes.join(' | ')}
+- Guida raccolta: ${masterSheet.baseInstructions.harvestGuide}
+
+OBIETTIVO: Genera una guida "for dummies" basata sulla scheda master sopra, seguendo ESATTAMENTE le 4 fasi.
+${additionalInstructions.length > 0 ? `\nAggiungi queste istruzioni aggiuntive specifiche per la varietà:\n${additionalInstructions.map(i => `- ${i}`).join('\n')}` : ''}
+
+REGOLE STRETTE PER LA GUIDA (guide):
+1. introduction: Esattamente 2-3 frasi. Inizia con "Il [nome] è..." e spiega perché è adatto ai principianti.
+2. sowingSteps: ESATTAMENTE 6 passi. Ogni passo inizia con "Passo X:" e include misurazioni precise (cm, giorni, temperatura).
+   Template obbligatorio:
+   - Passo 1: Preparazione terriccio e contenitore
+   - Passo 2: Profondità e distanza semi
+   - Passo 3: Copertura e prima innaffiatura
+   - Passo 4: Posizione e temperatura
+   - Passo 5: Quando innaffiare durante germinazione
+   - Passo 6: Quando aspettarsi i primi germogli
+3. transplantSteps: ESATTAMENTE 5 passi. Ogni passo include segni visivi specifici.
+   Template obbligatorio:
+   - Passo 1: Quando trapiantare (dimensione piantina, numero foglie)
+   - Passo 2: Preparazione buca (profondità, distanza)
+   - Passo 3: Come estrarre dal vaso senza danneggiare
+   - Passo 4: Posizionamento e riempimento
+   - Passo 5: Prima innaffiatura e protezione
+4. careTips: ESATTAMENTE 6 consigli. Ogni consiglio è una frase che inizia con verbo d'azione.
+   Template: "Controlla [cosa] ogni [quando]" o "Innaffia [come] quando [condizione]"
+5. commonMistakes: ESATTAMENTE 4 errori. Formato: "Evita [errore] perché [conseguenza]. Invece [soluzione]."
+6. harvestGuide: Esattamente 3-4 frasi. Include: quando raccogliere (segni visivi), come raccogliere (tecnica), momento migliore della giornata, come conservare.
+
+${masterGuide ? '' : `ESEMPIO DI STRUTTURA STANDARDIZZATA (per pomodoro):`}
+guide: {
+  introduction: "Il pomodoro è perfetto per i principianti perché cresce velocemente e produce molti frutti. È resistente e si adatta bene a diversi tipi di terreno. Con poche cure, otterrai pomodori saporiti per tutta l'estate.",
+  sowingSteps: [
+    "Passo 1: Prepara un vasetto di 8-10cm con terriccio universale, lasciando 1cm dal bordo.",
+    "Passo 2: Fai 3-4 buchi profondi 0.5cm, distanziati 2cm l'uno dall'altro. Metti 2-3 semi per buco.",
+    "Passo 3: Copri i semi con 0.5cm di terriccio e innaffia delicatamente con uno spruzzino fino a bagnare il terreno.",
+    "Passo 4: Posiziona il vaso in un luogo caldo (20-25°C) e luminoso, ma non al sole diretto.",
+    "Passo 5: Mantieni il terriccio umido (non bagnato) innaffiando ogni 2-3 giorni con lo spruzzino.",
+    "Passo 6: I primi germogli appariranno dopo 7-14 giorni. Quando spuntano, sposta in un posto più luminoso."
+  ],
+  transplantSteps: [
+    "Passo 1: Trapianta quando la piantina ha 4-6 foglie vere e raggiunge 15-20cm di altezza (circa 6-8 settimane dopo la semina).",
+    "Passo 2: Prepara una buca profonda 30cm e larga 40cm, distanziata 50cm dalle altre piante. Aggiungi 2-3 manciate di compost sul fondo.",
+    "Passo 3: Bagna il vaso, poi capovolgi delicatamente tenendo la piantina tra le dita. Il pane di terra dovrebbe uscire intero.",
+    "Passo 4: Posiziona la piantina nella buca, interrandola fino alle prime foglie vere. Riempì con terra e compatta leggermente.",
+    "Passo 5: Innaffia abbondantemente alla base (circa 2 litri) e proteggi dal sole diretto per 2-3 giorni con un telo ombreggiante."
+  ],
+  careTips: [
+    "Innaffia alla base della pianta 2-3 volte a settimana, evitando di bagnare le foglie per prevenire malattie.",
+    "Controlla le foglie ogni settimana per macchie gialle o marroni che indicano problemi.",
+    "Rimuovi i getti laterali (femminelle) ogni 10 giorni per concentrare l'energia sui frutti principali.",
+    "Lega il fusto a un tutore quando raggiunge 30cm, usando rafia o legacci morbidi.",
+    "Fertilizza ogni 3 settimane con concime ricco di potassio quando compaiono i primi fiori.",
+    "Controlla l'umidità del terreno infilando un dito: se è asciutto a 2cm di profondità, innaffia."
+  ],
+  commonMistakes: [
+    "Evita di innaffiare troppo perché le radici marciscono. Invece, innaffia solo quando il terreno è asciutto a 2cm di profondità.",
+    "Evita di piantare troppo presto all'aperto perché il freddo uccide le piantine. Invece, aspetta che le temperature notturne siano sopra i 12°C.",
+    "Evita di non legare il fusto perché la pianta si piega e si spezza. Invece, installa un tutore fin dall'inizio.",
+    "Evita di bagnare le foglie durante l'irrigazione perché favorisce l'oidio. Invece, innaffia sempre alla base della pianta."
+  ],
+  harvestGuide: "Raccogli quando i pomodori hanno raggiunto il colore caratteristico della varietà (rosso intenso per i rossi, giallo per i gialli) e risultano leggermente morbidi al tatto ma ancora sodi. Taglia il picciolo con una forbice affilata, lasciando 1cm di stelo attaccato al frutto. Il momento migliore è la mattina presto quando i frutti sono più freschi. Conserva a temperatura ambiente (non in frigorifero) per mantenere il sapore, e consuma entro 3-5 giorni."
+}
+
+IMPORTANTE: 
+- Segui ESATTAMENTE la struttura a 4 fasi dalla scheda master sopra
+- Usa i dati parametrici esatti (temperatura, profondità, distanze) dalla scheda
+- Ogni sezione della guida deve avere il numero esatto di elementi indicato
+- Aggiungi le istruzioni aggiuntive dei tag comportamentali se presenti
+- Mantieni il formato standardizzato per garantire coerenza
+${varietyContext}
+
+ALTRI CAMPI RICHIESTI (arricchisci con dati specifici per posizione e stagione):
+- name: Nome comune in italiano
+- variety: Varietà specifica (es. "Datterino", "Cuore di Bue")
+- seedSowingWindow: Finestra di semina (es. "Febbraio-Marzo in semenzaio, Aprile all'aperto")
+- transplantWindow: Finestra di trapianto (es. "Maggio, quando le temperature notturne superano i 12°C")
+- harvestWindow: Finestra di raccolta (es. "Luglio-Settembre, 60-80 giorni dopo il trapianto")
+- soil: pH range e descrizione tipo terreno
+- harvest: Segni visivi e Brix (se applicabile)
+- indoor: Dettagli per semina indoor
+- irrigation: Frequenza e metodo
+- fertilizer: Tipo organico e chimico con dosaggi precisi
+
+Rispondi SOLO in formato JSON valido, rispettando esattamente lo schema fornito.
+    `;
+  } else {
+    // Fallback: comportamento originale senza scheda master
+    prompt = `
+CONTESTO:
+- Pianta richiesta: "${validatedQuery}"${varietyContext ? varietyContext : ''}
+- Posizione: ${lat}, ${lng} (Italia)
+- Stagione attuale: ${season}
+- Mese: ${month}
+
+OBIETTIVO: Crea una GUIDA STANDARDIZZATA "for dummies" dal seme al raccolto.
+
+REGOLE STRETTE PER LA GUIDA (guide):
+1. introduction: Esattamente 2-3 frasi. Inizia con "Il [nome] è..." e spiega perché è adatto ai principianti.
+2. sowingSteps: ESATTAMENTE 6 passi. Ogni passo inizia con "Passo X:" e include misurazioni precise (cm, giorni, temperatura).
+   Template obbligatorio:
+   - Passo 1: Preparazione terriccio e contenitore
+   - Passo 2: Profondità e distanza semi
+   - Passo 3: Copertura e prima innaffiatura
+   - Passo 4: Posizione e temperatura
+   - Passo 5: Quando innaffiare durante germinazione
+   - Passo 6: Quando aspettarsi i primi germogli
+3. transplantSteps: ESATTAMENTE 5 passi. Ogni passo include segni visivi specifici.
+   Template obbligatorio:
+   - Passo 1: Quando trapiantare (dimensione piantina, numero foglie)
+   - Passo 2: Preparazione buca (profondità, distanza)
+   - Passo 3: Come estrarre dal vaso senza danneggiare
+   - Passo 4: Posizionamento e riempimento
+   - Passo 5: Prima innaffiatura e protezione
+4. careTips: ESATTAMENTE 6 consigli. Ogni consiglio è una frase che inizia con verbo d'azione.
+   Template: "Controlla [cosa] ogni [quando]" o "Innaffia [come] quando [condizione]"
+5. commonMistakes: ESATTAMENTE 4 errori. Formato: "Evita [errore] perché [conseguenza]. Invece [soluzione]."
+6. harvestGuide: Esattamente 3-4 frasi. Include: quando raccogliere (segni visivi), come raccogliere (tecnica), momento migliore della giornata, come conservare.
+
+ESEMPIO DI STRUTTURA STANDARDIZZATA (per pomodoro):
+guide: {
+  introduction: "Il pomodoro è perfetto per i principianti perché cresce velocemente e produce molti frutti. È resistente e si adatta bene a diversi tipi di terreno. Con poche cure, otterrai pomodori saporiti per tutta l'estate.",
+  sowingSteps: [
+    "Passo 1: Prepara un vasetto di 8-10cm con terriccio universale, lasciando 1cm dal bordo.",
+    "Passo 2: Fai 3-4 buchi profondi 0.5cm, distanziati 2cm l'uno dall'altro. Metti 2-3 semi per buco.",
+    "Passo 3: Copri i semi con 0.5cm di terriccio e innaffia delicatamente con uno spruzzino fino a bagnare il terreno.",
+    "Passo 4: Posiziona il vaso in un luogo caldo (20-25°C) e luminoso, ma non al sole diretto.",
+    "Passo 5: Mantieni il terriccio umido (non bagnato) innaffiando ogni 2-3 giorni con lo spruzzino.",
+    "Passo 6: I primi germogli appariranno dopo 7-14 giorni. Quando spuntano, sposta in un posto più luminoso."
+  ],
+  transplantSteps: [
+    "Passo 1: Trapianta quando la piantina ha 4-6 foglie vere e raggiunge 15-20cm di altezza (circa 6-8 settimane dopo la semina).",
+    "Passo 2: Prepara una buca profonda 30cm e larga 40cm, distanziata 50cm dalle altre piante. Aggiungi 2-3 manciate di compost sul fondo.",
+    "Passo 3: Bagna il vaso, poi capovolgi delicatamente tenendo la piantina tra le dita. Il pane di terra dovrebbe uscire intero.",
+    "Passo 4: Posiziona la piantina nella buca, interrandola fino alle prime foglie vere. Riempì con terra e compatta leggermente.",
+    "Passo 5: Innaffia abbondantemente alla base (circa 2 litri) e proteggi dal sole diretto per 2-3 giorni con un telo ombreggiante."
+  ],
+  careTips: [
+    "Innaffia alla base della pianta 2-3 volte a settimana, evitando di bagnare le foglie per prevenire malattie.",
+    "Controlla le foglie ogni settimana per macchie gialle o marroni che indicano problemi.",
+    "Rimuovi i getti laterali (femminelle) ogni 10 giorni per concentrare l'energia sui frutti principali.",
+    "Lega il fusto a un tutore quando raggiunge 30cm, usando rafia o legacci morbidi.",
+    "Fertilizza ogni 3 settimane con concime ricco di potassio quando compaiono i primi fiori.",
+    "Controlla l'umidità del terreno infilando un dito: se è asciutto a 2cm di profondità, innaffia."
+  ],
+  commonMistakes: [
+    "Evita di innaffiare troppo perché le radici marciscono. Invece, innaffia solo quando il terreno è asciutto a 2cm di profondità.",
+    "Evita di piantare troppo presto all'aperto perché il freddo uccide le piantine. Invece, aspetta che le temperature notturne siano sopra i 12°C.",
+    "Evita di non legare il fusto perché la pianta si piega e si spezza. Invece, installa un tutore fin dall'inizio.",
+    "Evita di bagnare le foglie durante l'irrigazione perché favorisce l'oidio. Invece, innaffia sempre alla base della pianta."
+  ],
+  harvestGuide: "Raccogli quando i pomodori hanno raggiunto il colore caratteristico della varietà (rosso intenso per i rossi, giallo per i gialli) e risultano leggermente morbidi al tatto ma ancora sodi. Taglia il picciolo con una forbice affilata, lasciando 1cm di stelo attaccato al frutto. Il momento migliore è la mattina presto quando i frutti sono più freschi. Conserva a temperatura ambiente (non in frigorifero) per mantenere il sapore, e consuma entro 3-5 giorni."
+}
+
+IMPORTANTE: Segui ESATTAMENTE questa struttura standardizzata. Ogni sezione deve avere il numero esatto di elementi indicato. Usa sempre lo stesso formato per garantire coerenza tra diverse ricerche.
+${varietyContext}
+
+ALTRI CAMPI RICHIESTI:
+- name: Nome comune in italiano
+- variety: Varietà specifica (es. "Datterino", "Cuore di Bue")
+- seedSowingWindow: Finestra di semina (es. "Febbraio-Marzo in semenzaio, Aprile all'aperto")
+- transplantWindow: Finestra di trapianto (es. "Maggio, quando le temperature notturne superano i 12°C")
+- harvestWindow: Finestra di raccolta (es. "Luglio-Settembre, 60-80 giorni dopo il trapianto")
+- soil: pH range e descrizione tipo terreno
+- harvest: Segni visivi e Brix (se applicabile)
+- indoor: Dettagli per semina indoor
+- irrigation: Frequenza e metodo
+- fertilizer: Tipo organico e chimico con dosaggi precisi
+
+Rispondi SOLO in formato JSON valido, rispettando esattamente lo schema fornito.
+    `;
+  }
 
   try {
     const response = await ai!.models.generateContent({
@@ -203,13 +498,20 @@ export const getSpecificPlantDetails = async (query: string, lat: number, lng: n
       config: {
         responseMimeType: "application/json",
         responseSchema: specificPlantSchema,
-        systemInstruction: "You are an expert agronomist. Provide precise numeric data.",
+        systemInstruction: "Sei un agronomo esperto specializzato in orti italiani. Fornisci SEMPRE guide standardizzate con la struttura esatta richiesta. Ogni guida deve seguire il template fornito per garantire coerenza. Usa sempre lo stesso formato per ogni sezione della guida.",
       },
     });
 
     const text = response.text;
     if (!text) return null;
-    return JSON.parse(text) as SpecificPlantInfo;
+    const result = JSON.parse(text) as SpecificPlantInfo;
+    
+    // Aggiungi riferimento alla scheda master se usata
+    if (masterGuide) {
+      result.masterSheetId = masterGuide.masterSheet.id;
+    }
+    
+    return result;
   } catch (error: any) {
     console.error("Gemini Specific Plant Error:", error);
     const errorMessage = error?.message || "Errore sconosciuto";
