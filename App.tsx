@@ -8,6 +8,9 @@ import Advice from './components/Advice';
 import HarvestLog from './components/HarvestLog';
 import SmartHub from './components/SmartHub';
 import { Tab, GardenTask, Garden, GardenProfile, SmartDevice } from './types';
+import { protectionProducts } from './data/treatments';
+import { calculateNextTreatmentDate } from './logic/healthEngine';
+import { CheckCircle, X } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>(Tab.DASHBOARD);
@@ -17,6 +20,9 @@ const App: React.FC = () => {
   
   // IoT State
   const [smartDevices, setSmartDevices] = useState<SmartDevice[]>([]);
+  
+  // Auto-scheduling feedback
+  const [autoScheduleMessage, setAutoScheduleMessage] = useState<{ message: string; date: string } | null>(null);
 
   // Initialization: Load data and handle migration
   useEffect(() => {
@@ -255,7 +261,61 @@ const App: React.FC = () => {
   };
 
   const toggleTask = (id: string) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+    setTasks(prev => {
+      const newTasks: GardenTask[] = [];
+      const updated = prev.map(t => {
+        if (t.id === id) {
+          const newTask = { ...t, completed: !t.completed };
+          
+          // Auto-scheduling: se è un trattamento completato, crea il prossimo task
+          if (newTask.completed && t.taskType === 'Treatment' && t.notes && !t.completed) {
+            // Cerca il prodotto nel database tramite il nome nelle note
+            const product = protectionProducts.find(p => 
+              t.notes?.toLowerCase().includes(p.name.toLowerCase()) ||
+              t.notes?.toLowerCase().includes(p.id.toLowerCase())
+            );
+            
+            if (product && product.frequencyDays > 0) {
+              // Calcola la prossima data basata sulla data del task completato
+              const nextDate = calculateNextTreatmentDate(product.id, t.date);
+              
+              if (nextDate) {
+                // Crea il nuovo task automaticamente
+                const nextTask: GardenTask = {
+                  id: crypto.randomUUID(),
+                  plantName: t.plantName,
+                  taskType: 'Treatment',
+                  date: nextDate,
+                  notes: `Richiamo programmato: ${product.name}`,
+                  gardenId: t.gardenId,
+                  season: t.season,
+                  completed: false,
+                  nextDueDate: calculateNextTreatmentDate(product.id, nextDate)
+                };
+                
+                // Aggiungi alla lista dei nuovi task
+                newTasks.push(nextTask);
+                
+                // Mostra feedback visivo
+                const formattedDate = new Date(nextDate).toLocaleDateString('it-IT');
+                setAutoScheduleMessage({
+                  message: `Trattamento registrato! Prossimo richiamo programmato per ${formattedDate}`,
+                  date: nextDate
+                });
+                
+                // Rimuovi il messaggio dopo 5 secondi
+                setTimeout(() => setAutoScheduleMessage(null), 5000);
+              }
+            }
+          }
+          return newTask;
+        }
+        return t;
+      });
+      
+      // Aggiungi i nuovi task all'array aggiornato
+      return [...updated, ...newTasks];
+    });
   };
 
   const updateTask = (updatedTask: GardenTask) => {
@@ -306,11 +366,14 @@ const App: React.FC = () => {
             onAddGarden={handleAddGarden}
             onUpdateGarden={handleUpdateGarden}
             onDeleteGarden={handleDeleteGarden}
+            onUpdateTask={updateTask}
         />;
       case Tab.PLANNER:
         return (
           <Planner 
             garden={currentGarden}
+            tasks={gardenTasks}
+            onUpdateTask={updateTask}
             onAddToJournal={(plantName, notes, variety, method, date, taskType, additionalData) => {
               const month = new Date(date || new Date().toISOString()).getMonth() + 1;
               const season = (month >= 4 && month <= 9) ? 'Summer' : 'Winter';
@@ -323,6 +386,7 @@ const App: React.FC = () => {
                 date: date || new Date().toISOString().split('T')[0],
                 notes,
                 season,
+                moonPhase: additionalData?.moonPhase,
                 initialQuantity: additionalData?.initialQuantity,
                 currentQuantity: additionalData?.currentQuantity,
                 locationType: additionalData?.locationType,
@@ -338,12 +402,27 @@ const App: React.FC = () => {
                 onAddToJournal={(title, notes, date) => {
                     const month = new Date(date).getMonth() + 1;
                     const season = (month >= 4 && month <= 9) ? 'Summer' : 'Winter';
+                    
+                    // Cerca il prodotto nelle note per calcolare nextDueDate dinamico
+                    let nextDueDate: string | undefined;
+                    const product = protectionProducts.find(p => 
+                      notes.toLowerCase().includes(p.name.toLowerCase()) ||
+                      notes.toLowerCase().includes(p.id.toLowerCase())
+                    );
+                    
+                    if (product && product.frequencyDays > 0) {
+                      nextDueDate = calculateNextTreatmentDate(product.id, date);
+                    } else {
+                      // Fallback a 7 giorni se prodotto non trovato
+                      nextDueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                    }
+                    
                     addTask({
                         plantName: 'Trattamento',
                         taskType: 'Treatment',
                         date,
                         notes: `${title} - ${notes}`,
-                        nextDueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                        nextDueDate,
                         season
                     });
                     setActiveTab(Tab.JOURNAL);
@@ -353,6 +432,7 @@ const App: React.FC = () => {
       case Tab.JOURNAL:
         return <Journal 
             tasks={gardenTasks} 
+            garden={currentGarden}
             onToggleTask={toggleTask} 
             onAddTask={(t) => addTask(t)} // wrapper to handle gardenId in App
             onDeleteTask={deleteTask} 
@@ -391,6 +471,22 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-green-50/30 text-gray-800 font-sans">
+      {/* Auto-scheduling Feedback Toast */}
+      {autoScheduleMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-2">
+          <div className="bg-green-600 text-white px-6 py-4 rounded-xl shadow-lg flex items-center gap-3 border-2 border-green-700">
+            <CheckCircle size={24} className="flex-shrink-0" />
+            <p className="font-bold text-sm">{autoScheduleMessage.message}</p>
+            <button
+              onClick={() => setAutoScheduleMessage(null)}
+              className="ml-2 text-white/80 hover:text-white"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+      
       <main className="h-full">
         {renderContent()}
       </main>
