@@ -206,6 +206,53 @@ export const checkTransplantConditions = async (
   };
 };
 
+export interface CriticalWeatherAlert {
+  type: 'frost' | 'heat' | 'heavy_rain';
+  severity: 'Critical' | 'High' | 'Medium';
+  message: string;
+  icon: string; // Nome icona per lucide-react
+}
+
+/**
+ * Verifica condizioni meteo critiche e genera alert
+ */
+export const checkCriticalWeatherAlerts = (
+  forecast: WeatherForecast
+): CriticalWeatherAlert[] => {
+  const alerts: CriticalWeatherAlert[] = [];
+  
+  // Alert gelata tardiva (minime < 0°C)
+  if (forecast.tempMin !== undefined && forecast.tempMin < 0) {
+    alerts.push({
+      type: 'frost',
+      severity: 'Critical',
+      message: `⚠️ GELATA IN ARRIVO! Stanotte previsti ${forecast.tempMin.toFixed(1)}°C. Copri le piante sensibili!`,
+      icon: 'Snowflake'
+    });
+  }
+  
+  // Alert ondata di calore (massime > 35°C)
+  if (forecast.tempMax !== undefined && forecast.tempMax > 35) {
+    alerts.push({
+      type: 'heat',
+      severity: 'High',
+      message: `🌡️ CALDO ESTREMO! ${forecast.tempMax.toFixed(1)}°C previsti. Aumenta irrigazione e ombreggia!`,
+      icon: 'ThermometerSun'
+    });
+  }
+  
+  // Alert pioggia intensa (> 20mm)
+  if (forecast.rainForecastMm > 20) {
+    alerts.push({
+      type: 'heavy_rain',
+      severity: 'Medium',
+      message: `🌧️ PIOGGIA INTENSA! ${forecast.rainForecastMm.toFixed(1)}mm previsti. Sospendi irrigazione!`,
+      icon: 'CloudRain'
+    });
+  }
+  
+  return alerts;
+};
 
 
 

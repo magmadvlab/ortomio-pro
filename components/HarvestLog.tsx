@@ -4,6 +4,7 @@ import { GardenTask, HarvestLogData, GrowingLocation, Recipe } from '../types';
 import { ShoppingBasket, Star, Calendar, Camera, Scale, PlusCircle, Leaf, Snowflake, Sun, BarChart3, Box, Flower2, LayoutGrid, ArrowRight, X, ChefHat } from 'lucide-react';
 import { getRecipesForHarvest } from '../services/recipeService';
 import RecipeCard from './RecipeCard';
+import { getBioPrice } from '../data/bioPrices';
 
 interface HarvestLogProps {
   tasks: GardenTask[];
@@ -69,6 +70,28 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
 
   const cropStats = getStatsByCrop();
   const totalYieldAll = Object.values(cropStats).reduce((acc, curr) => acc + curr.totalYield, 0);
+
+  // Economic Analysis
+  const calculateEconomicAnalysis = () => {
+    let totalValue = 0;
+    const cropValues: Record<string, number> = {};
+    
+    Object.entries(cropStats).forEach(([key, stat]) => {
+      const plantName = key.split('-')[0];
+      const price = getBioPrice(plantName);
+      const value = stat.totalYield * price;
+      cropValues[key] = value;
+      totalValue += value;
+    });
+    
+    // Costi stimati (acqua, concime, semi): 0.75€/kg
+    const estimatedCosts = totalYieldAll * 0.75;
+    const netSavings = totalValue - estimatedCosts;
+    
+    return { totalValue, cropValues, estimatedCosts, netSavings };
+  };
+
+  const economicData = calculateEconomicAnalysis();
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -364,6 +387,41 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
               ))}
           </div>
       </div>
+
+      {/* Economic Analysis */}
+      {totalYieldAll > 0 && (
+        <div className="bg-gradient-to-br from-green-50 to-emerald-100 p-5 rounded-2xl border-2 border-green-200 shadow-sm">
+          <h3 className="font-bold text-lg text-green-800 mb-4 flex items-center gap-2">
+            <BarChart3 size={20} />
+            Analisi Economica {filterSeason !== 'All' && `(${filterSeason})`}
+          </h3>
+          
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="bg-white p-4 rounded-xl shadow-sm">
+              <p className="text-xs text-gray-500 uppercase mb-1 font-bold">Valore Generato</p>
+              <p className="text-2xl font-bold text-green-600">
+                €{economicData.totalValue.toFixed(2)}
+              </p>
+            </div>
+            <div className="bg-white p-4 rounded-xl shadow-sm">
+              <p className="text-xs text-gray-500 uppercase mb-1 font-bold">Costi Stimati</p>
+              <p className="text-2xl font-bold text-orange-600">
+                €{economicData.estimatedCosts.toFixed(2)}
+              </p>
+            </div>
+          </div>
+          
+          <div className="bg-white p-4 rounded-xl shadow-sm">
+            <p className="text-xs text-gray-500 uppercase mb-1 font-bold">Risparmio Netto</p>
+            <p className="text-3xl font-bold text-emerald-600">
+              €{economicData.netSavings.toFixed(2)}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              {totalYieldAll.toFixed(1)}kg totali raccolti
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

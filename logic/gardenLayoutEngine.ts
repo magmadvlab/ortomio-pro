@@ -223,6 +223,126 @@ export const suggestInitialPosition = (
   };
 };
 
+/**
+ * Calcola il numero massimo di piante che possono essere piantate in un orto
+ */
+export const calculateMaxPlants = (
+  masterData: PlantMasterSheet,
+  gardenSizeSqMeters: number
+): { maxPlants: number; layout: 'rows' | 'square'; efficiency: number } => {
+  const spacing = parseSpacing(masterData.transplanting.spacing);
+  if (!spacing) {
+    return { maxPlants: 0, layout: 'rows', efficiency: 0 };
+  }
+  
+  // Converti m² in cm²
+  const gardenSizeCm = Math.sqrt(gardenSizeSqMeters * 10000);
+  
+  // Calcola layout a file
+  const plantsPerRow = Math.floor(gardenSizeCm / spacing.row);
+  const numRows = Math.floor(gardenSizeCm / spacing.between);
+  const maxPlantsRows = plantsPerRow * numRows;
+  
+  // Calcola layout quadrato (più compatto)
+  const plantsPerSide = Math.floor(gardenSizeCm / spacing.row);
+  const maxPlantsSquare = plantsPerSide * plantsPerSide;
+  
+  // Scegli il layout migliore
+  if (maxPlantsRows > maxPlantsSquare) {
+    return {
+      maxPlants: maxPlantsRows,
+      layout: 'rows',
+      efficiency: (maxPlantsRows * spacing.row * spacing.between) / (gardenSizeCm * gardenSizeCm)
+    };
+  } else {
+    return {
+      maxPlants: maxPlantsSquare,
+      layout: 'square',
+      efficiency: (maxPlantsSquare * spacing.row * spacing.row) / (gardenSizeCm * gardenSizeCm)
+    };
+  }
+};
+
+/**
+ * Suggerisce un layout ottimale per una pianta
+ */
+export const suggestOptimalLayout = (
+  masterData: PlantMasterSheet,
+  gardenWidth: number,
+  gardenHeight: number
+): string => {
+  const spacing = parseSpacing(masterData.transplanting.spacing);
+  if (!spacing) {
+    return 'Distanze non disponibili';
+  }
+  
+  const plantsPerRow = Math.floor(gardenWidth / spacing.row);
+  const numRows = Math.floor(gardenHeight / spacing.between);
+  
+  return `Layout consigliato: ${plantsPerRow} piante per fila × ${numRows} file = ${plantsPerRow * numRows} piante totali`;
+};
+
+/**
+ * Calcola la densità ottimale
+ */
+export const calculateOptimalDensity = (
+  masterData: PlantMasterSheet,
+  currentQuantity: number,
+  gardenSizeSqMeters: number
+): { optimal: number; canIncrease: boolean; canDecrease: boolean; suggestion: string } => {
+  const maxInfo = calculateMaxPlants(masterData, gardenSizeSqMeters);
+  
+  const canIncrease = currentQuantity < maxInfo.maxPlants;
+  const canDecrease = currentQuantity > maxInfo.maxPlants * 0.8; // Se è oltre l'80% del massimo
+  
+  let suggestion = '';
+  if (currentQuantity < maxInfo.maxPlants * 0.5) {
+    suggestion = `Puoi aumentare fino a ${maxInfo.maxPlants} piante`;
+  } else if (currentQuantity > maxInfo.maxPlants) {
+    suggestion = `Troppe piante! Massimo consigliato: ${maxInfo.maxPlants}`;
+  } else {
+    suggestion = `Quantità ottimale: ${currentQuantity} piante su ${maxInfo.maxPlants} possibili`;
+  }
+  
+  return {
+    optimal: maxInfo.maxPlants,
+    canIncrease,
+    canDecrease,
+    suggestion
+  };
+};
+
+/**
+ * Verifica spacing per consociazioni
+ */
+export const checkCompanionSpacing = (
+  plant1: PlantMasterSheet,
+  plant2: PlantMasterSheet,
+  distance: number // Distanza attuale in cm
+): { compatible: boolean; suggestedDistance?: number; reason: string } => {
+  const spacing1 = parseSpacing(plant1.transplanting.spacing);
+  const spacing2 = parseSpacing(plant2.transplanting.spacing);
+  
+  if (!spacing1 || !spacing2) {
+    return { compatible: true, reason: 'Distanze non disponibili' };
+  }
+  
+  // Distanza minima consigliata: media delle distanze sulla fila
+  const minDistance = (spacing1.row + spacing2.row) / 2;
+  
+  if (distance < minDistance * 0.7) {
+    return {
+      compatible: false,
+      suggestedDistance: minDistance,
+      reason: `Distanza troppo ravvicinata. Consigliato almeno ${minDistance}cm`
+    };
+  }
+  
+  return {
+    compatible: true,
+    reason: 'Distanza adeguata per consociazioni'
+  };
+};
 
 
 
