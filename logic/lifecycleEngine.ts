@@ -6,6 +6,9 @@ import { checkTransplantConditions } from '../services/weatherService';
 import { calculateMoonPhase, isIdealPhaseFor, getMoonPhaseName } from './lunarCalendar';
 import { isPlantNearHarvestEnd, checkEmptySpaceOpportunity } from './successionEngine';
 import { getAllMasterSheets } from '../services/plantMasterService';
+import { calculateAltitudeDelay, adjustPlantingDates } from '../services/geoClimateService';
+import { scheduleNextTreatment } from './healthEngine';
+import { determineWasteDisposal, suggestHumusAddition } from './compostEngine';
 
 export type LifecyclePhase = 'Sowing' | 'Germination' | 'Nursing' | 'Hardening' | 'Transplanting' | 'Production';
 
@@ -263,6 +266,17 @@ const generateTransplantingAdvice = async (
     }
   }
 
+  // Correzione per altitudine
+  if (garden.altitudeMeters && garden.altitudeMeters > 200) {
+    const delayDays = calculateAltitudeDelay(garden.altitudeMeters);
+    const adjustedDate = adjustPlantingDates(new Date(), garden.altitudeMeters, 'standard');
+    
+    if (delayDays > 0) {
+      warning = `⚠️ Altitudine ${garden.altitudeMeters}m: Ritardo consigliato di ${delayDays} giorni per il trapianto rispetto alla costa. Data ottimale: ${adjustedDate.toLocaleDateString('it-IT')}`;
+      subTasks.unshift(`🏔️ Correzione altitudine: Aspetta ${delayDays} giorni in più rispetto alla data standard`);
+    }
+  }
+
   // Check lunare per trapianto
   const transplantDate = new Date();
   const moonCheck = isIdealPhaseFor('transplant', masterData.nutrientCategory, transplantDate);
@@ -278,6 +292,12 @@ const generateTransplantingAdvice = async (
   // Preparazione terreno
   subTasks.push('Prepara il terreno: zappatura e arieggiatura');
   subTasks.push(`Prepara le buche: ${masterData.transplanting.holeDepth}cm di profondità, ${masterData.transplanting.holeWidth}cm di larghezza`);
+  
+  // Suggerimento humus se disponibile
+  const humusSuggestion = suggestHumusAddition(garden, 6); // Assume compost maturo (6+ mesi)
+  if (humusSuggestion?.shouldAdd) {
+    subTasks.push(`🌱 ${humusSuggestion.suggestion} - ${humusSuggestion.benefit}`);
+  }
   
   // Concimazione di fondo
   if (nutrients.shouldFertilize) {
@@ -311,6 +331,38 @@ const generateTransplantingAdvice = async (
 };
 
 /**
+ * Calcola la data di fine ciclo per una pianta
+ * Fine Ciclo = Data Trapianto + harvestWindow.max + 30 giorni buffer
+ */
+export const calculateEndOfCycle = (
+  task: GardenTask,
+  masterData: PlantMasterSheet
+): Date => {
+  // Trova la data di trapianto (se taskType è Transplant, usa quella, altrimenti stima)
+  let transplantDate: Date;
+  
+  if (task.taskType === 'Transplant') {
+    transplantDate = new Date(task.date);
+  } else {
+    // Stima: 60 giorni dopo semina (media per trapianto)
+    transplantDate = new Date(task.date);
+    transplantDate.setDate(transplantDate.getDate() + 60);
+  }
+
+  // Fine Ciclo = Data Trapianto + harvestWindow.max + 30 giorni buffer
+  const endOfCycle = new Date(transplantDate);
+  
+  // Estrai giorni massimi da harvestWindow (es. "60-90 giorni" -> 90)
+  const harvestWindow = masterData.harvestWindow || '60-90 giorni';
+  const harvestDaysMatch = harvestWindow.match(/(\d+)\s*-\s*(\d+)/);
+  const maxHarvestDays = harvestDaysMatch ? parseInt(harvestDaysMatch[2], 10) : 90;
+  
+  endOfCycle.setDate(endOfCycle.getDate() + maxHarvestDays + 30);
+  
+  return endOfCycle;
+};
+
+/**
  * Genera suggerimenti per la fase di Produzione
  */
 const generateProductionAdvice = (
@@ -318,7 +370,9 @@ const generateProductionAdvice = (
   task: GardenTask,
   masterData: PlantMasterSheet,
   nutrients: NutrientAdvice,
-  health: HealthAdvice | null
+  health: HealthAdvice | null,
+  currentDate: Date,
+  garden: Garden
 ): LifecycleAdvice | null => {
   const subTasks: string[] = [];
 
@@ -347,10 +401,29 @@ const generateProductionAdvice = (
     subTasks.push(`Protezione: ${health.productToUse} - ${health.reason}`);
   }
 
+  // Check fine ciclo
+  const endOfCycle = calculateEndOfCycle(task, masterData);
+  const daysUntilEnd = Math.floor((endOfCycle.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+  
+  if (daysUntilEnd <= 7 && daysUntilEnd >= 0) {
+    // Fine ciclo imminente
+    const wasteAdvice = determineWasteDisposal(masterData, 'Unknown', false, false);
+    
+    subTasks.push(`⚠️ Fine ciclo tra ${daysUntilEnd} giorni: Prepara la rimozione`);
+    subTasks.push(`Smaltimento: ${wasteAdvice.reason}`);
+    wasteAdvice.instructions.forEach(instruction => {
+      subTasks.push(`  → ${instruction}`);
+    });
+
+    if (garden.hasCompostBin && wasteAdvice.canCompost) {
+      subTasks.push(`✅ Puoi compostare: ${wasteAdvice.instructions.join(', ')}`);
+    }
+  }
+
   return {
     phase: 'Production',
-    type: 'INFO',
-    message: `Le tue piante di ${task.plantName} sono in produzione! Continua a monitorare e curare:`,
+    type: daysUntilEnd <= 7 ? 'TASK' : 'INFO',
+    message: `Le tue piante di ${task.plantName} sono in produzione! ${daysUntilEnd <= 7 ? `Fine ciclo tra ${daysUntilEnd} giorni.` : 'Continua a monitorare e curare:'}`,
     subTasks,
     relatedAdvice: {
       nutrients,
@@ -396,10 +469,53 @@ export const checkLifecycleStatus = async (
       return await generateTransplantingAdvice(daysAlive, task, masterData, garden, nutrients, health);
 
     case 'Production':
-      return generateProductionAdvice(daysAlive, task, masterData, nutrients, health, currentDate);
+      return generateProductionAdvice(daysAlive, task, masterData, nutrients, health, currentDate, garden);
 
     default:
       return null;
   }
+};
+
+/**
+ * Genera automaticamente il prossimo task di trattamento quando uno è completato
+ * Chiamato quando un task con taskType 'Treatment' viene marcato come completed
+ */
+export const generateNextTreatmentTask = (
+  completedTask: GardenTask,
+  allTasks: GardenTask[]
+): GardenTask | null => {
+  // Verifica che sia un task di trattamento completato
+  if (completedTask.taskType !== 'Treatment' || !completedTask.completed) {
+    return null;
+  }
+
+  // Verifica che abbia un productId
+  if (!completedTask.treatmentProductId) {
+    return null;
+  }
+
+  // Verifica che non esista già un task futuro per lo stesso prodotto e pianta
+  const existingFutureTask = allTasks.find(t => 
+    t.gardenId === completedTask.gardenId &&
+    t.plantName === completedTask.plantName &&
+    t.taskType === 'Treatment' &&
+    t.treatmentProductId === completedTask.treatmentProductId &&
+    !t.completed &&
+    new Date(t.date) > new Date(completedTask.date)
+  );
+
+  if (existingFutureTask) {
+    return null; // Già esiste un task futuro
+  }
+
+  // Genera prossimo task
+  return scheduleNextTreatment(
+    completedTask.id,
+    completedTask.treatmentProductId,
+    completedTask.date,
+    completedTask.gardenId,
+    completedTask.plantName,
+    completedTask.variety
+  );
 };
 

@@ -1,0 +1,403 @@
+import React, { useState, useEffect } from 'react';
+import { SeedlingBatch } from '../services/seedlingService';
+import { Garden, PlantMasterSheet } from '../types';
+import { createSeedlingBatch, getSeedlingTimeline, shouldStartHardening, isReadyToTransplant, addPhotoToLog, updateSurvivalCount, updateBatchPhase } from '../services/seedlingService';
+import { calculateSeedlingTimeline } from '../logic/seedlingTimelineEngine';
+import { getAllMasterSheets } from '../services/plantMasterService';
+import { Sprout, Calendar, Camera, AlertCircle, CheckCircle, Clock, TrendingUp, Upload, X } from 'lucide-react';
+import { useTier } from '../packages/core/hooks/useTier';
+import UpgradePrompt from './UpgradePrompt';
+
+interface SeedlingManagerProps {
+  garden: Garden;
+  batches: SeedlingBatch[];
+  onBatchUpdate: (batch: SeedlingBatch) => void;
+  onBatchCreate: (batch: SeedlingBatch) => void;
+}
+
+const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBatchUpdate, onBatchCreate }) => {
+  const { can, isPro, checkLimit, limit } = useTier();
+  const [isCreating, setIsCreating] = useState(false);
+  const [newBatch, setNewBatch] = useState({
+    plantName: '',
+    variety: '',
+    sowingDate: new Date().toISOString().split('T')[0],
+    quantity: 10,
+    location: 'Indoor' as const
+  });
+  const [selectedBatch, setSelectedBatch] = useState<SeedlingBatch | null>(null);
+
+  const masterSheets = getAllMasterSheets();
+
+  // Verifica limiti Free
+  const batchesLimit = checkLimit('maxSeedlingBatches', batches.length);
+  const canCreateBatch = isPro || batchesLimit.allowed;
+
+  const handleCreateBatch = () => {
+    // Verifica limite batch
+    if (!canCreateBatch) {
+      alert(`Limite raggiunto: massimo ${limit('maxSeedlingBatches')} batch semenzai in versione Free. Passa a Pro per batch illimitati.`);
+      return;
+    }
+
+    try {
+      const batch = createSeedlingBatch(
+        newBatch.plantName,
+        newBatch.sowingDate,
+        newBatch.quantity,
+        newBatch.location,
+        garden.id,
+        newBatch.variety || undefined
+      );
+      onBatchCreate(batch);
+      setIsCreating(false);
+      setNewBatch({
+        plantName: '',
+        variety: '',
+        sowingDate: new Date().toISOString().split('T')[0],
+        quantity: 10,
+        location: 'Indoor'
+      });
+    } catch (error) {
+      alert((error as Error).message);
+    }
+  };
+
+  const handlePhotoUpload = (batch: SeedlingBatch, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Verifica limite foto per batch (Free: max 5)
+      const currentPhotos = batch.photoLog?.length || 0;
+      const photosLimit = checkLimit('maxPhotosPerBatch', currentPhotos);
+      
+      if (!isPro && !photosLimit.allowed) {
+        alert(`Limite raggiunto: massimo ${limit('maxPhotosPerBatch')} foto per batch in versione Free. Passa a Pro per foto illimitate.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        const updated = addPhotoToLog(batch, base64);
+        onBatchUpdate(updated);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const getPhaseColor = (phase: SeedlingBatch['phase']) => {
+    switch (phase) {
+      case 'Sowing': return 'bg-gray-100 text-gray-700';
+      case 'Germination': return 'bg-blue-100 text-blue-700';
+      case 'Nursing': return 'bg-green-100 text-green-700';
+      case 'Hardening': return 'bg-orange-100 text-orange-700';
+      case 'ReadyToTransplant': return 'bg-purple-100 text-purple-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const getPhaseLabel = (phase: SeedlingBatch['phase']) => {
+    const labels = {
+      'Sowing': 'Semina',
+      'Germination': 'Germinazione',
+      'Nursing': 'Cura Piantine',
+      'Hardening': 'Aclimatazione',
+      'ReadyToTransplant': 'Pronto al Trapianto'
+    };
+    return labels[phase];
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Sprout size={24} className="text-green-600" />
+          <h2 className="text-2xl font-bold text-gray-800">Gestione Semenzai</h2>
+        </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {!isPro && (
+            <div className="text-xs text-gray-500">
+              {batches.length}/{limit('maxSeedlingBatches')} batch
+            </div>
+          )}
+          <button
+            onClick={() => setIsCreating(!isCreating)}
+            disabled={!canCreateBatch}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex-1 sm:flex-none"
+          >
+            + Nuovo Batch
+          </button>
+        </div>
+      </div>
+
+      {/* Upgrade Prompt se Free e limite raggiunto */}
+      {!isPro && !batchesLimit.allowed && (
+        <UpgradePrompt
+          feature="Batch Semenzai Illimitati"
+          limit={`Massimo ${limit('maxSeedlingBatches')} batch in versione Free`}
+          variant="inline"
+          onUpgrade={() => console.log('Upgrade to Pro')}
+        />
+      )}
+
+      {/* Form Creazione */}
+      {isCreating && (
+        <div className="bg-white p-4 sm:p-6 rounded-xl border-2 border-green-200">
+          <h3 className="font-bold text-lg mb-4">Nuovo Batch Semenzai</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold mb-2">Pianta</label>
+              <select
+                className="w-full p-3 border rounded-lg text-sm sm:text-base"
+                value={newBatch.plantName}
+                onChange={(e) => setNewBatch({ ...newBatch, plantName: e.target.value })}
+              >
+                <option value="">Seleziona pianta</option>
+                {masterSheets.map(p => (
+                  <option key={p.commonName} value={p.commonName}>{p.commonName}</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2">Varietà (opzionale)</label>
+                <input
+                  type="text"
+                  className="w-full p-3 border rounded-lg"
+                  value={newBatch.variety}
+                  onChange={(e) => setNewBatch({ ...newBatch, variety: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-2">Data Semina</label>
+                <input
+                  type="date"
+                  className="w-full p-3 border rounded-lg"
+                  value={newBatch.sowingDate}
+                  onChange={(e) => setNewBatch({ ...newBatch, sowingDate: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2">Quantità</label>
+                <input
+                  type="number"
+                  min="1"
+                  className="w-full p-3 border rounded-lg text-sm sm:text-base"
+                  value={newBatch.quantity}
+                  onChange={(e) => setNewBatch({ ...newBatch, quantity: parseInt(e.target.value) || 1 })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-2">Posizione</label>
+                <select
+                  className="w-full p-3 border rounded-lg text-sm sm:text-base"
+                  value={newBatch.location}
+                  onChange={(e) => setNewBatch({ ...newBatch, location: e.target.value as any })}
+                >
+                  <option value="Indoor">Indoor</option>
+                  <option value="Greenhouse">Serra</option>
+                  <option value="ColdFrame">Cassone</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={handleCreateBatch}
+                disabled={!newBatch.plantName || !canCreateBatch}
+                className="flex-1 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
+              >
+                Crea Batch
+              </button>
+              <button
+                onClick={() => setIsCreating(false)}
+                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 text-sm sm:text-base"
+              >
+                Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lista Batch */}
+      <div className="space-y-4">
+        {batches.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+            <Sprout size={48} className="mx-auto mb-3 text-gray-400" />
+            <p className="text-gray-500 font-medium">Nessun batch semenzai attivo</p>
+            <p className="text-sm text-gray-400 mt-1">Crea il tuo primo batch per iniziare</p>
+          </div>
+        ) : (
+          batches.map(batch => {
+            const timeline = getSeedlingTimeline(batch);
+            const detailedTimeline = calculateSeedlingTimeline(batch, garden);
+            const hardeningCheck = shouldStartHardening(batch, garden);
+            const transplantCheck = isReadyToTransplant(batch, garden);
+            const photosCount = batch.photoLog?.length || 0;
+            const photosLimit = checkLimit('maxPhotosPerBatch', photosCount);
+
+            return (
+              <div key={batch.id} className="bg-white p-4 sm:p-6 rounded-xl border-2 border-green-100">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-800">{batch.plantName}</h3>
+                    {batch.variety && <p className="text-sm text-gray-600 italic">{batch.variety}</p>}
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${getPhaseColor(batch.phase)}`}>
+                        {getPhaseLabel(batch.phase)}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {new Date(batch.sowingDate).toLocaleDateString('it-IT')}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">Sopravvissute</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max={batch.quantity}
+                        className="w-16 p-1 border rounded text-center font-bold"
+                        value={batch.currentQuantity || batch.quantity}
+                        onChange={(e) => {
+                          const updated = updateSurvivalCount(batch, parseInt(e.target.value) || 0);
+                          onBatchUpdate(updated);
+                        }}
+                      />
+                      <span className="text-gray-500">/ {batch.quantity}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Timeline */}
+                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Clock size={16} className="text-gray-600" />
+                    <h4 className="font-bold text-gray-700">Timeline</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Germinazione:</span>
+                      <span className={detailedTimeline.germination.status === 'Completed' ? 'text-green-600 font-bold' : ''}>
+                        {detailedTimeline.germination.status === 'Completed' ? '✓ Completata' : 
+                         detailedTimeline.germination.daysRemaining > 0 ? `${detailedTimeline.germination.daysRemaining} giorni rimanenti` : 'In corso'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Nursing:</span>
+                      <span className={detailedTimeline.nursing.status === 'Completed' ? 'text-green-600 font-bold' : ''}>
+                        {detailedTimeline.nursing.status === 'Completed' ? '✓ Completata' : 
+                         detailedTimeline.nursing.daysRemaining > 0 ? `${detailedTimeline.nursing.daysRemaining} giorni rimanenti` : 'In corso'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Hardening:</span>
+                      <span>
+                        {hardeningCheck.shouldStart ? (
+                          <span className="text-orange-600 font-bold">⚠️ Inizia ora!</span>
+                        ) : detailedTimeline.hardening.status === 'Ready' ? (
+                          <span className="text-purple-600 font-bold">✓ Pronto</span>
+                        ) : 'Non ancora'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Trapianto previsto:</span>
+                      <span className="font-bold">
+                        {new Date(batch.expectedTransplantDate || '').toLocaleDateString('it-IT')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Alert */}
+                {hardeningCheck.shouldStart && (
+                  <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle size={18} className="text-orange-600" />
+                      <p className="text-sm font-bold text-orange-800">Inizia Hardening</p>
+                    </div>
+                    <p className="text-xs text-orange-700 mt-1">{hardeningCheck.reason}</p>
+                    <button
+                      onClick={() => {
+                        const updated = updateBatchPhase(batch, 'Hardening');
+                        onBatchUpdate(updated);
+                      }}
+                      className="mt-2 px-4 py-2 bg-orange-600 text-white rounded text-sm font-bold hover:bg-orange-700"
+                    >
+                      Inizia Hardening
+                    </button>
+                  </div>
+                )}
+
+                {transplantCheck.ready && (
+                  <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle size={18} className="text-purple-600" />
+                      <p className="text-sm font-bold text-purple-800">Pronto al Trapianto</p>
+                    </div>
+                    {transplantCheck.warnings && transplantCheck.warnings.length > 0 && (
+                      <ul className="text-xs text-purple-700 mt-1 list-disc list-inside">
+                        {transplantCheck.warnings.map((w, i) => (
+                          <li key={i}>{w}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                {/* Photo Log */}
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-semibold">Foto Progressi</label>
+                    {!isPro && (
+                      <span className="text-xs text-gray-500">
+                        {photosCount}/{limit('maxPhotosPerBatch')} foto
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {batch.photoLog?.map((photo, idx) => (
+                      <div key={idx} className="relative shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden border">
+                        <img src={photo.image} alt={`Progress ${idx + 1}`} className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                    {photosLimit.allowed && (
+                      <label className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-green-400 transition-colors">
+                        <Camera size={20} className="text-gray-400" />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handlePhotoUpload(batch, e)}
+                        />
+                      </label>
+                    )}
+                    {!photosLimit.allowed && !isPro && (
+                      <div className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                        <span className="text-xs text-gray-400 text-center px-2">Limite raggiunto</span>
+                      </div>
+                    )}
+                  </div>
+                  {!photosLimit.allowed && !isPro && (
+                    <UpgradePrompt
+                      feature="Foto Illimitate per Batch"
+                      limit={`Massimo ${limit('maxPhotosPerBatch')} foto per batch in versione Free`}
+                      variant="inline"
+                      onUpgrade={() => console.log('Upgrade to Pro')}
+                    />
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default SeedlingManager;
+

@@ -801,6 +801,391 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       preventiveStrategy: 'LOW',
       criticalPeriods: []
     }
+  },
+  
+  // ERBE AROMATICHE (Pro Feature)
+  {
+    id: 'basilico',
+    commonName: 'BASILICO',
+    cropType: 'Aromatic',
+    nutrientCategory: 'LEAFY' as NutrientCategory,
+    scientificName: 'Ocimum basilicum',
+    family: 'Lamiaceae',
+    requiredTools: {
+      seedTray: true,
+      seedTrayType: 'alveolato',
+      seedSoil: true,
+      heatingMat: false,
+      sprayer: true
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.3,
+      idealTemp: '20-25°C',
+      minTemp: 15,
+      lightRequirement: 'Light',
+      emergenceDays: parseDaysRange('7-14 giorni'),
+      coveringNeeded: true,
+      coveringInstructions: 'Rimuovi copertura quando emergono le prime foglioline'
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      lightHours: 6,
+      watering: 'Mantieni terreno umido, evita ristagni',
+      temperature: '18-25°C'
+    },
+    transplanting: {
+      when: 'Quando le notturne superano i 15°C stabilmente (maggio)',
+      minTemp: 15,
+      spacing: '25-30cm sulla fila, 30cm tra le file',
+      holeDepth: 10,
+      holeWidth: 15,
+      soilRequirements: 'Terreno fertile, ben drenato, ricco di materia organica'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Il basilico è l\'erba aromatica più amata in Italia. Richiede calore e acqua regolare. Cimare regolarmente per favorire crescita cespugliosa.',
+      commonMistakes: [
+        'Non cimare i fiori (la pianta smette di produrre foglie)',
+        'Terreno troppo bagnato (marciumi)',
+        'Esposizione insufficiente al sole',
+        'Non raccogliere regolarmente (foglie vecchie amare)'
+      ],
+      harvestGuide: 'Raccogli le foglie prima della fioritura per massimo aroma. Usa fresco o essicca rapidamente. Cima i fiori per prolungare produzione.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'LOW'
+    }
+  },
+  {
+    id: 'rosmarino',
+    commonName: 'ROSMARINO',
+    cropType: 'Aromatic',
+    nutrientCategory: 'LEAFY' as NutrientCategory,
+    scientificName: 'Rosmarinus officinalis',
+    family: 'Lamiaceae',
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: false
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '20-25°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: parseDaysRange('14-21 giorni'),
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto',
+      lightHours: 8,
+      watering: 'Terreno ben drenato, evita ristagni',
+      temperature: '15-25°C'
+    },
+    transplanting: {
+      when: 'Primavera o autunno (pianta perenne)',
+      minTemp: 5,
+      spacing: '50-60cm sulla fila, 60cm tra le file',
+      holeDepth: 20,
+      holeWidth: 20,
+      soilRequirements: 'Terreno ben drenato, anche povero, pH 6.0-8.0'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Il rosmarino è un arbusto perenne rustico, ideale per climi mediterranei. Richiede poca manutenzione e produce tutto l\'anno.',
+      commonMistakes: [
+        'Terreno troppo umido (marciumi radicali)',
+        'Potatura eccessiva',
+        'Non raccogliere regolarmente (legnifica)',
+        'Esposizione insufficiente al sole'
+      ],
+      harvestGuide: 'Raccogli rametti giovani tutto l\'anno. Usa fresco o essicca. Potatura leggera dopo fioritura per mantenere forma compatta.'
+    },
+    susceptibility: {
+      fungalDiseases: [],
+      pests: ['Afidi'],
+      preventiveStrategy: 'LOW'
+    }
+  },
+  {
+    id: 'salvia',
+    commonName: 'SALVIA',
+    cropType: 'Aromatic',
+    nutrientCategory: 'LEAFY' as NutrientCategory,
+    scientificName: 'Salvia officinalis',
+    family: 'Lamiaceae',
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: false
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '20-25°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: parseDaysRange('14-21 giorni'),
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto',
+      lightHours: 8,
+      watering: 'Terreno ben drenato, moderatamente umido',
+      temperature: '15-25°C'
+    },
+    transplanting: {
+      when: 'Primavera o autunno (pianta perenne)',
+      minTemp: 5,
+      spacing: '40-50cm sulla fila, 50cm tra le file',
+      holeDepth: 20,
+      holeWidth: 20,
+      soilRequirements: 'Terreno ben drenato, anche calcareo, pH 6.0-8.0'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'La salvia è un\'erba perenne molto aromatica, ideale per cucina e uso medicinale. Facile da coltivare e mantenere.',
+      commonMistakes: [
+        'Terreno troppo umido',
+        'Non raccogliere regolarmente (legnifica)',
+        'Potatura insufficiente',
+        'Esposizione insufficiente al sole'
+      ],
+      harvestGuide: 'Raccogli foglie giovani prima della fioritura per massimo aroma. Usa fresco o essicca. Potatura post-fioritura per mantenere forma.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'LOW'
+    }
+  },
+  {
+    id: 'timo',
+    commonName: 'TIMO',
+    cropType: 'Aromatic',
+    nutrientCategory: 'LEAFY' as NutrientCategory,
+    scientificName: 'Thymus vulgaris',
+    family: 'Lamiaceae',
+    requiredTools: {
+      seedTray: true,
+      seedTrayType: 'alveolato',
+      seedSoil: true,
+      heatingMat: false,
+      sprayer: false
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.2,
+      idealTemp: '20-25°C',
+      minTemp: 15,
+      lightRequirement: 'Light',
+      emergenceDays: parseDaysRange('14-21 giorni'),
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto',
+      lightHours: 8,
+      watering: 'Terreno ben drenato, moderatamente secco',
+      temperature: '15-25°C'
+    },
+    transplanting: {
+      when: 'Primavera (pianta perenne)',
+      minTemp: 10,
+      spacing: '25-30cm sulla fila, 30cm tra le file',
+      holeDepth: 10,
+      holeWidth: 15,
+      soilRequirements: 'Terreno ben drenato, anche povero, pH 6.0-8.0'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Il timo è un\'erba perenne rustica, ideale per terreni poveri e secchi. Molto aromatica e facile da mantenere.',
+      commonMistakes: [
+        'Terreno troppo umido (marciumi)',
+        'Esposizione insufficiente al sole',
+        'Non raccogliere regolarmente',
+        'Concimazione eccessiva (riduce aroma)'
+      ],
+      harvestGuide: 'Raccogli rametti giovani prima della fioritura. Usa fresco o essicca. Potatura leggera dopo fioritura.'
+    },
+    susceptibility: {
+      fungalDiseases: [],
+      pests: [],
+      preventiveStrategy: 'LOW'
+    }
+  },
+  {
+    id: 'origano',
+    commonName: 'ORIGANO',
+    cropType: 'Aromatic',
+    nutrientCategory: 'LEAFY' as NutrientCategory,
+    scientificName: 'Origanum vulgare',
+    family: 'Lamiaceae',
+    requiredTools: {
+      seedTray: true,
+      seedTrayType: 'alveolato',
+      seedSoil: true,
+      heatingMat: false,
+      sprayer: false
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.3,
+      idealTemp: '20-25°C',
+      minTemp: 15,
+      lightRequirement: 'Light',
+      emergenceDays: parseDaysRange('10-18 giorni'),
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto',
+      lightHours: 8,
+      watering: 'Terreno ben drenato, moderatamente secco',
+      temperature: '15-25°C'
+    },
+    transplanting: {
+      when: 'Primavera (pianta perenne)',
+      minTemp: 10,
+      spacing: '30-40cm sulla fila, 40cm tra le file',
+      holeDepth: 10,
+      holeWidth: 15,
+      soilRequirements: 'Terreno ben drenato, anche povero, pH 6.0-8.0'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'L\'origano è un\'erba perenne molto aromatica, essenziale per la cucina italiana. Facile da coltivare e mantenere.',
+      commonMistakes: [
+        'Terreno troppo umido',
+        'Esposizione insufficiente al sole',
+        'Non raccogliere regolarmente',
+        'Concimazione eccessiva'
+      ],
+      harvestGuide: 'Raccogli foglie e fiori prima della piena fioritura per massimo aroma. Usa fresco o essicca. Essiccazione migliora l\'aroma.'
+    },
+    susceptibility: {
+      fungalDiseases: [],
+      pests: [],
+      preventiveStrategy: 'LOW'
+    }
+  },
+  {
+    id: 'menta',
+    commonName: 'MENTA',
+    cropType: 'Aromatic',
+    nutrientCategory: 'LEAFY' as NutrientCategory,
+    scientificName: 'Mentha spicata',
+    family: 'Lamiaceae',
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: false
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '20-25°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: parseDaysRange('10-18 giorni'),
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      lightHours: 6,
+      watering: 'Terreno sempre umido, evita secchezza',
+      temperature: '15-25°C'
+    },
+    transplanting: {
+      when: 'Primavera (pianta perenne)',
+      minTemp: 10,
+      spacing: '30-40cm sulla fila, 40cm tra le file',
+      holeDepth: 15,
+      holeWidth: 20,
+      soilRequirements: 'Terreno fertile, ben drenato ma umido, pH 6.0-7.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'La menta è un\'erba perenne molto vigorosa e invasiva. Richiede contenimento e terreno sempre umido.',
+      commonMistakes: [
+        'Terreno troppo secco (appassisce)',
+        'Non contenere la crescita (invasiva)',
+        'Esposizione troppo soleggiata (brucia)',
+        'Non raccogliere regolarmente'
+      ],
+      harvestGuide: 'Raccogli foglie giovani prima della fioritura. Usa fresco o essicca. Contieni la crescita tagliando stoloni laterali.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Ruggine'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'LOW'
+    }
+  },
+  {
+    id: 'lavanda',
+    commonName: 'LAVANDA',
+    cropType: 'Aromatic',
+    nutrientCategory: 'LEAFY' as NutrientCategory,
+    scientificName: 'Lavandula angustifolia',
+    family: 'Lamiaceae',
+    requiredTools: {
+      seedTray: true,
+      seedTrayType: 'alveolato',
+      seedSoil: true,
+      heatingMat: false,
+      sprayer: false
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.3,
+      idealTemp: '20-25°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: parseDaysRange('14-28 giorni'),
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto',
+      lightHours: 8,
+      watering: 'Terreno ben drenato, moderatamente secco',
+      temperature: '15-25°C'
+    },
+    transplanting: {
+      when: 'Primavera (pianta perenne)',
+      minTemp: 10,
+      spacing: '40-50cm sulla fila, 50cm tra le file',
+      holeDepth: 20,
+      holeWidth: 20,
+      soilRequirements: 'Terreno ben drenato, anche calcareo, pH 6.5-8.0'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'La lavanda è un arbusto perenne molto decorativo e aromatico. Ideale per bordure e giardini mediterranei.',
+      commonMistakes: [
+        'Terreno troppo umido (marciumi)',
+        'Esposizione insufficiente al sole',
+        'Potatura insufficiente (legnifica)',
+        'Non raccogliere fiori'
+      ],
+      harvestGuide: 'Raccogli fiori quando sono aperti ma non completamente maturi. Essicca in mazzetti per conservazione. Potatura post-fioritura.'
+    },
+    susceptibility: {
+      fungalDiseases: [],
+      pests: [],
+      preventiveStrategy: 'LOW'
+    }
   }
 ];
 

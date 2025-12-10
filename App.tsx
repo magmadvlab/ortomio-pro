@@ -8,8 +8,15 @@ import Advice from './components/Advice';
 import HarvestLog from './components/HarvestLog';
 import SmartHub from './components/SmartHub';
 import { Tab, GardenTask, Garden, GardenProfile, SmartDevice } from './types';
+import { StorageService } from './services/storageService';
+import { TierProvider } from './packages/core/context/TierContext';
+import { getDefaultStorageProvider, IStorageProvider } from './packages/core/storage/factory';
+import { useTier } from './packages/core/hooks/useTier';
 
-const App: React.FC = () => {
+// Inner App component that uses hooks (must be inside TierProvider)
+const AppInner: React.FC = () => {
+  const { tier } = useTier();
+  const [storageProvider] = useState<IStorageProvider>(() => getDefaultStorageProvider());
   const [activeTab, setActiveTab] = useState<Tab>(Tab.DASHBOARD);
   const [tasks, setTasks] = useState<GardenTask[]>([]);
   const [gardens, setGardens] = useState<Garden[]>([]);
@@ -21,19 +28,14 @@ const App: React.FC = () => {
   // Initialization: Load data and handle migration
   useEffect(() => {
     // 1. Load Gardens
-    const savedGardens = localStorage.getItem('ortoGardens');
-    let loadedGardens: Garden[] = [];
+    let loadedGardens = StorageService.getGardens();
     
-    if (savedGardens) {
-        try {
-            loadedGardens = JSON.parse(savedGardens);
-        } catch(e) { console.error("Error parsing gardens"); }
-    } else {
+    if (loadedGardens.length === 0) {
         // Migration: Check for old single profile
-        const oldProfile = localStorage.getItem('ortoProfile');
+        const oldProfile = StorageService.getOldProfile();
         if (oldProfile) {
             try {
-                const parsed = JSON.parse(oldProfile) as GardenProfile;
+                const parsed = oldProfile as GardenProfile;
                 loadedGardens = [{
                     id: crypto.randomUUID(),
                     name: 'Il Mio Orto',
@@ -42,7 +44,9 @@ const App: React.FC = () => {
                     soilPh: parsed.soilPh,
                     soilType: parsed.soilType
                 }];
-            } catch(e) {}
+            } catch(e) {
+                console.error('Error migrating old profile', e);
+            }
         }
     }
 
@@ -58,7 +62,7 @@ const App: React.FC = () => {
     
     setGardens(loadedGardens);
     // Set active garden (prefer last active or first)
-    const lastActive = localStorage.getItem('ortoActiveGardenId');
+    const lastActive = StorageService.getActiveGardenId();
     if (lastActive && loadedGardens.find(g => g.id === lastActive)) {
         setActiveGardenId(lastActive);
     } else {
@@ -66,10 +70,8 @@ const App: React.FC = () => {
     }
 
     // 2. Load Tasks and Migrate if needed
-    const savedTasks = localStorage.getItem('ortoTasks');
-    if (savedTasks) {
-      try {
-        let parsedTasks = JSON.parse(savedTasks) as GardenTask[];
+    let parsedTasks = StorageService.getTasks();
+    if (parsedTasks.length > 0) {
         // Migration: Assign orphan tasks to the first garden
         const defaultGardenId = loadedGardens[0].id;
         let migrationNeeded = false;
@@ -84,17 +86,14 @@ const App: React.FC = () => {
 
         setTasks(parsedTasks);
         if (migrationNeeded) {
-            localStorage.setItem('ortoTasks', JSON.stringify(parsedTasks));
+            StorageService.saveTasks(parsedTasks);
         }
-      } catch (e) {
-        console.error("Failed to parse tasks");
-      }
     }
 
     // 3. Initialize/Load Smart Devices
-    const savedDevices = localStorage.getItem('ortoDevices');
-    if (savedDevices) {
-        setSmartDevices(JSON.parse(savedDevices));
+    const savedDevices = StorageService.getDevices();
+    if (savedDevices.length > 0) {
+        setSmartDevices(savedDevices);
     } else {
         // Create Default Mock Devices for existing gardens
         const mocks: SmartDevice[] = loadedGardens.map(g => ({
@@ -118,22 +117,22 @@ const App: React.FC = () => {
   // Persistence
   useEffect(() => {
     if (gardens.length > 0) {
-        localStorage.setItem('ortoGardens', JSON.stringify(gardens));
+        StorageService.saveGardens(gardens);
     }
   }, [gardens]);
 
   useEffect(() => {
-    localStorage.setItem('ortoTasks', JSON.stringify(tasks));
+    StorageService.saveTasks(tasks);
   }, [tasks]);
 
   useEffect(() => {
       if (activeGardenId) {
-          localStorage.setItem('ortoActiveGardenId', activeGardenId);
+          StorageService.saveActiveGardenId(activeGardenId);
       }
   }, [activeGardenId]);
 
   useEffect(() => {
-      localStorage.setItem('ortoDevices', JSON.stringify(smartDevices));
+      StorageService.saveDevices(smartDevices);
   }, [smartDevices]);
 
 
@@ -401,6 +400,15 @@ const App: React.FC = () => {
       </main>
       <Navigation currentTab={activeTab} onTabChange={setActiveTab} />
     </div>
+  );
+};
+
+// Main App component with providers
+const App: React.FC = () => {
+  return (
+    <TierProvider>
+      <AppInner />
+    </TierProvider>
   );
 };
 

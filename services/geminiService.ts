@@ -2,6 +2,7 @@ import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { PlantSuggestion, TreatmentAdvice, SpecificPlantInfo } from "../types";
 import { findSpecies, findVariety, getVarietyInfo, suggestVarieties } from "./plantDatabaseService";
 import { generateCompleteGuide, getVarietyInfo as getMasterVarietyInfo, findSpeciesFromVariety } from "./plantMasterService";
+import { getSeasonForDate } from "../utils/seasonalAdjustment";
 
 // Per Vite: usa import.meta.env.VITE_* 
 // Crea un file .env nella root del progetto con: VITE_GEMINI_API_KEY=la_tua_chiave
@@ -278,7 +279,7 @@ CONTESTO:
 - Specie: ${masterSheet.commonName} (${masterSheet.scientificName})
 ${varietyName ? `- Varietà: ${varietyName}` : ''}
 - Posizione: ${lat}, ${lng} (Italia)
-- Stagione attuale: ${season}
+- Stagione attuale: ${season} (calcolata per latitudine ${lat >= 0 ? 'Nord' : 'Sud'})
 - Mese: ${month}
 
 SCHEDA MASTER DISPONIBILE - Segui ESATTAMENTE questa struttura a 4 fasi:
@@ -410,7 +411,7 @@ Rispondi SOLO in formato JSON valido, rispettando esattamente lo schema fornito.
 CONTESTO:
 - Pianta richiesta: "${validatedQuery}"${varietyContext ? varietyContext : ''}
 - Posizione: ${lat}, ${lng} (Italia)
-- Stagione attuale: ${season}
+- Stagione attuale: ${season} (calcolata per latitudine ${lat >= 0 ? 'Nord' : 'Sud'})
 - Mese: ${month}
 
 OBIETTIVO: Crea una GUIDA STANDARDIZZATA "for dummies" dal seme al raccolto.

@@ -7,10 +7,14 @@ import {
   Footprint
 } from '../logic/gardenLayoutEngine';
 import { getMasterSheet } from '../services/plantMasterService';
+import { suggestPlantPlacement, isAreaSuitableForPlant } from '../logic/spatialPlanner';
+import { calculateSunIncidence, SunIncidenceCell } from '../logic/sunIncidenceCalculator';
 import { 
   ZoomIn, ZoomOut, Grid, RotateCcw, Save, X, AlertTriangle, 
-  CheckCircle, Move, MapPin
+  CheckCircle, Move, MapPin, Sun
 } from 'lucide-react';
+import { useTier } from '../packages/core/hooks/useTier';
+import UpgradePrompt from './UpgradePrompt';
 
 interface VisualGardenPlannerProps {
   garden: Garden;
@@ -25,11 +29,33 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
   onUpdateTask,
   onClose
 }) => {
+  const { can } = useTier();
   const [zoom, setZoom] = useState(1);
   const [showGrid, setShowGrid] = useState(true);
+  const [showSunHeatmap, setShowSunHeatmap] = useState(false);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [placementAdvice, setPlacementAdvice] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+
+  // Protezione Pro: Visual Planner è feature Pro
+  if (!can('visualGardenPlanner')) {
+    return (
+      <div className="bg-white p-6 rounded-xl border-2 border-purple-200">
+        <UpgradePrompt
+          feature="Visual Garden Planner"
+          variant="inline"
+          onUpgrade={() => console.log('Upgrade to Pro')}
+        />
+      </div>
+    );
+  }
+  
+  // Calcola incidenza solare per griglia
+  const sunIncidenceCells = React.useMemo(() => {
+    if (!garden.dailySunHours) return [];
+    return calculateSunIncidence(garden, 20); // 20x20 grid per precisione
+  }, [garden]);
   
   // Converti dimensioni orto da m² a cm (assumendo forma quadrata)
   const gardenSizeCm = Math.sqrt(garden.sizeSqMeters * 10000); // m² * 10000 = cm², poi sqrt
@@ -82,6 +108,28 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
     
     const task = activeTasks.find(t => t.id === draggingTaskId);
     if (task) {
+      const master = masterDataMap.get(task.plantName);
+      
+      // Calcola suggerimento posizionamento se abbiamo dati microclima
+      if (master && garden.dailySunHours !== undefined) {
+        const area = {
+          id: 'current',
+          name: 'Posizione corrente',
+          dailySunHours: garden.dailySunHours,
+          sunExposure: garden.sunExposure || 'PartSun'
+        };
+        
+        const advice = suggestPlantPlacement(master, [area], garden);
+        
+        if (!advice.canPlant) {
+          setPlacementAdvice(advice.warning || 'Posizione non adatta');
+        } else {
+          setPlacementAdvice(null);
+        }
+      } else {
+        setPlacementAdvice(null);
+      }
+      
       const updatedTask: GardenTask = {
         ...task,
         gridPosition: { x: newX, y: newY }
@@ -92,6 +140,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
 
   const handleMouseUp = () => {
     setDraggingTaskId(null);
+    setPlacementAdvice(null);
   };
 
   const getTaskColor = (task: GardenTask): string => {
@@ -183,6 +232,15 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
             >
               <Grid size={18} />
             </button>
+            {garden.dailySunHours !== undefined && (
+              <button
+                onClick={() => setShowSunHeatmap(!showSunHeatmap)}
+                className={`p-2 rounded-lg ${showSunHeatmap ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100'}`}
+                title="Mostra heatmap esposizione solare"
+              >
+                <Sun size={18} />
+              </button>
+            )}
             {onClose && (
               <button
                 onClick={onClose}
@@ -193,6 +251,16 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
             )}
           </div>
         </div>
+
+        {/* Placement Advice Banner */}
+        {placementAdvice && draggingTaskId && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mx-4 mt-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={18} className="text-yellow-600" />
+              <p className="text-sm text-yellow-800 font-medium">{placementAdvice}</p>
+            </div>
+          </div>
+        )}
 
         {/* SVG Canvas */}
         <div className="flex-1 overflow-auto p-4 bg-gray-50">
@@ -224,6 +292,39 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
               </defs>
             )}
             {showGrid && <rect width="100%" height="100%" fill="url(#grid)" />}
+            
+            {/* Sun Exposure Heatmap - Calcolo Incidenza Solare */}
+            {showSunHeatmap && sunIncidenceCells.length > 0 && (
+              <>
+                {sunIncidenceCells.map((cell, idx) => {
+                  const cellSize = gardenSizeCm / 20; // 20x20 grid
+                  const x = (cell.x / 100) * gardenSizeCm;
+                  const y = (cell.y / 100) * gardenSizeCm;
+                  
+                  // Colore basato su intensità
+                  const opacity = 0.3 + (cell.intensity * 0.4); // 0.3-0.7
+                  let color = '#fef3c7'; // Giallo chiaro (ombra)
+                  if (cell.intensity > 0.6) {
+                    color = '#f59e0b'; // Arancione (pieno sole)
+                  } else if (cell.intensity > 0.3) {
+                    color = '#fbbf24'; // Giallo (mezz'ombra)
+                  }
+                  
+                  return (
+                    <rect
+                      key={`sun-${idx}`}
+                      x={x}
+                      y={y}
+                      width={cellSize}
+                      height={cellSize}
+                      fill={color}
+                      opacity={opacity}
+                      title={`${cell.dailySunHours}h sole - ${cell.sunExposure}`}
+                    />
+                  );
+                })}
+              </>
+            )}
             
             {/* Garden Border */}
             <rect
@@ -287,9 +388,34 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
                       <AlertTriangle size={16} fill="#dc2626" />
                     </g>
                   )}
-                  {status === 'valid' && (
+                  {status === 'valid' && !placementAdvice && (
                     <g transform={`translate(${task.gridPosition.x}, ${task.gridPosition.y - footprint.radius - 10})`}>
                       <CheckCircle size={16} fill="#10b981" />
+                    </g>
+                  )}
+                  {/* Sun exposure warning */}
+                  {draggingTaskId === task.id && placementAdvice && (
+                    <g transform={`translate(${task.gridPosition.x}, ${task.gridPosition.y - footprint.radius - 20})`}>
+                      <rect
+                        x="-50"
+                        y="-10"
+                        width="100"
+                        height="20"
+                        fill="#fee2e2"
+                        stroke="#dc2626"
+                        strokeWidth="1"
+                        rx="4"
+                      />
+                      <text
+                        x="0"
+                        y="5"
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#dc2626"
+                        fontWeight="bold"
+                      >
+                        ⚠️ Poco sole
+                      </text>
                     </g>
                   )}
                 </g>
@@ -352,6 +478,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
 };
 
 export default VisualGardenPlanner;
+
 
 
 

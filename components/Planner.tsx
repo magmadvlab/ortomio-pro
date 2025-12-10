@@ -6,7 +6,13 @@ import { MapPin, Loader2, PlusCircle, Search, Leaf, ArrowRight, Droplets, FlaskC
 import { getCurrentPositionWithRetry, getDefaultCoordinates } from '../services/geolocationService';
 import { findSeedsForPlant, getExpiringSeeds } from '../services/seedInventoryService';
 import { calculateMoonPhase, getMoonPhaseName, isIdealPhaseFor } from '../logic/lunarCalendar';
+import { getSuggestedBatches, calculateStaggeredPlanting } from '../logic/staggeredPlantingEngine';
+import { getAllMasterSheets } from '../services/plantMasterService';
+import { checkPHCompatibility } from '../logic/soilPHEngine';
+import PHCompatibilityChecker from './PHCompatibilityChecker';
+import FertigationPlanner from './FertigationPlanner';
 import VisualGardenPlanner from './VisualGardenPlanner';
+import { useTier } from '../packages/core/hooks/useTier';
 
 interface PlannerProps {
   onAddToJournal: (plantName: string, notes: string, variety?: string, method?: 'Seed' | 'Seedling', date?: string, taskType?: any, additionalData?: any) => void;
@@ -33,7 +39,7 @@ const parseMonthsFromText = (text: string | undefined): number[] => {
     if (activeIndices.length >= 2) {
          const min = Math.min(...activeIndices);
          const max = Math.max(...activeIndices);
-         // Heuristic: if range is valid (e.g. Feb-Apr) and text implies range
+         // Heuristic: if range is valid (es. Feb-Apr) and text implies range
          if (max - min < 6 && (lowerText.includes('-') || lowerText.includes(' a ') || lowerText.includes(' tra '))) {
              for(let k=min; k<=max; k++) {
                  if(!activeIndices.includes(k)) activeIndices.push(k);
@@ -44,6 +50,7 @@ const parseMonthsFromText = (text: string | undefined): number[] => {
 };
 
 const PlantCalendar: React.FC<{ sowing: string, transplant: string, harvest: string }> = ({ sowing, transplant, harvest }) => {
+  // Scroll orizzontale su mobile
     const monthLabels = ['G', 'F', 'M', 'A', 'M', 'G', 'L', 'A', 'S', 'O', 'N', 'D'];
     const activeSowing = parseMonthsFromText(sowing);
     const activeTransplant = parseMonthsFromText(transplant);
@@ -103,10 +110,15 @@ const PlantCalendar: React.FC<{ sowing: string, transplant: string, harvest: str
 };
 
 const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], onUpdateTask }) => {
+  const { isPro, checkLimit, limit } = useTier();
   const [showVisualPlanner, setShowVisualPlanner] = useState(false);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<PlantSuggestion[]>([]);
   const [error, setError] = useState<string | null>(null);
+  
+  // Verifica limiti task per Free
+  const activeTasksCount = tasks.filter(t => !t.completed).length;
+  const tasksLimit = checkLimit('maxTasksPerGarden', activeTasksCount);
   
   // Specific search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -132,14 +144,27 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
     if (specificResult) {
         setCustomIrrigationFreq(specificResult.irrigation.frequency);
         setCustomIrrigationMethod(specificResult.irrigation.method);
-        setNumBatches(1);
         setIsIndoorSeed(false);
         setPlantingQuantity(1); // Reset
         setLocationType('Ground'); // Reset
-        // Default interval to AI suggestion or 14 days
-        setBatchInterval(specificResult.successionIntervalDays && specificResult.successionIntervalDays > 0 
-            ? specificResult.successionIntervalDays 
-            : 14);
+        
+        // Calculate optimal staggered planting
+        const masterSheets = getAllMasterSheets();
+        const masterSheet = masterSheets.find(p => 
+          p.commonName.toUpperCase() === specificResult.name.toUpperCase()
+        );
+        
+        if (masterSheet) {
+          const suggested = getSuggestedBatches(masterSheet);
+          setNumBatches(suggested.batches);
+          setBatchInterval(suggested.interval);
+        } else {
+          // Fallback to AI suggestion or default
+          setNumBatches(1);
+          setBatchInterval(specificResult.successionIntervalDays && specificResult.successionIntervalDays > 0 
+              ? specificResult.successionIntervalDays 
+              : 14);
+        }
     }
   }, [specificResult]);
 
@@ -556,7 +581,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                 )}
 
                 {/* Technical Data: Irrigation & Fertilizer */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                     <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 shadow-sm">
                         <h4 className="flex items-center gap-2 font-bold text-blue-800 mb-3 text-sm uppercase justify-between">
                             <span className="flex items-center gap-2"><Droplets size={16} /> Piano Irrigazione</span>
@@ -731,26 +756,50 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                                 </div>
                                 
                                 {numBatches > 1 && (
-                                    <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between">
-                                        <div className="flex items-center gap-1 text-xs text-gray-600">
-                                            <span>Intervallo:</span>
-                                            <input 
-                                                type="number" 
-                                                min="7"
-                                                max="90"
-                                                value={batchInterval}
-                                                onChange={(e) => setBatchInterval(parseInt(e.target.value) || 14)}
-                                                className="w-10 text-center font-bold border-b border-gray-300 focus:border-green-500 outline-none"
-                                            />
-                                            <span>gg</span>
+                                    <div className="mt-3 pt-2 border-t border-gray-100 space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-1 text-xs text-gray-600">
+                                                <span>Intervallo:</span>
+                                                <input 
+                                                    type="number" 
+                                                    min="7"
+                                                    max="90"
+                                                    value={batchInterval}
+                                                    onChange={(e) => setBatchInterval(parseInt(e.target.value) || 14)}
+                                                    className="w-10 text-center font-bold border-b border-gray-300 focus:border-green-500 outline-none"
+                                                />
+                                                <span>gg</span>
+                                            </div>
+                                            <div className="text-[10px] text-gray-400">
+                                                Fine: {(() => {
+                                                    const d = new Date();
+                                                    d.setDate(d.getDate() + ((numBatches - 1) * batchInterval));
+                                                    return d.toLocaleDateString('it-IT', {day: 'numeric', month: 'short'});
+                                                })()}
+                                            </div>
                                         </div>
-                                        <div className="text-[10px] text-gray-400">
-                                            Fine: {(() => {
-                                                const d = new Date();
-                                                d.setDate(d.getDate() + ((numBatches - 1) * batchInterval));
-                                                return d.toLocaleDateString('it-IT', {day: 'numeric', month: 'short'});
-                                            })()}
-                                        </div>
+                                        {(() => {
+                                          const masterSheets = getAllMasterSheets();
+                                          const masterSheet = masterSheets.find(p => 
+                                            p.commonName.toUpperCase() === (specificResult?.name || '').toUpperCase()
+                                          );
+                                          if (masterSheet && numBatches > 1) {
+                                            const advice = calculateStaggeredPlanting(masterSheet);
+                                            if (advice.recommended && advice.benefits.length > 0) {
+                                              return (
+                                                <div className="bg-green-50 rounded p-2 text-[10px] text-green-700 border border-green-200">
+                                                  <p className="font-bold mb-1">💡 Benefici:</p>
+                                                  <ul className="list-disc list-inside space-y-0.5">
+                                                    {advice.benefits.map((benefit, idx) => (
+                                                      <li key={idx}>{benefit}</li>
+                                                    ))}
+                                                  </ul>
+                                                </div>
+                                              );
+                                            }
+                                          }
+                                          return null;
+                                        })()}
                                     </div>
                                 )}
                             </div>

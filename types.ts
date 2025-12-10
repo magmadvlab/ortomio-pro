@@ -27,6 +27,64 @@ export interface VacationPlan {
   createdAt: string; // ISO string
 }
 
+// Director Types - Orchestratore Centrale
+export interface UrgentAlert {
+  type: 'Frost' | 'Heat' | 'Drought' | 'Storm';
+  message: string;
+  action: string;
+  blockOperations?: boolean; // Blocca trapianti/operazioni delicate
+}
+
+export interface ClimateWarning {
+  type: 'Temperature' | 'Rain' | 'Wind' | 'Humidity';
+  severity: 'Low' | 'Medium' | 'High';
+  message: string;
+  recommendation: string;
+}
+
+export interface LifecycleTask {
+  taskId: string;
+  plantName: string;
+  phase: string;
+  message: string;
+  priority: 'Critical' | 'High' | 'Medium' | 'Low';
+  action?: string;
+}
+
+export interface NutrientTask {
+  plantName: string;
+  element: 'N' | 'P' | 'K' | 'Micro' | 'None';
+  adviceTitle: string;
+  adviceBody: string;
+  priority: 'High' | 'Medium' | 'Low';
+}
+
+export interface HealthTask {
+  plantName: string;
+  productToUse: string;
+  reason: string;
+  priority: 'High' | 'Medium' | 'Low';
+  actionType: 'Prevent' | 'Monitor';
+}
+
+export interface LunarAdvice {
+  phase: string;
+  phaseName: string;
+  advice: string;
+  idealFor: string[];
+}
+
+export interface DailyPlan {
+  date: string;
+  urgentAlerts: UrgentAlert[];
+  lifecycleTasks: LifecycleTask[];
+  nutrientTasks: NutrientTask[];
+  healthTasks: HealthTask[];
+  climateWarnings: ClimateWarning[];
+  lunarAdvice?: LunarAdvice;
+  priority: 'Critical' | 'High' | 'Medium' | 'Low';
+}
+
 export interface Garden {
   id: string;
   name: string;
@@ -36,6 +94,20 @@ export interface Garden {
   soilPh?: number;
   createdAt: string;
   vacationMode?: VacationPlan; // Piano di vacanza attivo
+  
+  // GEO-CLIMA
+  altitudeMeters?: number;
+  delayFactorDays?: number; // Giorni ritardo semina vs costa (fallback se no altitudine)
+  
+  // MICRO-CLIMA
+  sunExposure?: 'FullSun' | 'PartSun' | 'Shade';
+  dailySunHours?: number;
+  aspectDirection?: 'North' | 'South' | 'East' | 'West' | 'Flat';
+  windProtection?: 'High' | 'Medium' | 'Low';
+  
+  // INFRASTRUTTURA
+  hasCompostBin?: boolean;
+  isRaisedBed?: boolean;
 }
 
 // Deprecated in favor of Garden, keeping for transition types if needed
@@ -134,6 +206,52 @@ export interface HarvestLogData {
     brix?: number;
     notes?: string;
     suggestedRecipes?: Recipe[]; // Ricette suggerite per questo raccolto
+    
+    // Specialized Crop Harvest Data (Pro Features)
+    strawberryHarvest?: {
+      harvestType?: 'FirstFlush' | 'MainHarvest' | 'LateHarvest';
+      berrySize?: 'Small' | 'Medium' | 'Large';
+      qualityNotes?: string;
+    };
+    fruitTreeHarvest?: {
+      treeAge?: number;
+      fruitSize?: 'Small' | 'Medium' | 'Large';
+      qualityGrade?: 'Extra' | 'First' | 'Second';
+      storagePotential?: number; // Giorni conservazione
+    };
+    aromaticHarvest?: {
+      harvestPart?: 'Leaves' | 'Flowers' | 'Stems' | 'Roots' | 'Seeds';
+      requiresDrying?: boolean;
+      dryingMethod?: 'Air' | 'Dehydrator' | 'Oven';
+      essentialOilExtracted?: number; // ml
+    };
+    oliveHarvest?: {
+      oliveQuantity: number; // kg
+      millingDate?: string;
+      oilProduced?: number; // litri
+      oilQuality?: {
+        acidity: number; // % acido oleico
+        peroxide: number; // meq O2/kg
+        polyphenols: number; // mg/kg
+      };
+      millingNotes?: string;
+      harvestMethod?: 'Manual' | 'Mechanical' | 'Shaking';
+    };
+    vineHarvest?: {
+      grapeQuantity: number; // kg
+      brixAtHarvest: number;
+      winemakingDate?: string;
+      wineProduced?: number; // litri
+      wineType?: 'Red' | 'White' | 'Rosé' | 'Sparkling';
+      wineAnalysis?: {
+        alcohol: number; // % vol
+        acidity: number; // g/L
+        pH: number;
+        residualSugar?: number; // g/L
+        totalSulfur?: number; // mg/L
+      };
+      harvestMethod?: 'Manual' | 'Mechanical';
+    };
 }
 
 export type GrowingLocation = 'Pot' | 'Ground' | 'RaisedBed';
@@ -162,6 +280,7 @@ export interface GardenTask {
   currentQuantity?: number; // How many survived/are active
   
   taskType: 'Sowing' | 'Transplant' | 'Fertilize' | 'Prune' | 'Harvest' | 'Treatment';
+  durationMinutes?: number; // Durata task (es. irrigazione in minuti)
   stage?: 'Germination' | 'Vegetative' | 'ReadyToTransplant' | 'Flowering' | 'Fruiting' | 'Harvested';
   lifecycleState?: 'Sowing' | 'Germination' | 'Nursing' | 'Hardening' | 'Transplanting' | 'Production'; // Fase del ciclo vitale
   season?: 'Summer' | 'Winter'; // Season classification
@@ -171,11 +290,15 @@ export interface GardenTask {
   completed: boolean;
   notes?: string;
   nextDueDate?: string; // For recurring tasks or follow-ups
+  treatmentProductId?: string; // ID prodotto trattamento (se taskType è 'Treatment')
   images?: string[]; // Base64 encoded images
   lastPhotoDate?: string; // To track weekly updates
   // Visual Garden Planner
   gridPosition?: { x: number; y: number }; // Posizione nella griglia (in cm)
   gridRotation?: number; // Rotazione per orientamento file (0-360 gradi)
+  // Fertigation Tracking
+  fertigationDate?: string; // Data ultima fertirrigazione (ISO string)
+  lastFertigationDate?: string; // Alias per retrocompatibilità
   // Lifecycle Coach Responses
   userResponses?: {
     germinationConfirmed?: boolean; // Utente ha confermato la germinazione
@@ -188,7 +311,45 @@ export interface GardenTask {
   // Harvest History (Partial harvests)
   harvestHistory?: HarvestLogData[];
   // Final Harvest Data (Legacy/Summary)
-  finalHarvest?: HarvestLogData; 
+  finalHarvest?: HarvestLogData;
+  
+  // Specialized Crop Data (Pro Features)
+  strawberryData?: {
+    varietyType: 'June-bearing' | 'Ever-bearing' | 'Day-neutral';
+    runnerAction?: 'Remove' | 'Keep' | 'Propagate';
+    mulchingApplied?: boolean;
+    renovationCompleted?: boolean;
+  };
+  fruitTreeData?: {
+    treeAge: number;
+    pruningType?: 'Formative' | 'Maintenance' | 'Rejuvenation';
+    pruningSeason?: 'Winter' | 'Summer';
+    graftingInfo?: {
+      type: string;
+      date: string;
+      success: boolean;
+    };
+    fruitThinning?: {
+      date: string;
+      quantityRemoved: number;
+    };
+  };
+  aromaticData?: {
+    harvestType: 'Leaves' | 'Flowers' | 'Stems' | 'Roots' | 'Seeds';
+    harvestTiming: 'BeforeFlowering' | 'DuringFlowering' | 'AfterFlowering';
+    multiplicationMethod?: 'Seed' | 'Cutting' | 'Division' | 'Layering';
+  };
+  oliveData?: {
+    varietyType: 'Table' | 'Oil' | 'Dual-purpose';
+    harvestMethod?: 'Manual' | 'Mechanical' | 'Shaking';
+    pruningType?: 'Winter' | 'Summer';
+  };
+  vineData?: {
+    varietyType: 'Wine' | 'Table' | 'Raisin';
+    trainingSystem?: 'Guyot' | 'Cordon' | 'Pergola' | 'Alberello';
+    pruningType?: 'Winter' | 'Summer';
+    operationType?: 'Pruning' | 'Tying' | 'ShootThinning' | 'LeafRemoval';
+  };
 }
 
 export interface GeoLocation {
@@ -234,6 +395,18 @@ export interface BehavioralTag {
   additionalInstructions: string[]; // Istruzioni extra da aggiungere alla guida
 }
 
+// Crop Type for Specialized Crops (Pro Features)
+export type CropType = 
+  | 'Annual'      // Colture annuali (pomodori, zucchine, etc.)
+  | 'Perennial'   // Colture perenni (asparagi, etc.)
+  | 'Tree'        // Alberi generici
+  | 'Strawberry'  // Fragole (Pro)
+  | 'FruitTree'   // Frutteti (Pro)
+  | 'Aromatic'    // Erbe aromatiche
+  | 'Medicinal'   // Erbe officinali
+  | 'Olive'       // Olivo (Pro)
+  | 'Vine';       // Vite (Pro)
+
 // Nutrient Category for Nutritional Engine
 export type NutrientCategory = 
   | 'LEAFY'    // Foglia (Lattuga, Biete) -> Vuole AZOTO
@@ -267,6 +440,7 @@ export interface PlantMasterSheet {
   nutrientCategory: NutrientCategory; // Categoria nutrizionale per motore logico
   scientificName: string;
   family: string; // "Solanaceae", "Cucurbitaceae", etc.
+  cropType?: CropType; // Tipo di coltura (opzionale, per estensioni Pro)
   
   // FASE 0: Strumenti necessari
   requiredTools: {
@@ -368,4 +542,200 @@ export interface GardenLayout {
     position: { x: number; y: number }; 
     rotation: number 
   }[];
+}
+
+// Re-export specialized crop types for convenience
+export type {
+  StrawberryCrop,
+  StrawberryTask,
+  StrawberryHarvest
+} from './types/strawberry';
+
+export type {
+  FruitTreeCrop,
+  FruitTreeTask,
+  PruningRecord,
+  GraftingRecord,
+  FruitTreeHarvest
+} from './types/fruitTree';
+
+export type {
+  AromaticMedicinalCrop,
+  AromaticTask,
+  DryingRecord,
+  AromaticHarvest
+} from './types/aromatic';
+
+export type {
+  OliveCrop,
+  OliveTask,
+  OilQuality,
+  OliveMilling,
+  OliveHarvest
+} from './types/olive';
+
+export type {
+  VineCrop,
+  VineTask,
+  WineAnalysis,
+  WinemakingRecord,
+  VineHarvest
+} from './types/vine';
+
+// ============================================
+// ROTAZIONE CULTURALE (Memory of Soil)
+// ============================================
+
+export interface BedHistory {
+  bedId: string;
+  plantingHistory: {
+    year: number;
+    season: 'Summer' | 'Winter';
+    plantFamily: string; // 'Solanaceae', 'Cucurbitaceae', etc.
+    plantId: string; // Riferimento a plantMasterSheets.id
+    plantName: string; // Cache per query veloci
+    plantedAt?: string; // ISO date
+    harvestedAt?: string; // ISO date
+  }[];
+}
+
+export interface RotationAdvice {
+  allowed: boolean;
+  severity: 'ERROR' | 'WARNING' | 'SUCCESS' | 'INFO';
+  message: string;
+  suggestion?: string; // Pianta alternativa suggerita
+  lastPlanting?: {
+    plantName: string;
+    plantFamily: string;
+    year: number;
+    season: 'Summer' | 'Winter';
+  };
+}
+
+// ============================================
+// CONSOCIAZIONI (Companion Planting)
+// ============================================
+
+export interface CompanionRule {
+  plantId: string; // Riferimento a plantMasterSheets.id
+  goodCompanions: string[]; // Array di plantMasterSheets.id
+  badCompanions: string[]; // Array di plantMasterSheets.id
+  benefit?: string; // Descrizione beneficio
+  reason?: string; // Motivo incompatibilità
+  distanceMin?: number; // Distanza minima in cm (default 200cm)
+}
+
+export interface CompanionAdvice {
+  severity: 'ERROR' | 'WARNING' | 'INFO' | 'SUCCESS';
+  message: string;
+  conflicts?: Array<{
+    plantName: string;
+    reason: string;
+  }>;
+  suggestions?: Array<{
+    plantName: string;
+    benefit: string;
+  }>;
+}
+
+// ============================================
+// TIME-LAPSE E ANALISI FOTO
+// ============================================
+
+export interface PlantPhotoLog {
+  id: string;
+  taskId: string;
+  gardenId: string;
+  photoUrl: string; // URL Supabase Storage o base64
+  photoDate: string; // ISO date
+  daysFromPlanting: number;
+  analysisResult?: {
+    isHealthy: boolean;
+    growthRate: 'normal' | 'slow' | 'fast';
+    issues?: string[]; // Array di problemi rilevati
+    phase?: string; // Fase rilevata (es. "Vegetative", "Flowering")
+    leafCount?: number; // Numero foglie vere rilevate
+  };
+  notes?: string;
+  createdAt: string; // ISO date
+}
+
+// ============================================
+// ANALISI RESA ECONOMICA
+// ============================================
+
+export interface HarvestAnalytics {
+  totalKgProduced: number;
+  marketValueEuro: number;
+  estimatedCosts: {
+    water: number; // €
+    fertilizer: number; // €
+    seeds: number; // €
+    tools?: number; // € (opzionale)
+  };
+  netSavings: number; // marketValueEuro - estimatedCosts total
+  harvestCount: number;
+  avgRating: number; // Media rating qualità (1-5)
+  byMonth?: Array<{
+    month: number; // 1-12
+    kg: number;
+    harvests: number;
+    value: number; // €
+  }>;
+  byPlant?: Array<{
+    plantName: string;
+    totalKg: number;
+    harvests: number;
+    value: number; // €
+  }>;
+}
+
+export interface MarketPrice {
+  plantName: string;
+  pricePerKg: number; // €/kg (biologico)
+  season?: 'Summer' | 'Winter'; // Prezzo varia per stagione
+  region?: string; // Opzionale: prezzo per regione
+}
+
+// ============================================
+// WATER REQUIREMENT ENGINE
+// ============================================
+
+export interface WaterNeeds {
+  litersPerDay: number; // Litri totali per giorno per questa pianta
+  litersPerPlant: number; // Litri per singola pianta
+  frequency: string; // "Ogni 1-2 giorni"
+  method: 'Drip' | 'Sprinkler' | 'Manual' | 'Flood';
+  phase: 'germination' | 'vegetative' | 'production';
+  modifiers: {
+    soilType?: string; // Modificatore terreno
+    temperature?: string; // Modificatore temperatura
+    criticalPeriod?: boolean; // Se è in periodo critico
+  };
+}
+
+export interface TotalGardenWaterNeeds {
+  totalLitersPerDay: number;
+  breakdown: Array<{
+    plantName: string;
+    liters: number;
+    plants: number;
+  }>;
+  recommendations: string[];
+}
+
+// ============================================
+// WINTER PREPARATION ENGINE
+// ============================================
+
+export interface WinterPreparationTask {
+  id: string;
+  category: 'Structure' | 'Fertilization' | 'Soil' | 'Planning';
+  title: string;
+  description: string;
+  priority: 'Critical' | 'High' | 'Medium' | 'Low';
+  dueMonth: number; // 1-12
+  estimatedTime: string; // "1-2 ore"
+  materials: string[];
+  instructions: string[];
 }

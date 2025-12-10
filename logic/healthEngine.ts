@@ -1,5 +1,6 @@
-import { PlantMasterSheet } from '../types';
+import { PlantMasterSheet, GardenTask, Garden } from '../types';
 import { protectionProducts, PlantProtectionProduct } from '../data/treatments';
+import { getSeasonForDate, Season } from '../utils/seasonalAdjustment';
 
 export interface HealthAdvice {
   productToUse: string; // Nome del prodotto
@@ -11,17 +12,22 @@ export interface HealthAdvice {
   dosage?: string;
   applicationNotes?: string;
   season?: 'Spring' | 'Summer' | 'Autumn' | 'Winter';
+  windAdvice?: WindAdvice; // Consiglio aggiuntivo per vento
+}
+
+export interface WindAdvice {
+  risk: 'HIGH' | 'MEDIUM' | 'LOW';
+  message: string;
+  action?: string;
+  improvement?: string;
 }
 
 /**
- * Determina la stagione corrente dal mese
+ * Determina la stagione corrente dal mese e latitudine
+ * @deprecated Usa getSeasonForDate invece. Mantenuto per retrocompatibilità.
  */
-export const getCurrentSeason = (): 'Spring' | 'Summer' | 'Autumn' | 'Winter' => {
-  const month = new Date().getMonth() + 1;
-  if (month >= 3 && month <= 5) return 'Spring';
-  if (month >= 6 && month <= 8) return 'Summer';
-  if (month >= 9 && month <= 11) return 'Autumn';
-  return 'Winter';
+export const getCurrentSeason = (latitude: number = 0): Season => {
+  return getSeasonForDate(new Date(), latitude);
 };
 
 /**
@@ -57,9 +63,10 @@ export const calculateNextTreatmentDate = (
 export const calculateHealthStrategy = (
   plant: PlantMasterSheet,
   daysActive: number,
-  season?: 'Spring' | 'Summer' | 'Autumn' | 'Winter'
+  season?: Season,
+  latitude: number = 0
 ): HealthAdvice | null => {
-  const currentSeason = season || getCurrentSeason();
+  const currentSeason = season || getCurrentSeason(latitude);
   
   // 1. STRATEGIA GENERICA DI RINFORZO (Tutti) - Post-trapianto
   if (daysActive < 14) {
@@ -259,6 +266,114 @@ export const calculateHealthStrategy = (
   return null;
 };
 
+/**
+ * Crea un nuovo task per il prossimo trattamento ricorrente
+ * Chiamato quando un trattamento è completato per auto-schedulare il prossimo
+ */
+export const scheduleNextTreatment = (
+  taskId: string,
+  productId: string,
+  lastTreatmentDate: string,
+  gardenId: string,
+  plantName: string,
+  variety?: string
+): GardenTask | null => {
+  const product = getProductById(productId);
+  
+  if (!product || product.frequencyDays === 0) {
+    return null; // Prodotto non trovato o non ricorrente
+  }
 
+  // Calcola prossima data
+  const nextDate = calculateNextTreatmentDate(productId, lastTreatmentDate);
+  
+  if (!nextDate) {
+    return null;
+  }
 
+  // Crea nuovo task
+  const nextTask: GardenTask = {
+    id: crypto.randomUUID(),
+    gardenId,
+    plantName,
+    variety,
+    taskType: 'Treatment',
+    treatmentProductId: productId,
+    date: nextDate,
+    completed: false,
+    notes: `Trattamento ricorrente: ${product.name}. ${product.notes || ''}`
+  };
+
+  return nextTask;
+};
+
+/**
+ * Calcola l'effetto del vento sulla salute della pianta
+ * Ristagno aria (basso vento) → rischio funghi
+ * Vento forte → stress meccanico + evapotraspirazione
+ */
+export const calculateWindEffect = (
+  windProtection: Garden['windProtection'],
+  plant: PlantMasterSheet
+): WindAdvice => {
+  if (!windProtection) {
+    return {
+      risk: 'LOW',
+      message: '✅ Circolazione aria non specificata. Assumendo condizioni normali.',
+    };
+  }
+
+  if (windProtection === 'Low') {
+    // Ristagno aria = funghi
+    const fungiRisk = plant.susceptibility?.fungalDiseases && plant.susceptibility.fungalDiseases.length > 0;
+
+    if (fungiRisk) {
+      return {
+        risk: 'HIGH',
+        message: `⚠️ Bassa circolazione aria + pianta suscettibile = alto rischio Oidio/Peronospora.`,
+        action: 'Aumenta frequenza trattamenti preventivi (Zeolite ogni 10gg invece di 20gg). Applica trattamenti al mattino quando l\'aria è più secca.',
+        improvement: 'Considera ventilatore solare, pota vegetazione circostante, o installa frangivento parziale per migliorare circolazione senza bloccare completamente il vento.',
+      };
+    }
+
+    // Anche senza funghi specifici, ristagno aria è problematico
+    return {
+      risk: 'MEDIUM',
+      message: 'Bassa circolazione aria può favorire sviluppo di malattie fungine.',
+      action: 'Monitora attentamente segni di funghi (macchie fogliari, muffa). Trattamenti preventivi consigliati.',
+      improvement: 'Migliora circolazione aria potando vegetazione circostante o installando ventilatore.',
+    };
+  }
+
+  if (windProtection === 'High') {
+    // Vento forte = stress meccanico + evapotraspirazione
+    const isTallPlant = plant.family === 'Solanaceae' || // Pomodori, peperoni
+                        plant.family === 'Cucurbitaceae' || // Zucchine rampicanti
+                        plant.commonName.toUpperCase().includes('FAGIOLO') ||
+                        plant.commonName.toUpperCase().includes('PISELLO');
+
+    if (isTallPlant) {
+      return {
+        risk: 'MEDIUM',
+        message: 'Vento forte: stress meccanico e disidratazione accelerata per piante alte.',
+        action: 'Tutoraggio obbligatorio per piante alte. Aumenta irrigazione del 20% per compensare evapotraspirazione. Lega i fusti ai tutori con rafia o legacci morbidi.',
+        improvement: 'Installa frangivento o siepe protettiva a 2-3 metri di distanza per ridurre velocità vento senza eliminarlo completamente.',
+      };
+    }
+
+    // Piante basse ma comunque stressate
+    return {
+      risk: 'MEDIUM',
+      message: 'Vento forte può causare disidratazione e stress meccanico.',
+      action: 'Aumenta frequenza irrigazione del 15-20%. Proteggi piante giovani con teli o campane.',
+      improvement: 'Considera frangivento parziale per ridurre velocità vento.',
+    };
+  }
+
+  // Medium = condizioni ottimali
+  return {
+    risk: 'LOW',
+    message: '✅ Circolazione aria ottimale. Vento moderato previene ristagno senza causare stress eccessivo.',
+  };
+};
 

@@ -8,6 +8,7 @@ import { calculatePlantDaysActive } from '../services/taskCalculationService';
 import { checkLifecycleStatus, LifecycleAdvice } from '../logic/lifecycleEngine';
 import { calculateMoonPhase, getMoonPhaseName, getMoonPhaseNameFromPhase, getMoonPhaseEmoji } from '../logic/lunarCalendar';
 import { CheckCircle2, Circle, Calendar, Droplets, Shovel, Scissors, FlaskConical, Camera, Sparkles, Loader2, Sprout, X, PlusCircle, AlertCircle, Clock, Gauge, Scale, Star, ShoppingBasket, Snowflake, Sun, Box, Flower2, LayoutGrid, Users, History, Leaf, Shield, CheckCircle, XCircle, Moon } from 'lucide-react';
+import { shouldFertigateNow } from '../logic/fertigationEngine';
 
 interface JournalProps {
   tasks: GardenTask[];
@@ -464,10 +465,16 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
 
       <div className="space-y-4">
         {sortedTasks.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-gray-200">
+          <div className="text-center py-12 sm:py-16 bg-white rounded-3xl border border-dashed border-gray-200">
             <Calendar size={48} className="mx-auto mb-3 text-gray-300" />
-            <p className="text-gray-400 font-medium">Il diario per questo orto è vuoto.</p>
-            <p className="text-sm text-gray-400">Inizia aggiungendo la tua prima semina!</p>
+            <p className="text-gray-400 font-medium text-sm sm:text-base">Il diario per questo orto è vuoto.</p>
+            <p className="text-xs sm:text-sm text-gray-400 mt-1">Inizia aggiungendo la tua prima semina!</p>
+            <button
+              onClick={() => setIsAdding(true)}
+              className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors text-sm sm:text-base"
+            >
+              + Aggiungi Prima Attività
+            </button>
           </div>
         ) : (
           sortedTasks.map((task) => {
@@ -475,9 +482,9 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
             const isIndoor = task.notes?.toLowerCase().includes('indoor');
             
             return (
-              <div key={task.id} className={`group relative flex flex-col p-5 rounded-2xl border transition-all duration-200 ${task.completed ? 'bg-gray-50 border-gray-100 opacity-70' : 'bg-white border-green-50 shadow-sm hover:shadow-md'}`}>
+              <div key={task.id} className={`group relative flex flex-col p-4 sm:p-5 rounded-2xl border transition-all duration-200 ${task.completed ? 'bg-gray-50 border-gray-100 opacity-70' : 'bg-white border-green-50 shadow-sm hover:shadow-md hover:border-green-200 transform hover:scale-[1.01]'}`}>
                 <div className="flex items-start gap-4">
-                  <button onClick={() => onToggleTask(task.id)} className="mt-1 flex-shrink-0 text-gray-300 hover:text-green-500 transition-colors">
+                  <button onClick={() => handleTaskToggle(task)} className="mt-1 flex-shrink-0 text-gray-300 hover:text-green-500 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
                     {task.completed ? <CheckCircle2 size={26} className="text-green-500" /> : <Circle size={26} />}
                   </button>
                   <div className="flex-1 min-w-0">
@@ -822,7 +829,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                     )}
                     
                     {/* Actions Row */}
-                    <div className="flex gap-3 mt-3 pt-3 border-t border-dashed border-gray-100 flex-wrap">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3 pt-3 border-t border-dashed border-gray-100">
                       <label className={`flex items-center gap-2 text-xs font-bold cursor-pointer px-3 py-1.5 rounded-lg transition-colors ${photoNeeded ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-green-50 text-green-600 hover:text-green-700'}`}>
                         <Camera size={14} />
                         {photoNeeded ? 'AGGIORNA PROGRESSI' : 'AGGIUNGI FOTO'}

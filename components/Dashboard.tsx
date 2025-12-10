@@ -11,6 +11,10 @@ import { calculateMoonPhase, getMoonPhaseName } from '../logic/lunarCalendar';
 import { findAllSuccessionOpportunities, SuccessionSuggestion } from '../logic/successionEngine';
 import { hasUpcomingVacation, hasActiveVacation, getDaysUntilDeparture } from '../logic/vacationEngine';
 import VacationMode from './VacationMode';
+import { getDailyGardenPlan, DailyPlan } from '../logic/director';
+import { useTier } from '../packages/core/hooks/useTier';
+import TierBadge from './TierBadge';
+import LimitIndicator from './LimitIndicator';
 
 interface DashboardProps {
   tasks: GardenTask[];
@@ -28,6 +32,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     tasks, onNavigateToJournal, gardens, activeGardenId, 
     onSelectGarden, onAddGarden, onUpdateGarden, onDeleteGarden, onUpdateTask
 }) => {
+  const { tier, isPro, checkLimit, limit } = useTier();
   const activeGarden = gardens.find(g => g.id === activeGardenId);
   const [isEditingSettings, setIsEditingSettings] = useState(false);
   
@@ -60,6 +65,10 @@ const Dashboard: React.FC<DashboardProps> = ({
   
   // Vacation Mode State
   const [showVacationMode, setShowVacationMode] = useState(false);
+
+  // Director - Daily Plan State
+  const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState(false);
 
   // Initialize form when opening settings or creating new
   useEffect(() => {
@@ -209,6 +218,25 @@ const Dashboard: React.FC<DashboardProps> = ({
     setSuccessionOpportunities(opportunities);
   }, [tasks, activeGarden, activeGardenId]);
 
+  // Calculate Daily Plan using Director
+  useEffect(() => {
+    if (!activeGarden) {
+      setDailyPlan(null);
+      return;
+    }
+
+    setLoadingPlan(true);
+    getDailyGardenPlan(activeGarden, tasks, new Date())
+      .then(plan => {
+        setDailyPlan(plan);
+        setLoadingPlan(false);
+      })
+      .catch(error => {
+        console.error('Error generating daily plan:', error);
+        setLoadingPlan(false);
+      });
+  }, [activeGarden, tasks, activeGardenId]);
+
   const handleLifecycleResponse = (task: GardenTask, response: boolean, advice: LifecycleAdvice) => {
     const updatedTask: GardenTask = {
       ...task,
@@ -234,6 +262,15 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const handleSaveGarden = async () => {
+      // Verifica limite giardini per Free
+      if (isCreatingNew && !isPro) {
+        const gardensLimit = checkLimit('maxGardens', gardens.length);
+        if (!gardensLimit.allowed) {
+          alert(`Limite raggiunto: massimo ${limit('maxGardens')} giardini in versione Free. Passa a Pro per giardini illimitati.`);
+          return;
+        }
+      }
+
       const size = parseFloat(tempSize);
       const ph = parseFloat(tempPh);
       
@@ -342,18 +379,19 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
   return (
-    <div className="p-4 pb-24 max-w-2xl mx-auto space-y-6">
-      <header className="mt-2 flex justify-between items-start">
+    <div className="p-4 sm:p-6 pb-24 max-w-2xl mx-auto space-y-4 sm:space-y-6">
+      <header className="mt-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
         <div className="relative">
              {/* GARDEN SWITCHER */}
              <button 
                 onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
-                className="flex items-center gap-2 text-green-900 font-extrabold text-2xl hover:opacity-80 transition-opacity"
+                className="flex items-center gap-2 text-green-900 font-extrabold text-xl sm:text-2xl hover:opacity-80 transition-opacity"
              >
                  {activeGarden?.name || 'Seleziona Orto'}
                  <ChevronDown size={24} className={`transition-transform ${isSwitcherOpen ? 'rotate-180' : ''}`}/>
              </button>
-             <p className="text-green-700 text-sm flex items-center gap-1">
+             <div className="flex items-center gap-2 flex-wrap">
+               <p className="text-green-700 text-sm flex items-center gap-1">
                  {activeGarden?.coordinates ? <><MapPin size={12}/> Localizzato</> : 'Posizione sconosciuta'}
              </p>
 
@@ -380,6 +418,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                      </div>
                  </div>
              )}
+             </div>
         </div>
         <button 
             onClick={() => { setIsCreatingNew(false); setIsEditingSettings(!isEditingSettings); }}
@@ -391,8 +430,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Settings Modal (Edit or Create) */}
       {(isEditingSettings) && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-              <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm animate-in zoom-in-95">
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 sm:p-6">
+              <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xl w-full max-w-sm animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
                   <div className="flex justify-between items-center mb-4">
                       <h2 className="text-xl font-bold text-green-900">{isCreatingNew ? 'Nuovo Orto' : 'Configurazione Orto'}</h2>
                       <button onClick={() => setIsEditingSettings(false)}><Settings size={20} className="text-gray-400"/></button>
@@ -407,7 +446,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none mt-1"
                             />
                         </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="text-xs font-bold text-gray-500 uppercase">Dimensioni (mq)</label>
                             <input 
@@ -462,7 +501,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       )}
                       <button 
                         onClick={handleSaveGarden}
-                        className="flex-1 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 shadow-md flex items-center justify-center gap-2"
+                        className="flex-1 py-3 min-h-[44px] bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 shadow-md flex items-center justify-center gap-2 transition-all duration-200"
                       >
                           <Save size={18} />
                           {isCreatingNew ? 'Crea Orto' : 'Salva Modifiche'}
@@ -492,9 +531,9 @@ const Dashboard: React.FC<DashboardProps> = ({
              </div>
         ) : weatherError ? (
             <div className="relative z-10 w-full flex flex-col items-center text-center opacity-80">
-                <MapPin size={32} className="mb-2" />
-                <p className="font-bold">Posizione non disponibile</p>
-                <p className="text-xs mt-1">Imposta la posizione nelle impostazioni dell'orto.</p>
+                <AlertCircle size={32} className="mb-2 text-yellow-300" />
+                <p className="font-bold text-sm sm:text-base">Posizione non disponibile</p>
+                <p className="text-xs mt-1 px-2">Imposta la posizione nelle impostazioni dell'orto per ricevere previsioni meteo.</p>
             </div>
         ) : weather ? (
             (() => {
@@ -543,6 +582,158 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </div>
               );
           })()
+      )}
+
+      {/* DAILY PLAN - DIRECTOR OUTPUT */}
+      {loadingPlan ? (
+        <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-20 bg-gray-100 rounded"></div>
+            <div className="flex items-center gap-3">
+              <Loader2 size={20} className="animate-spin text-green-600" />
+              <span className="text-gray-600 text-sm">Caricamento piano del giorno...</span>
+            </div>
+          </div>
+        </div>
+      ) : dailyPlan && (
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-5 border-2 border-green-200 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <CalendarCheck size={24} className="text-green-600" />
+              Piano del Giorno
+            </h2>
+            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+              dailyPlan.priority === 'Critical' ? 'bg-red-100 text-red-700' :
+              dailyPlan.priority === 'High' ? 'bg-orange-100 text-orange-700' :
+              dailyPlan.priority === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+              'bg-green-100 text-green-700'
+            }`}>
+              {dailyPlan.priority === 'Critical' ? 'Critico' :
+               dailyPlan.priority === 'High' ? 'Alta' :
+               dailyPlan.priority === 'Medium' ? 'Media' : 'Normale'}
+            </span>
+          </div>
+
+          {/* Urgent Alerts */}
+          {dailyPlan.urgentAlerts.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {dailyPlan.urgentAlerts.map((alert, idx) => (
+                <div key={idx} className="bg-red-100 border-2 border-red-300 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-bold text-red-900">{alert.message}</p>
+                      <p className="text-sm text-red-700 mt-1">{alert.action}</p>
+                      {alert.blockOperations && (
+                        <p className="text-xs text-red-600 mt-2 font-semibold">⚠️ Operazioni delicate bloccate</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Climate Warnings */}
+          {dailyPlan.climateWarnings.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {dailyPlan.climateWarnings.map((warning, idx) => (
+                <div key={idx} className={`border-l-4 rounded-lg p-3 ${
+                  warning.severity === 'High' ? 'bg-orange-50 border-orange-400' :
+                  warning.severity === 'Medium' ? 'bg-yellow-50 border-yellow-400' :
+                  'bg-blue-50 border-blue-400'
+                }`}>
+                  <p className="text-sm font-medium text-gray-800">{warning.message}</p>
+                  <p className="text-xs text-gray-600 mt-1">{warning.recommendation}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Lifecycle Tasks */}
+          {dailyPlan.lifecycleTasks.length > 0 && (
+            <div className="mb-4">
+              <h3 className="text-sm font-bold text-gray-700 uppercase mb-2">Task Ciclo Vitale</h3>
+              <div className="space-y-2">
+                {dailyPlan.lifecycleTasks.map((task, idx) => (
+                  <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-800">{task.plantName}</p>
+                        <p className="text-sm text-gray-600 mt-1">{task.message}</p>
+                        {task.action && (
+                          <p className="text-xs text-green-700 mt-1 font-medium">→ {task.action}</p>
+                        )}
+                      </div>
+                      <span className={`ml-2 px-2 py-1 rounded text-xs font-bold ${
+                        task.priority === 'Critical' ? 'bg-red-100 text-red-700' :
+                        task.priority === 'High' ? 'bg-orange-100 text-orange-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {task.phase}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Nutrient Tasks */}
+          {dailyPlan.nutrientTasks.length > 0 && (
+            <div className="mb-4">
+              <h3 className="text-sm font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">
+                <FlaskConical size={14} />
+                Consigli Nutrizionali
+              </h3>
+              <div className="space-y-2">
+                {dailyPlan.nutrientTasks.map((task, idx) => (
+                  <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200">
+                    <p className="font-medium text-gray-800">{task.plantName}</p>
+                    <p className="text-sm font-semibold text-gray-700 mt-1">{task.adviceTitle}</p>
+                    <p className="text-xs text-gray-600 mt-1">{task.adviceBody}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Health Tasks */}
+          {dailyPlan.healthTasks.length > 0 && (
+            <div className="mb-4">
+              <h3 className="text-sm font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">
+                <Shovel size={14} />
+                Trattamenti Prevenzione
+              </h3>
+              <div className="space-y-2">
+                {dailyPlan.healthTasks.map((task, idx) => (
+                  <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200">
+                    <p className="font-medium text-gray-800">{task.plantName}</p>
+                    <p className="text-sm text-gray-700 mt-1">
+                      <span className="font-semibold">{task.productToUse}:</span> {task.reason}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Lunar Advice */}
+          {dailyPlan.lunarAdvice && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+              <p className="text-sm font-medium text-indigo-900">
+                🌙 {dailyPlan.lunarAdvice.phaseName}: {dailyPlan.lunarAdvice.advice}
+              </p>
+              {dailyPlan.lunarAdvice.idealFor.length > 0 && (
+                <p className="text-xs text-indigo-700 mt-1">
+                  Ideale per: {dailyPlan.lunarAdvice.idealFor.join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {/* MOON PHASE WIDGET */}
@@ -816,7 +1007,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       )}
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-green-100 flex flex-col justify-between h-32 cursor-pointer hover:bg-green-50 transition-colors" onClick={onNavigateToJournal}>
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-green-100 flex flex-col justify-between h-32 cursor-pointer hover:bg-green-50 hover:shadow-md transition-all duration-200 transform hover:scale-[1.02]" onClick={onNavigateToJournal}>
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-2">
                 <CalendarCheck size={20} />
             </div>
@@ -826,7 +1017,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
         </div>
         
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-orange-100 flex flex-col justify-between h-32">
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-orange-100 flex flex-col justify-between h-32 hover:shadow-md transition-all duration-200">
              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 mb-2">
                 <AlertTriangle size={20} />
             </div>
@@ -868,7 +1059,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       <div>
         <h3 className="text-lg font-bold text-gray-800 mb-3">Promemoria Urgente</h3>
         {upcomingReminders.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-3 overflow-y-auto max-h-[60vh] sm:max-h-none">
                 {upcomingReminders.map(task => (
                     <div key={task.id} className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-xl">
                         <h4 className="font-bold text-gray-800">{task.plantName}</h4>

@@ -1,5 +1,6 @@
-import { PlantMasterSheet, GardenTask } from '../types';
+import { PlantMasterSheet, GardenTask, Garden } from '../types';
 import { getAllMasterSheets } from '../services/plantMasterService';
+import { getSeasonForDate, getNextSeason, Season } from '../utils/seasonalAdjustment';
 
 export interface SuccessionSuggestion {
   plant: PlantMasterSheet;
@@ -8,17 +9,6 @@ export interface SuccessionSuggestion {
   transplantDate: Date;
   daysUntilSpaceFree: number;
 }
-
-/**
- * Determina la stagione successiva basandosi sul mese corrente
- */
-const getNextSeason = (currentMonth: number): 'Spring' | 'Summer' | 'Autumn' | 'Winter' => {
-  // Mesi: 0 = Gennaio, 11 = Dicembre
-  if (currentMonth >= 2 && currentMonth <= 4) return 'Summer'; // Marzo-Maggio -> Estate
-  if (currentMonth >= 5 && currentMonth <= 7) return 'Autumn'; // Giugno-Agosto -> Autunno
-  if (currentMonth >= 8 && currentMonth <= 10) return 'Winter'; // Settembre-Novembre -> Inverno
-  return 'Spring'; // Dicembre-Febbraio -> Primavera
-};
 
 /**
  * Verifica se una pianta è adatta a una stagione specifica
@@ -110,8 +100,9 @@ export const checkEmptySpaceOpportunity = (
   }
   
   const removedFamily = removedPlant.family;
-  const currentMonth = currentDate.getMonth();
-  const nextSeason = getNextSeason(currentMonth);
+  const latitude = garden?.coordinates?.latitude || 0; // Default emisfero nord
+  const currentSeason = getSeasonForDate(currentDate, latitude);
+  const nextSeason = getNextSeason(currentSeason, latitude);
   
   // Calcola quando lo spazio si libererà (basato su harvestWindow o stima)
   // Per ora usiamo una stima: se la pianta è in produzione avanzata, assumiamo raccolta tra 20-30 giorni
@@ -203,6 +194,7 @@ export const isPlantNearHarvestEnd = (
   
   return false;
 };
+
 
 
 
