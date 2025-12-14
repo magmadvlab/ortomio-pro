@@ -5,7 +5,7 @@
 
 import { SeasonalSunWindow } from './seasonalSunWindows';
 import { HistoricalWeatherData } from './historicalWeatherService';
-import { Garden } from '../types';
+import { Garden, GardenPoint } from '../types';
 
 export interface GardenPointScore {
   pointId: string;
@@ -25,27 +25,8 @@ export interface GardenPointScore {
   }[];
 }
 
-export interface GardenPoint {
-  id: string;
-  name: string;
-  position: { x: number; y: number }; // Nella griglia (0-100%)
-  size?: number; // m² del punto
-  visualSunInput?: {
-    position: 'campo' | 'muro' | 'balcone';
-    morningSun: number;
-    noonSun: number;
-    afternoonSun: number;
-    obstacles: string[];
-  };
-  obstacles?: Array<{
-    azimuth: number;
-    height: number;
-    distance: number;
-    widthDegrees: number;
-    type?: 'Building' | 'Tree' | 'Mountain' | 'Other';
-  }>;
-  score?: GardenPointScore; // Calcolato
-}
+// GardenPoint è ora importato da types.ts
+export type { GardenPoint } from '../types';
 
 /**
  * Calcola score per categoria "Orto Estivo"

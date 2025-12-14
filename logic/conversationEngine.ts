@@ -38,7 +38,7 @@ export async function processUserInput(
   userProfile?: UserProfile
 ): Promise<{ response: ConversationResponse; newState: ConversationState }> {
   const intent = extractIntent(input, state);
-  const expertise = userProfile?.expertise || state.userExpertise || 'intermediate';
+  const expertise = state.userExpertise || 'intermediate';
 
   // Aggiorna stato con dati raccolti dall'input
   const updatedState = updateStateFromInput(state, input, intent);

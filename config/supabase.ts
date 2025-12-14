@@ -25,7 +25,19 @@ export const getSupabaseClient = (): SupabaseClient | null => {
     : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase credentials not configured. Running in local mode.');
+    // Logga il warning solo una volta per sessione (usa sessionStorage per persistere tra hot reload)
+    if (typeof window !== 'undefined') {
+      const warningKey = 'supabase_warning_logged';
+      if (!sessionStorage.getItem(warningKey)) {
+        // In modalità sviluppo, usa console.debug invece di warn per ridurre il rumore
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('Supabase credentials not configured. Running in local mode.');
+        } else {
+          console.warn('Supabase credentials not configured. Running in local mode.');
+        }
+        sessionStorage.setItem(warningKey, 'true');
+      }
+    }
     return null;
   }
 

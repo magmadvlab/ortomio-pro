@@ -56,8 +56,19 @@ const CustomPlanEditor: React.FC<CustomPlanEditorProps> = ({
     // Get user ID (for now, use a placeholder - in real app, get from auth)
     const userId = 'current-user-id'; // TODO: Get from auth context
 
+    // Get the selected master sheet to include all PlantMasterSheet properties
+    const selectedBase = masterSheets.find(s => s.id === selectedBaseId) || baseMasterSheet;
+    if (!selectedBase) {
+      alert('Master sheet non trovato');
+      return;
+    }
+
     const plan: Omit<CustomPlan, 'id' | 'createdAt' | 'updatedAt'> = {
+      // Include all PlantMasterSheet properties from the base
+      ...selectedBase,
+      // Override with existing plan properties if editing
       ...(existingPlan || {}),
+      // Override with form values
       baseMasterSheetId: selectedBaseId,
       userId,
       name: name.trim(),

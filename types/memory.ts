@@ -3,7 +3,7 @@
  * Interfacce per memoria contestuale profonda del giardino
  */
 
-import { Garden } from './types';
+import { Garden } from '../types';
 
 /**
  * Record completo di una piantagione con contesto

@@ -12,6 +12,12 @@ export interface GeolocationResult {
   errorCode?: number;
 }
 
+// Cache globale per evitare chiamate multiple simultanee
+let pendingRequest: Promise<GeolocationResult> | null = null;
+let lastSuccessResult: GeolocationResult | null = null;
+let lastSuccessTime: number = 0;
+const CACHE_DURATION = 300000; // 5 minuti
+
 /**
  * Funzione migliorata per geolocalizzazione con gestione errori specifica per mobile
  */
@@ -24,7 +30,28 @@ export const getCurrentPosition = async (
     maximumAge = 300000, // 5 minuti - accetta posizione cached se recente
   } = options;
 
-  return new Promise((resolve) => {
+  // Se c'è già una richiesta in corso, ritorna quella invece di crearne una nuova
+  if (pendingRequest) {
+    return pendingRequest;
+  }
+
+  // Se abbiamo un risultato recente in cache, usalo
+  const now = Date.now();
+  if (lastSuccessResult && lastSuccessResult.success && (now - lastSuccessTime) < maximumAge) {
+    return Promise.resolve(lastSuccessResult);
+  }
+
+  // Verifica se i permessi sono stati negati
+  const permissionDenied = localStorage.getItem('geolocation_permission_denied') === 'true';
+  if (permissionDenied) {
+    return Promise.resolve({
+      success: false,
+      error: "Permesso di geolocalizzazione negato",
+      errorCode: 1,
+    });
+  }
+
+  pendingRequest = new Promise((resolve) => {
     if (!navigator.geolocation) {
       resolve({
         success: false,
@@ -46,11 +73,16 @@ export const getCurrentPosition = async (
     navigator.geolocation.getCurrentPosition(
       (position) => {
         clearTimeout(timeoutId);
-        resolve({
+        const result: GeolocationResult = {
           success: true,
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-        });
+        };
+        // Salva in cache
+        lastSuccessResult = result;
+        lastSuccessTime = Date.now();
+        pendingRequest = null;
+        resolve(result);
       },
       (error) => {
         clearTimeout(timeoutId);
@@ -60,6 +92,8 @@ export const getCurrentPosition = async (
         switch (error.code) {
           case 1: // PERMISSION_DENIED
             errorMessage = "Permesso di geolocalizzazione negato. Abilita la geolocalizzazione nelle impostazioni del browser o dell'app.";
+            // Salva flag per evitare chiamate future
+            localStorage.setItem('geolocation_permission_denied', 'true');
             break;
           case 2: // POSITION_UNAVAILABLE
             errorMessage = "Posizione non disponibile. Verifica che il GPS sia attivo sul dispositivo.";
@@ -71,11 +105,13 @@ export const getCurrentPosition = async (
             errorMessage = `Errore geolocalizzazione: ${error.message || "Errore sconosciuto"}`;
         }
 
-        resolve({
+        const result: GeolocationResult = {
           success: false,
           error: errorMessage,
           errorCode,
-        });
+        };
+        pendingRequest = null;
+        resolve(result);
       },
       {
         timeout,
@@ -84,6 +120,8 @@ export const getCurrentPosition = async (
       }
     );
   });
+
+  return pendingRequest;
 };
 
 /**

@@ -27,6 +27,26 @@ export function useUserLocation() {
       }
     }
     
+    // Verifica se la geolocalizzazione è già stata negata o è fallita recentemente
+    const geolocationDenied = localStorage.getItem('geolocation_permission_denied');
+    const geolocationFailedTime = localStorage.getItem('geolocation_failed_time');
+    
+    if (geolocationDenied === 'true') {
+      // Permessi negati, mostra direttamente selezione manuale senza tentare
+      setShowManualSelect(true);
+      return;
+    }
+    
+    // Se è fallita meno di 5 minuti fa, non ritentare immediatamente
+    if (geolocationFailedTime) {
+      const failedTime = parseInt(geolocationFailedTime, 10);
+      const now = Date.now();
+      if (now - failedTime < 300000) { // 5 minuti
+        setShowManualSelect(true);
+        return;
+      }
+    }
+    
     // Auto-detect location
     detectLocation();
   }, []);
@@ -42,12 +62,27 @@ export function useUserLocation() {
         setLocation(detected);
         // Salva in localStorage
         localStorage.setItem('user_location', JSON.stringify(detected));
+        // Rimuovi flag di errore se la geolocalizzazione funziona
+        localStorage.removeItem('geolocation_permission_denied');
+        localStorage.removeItem('geolocation_failed_time');
       } else {
         // Fallback: mostra selezione manuale
+        // Salva timestamp del fallimento per evitare chiamate ripetute
+        localStorage.setItem('geolocation_failed_time', Date.now().toString());
         setShowManualSelect(true);
       }
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Location detection failed'));
+      const error = err instanceof Error ? err : new Error('Location detection failed');
+      setError(error);
+      
+      // Se è un errore di permesso negato, salva il flag
+      if (error.message.includes('Permission') || error.message.includes('permission')) {
+        localStorage.setItem('geolocation_permission_denied', 'true');
+      } else {
+        // Altri errori: salva timestamp per evitare retry immediati
+        localStorage.setItem('geolocation_failed_time', Date.now().toString());
+      }
+      
       setShowManualSelect(true);
     } finally {
       setLoading(false);

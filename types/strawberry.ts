@@ -1,4 +1,4 @@
-import { PlantMasterSheet, GardenTask, HarvestLogData } from './types';
+import { PlantMasterSheet } from '../types';
 
 /**
  * Interfaccia per colture di fragole (Pro Feature)

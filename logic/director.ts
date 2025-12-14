@@ -4,7 +4,7 @@ import { Garden, GardenTask, PlantMasterSheet, DailyPlan, UrgentAlert, ClimateWa
 import { getWeatherForecast, getWeatherForecast7Days, WeatherForecast } from '../services/weatherService';
 import { checkLifecycleStatus, LifecycleAdvice } from './lifecycleEngine';
 import { calculateNutrientNeeds, NutrientAdvice } from './nutrientEngine';
-import { calculateHealthStrategy, HealthAdvice } from './healthEngine';
+import { calculateHealthStrategy, HealthAdvice, calculateWindEffect } from './healthEngine';
 import { calculateMoonPhase, isIdealPhaseFor } from './lunarCalendar';
 import { getMasterSheet } from '../services/plantMasterService';
 import { getActivePlants } from '../services/taskCalculationService';
@@ -343,7 +343,7 @@ export const getDailyGardenPlan = async (
       // Verifica se ci sono piantagioni previste per questo mese che non sono state eseguite
       const expectedPlantings = quarterPlan.plantings.filter(p => p.month === currentMonth);
       const actualPlantings = activeTasks.filter(t => {
-        const taskDate = new Date(t.plantingDate);
+        const taskDate = new Date(t.date);
         return taskDate.getMonth() + 1 === currentMonth;
       });
       
@@ -361,8 +361,8 @@ export const getDailyGardenPlan = async (
 
       // Verifica successioni suggerite
       const recentHarvests = tasks.filter(t => {
-        if (t.harvestDate) {
-          const harvestDate = new Date(t.harvestDate);
+        if (t.taskType === 'Harvest' && t.date) {
+          const harvestDate = new Date(t.date);
           const daysDiff = Math.floor((currentDate.getTime() - harvestDate.getTime()) / (1000 * 60 * 60 * 24));
           return daysDiff >= 0 && daysDiff <= 30; // Ultimi 30 giorni
         }
@@ -370,13 +370,13 @@ export const getDailyGardenPlan = async (
       });
 
       for (const harvest of recentHarvests) {
-        if (harvest.harvestDate && harvest.bed) {
-          const successions = suggestSuccessions(harvest.harvestDate, harvest.bed, annualPlan);
+        if (harvest.date && harvest.locationType) {
+          const successions = suggestSuccessions(harvest.date, harvest.locationType || '', annualPlan);
           if (successions.length > 0) {
             const nextPlanting = successions[0];
             const existingTask = activeTasks.find(t => 
               t.plantName === nextPlanting.plantName && 
-              t.bed === nextPlanting.bed
+              t.locationType === nextPlanting.bed
             );
             if (!existingTask) {
               annualPlanDeviations.push({
@@ -644,7 +644,7 @@ export const getDailyGardenPlan = async (
         });
 
         // PHYTO ENGINE: Suggerisci prodotto concreto con timing critico
-        if (healthAdvice.actionType === 'Prevent' || healthAdvice.actionType === 'Treat') {
+        if (healthAdvice.actionType && (healthAdvice.actionType === 'Prevent' || healthAdvice.actionType === 'Treat')) {
           try {
             const weatherForecast = garden.coordinates
               ? await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude)

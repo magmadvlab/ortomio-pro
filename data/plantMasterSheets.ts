@@ -1,4 +1,4 @@
-import { BehavioralTag, PlantMasterSheet } from '../types';
+import { BehavioralTag, PlantMasterSheet, NutrientCategory } from '../types';
 import { parseDaysRange } from '../utils/dateParsing';
 
 // Tag comportamentali comuni per gestire eccezioni delle varietà
@@ -135,31 +135,25 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       harvestGuide: 'Raccogli quando i pomodori hanno raggiunto il colore caratteristico della varietà (rosso intenso per i rossi, giallo per i gialli) e risultano leggermente morbidi al tatto ma ancora sodi. Taglia il picciolo con una forbice affilata, lasciando 1cm di stelo attaccato al frutto. Il momento migliore è la mattina presto quando i frutti sono più freschi. Conserva a temperatura ambiente (non in frigorifero) per mantenere il sapore, e consuma entro 3-5 giorni.'
     },
     
-    irrigationDetails: {
-      litersPerPlantPerDay: {
-        germination: 0.1, // Poca acqua durante germinazione
-        vegetative: 1.5, // Crescita vegetativa
-        production: 2.5 // Produzione frutti (fase più critica)
-      },
-      frequency: {
-        germination: 'Ogni 2-3 giorni',
-        vegetative: 'Ogni 1-2 giorni',
-        production: 'Ogni giorno o due volte al giorno in estate'
-      },
-      method: 'Drip',
-      criticalPeriods: [
-        {
-          phase: 'Fioritura e Allegagione',
-          days: [50, 70],
-          multiplier: 1.3 // +30% durante fioritura
-        },
-        {
-          phase: 'Maturazione Frutti',
-          days: [80, 120],
-          multiplier: 1.5 // +50% durante maturazione
-        }
-      ]
-    },
+    //    //   frequency: {
+    //     germination: 'Ogni 2-3 giorni',
+    //     vegetative: 'Ogni 1-2 giorni',
+    //     production: 'Ogni giorno o due volte al giorno in estate'
+    //   },
+    //   method: 'Drip',
+    //   criticalPeriods: [
+    //     {
+    //       phase: 'Fioritura e Allegagione',
+    //       days: [50, 70],
+    //       multiplier: 1.3 // +30% durante fioritura
+    //     },
+    //     {
+    //       phase: 'Maturazione Frutti',
+    //       days: [80, 120],
+    //       multiplier: 1.5 // +50% durante maturazione
+    //     }
+    //   ]
+    // },
     
     visualCategory: 'Orto',
     
@@ -263,27 +257,6 @@ export const plantMasterSheets: PlantMasterSheet[] = [
           risk: 'Medium' // Afidi estivi
         }
       ]
-    },
-    
-    irrigationDetails: {
-      litersPerPlantPerDay: {
-        germination: 0.1,
-        vegetative: 1.2,
-        production: 2.0 // Fioritura e maturazione frutti
-      },
-      frequency: {
-        germination: 'Ogni 2-3 giorni',
-        vegetative: 'Ogni 1-2 giorni',
-        production: 'Ogni giorno'
-      },
-      method: 'Drip',
-      criticalPeriods: [
-        {
-          phase: 'Fioritura',
-          days: [50, 80],
-          multiplier: 1.2
-        }
-      ]
     }
   },
   
@@ -371,27 +344,6 @@ export const plantMasterSheets: PlantMasterSheet[] = [
           season: 'Summer',
           daysActive: { min: 30, max: 90 },
           risk: 'High' // Oidio estivo
-        }
-      ]
-    },
-    
-    irrigationDetails: {
-      litersPerPlantPerDay: {
-        germination: 0.1,
-        vegetative: 2.0,
-        production: 3.5 // Zucchine hanno bisogno di molta acqua
-      },
-      frequency: {
-        germination: 'Ogni 2-3 giorni',
-        vegetative: 'Ogni giorno',
-        production: 'Due volte al giorno in estate'
-      },
-      method: 'Drip',
-      criticalPeriods: [
-        {
-          phase: 'Fioritura e Produzione',
-          days: [40, 100],
-          multiplier: 1.4 // +40% durante produzione
         }
       ]
     }
@@ -540,27 +492,6 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       pests: ['Afidi'],
       preventiveStrategy: 'LOW',
       criticalPeriods: []
-    },
-    
-    irrigationDetails: {
-      litersPerPlantPerDay: {
-        germination: 0.05,
-        vegetative: 0.6,
-        production: 0.8 // Lattughe hanno bisogno di acqua costante ma non eccessiva
-      },
-      frequency: {
-        germination: 'Ogni 2 giorni',
-        vegetative: 'Ogni 1-2 giorni',
-        production: 'Ogni giorno'
-      },
-      method: 'Drip',
-      criticalPeriods: [
-        {
-          phase: 'Formazione Cespo',
-          days: [30, 50],
-          multiplier: 1.2
-        }
-      ]
     }
   },
   
@@ -715,27 +646,6 @@ export const plantMasterSheets: PlantMasterSheet[] = [
           season: 'Summer',
           daysActive: { min: 30, max: 80 },
           risk: 'Medium' // Afidi estivi
-        }
-      ]
-    },
-    
-    irrigationDetails: {
-      litersPerPlantPerDay: {
-        germination: 0.1,
-        vegetative: 1.0,
-        production: 1.5 // Fioritura e formazione baccelli
-      },
-      frequency: {
-        germination: 'Ogni 2-3 giorni',
-        vegetative: 'Ogni 2 giorni',
-        production: 'Ogni 1-2 giorni'
-      },
-      method: 'Drip',
-      criticalPeriods: [
-        {
-          phase: 'Fioritura e Formazione Baccelli',
-          days: [40, 70],
-          multiplier: 1.3
         }
       ]
     }

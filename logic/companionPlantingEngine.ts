@@ -21,7 +21,7 @@ export const checkCompanionCompatibility = (
   if (rule) {
     return {
       compatible: rule.relationship !== 'Harmful',
-      reason: rule.reason,
+      reason: rule.reason || '',
       spacingAdjustment: rule.spacingModifier,
       relationship: rule.relationship
     };
@@ -71,6 +71,7 @@ export const suggestCompanions = (
   const suggestions: Array<{ plant: PlantMasterSheet; rule: CompanionRule }> = [];
   
   for (const rule of beneficialRules) {
+    if (!rule.plant1 || !rule.plant2) continue;
     const companionName = 
       rule.plant1.toUpperCase() === targetPlant.commonName.toUpperCase()
         ? rule.plant2

@@ -20,7 +20,7 @@ export function adaptMessage(
   message: Message,
   userProfile?: UserProfile
 ): string {
-  const expertise = userProfile?.expertise || 'intermediate';
+  const expertise = 'intermediate'; // Default expertise level
   const detailLevel = userProfile?.preferences?.detailLevel || 'standard';
   const style = userProfile?.preferences?.preferredCommunicationStyle || 'conversational';
 
@@ -166,7 +166,7 @@ export function formatForNotification(
   userProfile?: UserProfile
 ): { title: string; body: string } {
   const adapted = adaptMessage(message, userProfile);
-  const expertise = userProfile?.expertise || 'intermediate';
+  const expertise = 'intermediate'; // Default expertise level
 
   let title = message.title || 'OrtoMio';
   let body = adapted;

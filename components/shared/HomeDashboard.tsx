@@ -121,20 +121,26 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
     loadGardens()
   }, [storageProvider])
 
+  // Inizializza gardenType solo quando cambia activeGarden
   useEffect(() => {
     if (activeGarden) {
-      // Determina tipo orto basato sul mese
+      // Determina tipo orto basato sul mese solo quando cambia l'orto attivo
       const month = new Date().getMonth() + 1
       setGardenType((month >= 4 && month <= 9) ? 'Summer' : 'Winter')
-      
-      // Carica lavori preparatori
-      const prep = generateWinterPreparationPlan(activeGarden, gardenType)
-      setPrepTasks(prep)
       
       // Carica meteo
       if (activeGarden.coordinates) {
         fetchWeather(activeGarden.coordinates.latitude, activeGarden.coordinates.longitude)
       }
+    }
+  }, [activeGarden])
+
+  // Aggiorna i task preparatori quando cambia gardenType o activeGarden
+  useEffect(() => {
+    if (activeGarden) {
+      // Carica lavori preparatori con il gardenType corrente (che può essere cambiato dall'utente)
+      const prep = generateWinterPreparationPlan(activeGarden, gardenType)
+      setPrepTasks(prep)
     }
   }, [activeGarden, gardenType])
 

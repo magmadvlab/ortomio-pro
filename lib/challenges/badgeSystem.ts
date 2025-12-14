@@ -29,13 +29,12 @@ export async function awardBadge(
     }
     
     // Salva badge (localStorage per FREE, Supabase per PRO)
-    const badgeData = {
-      user_id: userId,
-      badge_id: badgeInfo.id,
-      badge_name: badgeInfo.nome,
-      badge_emoji: badgeInfo.emoji,
-      badge_description: badgeInfo.descrizione,
-      earned_at: new Date().toISOString()
+    const badgeData: BadgeInfo = {
+      id: badgeInfo.id,
+      nome: badgeInfo.nome,
+      emoji: badgeInfo.emoji,
+      descrizione: badgeInfo.descrizione,
+      earned_at: new Date()
     };
     
     // Salva in localStorage (temporaneo, poi migrare a Supabase)
@@ -62,7 +61,7 @@ export async function checkBadgeEarned(
 ): Promise<boolean> {
   try {
     const badges = getUserBadges(userId);
-    return badges.some(b => b.badge_id === badgeId);
+    return badges.some(b => b.id === badgeId);
   } catch (error) {
     console.error('Error checking badge:', error);
     return false;

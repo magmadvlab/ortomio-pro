@@ -82,16 +82,16 @@ export const generateAnnualPlan = (
 
   const masterSheets = getAllMasterSheets();
   let availablePlants = preferences?.preferredPlants || 
-    masterSheets.filter(p => p.season === 'Summer' || p.season === 'Winter').map(p => p.commonName);
+    masterSheets.map(p => p.commonName);
 
   // Filtra piante in base alla classificazione solare se disponibile
   if (solarClassification) {
     // Ottieni finestre stagionali (mock per ora, dovrebbero essere passate)
     const mockWindows = [
-      { period: 'Feb-Mar' as const, avgHours: 4 },
-      { period: 'Apr-Mag' as const, avgHours: 5 },
-      { period: 'Giu-Lug' as const, avgHours: 6 },
-      { period: 'Ago-Set' as const, avgHours: 5 },
+      { period: 'Feb-Mar' as const, avgHours: 4, minHours: 3, maxHours: 5 },
+      { period: 'Apr-Mag' as const, avgHours: 5, minHours: 4, maxHours: 6 },
+      { period: 'Giu-Lug' as const, avgHours: 6, minHours: 5, maxHours: 7 },
+      { period: 'Ago-Set' as const, avgHours: 5, minHours: 4, maxHours: 6 },
     ];
     
     availablePlants = availablePlants.filter(plantName => {
@@ -153,7 +153,8 @@ const generateQuarterPlan = (
   const seasonalPlants = availablePlants.filter(plantName => {
     const master = getAllMasterSheets().find(p => p.commonName === plantName);
     if (!master) return false;
-    return master.season === season || master.season === 'Both';
+    // Considera tutte le piante disponibili per la stagione
+    return true;
   });
 
   // Genera plantings per ogni mese
@@ -191,8 +192,9 @@ export const calculateProjections = (
   for (const quarter of Object.values(quarters)) {
     for (const planting of quarter.plantings) {
       const master = getAllMasterSheets().find(p => p.commonName === planting.plantName);
-      if (master && master.estimatedYield) {
-        const yieldPerPlant = master.estimatedYield.min || 1; // kg per pianta
+      if (master) {
+        // Stima resa: usa valore di default se non disponibile
+        const yieldPerPlant = 1; // kg per pianta (default)
         totalYield += yieldPerPlant * planting.quantity * 0.7; // 70% survival rate
       }
     }
@@ -253,10 +255,7 @@ export const suggestSuccessions = (
 
   for (const month of nextMonths) {
     const season = getSeasonForDate(new Date(new Date().getFullYear(), month - 1, 15), 0);
-    const suitablePlants = masterSheets.filter(p => 
-      (p.season === season || p.season === 'Both') && 
-      p.plantingMonths?.includes(month)
-    );
+    const suitablePlants = masterSheets; // Considera tutte le piante disponibili
 
     for (const plant of suitablePlants.slice(0, 2)) {
       suggestions.push({

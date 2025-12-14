@@ -43,3 +43,4 @@ export interface GreenhouseConfig {
   height?: number; // Altezza in cm
 }
 
+

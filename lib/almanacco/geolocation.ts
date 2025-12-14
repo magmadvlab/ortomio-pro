@@ -42,11 +42,22 @@ export async function getUserLocation(): Promise<UserLocation | null> {
       manual: false
     };
   } catch (error) {
-    console.error('Geolocation failed:', error);
+    // Log solo se non è un errore di permesso già gestito (evita spam nella console)
+    const errorCode = (error as GeolocationPositionError)?.code;
+    if (errorCode !== 1) { // Non loggare PERMISSION_DENIED ripetutamente
+      // Log solo una volta, non ogni volta che viene chiamato
+      if (!geolocationFailed) {
+        console.warn('Geolocation not available, using manual selection');
+      }
+    }
     // Fallback: return null → UI mostra selezione manuale
     return null;
   }
 }
+
+// Flag per tracciare se la geolocalizzazione è già fallita (evita chiamate ripetute)
+let geolocationFailed = false;
+let geolocationPermissionDenied = false;
 
 /**
  * Browser Geolocation API
@@ -54,19 +65,44 @@ export async function getUserLocation(): Promise<UserLocation | null> {
 function getBrowserLocation(): Promise<{ lat: number; lng: number }> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
+      geolocationFailed = true;
       reject(new Error('Geolocation not supported'));
+      return;
+    }
+
+    // Se i permessi sono già stati negati, evita di chiamare di nuovo
+    if (geolocationPermissionDenied) {
+      reject(new Error('Permission denied'));
       return;
     }
     
     navigator.geolocation.getCurrentPosition(
-      (position) => resolve({
-        lat: position.coords.latitude,
-        lng: position.coords.longitude
-      }),
-      (error) => reject(error),
+      (position) => {
+        // Reset flag se la geolocalizzazione funziona
+        geolocationFailed = false;
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+      },
+      (error) => {
+        // Gestisci errori silenziosamente per evitare log ripetuti
+        if (error.code === 1) {
+          // PERMISSION_DENIED - non ritentare
+          geolocationPermissionDenied = true;
+        } else {
+          // Altri errori - marca come fallito ma permette retry dopo un po'
+          geolocationFailed = true;
+          // Reset flag dopo 5 minuti per permettere retry
+          setTimeout(() => {
+            geolocationFailed = false;
+          }, 300000);
+        }
+        reject(error);
+      },
       { 
         timeout: 5000,
-        enableHighAccuracy: true,
+        enableHighAccuracy: false, // Ridotto per evitare errori su alcuni dispositivi
         maximumAge: 300000 // Cache 5 minuti
       }
     );

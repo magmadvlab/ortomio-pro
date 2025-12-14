@@ -12,7 +12,8 @@ import { useGarden } from '@/packages/core/hooks/useGarden';
 import GardenPointScoreCard from '@/components/sunExposure/GardenPointScoreCard';
 import RotationCalendar from '@/components/sunExposure/RotationCalendar';
 import NaiveComparison from '@/components/sunExposure/NaiveComparison';
-import { calculateGardenPointScores, GardenPoint } from '@/services/gardenPointScorer';
+import { calculateGardenPointScores } from '@/services/gardenPointScorer';
+import { GardenPoint } from '@/types';
 import { generatePointRotation } from '@/services/pointRotationGenerator';
 import { compareNaiveVsOptimized } from '@/services/naiveComparisonService';
 import { calculateSeasonalWindows } from '@/services/seasonalSunWindows';
@@ -35,7 +36,7 @@ export default function SolarEnginePage() {
     }
 
     // Carica punti esistenti o inizializza
-    if (activeGarden.points && activeGarden.points.length > 0) {
+    if (activeGarden?.points && activeGarden.points.length > 0) {
       // Calcola score per tutti i punti
       loadPointData(activeGarden.points[0]);
     }

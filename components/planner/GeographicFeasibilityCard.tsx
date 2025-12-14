@@ -221,3 +221,4 @@ const GeographicFeasibilityCard: React.FC<GeographicFeasibilityCardProps> = ({
 
 export default GeographicFeasibilityCard;
 
+

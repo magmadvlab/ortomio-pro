@@ -1,4 +1,4 @@
-import { PlantMasterSheet, GardenTask, HarvestLogData, GeoLocation } from './types';
+import { PlantMasterSheet, GardenTask, HarvestLogData, GeoLocation } from '../types';
 
 /**
  * Interfaccia per frutteti (Pro Feature)

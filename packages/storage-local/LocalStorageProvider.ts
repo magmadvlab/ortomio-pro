@@ -683,12 +683,22 @@ export class LocalStorageProvider implements IStorageProvider {
   }
 
   // Garden Beds
-  private getGardenBeds(): GardenBed[] {
+  private getAllGardenBeds(): GardenBed[] {
     const saved = localStorage.getItem(this.STORAGE_KEYS.GARDEN_BEDS);
     if (!saved) return [];
     try {
-      return JSON.parse(saved) as GardenBed[];
-    } catch {
+      const parsed = JSON.parse(saved);
+      // Assicurati che sia sempre un array
+      if (!Array.isArray(parsed)) {
+        console.warn('GardenBeds data is not an array, resetting to empty array');
+        localStorage.removeItem(this.STORAGE_KEYS.GARDEN_BEDS);
+        return [];
+      }
+      return parsed as GardenBed[];
+    } catch (error) {
+      console.error('Error parsing GardenBeds from localStorage:', error);
+      // Se i dati sono corrotti, rimuovili
+      localStorage.removeItem(this.STORAGE_KEYS.GARDEN_BEDS);
       return [];
     }
   }
@@ -699,12 +709,17 @@ export class LocalStorageProvider implements IStorageProvider {
   }
 
   async getGardenBeds(gardenId: string): Promise<GardenBed[]> {
-    const allBeds = this.getGardenBeds();
+    const allBeds = this.getAllGardenBeds();
+    // Protezione aggiuntiva: assicurati che allBeds sia un array
+    if (!Array.isArray(allBeds)) {
+      console.error('getAllGardenBeds() did not return an array:', allBeds);
+      return [];
+    }
     return allBeds.filter(b => b.gardenId === gardenId);
   }
 
   async getGardenBed(id: string): Promise<GardenBed | null> {
-    const allBeds = this.getGardenBeds();
+    const allBeds = this.getAllGardenBeds();
     return allBeds.find(b => b.id === id) || null;
   }
 
@@ -723,14 +738,14 @@ export class LocalStorageProvider implements IStorageProvider {
       newBed.areaSqMeters = (Math.PI * Math.pow(newBed.diameterCm / 2, 2)) / 10000;
     }
     
-    const allBeds = this.getGardenBeds();
+    const allBeds = this.getAllGardenBeds();
     allBeds.push(newBed);
     this.saveGardenBeds(allBeds);
     return newBed;
   }
 
   async updateGardenBed(id: string, updates: Partial<GardenBed>): Promise<GardenBed> {
-    const allBeds = this.getGardenBeds();
+    const allBeds = this.getAllGardenBeds();
     const index = allBeds.findIndex(b => b.id === id);
     
     if (index === -1) {
@@ -758,7 +773,7 @@ export class LocalStorageProvider implements IStorageProvider {
   }
 
   async deleteGardenBed(id: string): Promise<void> {
-    const allBeds = this.getGardenBeds();
+    const allBeds = this.getAllGardenBeds();
     const filtered = allBeds.filter(b => b.id !== id);
     this.saveGardenBeds(filtered);
   }

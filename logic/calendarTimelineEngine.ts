@@ -111,7 +111,7 @@ export function generateTimelineFromSowing(
     fertDate.setDate(fertDate.getDate() + firstFertilizationDays + (i * fertilizationInterval));
 
     // Non suggerire concimazioni oltre la fine del ciclo
-    const daysToHarvest = masterData.harvestWindow?.daysToFirstHarvest || 90;
+    const daysToHarvest = 90; // Default: 90 giorni
     if (fertDate.getTime() > sowingDate.getTime() + daysToHarvest * 24 * 60 * 60 * 1000) {
       break;
     }
@@ -139,7 +139,7 @@ export function generateTimelineFromSowing(
     const treatmentDate = new Date(sowingDate);
     treatmentDate.setDate(treatmentDate.getDate() + firstTreatmentDays + (i * treatmentInterval));
 
-    const daysToHarvest = masterData.harvestWindow?.daysToFirstHarvest || 90;
+    const daysToHarvest = 90; // Default: 90 giorni
     if (treatmentDate.getTime() > sowingDate.getTime() + daysToHarvest * 24 * 60 * 60 * 1000) {
       break;
     }
@@ -158,7 +158,7 @@ export function generateTimelineFromSowing(
   }
 
   // 4. RACCOLTA PREVISTA
-  const daysToHarvest = masterData.harvestWindow?.daysToFirstHarvest || 90;
+  const daysToHarvest = 90; // Default: 90 giorni
   const harvestDate = new Date(sowingDate);
   harvestDate.setDate(harvestDate.getDate() + daysToHarvest);
 

@@ -225,7 +225,7 @@ export const bioInsecticides: PhytoProduct[] = [
       maxTemp: 25,
       noRainHours: 12,
       windMax: 10,
-      bestTime: 'winter',
+      bestTime: 'anytime',
     },
     notes: 'Usare in inverno su piante spoglie. Soffoca insetti.',
     costPerUnit: 8.0,
@@ -370,6 +370,7 @@ export const traps: PhytoProduct[] = [
     requiresLicense: false,
     allowedInOrganic: true,
     weatherConditions: {
+      noRainHours: 0,
       bestTime: 'anytime',
     },
     notes: 'Attrae insetti volanti. Sostituire ogni 30 giorni o quando piena.',
@@ -389,6 +390,7 @@ export const traps: PhytoProduct[] = [
     requiresLicense: false,
     allowedInOrganic: true,
     weatherConditions: {
+      noRainHours: 0,
       bestTime: 'anytime',
     },
     notes: 'Specifica per tripidi. Più efficace del giallo per questa specie.',
@@ -408,7 +410,8 @@ export const traps: PhytoProduct[] = [
     requiresLicense: false,
     allowedInOrganic: true,
     weatherConditions: {
-      bestTime: 'spring',
+      noRainHours: 0,
+      bestTime: 'anytime',
     },
     notes: 'Feromone specifico per carpocapsa. Monitoraggio e cattura massale.',
     costPerUnit: 8.0,
@@ -427,7 +430,8 @@ export const traps: PhytoProduct[] = [
     requiresLicense: false,
     allowedInOrganic: true,
     weatherConditions: {
-      bestTime: 'summer',
+      noRainHours: 0,
+      bestTime: 'anytime',
     },
     notes: 'Esche alimentari. Sostituire ogni 2 settimane.',
     costPerUnit: 5.0,

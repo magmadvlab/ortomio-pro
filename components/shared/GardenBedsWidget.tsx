@@ -45,10 +45,17 @@ export const GardenBedsWidget: React.FC<GardenBedsWidgetProps> = ({
         return;
       }
       const gardenBeds = await storageProvider.getGardenBeds(garden.id);
-      console.log('GardenBedsWidget: Loaded beds', gardenBeds.length);
-      setBeds(gardenBeds);
+      // Assicurati che gardenBeds sia sempre un array
+      if (!Array.isArray(gardenBeds)) {
+        console.error('GardenBedsWidget: getGardenBeds did not return an array:', gardenBeds);
+        setBeds([]);
+      } else {
+        console.log('GardenBedsWidget: Loaded beds', gardenBeds.length);
+        setBeds(gardenBeds);
+      }
     } catch (error) {
       console.error('GardenBedsWidget: Error loading beds:', error);
+      setBeds([]); // Imposta array vuoto in caso di errore
     } finally {
       setLoading(false);
     }

@@ -21,8 +21,8 @@ export async function updateStreak(
   userId: string,
   completionDate: Date = new Date()
 ): Promise<StreakData> {
+  const currentStreak = getStreak(userId);
   try {
-    const currentStreak = getStreak(userId);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     

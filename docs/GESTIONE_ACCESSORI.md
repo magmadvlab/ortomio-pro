@@ -370,3 +370,4 @@ supportRequirements?: {
 - **Tipi**: `types/accessories.ts` contiene tutte le definizioni TypeScript
 - **Feature Pro**: Visualizzazione nel Visual Planner è feature Pro
 
+

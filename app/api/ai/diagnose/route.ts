@@ -127,3 +127,4 @@ ${plantType ? `Tipo pianta: ${plantType}` : ''}
 
 
 
+

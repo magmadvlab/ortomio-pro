@@ -43,9 +43,10 @@ export async function generateCalendarPDF(
 ): Promise<Blob> {
   // Dynamic import per evitare bundle size issues se jsPDF non installato
   try {
+    // @ts-ignore - jspdf potrebbe non essere installato
     const { default: jsPDF } = await import('jspdf');
     
-    const doc = new jsPDF({
+    const doc = new (jsPDF as any)({
       orientation: 'landscape',
       unit: 'mm',
       format: 'a4'

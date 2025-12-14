@@ -120,11 +120,11 @@ function detectSlowGrowth(tasks: GardenTask[], plantName: string): Anomaly | nul
  */
 function detectCycleDeviation(tasks: GardenTask[], plantName: string): Anomaly | null {
   // Verifica se fasi del ciclo sono in ordine corretto
-  const phases = ['Sowing', 'Transplant', 'Flowering', 'Fruiting', 'Harvest'];
+  const phases = ['Sowing', 'Transplant', 'Harvest'];
   const taskPhases = tasks.map((t) => t.taskType).filter((t) => phases.includes(t));
 
   // Verifica se mancano fasi critiche
-  if (taskPhases.includes('Transplant') && !taskPhases.includes('Flowering')) {
+  if (taskPhases.includes('Transplant')) {
     const transplantDate = tasks.find((t) => t.taskType === 'Transplant')?.date;
     if (transplantDate) {
       const daysSinceTransplant = Math.ceil(

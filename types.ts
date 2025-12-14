@@ -180,6 +180,22 @@ export type GardenType =
   | 'Wick'                // Wick System
   | 'Kratky';             // Kratky Method (passive)
 
+/**
+ * Punto dell'orto con caratteristiche solari specifiche
+ */
+export interface GardenPoint {
+  id: string;
+  name: string;
+  coordinates: {
+    x: number; // Coordinate relative (0-100%)
+    y: number;
+  };
+  sunExposure: 'FullSun' | 'PartialSun' | 'PartialShade' | 'FullShade';
+  dailySunHours: number;
+  score?: any; // Score calcolato - può essere number o GardenPointScore
+  notes?: string;
+}
+
 export interface Garden {
   id: string;
   name: string;
@@ -224,6 +240,8 @@ export interface Garden {
   // SOLAR ENGINE - Punti mappati dell'orto
   points?: GardenPoint[]; // Punti mappati dell'orto con score
 }
+
+export type SoilType = 'Clay' | 'Sandy' | 'Loamy' | 'Peaty' | 'Chalky' | 'Silty';
 
 /**
  * Punto dell'orto con caratteristiche solari specifiche
@@ -642,7 +660,8 @@ export type CropType =
   | 'Medicinal'   // Erbe officinali
   | 'Olive'       // Olivo (Pro)
   | 'Vine'        // Vite (Pro)
-  | 'ExoticFruit'; // Frutta esotica (Pro)
+  | 'ExoticFruit' // Frutta esotica (Pro)
+  | 'Raspberry';  // Lamponi (Pro)
 
 // Nutrient Category for Nutritional Engine
 export type NutrientCategory = 

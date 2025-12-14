@@ -1,4 +1,4 @@
-import { PlantMasterSheet, GardenTask, HarvestLogData } from './types';
+import { PlantMasterSheet } from '../types';
 
 /**
  * Interfaccia per vite (Pro Feature)
