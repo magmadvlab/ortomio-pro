@@ -8,7 +8,7 @@ import { checkTransplantConditions } from '../services/weatherService';
 import { calculateMoonPhase, isIdealPhaseFor, getMoonPhaseName } from './lunarCalendar';
 import { isPlantNearHarvestEnd, checkEmptySpaceOpportunity } from './successionEngine';
 import { getAllMasterSheets } from '../services/plantMasterService';
-import { calculateAltitudeDelay, adjustPlantingDates } from '../utils/altitudeUtils';
+import { calculateAltitudeDelay, calculateAltitudePlantingDelay, adjustPlantingDates } from '../utils/altitudeUtils';
 import { scheduleNextTreatment } from './healthEngine';
 import { determineWasteDisposal, suggestHumusAddition } from './compostEngine';
 
