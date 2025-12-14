@@ -7,6 +7,8 @@ export { strawberryMasterSheets } from './strawberryMasterSheets';
 export { fruitTreeMasterSheets } from './fruitTreeMasterSheets';
 export { oliveMasterSheets } from './oliveMasterSheets';
 export { vineMasterSheets } from './vineMasterSheets';
+export { exoticFruitMasterSheets } from './exoticFruitMasterSheets';
+export { raspberryMasterSheets } from './raspberryMasterSheets';
 
 // Le erbe aromatiche sono già incluse in plantMasterSheets.ts
 // e possono essere filtrate per cropType === 'Aromatic' || 'Medicinal'
@@ -19,6 +21,8 @@ import { strawberryMasterSheets } from './strawberryMasterSheets';
 import { fruitTreeMasterSheets } from './fruitTreeMasterSheets';
 import { oliveMasterSheets } from './oliveMasterSheets';
 import { vineMasterSheets } from './vineMasterSheets';
+import { exoticFruitMasterSheets } from './exoticFruitMasterSheets';
+import { raspberryMasterSheets } from './raspberryMasterSheets';
 import { plantMasterSheets } from './plantMasterSheets';
 
 export const getAllSpecializedMasterSheets = (): PlantMasterSheet[] => {
@@ -27,6 +31,8 @@ export const getAllSpecializedMasterSheets = (): PlantMasterSheet[] => {
     ...fruitTreeMasterSheets,
     ...oliveMasterSheets,
     ...vineMasterSheets,
+    ...exoticFruitMasterSheets,
+    ...raspberryMasterSheets,
     // Filtra erbe aromatiche da plantMasterSheets
     ...plantMasterSheets.filter(p => p.cropType === 'Aromatic' || p.cropType === 'Medicinal')
   ];
@@ -45,6 +51,10 @@ export const getMasterSheetsByCropType = (cropType: string): PlantMasterSheet[] 
       return oliveMasterSheets;
     case 'Vine':
       return vineMasterSheets;
+    case 'ExoticFruit':
+      return exoticFruitMasterSheets;
+    case 'Raspberry':
+      return raspberryMasterSheets;
     case 'Aromatic':
     case 'Medicinal':
       return plantMasterSheets.filter(p => p.cropType === cropType);

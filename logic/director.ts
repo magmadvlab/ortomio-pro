@@ -1,4 +1,6 @@
-import { Garden, GardenTask, PlantMasterSheet, DailyPlan, UrgentAlert, ClimateWarning, LifecycleTask, NutrientTask, HealthTask, LunarAdvice } from '../types';
+'use client';
+
+import { Garden, GardenTask, PlantMasterSheet, DailyPlan, UrgentAlert, ClimateWarning, LifecycleTask, NutrientTask, HealthTask, LunarAdvice, MechanicalWorkTask, TreePruningTask } from '../types';
 import { getWeatherForecast, getWeatherForecast7Days, WeatherForecast } from '../services/weatherService';
 import { checkLifecycleStatus, LifecycleAdvice } from './lifecycleEngine';
 import { calculateNutrientNeeds, NutrientAdvice } from './nutrientEngine';
@@ -13,13 +15,65 @@ import { calculateFruitTreeTasks, FruitTreeTaskAdvice } from './fruitTreeEngine'
 import { calculateAromaticTasks, AromaticTaskAdvice } from './aromaticEngine';
 import { calculateOliveTasks, OliveTaskAdvice, isMillingUrgent } from './oliveEngine';
 import { calculateVineTasks, VineTaskAdvice, isWinemakingUrgent } from './vineEngine';
+import { calculateExoticFruitTasks, ExoticFruitTaskAdvice } from './exoticFruitEngine';
+import { calculateRaspberryTasks, RaspberryTaskAdvice } from './raspberryEngine';
 import { StrawberryCrop } from '../types/strawberry';
 import { FruitTreeCrop } from '../types/fruitTree';
 import { AromaticMedicinalCrop } from '../types/aromatic';
 import { OliveCrop } from '../types/olive';
 import { VineCrop } from '../types/vine';
+import { ExoticFruitCrop } from '../types/exoticFruit';
+import { RaspberryCrop } from '../types/raspberry';
+// Advanced growing systems engines (Pro Features)
+import { calculateHydroponicTasks, HydroponicTaskAdvice } from './hydroponicEngine';
+import { calculateAquaponicTasks, AquaponicTaskAdvice } from './aquaponicEngine';
+import { calculateAeroponicTasks, AeroponicTaskAdvice } from './aeroponicEngine';
+import { calculateAccessoryTasks, AccessoryTaskAdvice } from './accessoriesEngine';
+import { GardenAccessory } from '../types/accessories';
+import { HydroponicReading, AquaponicReading } from '../types/indoorGrowing';
 // Annual Planner integration
 import { generateAnnualPlan, AnnualPlan, suggestSuccessions } from './annualPlannerEngine';
+// Nuovi engine per lavorazioni meccaniche, potatura alberi, timeline calendario
+import { calculateMechanicalWorkTasks, MechanicalWorkAdvice } from './mechanicalWorkEngine';
+import { calculateTreePruningTasks, TreePruningAdvice } from './treePruningEngine';
+import { generateTimelineFromSowing, convertToGardenTask } from './calendarTimelineEngine';
+import { getPendingSuggestions, updateOrchestratorFromCompletion } from './taskSynchronizer';
+// Solar Classification integration
+import {
+  calculateGardenSolarClassification,
+  validatePlantCompatibility,
+} from './solarClassificationHelper';
+import { getAllHistoricalWeather } from '../services/historicalWeatherService';
+import { UserProfile } from '../types';
+import { SeedlingBatch } from '../services/seedlingService';
+import { getSeasonForDate } from '../utils/seasonalAdjustment';
+// Soil and Altitude utilities
+import {
+  calculateSoilWarmingDelay,
+  calculateSoilHeatingRate,
+  isSoilReadyForPlanting,
+  getSoilCompatibility,
+  adjustDateForSoilType,
+} from '../utils/soilTemperatureUtils';
+import {
+  calculateEffectiveTemperature,
+  calculateAltitudePlantingDelay,
+  adjustPlantingDates,
+} from '../utils/altitudeUtils';
+// Memory Service
+import {
+  getZoneMemory,
+  getBestPlantingDate,
+  getRecurringProblems,
+  getTreeMemory,
+} from '../services/gardenMemoryService';
+// FERTILIZER, TILLAGE, PHYTO Engines
+import { suggestFertilizerProduct, FertilizerRecommendation } from './fertilizerEngine';
+import { checkLowStock as checkFertilizerStock, getFertilizerAlerts } from '../services/fertilizerInventoryService';
+import { suggestTillageWork, calculateTemperaTiming } from './tillageEngine';
+import { getSoilState } from '../services/soilStateService';
+import { suggestPhytoProduct, checkTreatmentTiming } from './phytoEngine';
+import { getActiveSafetyIntervals } from '../services/treatmentRegistryService';
 
 /**
  * Verifica urgenze climatiche (gelo, caldo estremo, siccità)
@@ -120,6 +174,59 @@ const applySoilModifier = (
 };
 
 /**
+ * Applica aggiustamenti per tipo terreno e altitudine a una data di impianto
+ * Combina ritardo altitudine + correzione tipo terreno
+ * 
+ * @param garden - Giardino con informazioni terreno e altitudine
+ * @param baseDate - Data base di semina/trapianto
+ * @param plantType - Tipo di pianta per calcolare ritardo altitudine differenziato
+ * @returns Data ottimale aggiustata
+ */
+function applySoilAndAltitudeAdjustments(
+  garden: Garden,
+  baseDate: Date,
+  plantType?: 'early' | 'standard' | 'late'
+): Date {
+  let adjustedDate = new Date(baseDate);
+
+  // 1. Applica ritardo altitudine (se presente)
+  if (garden.altitudeMeters && garden.altitudeMeters > 200) {
+    const altitudeDelay = calculateAltitudePlantingDelay(
+      garden.altitudeMeters,
+      plantType || 'standard'
+    );
+    adjustedDate.setDate(adjustedDate.getDate() + altitudeDelay);
+  }
+
+  // 2. Applica correzione tipo terreno (anticipo/ritardo riscaldamento)
+  const soilDelay = calculateSoilWarmingDelay(garden.soilType);
+  adjustedDate.setDate(adjustedDate.getDate() + soilDelay);
+
+  return adjustedDate;
+}
+
+/**
+ * Determina tipo pianta per calcolo ritardo altitudine
+ */
+function getPlantTypeForAltitude(plantName: string): 'early' | 'standard' | 'late' {
+  const nameUpper = plantName.toUpperCase();
+  
+  // Piante precoci
+  const earlyPlants = ['LATTUGA', 'INSALATA', 'RUCOLA', 'SPINACIO', 'RAVANELLO', 'RAPANELLO'];
+  if (earlyPlants.some(name => nameUpper.includes(name))) {
+    return 'early';
+  }
+  
+  // Piante tardive
+  const latePlants = ['POMODORO', 'PEPERONE', 'MELANZANA', 'ZUCCHINA', 'CETRIOLO'];
+  if (latePlants.some(name => nameUpper.includes(name))) {
+    return 'late';
+  }
+  
+  return 'standard';
+}
+
+/**
  * Determina priorità complessiva del piano giornaliero
  */
 const determineOverallPriority = (
@@ -179,12 +286,43 @@ export const getDailyGardenPlan = async (
   garden: Garden,
   tasks: GardenTask[],
   currentDate: Date = new Date(),
-  annualPlan?: AnnualPlan
+  annualPlan?: AnnualPlan,
+  userProfile?: UserProfile,
+  seedlingBatches?: SeedlingBatch[]
 ): Promise<DailyPlan> => {
   // PRIORITÀ 1: CLIMA (incontrollabile, blocca operazioni)
   const { alerts: urgentAlerts, warnings: climateWarnings } = await checkWeatherUrgency(
     garden.coordinates
   );
+
+  // PRIORITÀ 1.5: CLASSIFICAZIONE SOLARE (coordinamento variabili)
+  let solarClassification = null;
+  if (garden.coordinates) {
+    try {
+      // Carica dati meteo storici per calcoli temperatura
+      let historicalWeather = null;
+      try {
+        historicalWeather = await getAllHistoricalWeather(
+          garden.coordinates.latitude,
+          garden.coordinates.longitude,
+          currentDate.getFullYear()
+        );
+      } catch (weatherError) {
+        console.warn('Could not load historical weather, continuing without temperature adjustments:', weatherError);
+        // Continua senza dati meteo storici
+      }
+      
+      solarClassification = await calculateGardenSolarClassification(
+        garden, 
+        currentDate,
+        historicalWeather,
+        seedlingBatches
+      );
+    } catch (error) {
+      console.error('Error calculating solar classification:', error);
+      // Continua senza classificazione solare se errore
+    }
+  }
 
   // PRIORITÀ 2: CICLO VITALE (cosa fare)
   const lifecycleTasks: LifecycleTask[] = [];
@@ -257,6 +395,71 @@ export const getDailyGardenPlan = async (
   // Aggiungi deviazioni annual plan agli alert
   urgentAlerts.push(...annualPlanDeviations);
 
+  // Validazione compatibilità piante con classificazione solare e tipo terreno
+  if (solarClassification) {
+    for (const task of activeTasks) {
+      // Validazione compatibilità solare
+      const solarCompatibility = validatePlantCompatibility(
+        task.plantName,
+        solarClassification.classification,
+        solarClassification.windows
+      );
+      
+      if (!solarCompatibility.compatible) {
+        urgentAlerts.push({
+          type: 'SolarCompatibility',
+          message: `⚠️ COMPATIBILITÀ SOLARE: ${task.plantName} - ${solarCompatibility.reason || 'Non ottimale per tipo orto'}`,
+          action: solarCompatibility.alternativePlants 
+            ? `Considera alternative: ${solarCompatibility.alternativePlants.join(', ')}`
+            : 'Verifica esposizione solare richiesta',
+          blockOperations: false, // Suggerimento, non blocco
+        });
+      }
+
+      // Validazione compatibilità terreno
+      const soilCompatibility = getSoilCompatibility(task.plantName, garden.soilType);
+      if (!soilCompatibility.compatible) {
+        urgentAlerts.push({
+          type: 'SolarCompatibility', // Usa stesso tipo per coerenza
+          message: `⚠️ COMPATIBILITÀ TERRENO: ${task.plantName} - ${soilCompatibility.reason || 'Non ottimale per tipo terreno'}`,
+          action: soilCompatibility.optimalSoilTypes 
+            ? `Terreni ottimali: ${soilCompatibility.optimalSoilTypes.join(', ')}. Considera miglioramenti o varietà resistenti.`
+            : 'Verifica requisiti terreno della pianta',
+          blockOperations: false,
+        });
+      }
+    }
+
+    // Validazione annual plan con classificazione solare
+    if (annualPlan && solarClassification) {
+      const currentMonth = currentDate.getMonth() + 1;
+      const currentQuarter = currentMonth <= 3 ? 'Q1' : currentMonth <= 6 ? 'Q2' : currentMonth <= 9 ? 'Q3' : 'Q4';
+      const quarterPlan = annualPlan.quarters[currentQuarter];
+      
+      if (quarterPlan) {
+        const expectedPlantings = quarterPlan.plantings.filter(p => p.month === currentMonth);
+        for (const expected of expectedPlantings) {
+          const compatibility = validatePlantCompatibility(
+            expected.plantName,
+            solarClassification.classification,
+            solarClassification.windows
+          );
+          
+          if (!compatibility.compatible) {
+            urgentAlerts.push({
+              type: 'SolarCompatibility',
+              message: `⚠️ PIANIFICAZIONE SOLARE: ${expected.plantName} prevista per questo mese non è ottimale per tipo orto`,
+              action: compatibility.alternativePlants 
+                ? `Considera alternative: ${compatibility.alternativePlants.join(', ')}`
+                : 'Verifica esposizione solare richiesta',
+              blockOperations: false,
+            });
+          }
+        }
+      }
+    }
+  }
+
   for (const task of activeTasks) {
     const masterData = getMasterSheet(task.plantName);
     if (!masterData) continue;
@@ -265,14 +468,75 @@ export const getDailyGardenPlan = async (
     const lifecycleAdvice = await checkLifecycleStatus(task, masterData, garden, currentDate);
     
     if (lifecycleAdvice) {
+      let lifecycleMessage = lifecycleAdvice.message;
+      let lifecycleAction = lifecycleAdvice.actionYes;
+
+      // Ottimizza timing basato su finestre di impianto solari, terreno e altitudine
+      if (solarClassification && (task.taskType === 'Sowing' || task.taskType === 'Transplant')) {
+        const relevantWindow = solarClassification.plantingWindows.find(
+          pw => pw.recommendedPlants.some(rp => 
+            task.plantName.toLowerCase().includes(rp.toLowerCase())
+          )
+        );
+
+        if (relevantWindow) {
+          const taskDate = new Date(task.date);
+          const windowStart = new Date(relevantWindow.startDate);
+          const windowEnd = new Date(relevantWindow.endDate);
+
+          // Applica aggiustamenti terreno e altitudine alla finestra
+          const plantType = getPlantTypeForAltitude(task.plantName);
+          const adjustedWindowStart = applySoilAndAltitudeAdjustments(garden, windowStart, plantType);
+          const adjustedWindowEnd = applySoilAndAltitudeAdjustments(garden, windowEnd, plantType);
+
+          // Verifica se terreno è pronto (se abbiamo temperatura aria disponibile)
+          if (garden.coordinates && masterData.transplanting?.minTemp) {
+            try {
+              const forecast = await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude);
+              if (forecast && forecast.tempMin !== undefined) {
+                const effectiveTemp = garden.altitudeMeters 
+                  ? calculateEffectiveTemperature(garden.altitudeMeters, forecast.tempMin)
+                  : forecast.tempMin;
+                const soilTemp = calculateSoilHeatingRate(garden.soilType, effectiveTemp);
+                const isReady = isSoilReadyForPlanting(
+                  garden.soilType,
+                  effectiveTemp,
+                  masterData.transplanting.minTemp
+                );
+
+                if (!isReady) {
+                  lifecycleMessage += ` ⚠️ Terreno non ancora pronto (temp. suolo: ${soilTemp.toFixed(1)}°C, richiesta: ${masterData.transplanting.minTemp}°C)`;
+                  lifecycleAction = `${lifecycleAction || ''} Aspetta che il terreno si scaldi. Data suggerita: ${adjustedWindowStart.toLocaleDateString('it-IT')}`.trim();
+                }
+              }
+            } catch (error) {
+              // Ignora errori meteo, continua con logica normale
+            }
+          }
+
+          if (taskDate < adjustedWindowStart || taskDate > adjustedWindowEnd) {
+            const adjustments: string[] = [];
+            if (garden.altitudeMeters && garden.altitudeMeters > 200) {
+              adjustments.push(`altitudine ${garden.altitudeMeters}m`);
+            }
+            if (garden.soilType && garden.soilType !== 'Loamy') {
+              adjustments.push(`terreno ${garden.soilType}`);
+            }
+            const adjustmentsText = adjustments.length > 0 ? ` (aggiustata per ${adjustments.join(', ')})` : '';
+            lifecycleMessage += ` ⚠️ Fuori finestra ottimale${adjustmentsText} (${adjustedWindowStart.toLocaleDateString('it-IT')} - ${adjustedWindowEnd.toLocaleDateString('it-IT')})`;
+            lifecycleAction = `${lifecycleAction || ''} Finestra ottimale: ${adjustedWindowStart.toLocaleDateString('it-IT')} - ${adjustedWindowEnd.toLocaleDateString('it-IT')}`.trim();
+          }
+        }
+      }
+
       lifecycleTasks.push({
         taskId: task.id,
         plantName: task.plantName,
         phase: lifecycleAdvice.phase,
-        message: lifecycleAdvice.message,
+        message: lifecycleMessage,
         priority: lifecycleAdvice.type === 'WARNING' ? 'High' : 
                   lifecycleAdvice.type === 'TASK' ? 'Medium' : 'Low',
-        action: lifecycleAdvice.actionYes
+        action: lifecycleAction
       });
 
       // Estrai consigli nutrizionali e salute dal lifecycle advice
@@ -316,9 +580,44 @@ export const getDailyGardenPlan = async (
           adviceBody: nutrientAdvice.adviceBody + ' ' + applySoilModifier(nutrientAdvice, garden.soilType),
           priority: 'Medium'
         });
+
+        // FERTILIZER ENGINE: Suggerisci prodotto concreto
+        try {
+          const fertilizerRec = await suggestFertilizerProduct(
+            nutrientAdvice.elementFocus,
+            garden.soilType,
+            'top_dressing'
+          );
+          if (fertilizerRec) {
+            // Aggiungi alert se scorte basse
+            const stockAlerts = await checkFertilizerStock(garden.id, getSeasonForDate(currentDate, garden.coordinates?.latitude || 0));
+            if (stockAlerts.length > 0) {
+              urgentAlerts.push({
+                type: 'Planning',
+                message: `⚠️ Scorte fertilizzanti basse: ${stockAlerts[0].item.productName}`,
+                action: stockAlerts[0].reason,
+                blockOperations: false,
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error suggesting fertilizer product:', error);
+        }
       }
 
-      const healthAdvice = calculateHealthStrategy(masterData, daysActive);
+      // Calcola stagione per health strategy
+      const season = garden.coordinates 
+        ? getSeasonForDate(currentDate, garden.coordinates.latitude)
+        : undefined;
+      const latitude = garden.coordinates?.latitude || 0;
+      
+      const healthAdvice = calculateHealthStrategy(
+        masterData, 
+        daysActive, 
+        season, 
+        latitude, 
+        userProfile
+      );
       if (healthAdvice) {
         // Aggiungi wind factor al health advice
         const windAdvice = calculateWindEffect(garden.windProtection, masterData);
@@ -343,6 +642,47 @@ export const getDailyGardenPlan = async (
           priority: healthAdvice.priority,
           actionType: healthAdvice.actionType
         });
+
+        // PHYTO ENGINE: Suggerisci prodotto concreto con timing critico
+        if (healthAdvice.actionType === 'Prevent' || healthAdvice.actionType === 'Treat') {
+          try {
+            const weatherForecast = garden.coordinates
+              ? await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude)
+              : undefined;
+            const phytoRec = await suggestPhytoProduct(
+              healthAdvice.reason,
+              masterData,
+              weatherForecast,
+              userProfile
+            );
+
+            if (phytoRec) {
+              // Verifica timing con raccolta
+              const harvestTask = tasks.find(
+                (t) => t.plantName === task.plantName && t.taskType === 'Harvest' && !t.completed
+              );
+              if (harvestTask) {
+                const timingCheck = await checkTreatmentTiming(
+                  phytoRec.product,
+                  weatherForecast,
+                  new Date(harvestTask.date)
+                );
+
+                if (timingCheck.conflict) {
+                  urgentAlerts.push({
+                    type: 'Planning',
+                    message: `⚠️ Conflitto trattamento/raccolta: ${timingCheck.message}`,
+                    action: timingCheck.options.map((o) => o.action).join(' o '),
+                    blockOperations: false,
+                    timing: 'now',
+                  });
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error suggesting phyto product:', error);
+          }
+        }
       } else if (garden.windProtection && garden.windProtection !== 'Medium') {
         // Se non c'è health advice ma c'è problema vento, aggiungi warning
         const windAdvice = calculateWindEffect(garden.windProtection, masterData);
@@ -529,6 +869,43 @@ export const getDailyGardenPlan = async (
           });
         }
       }
+
+      // FRUTTA ESOTICA
+      if (masterData.cropType === 'ExoticFruit') {
+        const exoticCrop = masterData as unknown as ExoticFruitCrop;
+        const exoticTasks = calculateExoticFruitTasks(exoticCrop, garden, currentDate);
+        
+        for (const et of exoticTasks) {
+          // Se è avviso climatico, aumenta priorità
+          const isClimateWarning = et.climateWarning;
+          
+          specializedTasks.push({
+            taskId: task.id,
+            plantName: task.plantName,
+            phase: `Frutta Esotica: ${et.taskType}`,
+            message: isClimateWarning ? `🌡️ CLIMA: ${et.message}` : et.message,
+            priority: isClimateWarning ? 'High' : (et.priority === 'High' ? 'High' : 'Medium'),
+            action: et.instructions.join('; ')
+          });
+        }
+      }
+
+      // LAMPONI
+      if (masterData.cropType === 'Raspberry') {
+        const raspberryCrop = masterData as unknown as RaspberryCrop;
+        const raspberryTasks = calculateRaspberryTasks(raspberryCrop, currentDate);
+        
+        for (const rt of raspberryTasks) {
+          specializedTasks.push({
+            taskId: task.id,
+            plantName: task.plantName,
+            phase: `Lamponi: ${rt.taskType}`,
+            message: rt.message,
+            priority: rt.priority === 'High' ? 'High' : 'Medium',
+            action: rt.instructions.join('; ')
+          });
+        }
+      }
     } catch (error) {
       console.error(`Error calculating specialized tasks for ${task.plantName}:`, error);
     }
@@ -536,6 +913,208 @@ export const getDailyGardenPlan = async (
 
   // Aggiungi task specializzati al piano
   lifecycleTasks.push(...specializedTasks);
+
+  // NUOVO: SISTEMI IDROPONICI/ACQUAPONICI/AEROPONICI
+  // Task a livello giardino per manutenzione sistemi avanzati
+  const advancedSystemTasks: LifecycleTask[] = [];
+
+  // IDROPONICA
+  if (garden.gardenType && (
+    garden.gardenType.startsWith('Hydroponic') || 
+    garden.gardenType === 'NFT' || 
+    garden.gardenType === 'DWC' || 
+    garden.gardenType === 'EbbFlow' || 
+    garden.gardenType === 'Drip' || 
+    garden.gardenType === 'Wick' || 
+    garden.gardenType === 'Kratky' ||
+    garden.gardenType === 'Hydroponic'
+  )) {
+    try {
+      // TODO: Ottenere letture parametri da storage provider quando disponibile
+      const hydroponicReadings: HydroponicReading[] | undefined = undefined;
+      const hydroponicTasks = calculateHydroponicTasks(garden, tasks, currentDate, hydroponicReadings);
+      
+      for (const ht of hydroponicTasks) {
+        advancedSystemTasks.push({
+          taskId: '', // Task a livello giardino, non associato a pianta specifica
+          plantName: `Sistema Idroponico (${garden.hydroponicConfig?.systemType || 'Idroponico'})`,
+          phase: `Idroponica: ${ht.taskType}`,
+          message: ht.isUrgent ? `⚠️ URGENTE: ${ht.message}` : ht.message,
+          priority: ht.priority === 'Critical' ? 'Critical' : (ht.priority === 'High' ? 'High' : 'Medium'),
+          action: ht.instructions.join('; ')
+        });
+      }
+    } catch (error) {
+      console.error('Error calculating hydroponic tasks:', error);
+    }
+  }
+
+  // ACQUAPONICA
+  if (garden.gardenType === 'Aquaponic') {
+    try {
+      // TODO: Ottenere letture parametri da storage provider quando disponibile
+      const aquaponicReadings: AquaponicReading[] | undefined = undefined;
+      const aquaponicTasks = calculateAquaponicTasks(garden, tasks, currentDate, aquaponicReadings);
+      
+      for (const at of aquaponicTasks) {
+        advancedSystemTasks.push({
+          taskId: '',
+          plantName: 'Sistema Acquaponico',
+          phase: `Acquaponica: ${at.taskType}`,
+          message: at.isUrgent ? `⚠️ URGENTE: ${at.message}` : at.message,
+          priority: at.priority === 'Critical' ? 'Critical' : (at.priority === 'High' ? 'High' : 'Medium'),
+          action: at.instructions.join('; ')
+        });
+      }
+    } catch (error) {
+      console.error('Error calculating aquaponic tasks:', error);
+    }
+  }
+
+  // AEROPONICA
+  if (garden.gardenType === 'Aeroponic') {
+    try {
+      const aeroponicTasks = calculateAeroponicTasks(garden, tasks, currentDate);
+      
+      for (const at of aeroponicTasks) {
+        advancedSystemTasks.push({
+          taskId: '',
+          plantName: 'Sistema Aeroponico',
+          phase: `Aeroponica: ${at.taskType}`,
+          message: at.isUrgent ? `⚠️ URGENTE: ${at.message}` : at.message,
+          priority: at.priority === 'Critical' ? 'Critical' : (at.priority === 'High' ? 'High' : 'Medium'),
+          action: at.instructions.join('; ')
+        });
+      }
+    } catch (error) {
+      console.error('Error calculating aeroponic tasks:', error);
+    }
+  }
+
+  // ACCESSORI
+  try {
+    // TODO: Ottenere accessori da storage provider quando disponibile
+    const accessories: GardenAccessory[] | undefined = undefined;
+    if (accessories) {
+      const accessoryTasks = calculateAccessoryTasks(garden, accessories, currentDate);
+      
+      for (const at of accessoryTasks) {
+        advancedSystemTasks.push({
+          taskId: at.accessoryId || '',
+          plantName: at.accessoryId ? `Accessorio: ${accessories.find(a => a.id === at.accessoryId)?.name || 'Accessorio'}` : 'Accessori Giardino',
+          phase: `Accessori: ${at.taskType}`,
+          message: at.message,
+          priority: at.priority === 'High' ? 'High' : 'Medium',
+          action: at.instructions.join('; ')
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error calculating accessory tasks:', error);
+  }
+
+  // Aggiungi task sistemi avanzati al piano
+  lifecycleTasks.push(...advancedSystemTasks);
+
+  // GENERAZIONE TIMELINE AUTOMATICA DALLE SEMINE COMPLETATE
+  // Quando una semina viene completata, genera automaticamente tutte le fasi successive
+  const completedSowings = tasks.filter(
+    t => t.gardenId === garden.id && 
+    t.taskType === 'Sowing' && 
+    t.completed && 
+    !t.isSuggested // Solo semine manuali, non suggerite
+  );
+
+  const timelineSuggestedTasks: GardenTask[] = [];
+  for (const sowing of completedSowings) {
+    const sowingMasterData = getMasterSheet(sowing.plantName);
+    if (sowingMasterData) {
+      const timeline = generateTimelineFromSowing(sowing, sowingMasterData, garden);
+      // Converti i suggerimenti in GardenTask
+      for (const suggested of timeline.suggestedTasks) {
+        // Verifica se il task suggerito esiste già
+        const existingTask = tasks.find(
+          t => t.gardenId === garden.id &&
+          t.plantName === suggested.plantName &&
+          t.taskType === suggested.taskType &&
+          t.suggestedBy === suggested.suggestedBy &&
+          t.suggestedDate === suggested.suggestedDate
+        );
+        
+        if (!existingTask) {
+          timelineSuggestedTasks.push(convertToGardenTask(suggested, sowing));
+        }
+      }
+    }
+  }
+
+  // TILLAGE ENGINE: Verifica terreno in tempera per lavorazioni
+  try {
+    const soilState = await getSoilState(garden.id, garden.id);
+    if (soilState) {
+      const temperaCheck = await calculateTemperaTiming(
+        garden,
+        soilState.lastRainDate || new Date(),
+        soilState.lastRainAmount || 0
+      );
+
+      if (temperaCheck.isTempera) {
+        urgentAlerts.push({
+          type: 'Planning',
+          message: `✅ Terreno in tempera. Finestra ottimale per lavorazione.`,
+          action: 'Esegui lavorazione pianificata',
+          timing: 'now',
+          blockOperations: false,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error checking tillage timing:', error);
+  }
+
+  // Verifica trattamenti in periodo carenza
+  try {
+    const activeIntervals = await getActiveSafetyIntervals(garden.id);
+    if (activeIntervals.length > 0) {
+      urgentAlerts.push({
+        type: 'Safety',
+        message: `⚠️ ${activeIntervals.length} trattamenti ancora in periodo carenza`,
+        action: 'Non raccogliere fino a fine periodo carenza',
+        blockOperations: false,
+      });
+    }
+  } catch (error) {
+    console.error('Error checking safety intervals:', error);
+  }
+
+  // LAVORAZIONI MECCANICHE (per terreni > 1000 m²)
+  const mechanicalWorkSuggestions = await calculateMechanicalWorkTasks(garden, currentDate, tasks);
+  const mechanicalWorkTasks: MechanicalWorkTask[] = mechanicalWorkSuggestions.map(s => ({
+    suggestedDate: s.suggestedDate,
+    priority: s.priority,
+    message: s.message,
+    instructions: s.instructions,
+    workType: s.taskType,
+    equipmentType: s.equipmentType,
+    area: s.area,
+    weatherWarning: s.weatherWarning
+  }));
+
+  // POTATURA ALBERI (inclusi agrumi)
+  const treePruningSuggestions = calculateTreePruningTasks(garden, currentDate, tasks);
+  const treePruningTasks: TreePruningTask[] = treePruningSuggestions.map(s => ({
+    suggestedDate: s.suggestedDate,
+    priority: s.priority,
+    message: s.message,
+    instructions: s.instructions,
+    treeType: s.treeType,
+    pruningType: s.pruningType,
+    season: s.season,
+    lunarAdvice: s.lunarAdvice
+  }));
+
+  // PENDING SUGGESTIONS (task suggeriti non ancora completati)
+  const pendingSuggestions = getPendingSuggestions(tasks);
 
   // PRIORITÀ 5: TRADIZIONE (ottimizzazione lunare)
   const lunarAdvice = generateLunarAdvice(currentDate);
@@ -551,7 +1130,11 @@ export const getDailyGardenPlan = async (
     healthTasks,
     climateWarnings,
     lunarAdvice,
-    priority: overallPriority
+    priority: overallPriority,
+    mechanicalWorkTasks,
+    treePruningTasks,
+    pendingSuggestions,
+    solarClassification: solarClassification || undefined
   };
 };
 

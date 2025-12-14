@@ -1,4 +1,4 @@
-import { PlantMasterSheet, GardenTask, Garden } from '../types';
+import { PlantMasterSheet, GardenTask, Garden, UserProfile } from '../types';
 import { protectionProducts, PlantProtectionProduct } from '../data/treatments';
 import { getSeasonForDate, Season } from '../utils/seasonalAdjustment';
 
@@ -58,47 +58,94 @@ export const calculateNextTreatmentDate = (
 };
 
 /**
+ * Verifica se un prodotto è disponibile per l'utente
+ * in base a patentino e preferenze
+ */
+function isProductAvailable(
+  product: PlantProtectionProduct,
+  userProfile?: UserProfile
+): boolean {
+  // Se utente preferisce solo bio
+  if (userProfile?.preferredTreatmentType === 'organic') {
+    return product.allowedInOrganic;
+  }
+  
+  // Se prodotto richiede patentino, verificare validità
+  if (product.requiresLicense) {
+    if (!userProfile?.pesticideLicense) {
+      return false; // Nessun patentino registrato
+    }
+    
+    // Verifica validità patentino
+    if (!userProfile.pesticideLicense.isValid) {
+      return false; // Patentino scaduto o non valido
+    }
+  }
+  
+  return true;
+}
+
+/**
  * Calcola la strategia di difesa per una pianta
  */
 export const calculateHealthStrategy = (
   plant: PlantMasterSheet,
   daysActive: number,
   season?: Season,
-  latitude: number = 0
+  latitude: number = 0,
+  userProfile?: UserProfile
 ): HealthAdvice | null => {
   const currentSeason = season || getCurrentSeason(latitude);
   
+  // Filtra prodotti disponibili in base a patentino e preferenze
+  const availableProducts = protectionProducts.filter(product => 
+    isProductAvailable(product, userProfile)
+  );
+  
   // 1. STRATEGIA GENERICA DI RINFORZO (Tutti) - Post-trapianto
   if (daysActive < 14) {
-    const propoli = getProductById('propoli');
-    return {
-      productToUse: 'Propoli o Alghe',
-      productId: 'propoli',
-      reason: 'Aiuta a superare lo stress da trapianto e stimola le difese naturali della pianta.',
-      priority: 'Low',
-      actionType: 'Prevent',
-      dosage: propoli?.dosage,
-      applicationNotes: propoli?.notes,
-      season: currentSeason
-    };
+    const propoli = availableProducts.find(p => p.id === 'propoli');
+    if (propoli) {
+      return {
+        productToUse: 'Propoli o Alghe',
+        productId: 'propoli',
+        reason: 'Aiuta a superare lo stress da trapianto e stimola le difese naturali della pianta.',
+        priority: 'Low',
+        actionType: 'Prevent',
+        dosage: propoli.dosage,
+        applicationNotes: propoli.notes,
+        season: currentSeason
+      };
+    }
   }
 
   // 2. STRATEGIA PER CUCURBITACEE (Zucchine, Cetrioli, Meloni)
   // Problema principale: Oidio (Mal bianco)
   if (plant.family === 'Cucurbitaceae') {
     if (daysActive > 30 && (currentSeason === 'Spring' || currentSeason === 'Summer')) {
-      const zeolite = getProductById('zeolite');
-      return {
-        productToUse: 'Zeolite Micronizzata',
-        productId: 'zeolite',
-        reason: 'Le cucurbitacee sono soggette a Oidio (mal bianco) quando l\'umidità sale. La Zeolite asciuga la foglia creando una barriera fisica.',
-        priority: 'High',
-        actionType: 'Prevent',
-        dosage: zeolite?.dosage,
-        applicationNotes: zeolite?.notes,
-        season: currentSeason,
-        nextTreatmentDate: calculateNextTreatmentDate('zeolite')
-      };
+      // Prova prima con Zeolite (bio)
+      let zeolite = availableProducts.find(p => p.id === 'zeolite');
+      if (!zeolite) {
+        // Se non disponibile, prova con Azoxystrobin (chimico, richiede patentino)
+        zeolite = availableProducts.find(p => p.id === 'azoxystrobin');
+      }
+      
+      if (zeolite) {
+        return {
+          productToUse: zeolite.name + (zeolite.requiresLicense ? ' (Richiede Patentino)' : ''),
+          productId: zeolite.id,
+          reason: 'Le cucurbitacee sono soggette a Oidio (mal bianco) quando l\'umidità sale. ' + 
+            (zeolite.id === 'zeolite' 
+              ? 'La Zeolite asciuga la foglia creando una barriera fisica.'
+              : 'Fungicida sistemico efficace contro Oidio.'),
+          priority: 'High',
+          actionType: 'Prevent',
+          dosage: zeolite.dosage,
+          applicationNotes: zeolite.notes + (zeolite.requiresLicense ? ' ⚠️ Richiede patentino fitosanitario.' : ''),
+          season: currentSeason,
+          nextTreatmentDate: calculateNextTreatmentDate(zeolite.id)
+        };
+      }
     }
   }
 
@@ -106,52 +153,87 @@ export const calculateHealthStrategy = (
   // Problema principale: Peronospora (funghi) e Cimici/Afidi
   if (plant.family === 'Solanaceae') {
     if (currentSeason === 'Spring' && daysActive > 20) {
-      const zeolite = getProductById('zeolite');
-      const rame = getProductById('rame');
-      return {
-        productToUse: 'Rame (Basso Dosaggio) o Zeolite',
-        productId: 'zeolite', // Preferiamo Zeolite se possibile
-        reason: 'Prevenzione Peronospora tipica delle piogge primaverili. La Zeolite è preferibile al Rame se possibile.',
-        priority: 'Medium',
-        actionType: 'Prevent',
-        dosage: rame?.dosage,
-        applicationNotes: 'Usare Rame solo se necessario e rispettare limiti biologici annuali. Preferire Zeolite.',
-        season: currentSeason,
-        nextTreatmentDate: calculateNextTreatmentDate('zeolite')
-      };
+      // Preferisci Zeolite (bio), poi Rame (bio), poi Azoxystrobin (chimico)
+      const zeolite = availableProducts.find(p => p.id === 'zeolite');
+      const rame = availableProducts.find(p => p.id === 'rame');
+      const azoxystrobin = availableProducts.find(p => p.id === 'azoxystrobin');
+      
+      const product = zeolite || rame || azoxystrobin;
+      if (product) {
+        return {
+          productToUse: product.name + (product.requiresLicense ? ' (Richiede Patentino)' : ''),
+          productId: product.id,
+          reason: 'Prevenzione Peronospora tipica delle piogge primaverili. ' +
+            (product.id === 'zeolite' ? 'La Zeolite è preferibile (biologica).' :
+             product.id === 'rame' ? 'Rame efficace ma rispettare limiti biologici annuali.' :
+             'Fungicida sistemico efficace.'),
+          priority: 'Medium',
+          actionType: 'Prevent',
+          dosage: product.dosage,
+          applicationNotes: product.notes + (product.requiresLicense ? ' ⚠️ Richiede patentino fitosanitario.' : ''),
+          season: currentSeason,
+          nextTreatmentDate: calculateNextTreatmentDate(product.id)
+        };
+      }
     }
     
     if (currentSeason === 'Summer' && daysActive > 40) {
-      const neem = getProductById('neem');
-      const sapone = getProductById('sapone_molle');
-      return {
-        productToUse: 'Olio di Neem + Sapone Molle',
-        productId: 'neem',
-        reason: 'In estate aumenta la pressione di Cimici e Afidi. Il Neem li rende sterili e repellente. Il sapone molle lava la melata.',
-        priority: 'High',
-        actionType: 'Prevent',
-        dosage: `${neem?.dosage} + ${sapone?.dosage}`,
-        applicationNotes: 'Applicare al tramonto. Il sapone molle migliora l\'adesione del Neem.',
-        season: currentSeason,
-        nextTreatmentDate: calculateNextTreatmentDate('neem')
-      };
+      // Preferisci Neem (bio), poi prodotti chimici se disponibili
+      const neem = availableProducts.find(p => p.id === 'neem');
+      const sapone = availableProducts.find(p => p.id === 'sapone_molle');
+      const deltametrina = availableProducts.find(p => p.id === 'deltametrina');
+      
+      if (neem && sapone) {
+        return {
+          productToUse: 'Olio di Neem + Sapone Molle',
+          productId: 'neem',
+          reason: 'In estate aumenta la pressione di Cimici e Afidi. Il Neem li rende sterili e repellente. Il sapone molle lava la melata.',
+          priority: 'High',
+          actionType: 'Prevent',
+          dosage: `${neem.dosage} + ${sapone.dosage}`,
+          applicationNotes: 'Applicare al tramonto. Il sapone molle migliora l\'adesione del Neem.',
+          season: currentSeason,
+          nextTreatmentDate: calculateNextTreatmentDate('neem')
+        };
+      } else if (deltametrina) {
+        return {
+          productToUse: deltametrina.name + ' (Richiede Patentino)',
+          productId: 'deltametrina',
+          reason: 'Insetticida ad ampio spettro efficace contro Cimici e Afidi estivi.',
+          priority: 'High',
+          actionType: 'Prevent',
+          dosage: deltametrina.dosage,
+          applicationNotes: deltametrina.notes + ' ⚠️ Richiede patentino fitosanitario.',
+          season: currentSeason,
+          nextTreatmentDate: calculateNextTreatmentDate('deltametrina')
+        };
+      }
     }
   }
 
   // 4. STRATEGIA PER BRASSICACEE (Cavoli)
   // Problema: Cavolaia (bruchi)
   if (plant.family === 'Brassicaceae' && daysActive > 20) {
-    const bacillus = getProductById('bacillus_thuringiensis');
-    return {
-      productToUse: 'Bacillus Thuringiensis (o controllo manuale)',
-      productId: 'bacillus_thuringiensis',
-      reason: 'Controlla la pagina inferiore delle foglie per uova di Cavolaia (farfalla bianca). Intervenire tempestivamente.',
-      priority: 'Medium',
-      actionType: 'Monitor',
-      dosage: bacillus?.dosage,
-      applicationNotes: 'Controllare settimanalmente la pagina inferiore delle foglie.',
-      season: currentSeason
-    };
+    // Preferisci Bacillus (bio), poi prodotti chimici se disponibili
+    const bacillus = availableProducts.find(p => p.id === 'bacillus_thuringiensis');
+    const deltametrina = availableProducts.find(p => p.id === 'deltametrina');
+    
+    const product = bacillus || deltametrina;
+    if (product) {
+      return {
+        productToUse: product.name + (product.requiresLicense ? ' (Richiede Patentino)' : ''),
+        productId: product.id,
+        reason: product.id === 'bacillus_thuringiensis'
+          ? 'Controlla la pagina inferiore delle foglie per uova di Cavolaia (farfalla bianca). Intervenire tempestivamente.'
+          : 'Insetticida ad ampio spettro efficace contro cavolaia e altri lepidotteri.',
+        priority: 'Medium',
+        actionType: product.id === 'bacillus_thuringiensis' ? 'Monitor' : 'Prevent',
+        dosage: product.dosage,
+        applicationNotes: product.notes + (product.requiresLicense ? ' ⚠️ Richiede patentino fitosanitario.' : ''),
+        season: currentSeason,
+        nextTreatmentDate: product.frequencyDays > 0 ? calculateNextTreatmentDate(product.id) : undefined
+      };
+    }
   }
 
   // 5. Logica basata su suscettibilità specifica
@@ -178,93 +260,131 @@ export const calculateHealthStrategy = (
     if (preventiveStrategy === 'HIGH' && (daysActive > 30 || isCriticalPeriod)) {
       // Priorità a funghi se presenti e in stagione umida
       if (fungalDiseases.length > 0 && (currentSeason === 'Spring' || currentSeason === 'Summer')) {
-        const zeolite = getProductById('zeolite');
-        const priority = isCriticalPeriod && criticalRisk === 'High' ? 'High' : 'Medium';
-        return {
-          productToUse: 'Zeolite Micronizzata',
-          productId: 'zeolite',
-          reason: `Prevenzione ${fungalDiseases.join(', ')}. La Zeolite crea una barriera fisica protettiva.`,
-          priority,
-          actionType: 'Prevent',
-          dosage: zeolite?.dosage,
-          applicationNotes: zeolite?.notes,
-          season: currentSeason,
-          nextTreatmentDate: calculateNextTreatmentDate('zeolite')
-        };
+        const zeolite = availableProducts.find(p => p.id === 'zeolite');
+        const azoxystrobin = availableProducts.find(p => p.id === 'azoxystrobin');
+        const product = zeolite || azoxystrobin;
+        
+        if (product) {
+          const priority = isCriticalPeriod && criticalRisk === 'High' ? 'High' : 'Medium';
+          return {
+            productToUse: product.name + (product.requiresLicense ? ' (Richiede Patentino)' : ''),
+            productId: product.id,
+            reason: `Prevenzione ${fungalDiseases.join(', ')}. ` +
+              (product.id === 'zeolite' 
+                ? 'La Zeolite crea una barriera fisica protettiva.'
+                : 'Fungicida sistemico efficace.'),
+            priority,
+            actionType: 'Prevent',
+            dosage: product.dosage,
+            applicationNotes: product.notes + (product.requiresLicense ? ' ⚠️ Richiede patentino fitosanitario.' : ''),
+            season: currentSeason,
+            nextTreatmentDate: calculateNextTreatmentDate(product.id)
+          };
+        }
       }
       
       // Priorità a parassiti se presenti e in estate
       if (pests.length > 0 && currentSeason === 'Summer' && daysActive > 30) {
-        const neem = getProductById('neem');
-        const priority = isCriticalPeriod && criticalRisk === 'High' ? 'High' : 'Medium';
-        return {
-          productToUse: 'Olio di Neem',
-          productId: 'neem',
-          reason: `Prevenzione ${pests.join(', ')}. Il Neem agisce come repellente e interferisce con il ciclo riproduttivo.`,
-          priority,
-          actionType: 'Prevent',
-          dosage: neem?.dosage,
-          applicationNotes: neem?.notes,
-          season: currentSeason,
-          nextTreatmentDate: calculateNextTreatmentDate('neem')
-        };
+        const neem = availableProducts.find(p => p.id === 'neem');
+        const deltametrina = availableProducts.find(p => p.id === 'deltametrina');
+        const product = neem || deltametrina;
+        
+        if (product) {
+          const priority = isCriticalPeriod && criticalRisk === 'High' ? 'High' : 'Medium';
+          return {
+            productToUse: product.name + (product.requiresLicense ? ' (Richiede Patentino)' : ''),
+            productId: product.id,
+            reason: `Prevenzione ${pests.join(', ')}. ` +
+              (product.id === 'neem'
+                ? 'Il Neem agisce come repellente e interferisce con il ciclo riproduttivo.'
+                : 'Insetticida ad ampio spettro efficace.'),
+            priority,
+            actionType: 'Prevent',
+            dosage: product.dosage,
+            applicationNotes: product.notes + (product.requiresLicense ? ' ⚠️ Richiede patentino fitosanitario.' : ''),
+            season: currentSeason,
+            nextTreatmentDate: calculateNextTreatmentDate(product.id)
+          };
+        }
       }
     }
     
     // Se media suscettibilità, suggerisce solo in periodi critici
     if (preventiveStrategy === 'MEDIUM' && isCriticalPeriod) {
       if (fungalDiseases.length > 0) {
-        const zeolite = getProductById('zeolite');
-        return {
-          productToUse: 'Zeolite Micronizzata',
-          productId: 'zeolite',
-          reason: `Periodo critico per ${fungalDiseases.join(', ')}. Prevenzione consigliata.`,
-          priority: criticalRisk === 'High' ? 'High' : 'Medium',
-          actionType: 'Prevent',
-          dosage: zeolite?.dosage,
-          applicationNotes: zeolite?.notes,
-          season: currentSeason,
-          nextTreatmentDate: calculateNextTreatmentDate('zeolite')
-        };
+        const zeolite = availableProducts.find(p => p.id === 'zeolite');
+        const azoxystrobin = availableProducts.find(p => p.id === 'azoxystrobin');
+        const product = zeolite || azoxystrobin;
+        
+        if (product) {
+          return {
+            productToUse: product.name + (product.requiresLicense ? ' (Richiede Patentino)' : ''),
+            productId: product.id,
+            reason: `Periodo critico per ${fungalDiseases.join(', ')}. Prevenzione consigliata.`,
+            priority: criticalRisk === 'High' ? 'High' : 'Medium',
+            actionType: 'Prevent',
+            dosage: product.dosage,
+            applicationNotes: product.notes + (product.requiresLicense ? ' ⚠️ Richiede patentino fitosanitario.' : ''),
+            season: currentSeason,
+            nextTreatmentDate: calculateNextTreatmentDate(product.id)
+          };
+        }
       }
       
       if (pests.length > 0) {
-        const neem = getProductById('neem');
-        return {
-          productToUse: 'Olio di Neem',
-          productId: 'neem',
-          reason: `Periodo critico per ${pests.join(', ')}. Prevenzione consigliata.`,
-          priority: criticalRisk === 'High' ? 'High' : 'Medium',
-          actionType: 'Prevent',
-          dosage: neem?.dosage,
-          applicationNotes: neem?.notes,
-          season: currentSeason,
-          nextTreatmentDate: calculateNextTreatmentDate('neem')
-        };
+        const neem = availableProducts.find(p => p.id === 'neem');
+        const deltametrina = availableProducts.find(p => p.id === 'deltametrina');
+        const product = neem || deltametrina;
+        
+        if (product) {
+          return {
+            productToUse: product.name + (product.requiresLicense ? ' (Richiede Patentino)' : ''),
+            productId: product.id,
+            reason: `Periodo critico per ${pests.join(', ')}. Prevenzione consigliata.`,
+            priority: criticalRisk === 'High' ? 'High' : 'Medium',
+            actionType: 'Prevent',
+            dosage: product.dosage,
+            applicationNotes: product.notes + (product.requiresLicense ? ' ⚠️ Richiede patentino fitosanitario.' : ''),
+            season: currentSeason,
+            nextTreatmentDate: calculateNextTreatmentDate(product.id)
+          };
+        }
       }
     }
     
     // Se bassa suscettibilità, suggerisce solo se esplicitamente necessario (periodo critico con rischio alto)
     if (preventiveStrategy === 'LOW' && isCriticalPeriod && criticalRisk === 'High') {
       if (fungalDiseases.length > 0 || pests.length > 0) {
-        const propoli = getProductById('propoli');
-        return {
-          productToUse: 'Propoli Agricola',
-          productId: 'propoli',
-          reason: `Rinforzo delle difese naturali durante periodo critico.`,
-          priority: 'Low',
-          actionType: 'Prevent',
-          dosage: propoli?.dosage,
-          applicationNotes: propoli?.notes,
-          season: currentSeason,
-          nextTreatmentDate: calculateNextTreatmentDate('propoli')
-        };
+        const propoli = availableProducts.find(p => p.id === 'propoli');
+        if (propoli) {
+          return {
+            productToUse: 'Propoli Agricola',
+            productId: 'propoli',
+            reason: `Rinforzo delle difese naturali durante periodo critico.`,
+            priority: 'Low',
+            actionType: 'Prevent',
+            dosage: propoli.dosage,
+            applicationNotes: propoli.notes,
+            season: currentSeason,
+            nextTreatmentDate: calculateNextTreatmentDate('propoli')
+          };
+        }
       }
     }
   }
 
   return null;
-};
+}
+
+/**
+ * Helper per ottenere prodotti disponibili filtrati
+ */
+/**
+ * Helper per ottenere prodotti disponibili filtrati
+ */
+export function getAvailableProducts(userProfile?: UserProfile): PlantProtectionProduct[] {
+  return protectionProducts.filter(product => isProductAvailable(product, userProfile));
+}
 
 /**
  * Crea un nuovo task per il prossimo trattamento ricorrente

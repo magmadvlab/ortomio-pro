@@ -1,3 +1,51 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Sfondo elegante con gradiente e pattern decorativo */
+@layer base {
+  body {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 25%, #a7f3d0 50%, #d1fae5 75%, #ecfdf5 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    position: relative;
+  }
+  
+  /* Pattern decorativo elegante e più visibile */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+      radial-gradient(circle at 20% 40%, rgba(16, 185, 129, 0.08) 0%, transparent 45%),
+      radial-gradient(circle at 80% 60%, rgba(34, 197, 94, 0.06) 0%, transparent 45%),
+      radial-gradient(circle at 50% 15%, rgba(22, 163, 74, 0.05) 0%, transparent 40%),
+      radial-gradient(circle at 25% 85%, rgba(5, 150, 105, 0.06) 0%, transparent 40%),
+      radial-gradient(circle at 75% 25%, rgba(16, 185, 129, 0.04) 0%, transparent 35%);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.8;
+  }
+  
+  #root, [data-nextjs-scroll-focus-boundary] {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/* Card eleganti con ombre più sofisticate */
+@layer components {
+  .card-elegant {
+    background-color: white;
+    border-radius: 1rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: 1px solid rgb(229, 231, 235);
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .card-elegant:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+  }
+}

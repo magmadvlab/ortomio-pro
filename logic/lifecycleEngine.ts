@@ -1,3 +1,5 @@
+'use client';
+
 import { GardenTask, PlantMasterSheet, Garden } from '../types';
 import { calculateDaysActive } from '../services/taskCalculationService';
 import { calculateNutrientNeeds, NutrientAdvice } from './nutrientEngine';
@@ -6,7 +8,7 @@ import { checkTransplantConditions } from '../services/weatherService';
 import { calculateMoonPhase, isIdealPhaseFor, getMoonPhaseName } from './lunarCalendar';
 import { isPlantNearHarvestEnd, checkEmptySpaceOpportunity } from './successionEngine';
 import { getAllMasterSheets } from '../services/plantMasterService';
-import { calculateAltitudeDelay, adjustPlantingDates } from '../services/geoClimateService';
+import { calculateAltitudeDelay, adjustPlantingDates } from '../utils/altitudeUtils';
 import { scheduleNextTreatment } from './healthEngine';
 import { determineWasteDisposal, suggestHumusAddition } from './compostEngine';
 
@@ -266,14 +268,45 @@ const generateTransplantingAdvice = async (
     }
   }
 
-  // Correzione per altitudine
+  // Correzione per altitudine (migliorata)
   if (garden.altitudeMeters && garden.altitudeMeters > 200) {
-    const delayDays = calculateAltitudeDelay(garden.altitudeMeters);
-    const adjustedDate = adjustPlantingDates(new Date(), garden.altitudeMeters, 'standard');
+    // Determina tipo pianta per ritardo differenziato
+    const plantNameUpper = masterData.commonName.toUpperCase();
+    let plantType: 'early' | 'standard' | 'late' = 'standard';
+    if (['LATTUGA', 'INSALATA', 'RUCOLA', 'SPINACIO', 'RAVANELLO'].some(name => plantNameUpper.includes(name))) {
+      plantType = 'early';
+    } else if (['POMODORO', 'PEPERONE', 'MELANZANA', 'ZUCCHINA', 'CETRIOLO'].some(name => plantNameUpper.includes(name))) {
+      plantType = 'late';
+    }
+    
+    const delayDays = calculateAltitudePlantingDelay(garden.altitudeMeters, plantType);
+    const adjustedDate = adjustPlantingDates(new Date(), garden.altitudeMeters, plantType);
     
     if (delayDays > 0) {
       warning = `⚠️ Altitudine ${garden.altitudeMeters}m: Ritardo consigliato di ${delayDays} giorni per il trapianto rispetto alla costa. Data ottimale: ${adjustedDate.toLocaleDateString('it-IT')}`;
       subTasks.unshift(`🏔️ Correzione altitudine: Aspetta ${delayDays} giorni in più rispetto alla data standard`);
+    }
+  }
+
+  // Validazione compatibilità terreno
+  const soilCompatibility = getSoilCompatibility(masterData.commonName, garden.soilType);
+  if (!soilCompatibility.compatible) {
+    warning = `${warning || ''} ⚠️ COMPATIBILITÀ TERRENO: ${soilCompatibility.reason || 'Terreno non ottimale per questa pianta'}`.trim();
+    if (soilCompatibility.optimalSoilTypes) {
+      subTasks.push(`💡 Terreni ottimali: ${soilCompatibility.optimalSoilTypes.join(', ')}. Considera miglioramenti o varietà resistenti.`);
+    }
+  } else if (soilCompatibility.optimalSoilTypes && garden.soilType && soilCompatibility.optimalSoilTypes.includes(garden.soilType)) {
+    subTasks.push(`✅ Terreno ${garden.soilType} ideale per ${masterData.commonName}`);
+  }
+
+  // Controllo temperatura suolo (se disponibile)
+  if (masterData.transplanting?.minTemp && garden.coordinates) {
+    try {
+      // Nota: Questo richiede chiamata API meteo, quindi lo lasciamo opzionale
+      // Il Director già gestisce questo controllo con dati meteo reali
+      subTasks.push(`🌡️ Verifica temperatura suolo: minimo ${masterData.transplanting.minTemp}°C richiesto`);
+    } catch (error) {
+      // Ignora errori
     }
   }
 

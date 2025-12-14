@@ -1,7 +1,21 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { isApiKeyConfigured } from "./geminiService";
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+// Support both Next.js and Vite environments
+// In Next.js, use process.env.NEXT_PUBLIC_* for client-side
+// In Vite, use import.meta.env.VITE_* (but this file should work in Next.js)
+const getApiKey = () => {
+  if (typeof window !== 'undefined') {
+    // Client-side: Next.js or Vite
+    return process.env.NEXT_PUBLIC_GEMINI_API_KEY || 
+           (typeof (globalThis as any).__VITE_ENV__ !== 'undefined' ? (globalThis as any).__VITE_ENV__.VITE_GEMINI_API_KEY : undefined);
+  } else {
+    // Server-side: Next.js only
+    return process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  }
+};
+
+const apiKey = getApiKey();
 const ai = apiKey ? new GoogleGenAI({ apiKey: apiKey }) : null;
 
 export interface GeoClimateInfo {
@@ -10,6 +24,7 @@ export interface GeoClimateInfo {
   minTempApril: number; // Temperatura minima notturna fine Aprile
   region?: string; // Regione identificata
   notes?: string; // Note aggiuntive
+  source?: 'gemini' | 'open-elevation' | 'cached'; // Fonte dei dati
 }
 
 // Schema per risposta strutturata
@@ -40,29 +55,131 @@ const geoClimateSchema: Schema = {
   required: ["altitude", "delayFactorDays", "minTempApril"]
 };
 
+// Cache per risultati già calcolati (in memoria, per sessione)
+const geoClimateCache = new Map<string, { data: GeoClimateInfo; timestamp: number }>();
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 ore
+
 /**
- * Inferisce informazioni geoclimatiche da coordinate usando Gemini API
+ * Ottiene altitudine precisa da Open-Elevation API (fallback gratuito)
+ * 
+ * **Scopo**: Funzione helper per ottenere altitudine quando Gemini AI non è disponibile.
+ * 
+ * **API utilizzata**: Open-Elevation (https://api.open-elevation.com) - servizio gratuito
+ * che fornisce dati altimetrici basati su modelli digitali del terreno.
+ * 
+ * **Quando viene usata**:
+ * - Quando Gemini API non è configurata
+ * - Quando la chiamata a Gemini fallisce
+ * - Come fallback per ottenere almeno l'altitudine precisa
+ * 
+ * **Limitazioni**:
+ * - Fornisce solo altitudine, non altre informazioni geoclimatiche
+ * - Richiede connessione internet
+ * 
+ * @param lat - Latitudine
+ * @param lng - Longitudine
+ * @returns Promise<number | null> - Altitudine in metri o null se errore
+ */
+const getAltitudeFromOpenElevation = async (lat: number, lng: number): Promise<number | null> => {
+  try {
+    const response = await fetch(
+      `https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lng}`
+    );
+    const data = await response.json();
+    if (data.results && data.results.length > 0) {
+      return data.results[0].elevation;
+    }
+  } catch (error) {
+    console.error('Error fetching altitude from Open-Elevation:', error);
+  }
+  return null;
+};
+
+/**
+ * Inferisce informazioni geoclimatiche (altitudine, ritardo semina, temperatura) da coordinate geografiche
+ * 
+ * **Scopo**: Calcola automaticamente informazioni geoclimatiche importanti per la pianificazione dell'orto
+ * basandosi sulla posizione geografica (latitudine, longitudine).
+ * 
+ * **Informazioni calcolate**:
+ * - **Altitudine**: Metri sul livello del mare (range 0-5000m per Italia)
+ * - **Ritardo semina**: Giorni di ritardo per semina pomodoro rispetto alla costa
+ *   - 0 giorni per costa
+ *   - 20-30 giorni per 500m di altitudine
+ *   - 50-70 giorni per 1500m di altitudine
+ * - **Temperatura minima Aprile**: Temperatura minima notturna prevista fine Aprile
+ * - **Regione**: Zona geografica identificata (es. 'Pianura Padana', 'Appennino Centrale')
+ * 
+ * **Metodo**:
+ * 1. **Prima scelta**: Usa Gemini AI per inferenza intelligente basata su conoscenza geografica
+ * 2. **Fallback**: Se Gemini non disponibile, usa Open-Elevation API (gratuita) per altitudine
+ * 3. **Cache**: Risultati cachati per 24 ore per coordinate (evita chiamate API ripetute)
+ * 
+ * **Validazione**:
+ * - Range altitudine: 0-5000m per Italia (corregge automaticamente valori fuori range)
+ * - Coordinate: Verifica che siano in Italia (lat 35-47, lng 6-19)
+ * 
+ * **Fallback Open-Elevation**:
+ * - Se Gemini non disponibile o fallisce, usa API Open-Elevation per ottenere altitudine precisa
+ * - Calcola ritardo semina basandosi sull'altitudine ottenuta
+ * - Usa valori default per temperatura e regione
+ * 
+ * **Cache**:
+ * - Risultati salvati in memoria per 24 ore
+ * - Chiave cache: `lat_lng` (formato: `41.9028_12.4964`)
+ * - Evita chiamate API ripetute per stessa posizione
+ * 
+ * @param lat - Latitudine (deve essere in Italia: 35-47)
+ * @param lng - Longitudine (deve essere in Italia: 6-19)
+ * @param useCache - Se true, usa cache se disponibile (default: true)
+ * @returns Promise<GeoClimateInfo | null> - Informazioni geoclimatiche o null se errore
  */
 export const inferGeoClimate = async (
   lat: number,
-  lng: number
+  lng: number,
+  useCache: boolean = true
 ): Promise<GeoClimateInfo | null> => {
-  if (!checkApiAvailable()) {
-    console.warn("Gemini API non disponibile per inferenza geoclimatica");
-    return null;
+  // Validazione coordinate (Italia)
+  if (lat < 35 || lat > 47 || lng < 6 || lng > 19) {
+    console.warn("Coordinate fuori dall'Italia, usando valori default");
+    return {
+      altitude: 200,
+      delayFactorDays: 10,
+      minTempApril: 8,
+      region: 'Italia',
+      source: 'cached'
+    };
   }
 
-  try {
-    const prompt = `Coordinate geografiche: Latitudine ${lat.toFixed(4)}, Longitudine ${lng.toFixed(4)} (Italia).
+  // Validazione range altitudine (0-5000m per Italia)
+  const validateAltitude = (alt: number): number => {
+    if (alt < 0) return 0;
+    if (alt > 5000) return 5000;
+    return alt;
+  };
+
+  // Controlla cache
+  const cacheKey = `${lat.toFixed(4)}_${lng.toFixed(4)}`;
+  if (useCache) {
+    const cached = geoClimateCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return { ...cached.data, source: 'cached' };
+    }
+  }
+
+  // Prova prima con Gemini API
+  if (checkApiAvailable()) {
+    try {
+      const prompt = `Coordinate geografiche: Latitudine ${lat.toFixed(4)}, Longitudine ${lng.toFixed(4)} (Italia).
 
 Fornisci informazioni geoclimatiche accurate per questa zona:
-1. Altitudine media della zona in metri sul livello del mare
+1. Altitudine media della zona in metri sul livello del mare (range 0-5000m per Italia)
 2. Ritardo in giorni per semina pomodoro rispetto alla costa (0 per costa, ~20-30 per 500m, ~50-70 per 1500m)
 3. Temperatura minima notturna prevista fine Aprile in gradi Celsius
-4. Regione o zona geografica identificata
+4. Regione o zona geografica identificata (es. 'Pianura Padana', 'Appennino Centrale', 'Alpi', 'Sicilia')
 5. Note aggiuntive sul clima locale (se rilevanti)
 
-Rispondi in formato JSON strutturato.`;
+IMPORTANTE: L'altitudine deve essere precisa e basata su dati topografici reali.`;
 
     const model = ai!.generativeModel({
       model: "gemini-2.0-flash-exp",
@@ -88,12 +205,63 @@ Rispondi in formato JSON strutturato.`;
         typeof parsed.delayFactorDays !== 'number' || 
         typeof parsed.minTempApril !== 'number') {
       console.error("Risposta Gemini non valida:", parsed);
+      // Fallback a Open-Elevation per altitudine
+      const elevation = await getAltitudeFromOpenElevation(lat, lng);
+      if (elevation !== null) {
+        const validatedAlt = validateAltitude(elevation);
+        const { calculateAltitudeDelay } = await import('../utils/altitudeUtils');
+        const delayDays = calculateAltitudeDelay(validatedAlt);
+        const result: GeoClimateInfo = {
+          altitude: validatedAlt,
+          delayFactorDays: delayDays,
+          minTempApril: 8, // Default
+          region: 'Italia',
+          source: 'open-elevation'
+        };
+        // Salva in cache
+        if (useCache) {
+          geoClimateCache.set(cacheKey, { data: result, timestamp: Date.now() });
+        }
+        return result;
+      }
       return null;
     }
 
+    // Valida e corregge altitudine
+    parsed.altitude = validateAltitude(parsed.altitude);
+    parsed.source = 'gemini';
+    
+    // Salva in cache
+    if (useCache) {
+      geoClimateCache.set(cacheKey, { data: parsed, timestamp: Date.now() });
+    }
+    
     return parsed;
   } catch (error) {
-    console.error("Errore nell'inferenza geoclimatica:", error);
+    console.error("Errore nell'inferenza geoclimatica con Gemini:", error);
+    // Fallback a Open-Elevation per altitudine
+    try {
+      const elevation = await getAltitudeFromOpenElevation(lat, lng);
+      if (elevation !== null) {
+        const validatedAlt = validateAltitude(elevation);
+        const { calculateAltitudeDelay } = await import('../utils/altitudeUtils');
+        const delayDays = calculateAltitudeDelay(validatedAlt);
+        const result: GeoClimateInfo = {
+          altitude: validatedAlt,
+          delayFactorDays: delayDays,
+          minTempApril: 8, // Default
+          region: 'Italia',
+          source: 'open-elevation'
+        };
+        // Salva in cache
+        if (useCache) {
+          geoClimateCache.set(cacheKey, { data: result, timestamp: Date.now() });
+        }
+        return result;
+      }
+    } catch (elevError) {
+      console.error("Errore anche con Open-Elevation:", elevError);
+    }
     return null;
   }
 };
@@ -108,80 +276,25 @@ const checkApiAvailable = (): boolean => {
   return ai !== null;
 };
 
-/**
- * Calcola ritardo giorni in base all'altitudine
- * Regola: ~4-7 giorni ogni 100m di altitudine
- */
-export const calculateAltitudeDelay = (altitudeMeters: number): number => {
-  if (altitudeMeters <= 0) return 0;
-  
-  // Regola empirica: 5 giorni ogni 100m (media tra 4-7)
-  const delayDays = Math.round((altitudeMeters / 100) * 5);
-  
-  return delayDays;
-};
-
-/**
- * Corregge date semina/trapianto in base ad altitudine
- */
-export const adjustPlantingDates = (
-  baseDate: Date,
-  altitudeMeters: number,
-  plantType: 'early' | 'standard' | 'late' = 'standard'
-): Date => {
-  const delayDays = calculateAltitudeDelay(altitudeMeters);
-  
-  // Aggiungi ritardo base
-  const adjustedDate = new Date(baseDate);
-  adjustedDate.setDate(adjustedDate.getDate() + delayDays);
-  
-  // Modificatori per tipo di pianta
-  // Piante precoci (lattuga, ravanelli) hanno ritardo minore
-  // Piante tardive (pomodori, peperoni) hanno ritardo maggiore
-  let plantModifier = 0;
-  if (plantType === 'early') {
-    plantModifier = Math.round(delayDays * 0.5); // Ritardo ridotto del 50%
-  } else if (plantType === 'late') {
-    plantModifier = Math.round(delayDays * 0.2); // Ritardo aumentato del 20%
-  }
-  
-  adjustedDate.setDate(adjustedDate.getDate() + plantModifier);
-  
-  return adjustedDate;
-};
+// Funzioni calculateAltitudeDelay e adjustPlantingDates sono state spostate in utils/altitudeUtils.ts
+// per permettere l'uso sia lato client che server senza conflitti di moduli
 
 /**
  * Ottiene informazioni geoclimatiche cached o le inferisce
  * Cache per 24h per coordinate
  */
-const geoClimateCache = new Map<string, { data: GeoClimateInfo; timestamp: number }>();
-const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 ore
-
 export const getGeoClimateInfo = async (
   lat: number,
   lng: number,
   useCache: boolean = true
 ): Promise<GeoClimateInfo | null> => {
-  const cacheKey = `${lat.toFixed(2)}_${lng.toFixed(2)}`;
-  
-  // Check cache
-  if (useCache) {
-    const cached = geoClimateCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION_MS) {
-      return cached.data;
-    }
-  }
-  
-  // Inferisci da API
-  const info = await inferGeoClimate(lat, lng);
-  
-  if (info && useCache) {
-    geoClimateCache.set(cacheKey, {
-      data: info,
-      timestamp: Date.now()
-    });
-  }
-  
-  return info;
+  return await inferGeoClimate(lat, lng, useCache);
+};
+
+// Export default per compatibilità con import dinamici
+export default {
+  getGeoClimateInfo,
+  inferGeoClimate,
+  GeoClimateInfo
 };
 

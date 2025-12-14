@@ -7,6 +7,11 @@ import { Garden } from '../types';
 import { Season, getSeasonForDate } from '../utils/seasonalAdjustment';
 import { BedRotation, optimizeBedRotation } from './rotationOptimizer';
 import { getAllMasterSheets } from '../services/plantMasterService';
+import { GardenClassification } from '../services/seasonalSunWindows';
+import { validatePlantCompatibility } from './solarClassificationHelper';
+import { getSoilCompatibility } from '../utils/soilTemperatureUtils';
+import { adjustPlantingDates, calculateAltitudePlantingDelay } from '../utils/altitudeUtils';
+import { adjustDateForSoilType } from '../utils/soilTemperatureUtils';
 
 export interface PlannedPlanting {
   plantName: string;
@@ -63,7 +68,8 @@ export const generateAnnualPlan = (
   preferences?: {
     preferredPlants?: string[];
     targetYield?: number;
-  }
+  },
+  solarClassification?: GardenClassification
 ): AnnualPlan => {
   const currentYear = new Date().getFullYear();
   const latitude = garden.coordinates?.latitude || 0;
@@ -75,15 +81,41 @@ export const generateAnnualPlan = (
   const q4Season = getSeasonForDate(new Date(currentYear, 9, 15), latitude); // Ottobre
 
   const masterSheets = getAllMasterSheets();
-  const availablePlants = preferences?.preferredPlants || 
+  let availablePlants = preferences?.preferredPlants || 
     masterSheets.filter(p => p.season === 'Summer' || p.season === 'Winter').map(p => p.commonName);
+
+  // Filtra piante in base alla classificazione solare se disponibile
+  if (solarClassification) {
+    // Ottieni finestre stagionali (mock per ora, dovrebbero essere passate)
+    const mockWindows = [
+      { period: 'Feb-Mar' as const, avgHours: 4 },
+      { period: 'Apr-Mag' as const, avgHours: 5 },
+      { period: 'Giu-Lug' as const, avgHours: 6 },
+      { period: 'Ago-Set' as const, avgHours: 5 },
+    ];
+    
+    availablePlants = availablePlants.filter(plantName => {
+      const solarCompatibility = validatePlantCompatibility(
+        plantName,
+        solarClassification,
+        mockWindows
+      );
+      return solarCompatibility.compatible;
+    });
+  }
+
+  // Filtra per compatibilità terreno
+  availablePlants = availablePlants.filter(plantName => {
+    const soilCompatibility = getSoilCompatibility(plantName, garden.soilType);
+    return soilCompatibility.compatible;
+  });
 
   // Genera quarters
   const quarters = {
-    Q1: generateQuarterPlan(1, 3, q1Season, availablePlants, garden),
-    Q2: generateQuarterPlan(4, 6, q2Season, availablePlants, garden),
-    Q3: generateQuarterPlan(7, 9, q3Season, availablePlants, garden),
-    Q4: generateQuarterPlan(10, 12, q4Season, availablePlants, garden)
+    Q1: generateQuarterPlan(1, 3, q1Season, availablePlants, garden, solarClassification),
+    Q2: generateQuarterPlan(4, 6, q2Season, availablePlants, garden, solarClassification),
+    Q3: generateQuarterPlan(7, 9, q3Season, availablePlants, garden, solarClassification),
+    Q4: generateQuarterPlan(10, 12, q4Season, availablePlants, garden, solarClassification)
   };
 
   // Genera rotazioni per ogni aiuola
@@ -110,7 +142,8 @@ const generateQuarterPlan = (
   endMonth: number,
   season: Season,
   availablePlants: string[],
-  garden: Garden
+  garden: Garden,
+  solarClassification?: GardenClassification
 ): QuarterPlan => {
   const plantings: PlannedPlanting[] = [];
   const harvests: PlannedHarvest[] = [];

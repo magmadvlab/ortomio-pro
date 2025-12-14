@@ -1,4 +1,11 @@
 import { Garden } from '../types';
+import {
+  calculateDailySunHours,
+  calculateOptimalPeriod,
+  getExposureType,
+  getCropRecommendation,
+  Obstacle3D,
+} from './preciseSunCalculator';
 
 export interface SunExposureData {
   estimatedHours: number; // Ore di sole stimate
@@ -8,14 +15,32 @@ export interface SunExposureData {
 
 /**
  * Calcola l'esposizione solare stimata basata su latitudine, stagione e orientamento
+ * Supporta anche calcolo preciso con ostacoli 3D e data specifica
  */
 export const calculateSunExposure = (
   lat: number,
   lng: number,
-  orientation?: Garden['orientation']
+  orientation?: Garden['orientation'],
+  obstacles?: Obstacle3D[],
+  date?: Date
 ): SunExposureData => {
-  const today = new Date();
-  const month = today.getMonth() + 1;
+  const targetDate = date || new Date();
+  
+  // Se ci sono ostacoli definiti, usa calcolo preciso
+  if (obstacles && obstacles.length > 0) {
+    const dailyHours = calculateDailySunHours(lat, lng, targetDate, obstacles);
+    const exposure = getExposureType(dailyHours);
+    const recommendation = getCropRecommendation(exposure);
+    
+    return {
+      estimatedHours: dailyHours,
+      exposure,
+      recommendation,
+    };
+  }
+  
+  // Altrimenti usa calcolo base basato su stagione (backward compatibility)
+  const month = targetDate.getMonth() + 1;
   const season = month >= 3 && month <= 5 ? 'Spring' : 
                  month >= 6 && month <= 8 ? 'Summer' :
                  month >= 9 && month <= 11 ? 'Autumn' : 'Winter';
@@ -51,22 +76,8 @@ export const calculateSunExposure = (
   baseHours = Math.max(0, Math.min(12, baseHours));
   
   // Determina tipo di esposizione
-  let exposure: 'FullSun' | 'PartialSun' | 'PartialShade' | 'FullShade';
-  let recommendation: string;
-  
-  if (baseHours >= 8) {
-    exposure = 'FullSun';
-    recommendation = 'Esposizione ottimale! Ideale per pomodori, peperoni, zucchine e piante che amano il sole diretto.';
-  } else if (baseHours >= 5) {
-    exposure = 'PartialSun';
-    recommendation = 'Buona esposizione. Adatta a molte verdure. Alcune piante potrebbero beneficiare di ombreggiamento nelle ore più calde.';
-  } else if (baseHours >= 3) {
-    exposure = 'PartialShade';
-    recommendation = 'Esposizione parziale. Ideale per lattughe, spinaci, rucola e piante che preferiscono ombra parziale.';
-  } else {
-    exposure = 'FullShade';
-    recommendation = 'Poca esposizione diretta. Considera piante da ombra o valuta di spostare l\'orto in una zona più soleggiata.';
-  }
+  const exposure = getExposureType(baseHours);
+  const recommendation = getCropRecommendation(exposure);
   
   return {
     estimatedHours: Math.round(baseHours * 10) / 10, // Arrotonda a 1 decimale
@@ -77,26 +88,52 @@ export const calculateSunExposure = (
 
 /**
  * Ottiene l'esposizione solare per un giardino
+ * Supporta calcolo preciso con ostacoli se disponibili
  */
-export const getGardenSunExposure = (garden: Garden): SunExposureData | null => {
+export const getGardenSunExposure = (
+  garden: Garden,
+  date?: Date
+): SunExposureData | null => {
   if (!garden.coordinates) {
     return null;
   }
   
-  // Se già calcolata manualmente, usa quella
-  if (garden.sunExposure && garden.sunHours) {
+  // Se già calcolata manualmente E non ci sono ostacoli, usa quella
+  // (con ostacoli, ricalcoliamo sempre per precisione)
+  if (garden.sunExposure && garden.dailySunHours && (!garden.obstacles || garden.obstacles.length === 0)) {
     return {
-      estimatedHours: garden.sunHours,
+      estimatedHours: garden.dailySunHours,
       exposure: garden.sunExposure,
       recommendation: getRecommendationForExposure(garden.sunExposure)
     };
   }
   
-  // Altrimenti calcola
+  // Calcola con ostacoli se disponibili, altrimenti usa calcolo base
   return calculateSunExposure(
     garden.coordinates.latitude,
     garden.coordinates.longitude,
-    garden.orientation
+    garden.aspectDirection,
+    garden.obstacles,
+    date
+  );
+};
+
+/**
+ * Calcola periodo ottimale per un giardino
+ */
+export const getGardenOptimalPeriod = (
+  garden: Garden,
+  minSunHours: number = 6
+): ReturnType<typeof calculateOptimalPeriod> | null => {
+  if (!garden.coordinates) {
+    return null;
+  }
+  
+  return calculateOptimalPeriod(
+    garden.coordinates.latitude,
+    garden.coordinates.longitude,
+    garden.obstacles || [],
+    minSunHours
   );
 };
 

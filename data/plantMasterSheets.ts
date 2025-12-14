@@ -114,6 +114,14 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       protectionInstructions: 'Proteggi dal sole diretto per 2-3 giorni con un telo ombreggiante'
     },
     
+    supportRequirements: {
+      needsSupport: true,
+      supportType: 'Stake',
+      supportHeight: 150,
+      supportTiming: 'AtTransplant',
+      notes: 'Installa tutore durante trapianto. Lega delicatamente man mano che cresce. Varietà indeterminate crescono continuamente.'
+    },
+    
     availableTags: ['indeterminate', 'determinate'],
     
     baseInstructions: {
@@ -152,6 +160,8 @@ export const plantMasterSheets: PlantMasterSheet[] = [
         }
       ]
     },
+    
+    visualCategory: 'Orto',
     
     susceptibility: {
       fungalDiseases: ['Peronospora', 'Alternaria', 'Oidio'],
@@ -219,6 +229,14 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       buryStem: false,
       protectionNeeded: true,
       protectionInstructions: 'Proteggi dal vento forte e dal sole diretto per i primi giorni'
+    },
+    
+    supportRequirements: {
+      needsSupport: true,
+      supportType: 'Stake',
+      supportHeight: 80,
+      supportTiming: 'AsNeeded',
+      notes: 'Paletto opzionale ma consigliato per varietà alte o zone ventose.'
     },
     
     availableTags: ['chinense', 'annuum'],
@@ -316,6 +334,19 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       buryStem: false,
       protectionNeeded: false,
       protectionInstructions: undefined
+    },
+    
+    supportRequirements: {
+      needsSupport: false,
+      additionalAccessories: [
+        {
+          type: 'Net',
+          purpose: 'WindProtection',
+          required: false,
+          timing: 'Durante crescita se zona ventosa'
+        }
+      ],
+      notes: 'Non necessita supporto ma può beneficiare di protezione vento in zone esposte.'
     },
     
     availableTags: ['bush'],
@@ -595,6 +626,8 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       harvestGuide: 'Raccogli le foglie tagliandole con le dita o con forbici, iniziando dalle foglie più grandi. Taglia sempre sopra una coppia di foglie per stimolare la crescita laterale. Raccogli regolarmente per evitare che la pianta fiorisca. Usa subito o conserva in frigorifero avvolto in un panno umido.'
     },
     
+    visualCategory: 'Aromatiche',
+    
     susceptibility: {
       fungalDiseases: [],
       pests: ['Afidi'],
@@ -649,6 +682,15 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       buryStem: false,
       protectionNeeded: false,
       protectionInstructions: undefined
+    },
+    
+    supportRequirements: {
+      needsSupport: true,
+      supportType: 'Trellis',
+      climbingType: 'Twining',
+      supportHeight: 250,
+      supportTiming: 'AtTransplant',
+      notes: 'I fagioli rampicanti (fagiolini a metro) si arrampicano con viticci. Spalliera robusta alta 2-3 metri necessaria. I fagioli nani non necessitano supporto.'
     },
     
     availableTags: ['bush', 'vining'],
@@ -745,6 +787,15 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       buryStem: false,
       protectionNeeded: false,
       protectionInstructions: undefined
+    },
+    
+    supportRequirements: {
+      needsSupport: true,
+      supportType: 'Net',
+      climbingType: 'Tendril',
+      supportHeight: 180,
+      supportTiming: 'AtTransplant',
+      notes: 'Rete o spalliera per piselli rampicanti. Supporto leggero sufficiente. I piselli nani non necessitano supporto.'
     },
     
     availableTags: ['bush', 'vining'],
@@ -1298,4 +1349,26 @@ export const plantMasterSheets: PlantMasterSheet[] = [
     }
   }
 ];
+
+/**
+ * Ottiene tutte le schede master delle piante
+ */
+export function getAllMasterSheets(): PlantMasterSheet[] {
+  return plantMasterSheets;
+}
+
+/**
+ * Ottiene una scheda master per ID
+ */
+export function getMasterSheetById(id: string): PlantMasterSheet | undefined {
+  return plantMasterSheets.find(p => p.id === id);
+}
+
+/**
+ * Ottiene una scheda master per nome comune (case insensitive)
+ */
+export function getMasterSheetByName(name: string): PlantMasterSheet | undefined {
+  const upperName = name.toUpperCase();
+  return plantMasterSheets.find(p => p.commonName.toUpperCase() === upperName);
+}
 

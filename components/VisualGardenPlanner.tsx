@@ -1,5 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GardenTask, Garden, PlantMasterSheet } from '../types';
+import { GardenAccessory } from '../types/accessories';
+import { GardenBed } from '../types/gardenBed';
+import { useStorage } from '../packages/core/hooks/useStorage';
 import { 
   calculateFootprint, 
   checkAllCollisions, 
@@ -11,10 +14,14 @@ import { suggestPlantPlacement, isAreaSuitableForPlant } from '../logic/spatialP
 import { calculateSunIncidence, SunIncidenceCell } from '../logic/sunIncidenceCalculator';
 import { 
   ZoomIn, ZoomOut, Grid, RotateCcw, Save, X, AlertTriangle, 
-  CheckCircle, Move, MapPin, Sun
+  CheckCircle, Move, MapPin, Sun, Package, Droplets, Home
 } from 'lucide-react';
 import { useTier } from '../packages/core/hooks/useTier';
 import UpgradePrompt from './UpgradePrompt';
+import GardenPointScoreCard from './sunExposure/GardenPointScoreCard';
+import { calculateGardenPointScores, GardenPoint } from '../services/gardenPointScorer';
+import { calculateSeasonalWindows } from '../services/seasonalSunWindows';
+import { getAllHistoricalWeather } from '../services/historicalWeatherService';
 
 interface VisualGardenPlannerProps {
   garden: Garden;
@@ -30,13 +37,45 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
   onClose
 }) => {
   const { can } = useTier();
+  const { storageProvider } = useStorage();
   const [zoom, setZoom] = useState(1);
   const [showGrid, setShowGrid] = useState(true);
   const [showSunHeatmap, setShowSunHeatmap] = useState(false);
+  const [showStructures, setShowStructures] = useState(true);
+  const [showAccessories, setShowAccessories] = useState(true);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [placementAdvice, setPlacementAdvice] = useState<string | null>(null);
+  const [accessories, setAccessories] = useState<GardenAccessory[]>([]);
+  const [beds, setBeds] = useState<GardenBed[]>([]);
+  const [showBeds, setShowBeds] = useState(true);
   const svgRef = useRef<SVGSVGElement>(null);
+
+  // Load accessories
+  useEffect(() => {
+    const loadAccessories = async () => {
+      try {
+        const allAccessories = await storageProvider.getAccessories(garden.id);
+        setAccessories(allAccessories);
+      } catch (error) {
+        console.error('Error loading accessories:', error);
+      }
+    };
+    loadAccessories();
+  }, [garden.id, storageProvider]);
+
+  // Load garden beds
+  useEffect(() => {
+    const loadBeds = async () => {
+      try {
+        const gardenBeds = await storageProvider.getGardenBeds(garden.id);
+        setBeds(gardenBeds);
+      } catch (error) {
+        console.error('Error loading beds:', error);
+      }
+    };
+    loadBeds();
+  }, [garden.id, storageProvider]);
 
   // Protezione Pro: Visual Planner è feature Pro
   if (!can('visualGardenPlanner')) {
@@ -53,8 +92,27 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
   
   // Calcola incidenza solare per griglia
   const sunIncidenceCells = React.useMemo(() => {
-    if (!garden.dailySunHours) return [];
-    return calculateSunIncidence(garden, 20); // 20x20 grid per precisione
+    if (!garden.dailySunHours && (!garden.coordinates || !garden.obstacles || garden.obstacles.length === 0)) {
+      return [];
+    }
+    
+    // Se ci sono ostacoli configurati, usa calcolo preciso per ogni cella
+    if (garden.coordinates && garden.obstacles && garden.obstacles.length > 0) {
+      // Converti ostacoli Garden a formato Obstacle per sunIncidenceCalculator
+      const obstaclesForCalc = garden.obstacles.map(obs => ({
+        x: 50 + (obs.azimuth - 180) / 360 * 100, // Approssimazione posizione nella griglia
+        y: 50,
+        width: obs.widthDegrees / 360 * 100,
+        height: (obs.height / obs.distance) * 100, // Normalizza altezza
+        type: obs.type || 'Other' as any,
+        shadowLength: Math.min(100, (obs.height / obs.distance) * 200), // Stima lunghezza ombra
+      }));
+      
+      return calculateSunIncidence(garden, 20, obstaclesForCalc);
+    }
+    
+    // Altrimenti usa calcolo base
+    return calculateSunIncidence(garden, 20);
   }, [garden]);
   
   // Converti dimensioni orto da m² a cm (assumendo forma quadrata)
@@ -241,6 +299,36 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
                 <Sun size={18} />
               </button>
             )}
+            {/* NEW: Toggle for Structures */}
+            {can('advancedSystems') && (garden.greenhouseConfig || garden.hydroponicConfig || garden.aquaponicConfig || garden.aeroponicConfig) && (
+              <button
+                onClick={() => setShowStructures(!showStructures)}
+                className={`p-2 rounded-lg ${showStructures ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}
+                title="Mostra/Nascondi Strutture (Serre, Idroponica, etc.)"
+              >
+                <Home size={18} />
+              </button>
+            )}
+            {/* NEW: Toggle for Accessories */}
+            {can('advancedSystems') && accessories.length > 0 && (
+              <button
+                onClick={() => setShowAccessories(!showAccessories)}
+                className={`p-2 rounded-lg ${showAccessories ? 'bg-purple-100 text-purple-700' : 'bg-gray-100'}`}
+                title="Mostra/Nascondi Accessori"
+              >
+                <Package size={18} />
+              </button>
+            )}
+            {/* Toggle for Garden Beds */}
+            {beds.length > 0 && (
+              <button
+                onClick={() => setShowBeds(!showBeds)}
+                className={`p-2 rounded-lg ${showBeds ? 'bg-green-100 text-green-700' : 'bg-gray-100'}`}
+                title="Mostra/Nascondi Letti/Cassoni/Vasi"
+              >
+                <Grid size={18} />
+              </button>
+            )}
             {onClose && (
               <button
                 onClick={onClose}
@@ -292,6 +380,412 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
               </defs>
             )}
             {showGrid && <rect width="100%" height="100%" fill="url(#grid)" />}
+            
+            {/* Greenhouse/Tunnel Structures */}
+            {showStructures && (garden.gardenType === 'Greenhouse' || garden.gardenType === 'Tunnel') && garden.greenhouseConfig && (
+              <g>
+                {/* Draw greenhouse as a rectangle covering the garden */}
+                <rect
+                  x={gardenSizeCm * 0.1}
+                  y={gardenSizeCm * 0.1}
+                  width={gardenSizeCm * 0.8}
+                  height={gardenSizeCm * 0.8}
+                  fill="rgba(59, 130, 246, 0.1)"
+                  stroke="#3b82f6"
+                  strokeWidth="3"
+                  strokeDasharray="10,5"
+                  rx="10"
+                />
+                <text
+                  x={gardenSizeCm * 0.5}
+                  y={gardenSizeCm * 0.15}
+                  textAnchor="middle"
+                  fontSize="14"
+                  fill="#3b82f6"
+                  fontWeight="bold"
+                >
+                  {garden.gardenType === 'Greenhouse' ? '🏠 Serra' : '🌉 Tunnel'}
+                </text>
+                {garden.greenhouseConfig.widthMeters && garden.greenhouseConfig.lengthMeters && (
+                  <text
+                    x={gardenSizeCm * 0.5}
+                    y={gardenSizeCm * 0.2}
+                    textAnchor="middle"
+                    fontSize="10"
+                    fill="#3b82f6"
+                  >
+                    {garden.greenhouseConfig.widthMeters}m × {garden.greenhouseConfig.lengthMeters}m
+                  </text>
+                )}
+              </g>
+            )}
+
+            {/* Hydroponic Systems */}
+            {showStructures && garden.hydroponicConfig && (
+              <g>
+                {garden.hydroponicConfig.systemType === 'NFT' && garden.hydroponicConfig.nftConfig && (
+                  <>
+                    {/* Draw NFT channels */}
+                    {Array.from({ length: garden.hydroponicConfig.nftConfig.channelCount || 1 }).map((_, i) => {
+                      const channelWidth = 20; // cm
+                      const channelLength = (garden.hydroponicConfig.nftConfig?.channelLength || 100) / 100 * gardenSizeCm;
+                      const spacing = 50; // cm between channels
+                      const startX = gardenSizeCm * 0.1;
+                      const startY = gardenSizeCm * 0.3 + (i * spacing);
+                      
+                      return (
+                        <g key={`nft-channel-${i}`}>
+                          <rect
+                            x={startX}
+                            y={startY}
+                            width={channelLength}
+                            height={channelWidth}
+                            fill="rgba(139, 92, 246, 0.2)"
+                            stroke="#8b5cf6"
+                            strokeWidth="2"
+                            rx="5"
+                          />
+                          <text
+                            x={startX + channelLength / 2}
+                            y={startY + channelWidth / 2}
+                            textAnchor="middle"
+                            fontSize="10"
+                            fill="#8b5cf6"
+                            fontWeight="bold"
+                          >
+                            NFT {i + 1}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </>
+                )}
+                {garden.hydroponicConfig.systemType === 'DWC' && garden.hydroponicConfig.dwcConfig && (
+                  <>
+                    {/* Draw DWC buckets */}
+                    {Array.from({ length: Math.min(garden.hydroponicConfig.dwcConfig.bucketCount || 1, 10) }).map((_, i) => {
+                      const bucketSize = 30; // cm
+                      const cols = 5;
+                      const row = Math.floor(i / cols);
+                      const col = i % cols;
+                      const spacing = 50;
+                      const startX = gardenSizeCm * 0.1 + (col * spacing);
+                      const startY = gardenSizeCm * 0.3 + (row * spacing);
+                      
+                      return (
+                        <g key={`dwc-bucket-${i}`}>
+                          <circle
+                            cx={startX + bucketSize / 2}
+                            cy={startY + bucketSize / 2}
+                            r={bucketSize / 2}
+                            fill="rgba(139, 92, 246, 0.2)"
+                            stroke="#8b5cf6"
+                            strokeWidth="2"
+                          />
+                          <text
+                            x={startX + bucketSize / 2}
+                            y={startY + bucketSize / 2}
+                            textAnchor="middle"
+                            fontSize="8"
+                            fill="#8b5cf6"
+                            fontWeight="bold"
+                          >
+                            DWC {i + 1}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </>
+                )}
+                {/* Reservoir */}
+                {garden.hydroponicConfig.nutrientSolution.reservoirCapacity > 0 && (
+                  <g>
+                    <rect
+                      x={gardenSizeCm * 0.8}
+                      y={gardenSizeCm * 0.8}
+                      width={gardenSizeCm * 0.15}
+                      height={gardenSizeCm * 0.15}
+                      fill="rgba(59, 130, 246, 0.3)"
+                      stroke="#3b82f6"
+                      strokeWidth="2"
+                      rx="5"
+                    />
+                    <text
+                      x={gardenSizeCm * 0.875}
+                      y={gardenSizeCm * 0.85}
+                      textAnchor="middle"
+                      fontSize="10"
+                      fill="#3b82f6"
+                      fontWeight="bold"
+                    >
+                      Serbatoio
+                    </text>
+                    <text
+                      x={gardenSizeCm * 0.875}
+                      y={gardenSizeCm * 0.9}
+                      textAnchor="middle"
+                      fontSize="8"
+                      fill="#3b82f6"
+                    >
+                      {garden.hydroponicConfig.nutrientSolution.reservoirCapacity}L
+                    </text>
+                  </g>
+                )}
+              </g>
+            )}
+
+            {/* Garden Beds */}
+            {showBeds && beds.length > 0 && (
+              <g>
+                {beds.map(bed => {
+                  // Check if bed is associated with a structure
+                  const isInStructure = bed.structureType && (
+                    (bed.structureType === 'Greenhouse' && garden.gardenType === 'Greenhouse') ||
+                    (bed.structureType === 'Hydroponic' && garden.hydroponicConfig) ||
+                    (bed.structureType === 'Aquaponic' && garden.aquaponicConfig) ||
+                    (bed.structureType === 'Aeroponic' && garden.aeroponicConfig) ||
+                    (bed.structureType === 'Indoor' && garden.indoorConfig)
+                  );
+
+                  // Calculate position relative to structure if inside one
+                  let x = bed.position?.x || 0;
+                  let y = bed.position?.y || 0;
+                  
+                  if (isInStructure && showStructures) {
+                    // Position beds inside structure (offset from structure position)
+                    if (garden.gardenType === 'Greenhouse' && garden.greenhouseConfig) {
+                      // Position inside greenhouse
+                      const ghX = gardenSizeCm * 0.1;
+                      const ghY = gardenSizeCm * 0.1;
+                      const ghWidth = gardenSizeCm * 0.8;
+                      const ghHeight = gardenSizeCm * 0.8;
+                      
+                      // If bed has relative position, use it; otherwise auto-position
+                      if (!bed.position) {
+                        const structureBeds = beds.filter(b => b.structureType === 'Greenhouse');
+                        const index = structureBeds.indexOf(bed);
+                        const cols = Math.ceil(Math.sqrt(structureBeds.length));
+                        const row = Math.floor(index / cols);
+                        const col = index % cols;
+                        x = ghX + (ghWidth / (cols + 1)) * (col + 1) - (bed.lengthCm || bed.diameterCm || 50) / 2;
+                        y = ghY + (ghHeight / (cols + 1)) * (row + 1) - (bed.widthCm || bed.diameterCm || 50) / 2;
+                      } else {
+                        // Use relative position within structure
+                        x = ghX + (bed.position.x / 100) * ghWidth;
+                        y = ghY + (bed.position.y / 100) * ghHeight;
+                      }
+                    } else {
+                      // Similar logic for hydroponic systems
+                      if (!bed.position) {
+                        const index = beds.indexOf(bed);
+                        const cols = Math.ceil(Math.sqrt(beds.length));
+                        const row = Math.floor(index / cols);
+                        const col = index % cols;
+                        x = gardenSizeCm * 0.1 + (col * gardenSizeCm * 0.3);
+                        y = gardenSizeCm * 0.3 + (row * gardenSizeCm * 0.3);
+                      }
+                    }
+                  } else {
+                    // Normal positioning outside structures
+                    if (!bed.position) {
+                      const index = beds.indexOf(bed);
+                      const cols = Math.ceil(Math.sqrt(beds.length));
+                      const row = Math.floor(index / cols);
+                      const col = index % cols;
+                      x = gardenSizeCm * 0.1 + (col * gardenSizeCm * 0.3);
+                      y = gardenSizeCm * 0.1 + (row * gardenSizeCm * 0.3);
+                    }
+                  }
+                  
+                  // Ensure coordinates are within bounds
+                  x = Math.max(0, Math.min(x, gardenSizeCm - (bed.lengthCm || bed.diameterCm || 50)));
+                  y = Math.max(0, Math.min(y, gardenSizeCm - (bed.widthCm || bed.diameterCm || 50)));
+                  
+                  // Different styling if inside structure
+                  const fillColor = isInStructure ? 'rgba(59, 130, 246, 0.15)' : 'rgba(34, 197, 94, 0.1)';
+                  const strokeColor = isInStructure ? '#3b82f6' : '#22c55e';
+                  
+                  if (bed.shape === 'Rectangle' && bed.lengthCm && bed.widthCm) {
+                    return (
+                      <g key={bed.id}>
+                        <rect
+                          x={x}
+                          y={y}
+                          width={bed.lengthCm}
+                          height={bed.widthCm}
+                          fill={fillColor}
+                          stroke={strokeColor}
+                          strokeWidth="2"
+                          strokeDasharray="5,5"
+                          rx="5"
+                        />
+                        <text
+                          x={x + bed.lengthCm / 2}
+                          y={y + bed.widthCm / 2}
+                          textAnchor="middle"
+                          fontSize="12"
+                          fill={strokeColor}
+                          fontWeight="bold"
+                          dominantBaseline="middle"
+                        >
+                          {bed.name}
+                        </text>
+                        {bed.areaSqMeters && (
+                          <text
+                            x={x + bed.lengthCm / 2}
+                            y={y + bed.widthCm / 2 + 15}
+                            textAnchor="middle"
+                            fontSize="9"
+                            fill={strokeColor}
+                            dominantBaseline="middle"
+                          >
+                            {bed.areaSqMeters.toFixed(2)} m²
+                          </text>
+                        )}
+                      </g>
+                    );
+                  } else if (bed.shape === 'Circle' && bed.diameterCm) {
+                    const radius = bed.diameterCm / 2;
+                    return (
+                      <g key={bed.id}>
+                        <circle
+                          cx={x + radius}
+                          cy={y + radius}
+                          r={radius}
+                          fill={fillColor}
+                          stroke={strokeColor}
+                          strokeWidth="2"
+                          strokeDasharray="5,5"
+                        />
+                        <text
+                          x={x + radius}
+                          y={y + radius}
+                          textAnchor="middle"
+                          fontSize="11"
+                          fill={strokeColor}
+                          fontWeight="bold"
+                          dominantBaseline="middle"
+                        >
+                          {bed.name}
+                        </text>
+                        {bed.areaSqMeters && (
+                          <text
+                            x={x + radius}
+                            y={y + radius + 12}
+                            textAnchor="middle"
+                            fontSize="8"
+                            fill={strokeColor}
+                            dominantBaseline="middle"
+                          >
+                            {bed.areaSqMeters.toFixed(2)} m²
+                          </text>
+                        )}
+                      </g>
+                    );
+                  }
+                  return null;
+                })}
+              </g>
+            )}
+
+            {/* Accessories */}
+            {showAccessories && accessories.length > 0 && (
+              <g>
+                {accessories.filter(a => a.position).map((accessory) => {
+                  const pos = accessory.position!;
+                  const x = (pos.x / 100) * gardenSizeCm;
+                  const y = (pos.y / 100) * gardenSizeCm;
+                  
+                  if (accessory.category === 'Support') {
+                    // Draw stake/tutor as a vertical line
+                    const height = accessory.heightCm || 50;
+                    return (
+                      <g key={accessory.id}>
+                        <line
+                          x1={x}
+                          y1={y}
+                          x2={x}
+                          y2={y - height}
+                          stroke="#8b5cf6"
+                          strokeWidth="3"
+                        />
+                        <circle
+                          cx={x}
+                          cy={y}
+                          r="5"
+                          fill="#8b5cf6"
+                        />
+                        <text
+                          x={x + 10}
+                          y={y}
+                          fontSize="9"
+                          fill="#8b5cf6"
+                          fontWeight="bold"
+                        >
+                          {accessory.name}
+                        </text>
+                      </g>
+                    );
+                  } else if (accessory.category === 'Netting') {
+                    // Draw netting as a rectangle
+                    const width = accessory.widthCm || 100;
+                    const height = accessory.heightCm || 100;
+                    return (
+                      <g key={accessory.id}>
+                        <rect
+                          x={x - width / 2}
+                          y={y - height / 2}
+                          width={width}
+                          height={height}
+                          fill="rgba(34, 197, 94, 0.1)"
+                          stroke="#22c55e"
+                          strokeWidth="2"
+                          strokeDasharray="5,5"
+                        />
+                        <text
+                          x={x}
+                          y={y - height / 2 - 5}
+                          textAnchor="middle"
+                          fontSize="9"
+                          fill="#22c55e"
+                          fontWeight="bold"
+                        >
+                          {accessory.name}
+                        </text>
+                      </g>
+                    );
+                  } else if (accessory.category === 'Structure') {
+                    // Draw structure (arch, trellis) as a larger rectangle
+                    const width = accessory.widthCm || 200;
+                    const height = accessory.heightCm || 100;
+                    return (
+                      <g key={accessory.id}>
+                        <rect
+                          x={x - width / 2}
+                          y={y - height / 2}
+                          width={width}
+                          height={height}
+                          fill="rgba(168, 85, 247, 0.1)"
+                          stroke="#a855f7"
+                          strokeWidth="2"
+                        />
+                        <text
+                          x={x}
+                          y={y}
+                          textAnchor="middle"
+                          fontSize="9"
+                          fill="#a855f7"
+                          fontWeight="bold"
+                        >
+                          {accessory.name}
+                        </text>
+                      </g>
+                    );
+                  }
+                  return null;
+                })}
+              </g>
+            )}
             
             {/* Sun Exposure Heatmap - Calcolo Incidenza Solare */}
             {showSunHeatmap && sunIncidenceCells.length > 0 && (

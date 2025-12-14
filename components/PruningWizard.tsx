@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GardenTask } from '../types';
-import { FruitTreeCrop, VineCrop, PruningRecord } from '../types/fruitTree';
+import { FruitTreeCrop, PruningRecord } from '../types/fruitTree';
 import { getMasterSheet } from '../services/plantMasterService';
 import { Scissors, ChevronRight, ChevronLeft, Camera, CheckCircle } from 'lucide-react';
 
@@ -62,7 +62,7 @@ const PruningWizard: React.FC<PruningWizardProps> = ({ task, onComplete, onCance
 
   const getPruningInstructions = (): string[] => {
     if (isVine) {
-      const vineCrop = masterData as unknown as VineCrop;
+      const vineCrop = masterData as any;
       const instructions: Record<string, string[]> = {
         'Guyot': [
           'Mantieni 1-2 tralci fruttiferi',
@@ -212,7 +212,7 @@ const PruningWizard: React.FC<PruningWizardProps> = ({ task, onComplete, onCance
                   <div>
                     <div className="font-semibold text-gray-800">Potatura di Ringiovanimento</div>
                     <div className="text-sm text-gray-600">
-                      Per alberi vecchi (>15 anni). Rinnova struttura e stimola nuova crescita.
+                      Per alberi vecchi (&gt;15 anni). Rinnova struttura e stimola nuova crescita.
                     </div>
                   </div>
                 </label>

@@ -59,8 +59,8 @@ const AromaticHarvest: React.FC<AromaticHarvestProps> = ({ harvestData, onUpdate
               Timing Raccolta
             </label>
             <select
-              value={harvestData.harvestTiming || 'BeforeFlowering'}
-              onChange={(e) => onUpdate({ harvestTiming: e.target.value as any })}
+              value={(harvestData as any).harvestTiming || 'BeforeFlowering'}
+              onChange={(e) => onUpdate({ harvestTiming: e.target.value as any } as any)}
               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             >
               <option value="BeforeFlowering">Prima della Fioritura (massimo aroma)</option>
@@ -77,8 +77,8 @@ const AromaticHarvest: React.FC<AromaticHarvestProps> = ({ harvestData, onUpdate
               type="number"
               min="0"
               step="0.1"
-              value={harvestData.quantity || ''}
-              onChange={(e) => onUpdate({ quantity: parseFloat(e.target.value) || 0 })}
+              value={(harvestData as any).quantity ?? ''}
+              onChange={(e) => onUpdate({ quantity: parseFloat(e.target.value) || 0 } as any)}
               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             />
           </div>

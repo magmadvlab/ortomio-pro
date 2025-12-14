@@ -1,0 +1,69 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+
+interface AICreditsData {
+  total: number
+  used: number
+  resetDate: string | null
+  remaining: number
+}
+
+export function useAICredits() {
+  const [credits, setCredits] = useState<AICreditsData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+  
+  const fetchCredits = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch('/api/credits/status')
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch credits')
+      }
+      
+      const data = await response.json()
+      setCredits({
+        ...data,
+        remaining: data.total - data.used,
+      })
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error'))
+      setCredits(null)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  useEffect(() => {
+    fetchCredits()
+    
+    // Refetch every 30 seconds
+    const interval = setInterval(fetchCredits, 30000)
+    
+    return () => clearInterval(interval)
+  }, [])
+  
+  const remaining = credits ? credits.remaining : 0
+  const percentage = credits && credits.total > 0 
+    ? (credits.used / credits.total) * 100 
+    : 0
+  
+  return {
+    credits: credits || { total: 0, used: 0, resetDate: null, remaining: 0 },
+    remaining,
+    percentage,
+    isLoading,
+    error,
+    refetch: fetchCredits,
+  }
+}
+
+
+
+
+
+
+

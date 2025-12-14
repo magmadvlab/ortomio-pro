@@ -84,6 +84,78 @@ export const protectionProducts: PlantProtectionProduct[] = [
     notes: 'Batterio che attacca solo le larve. Controllare pagina inferiore foglie per uova.',
     applicationMethod: 'Foliar',
     bestTime: 'Evening'
+  },
+  
+  // PRODOTTI CHIMICI CLASSICI (richiedono patentino fitosanitario)
+  {
+    id: 'deltametrina',
+    name: 'Deltametrina',
+    type: 'CURATIVE',
+    allowedInOrganic: false,
+    requiresLicense: true,
+    target: ['Afidi', 'Cimici', 'Lepidotteri', 'Coleotteri'],
+    frequencyDays: 14,
+    dosage: 'Seguire indicazioni prodotto (tipicamente 0.5-1g per litro)',
+    notes: '⚠️ Richiede patentino fitosanitario. Rispettare tempi di carenza. Insetticida piretroide ad ampio spettro.',
+    applicationMethod: 'Foliar',
+    bestTime: 'Evening',
+    safetyInterval: 7 // Giorni di carenza
+  },
+  {
+    id: 'azoxystrobin',
+    name: 'Azoxystrobin',
+    type: 'PREVENTIVE',
+    allowedInOrganic: false,
+    requiresLicense: true,
+    target: ['Peronospora', 'Oidio', 'Alternaria', 'Septoria'],
+    frequencyDays: 10,
+    dosage: 'Seguire indicazioni prodotto (tipicamente 0.5-1ml per litro)',
+    notes: '⚠️ Richiede patentino. Fungicida sistemico ad ampio spettro. Usare in rotazione con altri principi attivi per evitare resistenze.',
+    applicationMethod: 'Foliar',
+    bestTime: 'Morning',
+    safetyInterval: 14
+  },
+  {
+    id: 'lambda_cialotrina',
+    name: 'Lambda-cialotrina',
+    type: 'CURATIVE',
+    allowedInOrganic: false,
+    requiresLicense: true,
+    target: ['Afidi', 'Cimici', 'Tripidi', 'Aleurodidi'],
+    frequencyDays: 10,
+    dosage: 'Seguire indicazioni prodotto (tipicamente 0.3-0.5ml per litro)',
+    notes: '⚠️ Richiede patentino. Insetticida piretroide efficace contro insetti succhiatori. Non utilizzare in fioritura per proteggere api.',
+    applicationMethod: 'Foliar',
+    bestTime: 'Evening',
+    safetyInterval: 7
+  },
+  {
+    id: 'mancozeb',
+    name: 'Mancozeb',
+    type: 'PREVENTIVE',
+    allowedInOrganic: false,
+    requiresLicense: true,
+    target: ['Peronospora', 'Alternaria', 'Antracnosi'],
+    frequencyDays: 7,
+    dosage: 'Seguire indicazioni prodotto (tipicamente 2-3g per litro)',
+    notes: '⚠️ Richiede patentino. Fungicida di contatto, efficace in prevenzione. Non sistemico, quindi copertura completa necessaria.',
+    applicationMethod: 'Foliar',
+    bestTime: 'Morning',
+    safetyInterval: 21
+  },
+  {
+    id: 'imidacloprid',
+    name: 'Imidacloprid',
+    type: 'CURATIVE',
+    allowedInOrganic: false,
+    requiresLicense: true,
+    target: ['Afidi', 'Cimici', 'Aleurodidi', 'Coleotteri'],
+    frequencyDays: 14,
+    dosage: 'Seguire indicazioni prodotto (tipicamente 0.5-1ml per litro)',
+    notes: '⚠️ Richiede patentino. Insetticida sistemico neonicotinoide. ⚠️ ATTENZIONE: Altamente tossico per api. NON utilizzare in fioritura o vicino a fiori.',
+    applicationMethod: 'Foliar',
+    bestTime: 'Evening',
+    safetyInterval: 21
   }
 ];
 

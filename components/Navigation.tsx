@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Tab } from '../types';
-import { Home, Sprout, ClipboardList, Stethoscope, ShoppingBasket, Wifi } from 'lucide-react';
+import { Home, Sprout, ClipboardList, Stethoscope, ShoppingBasket, Wifi, Calendar } from 'lucide-react';
 
 interface NavigationProps {
   currentTab: Tab;
@@ -15,6 +15,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentTab, onTabChange }) => {
     { tab: Tab.JOURNAL, label: 'Diario', icon: ClipboardList },
     { tab: Tab.ADVICE, label: 'Cura', icon: Stethoscope },
     { tab: Tab.HARVEST, label: 'Raccolto', icon: ShoppingBasket },
+    { tab: Tab.CALENDAR, label: 'Calendario', icon: Calendar },
     { tab: Tab.SMART, label: 'Smart', icon: Wifi },
   ];
 

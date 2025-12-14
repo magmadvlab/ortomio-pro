@@ -5,7 +5,7 @@ import UpgradePrompt from './UpgradePrompt';
 import { FruitTreeCrop, PruningRecord, GraftingRecord } from '../types/fruitTree';
 import { calculateFruitTreeTasks, isChillRequirementMet } from '../logic/fruitTreeEngine';
 import { getMasterSheet } from '../services/plantMasterService';
-import { Scissors, TreePine, Calendar, CheckCircle, XCircle, MapPin } from 'lucide-react';
+import { Scissors, TreePine, Calendar, CheckCircle, XCircle, MapPin, AlertCircle } from 'lucide-react';
 
 interface FruitTreeManagementProps {
   tasks: GardenTask[];

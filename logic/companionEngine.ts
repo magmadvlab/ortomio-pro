@@ -1,132 +1,120 @@
 /**
- * Companion Planting Engine
- * Checks for good/bad companions and suggests beneficial pairings
+ * Companion Engine
+ * Gestisce consociazioni, rotazioni e allelopatia
  */
 
-import { CompanionAdvice, CompanionRule } from '../types';
-import { PlantMasterSheet } from '../types';
-import { getCompanionRule } from '../data/companionDatabase';
+import { companionRelationships, allelopathyInfo, botanicalFamilies } from '../data/companionPlants';
+
+export interface CompanionCheck {
+  compatible: boolean;
+  relationship?: 'beneficial' | 'harmful' | 'neutral';
+  reason?: string;
+  distance?: number;
+}
 
 /**
- * Calculate distance between two positions (in cm)
+ * Verifica relazione companion tra due piante
  */
-const calculateDistance = (
-  pos1: { x: number; y: number },
-  pos2: { x: number; y: number }
-): number => {
-  const dx = pos1.x - pos2.x;
-  const dy = pos1.y - pos2.y;
-  return Math.sqrt(dx * dx + dy * dy);
-};
-
-/**
- * Check companion compatibility
- */
-export const suggestCompanions = (
-  selectedPlant: PlantMasterSheet,
-  nearbyPlants: Array<{ plant: PlantMasterSheet; position: { x: number; y: number } }>
-): CompanionAdvice => {
-  const rule = getCompanionRule(selectedPlant.id);
-  
-  if (!rule) {
-    return {
-      severity: 'INFO',
-      message: 'Nessuna regola di consociazione disponibile per questa pianta.',
-    };
-  }
-
-  const conflicts: Array<{ plantName: string; reason: string }> = [];
-  const suggestions: Array<{ plantName: string; benefit: string }> = [];
-
-  // Check for bad companions nearby
-  for (const nearby of nearbyPlants) {
-    const distance = calculateDistance(
-      nearby.position,
-      { x: 0, y: 0 } // Assuming selected plant is at origin for now
-    );
-    
-    const minDistance = rule.distanceMin || 200;
-    
-    if (distance < minDistance) {
-      // Check if it's a bad companion
-      if (rule.badCompanions.includes(nearby.plant.id)) {
-        conflicts.push({
-          plantName: nearby.plant.commonName,
-          reason: rule.reason || 'Incompatibilità nota',
-        });
-      }
-    }
-  }
-
-  // Check for missing good companions
-  const nearbyPlantIds = nearbyPlants.map(p => p.plant.id);
-  const missingGoodCompanions = rule.goodCompanions.filter(
-    id => !nearbyPlantIds.includes(id)
+export function checkCompanionship(plant1: string, plant2: string): CompanionCheck {
+  const relationship = companionRelationships.find(
+    (r) =>
+      (r.plant1.toLowerCase() === plant1.toLowerCase() &&
+        r.plant2.toLowerCase() === plant2.toLowerCase()) ||
+      (r.plant1.toLowerCase() === plant2.toLowerCase() &&
+        r.plant2.toLowerCase() === plant1.toLowerCase())
   );
 
-  if (missingGoodCompanions.length > 0) {
-    suggestions.push({
-      plantName: missingGoodCompanions[0], // Suggest first missing
-      benefit: rule.benefit || 'Beneficio reciproco',
-    });
-  }
-
-  // Return advice
-  if (conflicts.length > 0) {
+  if (relationship) {
     return {
-      severity: 'ERROR',
-      message: `${conflicts[0].plantName} troppo vicino a ${selectedPlant.commonName}. ${conflicts[0].reason}. Distanza minima: ${rule.distanceMin || 200}cm.`,
-      conflicts,
+      compatible: relationship.relationship !== 'harmful',
+      relationship: relationship.relationship,
+      reason: relationship.reason,
+      distance: relationship.distance,
     };
   }
 
-  if (suggestions.length > 0) {
-    return {
-      severity: 'INFO',
-      message: `Suggerimento: Pianta ${suggestions[0].plantName} vicino a ${selectedPlant.commonName}. ${suggestions[0].benefit}`,
-      suggestions,
-    };
-  }
-
-  return {
-    severity: 'SUCCESS',
-    message: 'Consociazioni OK - nessun conflitto rilevato.',
-  };
-};
+  return { compatible: true, relationship: 'neutral' };
+}
 
 /**
- * Check if two plants are compatible
+ * Suggerisce compagni benefici per una pianta
  */
-export const areCompatible = (
-  plant1: PlantMasterSheet,
-  plant2: PlantMasterSheet,
-  distance: number
-): { compatible: boolean; reason?: string } => {
-  const rule1 = getCompanionRule(plant1.id);
-  const rule2 = getCompanionRule(plant2.id);
+export function suggestCompanions(plant: string): Array<{ plant: string; reason: string; distance: number }> {
+  return companionRelationships
+    .filter((r) => r.plant1.toLowerCase() === plant.toLowerCase() && r.relationship === 'beneficial')
+    .map((r) => ({
+      plant: r.plant2,
+      reason: r.reason,
+      distance: r.distance || 30,
+    }));
+}
 
-  // Check if plant2 is bad companion for plant1
-  if (rule1 && rule1.badCompanions.includes(plant2.id)) {
-    const minDistance = rule1.distanceMin || 200;
-    if (distance < minDistance) {
+/**
+ * Trova vicini dannosi
+ */
+export function findHarmfulNeighbors(
+  plant: string,
+  currentPlantings: Array<{ plant: string; position: { x: number; y: number } }>
+): Array<{ plant: string; reason: string }> {
+  const harmful: Array<{ plant: string; reason: string }> = [];
+
+  for (const neighbor of currentPlantings) {
+    const check = checkCompanionship(plant, neighbor.plant);
+    if (!check.compatible && check.relationship === 'harmful') {
+      harmful.push({
+        plant: neighbor.plant,
+        reason: check.reason || 'Incompatibilità',
+      });
+    }
+  }
+
+  return harmful;
+}
+
+/**
+ * Verifica rotazione compatibile
+ */
+export function calculateRotationCompatibility(
+  previousPlant: string,
+  nextPlant: string
+): { compatible: boolean; reason: string } {
+  // Stessa famiglia botanica: non compatibile
+  for (const [family, plants] of Object.entries(botanicalFamilies)) {
+    if (
+      plants.some((p) => p.toLowerCase() === previousPlant.toLowerCase()) &&
+      plants.some((p) => p.toLowerCase() === nextPlant.toLowerCase())
+    ) {
       return {
         compatible: false,
-        reason: rule1.reason || `${plant2.commonName} inibisce ${plant1.commonName}`,
+        reason: `Entrambe ${family}. Rotazione non consigliata.`,
       };
     }
   }
 
-  // Check if plant1 is bad companion for plant2
-  if (rule2 && rule2.badCompanions.includes(plant1.id)) {
-    const minDistance = rule2.distanceMin || 200;
-    if (distance < minDistance) {
-      return {
-        compatible: false,
-        reason: rule2.reason || `${plant1.commonName} inibisce ${plant2.commonName}`,
-      };
-    }
+  return { compatible: true, reason: 'Rotazione compatibile' };
+}
+
+/**
+ * Calcola anni di riposo necessari per famiglia
+ */
+export function getFamilyRestPeriod(
+  family: string,
+  history: Array<{ plant: string; year: number }>
+): number {
+  const familyPlants = botanicalFamilies[family] || [];
+  const lastYear = Math.max(...history.map((h) => h.year), 0);
+  const currentYear = new Date().getFullYear();
+
+  // Conta quante volte famiglia è stata coltivata negli ultimi 4 anni
+  const recentCount = history.filter(
+    (h) =>
+      familyPlants.some((p) => p.toLowerCase() === h.plant.toLowerCase()) &&
+      h.year >= currentYear - 4
+  ).length;
+
+  if (recentCount >= 3) {
+    return 2; // Riposo di 2 anni se coltivata 3+ volte
   }
 
-  return { compatible: true };
-};
-
+  return 1; // Altrimenti 1 anno
+}

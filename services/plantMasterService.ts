@@ -1,14 +1,27 @@
 import { PlantMasterSheet, VarietyMapping, BehavioralTag } from '../types';
 import { plantMasterSheets, behavioralTags } from '../data/plantMasterSheets';
 import { varietyMappings } from '../data/varietyMappings';
+import { getAllSpecializedMasterSheets } from '../data/specializedCropMasterSheets';
 
 /**
- * Trova la scheda master per una specie
+ * Trova la scheda master per una specie (include anche colture specializzate)
  */
 export const getMasterSheet = (speciesName: string): PlantMasterSheet | null => {
   const normalized = speciesName.toLowerCase().trim();
   
-  return plantMasterSheets.find(sheet => 
+  // Cerca prima nelle piante base
+  const baseMatch = plantMasterSheets.find(sheet => 
+    sheet.id === normalized ||
+    sheet.commonName.toLowerCase().includes(normalized) ||
+    sheet.scientificName.toLowerCase().includes(normalized) ||
+    sheet.commonName.toLowerCase() === normalized
+  );
+  
+  if (baseMatch) return baseMatch;
+  
+  // Cerca nelle colture specializzate
+  const specializedSheets = getAllSpecializedMasterSheets();
+  return specializedSheets.find(sheet => 
     sheet.id === normalized ||
     sheet.commonName.toLowerCase().includes(normalized) ||
     sheet.scientificName.toLowerCase().includes(normalized) ||
@@ -110,10 +123,13 @@ export const getAllBehavioralTags = (): BehavioralTag[] => {
 };
 
 /**
- * Ottiene tutte le schede master disponibili
+ * Ottiene tutte le schede master disponibili (include anche colture specializzate)
  */
 export const getAllMasterSheets = (): PlantMasterSheet[] => {
-  return plantMasterSheets;
+  return [
+    ...plantMasterSheets,
+    ...getAllSpecializedMasterSheets()
+  ];
 };
 
 

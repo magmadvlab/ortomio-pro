@@ -1,5 +1,11 @@
 # 🔧 Documentazione Tecnica OrtoMio
 
+<!-- markdownlint-disable MD022 MD032 MD031 MD029 -->
+<!-- MD022: Headings senza righe vuote sono accettabili in documentazione tecnica -->
+<!-- MD032: Liste senza righe vuote sono accettabili per compattezza -->
+<!-- MD031: Code blocks senza righe vuote sono accettabili -->
+<!-- MD029: Numerazione liste inconsistente è accettabile per esempi -->
+
 ## Indice
 
 1. [Architettura](#architettura)
@@ -11,6 +17,13 @@
 7. [Configurazione](#configurazione)
 8. [Deployment](#deployment)
 9. [Estensibilità](#estensibilità)
+
+**Nuove Funzionalità**:
+
+- [FERTILIZER ENGINE](#fertilizerenginets): Prodotti fertilizzanti concreti con dosaggi
+- [TILLAGE ENGINE](#tillageenginets): Lavorazioni terra con timing "terreno in tempera"
+- [PHYTO ENGINE](#phytoenginets): Prodotti fitofarmaci con timing critico e registro
+- [GEOGRAPHIC MATCHING SERVICE](#geographicmatchingservicets): Matching geografico e calcolo fattibilità piante esotiche
 
 ---
 
@@ -36,6 +49,7 @@ OrtoMio è un'applicazione **Single Page Application (SPA)** costruita con React
 ## Stack Tecnologico
 
 ### Frontend
+
 - **React 19.2.1**: Framework UI
 - **TypeScript 5.8.2**: Type safety
 - **Tailwind CSS 3.4.17**: Styling utility-first
@@ -43,11 +57,13 @@ OrtoMio è un'applicazione **Single Page Application (SPA)** costruita con React
 - **Lucide React**: Icone
 
 ### AI e Servizi Esterni
+
 - **Google Gemini 2.5 Flash**: AI per suggerimenti e analisi
 - **Open-Meteo API**: Previsioni meteo gratuite
 - **Browser Geolocation API**: Posizione utente
 
 ### Build e Tooling
+
 - **PostCSS**: Processing CSS
 - **Autoprefixer**: Compatibilità browser
 - **TypeScript Compiler**: Type checking
@@ -56,7 +72,7 @@ OrtoMio è un'applicazione **Single Page Application (SPA)** costruita con React
 
 ## Struttura Progetto
 
-```
+```text
 ortomio-main/
 ├── components/          # Componenti React
 │   ├── Dashboard.tsx    # Home principale
@@ -69,12 +85,23 @@ ortomio-main/
 │   ├── RecipeCard.tsx   # Card ricetta
 │   ├── SeedInventory.tsx # Banca semi
 │   ├── VacationMode.tsx # Modalità vacanza
-│   └── VisualGardenPlanner.tsx # Planner grafico
+│   ├── VisualGardenPlanner.tsx # Planner grafico
+│   ├── planner/         # Componenti Planner
+│   │   ├── GeographicFeasibilityCard.tsx # Card fattibilità geografica
+│   │   ├── VarietySelector.tsx # Selettore varietà
+│   │   ├── CultivationSystemSelector.tsx # Selettore sistema coltivazione
+│   │   └── AccessoriesSuggestionsSection.tsx # Suggerimenti accessori
+│   └── shared/          # Componenti condivisi
+│       ├── GeographicMatchingWidget.tsx # Widget matching geografico
+│       └── SpecializedCropsWidget.tsx # Widget colture specializzate
 │
 ├── logic/               # Motori di calcolo
 │   ├── lifecycleEngine.ts      # Fasi crescita
 │   ├── nutrientEngine.ts        # Calcolo NPK
+│   ├── fertilizerEngine.ts      # Prodotti fertilizzanti concreti
 │   ├── healthEngine.ts          # Trattamenti
+│   ├── phytoEngine.ts           # Prodotti fitofarmaci concreti
+│   ├── tillageEngine.ts         # Lavorazioni terra
 │   ├── waterRequirementEngine.ts # Fabbisogno idrico
 │   ├── companionPlantingEngine.ts # Consociazioni
 │   ├── successionEngine.ts      # Successioni
@@ -92,17 +119,38 @@ ortomio-main/
 │   ├── recipeService.ts         # Ricette AI
 │   ├── seedInventoryService.ts  # Gestione semi
 │   ├── sunExposureService.ts    # Calcolo esposizione
-│   └── taskCalculationService.ts # Calcoli attività
+│   ├── preciseSunCalculator.ts   # Calcolo preciso posizione sole
+│   ├── obstacleExtractor.ts     # Estrazione ostacoli da foto 360°
+│   ├── fertilizerInventoryService.ts # Inventario fertilizzanti
+│   ├── compostService.ts        # Autoproduzione compost
+│   ├── phytoInventoryService.ts # Inventario fitofarmaci
+│   ├── treatmentRegistryService.ts # Registro trattamenti
+│   ├── maceratesService.ts      # Preparati naturali
+│   ├── taskCalculationService.ts # Calcoli attività
+│   └── geographicMatchingService.ts # Matching geografico e fattibilità
 │
 ├── data/                # Dati statici
-│   ├── plantMasterSheets.ts     # Schede master piante
+│   ├── plantMasterSheets.ts     # Schede master piante (con visualCategory)
+│   ├── exoticFruitMasterSheets.ts # Schede frutti esotici con varietà e matching
+│   ├── specializedCropMasterSheets.ts # Schede colture specializzate
 │   ├── plantVarieties.ts        # Varietà
 │   ├── treatments.ts            # Prodotti fitosanitari
+│   ├── fertilizers.ts           # Database prodotti fertilizzanti
+│   ├── phytoproducts.ts         # Database prodotti fitofarmaci
+│   ├── tillageTools.ts          # Database attrezzi lavorazione
 │   ├── companionPlanting.ts     # Regole consociazioni
 │   ├── bioPrices.ts             # Prezzi bio
 │   └── varietyMappings.ts       # Mappature varietà
 │
-├── types.ts             # Definizioni TypeScript
+├── types.ts             # Definizioni TypeScript principali
+├── types/               # Tipi specializzati
+│   ├── exoticFruit.ts   # Tipi frutti esotici (ExoticFruitCrop, ExoticFruitVariety, FeasibilityResult)
+│   ├── strawberry.ts    # Tipi fragole
+│   ├── fruitTree.ts     # Tipi alberi da frutto
+│   ├── aromatic.ts      # Tipi erbe aromatiche
+│   ├── olive.ts         # Tipi olivi
+│   ├── vine.ts          # Tipi viti
+│   └── accessories.ts  # Tipi accessori giardino
 ├── App.tsx              # Componente root
 ├── index.tsx            # Entry point
 ├── index.html           # HTML template
@@ -245,6 +293,181 @@ ortomio-main/
 - `suggestRotation()`: Suggerisce rotazione
 - `suggestInitialPosition()`: Suggerisce posizione iniziale
 
+#### mechanicalWorkEngine.ts
+**Responsabilità**: Suggerimenti lavorazioni meccaniche per terreni più grandi (> 1000 m²)
+
+**Funzioni principali**:
+- `calculateMechanicalWorkTasks()`: Calcola suggerimenti per aratura e fresatura
+
+**Logica**:
+- Dimensione terreno: Suggerisce trattore per terreni >= 5000 m², manuale per 1000-5000 m²
+- Stagione: Aratura (Ottobre-Febbraio), Fresatura (Marzo-Aprile)
+- Condizioni meteo: Verifica previsioni pioggia per evitare lavorazioni con terreno bagnato
+- Task completati: Non suggerisce lavorazioni già eseguite
+
+**Output**: Array di `MechanicalWorkAdvice` con data suggerita, priorità, istruzioni
+
+#### treePruningEngine.ts
+**Responsabilità**: Suggerimenti potatura alberi da frutto (inclusi agrumi)
+
+**Funzioni principali**:
+- `calculateTreePruningTasks()`: Calcola suggerimenti per potatura
+
+**Logica**:
+- Tipo albero: Pome, Stone, Citrus, Nut, Berry
+- Stagione: Inverno (potatura principale), Primavera (agrumi), Estate (potatura verde)
+- Fasi lunari: Preferisce luna calante
+- Supporto agrumi: Logica specifica (potatura primaverile invece che invernale)
+
+**Output**: Array di `TreePruningAdvice` con tipo albero, stagione, consiglio lunare
+
+#### calendarTimelineEngine.ts
+**Responsabilità**: Genera timeline automatica delle fasi successive quando viene completata una semina
+
+**Funzioni principali**:
+- `generateTimelineFromSowing()`: Genera tutti i task suggeriti dalla semina
+- `convertToGardenTask()`: Converte suggerimento in task completo
+
+**Logica**:
+- Calcola giorni per ogni fase (germinazione, nursing, hardening, trapianto)
+- Genera concimazioni periodiche (ogni 20-30 giorni)
+- Genera trattamenti preventivi (ogni 15 giorni)
+- Calcola raccolta prevista basata su giorni dalla semina
+- Integra fasi lunari per ottimizzare date trapianto
+
+**Output**: `CalendarTimeline` con array di `SuggestedCalendarTask` tutti con `isSuggested: true`
+
+#### taskSynchronizer.ts
+**Responsabilità**: Sincronizza suggerimenti dell'orchestrator con completamenti reali
+
+**Funzioni principali**:
+- `syncTaskCompletion()`: Sincronizza task completato, traccia differenza data suggerita vs effettiva
+- `markSuggestionAsCompleted()`: Marca suggerimento completato, crea task con data effettiva se diversa
+- `getPendingSuggestions()`: Restituisce suggerimenti non ancora completati
+- `updateOrchestratorFromCompletion()`: Determina se ricalcolare suggerimenti usando data effettiva
+- `isSuggestionStillValid()`: Verifica se suggerimento è ancora valido (non scaduto)
+
+**Logica critica**:
+- Quando un lavoro viene fatto in data diversa da quella suggerita, usa la data effettiva per ricalcolare i prossimi suggerimenti
+- Mantiene traccia sia della data suggerita originale che di quella effettiva
+
+#### director.ts (Orchestratore Centrale)
+**Responsabilità**: Coordina tutti i motori di calcolo per generare un piano giornaliero ottimizzato
+
+**Gerarchia Priorità**:
+1. **Clima** (incontrollabile, blocca operazioni): Gelo, caldo estremo, pioggia intensa
+2. **Classificazione Solare** (coordinamento variabili): Classifica tipo orto, valida compatibilità piante, ottimizza finestre impianto
+3. **Ciclo Vitale** (cosa fare): Fasi crescita, trapianti, raccolte
+4. **Nutrienti** (come farlo): NPK dinamico, fertirrigazione
+5. **Salute** (prevenzione): Trattamenti preventivi filtrati per patentino/preferenze utente
+6. **Luna** (ottimizzazione tradizionale): Fasi lunari ottimali
+
+**Funzioni principali**:
+- `getDailyGardenPlan()`: Genera piano giornaliero completo coordinando tutti i sistemi
+- `checkWeatherUrgency()`: Verifica urgenze climatiche
+- Integrazione classificazione solare: Valida compatibilità piante esistenti e suggerisce alternative
+- Filtro prodotti fitosanitari: Passa UserProfile a `calculateHealthStrategy()` per filtrare prodotti in base a patentino e preferenze
+
+**Soil and Altitude Utilities** (`utils/soilTemperatureUtils.ts`, `utils/altitudeUtils.ts`):
+**Responsabilità**: Calcoli per tipo terreno e altitudine che influenzano timing e compatibilità
+
+**Funzioni principali**:
+- `calculateSoilWarmingDelay()`: Calcola anticipo/ritardo riscaldamento suolo per tipo terreno
+  - Terreni scuri (Clay, Peaty): anticipo 3-7 giorni
+  - Terreni chiari (Sandy, Chalky): ritardo 3-7 giorni
+- `calculateSoilHeatingRate()`: Calcola temperatura effettiva suolo basata su tipo terreno
+- `isSoilReadyForPlanting()`: Verifica se terreno è pronto per semina/trapianto
+- `getSoilCompatibility()`: Verifica compatibilità pianta con tipo terreno
+- `calculateEffectiveTemperature()`: Calcola temperatura effettiva considerando altitudine (-0.6°C ogni 100m)
+- `adjustSeasonalWindows()`: Ritarda finestre stagionali in base ad altitudine
+- `calculateAltitudePlantingDelay()`: Calcola ritardo impianto considerando altitudine e tipo pianta
+
+**Integrazione**:
+- Director applica aggiustamenti terreno/altitudine alle finestre di impianto
+- Lifecycle Engine valida compatibilità terreno e controlla temperatura suolo
+- Planting Window Optimizer aggiusta date start/end per terreno e altitudine
+- Seasonal Plant Suggestions filtra piante per compatibilità terreno e aggiusta date
+- Annual Planner filtra piante e aggiusta date piantagioni previste
+
+**Solar Classification Integration**:
+- Calcola classificazione solare stagionale (4 finestre: Feb-Mar, Apr-Mag, Giu-Lug, Ago-Set)
+- Classifica tipo orto: Estivo (≥6h sole Giu-Lug), Non Estivo (<6h ma ≥3-4h Mar-Apr), Misto
+- Valida compatibilità piante esistenti con tipo orto e genera alert se incompatibili
+- Ottimizza timing lifecycle tasks basandosi su finestre di impianto ottimali
+- Integra con Annual Planner per filtrare piante suggerite in base al tipo di orto
+
+#### solarClassificationHelper.ts
+**Responsabilità**: Helper functions per classificazione solare stagionale
+
+**Funzioni principali**:
+- `calculateGardenSolarClassification()`: Calcola classificazione solare completa per un giardino
+- `validatePlantCompatibility()`: Verifica se una pianta è compatibile con il tipo di orto
+- `getOptimizedPlantSuggestions()`: Ottiene suggerimenti piante ottimizzati per il tipo di orto
+
+**Logica Validazione**:
+- Piante estive (Pomodoro, Peperone, ecc.) richiedono orto estivo (≥6h sole Giu-Lug)
+- Piante primaverili/autunnali (Lattuga, Spinaci, ecc.) preferiscono orto non estivo
+- Genera alert con alternative se pianta non compatibile
+
+#### fertilizerEngine.ts
+**Responsabilità**: Converte fabbisogni nutrizionali (da Nutrient Engine) in prodotti fertilizzanti concreti con dosaggi specifici
+
+**Funzioni principali**:
+- `calculateFertilizerDosage()`: Calcola dosaggio specifico prodotto per pianta
+- `suggestFertilizerProduct()`: Suggerisce prodotto migliore in base a fabbisogno
+- `checkIncompatibilities()`: Verifica incompatibilità tra prodotti
+- `calculateApplicationTiming()`: Calcola timing ottimale applicazione
+- `suggestFertilizerPlan()`: Piano fertilizzazione annuale
+
+**Logica dosaggi**:
+- Considera tipo terreno (argilloso trattiene più, sabbioso perde)
+- Considera pH terreno (alcuni prodotti non funzionano a pH sbagliato)
+- Considera fase pianta (pre-impianto vs copertura vs post-raccolta)
+- Calcola quantità totale necessaria per stagione
+
+**Database prodotti**: `data/fertilizers.ts` con organici, minerali, correttivi, microelementi, sovesci
+
+#### tillageEngine.ts
+**Responsabilità**: Gestisce tutte le lavorazioni terra: principali, complementari, no-dig
+
+**Funzioni principali**:
+- `suggestTillageWork()`: Suggerisce lavorazione per zona
+- `calculateTemperaTiming()`: Calcola quando terreno sarà "in tempera"
+- `getOptimalWorkWindow()`: Finestra ottimale lavorazione
+- `suggestTillageMethod()`: Suggerisce metodo lavorazione (manuale/meccanico)
+- `checkTillageProblems()`: Rileva problemi (suola, compattazione)
+
+**Lavorazioni supportate**:
+- Principali: Vangatura, Aratura, Fresatura, Scasso
+- Complementari: Zappatura, Sarchiatura, Rincalzatura, Erpicatura, Rullatura
+- No-dig: Pacciamatura permanente, Cartone+compost
+
+**Timing logica**:
+- Integra con `soilTimingEngine.ts` per "terreno in tempera"
+- Alert quando terreno diventa lavorabile dopo pioggia
+- Evita lavorazioni con terreno bagnato o ghiacciato
+
+**Database attrezzi**: `data/tillageTools.ts` con manuali e meccanici
+
+#### phytoEngine.ts
+**Responsabilità**: Converte diagnosi problemi (da Health Engine) in prodotti fitofarmaci concreti con dosaggi e timing critico
+
+**Funzioni principali**:
+- `suggestPhytoProduct()`: Suggerisce prodotto in base a problema
+- `calculateDosage()`: Calcola dosaggio specifico per gravità problema
+- `checkTreatmentTiming()`: Verifica timing critico con raccolta e meteo
+- `calculateSafetyInterval()`: Calcola fine periodo carenza
+- `checkIncompatibilities()`: Verifica incompatibilità prodotti
+- `suggestTreatmentPlan()`: Piano trattamento completo
+
+**Timing critico**:
+- Preventivo vs curativo
+- Finestra meteo (no pioggia 6-12h dopo)
+- Alert dilavamento se piove dopo trattamento
+- Considera raccolta imminente vs tempo carenza
+
+**Database prodotti**: `data/phytoproducts.ts` con bio, convenzionali, trappole
+
 ### Services
 
 #### geminiService.ts
@@ -283,6 +506,91 @@ ortomio-main/
 
 **Fallback**: Coordinate default se GPS non disponibile
 
+#### geoClimateService.ts
+**Responsabilità**: Inferenza informazioni geoclimatiche da coordinate
+
+**Funzioni principali**:
+- `inferGeoClimate()`: Inferisce altitudine, ritardo semina, temperatura da coordinate
+- `getAltitudeFromOpenElevation()`: Helper per fallback API Open-Elevation
+
+**Metodo**:
+- Prima scelta: Gemini AI per inferenza intelligente
+- Fallback: Open-Elevation API (gratuita) per altitudine precisa
+- Cache: Risultati cachati per 24h per coordinate
+
+**Validazione**: Range altitudine 0-5000m per Italia, coordinate validate per Italia
+
+#### geographicMatchingService.ts
+**Responsabilità**: Calcolo fattibilità geografica per piante esotiche e matching zona climatica
+
+**Funzioni principali**:
+- `calculateFeasibility()`: Calcola score fattibilità (0-100) per pianta esotica basato su posizione utente
+- `detectUsdaZone()`: Auto-detect zona USDA da coordinate geografiche
+- `estimateUsdaZone()`: Stima zona USDA da latitudine e altitudine
+- `getLocalClimateData()`: Ottiene dati climatici locali (date gelate, temperature medie, precipitazioni)
+- `getUserLocationProfile()`: Crea profilo completo posizione utente con zona USDA e dati climatici
+
+**Algoritmo Fattibilità**:
+- Score iniziale: 100
+- Penalità zona USDA: -40 se non compatibile, -20 se borderline
+- Penalità altitudine: -30 se supera limite massimo
+- Penalità distanza mare: -15 se pianta beneficia mare ma troppo lontana
+- Determina sistema consigliato: openField / container / greenhouse
+- Suggerisce varietà migliore basata su cold hardiness e container-friendly
+
+**Zone USDA**:
+- Mapping zone 7a-11 per Italia
+- Calcolo basato su latitudine e altitudine
+- Fallback a coordinate default se GPS non disponibile
+
+**Componenti UI**:
+- `GeographicFeasibilityCard`: Mostra score, protezioni necessarie, warnings
+- `VarietySelector`: Selettore varietà con filtri clima/vaso/nane
+- `CultivationSystemSelector`: Selettore sistema coltivazione (piena terra/vaso/serra)
+- `GeographicMatchingWidget`: Widget dashboard con piante ideali/opportunità/warnings
+
+#### sunExposureService.ts
+**Responsabilità**: Calcolo esposizione solare con supporto ostacoli 3D
+
+**Funzioni principali**:
+- `calculateSunExposure()`: Calcola esposizione con ostacoli opzionali e data specifica
+- `getGardenSunExposure()`: Ottiene esposizione per giardino
+- `getGardenOptimalPeriod()`: Calcola periodo ottimale per coltivare
+
+**Metodo**:
+- Se ostacoli presenti: usa `preciseSunCalculator` per calcolo preciso
+- Altrimenti: usa stima stagionale basata su latitudine (backward compatibility)
+
+#### preciseSunCalculator.ts
+**Responsabilità**: Calcolo preciso posizione sole e ore di sole diretto giorno-per-giorno
+
+**Funzioni principali**:
+- `calculateSunPosition()`: Calcola azimut ed elevazione sole per data/ora
+- `calculateDailySunHours()`: Calcola ore sole per un giorno considerando ostacoli
+- `calculateMonthlySunHours()`: Calcola media mensile
+- `calculateOptimalPeriod()`: Trova periodo migliore dell'anno
+
+**Formule**:
+- Declinazione solare: `23.45 * sin(360 * (284 + dayOfYear) / 365)`
+- Elevazione: `asin(sin(lat) * sin(decl) + cos(lat) * cos(decl) * cos(hourAngle))`
+- Verifica blocco: confronta elevazione sole con `atan2(height, distance)` dell'ostacolo
+
+**Performance**: Calcola ogni 10 minuti (6:00-18:00) = 72 calcoli per giorno
+
+#### obstacleExtractor.ts
+**Responsabilità**: Estrazione ostacoli 3D da foto 360° o input manuale
+
+**Funzioni principali**:
+- `extractObstaclesFrom360()`: Estrae ostacoli da foto panoramica usando AI
+- `parseObstaclesFromManualInput()`: Crea ostacolo da input manuale
+- `mergeNearbyObstacles()`: Combina ostacoli vicini nella stessa direzione
+- `formatObstacleDescription()`: Formatta per visualizzazione
+
+**Metodo**:
+- Usa `analyzePanoramic360()` per identificare ostacoli con AI
+- Stima altezza basata su tipo e categoria (Low/Medium/High)
+- Stima distanza basata su altezza e dimensione apparente
+
 #### plantMasterService.ts
 **Responsabilità**: Accesso database piante
 
@@ -291,6 +599,79 @@ ortomio-main/
 - `getAllMasterSheets()`: Tutte le schede
 
 **Dati**: `data/plantMasterSheets.ts` con schede complete
+
+#### fertilizerInventoryService.ts
+**Responsabilità**: Gestisce inventario prodotti fertilizzanti, scorte, alert
+
+**Funzioni principali**:
+- `getFertilizerInventory()`: Recupera inventario
+- `addFertilizerProduct()`: Aggiunge prodotto
+- `updateFertilizerQuantity()`: Aggiorna quantità
+- `checkLowStock()`: Verifica scorte basse
+- `getFertilizerAlerts()`: Alert scorte insufficienti
+
+**Alert logica**:
+- Verifica scorte vs necessità stagione
+- Alert se prodotto necessario ma scorte < 20% necessità
+- Suggerisce acquisto con timing
+
+#### compostService.ts
+**Responsabilità**: Gestisce autoproduzione compost: tradizionale, lombrico, bokashi
+
+**Funzioni principali**:
+- `calculateCNRatio()`: Calcola rapporto C/N materiali
+- `suggestCompostMaterials()`: Suggerisce materiali per rapporto C/N ottimale
+- `estimateMaturityDate()`: Stima data maturazione compost
+- `getCompostInstructions()`: Istruzioni per tipo compost
+- `trackCompostProduction()`: Traccia produzione compost
+
+**Tipi compost**:
+- Compost tradizionale (rapporto C/N 25-30:1)
+- Lombricompost (più ricco, rapporto C/N 15-20:1)
+- Bokashi (fermentazione anaerobica, più veloce)
+
+#### phytoInventoryService.ts
+**Responsabilità**: Gestisce inventario prodotti fitofarmaci, scorte, scadenze
+
+**Funzioni principali**:
+- `getPhytoInventory()`: Recupera inventario
+- `addPhytoProduct()`: Aggiunge prodotto
+- `checkExpiryAlerts()`: Alert prodotti in scadenza
+- `checkLowStock()`: Verifica scorte basse
+- `getRequiredProducts()`: Prodotti necessari per trattamenti pianificati
+
+#### treatmentRegistryService.ts
+**Responsabilità**: Registro trattamenti fitosanitari per professionisti (obbligatorio)
+
+**Funzioni principali**:
+- `registerTreatment()`: Registra trattamento
+- `getTreatmentHistory()`: Storico trattamenti
+- `checkSafetyInterval()`: Verifica se ancora in carenza
+- `getActiveSafetyIntervals()`: Trattamenti ancora in periodo carenza
+- `exportRegistry()`: Esporta registro (PDF, CSV)
+
+**Struttura registro**:
+- Data trattamento
+- Prodotto e dosaggio
+- Pianta trattata
+- Condizioni meteo
+- Fine periodo carenza
+
+#### maceratesService.ts
+**Responsabilità**: Gestisce preparati naturali: macerati, decotti, infusi
+
+**Funzioni principali**:
+- `getMacerateRecipe()`: Ricetta macerato (ortica, aglio, equiseto, tanaceto)
+- `calculatePreparationTime()`: Tempo preparazione
+- `getDosageAndApplication()`: Dosaggio e modalità applicazione
+- `getStorageInstructions()`: Come conservare
+- `trackMacerateProduction()`: Traccia produzione
+
+**Macerati supportati**:
+- Macerato ortica: Azoto + repellente afidi
+- Macerato aglio: Fungicida leggero
+- Decotto equiseto: Silicio, anticrittogamico
+- Infuso tanaceto: Repellente insetti
 
 #### recipeService.ts
 **Responsabilità**: Generazione ricette AI
@@ -302,6 +683,20 @@ ortomio-main/
 - Nome
 - Ingredienti (array)
 - Istruzioni (array)
+
+### Utils
+
+#### areaConverter.ts
+**Responsabilità**: Conversione unità di misura superficie
+
+**Funzioni principali**:
+- `convertToSqMeters()`: Converte da qualsiasi unità a metri quadri (per calcoli interni)
+- `convertFromSqMeters()`: Converte da metri quadri a unità target (per display)
+- `formatArea()`: Formatta valore con unità per visualizzazione (formato italiano)
+- `getRecommendedUnit()`: Suggerisce unità più appropriata in base alla dimensione
+
+**Unità supportate**: m² (sqm), are, ettari (hectare)
+**Conversioni**: 1 are = 100 m², 1 ettaro = 10.000 m² = 100 are
 - Porzioni (opzionale)
 - Tempo preparazione (opzionale)
 
@@ -320,9 +715,16 @@ interface Garden {
   sizeSqMeters: number;
   soilType?: 'Clay' | 'Sandy' | 'Loamy' | 'Peaty' | 'Chalky' | 'Silty';
   soilPh?: number;
-  sunExposure?: 'FullSun' | 'PartialSun' | 'PartialShade' | 'FullShade';
-  sunHours?: number;
-  orientation?: 'North' | 'South' | 'East' | 'West' | ...;
+  sunExposure?: 'FullSun' | 'PartSun' | 'Shade';
+  dailySunHours?: number;
+  aspectDirection?: 'North' | 'South' | 'East' | 'West' | 'Flat';
+  obstacles?: Array<{
+    azimuth: number;        // 0-360°
+    height: number;         // metri
+    distance: number;       // metri
+    widthDegrees: number;  // gradi
+    type?: 'Building' | 'Tree' | 'Mountain' | 'Other';
+  }>;
   vacationMode?: VacationPlan;
   createdAt: string;
 }
@@ -366,11 +768,98 @@ interface PlantMasterSheet {
   baseInstructions: { /* ... */ };
   susceptibility: { /* ... */ };
   irrigationDetails?: IrrigationDetails;
+  
+  // NEW: Visual category for UI filtering
+  visualCategory?: 'Orto' | 'Frutteto' | 'Vigneto' | 'Uliveto' | 
+                   'Agrumeto' | 'PiccoliFrutti' | 'Aromatiche' | 
+                   'Ornamentali' | 'Cereali' | 'Leguminose' | 
+                   'Industriali' | 'Foraggere' | 'Forestali' | 'Esotici';
+  
+  // NEW: AI metadata for intelligent suggestions
+  aiMetadata?: {
+    harvestedOrgan?: 'Leaf' | 'Fruit' | 'Root' | 'Bulb' | 'Flower' | 'Seed' | 'Stem';
+    difficulty?: 'Easy' | 'Medium' | 'Hard';
+    compatibleSystems?: Array<'Soil' | 'Hydroponic' | 'Aquaponic' | 'Aeroponic' | 'Indoor'>;
+    lifecycle?: 'Annual' | 'Biennial' | 'Perennial';
+    climateNeeds?: { /* ... */ };
+    timeline?: { /* ... */ };
+    rotation?: { /* ... */ };
+    companionships?: { /* ... */ };
+  };
+  
   // ... altri campi
 }
 ```
 
-Vedi `types.ts` per tutte le definizioni complete.
+### ExoticFruitCrop (extends PlantMasterSheet)
+```typescript
+interface ExoticFruitCrop extends PlantMasterSheet {
+  cropType: 'ExoticFruit';
+  fruitType: 'Tropical' | 'Subtropical' | 'MediterraneanExotic';
+  
+  // Varieties available
+  varieties?: ExoticFruitVariety[];
+  
+  // Universal climate compatibility
+  climateCompatibility?: {
+    usdaZones: number[];
+    optimalUsdaZones: number[];
+    tempMinSurvival: number;
+    tempMinGrowth: number;
+    tempOptimal: { min: number; max: number };
+    tempMax: number;
+    maxAltitudeMeters?: number;
+    benefitsFromSea?: boolean;
+    seaDistanceKm?: number;
+  };
+  
+  // Cultivation systems
+  cultivationSystems?: {
+    openField: { possible: boolean; requires: { /* ... */ }; };
+    container: { possible: boolean; minSizeLiters?: number; /* ... */ };
+    greenhouse: { required: boolean; type: 'Cold' | 'Warm' | 'Tropical'; /* ... */ };
+  };
+  
+  // Runtime calculated feasibility result
+  feasibilityResult?: FeasibilityResult;
+}
+```
+
+### ExoticFruitVariety
+```typescript
+interface ExoticFruitVariety {
+  id: string;
+  name: string;
+  coldHardiness: number; // °C minimum survival
+  heatTolerance: number; // °C maximum tolerance
+  containerFriendly: boolean;
+  dwarf?: boolean;
+  maturityYears: number;
+  harvestMonths: number[];
+  bestUsdaZones: number[];
+  notes?: string;
+}
+```
+
+### FeasibilityResult
+```typescript
+interface FeasibilityResult {
+  feasibility: 'Ideal' | 'Possible' | 'Difficult' | 'NotRecommended';
+  score: number; // 0-100
+  requiredProtections: string[];
+  recommendedVariety?: string;
+  recommendedSystem: 'openField' | 'container' | 'greenhouse';
+  warnings: string[];
+  personalizedTimeline?: {
+    sowingDate?: string;
+    transplantDate?: string;
+    harvestStart?: string;
+    harvestEnd?: string;
+  };
+}
+```
+
+Vedi `types.ts` e `types/exoticFruit.ts` per tutte le definizioni complete.
 
 ---
 
@@ -598,6 +1087,77 @@ export default NuovoComponente;
 2. Importa in `App.tsx` o componente padre
 3. Aggiungi navigazione se necessario
 
+### Aggiungere Nuova Pianta Esotica con Matching Geografico
+
+1. Aggiungi scheda in `data/exoticFruitMasterSheets.ts`:
+```typescript
+{
+  id: 'nuovo-frutto-esotico',
+  commonName: 'NOME FRUTTO',
+  cropType: 'ExoticFruit',
+  visualCategory: 'Esotici',
+  
+  // Varietà disponibili
+  varieties: [
+    {
+      id: 'varieta-1',
+      name: 'Varietà Nome',
+      coldHardiness: 5,
+      heatTolerance: 35,
+      containerFriendly: true,
+      dwarf: true,
+      maturityYears: 3,
+      harvestMonths: [7, 8, 9],
+      bestUsdaZones: [9, 10],
+      notes: 'Varietà nano, ideale per vaso'
+    }
+  ],
+  
+  // Compatibilità climatica
+  climateCompatibility: {
+    usdaZones: [9, 10, 11],
+    optimalUsdaZones: [10, 11],
+    tempMinSurvival: 5,
+    tempMinGrowth: 10,
+    tempOptimal: { min: 24, max: 30 },
+    tempMax: 40,
+    maxAltitudeMeters: 300,
+    benefitsFromSea: true,
+    seaDistanceKm: 50
+  },
+  
+  // Sistemi di coltivazione
+  cultivationSystems: {
+    openField: {
+      possible: true,
+      requires: {
+        minUsdaZone: 10,
+        protection: 'Temporary',
+        protectionType: 'TNT'
+      }
+    },
+    container: {
+      possible: true,
+      minSizeLiters: 100,
+      moveableIndoor: true,
+      indoorMonths: [11, 12, 1, 2]
+    },
+    greenhouse: {
+      required: false,
+      type: 'Warm',
+      heatingRequired: true,
+      minTempGreenhouse: 10
+    }
+  },
+  
+  // ... altri campi standard PlantMasterSheet
+}
+```
+
+2. Il sistema calcolerà automaticamente la fattibilità quando l'utente cerca la pianta nel Planner
+3. I componenti UI (GeographicFeasibilityCard, VarietySelector, CultivationSystemSelector) si attiveranno automaticamente
+4. Il widget GeographicMatchingWidget nella Dashboard mostrerà la pianta nelle sezioni appropriate (Ideali/Opportunità/Warnings)
+
 ---
 
 ## Best Practices
@@ -678,4 +1238,3 @@ export default NuovoComponente;
 ---
 
 **Documentazione Tecnica OrtoMio** - Versione 1.0
-

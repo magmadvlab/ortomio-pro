@@ -28,8 +28,8 @@ const BrixMonitor: React.FC<BrixMonitorProps> = ({ task, garden, onUpdateBrix })
       if (garden.coordinates) {
         weather = await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude);
       }
-      const estimated = calculateBrixProgress(vineCrop, new Date(), weather);
-      setEstimatedBrix(estimated);
+      const estimated = calculateBrixProgress(vineCrop, new Date(), weather ?? undefined);
+      setEstimatedBrix(estimated ?? null);
     };
 
     updateBrix();

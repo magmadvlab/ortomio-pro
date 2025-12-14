@@ -43,3 +43,20 @@ export const getDefaultStorageProvider = (): IStorageProvider => {
   return createStorageProvider('auto');
 };
 
+/**
+ * Get Supabase storage provider
+ */
+export const getSupabaseStorageProvider = (): IStorageProvider | null => {
+  if (!isSupabaseAvailable()) {
+    return null;
+  }
+  return new SupabaseStorageProvider();
+};
+
+/**
+ * Get LocalStorage provider
+ */
+export const getLocalStorageProvider = (): IStorageProvider => {
+  return new LocalStorageProvider();
+};
+

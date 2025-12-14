@@ -17,7 +17,32 @@ interface HarvestLogProps {
 // OR we simulate it by finding the task and updating it via a new prop.
 // For this implementation, I'll update App.tsx to pass an updateTask handler to HarvestLog as well.
 
+/**
+ * HarvestLog Component - Gestione Raccolti e Statistiche
+ * 
+ * Permette di registrare raccolti, visualizzare statistiche e analisi economica.
+ * 
+ * FUNZIONALITÀ:
+ * - Registrazione raccolti parziali e finali
+ * - Calcolo resa totale per coltura
+ * - Filtri stagionali per analisi mirate
+ * - Analisi economica (valore raccolto vs costi)
+ * - Suggerimenti ricette basati su raccolto
+ */
 const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) => void }> = ({ tasks, onAddHarvest, onUpdateTask }) => {
+  /**
+   * FILTRO STAGIONALE - Filtra raccolti per stagione
+   * 
+   * Permette di visualizzare solo i raccolti di una stagione specifica:
+   * - TUTTI: Mostra tutti i raccolti indipendentemente dalla stagione
+   * - ESTIVO: Solo raccolti di colture estive (pomodori, zucchine, peperoni, etc.)
+   * - INVERNALE: Solo raccolti di colture invernali (cavoli, spinaci, rucola, etc.)
+   * 
+   * Utile per:
+   * - Analisi stagionali separate
+   * - Confronto resa estiva vs invernale
+   * - Pianificazione miglioramenti per stagione
+   */
   const [filterSeason, setFilterSeason] = useState<'All' | 'Summer' | 'Winter'>('All');
   const [selectedTaskForHarvest, setSelectedTaskForHarvest] = useState<GardenTask | null>(null);
   
@@ -27,6 +52,7 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
   const [harvestRating, setHarvestRating] = useState(3);
   const [harvestDate, setHarvestDate] = useState(new Date().toISOString().split('T')[0]);
   const [harvestPhoto, setHarvestPhoto] = useState<string | null>(null);
+  const [harvestPlantName, setHarvestPlantName] = useState(''); // For manual harvest entry
   const [showRecipes, setShowRecipes] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loadingRecipes, setLoadingRecipes] = useState(false);
@@ -34,12 +60,26 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
   // Grouped Data for Statistics
   const activeTasks = tasks.filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant'));
   
+  /**
+   * CALCOLO RESA TOTALE - Statistiche per Coltura
+   * 
+   * Aggrega tutti i raccolti (finali e parziali) per ogni coltura, considerando:
+   * - Raccolti finali: Raccolto completo quando la pianta viene completata
+   * - Raccolti parziali: Raccolti intermedi durante la produzione (es. pomodori a scalare)
+   * - Filtro stagionale: Mostra solo raccolti della stagione selezionata (Summer/Winter)
+   * 
+   * La resa viene normalizzata in kg (converte grammi in kg) e raggruppata per:
+   * - Pianta + Varietà (es. "Pomodoro-Datterino")
+   * - Posizione (Ground, Pot, RaisedBed)
+   * - Numero di piante
+   */
   const getStatsByCrop = () => {
       const stats: Record<string, { totalYield: number, plants: number, location: GrowingLocation, variety: string }> = {};
       
       // Calculate from completed tasks + partial harvests of active tasks
       tasks.forEach(t => {
           if (t.taskType !== 'Sowing' && t.taskType !== 'Transplant') return; // Only count crop tasks
+          // FILTRO STAGIONALE: Mostra solo raccolti della stagione selezionata
           if (filterSeason !== 'All' && t.season !== filterSeason) return;
 
           const key = `${t.plantName}-${t.variety || 'Gen'}`;
@@ -71,7 +111,23 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
   const cropStats = getStatsByCrop();
   const totalYieldAll = Object.values(cropStats).reduce((acc, curr) => acc + curr.totalYield, 0);
 
-  // Economic Analysis
+  /**
+   * ANALISI ECONOMICA - Valore del Raccolto
+   * 
+   * Calcola il valore economico del raccolto basandosi su:
+   * - Prezzi bio di mercato (data/bioPrices.ts) per ogni tipo di verdura
+   * - Resa totale per coltura
+   * 
+   * METRICHE:
+   * - totalValue: Valore totale del raccolto ai prezzi bio
+   * - estimatedCosts: Costi stimati (acqua, concime, semi) = 0.75€/kg
+   * - netSavings: Risparmio netto = Valore - Costi
+   * 
+   * Utile per:
+   * - Valutare l'efficienza dell'orto
+   * - Confrontare costi/benefici
+   * - Motivare la coltivazione domestica
+   */
   const calculateEconomicAnalysis = () => {
     let totalValue = 0;
     const cropValues: Record<string, number> = {};
@@ -119,6 +175,16 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
       e.preventDefault();
       if (!selectedTaskForHarvest) return;
 
+      // For manual harvest, require plant name
+      const plantName = selectedTaskForHarvest.id === 'manual-harvest' 
+          ? harvestPlantName.trim() 
+          : selectedTaskForHarvest.plantName;
+
+      if (!plantName) {
+          alert('Inserisci il nome della pianta');
+          return;
+      }
+
       const newLog: HarvestLogData = {
           id: crypto.randomUUID(),
           quantity: parseFloat(harvestQty),
@@ -133,7 +199,7 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
       let fetchedRecipes: Recipe[] = [];
       try {
           fetchedRecipes = await getRecipesForHarvest(
-              selectedTaskForHarvest.plantName,
+              plantName,
               newLog.quantity,
               newLog.unit
           );
@@ -150,15 +216,21 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
           setLoadingRecipes(false);
       }
 
-      // Update the task with partial harvest history
-      const updatedHistory = [...(selectedTaskForHarvest.harvestHistory || []), newLog];
-      
-      onUpdateTask({
-          ...selectedTaskForHarvest,
-          harvestHistory: updatedHistory,
-          // Optional: Add a note
-          notes: (selectedTaskForHarvest.notes || '') + `\n🧺 Raccolto parziale: ${newLog.quantity}${newLog.unit} il ${new Date(newLog.date).toLocaleDateString('it-IT')}`
-      });
+      // If manual harvest, use onAddHarvest instead of onUpdateTask
+      if (selectedTaskForHarvest.id === 'manual-harvest') {
+          const season = filterSeason === 'All' ? 'Summer' : filterSeason;
+          await onAddHarvest(plantName, newLog, season);
+      } else {
+          // Update the task with partial harvest history
+          const updatedHistory = [...(selectedTaskForHarvest.harvestHistory || []), newLog];
+          
+          onUpdateTask({
+              ...selectedTaskForHarvest,
+              harvestHistory: updatedHistory,
+              // Optional: Add a note
+              notes: (selectedTaskForHarvest.notes || '') + `\n🧺 Raccolto parziale: ${newLog.quantity}${newLog.unit} il ${new Date(newLog.date).toLocaleDateString('it-IT')}`
+          });
+      }
 
       // Reset form (but keep modal open if recipes are showing)
       // Use fetchedRecipes instead of recipes since state updates are asynchronous
@@ -168,6 +240,7 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
       // Reset all form fields to prevent stale data
       setHarvestQty('');
       setHarvestPhoto(null);
+      setHarvestPlantName('');
       setHarvestRating(3); // Reset to default
       setHarvestDate(new Date().toISOString().split('T')[0]); // Reset to today
   };
@@ -226,30 +299,76 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
       {/* Active Crop Quick Harvest */}
       <div>
           <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <PlusCircle size={18} className="text-green-600"/> Aggiungi Raccolto a...
+              <PlusCircle size={18} className="text-green-600"/> Aggiungi Raccolto
           </h2>
           {activeTasks.length === 0 ? (
-              <p className="text-sm text-gray-500 italic">Nessuna coltura attiva disponibile.</p>
+              <div className="bg-white p-4 rounded-xl border border-green-200 shadow-sm">
+                  <p className="text-sm text-gray-500 mb-4">Nessuna coltura attiva disponibile.</p>
+                  <button
+                      onClick={() => {
+                          // Create a temporary task for manual harvest entry
+                          const manualTask: GardenTask = {
+                              id: 'manual-harvest',
+                              gardenId: '',
+                              plantName: '',
+                              taskType: 'Harvest',
+                              date: new Date().toISOString().split('T')[0],
+                              completed: false,
+                              currentQuantity: 1,
+                              locationType: 'Ground',
+                              season: filterSeason === 'All' ? 'Summer' : filterSeason,
+                          } as GardenTask;
+                          setSelectedTaskForHarvest(manualTask);
+                      }}
+                      className="w-full py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                      <PlusCircle size={20} />
+                      Aggiungi Raccolto Manuale
+                  </button>
+              </div>
           ) : (
-              <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
-                  {activeTasks.map(task => (
-                      <button 
-                        key={task.id}
-                        onClick={() => setSelectedTaskForHarvest(task)}
-                        className="flex-shrink-0 bg-white p-3 rounded-xl border border-green-100 shadow-sm w-40 text-left hover:border-green-300 transition-all"
-                      >
-                          <div className="flex justify-between items-start mb-2">
-                              <div className="font-bold text-gray-800 truncate pr-2">{task.plantName}</div>
-                              <div className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded flex items-center gap-1">
-                                  {getLocationIcon(task.locationType)}
+              <div className="space-y-3">
+                  <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+                      {activeTasks.map(task => (
+                          <button 
+                            key={task.id}
+                            onClick={() => setSelectedTaskForHarvest(task)}
+                            className="flex-shrink-0 bg-white p-3 rounded-xl border border-green-100 shadow-sm w-40 text-left hover:border-green-300 transition-all"
+                          >
+                              <div className="flex justify-between items-start mb-2">
+                                  <div className="font-bold text-gray-800 truncate pr-2">{task.plantName}</div>
+                                  <div className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                      {getLocationIcon(task.locationType)}
+                                  </div>
                               </div>
-                          </div>
-                          <p className="text-xs text-gray-500 truncate">{task.variety}</p>
-                          <div className="mt-2 text-xs font-medium text-green-600 flex items-center gap-1">
-                              <Leaf size={12}/> {task.currentQuantity} piante
-                          </div>
-                      </button>
-                  ))}
+                              <p className="text-xs text-gray-500 truncate">{task.variety}</p>
+                              <div className="mt-2 text-xs font-medium text-green-600 flex items-center gap-1">
+                                  <Leaf size={12}/> {task.currentQuantity} piante
+                              </div>
+                          </button>
+                      ))}
+                  </div>
+                  <button
+                      onClick={() => {
+                          // Create a temporary task for manual harvest entry
+                          const manualTask: GardenTask = {
+                              id: 'manual-harvest',
+                              gardenId: '',
+                              plantName: '',
+                              taskType: 'Harvest',
+                              date: new Date().toISOString().split('T')[0],
+                              completed: false,
+                              currentQuantity: 1,
+                              locationType: 'Ground',
+                              season: filterSeason === 'All' ? 'Summer' : filterSeason,
+                          } as GardenTask;
+                          setSelectedTaskForHarvest(manualTask);
+                      }}
+                      className="w-full py-3 bg-green-50 text-green-700 rounded-xl font-semibold hover:bg-green-100 transition-colors flex items-center justify-center gap-2 border border-green-200"
+                  >
+                      <PlusCircle size={18} />
+                      Aggiungi Raccolto Manuale
+                  </button>
               </div>
           )}
       </div>
@@ -260,13 +379,47 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
                <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95">
                   <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-xl font-bold text-gray-800">{selectedTaskForHarvest.plantName}</h3>
-                        <p className="text-sm text-gray-500">{selectedTaskForHarvest.variety} • {new Date(selectedTaskForHarvest.date).toLocaleDateString('it-IT')}</p>
+                        <h3 className="text-xl font-bold text-gray-800">
+                          {selectedTaskForHarvest.id === 'manual-harvest' 
+                            ? 'Aggiungi Raccolto Manuale' 
+                            : selectedTaskForHarvest.plantName}
+                        </h3>
+                        {selectedTaskForHarvest.id !== 'manual-harvest' && (
+                          <p className="text-sm text-gray-500">
+                            {selectedTaskForHarvest.variety} • {new Date(selectedTaskForHarvest.date).toLocaleDateString('it-IT')}
+                          </p>
+                        )}
                       </div>
-                      <button onClick={() => setSelectedTaskForHarvest(null)}><X size={20} className="text-gray-400"/></button>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setSelectedTaskForHarvest(null);
+                          setHarvestPlantName('');
+                          setHarvestQty('');
+                          setHarvestPhoto(null);
+                          setHarvestRating(3);
+                          setHarvestDate(new Date().toISOString().split('T')[0]);
+                        }}
+                      >
+                        <X size={20} className="text-gray-400"/>
+                      </button>
                   </div>
 
                   <form onSubmit={handleSubmitHarvest} className="space-y-4">
+                      {/* Plant Name field for manual harvest */}
+                      {selectedTaskForHarvest.id === 'manual-harvest' && (
+                          <div>
+                              <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Nome Pianta *</label>
+                              <input 
+                                required
+                                type="text" 
+                                value={harvestPlantName} 
+                                onChange={e => setHarvestPlantName(e.target.value)}
+                                placeholder="Es: Pomodoro, Zucchina..."
+                                className="w-full p-2 border border-gray-300 rounded-lg outline-none focus:border-orange-500"
+                              />
+                          </div>
+                      )}
                       <div className="flex gap-2">
                           <div className="flex-1">
                               <label className="text-xs font-bold text-gray-500 uppercase">Quantità</label>

@@ -4,9 +4,12 @@ import { findSpecies, findVariety, getVarietyInfo, suggestVarieties } from "./pl
 import { generateCompleteGuide, getVarietyInfo as getMasterVarietyInfo, findSpeciesFromVariety } from "./plantMasterService";
 import { getSeasonForDate } from "../utils/seasonalAdjustment";
 
-// Per Vite: usa import.meta.env.VITE_* 
-// Crea un file .env nella root del progetto con: VITE_GEMINI_API_KEY=la_tua_chiave
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+// Support both Next.js and Vite environments
+// Next.js: GEMINI_API_KEY (server-side) or NEXT_PUBLIC_GEMINI_API_KEY (client-side)
+// Vite: VITE_GEMINI_API_KEY
+const apiKey = typeof window !== 'undefined'
+  ? (process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY)
+  : (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY);
 
 // Validazione API Key
 export const isApiKeyConfigured = (): boolean => {

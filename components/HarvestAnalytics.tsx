@@ -25,10 +25,6 @@ const HarvestAnalytics: React.FC<HarvestAnalyticsProps> = ({ harvests, gardenId 
       return;
     }
 
-    calculateAnalytics();
-  }, [harvests, timeRange, can]);
-
-  const calculateAnalytics = () => {
     let startDate: Date | undefined;
     let endDate: Date | undefined;
 
@@ -42,7 +38,7 @@ const HarvestAnalytics: React.FC<HarvestAnalyticsProps> = ({ harvests, gardenId 
 
     const result = calculateHarvestAnalytics(harvests, startDate, endDate);
     setAnalytics(result);
-  };
+  }, [harvests, timeRange]); // Rimossa 'can' dalle dipendenze - viene solo usata per controllo condizionale
 
   if (!can('harvestAnalytics')) {
     return (

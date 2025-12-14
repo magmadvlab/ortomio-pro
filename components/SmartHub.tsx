@@ -11,6 +11,26 @@ interface SmartHubProps {
   garden: Garden;
 }
 
+/**
+ * SmartHub Component
+ * 
+ * Gestisce il monitoraggio e controllo dei dispositivi IoT per l'irrigazione automatica.
+ * 
+ * FUNZIONALITÀ PRINCIPALI:
+ * 1. Simulazione IoT: In modalità demo, i dispositivi vengono simulati automaticamente
+ *    tramite il motore di simulazione in App.tsx che aggiorna umidità, flusso d'acqua
+ *    e stato valvola ogni secondo basandosi su fisica realistica (evaporazione, bagnatura).
+ * 
+ * 2. Auto-Start/Auto-Stop: 
+ *    - Auto-Start: Se la modalità automatica è abilitata e l'umidità scende sotto la soglia
+ *      configurata (autoThreshold), la valvola si apre automaticamente.
+ *    - Auto-Stop: Quando la valvola è aperta e il volume d'acqua erogato (sessionLiters)
+ *      raggiunge il target configurato (targetLiters), la valvola si chiude automaticamente.
+ * 
+ * 3. AI Analisi: Il pulsante "AI ANALISI" utilizza Gemini AI per analizzare i dati del sensore
+ *    (umidità, temperatura simulata) e fornire consigli personalizzati sull'irrigazione
+ *    basati sulle condizioni del giardino.
+ */
 const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDeviceSettings, garden }) => {
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [aiAdvice, setAiAdvice] = useState<Record<string, string>>({});
@@ -19,6 +39,13 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
   // Filter devices for current garden
   const gardenDevices = devices.filter(d => d.gardenId === garden.id);
 
+  /**
+   * Analizza i dati del sensore con AI
+   * 
+   * Utilizza Gemini AI per analizzare umidità e temperatura e fornire consigli
+   * personalizzati sull'irrigazione. La temperatura è simulata in questa demo,
+   * ma in un'app reale verrebbe letta da un sensore fisico.
+   */
   const handleAnalyze = async (device: SmartDevice) => {
       setAnalyzingId(device.id);
       // Simulated temperature (would come from sensor in real app)
@@ -126,6 +153,11 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
                           {/* CONTROLS & STATS */}
                           <div className="flex-1 w-full space-y-4">
                                {/* VALVE CONTROL */}
+                               {/* 
+                                 * Controllo manuale della valvola.
+                                 * Toggle per aprire/chiudere manualmente. Se la modalità automatica è attiva,
+                                 * la valvola può aprirsi automaticamente quando l'umidità scende sotto la soglia.
+                                 */}
                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex justify-between items-center">
                                    <div>
                                        <p className="text-xs font-bold text-gray-500 uppercase mb-1">Stato Valvola</p>
@@ -144,6 +176,12 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
                                </div>
 
                                {/* FLOW METER */}
+                               {/* 
+                                 * Monitoraggio flusso d'acqua:
+                                 * - Sessione: Litri erogati nella sessione corrente (si resetta quando la valvola si chiude)
+                                 * - Target Auto-Stop: Volume massimo da erogare prima di chiudere automaticamente la valvola.
+                                 *   Quando sessionLiters raggiunge targetLiters, la valvola si chiude automaticamente.
+                                 */}
                                <div className="grid grid-cols-2 gap-3">
                                    <div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
                                        <p className="text-[10px] font-bold text-blue-400 uppercase mb-1">Sessione</p>
@@ -179,6 +217,12 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
                           
                           <div className="space-y-4">
                                {/* Auto Start Threshold */}
+                               {/* 
+                                 * Soglia di umidità per avvio automatico.
+                                 * Quando l'umidità scende sotto questo valore E la modalità automatica è attiva,
+                                 * la valvola si apre automaticamente per irrigare.
+                                 * Impostare a 0 disabilita l'auto-start.
+                                 */}
                                <div>
                                    <div className="flex justify-between mb-2">
                                        <label className="text-xs font-bold text-gray-500">Soglia Avvio Automatico</label>
@@ -197,6 +241,11 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
                                </div>
 
                                {/* Auto Stop Target */}
+                               {/* 
+                                 * Volume massimo di acqua da erogare prima di chiudere automaticamente la valvola.
+                                 * Quando sessionLiters raggiunge questo valore, la valvola si chiude automaticamente
+                                 * per prevenire sovra-irrigazione. Utile per controllare la quantità esatta di acqua.
+                                 */}
                                <div>
                                    <label className="text-xs font-bold text-gray-500 mb-2 block">Target Acqua (Auto-Stop)</label>
                                    <div className="flex items-center gap-3">
@@ -217,6 +266,12 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
                                    </p>
                                </div>
 
+                               {/* Modalità Automatica */}
+                               {/* 
+                                 * Abilita/disabilita la modalità automatica completa.
+                                 * Quando attiva: la valvola si apre automaticamente quando l'umidità scende sotto autoThreshold
+                                 * e si chiude quando sessionLiters raggiunge targetLiters.
+                                 */}
                                <div className="pt-2 flex items-center gap-2">
                                    <input 
                                         type="checkbox" 

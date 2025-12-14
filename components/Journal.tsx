@@ -1,9 +1,12 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { GardenTask, HarvestLogData, GrowingLocation, Garden } from '../types';
 import { analyzePlantImage, checkHarvestReadiness } from '../services/geminiService';
-import { calculateNutrientNeeds } from '../logic/nutrientEngine';
+import { calculateNutrientNeeds, NutrientAdvice } from '../logic/nutrientEngine';
 import { calculateHealthStrategy } from '../logic/healthEngine';
 import { getMasterSheet } from '../services/plantMasterService';
+import { suggestFertilizerProduct, FertilizerRecommendation } from '../logic/fertilizerEngine';
 import { calculatePlantDaysActive } from '../services/taskCalculationService';
 import { checkLifecycleStatus, LifecycleAdvice } from '../logic/lifecycleEngine';
 import { calculateMoonPhase, getMoonPhaseName, getMoonPhaseNameFromPhase, getMoonPhaseEmoji } from '../logic/lunarCalendar';
@@ -27,6 +30,9 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
   // Lifecycle Coach State
   const [lifecycleAdvices, setLifecycleAdvices] = useState<Map<string, LifecycleAdvice>>(new Map());
   
+  // Fertilizer Engine - Prodotti concreti per fabbisogni nutrizionali
+  const [fertilizerRecommendations, setFertilizerRecommendations] = useState<Map<string, FertilizerRecommendation | null>>(new Map());
+  
   // Harvest Modal State
   const [harvestModalOpen, setHarvestModalOpen] = useState<string | null>(null);
   const [harvestData, setHarvestData] = useState<HarvestLogData>({
@@ -37,6 +43,26 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
   });
 
   // New task state
+  /**
+   * NUOVA ATTIVITÀ - Form per aggiungere attività al diario
+   * 
+   * CAMPI PRINCIPALI:
+   * - plantName: Nome della pianta (es. "Pomodoro")
+   * - variety: Varietà specifica (es. "Datterino")
+   * - taskType: Tipo di attività (Sowing, Transplant, Fertilize, Treatment, Prune, Harvest)
+   * - plantingMethod: Metodo di semina (Seed o Seedling) - solo per Sowing/Transplant
+   * - date: Data dell'attività
+   * - notes: Note e osservazioni
+   * - nextDueDate: Data prossimo intervento (per SISTEMA REMINDER)
+   * - season: Stagione (auto-rilevata dalla data)
+   * - quantity: Quantità di piante
+   * - locationType: Posizione (Ground, Pot, RaisedBed)
+   * 
+   * SISTEMA REMINDER:
+   * Il campo "nextDueDate" permette di impostare una data per il prossimo intervento
+   * (es. prossima concimazione, trattamento, potatura). Il sistema mostrerà un
+   * promemoria quando la data si avvicina (7 giorni prima) nel Dashboard.
+   */
   const [newTask, setNewTask] = useState<{
     plantName: string;
     variety: string;
@@ -226,7 +252,28 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
     setHarvestModalOpen(null);
   };
 
-  // Calculate lifecycle advices for active planting tasks
+  /**
+   * LIFECYCLE COACH - Monitoraggio Fasi di Crescita
+   * 
+   * Il Lifecycle Coach analizza automaticamente tutte le piante attive e determina
+   * la loro fase di crescita attuale basandosi su:
+   * - Giorni trascorsi dalla semina/trapianto
+   * - Caratteristiche della pianta (tempi di germinazione, crescita, etc.)
+   * - Condizioni del giardino (tipo terreno, pH, esposizione)
+   * 
+   * FASI RILEVATE:
+   * - Sowing: Semina appena effettuata
+   * - Germination: Attesa germinazione (richiede conferma utente)
+   * - Nursing: Crescita in semenzaio o fase iniziale
+   * - Hardening: Preparazione al trapianto (per piantine)
+   * - Transplanting: Pronto per trapianto (richiede conferma utente)
+   * - Production: In produzione, raccolta possibile
+   * 
+   * Per ogni fase, il Coach fornisce:
+   * - Messaggio descrittivo della fase
+   * - Azioni suggerite (es. "Trapianta ora", "Aspetta altri 3 giorni")
+   * - Consigli nutrizionali e di salute correlati
+   */
   useEffect(() => {
     if (!garden) return;
     
@@ -259,6 +306,64 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
       })
     ).then(() => {
       setLifecycleAdvices(advicesMap);
+    });
+  }, [tasks, garden]);
+
+  // Fertilizer Engine - Calcola prodotti concreti per fabbisogni nutrizionali
+  useEffect(() => {
+    if (!garden) return;
+    
+    const activePlantingTasks = tasks.filter(t => 
+      !t.completed && 
+      (t.taskType === 'Sowing' || t.taskType === 'Transplant') &&
+      t.gardenId === garden.id
+    );
+    
+    if (activePlantingTasks.length === 0) {
+      setFertilizerRecommendations(new Map());
+      return;
+    }
+
+    const recommendationsMap = new Map<string, FertilizerRecommendation | null>();
+
+    Promise.all(
+      activePlantingTasks.map(async (task) => {
+        const masterSheet = getMasterSheet(task.plantName);
+        if (!masterSheet) return;
+
+        const daysActive = calculatePlantDaysActive(tasks, task.plantName, task.variety);
+        if (daysActive === null) return;
+
+        const nutrientAdvice = calculateNutrientNeeds(masterSheet, daysActive, garden.soilType);
+        if (!nutrientAdvice.shouldFertilize) {
+          recommendationsMap.set(task.id, null);
+          return;
+        }
+
+        try {
+          // Determina timing basato su fase
+          let timing: 'pre_planting' | 'top_dressing' | 'post_harvest' = 'top_dressing';
+          if (daysActive < 10) timing = 'pre_planting';
+          
+          const fertilizerRec = suggestFertilizerProduct(
+            nutrientAdvice.elementFocus,
+            garden.soilType,
+            timing,
+            undefined // availableProducts - TODO: caricare da inventario
+          );
+
+          if (fertilizerRec) {
+            recommendationsMap.set(task.id, fertilizerRec);
+          } else {
+            recommendationsMap.set(task.id, null);
+          }
+        } catch (error) {
+          console.error(`Error calculating fertilizer for ${task.plantName}:`, error);
+          recommendationsMap.set(task.id, null);
+        }
+      })
+    ).then(() => {
+      setFertilizerRecommendations(recommendationsMap);
     });
   }, [tasks, garden]);
 
@@ -420,6 +525,19 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Metodo di Partenza</label>
                   <div className="flex gap-4">
+                    {/* 
+                     * METODO DI PARTENZA - Scelta tra semina diretta o trapianto
+                     * 
+                     * "Dal Seme" (Seed): Semina diretta nel terreno finale.
+                     *   - Vantaggi: Pianta più robusta, radici non disturbate, meno stress
+                     *   - Svantaggi: Tempi più lunghi, richiede più spazio iniziale
+                     *   - Ideale per: Fagioli, zucchine, zucche, carote, ravanelli
+                     * 
+                     * "Da Piantina" (Seedling): Semina in semenzaio, poi trapianto.
+                     *   - Vantaggi: Controllo migliore, anticipa raccolto, risparmia spazio
+                     *   - Svantaggi: Stress da trapianto, richiede semenzaio
+                     *   - Ideale per: Pomodori, peperoni, melanzane, cavoli, lattughe
+                     */}
                     <label className={`flex-1 p-3 rounded-xl border cursor-pointer text-center transition-colors ${newTask.plantingMethod === 'Seed' ? 'bg-orange-50 border-orange-200 text-orange-800 font-bold' : 'bg-white border-gray-200 text-gray-500'}`}>
                       <input type="radio" className="hidden" name="method" checked={newTask.plantingMethod === 'Seed'} onChange={() => setNewTask({...newTask, plantingMethod: 'Seed'})} />
                       🌰 Dal Seme
@@ -484,7 +602,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
             return (
               <div key={task.id} className={`group relative flex flex-col p-4 sm:p-5 rounded-2xl border transition-all duration-200 ${task.completed ? 'bg-gray-50 border-gray-100 opacity-70' : 'bg-white border-green-50 shadow-sm hover:shadow-md hover:border-green-200 transform hover:scale-[1.01]'}`}>
                 <div className="flex items-start gap-4">
-                  <button onClick={() => handleTaskToggle(task)} className="mt-1 flex-shrink-0 text-gray-300 hover:text-green-500 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
+                  <button onClick={() => onToggleTask(task.id)} className="mt-1 flex-shrink-0 text-gray-300 hover:text-green-500 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
                     {task.completed ? <CheckCircle2 size={26} className="text-green-500" /> : <Circle size={26} />}
                   </button>
                   <div className="flex-1 min-w-0">
@@ -676,6 +794,42 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                               <p className="text-xs leading-relaxed">{advice.soilNote}</p>
                             </div>
                           )}
+                          {/* Prodotto Fertilizzante Concreto */}
+                          {(() => {
+                            const fertilizerRec = fertilizerRecommendations.get(task.id);
+                            if (!fertilizerRec) return null;
+                            
+                            return (
+                              <div className={`mt-3 p-3 rounded-lg border ${colors.border} bg-white/70`}>
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex-1">
+                                    <h5 className="font-semibold text-sm text-gray-900">{fertilizerRec.product.name}</h5>
+                                    <p className="text-xs text-gray-600 mt-1">{fertilizerRec.reason}</p>
+                                  </div>
+                                </div>
+                                <div className="mt-2 space-y-1 text-xs">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-gray-700">Dosaggio:</span>
+                                    <span className="text-gray-900">{fertilizerRec.dosage.amount} {fertilizerRec.dosage.unit}{fertilizerRec.dosage.perSqm ? '/m²' : ''}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-gray-700">Metodo:</span>
+                                    <span className="text-gray-900 capitalize">{fertilizerRec.method}</span>
+                                  </div>
+                                  {fertilizerRec.warnings && fertilizerRec.warnings.length > 0 && (
+                                    <div className="mt-2 p-2 bg-yellow-50 rounded border border-yellow-200">
+                                      <p className="text-xs text-yellow-800 font-medium">⚠️ Avvisi:</p>
+                                      <ul className="text-xs text-yellow-700 mt-1 space-y-1">
+                                        {fertilizerRec.warnings.map((w, i) => (
+                                          <li key={i}>• {w}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
                     })()}

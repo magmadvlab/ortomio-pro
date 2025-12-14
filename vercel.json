@@ -1,9 +1,19 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "devCommand": "npm run dev",
+  "buildCommand": "npm run build:next",
+  "outputDirectory": ".next",
+  "devCommand": "npm run dev:next",
   "installCommand": "npm install",
-  "framework": "vite",
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/reset-credits",
+      "schedule": "0 0 1 * *"
+    },
+    {
+      "path": "/api/cron/daily-challenge",
+      "schedule": "0 8 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

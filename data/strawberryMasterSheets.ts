@@ -276,6 +276,146 @@ export const strawberryMasterSheets: StrawberryCrop[] = [
       pests: ['Afidi', 'Tripide'],
       preventiveStrategy: 'MEDIUM'
     }
+  },
+  // BASILICATA - Varietà di Eccellenza per Esportazione
+  {
+    id: 'fragola-candonga',
+    commonName: 'FRAGOLA CANDONGA',
+    cropType: 'Strawberry',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Fragaria × ananassa',
+    family: 'Rosaceae',
+    varietyType: 'June-bearing',
+    plantingSystem: 'Spaced Row',
+    runnerManagement: {
+      removeRunners: true,
+      keepForPropagation: true
+    },
+    mulching: {
+      material: 'Plastic',
+      thickness: 0.02
+    },
+    harvestWindow: {
+      startMonth: 3, // Marzo (produzione precoce per esportazione)
+      endMonth: 6    // Giugno
+    },
+    renovationRequired: true,
+    renovationMonth: 7,
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: true
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '20-24°C',
+      minTemp: 12,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 10, max: 18 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 3-4 foglie',
+      lightNeeds: 'Sole diretto',
+      watering: 'Irrigazione regolare, evita ristagni',
+      temperature: '18-25°C'
+    },
+    transplanting: {
+      when: 'Agosto-Settembre per produzione precoce primaverile',
+      minTemp: 10,
+      spacing: '35-40cm sulla fila, 70-80cm tra le file',
+      holeDepth: 15,
+      holeWidth: 15,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-6.5. Ideale per terreni della Basilicata'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Candonga è una varietà di eccellenza della Basilicata, leader nell\'esportazione italiana. Frutti grandi, compatti, di colore rosso brillante, con ottima conservabilità e trasportabilità. Ideale per produzione professionale ed esportazione.',
+      commonMistakes: [
+        'Non rimuovere stoloni durante produzione (riduce dimensione frutti)',
+        'Gestione irrigazione insufficiente (frutti piccoli)',
+        'Raccolta troppo precoce (frutti acidi, scarsa conservabilità)',
+        'Non gestire correttamente la pacciamatura plastica'
+      ],
+      harvestGuide: 'Raccogli quando le fragole sono completamente rosse e brillanti. Frutti devono essere compatti e sodi per esportazione. Gestisci con cura per mantenere qualità commerciale. Raccolta al mattino presto per migliore conservabilità.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio', 'Botrite', 'Verticillium', 'Antracnosi'],
+      pests: ['Afidi', 'Tripide', 'Ragnetto rosso'],
+      preventiveStrategy: 'HIGH'
+    }
+  },
+  {
+    id: 'fragola-matera',
+    commonName: 'FRAGOLA MATERA',
+    cropType: 'Strawberry',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Fragaria × ananassa',
+    family: 'Rosaceae',
+    varietyType: 'June-bearing',
+    plantingSystem: 'Spaced Row',
+    runnerManagement: {
+      removeRunners: true,
+      keepForPropagation: true
+    },
+    mulching: {
+      material: 'Plastic',
+      thickness: 0.02
+    },
+    harvestWindow: {
+      startMonth: 3, // Marzo (produzione precoce)
+      endMonth: 6    // Giugno
+    },
+    renovationRequired: true,
+    renovationMonth: 7,
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: true
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '20-24°C',
+      minTemp: 12,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 10, max: 18 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 3-4 foglie',
+      lightNeeds: 'Sole diretto',
+      watering: 'Irrigazione regolare, evita ristagni',
+      temperature: '18-25°C'
+    },
+    transplanting: {
+      when: 'Agosto-Settembre per produzione precoce primaverile',
+      minTemp: 10,
+      spacing: '35-40cm sulla fila, 70-80cm tra le file',
+      holeDepth: 15,
+      holeWidth: 15,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-6.5. Ottimale per clima mediterraneo della Basilicata'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Matera è una varietà di punta della Basilicata, eccellente per esportazione. Frutti di grande dimensione, forma conica regolare, colore rosso intenso, con ottime caratteristiche organolettiche e lunga conservabilità. Varietà leader per mercati internazionali.',
+      commonMistakes: [
+        'Non gestire correttamente la densità di impianto (riduce qualità frutti)',
+        'Irrigazione irregolare (frutti deformi)',
+        'Non rimuovere stoloni (competizione con produzione)',
+        'Raccolta non selettiva (miscela qualità diverse)',
+        'Gestione post-raccolta inadeguata (perdita qualità esportazione)'
+      ],
+      harvestGuide: 'Raccogli selettivamente solo frutti completamente maturi e uniformi. Gestisci con cura per mantenere integrità commerciale. Raccolta al mattino presto, evitare ore calde. Classifica per dimensione e qualità per esportazione. Conserva a 0-2°C per massima durata.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio', 'Botrite', 'Verticillium', 'Antracnosi'],
+      pests: ['Afidi', 'Tripide', 'Ragnetto rosso', 'Nottue'],
+      preventiveStrategy: 'HIGH'
+    }
   }
 ];
 

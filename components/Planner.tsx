@@ -2,17 +2,34 @@
 import React, { useState, useEffect } from 'react';
 import { getSeasonalSuggestions, getSpecificPlantDetails } from '../services/geminiService';
 import { PlantSuggestion, GeoLocation, SpecificPlantInfo, Garden, GrowingLocation } from '../types';
-import { MapPin, Loader2, PlusCircle, Search, Leaf, ArrowRight, Droplets, FlaskConical, Scale, Edit3, Sun, Thermometer, Layers, Clock, Info, CalendarPlus, Settings, Gauge, Sprout, AlertTriangle, CheckCircle, Calendar, Sparkles, Box, LayoutGrid, Flower2, Package, Map } from 'lucide-react';
+import { MapPin, Loader2, PlusCircle, Search, Leaf, ArrowRight, Droplets, FlaskConical, Scale, Edit3, Sun, Thermometer, Layers, Clock, Info, CalendarPlus, Settings, Gauge, Sprout, AlertTriangle, CheckCircle, Calendar, Sparkles, Box, LayoutGrid, Flower2, Package, Map as MapIcon } from 'lucide-react';
 import { getCurrentPositionWithRetry, getDefaultCoordinates } from '../services/geolocationService';
 import { findSeedsForPlant, getExpiringSeeds } from '../services/seedInventoryService';
 import { calculateMoonPhase, getMoonPhaseName, isIdealPhaseFor } from '../logic/lunarCalendar';
 import { getSuggestedBatches, calculateStaggeredPlanting } from '../logic/staggeredPlantingEngine';
 import { getAllMasterSheets } from '../services/plantMasterService';
+import { getAllSpecializedMasterSheets, getMasterSheetsByCropType } from '../data/specializedCropMasterSheets';
 import { checkPHCompatibility } from '../logic/soilPHEngine';
 import PHCompatibilityChecker from './PHCompatibilityChecker';
 import FertigationPlanner from './FertigationPlanner';
 import VisualGardenPlanner from './VisualGardenPlanner';
+import SpecializedCropForm, { SpecializedCropType } from './SpecializedCropForm';
 import { useTier } from '../packages/core/hooks/useTier';
+import { PlantSuggestionForWindow } from '../services/seasonalPlantSuggestions';
+import { GardenClassification } from '../services/seasonalSunWindows';
+import { PlantingWindow, adjustForPlantingMethod } from '../services/plantingWindowOptimizer';
+import { getDailyGardenPlan } from '../logic/director';
+import { DailyPlan } from '../types';
+import { AccessoriesSuggestionsSection } from './planner/AccessoriesSuggestionsSection';
+import { getMasterSheet } from '../services/plantMasterService';
+import GeographicFeasibilityCard from './planner/GeographicFeasibilityCard';
+import VarietySelector from './planner/VarietySelector';
+import CultivationSystemSelector from './planner/CultivationSystemSelector';
+import { calculateFeasibility, getUserLocationProfile } from '../services/geographicMatchingService';
+import { ExoticFruitCrop } from '../types/exoticFruit';
+import { GardenBed } from '../types/gardenBed';
+import { useStorage } from '../packages/core/hooks/useStorage';
+import { calculateBedSpace } from '../logic/spaceCalculator';
 
 interface PlannerProps {
   onAddToJournal: (plantName: string, notes: string, variety?: string, method?: 'Seed' | 'Seedling', date?: string, taskType?: any, additionalData?: any) => void;
@@ -114,7 +131,15 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
   const [showVisualPlanner, setShowVisualPlanner] = useState(false);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<PlantSuggestion[]>([]);
+  const [seasonalPlantSuggestions, setSeasonalPlantSuggestions] = useState<PlantSuggestionForWindow[]>([]);
+  const [gardenClassification, setGardenClassification] = useState<GardenClassification | null>(null);
+  const [loadingSeasonalSuggestions, setLoadingSeasonalSuggestions] = useState(false);
+  const [selectedMethods, setSelectedMethods] = useState<Record<number, 'Seed' | 'Seedling'>>({});
   const [error, setError] = useState<string | null>(null);
+  
+  // Director - Piano Giornaliero Intelligente
+  const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(null);
+  const [loadingDailyPlan, setLoadingDailyPlan] = useState(false);
   
   // Verifica limiti task per Free
   const activeTasksCount = tasks.filter(t => !t.completed).length;
@@ -124,12 +149,32 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
   const [searchQuery, setSearchQuery] = useState('');
   const [specificResult, setSpecificResult] = useState<SpecificPlantInfo | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
+  
+  // Specialized crops state
+  const [selectedCropCategory, setSelectedCropCategory] = useState<'all' | SpecializedCropType>('all');
+  const [selectedSpecializedCrop, setSelectedSpecializedCrop] = useState<any>(null);
 
   // Custom Irrigation & Batches State
   const [customIrrigationFreq, setCustomIrrigationFreq] = useState('');
   const [customIrrigationMethod, setCustomIrrigationMethod] = useState('');
   
-  // Succession & Fertilizer Settings
+  /**
+   * SEMINA SCAGLIONATA - Pianificazione Multi-Lotto
+   * 
+   * Permette di pianificare più semine della stessa pianta a intervalli regolari
+   * per avere raccolti distribuiti nel tempo invece di un unico raccolto concentrato.
+   * 
+   * PARAMETRI:
+   * - numBatches: Numero di lotti da piantare (es. 3 lotti = 3 semine separate)
+   * - batchInterval: Giorni tra un lotto e il successivo (es. 14 giorni)
+   * 
+   * BENEFICI:
+   * - Raccolti distribuiti: invece di raccogliere tutto insieme, raccogli a scaglioni
+   * - Riduce sprechi: evita sovrapproduzione in un singolo momento
+   * - Estende stagione: prolunga il periodo di disponibilità del prodotto
+   * 
+   * ESEMPIO: 3 lotti di pomodori ogni 14 giorni = raccolto da luglio a settembre
+   */
   const [numBatches, setNumBatches] = useState(1);
   const [batchInterval, setBatchInterval] = useState(14);
   const [createFertilizerTasks, setCreateFertilizerTasks] = useState(true);
@@ -139,6 +184,68 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
   // Stats / Tracking Input
   const [plantingQuantity, setPlantingQuantity] = useState<number>(1);
   const [locationType, setLocationType] = useState<GrowingLocation>('Ground');
+  
+  // Geographic matching state
+  const [userLocation, setUserLocation] = useState<{ lat: number; lon: number; usdaZone?: string; city?: string; region?: string } | null>(null);
+  const [feasibilityResult, setFeasibilityResult] = useState<any>(null);
+  const [selectedVariety, setSelectedVariety] = useState<any>(null);
+  const [selectedCultivationSystem, setSelectedCultivationSystem] = useState<'openField' | 'container' | 'greenhouse' | undefined>(undefined);
+  
+  // Garden beds state
+  const { storageProvider } = useStorage();
+  const [beds, setBeds] = useState<GardenBed[]>([]);
+  const [selectedBedId, setSelectedBedId] = useState<string | undefined>(undefined);
+  const [bedSpaceCalculations, setBedSpaceCalculations] = useState<Record<string, any>>({});
+  const [selectedVisualCategory, setSelectedVisualCategory] = useState<'all' | 'Orto' | 'Frutteto' | 'Esotici' | 'Aromatiche'>('all');
+
+  // Load user location on mount
+  useEffect(() => {
+    const loadUserLocation = async () => {
+      const location = await getUserLocationProfile();
+      if (location) {
+        setUserLocation({
+          lat: location.lat,
+          lon: location.lon,
+          usdaZone: location.usdaZone,
+          city: location.city,
+          region: location.region,
+        });
+      }
+    };
+    loadUserLocation();
+  }, []);
+
+  // Load garden beds
+  useEffect(() => {
+    const loadBeds = async () => {
+      try {
+        const gardenBeds = await storageProvider.getGardenBeds(garden.id);
+        setBeds(gardenBeds);
+        
+        // Calculate space for each bed
+        if (tasks.length > 0) {
+          const masterSheets: Map<string, any> = new Map<string, any>();
+          tasks.forEach(task => {
+            if (task.plantName) {
+              const master = getMasterSheet(task.plantName);
+              if (master) {
+                masterSheets.set(task.plantName.toLowerCase(), master);
+              }
+            }
+          });
+          
+          const calculations: Record<string, any> = {};
+          gardenBeds.forEach(bed => {
+            calculations[bed.id] = calculateBedSpace(bed, tasks, masterSheets);
+          });
+          setBedSpaceCalculations(calculations);
+        }
+      } catch (error) {
+        console.error('Error loading beds:', error);
+      }
+    };
+    loadBeds();
+  }, [garden.id, tasks]);
 
   useEffect(() => {
     if (specificResult) {
@@ -147,6 +254,9 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
         setIsIndoorSeed(false);
         setPlantingQuantity(1); // Reset
         setLocationType('Ground'); // Reset
+        setSelectedVariety(null);
+        setSelectedCultivationSystem(undefined);
+        setSelectedBedId(undefined); // Reset bed selection
         
         // Calculate optimal staggered planting
         const masterSheets = getAllMasterSheets();
@@ -158,15 +268,89 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
           const suggested = getSuggestedBatches(masterSheet);
           setNumBatches(suggested.batches);
           setBatchInterval(suggested.interval);
+          
+          // Calculate feasibility for exotic fruits
+          if (masterSheet.cropType === 'ExoticFruit' && userLocation) {
+            const exoticCrop = masterSheet as unknown as ExoticFruitCrop;
+            if (exoticCrop.climateCompatibility) {
+              const feasibility = calculateFeasibility(exoticCrop, userLocation);
+              setFeasibilityResult(feasibility);
+              setSelectedCultivationSystem(feasibility.recommendedSystem);
+              if (feasibility.recommendedVariety && exoticCrop.varieties) {
+                const variety = exoticCrop.varieties.find(v => v.name === feasibility.recommendedVariety);
+                if (variety) {
+                  setSelectedVariety(variety);
+                }
+              }
+            } else {
+              setFeasibilityResult(null);
+            }
+          } else {
+            setFeasibilityResult(null);
+          }
         } else {
           // Fallback to AI suggestion or default
           setNumBatches(1);
           setBatchInterval(specificResult.successionIntervalDays && specificResult.successionIntervalDays > 0 
               ? specificResult.successionIntervalDays 
               : 14);
+          setFeasibilityResult(null);
         }
     }
-  }, [specificResult]);
+  }, [specificResult, userLocation]);
+
+  // Calcola piano giornaliero con Director quando cambiano garden/tasks
+  useEffect(() => {
+    if (!garden || tasks.length === 0) {
+      setDailyPlan(null);
+      return;
+    }
+
+    setLoadingDailyPlan(true);
+    getDailyGardenPlan(garden, tasks, new Date())
+      .then(plan => {
+        setDailyPlan(plan);
+        // Usa classificazione solare dal piano per filtrare suggerimenti
+        if (plan.solarClassification) {
+          setGardenClassification(plan.solarClassification.classification);
+        }
+      })
+      .catch(error => {
+        console.error('Error generating daily plan:', error);
+      })
+      .finally(() => {
+        setLoadingDailyPlan(false);
+      });
+  }, [garden, tasks]);
+
+  const loadSeasonalPlantSuggestions = async () => {
+    if (!garden.coordinates) return
+
+    setLoadingSeasonalSuggestions(true)
+    try {
+      const response = await fetch(
+        `/api/garden/sun-exposure/plant-suggestions?gardenId=${garden.id}`
+      )
+
+      if (response.ok) {
+        const data = await response.json()
+        // Converti date da string a Date
+        const suggestions = (data.suggestions || []).map((s: any) => ({
+          ...s,
+          plantingWindow: {
+            start: new Date(s.plantingWindow.start),
+            end: new Date(s.plantingWindow.end),
+          },
+        }))
+        setSeasonalPlantSuggestions(suggestions)
+        setGardenClassification(data.classification || null)
+      }
+    } catch (error) {
+      console.error('Error loading seasonal plant suggestions:', error)
+    } finally {
+      setLoadingSeasonalSuggestions(false)
+    }
+  }
 
   const handleGetSuggestions = async () => {
       // Use garden location if available, otherwise browser location
@@ -279,6 +463,24 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
       return { type: 'Organic', label: 'Consigliato: Organico', reason: "Nutre la pianta e migliora la vita del suolo." };
   };
 
+  /**
+   * COMPATIBILITÀ pH - Analisi Suolo
+   * 
+   * Verifica se il pH del terreno è compatibile con le esigenze della pianta selezionata.
+   * Ogni pianta ha un range di pH ottimale (phMin-phMax) per assorbire correttamente i nutrienti.
+   * 
+   * ANALISI:
+   * - pH Perfetto: Il pH del terreno è nel range ottimale della pianta
+   * - pH Acido: Il pH è troppo basso (< phMin) - la pianta potrebbe avere carenze
+   * - pH Basico: Il pH è troppo alto (> phMax) - alcuni nutrienti potrebbero essere bloccati
+   * 
+   * CORREZIONI SUGGERITE:
+   * - Per alzare pH (da acido a neutro): Calce agricola, cenere di legna
+   * - Per abbassare pH (da basico a neutro): Zolfo, torba acida, aghi di pino
+   * 
+   * IMPORTANTE: Le correzioni del pH richiedono tempo (settimane/mesi) per essere efficaci.
+   * Per correzioni rapide, considera di piantare in vaso con terriccio adatto.
+   */
   const getSoilAnalysis = () => {
       if (!specificResult?.soil) return null;
       
@@ -371,7 +573,8 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
           const plantingStats = {
               initialQuantity: plantingQuantity,
               currentQuantity: plantingQuantity, // Assume all alive at start
-              locationType: locationType
+              locationType: locationType,
+              bedId: selectedBedId // Add bed association
           };
 
           // Salva fase lunare
@@ -431,13 +634,32 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
             onClick={() => setShowVisualPlanner(true)}
             className="bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
           >
-            <Map size={18} />
+            <MapIcon size={18} />
             Mappa Orto
           </button>
         )}
       </header>
 
       {/* Visual Planner Modal */}
+      {/* 
+       * VISUAL GARDEN PLANNER - Pianificazione Visiva dell'Orto
+       * 
+       * Feature Pro che permette di visualizzare e organizzare le piante
+       * in un layout grafico dell'orto. Funzionalità:
+       * 
+       * - Drag & Drop: Trascina le piante per posizionarle nell'orto
+       * - Zoom: Ingrandisci/riduci per vedere dettagli o panoramica
+       * - Grid: Attiva/disattiva griglia per allineamento preciso
+       * - Collision Detection: Avvisa se piante sono troppo vicine
+       * - Companion Planting: Suggerisce consociazioni favorevoli
+       * - Spacing Calculator: Calcola automaticamente distanze ottimali
+       * 
+       * Utile per pianificare layout ottimale considerando:
+       * - Spazio necessario per ogni pianta
+       * - Consociazioni favorevoli/sfavorevoli
+       * - Rotazione colture
+       * - Esposizione solare per zona
+       */}
       {showVisualPlanner && onUpdateTask && (
         <VisualGardenPlanner
           garden={garden}
@@ -453,12 +675,67 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
             <Search size={20} className="text-green-600"/>
             Cerca Specie o Varietà
         </h2>
+        
+        {/* Visual Category Filters */}
+        <div className="mb-4 flex flex-wrap gap-2">
+          <button
+            onClick={() => setSelectedVisualCategory('all')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              selectedVisualCategory === 'all'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Tutte
+          </button>
+          <button
+            onClick={() => setSelectedVisualCategory('Orto')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              selectedVisualCategory === 'Orto'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            🥬 Orto
+          </button>
+          <button
+            onClick={() => setSelectedVisualCategory('Frutteto')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              selectedVisualCategory === 'Frutteto'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            🍎 Frutteto
+          </button>
+          <button
+            onClick={() => setSelectedVisualCategory('Esotici')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              selectedVisualCategory === 'Esotici'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            🌴 Esotici
+          </button>
+          <button
+            onClick={() => setSelectedVisualCategory('Aromatiche')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              selectedVisualCategory === 'Aromatiche'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            🌿 Aromatiche
+          </button>
+        </div>
+        
         <form onSubmit={handleSpecificSearch} className="relative">
             <input 
                 type="text" 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Es. Pomodoro Datterino, Lattuga..."
+                placeholder={selectedVisualCategory === 'all' ? "Cosa posso piantare adesso?" : `Cerca in ${selectedVisualCategory}...`}
                 className="w-full p-4 pr-12 rounded-xl border-2 border-green-100 focus:border-green-500 focus:ring-0 outline-none text-lg transition-all"
             />
             <button 
@@ -478,6 +755,84 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                 </p>
             </div>
         )}
+      </div>
+
+      {/* SPECIALIZED CROPS SECTION */}
+      {isPro && (
+        <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-200">
+          <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <Sparkles size={20} className="text-purple-600"/>
+            Colture Specializzate
+          </h2>
+          
+          {/* Category Filter */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
+            <select
+              value={selectedCropCategory}
+              onChange={(e) => {
+                setSelectedCropCategory(e.target.value as 'all' | SpecializedCropType);
+                setSelectedSpecializedCrop(null);
+              }}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="all">Tutte</option>
+              <option value="FruitTree">Alberi da Frutto</option>
+              <option value="Strawberry">Fragole</option>
+              <option value="Olive">Olive</option>
+              <option value="Vine">Vite</option>
+              <option value="ExoticFruit">Frutti Esotici</option>
+              <option value="Aromatic">Erbe Aromatiche</option>
+              <option value="Raspberry">Lamponi</option>
+            </select>
+          </div>
+
+          {/* Specialized Crops List */}
+          {selectedCropCategory !== 'all' && !selectedSpecializedCrop && (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {getMasterSheetsByCropType(selectedCropCategory).map((crop) => (
+                <button
+                  key={crop.id}
+                  onClick={() => setSelectedSpecializedCrop(crop)}
+                  className="w-full text-left p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-colors"
+                >
+                  <div className="font-semibold text-gray-800">{crop.commonName}</div>
+                  {crop.scientificName && (
+                    <div className="text-xs text-gray-500 italic">{crop.scientificName}</div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Specialized Crop Form */}
+          {selectedSpecializedCrop && (
+            <div className="mt-4">
+              <SpecializedCropForm
+                cropType={selectedCropCategory as SpecializedCropType}
+                masterSheet={selectedSpecializedCrop}
+                garden={garden}
+                onSubmit={(data) => {
+                  onAddToJournal(
+                    data.plantName,
+                    data.notes,
+                    data.variety,
+                    undefined,
+                    data.date,
+                    data.taskType,
+                    data.additionalData
+                  );
+                  setSelectedSpecializedCrop(null);
+                  setSelectedCropCategory('all');
+                }}
+                onCancel={() => {
+                  setSelectedSpecializedCrop(null);
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
         {!garden.coordinates && (
              <p className="text-xs text-orange-500 mt-2 flex items-center gap-1">
@@ -491,6 +846,70 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                     <h3 className="font-bold text-xl text-green-900">{specificResult.name}</h3>
                     <p className="text-green-700 font-medium italic">Varietà: {specificResult.variety}</p>
                     <p className="text-sm text-gray-600 mt-2 bg-white p-3 rounded-lg border border-green-50">{specificResult.notes}</p>
+                    
+                    {/* Geographic Feasibility Card - For Exotic Fruits */}
+                    {feasibilityResult && (() => {
+                      const masterSheets = getAllMasterSheets();
+                      const masterSheet = masterSheets.find(p => 
+                        p.commonName.toUpperCase() === specificResult.name.toUpperCase()
+                      );
+                      if (masterSheet && masterSheet.cropType === 'ExoticFruit') {
+                        return (
+                          <GeographicFeasibilityCard
+                            plant={masterSheet as unknown as ExoticFruitCrop}
+                            feasibilityResult={feasibilityResult}
+                            userLocation={userLocation || undefined}
+                          />
+                        );
+                      }
+                      return null;
+                    })()}
+                    
+                    {/* Variety Selector - For Exotic Fruits */}
+                    {(() => {
+                      const masterSheets = getAllMasterSheets();
+                      const masterSheet = masterSheets.find(p => 
+                        p.commonName.toUpperCase() === specificResult.name.toUpperCase()
+                      );
+                      if (masterSheet && masterSheet.cropType === 'ExoticFruit') {
+                        const exoticCrop = masterSheet as unknown as ExoticFruitCrop;
+                        if (exoticCrop.varieties && exoticCrop.varieties.length > 0) {
+                          return (
+                            <VarietySelector
+                              varieties={exoticCrop.varieties}
+                              recommendedVariety={feasibilityResult?.recommendedVariety}
+                              userUsdaZone={userLocation?.usdaZone}
+                              onSelectVariety={(variety) => setSelectedVariety(variety)}
+                              selectedVarietyId={selectedVariety?.id}
+                            />
+                          );
+                        }
+                      }
+                      return null;
+                    })()}
+                    
+                    {/* Cultivation System Selector - For Exotic Fruits */}
+                    {(() => {
+                      const masterSheets = getAllMasterSheets();
+                      const masterSheet = masterSheets.find(p => 
+                        p.commonName.toUpperCase() === specificResult.name.toUpperCase()
+                      );
+                      if (masterSheet && masterSheet.cropType === 'ExoticFruit') {
+                        const exoticCrop = masterSheet as unknown as ExoticFruitCrop;
+                        if (exoticCrop.cultivationSystems) {
+                          return (
+                            <CultivationSystemSelector
+                              plant={exoticCrop}
+                              recommendedSystem={feasibilityResult?.recommendedSystem}
+                              userUsdaZone={userLocation?.usdaZone}
+                              onSelectSystem={(system) => setSelectedCultivationSystem(system)}
+                              selectedSystem={selectedCultivationSystem}
+                            />
+                          );
+                        }
+                      }
+                      return null;
+                    })()}
                     
                     {/* Seed Availability */}
                     {(() => {
@@ -707,7 +1126,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                             <label className="text-xs font-bold text-gray-600 flex items-center gap-1 mb-2">
                                 <MapPin size={14}/> DOVE?
                              </label>
-                             <div className="flex gap-2">
+                             <div className="flex gap-2 flex-wrap">
                                  <button 
                                     onClick={() => setLocationType('Pot')}
                                     className={`flex-1 py-2 rounded-lg border flex items-center justify-center ${locationType === 'Pot' ? 'bg-orange-100 border-orange-400 text-orange-800' : 'bg-white border-gray-300'}`}
@@ -729,6 +1148,101 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                                  >
                                      <LayoutGrid size={18}/>
                                  </button>
+                                 {/* Hydroponic Systems - Only show if garden is hydroponic */}
+                                 {(garden.gardenType?.startsWith('Hydroponic') || 
+                                   garden.gardenType === 'NFT' || 
+                                   garden.gardenType === 'DWC' || 
+                                   garden.gardenType === 'EbbFlow' || 
+                                   garden.gardenType === 'Drip' || 
+                                   garden.gardenType === 'Wick' || 
+                                   garden.gardenType === 'Kratky') && (
+                                   <>
+                                     {garden.gardenType === 'NFT' && (
+                                       <button 
+                                         onClick={() => setLocationType('HydroponicNFT')}
+                                         className={`flex-1 py-2 rounded-lg border flex items-center justify-center ${locationType === 'HydroponicNFT' ? 'bg-purple-100 border-purple-400 text-purple-800' : 'bg-white border-gray-300'}`}
+                                         title="NFT"
+                                       >
+                                         <Droplets size={18}/>
+                                       </button>
+                                     )}
+                                     {garden.gardenType === 'DWC' && (
+                                       <button 
+                                         onClick={() => setLocationType('HydroponicDWC')}
+                                         className={`flex-1 py-2 rounded-lg border flex items-center justify-center ${locationType === 'HydroponicDWC' ? 'bg-purple-100 border-purple-400 text-purple-800' : 'bg-white border-gray-300'}`}
+                                         title="DWC"
+                                       >
+                                         <Droplets size={18}/>
+                                       </button>
+                                     )}
+                                     {garden.gardenType === 'EbbFlow' && (
+                                       <button 
+                                         onClick={() => setLocationType('HydroponicEbbFlow')}
+                                         className={`flex-1 py-2 rounded-lg border flex items-center justify-center ${locationType === 'HydroponicEbbFlow' ? 'bg-purple-100 border-purple-400 text-purple-800' : 'bg-white border-gray-300'}`}
+                                         title="Flusso e Riflusso"
+                                       >
+                                         <Droplets size={18}/>
+                                       </button>
+                                     )}
+                                     {garden.gardenType === 'Drip' && (
+                                       <button 
+                                         onClick={() => setLocationType('HydroponicDrip')}
+                                         className={`flex-1 py-2 rounded-lg border flex items-center justify-center ${locationType === 'HydroponicDrip' ? 'bg-purple-100 border-purple-400 text-purple-800' : 'bg-white border-gray-300'}`}
+                                         title="Drip"
+                                       >
+                                         <Droplets size={18}/>
+                                       </button>
+                                     )}
+                                     {garden.gardenType === 'Wick' && (
+                                       <button 
+                                         onClick={() => setLocationType('HydroponicWick')}
+                                         className={`flex-1 py-2 rounded-lg border flex items-center justify-center ${locationType === 'HydroponicWick' ? 'bg-purple-100 border-purple-400 text-purple-800' : 'bg-white border-gray-300'}`}
+                                         title="Wick"
+                                       >
+                                         <Droplets size={18}/>
+                                       </button>
+                                     )}
+                                     {garden.gardenType === 'Kratky' && (
+                                       <button 
+                                         onClick={() => setLocationType('HydroponicKratky')}
+                                         className={`flex-1 py-2 rounded-lg border flex items-center justify-center ${locationType === 'HydroponicKratky' ? 'bg-purple-100 border-purple-400 text-purple-800' : 'bg-white border-gray-300'}`}
+                                         title="Kratky"
+                                       >
+                                         <Droplets size={18}/>
+                                       </button>
+                                     )}
+                                   </>
+                                 )}
+                                 {/* Aquaponic - Only show if garden is aquaponic */}
+                                 {garden.gardenType === 'Aquaponic' && (
+                                   <button 
+                                     onClick={() => setLocationType('Aquaponic')}
+                                     className={`flex-1 py-2 rounded-lg border flex items-center justify-center ${locationType === 'Aquaponic' ? 'bg-cyan-100 border-cyan-400 text-cyan-800' : 'bg-white border-gray-300'}`}
+                                     title="Acquaponica"
+                                   >
+                                     <Droplets size={18}/>
+                                   </button>
+                                 )}
+                                 {/* Aeroponic - Only show if garden is aeroponic */}
+                                 {garden.gardenType === 'Aeroponic' && (
+                                   <button 
+                                     onClick={() => setLocationType('Aeroponic')}
+                                     className={`flex-1 py-2 rounded-lg border flex items-center justify-center ${locationType === 'Aeroponic' ? 'bg-indigo-100 border-indigo-400 text-indigo-800' : 'bg-white border-gray-300'}`}
+                                     title="Aeroponica"
+                                   >
+                                     <Droplets size={18}/>
+                                   </button>
+                                 )}
+                                 {/* Indoor - Only show if garden is indoor */}
+                                 {garden.gardenType === 'Indoor' && (
+                                   <button 
+                                     onClick={() => setLocationType('Indoor')}
+                                     className={`flex-1 py-2 rounded-lg border flex items-center justify-center ${locationType === 'Indoor' ? 'bg-gray-100 border-gray-400 text-gray-800' : 'bg-white border-gray-300'}`}
+                                     title="Indoor"
+                                   >
+                                     <Sun size={18}/>
+                                   </button>
+                                 )}
                              </div>
                         </div>
                      </div>
@@ -846,6 +1360,91 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                     </div>
                   );
                 })()}
+
+                {/* Accessori Consigliati */}
+                {specificResult && (
+                  <AccessoriesSuggestionsSection
+                    plantName={specificResult.name}
+                    masterData={getMasterSheet(specificResult.name)}
+                    garden={garden}
+                  />
+                )}
+
+                {/* Selezione Zona di Coltivazione */}
+                {beds.length > 0 && (
+                  <div className="mb-4 bg-white p-4 rounded-xl border-2 border-blue-100">
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                      <LayoutGrid size={16} className="text-blue-600" />
+                      Zona di coltivazione
+                    </label>
+                    <select
+                      value={selectedBedId || ''}
+                      onChange={(e) => {
+                        setSelectedBedId(e.target.value || undefined);
+                        // Update locationType based on bed type
+                        const selectedBed = beds.find(b => b.id === e.target.value);
+                        if (selectedBed) {
+                          if (selectedBed.bedType === 'Greenhouse') {
+                            setLocationType('Ground'); // Greenhouse non è un GrowingLocation valido, usa Ground
+                          } else if (selectedBed.bedType === 'Hydroponic') {
+                            setLocationType('HydroponicNFT'); // Usa un valore valido
+                          } else if (selectedBed.bedType === 'Aquaponic') {
+                            setLocationType('Aquaponic');
+                          } else if (selectedBed.bedType === 'Aeroponic') {
+                            setLocationType('Aeroponic');
+                          } else if (selectedBed.bedType === 'Indoor') {
+                            setLocationType('Indoor');
+                          } else if (selectedBed.bedType === 'Pot') {
+                            setLocationType('Pot');
+                          } else if (selectedBed.bedType === 'RaisedBed') {
+                            setLocationType('RaisedBed');
+                          } else if (selectedBed.bedType === 'Container') {
+                            setLocationType('Ground'); // Container non è un GrowingLocation valido, usa Ground
+                          } else {
+                            setLocationType('Ground');
+                          }
+                        }
+                      }}
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Piena terra (non in letto specifico)</option>
+                      {beds.map(bed => {
+                        const calc = bedSpaceCalculations[bed.id];
+                        const occupancy = calc?.occupancyPercentage || 0;
+                        return (
+                          <option key={bed.id} value={bed.id}>
+                            {bed.name} ({bed.bedType === 'RaisedBed' ? 'Cassone' : bed.bedType === 'Pot' ? 'Vaso' : bed.bedType}) - {bed.areaSqMeters?.toFixed(2)} m²
+                            {calc && ` - ${occupancy.toFixed(0)}% occupato`}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {selectedBedId && bedSpaceCalculations[selectedBedId] && (
+                      (() => {
+                        const calc = bedSpaceCalculations[selectedBedId];
+                        const isAlmostFull = calc.occupancyPercentage >= 80;
+                        if (isAlmostFull) {
+                          return (
+                            <div className={`mt-2 p-2 rounded-lg text-sm ${
+                              calc.occupancyPercentage >= 90 
+                                ? 'bg-red-50 border border-red-200 text-red-800' 
+                                : 'bg-yellow-50 border border-yellow-200 text-yellow-800'
+                            }`}>
+                              <div className="flex items-center gap-1">
+                                <AlertTriangle size={14} />
+                                <span>
+                                  Questo letto è {calc.occupancyPercentage.toFixed(0)}% occupato.
+                                  Spazio disponibile: {calc.availableArea.toFixed(2)} m²
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()
+                    )}
+                  </div>
+                )}
 
                 <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Scegli come iniziare:</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1015,7 +1614,176 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                 )}
             </div>
         )}
-      </div>
+
+      {/* Alert dal Director */}
+      {dailyPlan && dailyPlan.urgentAlerts && dailyPlan.urgentAlerts.length > 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+          <h3 className="font-bold text-yellow-900 flex items-center gap-2 mb-3">
+            <AlertTriangle size={20} className="text-yellow-600" />
+            Avvisi Importanti
+          </h3>
+          <div className="space-y-2">
+            {dailyPlan.urgentAlerts.slice(0, 3).map((alert, idx) => (
+              <div key={idx} className="bg-white rounded-lg p-3 border border-yellow-200">
+                <p className="text-sm font-medium text-yellow-900">{alert.message}</p>
+                {alert.action && (
+                  <p className="text-xs text-yellow-700 mt-1">{alert.action}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Suggerimenti basati su Finestre Stagionali */}
+      {garden.coordinates && (
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-bold text-green-900 flex items-center gap-2">
+                <Sun size={20} className="text-yellow-500" />
+                Suggerimenti per Tipo di Orto
+              </h3>
+              <p className="text-sm text-green-700 mt-1">
+                Piante ottimizzate per le finestre solari del tuo orto
+                {dailyPlan?.solarClassification && ' (da Director)'}
+              </p>
+            </div>
+            <button
+              onClick={loadSeasonalPlantSuggestions}
+              disabled={loadingSeasonalSuggestions}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {loadingSeasonalSuggestions ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Caricamento...
+                </>
+              ) : (
+                <>
+                  <Sparkles size={16} />
+                  Analizza Orto
+                </>
+              )}
+            </button>
+          </div>
+
+          {gardenClassification && (
+            <div className="mb-4 p-3 bg-white rounded-lg border border-green-200">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">
+                  {gardenClassification.type === 'Estivo' && '🌞'}
+                  {gardenClassification.type === 'NonEstivo' && '🌱'}
+                  {gardenClassification.type === 'Misto' && '🌍'}
+                </span>
+                <span className="font-semibold text-gray-900">
+                  Orto {gardenClassification.type === 'Estivo' ? 'Estivo' : gardenClassification.type === 'NonEstivo' ? 'Primaverile/Autunnale' : 'Misto'}
+                </span>
+              </div>
+              <p className="text-sm text-gray-600">
+                {gardenClassification.recommendations[0]}
+              </p>
+            </div>
+          )}
+
+          {seasonalPlantSuggestions.length > 0 && (
+            <div className="space-y-3">
+              {seasonalPlantSuggestions.slice(0, 6).map((suggestion, idx) => {
+                const selectedMethod = selectedMethods[idx] || suggestion.method;
+                const plantingWindow: PlantingWindow = {
+                  category: suggestion.category as any,
+                  startDate: new Date(suggestion.plantingWindow.start),
+                  endDate: new Date(suggestion.plantingWindow.end),
+                  method: selectedMethod,
+                  recommendedPlants: [suggestion.plantName],
+                  reason: suggestion.reason,
+                  cycles: 1,
+                };
+                const adjustedWindow = adjustForPlantingMethod(plantingWindow, selectedMethod, suggestion.plantName);
+                const displayStartDate = adjustedWindow.adjustedStartDate || adjustedWindow.startDate;
+                
+                return (
+                  <div
+                    key={idx}
+                    className="bg-white rounded-lg p-4 border border-gray-200 hover:border-green-300 transition-colors"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">{suggestion.plantName}</h4>
+                        <p className="text-sm text-gray-600 mt-1">{suggestion.reason}</p>
+                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Calendar size={12} />
+                            {displayStartDate.toLocaleDateString('it-IT', { month: 'short', day: 'numeric' })} - {adjustedWindow.endDate.toLocaleDateString('it-IT', { month: 'short', day: 'numeric' })}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            {selectedMethod === 'Seed' ? <Sprout size={12} /> : <Sprout size={12} />}
+                            {selectedMethod === 'Seed' ? 'Semina' : 'Trapianto'}
+                          </span>
+                          <span className="text-green-600 font-medium">
+                            {(suggestion.suitabilityScore * 100).toFixed(0)}% adatto
+                          </span>
+                        </div>
+                        <div className="mt-3 flex items-center gap-2">
+                          <span className="text-xs text-gray-600">Metodo:</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedMethods({ ...selectedMethods, [idx]: 'Seed' });
+                            }}
+                            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                              selectedMethod === 'Seed' 
+                                ? 'bg-green-600 text-white' 
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            Seme
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedMethods({ ...selectedMethods, [idx]: 'Seedling' });
+                            }}
+                            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                              selectedMethod === 'Seedling' 
+                                ? 'bg-green-600 text-white' 
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            Piantina
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setSearchQuery(suggestion.plantName);
+                            handleSpecificSearch(new Event('submit') as any);
+                          }}
+                          className="mt-2 text-xs text-green-600 hover:text-green-800 font-medium"
+                        >
+                          Pianifica questa pianta →
+                        </button>
+                      </div>
+                      <div className={`px-2 py-1 rounded text-xs font-medium ${
+                        suggestion.category === 'Estivo' ? 'bg-orange-100 text-orange-800' :
+                        suggestion.category === 'Primaverile' ? 'bg-green-100 text-green-800' :
+                        suggestion.category === 'FogliaEstiva' ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {suggestion.category}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {seasonalPlantSuggestions.length > 6 && (
+                <p className="text-xs text-center text-gray-500 mt-2">
+                  +{seasonalPlantSuggestions.length - 6} altre piante disponibili
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {!suggestions.length && !loading && (
         <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 flex items-center justify-between">

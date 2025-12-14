@@ -9,6 +9,8 @@ import { AppTier } from '../config/tiers';
 interface TierContextType {
   tier: AppTier;
   setTier: (tier: AppTier) => void;
+  isConsumer: () => boolean;
+  isProfessional: () => boolean;
 }
 
 const TierContext = createContext<TierContextType | undefined>(undefined);
@@ -25,10 +27,27 @@ export const TierProvider: React.FC<TierProviderProps> = ({
   defaultTier = AppTier.FREE,
 }) => {
   const [tier, setTierState] = useState<AppTier>(() => {
-    // Load from localStorage on mount
+    // LOCALE: Forza PRO_PROFESSIONAL in sviluppo locale
+    const isLocalDev = typeof window !== 'undefined' && (
+      window.location.hostname === 'localhost' || 
+      window.location.hostname === '127.0.0.1' ||
+      process.env.NODE_ENV === 'development'
+    )
+    
+    if (isLocalDev) {
+      // In locale, forza sempre PRO_PROFESSIONAL (il tier più completo)
+      return AppTier.PRO_PROFESSIONAL;
+    }
+    
+    // Load from localStorage on mount (solo in produzione)
     try {
       const saved = localStorage.getItem(TIER_STORAGE_KEY);
-      if (saved && (saved === AppTier.FREE || saved === AppTier.PRO)) {
+      if (saved && (
+        saved === AppTier.FREE || 
+        saved === AppTier.PRO || 
+        saved === AppTier.PRO_CONSUMER || 
+        saved === AppTier.PRO_PROFESSIONAL
+      )) {
         return saved as AppTier;
       }
     } catch (e) {
@@ -50,8 +69,16 @@ export const TierProvider: React.FC<TierProviderProps> = ({
     setTierState(newTier);
   };
 
+  const isConsumer = () => {
+    return tier === AppTier.PRO_CONSUMER || tier === AppTier.PRO; // Legacy PRO is treated as Consumer
+  };
+
+  const isProfessional = () => {
+    return tier === AppTier.PRO_PROFESSIONAL;
+  };
+
   return (
-    <TierContext.Provider value={{ tier, setTier }}>
+    <TierContext.Provider value={{ tier, setTier, isConsumer, isProfessional }}>
       {children}
     </TierContext.Provider>
   );

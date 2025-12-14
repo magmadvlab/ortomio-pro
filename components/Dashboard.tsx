@@ -1,7 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { GardenTask, Garden } from '../types';
-import { Sun, CloudRain, CalendarCheck, AlertTriangle, Settings, Save, Cloud, CloudLightning, Snowflake, CloudFog, Loader2, MapPin, Droplets, ThermometerSun, FlaskConical, Shovel, ChevronDown, Plus, Trash2, Home, Sparkles, CheckCircle, XCircle, Moon, Package, Plane } from 'lucide-react';
+import { Sun, CloudRain, CalendarCheck, AlertTriangle, AlertCircle, Settings, Save, Cloud, CloudLightning, Snowflake, CloudFog, Loader2, MapPin, Droplets, ThermometerSun, FlaskConical, Shovel, ChevronDown, Plus, Trash2, Home, Sparkles, CheckCircle, XCircle, Moon, Package, Plane, BarChart3 } from 'lucide-react';
+import { SunExposureWidget } from './sunExposure/SunExposureWidget';
+import SolarClassificationBadge from './sunExposure/SolarClassificationBadge';
+import SoilAltitudeInfo from './shared/SoilAltitudeInfo';
 import { getCurrentPositionWithRetry, getDefaultCoordinates } from '../services/geolocationService';
 import { checkLifecycleStatus, LifecycleAdvice } from '../logic/lifecycleEngine';
 import { getMasterSheet } from '../services/plantMasterService';
@@ -11,10 +14,14 @@ import { calculateMoonPhase, getMoonPhaseName } from '../logic/lunarCalendar';
 import { findAllSuccessionOpportunities, SuccessionSuggestion } from '../logic/successionEngine';
 import { hasUpcomingVacation, hasActiveVacation, getDaysUntilDeparture } from '../logic/vacationEngine';
 import VacationMode from './VacationMode';
-import { getDailyGardenPlan, DailyPlan } from '../logic/director';
+import { getDailyGardenPlan } from '../logic/director';
+import { DailyPlan } from '../types';
 import { useTier } from '../packages/core/hooks/useTier';
+import { suggestFertilizerProduct, FertilizerRecommendation } from '../logic/fertilizerEngine';
 import TierBadge from './TierBadge';
 import LimitIndicator from './LimitIndicator';
+import SeasonAnalysisView from './analysis/SeasonAnalysisView';
+import { getSeasonForDate } from '../utils/seasonalAdjustment';
 
 interface DashboardProps {
   tasks: GardenTask[];
@@ -69,6 +76,24 @@ const Dashboard: React.FC<DashboardProps> = ({
   // Director - Daily Plan State
   const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(false);
+  
+  // Fertilizer Engine - Prodotti concreti per nutrient tasks
+  const [fertilizerRecsForNutrients, setFertilizerRecsForNutrients] = useState<Map<string, FertilizerRecommendation | null>>(new Map());
+
+  // Season Analysis State
+  const [showSeasonAnalysis, setShowSeasonAnalysis] = useState(false);
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentSeason = getSeasonForDate(currentDate, activeGarden?.coordinates?.latitude || 0);
+  
+  // Determina se mostrare analisi stagione (fine stagione o inizio nuova)
+  const shouldShowSeasonAnalysis = (() => {
+    if (!activeGarden) return false;
+    const month = currentDate.getMonth() + 1;
+    // Fine estate: settembre, inizio inverno: ottobre
+    // Fine inverno: marzo, inizio estate: aprile
+    return (month === 9 || month === 10 || month === 3 || month === 4);
+  })();
 
   // Initialize form when opening settings or creating new
   useEffect(() => {
@@ -85,12 +110,22 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
   }, [activeGarden, isEditingSettings, isCreatingNew]);
 
-  // Determine season
+  /**
+   * Determina automaticamente la stagione corrente basandosi sul mese.
+   * 
+   * FILTRI STAGIONALI:
+   * - Estate (Summer): Aprile-Settembre (mesi 4-9)
+   * - Inverno (Winter): Ottobre-Marzo (mesi 10-12, 1-3)
+   * 
+   * Il filtro stagionale viene usato per mostrare solo i task rilevanti per la stagione corrente,
+   * aiutando l'utente a concentrarsi sulle attività appropriate al periodo dell'anno.
+   */
   useEffect(() => {
       const month = new Date().getMonth() + 1;
       setSeasonFilter((month >= 4 && month <= 9) ? 'Summer' : 'Winter');
   }, []);
 
+  // Filtra i task in base alla stagione selezionata
   const pendingTasks = tasks.filter(t => !t.completed && (!t.season || t.season === seasonFilter)).length;
   
   const today = new Date();
@@ -218,7 +253,31 @@ const Dashboard: React.FC<DashboardProps> = ({
     setSuccessionOpportunities(opportunities);
   }, [tasks, activeGarden, activeGardenId]);
 
-  // Calculate Daily Plan using Director
+  /**
+   * DIRECTOR - Piano Giornaliero Intelligente
+   * 
+   * Il Director (logic/director.ts) è il motore centrale che orchestra tutti i sistemi di calcolo
+   * per generare un piano giornaliero ottimizzato. Combina:
+   * 
+   * 1. URGENZE CLIMATICHE (Priorità 1 - Incontrollabili):
+   *    - Gelo previsto: blocca operazioni delicate (trapianti, semine)
+   *    - Caldo estremo: aumenta necessità irrigazione
+   *    - Pioggia intensa: sospende trattamenti fogliari
+   * 
+   * 2. CICLO VITALE (Priorità 2 - Cosa fare):
+   *    - Analizza fase crescita di ogni pianta (Germination, Nursing, Transplanting, Production)
+   *    - Suggerisce azioni basate su giorni attivi e fase fenologica
+   * 
+   * 3. NUTRIENTI E SALUTE (Priorità 3-4):
+   *    - Calcola fabbisogno NPK dinamico basato su categoria pianta e fase
+   *    - Suggerisce trattamenti preventivi basati su famiglia botanica e stagione
+   * 
+   * 5. CONSIGLI LUNARI (Priorità 5 - Ottimizzazione tradizionale):
+   *    - Luna Crescente: ideale per semina foglie/frutti e trapianti
+   *    - Luna Calante: ideale per semina radici e potatura
+   * 
+   * Il piano viene rigenerato ogni volta che cambiano giardino, task o data.
+   */
   useEffect(() => {
     if (!activeGarden) {
       setDailyPlan(null);
@@ -230,6 +289,36 @@ const Dashboard: React.FC<DashboardProps> = ({
       .then(plan => {
         setDailyPlan(plan);
         setLoadingPlan(false);
+        
+        // Converti nutrient tasks in prodotti fertilizzanti concreti
+        if (plan.nutrientTasks.length > 0 && activeGarden) {
+          const recsMap = new Map<string, FertilizerRecommendation | null>();
+          Promise.all(
+            plan.nutrientTasks.map(async (nutrientTask) => {
+              try {
+                // Estrai elementFocus dal nutrientTask (semplificato)
+                const elementFocus = nutrientTask.adviceTitle.includes('Azoto') ? 'N' :
+                                   nutrientTask.adviceTitle.includes('Fosforo') ? 'P' :
+                                   nutrientTask.adviceTitle.includes('Potassio') ? 'K' : 'None';
+                
+                const fertilizerRec = suggestFertilizerProduct(
+                  elementFocus,
+                  activeGarden.soilType,
+                  'top_dressing',
+                  undefined // availableProducts - TODO: caricare da inventario
+                );
+                
+                if (fertilizerRec) {
+                  recsMap.set(nutrientTask.plantName, fertilizerRec);
+                }
+              } catch (error) {
+                console.error(`Error converting nutrient task to fertilizer:`, error);
+              }
+            })
+          ).then(() => {
+            setFertilizerRecsForNutrients(recsMap);
+          });
+        }
       })
       .catch(error => {
         console.error('Error generating daily plan:', error);
@@ -379,7 +468,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
   return (
-    <div className="p-4 sm:p-6 pb-24 max-w-2xl mx-auto space-y-4 sm:space-y-6">
+    <div className="p-4 sm:p-6 pb-32 max-w-2xl mx-auto space-y-4 sm:space-y-6">
       <header className="mt-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
         <div className="relative">
              {/* GARDEN SWITCHER */}
@@ -519,6 +608,9 @@ const Dashboard: React.FC<DashboardProps> = ({
                   {activeGarden.soilPh && <span className="text-green-800 flex items-center gap-1"><FlaskConical size={14}/> pH <b>{activeGarden.soilPh}</b></span>}
                   {activeGarden.soilType && <span className="text-green-800 flex items-center gap-1"><Shovel size={14}/> <b>{getSoilLabel(activeGarden.soilType)}</b></span>}
               </div>
+              <div className="flex-shrink-0">
+                  <SunExposureWidget garden={activeGarden} />
+              </div>
           </div>
       )}
 
@@ -616,7 +708,17 @@ const Dashboard: React.FC<DashboardProps> = ({
             </span>
           </div>
 
-          {/* Urgent Alerts */}
+          {/* 
+           * URGENT ALERTS - Allarmi Critici
+           * 
+           * Questi sono allarmi che richiedono azione immediata:
+           * - Gelo previsto: temperatura < 2°C (blocca operazioni delicate)
+           * - Caldo estremo: temperatura > 35°C (aumenta necessità irrigazione)
+           * - Deviazioni piano annuale: piante previste non ancora piantate
+           * 
+           * Se blockOperations è true, alcune operazioni (trapianti, semine delicate) 
+           * dovrebbero essere sospese fino a miglioramento condizioni.
+           */}
           {dailyPlan.urgentAlerts.length > 0 && (
             <div className="space-y-2 mb-4">
               {dailyPlan.urgentAlerts.map((alert, idx) => (
@@ -636,7 +738,19 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
           )}
 
-          {/* Climate Warnings */}
+          {/* 
+           * CLIMATE WARNINGS - Avvisi Climatici
+           * 
+           * Avvisi meno critici ma importanti per pianificazione:
+           * - Pioggia prevista: > 20mm (evita trattamenti fogliari)
+   * - Siccità: nessuna pioggia prevista (programma irrigazioni)
+           * - Temperature basse: < 8°C (proteggi piante sensibili)
+           * 
+           * Severità:
+           * - High: richiede attenzione immediata
+           * - Medium: monitoraggio consigliato
+           * - Low: informativo
+           */}
           {dailyPlan.climateWarnings.length > 0 && (
             <div className="space-y-2 mb-4">
               {dailyPlan.climateWarnings.map((warning, idx) => (
@@ -649,6 +763,51 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <p className="text-xs text-gray-600 mt-1">{warning.recommendation}</p>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Solar Classification */}
+          {dailyPlan.solarClassification && (
+            <div className="mb-4">
+              <h3 className="text-sm font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">
+                <Sun size={16} className="text-yellow-500" />
+                Classificazione Solare
+              </h3>
+              <SolarClassificationBadge classification={dailyPlan.solarClassification.classification} />
+              
+              {/* Alert di compatibilità */}
+              {dailyPlan.solarClassification.compatibilityAlerts.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {dailyPlan.solarClassification.compatibilityAlerts.map((alert, idx) => (
+                    <div key={idx} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                      <p className="text-sm font-medium text-yellow-900">{alert.message}</p>
+                      {alert.action && (
+                        <p className="text-xs text-yellow-700 mt-1">{alert.action}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Suggerimenti piante ottimizzati */}
+              {dailyPlan.solarClassification.optimizedSuggestions.length > 0 && (
+                <div className="mt-3">
+                  <h4 className="text-xs font-semibold text-gray-600 uppercase mb-2">
+                    Piante Consigliate per Tipo Orto
+                  </h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    {dailyPlan.solarClassification.optimizedSuggestions.slice(0, 3).map((suggestion, idx) => (
+                      <div key={idx} className="bg-white rounded-lg p-2 border border-gray-200 text-xs">
+                        <div className="font-medium text-gray-800">{suggestion.plantName}</div>
+                        <div className="text-gray-600 mt-1">{suggestion.reason}</div>
+                        <div className="text-gray-500 mt-1">
+                          {(suggestion.suitabilityScore * 100).toFixed(0)}% adatto
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -689,13 +848,37 @@ const Dashboard: React.FC<DashboardProps> = ({
                 Consigli Nutrizionali
               </h3>
               <div className="space-y-2">
-                {dailyPlan.nutrientTasks.map((task, idx) => (
-                  <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200">
-                    <p className="font-medium text-gray-800">{task.plantName}</p>
-                    <p className="text-sm font-semibold text-gray-700 mt-1">{task.adviceTitle}</p>
-                    <p className="text-xs text-gray-600 mt-1">{task.adviceBody}</p>
-                  </div>
-                ))}
+                {dailyPlan.nutrientTasks.map((task, idx) => {
+                  const fertilizerRec = fertilizerRecsForNutrients.get(task.plantName);
+                  return (
+                    <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200">
+                      <p className="font-medium text-gray-800">{task.plantName}</p>
+                      <p className="text-sm font-semibold text-gray-700 mt-1">{task.adviceTitle}</p>
+                      <p className="text-xs text-gray-600 mt-1">{task.adviceBody}</p>
+                      {/* Prodotto Fertilizzante Concreto */}
+                      {fertilizerRec && (
+                        <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h5 className="font-semibold text-sm text-gray-900">{fertilizerRec.product.name}</h5>
+                              <p className="text-xs text-gray-600 mt-1">{fertilizerRec.reason}</p>
+                            </div>
+                          </div>
+                          <div className="mt-2 space-y-1 text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-700">Dosaggio:</span>
+                              <span className="text-gray-900">{fertilizerRec.dosage.amount} {fertilizerRec.dosage.unit}{fertilizerRec.dosage.perSqm ? '/m²' : ''}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-700">Metodo:</span>
+                              <span className="text-gray-900 capitalize">{fertilizerRec.method}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -764,7 +947,16 @@ const Dashboard: React.FC<DashboardProps> = ({
         );
       })()}
 
-      {/* SEASON TOGGLE */}
+      {/* 
+       * SEASON TOGGLE - Filtro Stagionale
+       * 
+       * Permette di filtrare i task e le attività in base alla stagione:
+       * - Orto Estivo: mostra solo task per colture estive (pomodori, zucchine, peperoni, etc.)
+       * - Orto Invernale: mostra solo task per colture invernali (cavoli, spinaci, rucola, etc.)
+       * 
+       * Il filtro viene inizializzato automaticamente in base al mese corrente,
+       * ma l'utente può cambiarlo manualmente per pianificare attività future.
+       */}
       <div className="bg-white p-2 rounded-xl border border-gray-200 flex gap-2 shadow-sm">
           <button onClick={() => setSeasonFilter('Summer')} className={`flex-1 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${seasonFilter === 'Summer' ? 'bg-yellow-100 text-yellow-800 shadow-sm' : 'text-gray-400 hover:bg-gray-50'}`}>
               <Sun size={18}/> Orto Estivo
@@ -1028,6 +1220,44 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
+      {/* Season Analysis */}
+      {activeGarden && shouldShowSeasonAnalysis && (
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-blue-100 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                <BarChart3 size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-800">Analisi Stagione</h3>
+                <p className="text-xs text-gray-500">
+                  Analizza risultati e ottimizza per l'anno prossimo
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowSeasonAnalysis(!showSeasonAnalysis)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700"
+            >
+              {showSeasonAnalysis ? 'Nascondi' : 'Analizza'}
+            </button>
+          </div>
+          {showSeasonAnalysis && (
+            <div className="mt-4">
+              <SeasonAnalysisView
+                garden={activeGarden}
+                year={currentYear}
+                season={currentSeason === 'Summer' ? 'Summer' : 'Winter'}
+                onAdjustmentsAccepted={(adjustments) => {
+                  console.log('Aggiustamenti accettati:', adjustments);
+                  // TODO: Salvare aggiustamenti accettati
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Seed Inventory Quick Access */}
       {activeGarden && (
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-purple-100">
@@ -1056,7 +1286,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       )}
 
-      <div>
+      <div className="mb-6">
         <h3 className="text-lg font-bold text-gray-800 mb-3">Promemoria Urgente</h3>
         {upcomingReminders.length > 0 ? (
             <div className="space-y-3 overflow-y-auto max-h-[60vh] sm:max-h-none">

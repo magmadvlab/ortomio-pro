@@ -257,6 +257,7 @@ const AnnualPlanner: React.FC<AnnualPlannerProps> = ({ garden, tasks, onUpdatePl
                               Aiuola: {planting.bed}
                             </p>
                           )}
+                        </div>
                       </div>
                     </div>
                   ))
@@ -346,17 +347,31 @@ const AnnualPlanner: React.FC<AnnualPlannerProps> = ({ garden, tasks, onUpdatePl
               <div className="space-y-3">
                 {annualPlan.rotations.map((rotation, idx) => (
                   <div key={idx} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <h3 className="font-bold text-gray-800 mb-2">Aiuola: {rotation.bedId || `Aiuola ${idx + 1}`}</h3>
+                    <h3 className="font-bold text-gray-800 mb-2">Aiuola: {rotation.bedName || rotation.bedId || `Aiuola ${idx + 1}`}</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
-                      {rotation.sequence && rotation.sequence.length > 0 ? (
-                        rotation.sequence.map((plant, seqIdx) => (
-                          <div key={seqIdx} className="p-2 bg-white rounded border border-gray-200">
-                            <p className="font-medium text-gray-700">{typeof plant === 'string' ? plant : plant.plantName || '-'}</p>
-                            {typeof plant !== 'string' && plant.season && (
-                              <p className="text-xs text-gray-500">{plant.season}</p>
-                            )}
-                          </div>
-                        ))
+                      {rotation.quarters ? (
+                        <>
+                          {rotation.quarters.Q1 && (
+                            <div className="p-2 bg-white rounded border border-gray-200">
+                              <p className="font-medium text-gray-700">Q1: {rotation.quarters.Q1}</p>
+                            </div>
+                          )}
+                          {rotation.quarters.Q2 && (
+                            <div className="p-2 bg-white rounded border border-gray-200">
+                              <p className="font-medium text-gray-700">Q2: {rotation.quarters.Q2}</p>
+                            </div>
+                          )}
+                          {rotation.quarters.Q3 && (
+                            <div className="p-2 bg-white rounded border border-gray-200">
+                              <p className="font-medium text-gray-700">Q3: {rotation.quarters.Q3}</p>
+                            </div>
+                          )}
+                          {rotation.quarters.Q4 && (
+                            <div className="p-2 bg-white rounded border border-gray-200">
+                              <p className="font-medium text-gray-700">Q4: {rotation.quarters.Q4}</p>
+                            </div>
+                          )}
+                        </>
                       ) : (
                         <p className="text-gray-500 text-sm">Nessuna rotazione pianificata</p>
                       )}

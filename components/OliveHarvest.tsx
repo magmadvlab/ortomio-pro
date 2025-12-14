@@ -31,7 +31,7 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
 
   const oliveQty = harvestData.oliveQuantity || 0;
   const expectedOil = calculateExpectedOilYield(oliveQty, oilYieldExpected);
-  const isUrgent = harvestData.date && isMillingUrgent(harvestData.date);
+  const isUrgent = (harvestData as any).date ? isMillingUrgent((harvestData as any).date) : false;
 
   return (
     <div className="space-y-4">
@@ -78,8 +78,8 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
             </label>
             <input
               type="date"
-              value={harvestData.date || new Date().toISOString().split('T')[0]}
-              onChange={(e) => onUpdate({ date: e.target.value })}
+              value={(harvestData as any).date || new Date().toISOString().split('T')[0]}
+              onChange={(e) => onUpdate({ date: e.target.value } as Partial<OliveHarvestData>)}
               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             />
           </div>
@@ -116,7 +116,7 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
           )}
         </div>
 
-        {isUrgent && harvestData.date && (
+        {isUrgent && (harvestData as any).date && (
           <div className="mb-3 p-3 bg-red-50 rounded-lg border border-red-200">
             <p className="text-sm text-red-700">
               ⚠️ <strong>Frangitura Urgente:</strong> Le olive sono state raccolte più di 24 ore fa.
@@ -152,8 +152,8 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
                 Tipo Frangitura
               </label>
               <select
-                value={harvestData.millingType || 'Traditional'}
-                onChange={(e) => onUpdate({ millingType: e.target.value as any })}
+                value={(harvestData as any).millingType || 'Traditional'}
+                onChange={(e) => onUpdate({ millingType: e.target.value as any } as Partial<OliveHarvestData>)}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
               >
                 <option value="Traditional">Tradizionale</option>

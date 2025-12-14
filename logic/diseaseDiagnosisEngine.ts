@@ -3,14 +3,17 @@
  * Analisi AI per diagnosi malattie tramite foto e matching contestuale
  */
 
-import { GoogleGenerativeAI } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 import { diseaseDatabase, Disease, getDiseasesForPlant, getDiseasesForSeason } from '../data/diseaseDatabase';
 import { PlantMasterSheet, Garden } from '../types';
 import { Season, getSeasonForDate } from '../utils/seasonalAdjustment';
 import { WeatherForecast } from '../services/weatherService';
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+// Support both Next.js and Vite environments
+const apiKey = typeof window !== 'undefined'
+  ? (process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY)
+  : (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY);
+const genAI = apiKey ? new GoogleGenAI({ apiKey: apiKey }) : null;
 
 export interface DiseaseDiagnosis {
   disease: Disease;
@@ -61,7 +64,7 @@ export const diagnoseFromPhoto = async (
     throw new Error('Gemini API key not configured');
   }
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
+  const model = genAI.generativeModel({ model: 'gemini-pro-vision' });
 
   // Ottieni malattie possibili per questa pianta
   const possibleDiseases = getDiseasesForPlant(plantName);

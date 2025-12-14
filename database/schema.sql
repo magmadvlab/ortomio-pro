@@ -13,6 +13,7 @@ CREATE TABLE gardens (
   name TEXT NOT NULL,
   coordinates JSONB, -- { latitude: number, longitude: number }
   size_sq_meters DECIMAL(10, 2) NOT NULL DEFAULT 0,
+  size_unit TEXT CHECK (size_unit IN ('sqm', 'are', 'hectare')) DEFAULT 'sqm',
   soil_type TEXT CHECK (soil_type IN ('Clay', 'Sandy', 'Loamy', 'Peaty', 'Chalky', 'Silty')),
   soil_ph DECIMAL(3, 1) CHECK (soil_ph >= 0 AND soil_ph <= 14),
   
@@ -29,6 +30,20 @@ CREATE TABLE gardens (
   -- INFRASTRUTTURA
   has_compost_bin BOOLEAN DEFAULT false,
   is_raised_bed BOOLEAN DEFAULT false,
+  
+  -- NUOVO: Tipo spazio coltivabile e configurazioni avanzate
+  garden_type TEXT CHECK (
+    garden_type IN (
+      'OpenField', 'Greenhouse', 'Tunnel', 'RaisedBed', 
+      'Indoor', 'Hydroponic', 'Aquaponic', 'Aeroponic',
+      'NFT', 'DWC', 'EbbFlow', 'Drip', 'Wick', 'Kratky'
+    )
+  ),
+  greenhouse_config JSONB,
+  indoor_config JSONB,
+  hydroponic_config JSONB,
+  aquaponic_config JSONB,
+  aeroponic_config JSONB,
   
   -- VACATION MODE (JSONB per flessibilità)
   vacation_mode JSONB,
@@ -47,10 +62,20 @@ CREATE TABLE garden_beds (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
+  bed_type TEXT CHECK (bed_type IN ('RaisedBed', 'Container', 'Pot', 'Ground', 'Greenhouse', 'Hydroponic', 'Aquaponic', 'Aeroponic', 'Indoor')),
+  shape TEXT CHECK (shape IN ('Rectangle', 'Circle', 'Custom')),
+  length_cm DECIMAL(8, 2),
+  width_cm DECIMAL(8, 2),
+  diameter_cm DECIMAL(8, 2),
   size_sq_meters DECIMAL(5, 2),
   daily_sun_hours INTEGER,
   aspect_direction TEXT,
   soil_type TEXT,
+  structure_id UUID REFERENCES gardens(id) ON DELETE SET NULL,
+  structure_type TEXT CHECK (structure_type IN ('Greenhouse', 'Hydroponic', 'Aquaponic', 'Aeroponic', 'Indoor')),
+  is_covered BOOLEAN DEFAULT false,
+  covering_structure_id UUID REFERENCES gardens(id) ON DELETE SET NULL,
+  notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -89,11 +114,11 @@ CREATE TABLE garden_tasks (
   variety TEXT,
   planting_method TEXT CHECK (planting_method IN ('Seed', 'Seedling')),
   
-  location_type TEXT CHECK (location_type IN ('Pot', 'Ground', 'RaisedBed')),
+  location_type TEXT CHECK (location_type IN ('Pot', 'Ground', 'RaisedBed', 'HydroponicNFT', 'HydroponicDWC', 'HydroponicEbbFlow', 'HydroponicDrip', 'HydroponicWick', 'HydroponicKratky', 'Aquaponic', 'Aeroponic', 'Indoor')),
   initial_quantity INTEGER,
   current_quantity INTEGER,
   
-  task_type TEXT CHECK (task_type IN ('Sowing', 'Transplant', 'Fertilize', 'Prune', 'Harvest', 'Treatment')) NOT NULL,
+  task_type TEXT CHECK (task_type IN ('Sowing', 'Transplant', 'Fertilize', 'Prune', 'Harvest', 'Treatment', 'Plowing', 'Tilling', 'TreePruning')) NOT NULL,
   stage TEXT CHECK (stage IN ('Germination', 'Vegetative', 'ReadyToTransplant', 'Flowering', 'Fruiting', 'Harvested')),
   lifecycle_state TEXT CHECK (lifecycle_state IN ('Sowing', 'Germination', 'Nursing', 'Hardening', 'Transplanting', 'Production')),
   season TEXT CHECK (season IN ('Summer', 'Winter')),
@@ -126,6 +151,22 @@ CREATE TABLE garden_tasks (
   aromatic_data JSONB,
   olive_data JSONB,
   vine_data JSONB,
+  exotic_fruit_data JSONB,
+  
+  -- Lavorazioni meccaniche e potatura alberi
+  mechanical_work_data JSONB, -- { workType: 'Plowing'|'Tilling', equipmentType: 'Tractor'|'Manual', depth: number, area: number }
+  tree_pruning_data JSONB, -- { treeType: 'Pome'|'Stone'|'Citrus'|'Nut'|'Berry', pruningType: 'Formative'|'Maintenance'|'Rejuvenation', season: 'Winter'|'Summer' }
+  
+  -- NUOVO: Dati sistemi idroponici/acquaponici/aeroponici
+  hydroponic_data JSONB, -- { systemType: 'NFT'|'DWC'|..., reservoirId?: string, channelId?: string, bucketId?: string, phAtPlanting?: number, ecAtPlanting?: number }
+  aquaponic_data JSONB, -- { systemType: 'MediaBed'|'NFT'|..., bedId?: string, phAtPlanting?: number, ammoniaAtPlanting?: number }
+  aeroponic_data JSONB, -- { systemType: 'HighPressure'|'LowPressure'|..., chamberId?: string, phAtPlanting?: number, ecAtPlanting?: number }
+  
+  -- Tracking suggerimenti vs completamenti reali
+  suggested_date DATE, -- Data suggerita dall'orchestrator
+  actual_completed_date TIMESTAMP WITH TIME ZONE, -- Data effettiva di completamento (diversa da completed_at se completato in data diversa)
+  is_suggested BOOLEAN DEFAULT false, -- true se generato automaticamente dall'orchestrator
+  suggested_by TEXT, -- ID del task/sistema che ha suggerito questo task
   
   images JSONB, -- Array di stringhe (base64 o URLs)
   last_photo_date DATE,
@@ -140,6 +181,8 @@ CREATE INDEX idx_garden_tasks_bed_id ON garden_tasks(bed_id);
 CREATE INDEX idx_garden_tasks_date ON garden_tasks(date);
 CREATE INDEX idx_garden_tasks_completed ON garden_tasks(completed);
 CREATE INDEX idx_garden_tasks_plant_name ON garden_tasks(plant_name);
+CREATE INDEX idx_garden_tasks_suggested ON garden_tasks(is_suggested) WHERE is_suggested = true;
+CREATE INDEX idx_garden_tasks_suggested_date ON garden_tasks(suggested_date) WHERE suggested_date IS NOT NULL;
 
 -- ============================================
 -- HARVEST LOGS
@@ -436,5 +479,364 @@ CREATE TRIGGER update_garden_tasks_updated_at BEFORE UPDATE ON garden_tasks
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_seed_inventory_updated_at BEFORE UPDATE ON seed_inventory
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- CUSTOM PLANS (Piani Personalizzati - Pro Feature)
+-- ============================================
+CREATE TABLE custom_plans (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  garden_id UUID REFERENCES gardens(id) ON DELETE SET NULL,
+  
+  name TEXT NOT NULL,
+  description TEXT,
+  base_master_sheet_id TEXT NOT NULL,  -- Reference to master sheet
+  
+  -- Override parameters (JSONB for flexibility)
+  overrides JSONB,
+  
+  -- Personal notes
+  custom_notes JSONB,  -- Array of { phase, note, date }
+  
+  -- Custom methodologies
+  custom_methods JSONB,  -- Array of { name, description, steps, applicableSeasons }
+  
+  -- Additional parameters
+  additional_parameters JSONB,
+  
+  is_public BOOLEAN DEFAULT false,
+  
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_custom_plans_user_id ON custom_plans(user_id);
+CREATE INDEX idx_custom_plans_garden_id ON custom_plans(garden_id);
+CREATE INDEX idx_custom_plans_base_master_sheet ON custom_plans(base_master_sheet_id);
+
+-- RLS Policies for custom_plans
+ALTER TABLE custom_plans ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own custom plans"
+  ON custom_plans FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can view public custom plans"
+  ON custom_plans FOR SELECT
+  USING (is_public = true);
+
+CREATE POLICY "Users can create their own custom plans"
+  ON custom_plans FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own custom plans"
+  ON custom_plans FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own custom plans"
+  ON custom_plans FOR DELETE
+  USING (auth.uid() = user_id);
+
+CREATE TRIGGER update_custom_plans_updated_at BEFORE UPDATE ON custom_plans
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- AGRONOMISTS (Agronomi di Fiducia - Pro Feature)
+-- ============================================
+CREATE TABLE agronomists (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  
+  name TEXT NOT NULL,
+  email TEXT,
+  phone TEXT,
+  specialization JSONB,  -- Array of strings
+  notes TEXT,
+  
+  preferred_contact_method TEXT CHECK (preferred_contact_method IN ('Email', 'Phone', 'InPerson')),
+  consultation_frequency TEXT CHECK (consultation_frequency IN ('Weekly', 'Monthly', 'Seasonal', 'OnDemand')),
+  
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_agronomists_user_id ON agronomists(user_id);
+
+-- RLS Policies for agronomists
+ALTER TABLE agronomists ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage their own agronomists"
+  ON agronomists FOR ALL
+  USING (auth.uid() = user_id);
+
+CREATE TRIGGER update_agronomists_updated_at BEFORE UPDATE ON agronomists
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- AGRONOMIST CONSULTATIONS (Consultazioni)
+-- ============================================
+CREATE TABLE agronomist_consultations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  agronomist_id UUID REFERENCES agronomists(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  garden_id UUID REFERENCES gardens(id) ON DELETE SET NULL,
+  task_id UUID REFERENCES garden_tasks(id) ON DELETE SET NULL,
+  
+  date DATE NOT NULL,
+  consultation_type TEXT CHECK (consultation_type IN ('InPerson', 'Phone', 'Email', 'Video')),
+  topic TEXT NOT NULL,
+  
+  advice JSONB,  -- Array of { plantName, issue, recommendation, priority, followUpDate }
+  notes TEXT,
+  attachments JSONB,  -- Array of URLs
+  
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_consultations_agronomist_id ON agronomist_consultations(agronomist_id);
+CREATE INDEX idx_consultations_user_id ON agronomist_consultations(user_id);
+CREATE INDEX idx_consultations_task_id ON agronomist_consultations(task_id);
+
+-- RLS Policies for consultations
+ALTER TABLE agronomist_consultations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage their own consultations"
+  ON agronomist_consultations FOR ALL
+  USING (auth.uid() = user_id);
+
+-- ============================================
+-- AGRONOMIST ADVICE (Consigli Agronomo)
+-- ============================================
+CREATE TABLE agronomist_advice (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  consultation_id UUID REFERENCES agronomist_consultations(id) ON DELETE CASCADE NOT NULL,
+  task_id UUID REFERENCES garden_tasks(id) ON DELETE SET NULL,
+  
+  advice_text TEXT NOT NULL,
+  category TEXT CHECK (category IN ('Fertilization', 'Pruning', 'Irrigation', 'Disease', 'Harvest', 'Other')),
+  priority TEXT CHECK (priority IN ('High', 'Medium', 'Low')),
+  
+  apply_date DATE,
+  apply_season JSONB,  -- Array of seasons
+  
+  applied BOOLEAN DEFAULT false,
+  applied_date DATE,
+  result TEXT,
+  
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_advice_consultation_id ON agronomist_advice(consultation_id);
+CREATE INDEX idx_advice_task_id ON agronomist_advice(task_id);
+
+-- RLS Policies for advice
+ALTER TABLE agronomist_advice ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view advice from their consultations"
+  ON agronomist_advice FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM agronomist_consultations
+      WHERE agronomist_consultations.id = agronomist_advice.consultation_id
+      AND agronomist_consultations.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can update advice from their consultations"
+  ON agronomist_advice FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM agronomist_consultations
+      WHERE agronomist_consultations.id = agronomist_advice.consultation_id
+      AND agronomist_consultations.user_id = auth.uid()
+    )
+  );
+
+-- ============================================
+-- GARDEN OBSTACLES (Ostacoli per calcolo esposizione solare)
+-- ============================================
+CREATE TABLE IF NOT EXISTS garden_obstacles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
+  
+  -- Posizione e dimensioni ostacolo
+  azimuth DECIMAL(5, 2) NOT NULL CHECK (azimuth >= 0 AND azimuth <= 360), -- Direzione (0-360°, 0=Nord)
+  height_meters DECIMAL(6, 2) NOT NULL CHECK (height_meters > 0), -- Altezza in metri
+  distance_meters DECIMAL(6, 2) NOT NULL CHECK (distance_meters > 0), -- Distanza orizzontale in metri
+  width_degrees DECIMAL(5, 2) DEFAULT 30 CHECK (width_degrees > 0 AND width_degrees <= 180), -- Larghezza angolare
+  
+  -- Tipo e sorgente
+  type TEXT CHECK (type IN ('Building', 'Tree', 'Mountain', 'Other')) DEFAULT 'Other',
+  source TEXT CHECK (source IN ('photo_360', 'manual', 'ai_analysis')) DEFAULT 'manual',
+  
+  -- Metadati
+  description TEXT, -- Descrizione opzionale
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_garden_obstacles_garden_id ON garden_obstacles(garden_id);
+CREATE INDEX IF NOT EXISTS idx_garden_obstacles_azimuth ON garden_obstacles(azimuth);
+
+ALTER TABLE garden_obstacles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view obstacles in their gardens"
+  ON garden_obstacles FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM gardens
+      WHERE gardens.id = garden_obstacles.garden_id
+      AND gardens.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can create obstacles in their gardens"
+  ON garden_obstacles FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM gardens
+      WHERE gardens.id = garden_obstacles.garden_id
+      AND gardens.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can update obstacles in their gardens"
+  ON garden_obstacles FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM gardens
+      WHERE gardens.id = garden_obstacles.garden_id
+      AND gardens.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can delete obstacles in their gardens"
+  ON garden_obstacles FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM gardens
+      WHERE gardens.id = garden_obstacles.garden_id
+      AND gardens.user_id = auth.uid()
+    )
+  );
+
+-- ============================================
+-- GARDEN ACCESSORIES (Paletti, Reti, Fili, etc.)
+-- ============================================
+CREATE TABLE garden_accessories (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  category TEXT CHECK (category IN ('Support', 'Netting', 'Wire', 'Structure')) NOT NULL,
+  
+  -- Dettagli categoria
+  support_type TEXT CHECK (support_type IN ('Stake', 'Tutor', 'Trellis', 'Cage')),
+  netting_type TEXT CHECK (netting_type IN ('Shade', 'Hail', 'Insect', 'Harvest')),
+  wire_type TEXT CHECK (wire_type IN ('Steel', 'Plastic')),
+  
+  -- Materiale
+  material TEXT CHECK (material IN ('Wood', 'Steel', 'Plastic', 'Bamboo', 'Cane', 'Aluminum', 'Polyethylene', 'Polypropylene')) NOT NULL,
+  
+  -- Dimensioni
+  quantity INTEGER,
+  length_cm INTEGER,
+  height_cm INTEGER,
+  width_cm INTEGER,
+  diameter_cm INTEGER,
+  mesh_size_mm INTEGER,
+  
+  -- Utilizzo
+  used_for JSONB, -- Array di nomi piante
+  installation_date DATE,
+  expected_lifespan_years INTEGER,
+  
+  -- Manutenzione
+  last_maintenance DATE,
+  needs_replacement BOOLEAN DEFAULT false,
+  
+  -- Posizione
+  position JSONB, -- { x: number, y: number }
+  
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_accessories_garden_id ON garden_accessories(garden_id);
+CREATE INDEX idx_accessories_category ON garden_accessories(category);
+
+ALTER TABLE garden_accessories ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can access accessories in their gardens"
+  ON garden_accessories FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM gardens
+      WHERE gardens.id = garden_accessories.garden_id
+      AND gardens.user_id = auth.uid()
+    )
+  );
+
+-- ============================================
+-- HYDROPONIC READINGS (Monitoraggio parametri idroponica)
+-- ============================================
+CREATE TABLE hydroponic_readings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
+  reading_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  ph DECIMAL(3, 2) CHECK (ph >= 0 AND ph <= 14),
+  ec DECIMAL(5, 2), -- mS/cm
+  water_temperature DECIMAL(4, 1), -- °C
+  reservoir_volume DECIMAL(6, 2), -- Litri
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_hydroponic_readings_garden_date ON hydroponic_readings(garden_id, reading_date DESC);
+
+ALTER TABLE hydroponic_readings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can access hydroponic readings in their gardens"
+  ON hydroponic_readings FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM gardens
+      WHERE gardens.id = hydroponic_readings.garden_id
+      AND gardens.user_id = auth.uid()
+    )
+  );
+
+-- ============================================
+-- AQUAPONIC READINGS (Monitoraggio parametri acquaponica)
+-- ============================================
+CREATE TABLE aquaponic_readings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
+  reading_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  ph DECIMAL(3, 2) CHECK (ph >= 0 AND ph <= 14),
+  ammonia DECIMAL(5, 2), -- mg/L
+  nitrite DECIMAL(5, 2), -- mg/L
+  nitrate DECIMAL(5, 2), -- mg/L
+  water_temperature DECIMAL(4, 1), -- °C
+  dissolved_oxygen DECIMAL(4, 2), -- mg/L
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_aquaponic_readings_garden_date ON aquaponic_readings(garden_id, reading_date DESC);
+
+ALTER TABLE aquaponic_readings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can access aquaponic readings in their gardens"
+  ON aquaponic_readings FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM gardens
+      WHERE gardens.id = aquaponic_readings.garden_id
+      AND gardens.user_id = auth.uid()
+    )
+  );
+
+CREATE TRIGGER update_garden_obstacles_updated_at BEFORE UPDATE ON garden_obstacles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 

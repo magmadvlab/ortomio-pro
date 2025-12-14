@@ -5,7 +5,8 @@ export enum Tab {
   JOURNAL = 'JOURNAL',
   ADVICE = 'ADVICE',
   HARVEST = 'HARVEST',
-  SMART = 'SMART'
+  SMART = 'SMART',
+  CALENDAR = 'CALENDAR'
 }
 
 export interface VacationTask {
@@ -29,10 +30,17 @@ export interface VacationPlan {
 
 // Director Types - Orchestratore Centrale
 export interface UrgentAlert {
-  type: 'Frost' | 'Heat' | 'Drought' | 'Storm';
+  type: 'Frost' | 'Heat' | 'Drought' | 'Storm' | 'Planning' | 'Succession' | 'SolarCompatibility' | 'SoilCompatibility' | 'SoilTemperature' | 'Safety';
   message: string;
   action: string;
   blockOperations?: boolean; // Blocca trapianti/operazioni delicate
+  proactiveContext?: {
+    historicalPattern?: string;
+    currentConditions?: string;
+    predictedRisk?: string;
+    confidence: number;
+  };
+  timing?: 'now' | 'tomorrow' | 'this_week';
 }
 
 export interface ClimateWarning {
@@ -65,6 +73,7 @@ export interface HealthTask {
   reason: string;
   priority: 'High' | 'Medium' | 'Low';
   actionType: 'Prevent' | 'Monitor';
+  filteredReason?: string; // Spiega perché alcuni prodotti non sono disponibili (es. manca patentino)
 }
 
 export interface LunarAdvice {
@@ -72,6 +81,31 @@ export interface LunarAdvice {
   phaseName: string;
   advice: string;
   idealFor: string[];
+}
+
+// Solar Classification Types
+import { SeasonalSunWindow, GardenClassification } from './services/seasonalSunWindows';
+import { PlantingWindow } from './services/plantingWindowOptimizer';
+import { PlantSuggestionForWindow } from './services/seasonalPlantSuggestions';
+
+// Advanced Growing Systems Types
+import { 
+  IndoorGrowingConfig, 
+  HydroponicSystemConfig, 
+  AquaponicSystemConfig, 
+  AeroponicSystemConfig,
+  HydroponicTaskData,
+  AquaponicTaskData,
+  AeroponicTaskData
+} from './types/indoorGrowing';
+import { GreenhouseConfig } from './types/greenhouse';
+
+export interface SolarClassificationData {
+  windows: SeasonalSunWindow[];
+  classification: GardenClassification;
+  plantingWindows: PlantingWindow[];
+  compatibilityAlerts: UrgentAlert[]; // Piante incompatibili con tipo orto
+  optimizedSuggestions: PlantSuggestionForWindow[];
 }
 
 export interface DailyPlan {
@@ -83,13 +117,75 @@ export interface DailyPlan {
   climateWarnings: ClimateWarning[];
   lunarAdvice?: LunarAdvice;
   priority: 'Critical' | 'High' | 'Medium' | 'Low';
+  // Nuovi task per lavorazioni meccaniche e potatura alberi
+  mechanicalWorkTasks?: MechanicalWorkTask[];
+  treePruningTasks?: TreePruningTask[];
+  pendingSuggestions?: GardenTask[]; // Task suggeriti non ancora completati
+  solarClassification?: SolarClassificationData; // Classificazione solare stagionale
 }
+
+export interface MechanicalWorkTask {
+  taskId?: string; // Se già creato come GardenTask
+  workType: 'Plowing' | 'Tilling';
+  suggestedDate: string;
+  priority: 'High' | 'Medium' | 'Low';
+  message: string;
+  instructions: string[];
+  equipmentType: 'Tractor' | 'Manual';
+  area?: number;
+  weatherWarning?: string;
+}
+
+export interface TreePruningTask {
+  taskId?: string; // Se già creato come GardenTask
+  treeType: 'Pome' | 'Stone' | 'Citrus' | 'Nut' | 'Berry';
+  suggestedDate: string;
+  priority: 'High' | 'Medium' | 'Low';
+  message: string;
+  instructions: string[];
+  pruningType: 'Formative' | 'Maintenance' | 'Rejuvenation';
+  season: 'Winter' | 'Summer';
+  lunarAdvice?: string;
+}
+
+/**
+ * Input visivo per esposizione solare (wizard semplificato)
+ */
+export interface VisualSunInputData {
+  position: 'campo' | 'muro' | 'balcone';
+  morningSun: number; // 1-5 scala
+  noonSun: number; // 1-5 scala
+  afternoonSun: number; // 1-5 scala
+  obstacles: string[]; // ['edificio_sud', 'albero', 'nessuno']
+}
+
+/**
+ * Tipo spazio coltivabile
+ */
+export type GardenType = 
+  | 'OpenField'           // Campo aperto tradizionale
+  | 'Greenhouse'          // Serra tradizionale
+  | 'Tunnel'              // Tunnel/polytunnel
+  | 'RaisedBed'           // Aiuola/cassone rialzato
+  | 'Pot'                 // Vasi/Contenitori
+  | 'Container'           // Contenitori generici
+  | 'Indoor'              // Indoor generico
+  | 'Hydroponic'          // Idroponica generica
+  | 'Aquaponic'           // Acquaponica
+  | 'Aeroponic'           // Aeroponica
+  | 'NFT'                 // Nutrient Film Technique
+  | 'DWC'                 // Deep Water Culture
+  | 'EbbFlow'             // Ebb and Flow / Flood and Drain
+  | 'Drip'                // Drip System
+  | 'Wick'                // Wick System
+  | 'Kratky';             // Kratky Method (passive)
 
 export interface Garden {
   id: string;
   name: string;
   coordinates?: GeoLocation;
-  sizeSqMeters: number; 
+  sizeSqMeters: number; // Sempre in m² per calcoli interni
+  sizeUnit?: 'sqm' | 'are' | 'hectare'; // Unità di misura per display (default: 'sqm')
   soilType?: 'Clay' | 'Sandy' | 'Loamy' | 'Peaty' | 'Chalky' | 'Silty';
   soilPh?: number;
   createdAt: string;
@@ -98,20 +194,100 @@ export interface Garden {
   // GEO-CLIMA
   altitudeMeters?: number;
   delayFactorDays?: number; // Giorni ritardo semina vs costa (fallback se no altitudine)
+  visualSunInput?: VisualSunInputData; // Salva input originale del wizard visivo
   
   // MICRO-CLIMA
   sunExposure?: 'FullSun' | 'PartSun' | 'Shade';
   dailySunHours?: number;
   aspectDirection?: 'North' | 'South' | 'East' | 'West' | 'Flat';
   windProtection?: 'High' | 'Medium' | 'Low';
+  obstacles?: Array<{
+    azimuth: number;        // 0-360°
+    height: number;         // metri
+    distance: number;       // metri
+    widthDegrees: number;  // gradi
+    type?: 'Building' | 'Tree' | 'Mountain' | 'Other';
+  }>;
   
   // INFRASTRUTTURA
   hasCompostBin?: boolean;
   isRaisedBed?: boolean;
+  
+  // NUOVO: Tipo spazio coltivabile e configurazioni avanzate
+  gardenType?: GardenType;
+  greenhouseConfig?: GreenhouseConfig;
+  indoorConfig?: IndoorGrowingConfig;
+  hydroponicConfig?: HydroponicSystemConfig;
+  aquaponicConfig?: AquaponicSystemConfig;
+  aeroponicConfig?: AeroponicSystemConfig;
+  
+  // SOLAR ENGINE - Punti mappati dell'orto
+  points?: GardenPoint[]; // Punti mappati dell'orto con score
+}
+
+/**
+ * Punto dell'orto con caratteristiche solari specifiche
+ */
+export interface GardenPoint {
+  id: string;
+  name: string;
+  position: { x: number; y: number }; // Nella griglia (0-100%)
+  size?: number; // m² del punto
+  visualSunInput?: VisualSunInputData;
+  obstacles?: Array<{
+    azimuth: number;
+    height: number;
+    distance: number;
+    widthDegrees: number;
+    type?: 'Building' | 'Tree' | 'Mountain' | 'Other';
+  }>;
+  score?: {
+    pointId: string;
+    pointName: string;
+    scores: {
+      ortoEstivo: number;
+      fogliaPrimavera: number;
+      fogliaEstate: number;
+      aromatiche: number;
+    };
+    recommendations: Array<{
+      category: string;
+      score: number;
+      message: string;
+      cycles: number;
+      resaStimata: number;
+    }>;
+  }; // Score calcolato
 }
 
 // Deprecated in favor of Garden, keeping for transition types if needed
 export interface GardenProfile extends Omit<Garden, 'id' | 'name' | 'createdAt'> {}
+
+export interface UserProfile {
+  id: string;
+  tier?: 'FREE' | 'PRO_CONSUMER' | 'PRO_PROFESSIONAL';
+  ai_credits_total?: number;
+  ai_credits_used?: number;
+  ai_credits_reset_date?: string;
+  pesticideLicense?: {
+    number: string;
+    expiryDate: string;
+    isValid: boolean;
+  };
+  preferredTreatmentType?: 'organic' | 'classic' | 'mixed';
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Compatibilità pianta con tipo terreno
+ */
+export interface SoilCompatibility {
+  compatible: boolean;
+  reason?: string;
+  optimalSoilTypes?: Garden['soilType'][];
+  avoidSoilTypes?: Garden['soilType'][];
+}
 
 export interface SmartDevice {
     id: string;
@@ -198,6 +374,9 @@ export interface Recipe {
 
 export interface HarvestLogData {
     id?: string; // Unique ID for specific log entry
+    plantName?: string; // Nome pianta (da database o calcolato)
+    gardenId?: string; // ID giardino
+    taskId?: string; // ID task associato
     quantity: number;
     unit: 'kg' | 'g' | 'units';
     rating: 1 | 2 | 3 | 4 | 5; // Quality stars
@@ -206,6 +385,10 @@ export interface HarvestLogData {
     brix?: number;
     notes?: string;
     suggestedRecipes?: Recipe[]; // Ricette suggerite per questo raccolto
+    // Campi calcolati per analytics (non salvati nel DB)
+    marketValue?: number; // Valore di mercato per kg
+    costPerKg?: number; // Costo per kg
+    areaSqm?: number; // Area coltivata in m²
     
     // Specialized Crop Harvest Data (Pro Features)
     strawberryHarvest?: {
@@ -254,7 +437,19 @@ export interface HarvestLogData {
     };
 }
 
-export type GrowingLocation = 'Pot' | 'Ground' | 'RaisedBed';
+export type GrowingLocation = 
+  | 'Pot' 
+  | 'Ground' 
+  | 'RaisedBed'
+  | 'HydroponicNFT'
+  | 'HydroponicDWC'
+  | 'HydroponicEbbFlow'
+  | 'HydroponicDrip'
+  | 'HydroponicWick'
+  | 'HydroponicKratky'
+  | 'Aquaponic'
+  | 'Aeroponic'
+  | 'Indoor';
 
 // Moon Phase Types
 export type MoonPhase = 
@@ -279,7 +474,7 @@ export interface GardenTask {
   initialQuantity?: number; // How many seeds/plants started
   currentQuantity?: number; // How many survived/are active
   
-  taskType: 'Sowing' | 'Transplant' | 'Fertilize' | 'Prune' | 'Harvest' | 'Treatment';
+  taskType: 'Sowing' | 'Transplant' | 'Fertilize' | 'Prune' | 'Harvest' | 'Treatment' | 'Plowing' | 'Tilling' | 'TreePruning';
   durationMinutes?: number; // Durata task (es. irrigazione in minuti)
   stage?: 'Germination' | 'Vegetative' | 'ReadyToTransplant' | 'Flowering' | 'Fruiting' | 'Harvested';
   lifecycleState?: 'Sowing' | 'Germination' | 'Nursing' | 'Hardening' | 'Transplanting' | 'Production'; // Fase del ciclo vitale
@@ -288,6 +483,11 @@ export interface GardenTask {
   expectedTransplantDate?: string; // If started from seed
   moonPhase?: MoonPhase; // Fase lunare al momento della semina/trapianto
   completed: boolean;
+  // Tracking suggerimenti vs completamenti reali
+  suggestedDate?: string; // Data suggerita dall'orchestrator (ISO string)
+  actualCompletedDate?: string; // Data effettiva di completamento (ISO string, diversa da date se completato in data diversa)
+  isSuggested?: boolean; // true se generato automaticamente dall'orchestrator
+  suggestedBy?: string; // ID del task/sistema che ha suggerito questo task
   notes?: string;
   nextDueDate?: string; // For recurring tasks or follow-ups
   treatmentProductId?: string; // ID prodotto trattamento (se taskType è 'Treatment')
@@ -350,6 +550,42 @@ export interface GardenTask {
     pruningType?: 'Winter' | 'Summer';
     operationType?: 'Pruning' | 'Tying' | 'ShootThinning' | 'LeafRemoval';
   };
+  exoticFruitData?: {
+    fruitType: 'Tropical' | 'Subtropical' | 'MediterraneanExotic';
+    greenhouseRequired: boolean;
+    currentTemp?: number;  // Current monitored temperature
+    climateStatus?: 'Optimal' | 'Warning' | 'Critical';
+    greenhouseSettings?: {
+      temp: number;
+      humidity: number;
+      ventilation: boolean;
+    };
+  };
+  raspberryData?: {
+    varietyType: 'Summer-bearing' | 'Ever-bearing' | 'Fall-bearing';
+    canesType: 'Primocane' | 'Floricane';
+    trainingSystem: 'Trellis' | 'Free-standing';
+    pruningCompleted?: boolean;
+    canesRemoved?: number;
+    supportInstalled?: boolean;
+  };
+  // Lavorazioni meccaniche per terreni più grandi
+  mechanicalWorkData?: {
+    workType: 'Plowing' | 'Tilling';
+    equipmentType?: 'Tractor' | 'Manual';
+    depth?: number; // cm
+    area?: number; // m²
+  };
+  // Potatura alberi (inclusi agrumi)
+  treePruningData?: {
+    treeType?: 'Pome' | 'Stone' | 'Citrus' | 'Nut' | 'Berry';
+    pruningType?: 'Formative' | 'Maintenance' | 'Rejuvenation';
+    season?: 'Winter' | 'Summer';
+  };
+  // NUOVO: Dati per sistemi idroponici/acquaponici/aeroponici
+  hydroponicData?: HydroponicTaskData;
+  aquaponicData?: AquaponicTaskData;
+  aeroponicData?: AeroponicTaskData;
 }
 
 export interface GeoLocation {
@@ -405,7 +641,8 @@ export type CropType =
   | 'Aromatic'    // Erbe aromatiche
   | 'Medicinal'   // Erbe officinali
   | 'Olive'       // Olivo (Pro)
-  | 'Vine';       // Vite (Pro)
+  | 'Vine'        // Vite (Pro)
+  | 'ExoticFruit'; // Frutta esotica (Pro)
 
 // Nutrient Category for Nutritional Engine
 export type NutrientCategory = 
@@ -432,6 +669,8 @@ export interface PlantProtectionProduct {
   notes: string; // es. "Non dare sotto il sole forte"
   applicationMethod?: 'Foliar' | 'Soil' | 'Both'; // Come applicarlo
   bestTime?: 'Morning' | 'Evening' | 'Any'; // Quando applicarlo
+  requiresLicense?: boolean; // Richiede patentino fitosanitario
+  safetyInterval?: number; // Giorni di carenza (tempo di attesa prima di raccogliere)
 }
 
 export interface PlantMasterSheet {
@@ -488,6 +727,22 @@ export interface PlantMasterSheet {
     protectionInstructions?: string;
   };
   
+  // Supporto e accessori necessari
+  supportRequirements?: {
+    needsSupport: boolean; // Necessita supporto?
+    supportType?: 'Stake' | 'Trellis' | 'Cage' | 'Net' | 'Espalier'; // Tipo supporto principale
+    climbingType?: 'Twining' | 'Tendril' | 'Scrambling' | 'None'; // Tipo arrampicamento
+    supportHeight?: number; // Altezza supporto necessaria (cm)
+    supportTiming?: 'AtTransplant' | 'BeforeFlowering' | 'AsNeeded'; // Quando installare
+    additionalAccessories?: Array<{
+      type: 'Net' | 'Wire' | 'Stake' | 'Trellis' | 'Cage';
+      purpose: 'InsectProtection' | 'Shade' | 'Harvest' | 'WindProtection';
+      required: boolean; // Obbligatorio o consigliato
+      timing?: string; // Quando necessario
+    }>;
+    notes?: string; // Note specifiche sul supporto
+  };
+  
   // Tag comportamentali disponibili per questa specie
   availableTags: string[]; // Array di ID dei BehavioralTag
   
@@ -508,6 +763,45 @@ export interface PlantMasterSheet {
       daysActive: { min: number; max: number };
       risk: 'High' | 'Medium' | 'Low';
     }[];
+  };
+  
+  // NEW: Visual category for UI (Level 1 - User-facing)
+  visualCategory?: 'Orto' | 'Frutteto' | 'Vigneto' | 'Uliveto' | 
+                   'Agrumeto' | 'PiccoliFrutti' | 'Aromatiche' | 
+                   'Ornamentali' | 'Cereali' | 'Leguminose' | 
+                   'Industriali' | 'Foraggere' | 'Forestali' | 
+                   'Esotici';
+  
+  // NEW: AI Metadata (Level 2 - For intelligent suggestions)
+  aiMetadata?: {
+    harvestedOrgan?: 'Leaf' | 'Fruit' | 'Root' | 'Bulb' | 'Flower' | 'Seed' | 'Stem';
+    difficulty?: 'Easy' | 'Medium' | 'Hard';
+    compatibleSystems?: Array<'Soil' | 'Hydroponic' | 'Aquaponic' | 'Aeroponic' | 'Indoor'>;
+    lifecycle?: 'Annual' | 'Biennial' | 'Perennial';
+    climateNeeds?: {
+      sunExposure?: 'Full' | 'Partial' | 'Shade';
+      minTemp?: number;
+      maxTemp?: number;
+      idealTempRange?: string;
+      frostTolerant?: boolean;
+      heatTolerant?: boolean;
+    };
+    timeline?: {
+      indoorSowingMonths?: number[];
+      transplantMonths?: number[];
+      harvestMonths?: number[];
+      cycleDurationDays?: number;
+    };
+    rotation?: {
+      idealAfter?: string[];
+      avoidAfter?: string[];
+      yearsBreak?: number;
+    };
+    companionships?: {
+      beneficial?: string[];
+      harmful?: string[];
+      neutral?: string[];
+    };
   };
 }
 
@@ -581,6 +875,56 @@ export type {
   WinemakingRecord,
   VineHarvest
 } from './types/vine';
+
+export type {
+  RaspberryCrop,
+  RaspberryTask,
+  RaspberryHarvest
+} from './types/raspberry';
+
+export type {
+  ExoticFruitCrop,
+  ExoticFruitTaskData
+} from './types/exoticFruit';
+
+// Advanced Growing Systems Types
+export type {
+  IndoorGrowingConfig,
+  HydroponicSystemConfig,
+  AquaponicSystemConfig,
+  AeroponicSystemConfig,
+  HydroponicTaskData,
+  AquaponicTaskData,
+  AeroponicTaskData,
+  HydroponicReading,
+  AquaponicReading,
+  HydroponicSystemType,
+  AquaponicSystemType,
+  AeroponicSystemType
+} from './types/indoorGrowing';
+
+export type {
+  GreenhouseConfig,
+  GreenhouseStructureType,
+  GreenhouseCoveringType,
+  ArchMaterial
+} from './types/greenhouse';
+
+export type {
+  GardenAccessory,
+  AccessoryCategory,
+  SupportType,
+  NettingType,
+  WireType,
+  AccessoryMaterial
+} from './types/accessories';
+
+export type {
+  BedType,
+  BedShape,
+  StructureType,
+  GardenBed
+} from './types/gardenBed';
 
 // ============================================
 // ROTAZIONE CULTURALE (Memory of Soil)
@@ -739,3 +1083,49 @@ export interface WinterPreparationTask {
   materials: string[];
   instructions: string[];
 }
+
+// ============================================
+// FERTILIZER ENGINE TYPES
+// ============================================
+
+// Re-export from data/fertilizers.ts for convenience
+export type { FertilizerProduct, CoverCrop } from './data/fertilizers';
+
+// ============================================
+// PHYTO ENGINE TYPES
+// ============================================
+
+// Re-export from data/phytoproducts.ts for convenience
+export type { PhytoProduct } from './data/phytoproducts';
+
+// Treatment Record (from services/treatmentRegistryService.ts)
+export interface TreatmentRecord {
+  id: string;
+  gardenId: string;
+  taskId?: string;
+  productId: string;
+  productName: string;
+  plantName: string;
+  treatmentDate: Date;
+  dosage: string;
+  applicationMethod: string;
+  targetPestDisease: string;
+  weatherConditions?: {
+    temp: number;
+    humidity: number;
+    wind: number;
+  };
+  safetyIntervalEndDate: Date;
+  notes?: string;
+  createdAt: Date;
+}
+
+// ============================================
+// TILLAGE ENGINE TYPES
+// ============================================
+
+// Re-export from logic/tillageEngine.ts for convenience
+export type { TillageWork, TillageWorkType, TillageProblem } from './logic/tillageEngine';
+
+// Re-export from data/tillageTools.ts for convenience
+export type { TillageTool } from './data/tillageTools';

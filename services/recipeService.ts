@@ -1,6 +1,9 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+// Support both Next.js and Vite environments
+const apiKey = typeof window !== 'undefined'
+  ? (process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY)
+  : (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY);
 const ai = apiKey ? new GoogleGenAI({ apiKey: apiKey }) : null;
 
 export interface Recipe {
