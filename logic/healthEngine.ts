@@ -1,5 +1,5 @@
-import { PlantMasterSheet, GardenTask, Garden, UserProfile } from '../types';
-import { protectionProducts, PlantProtectionProduct } from '../data/treatments';
+import { PlantMasterSheet, GardenTask, Garden, UserProfile, PlantProtectionProduct } from '../types';
+import { protectionProducts } from '../data/treatments';
 import { getSeasonForDate, Season } from '../utils/seasonalAdjustment';
 
 export interface HealthAdvice {
