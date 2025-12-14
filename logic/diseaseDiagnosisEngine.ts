@@ -9,6 +9,19 @@ import { PlantMasterSheet, Garden } from '../types';
 import { Season, getSeasonForDate } from '../utils/seasonalAdjustment';
 import { WeatherForecast } from '../services/weatherService';
 
+/**
+ * Converte WMO Weather Code in condition string
+ */
+const getConditionFromCode = (code: number): string => {
+  if (code === 0) return 'sunny';
+  if (code >= 1 && code <= 3) return 'cloudy';
+  if (code >= 45 && code <= 48) return 'cloudy';
+  if (code >= 51 && code <= 67) return 'rainy';
+  if (code >= 71 && code <= 77) return 'snowy';
+  if (code >= 80 && code <= 99) return code >= 95 ? 'stormy' : 'rainy';
+  return 'cloudy';
+};
+
 // Support both Next.js and Vite environments
 const apiKey = typeof window !== 'undefined'
   ? (process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY)
@@ -64,7 +77,8 @@ export const diagnoseFromPhoto = async (
     throw new Error('Gemini API key not configured');
   }
 
-  const model = genAI.generativeModel({ model: 'gemini-pro-vision' });
+  // TypeScript workaround: cast to any per evitare errore tipo (il metodo esiste runtime)
+  const model = (genAI as any).generativeModel({ model: 'gemini-pro-vision' });
 
   // Ottieni malattie possibili per questa pianta
   const possibleDiseases = getDiseasesForPlant(plantName);
@@ -85,7 +99,7 @@ export const diagnoseFromPhoto = async (
 
   const seasonInfo = context?.season || getSeasonForDate(new Date(), context?.garden?.coordinates?.latitude || 0);
   const weatherInfo = context?.weather && context.weather.length > 0
-    ? `Condizioni meteo: ${context.weather[0].condition}, temperatura ${context.weather[0].temperature}°C, umidità ${context.weather[0].humidity}%`
+    ? `Condizioni meteo: ${getConditionFromCode(context.weather[0].code)}, temperatura ${context.weather[0].temp}°C, umidità ${context.weather[0].humidity || 'N/A'}%`
     : '';
 
   const prompt = `Analizza questa foto di una pianta di ${plantName} che mostra sintomi di malattia.
@@ -211,7 +225,7 @@ export const matchSymptoms = (
   weather?: WeatherForecast[]
 ): DiagnosisResult => {
   const possibleDiseases = getDiseasesForPlant(plantName);
-  const currentSeason = season || getSeasonForDate(new Date());
+  const currentSeason = season || getSeasonForDate(new Date(), 0);
   
   const symptomsLower = symptomsText.toLowerCase();
   const diagnoses: DiseaseDiagnosis[] = [];
@@ -252,8 +266,9 @@ export const matchSymptoms = (
     if (weather && weather.length > 0) {
       const currentWeather = weather[0];
       if (disease.conditions.weather) {
+        const weatherCondition = getConditionFromCode(currentWeather.code);
         for (const condition of disease.conditions.weather) {
-          if (currentWeather.condition.toLowerCase().includes(condition.toLowerCase())) {
+          if (weatherCondition.toLowerCase().includes(condition.toLowerCase())) {
             confidence += 0.1;
             break;
           }
@@ -262,7 +277,7 @@ export const matchSymptoms = (
       
       // Match temperatura
       if (disease.conditions.temperature) {
-        const temp = currentWeather.temperature;
+        const temp = currentWeather.temp;
         if (temp >= disease.conditions.temperature.min && temp <= disease.conditions.temperature.max) {
           confidence += 0.1;
         }

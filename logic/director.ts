@@ -9,6 +9,8 @@ import { calculateMoonPhase, isIdealPhaseFor } from './lunarCalendar';
 import { getMasterSheet } from '../services/plantMasterService';
 import { getActivePlants } from '../services/taskCalculationService';
 import { adjustIrrigationForRain } from './rainManager';
+import { calculateFertigationPlan } from './fertigationEngine';
+import { getPreventiveMeasures } from './diseaseDiagnosisEngine';
 // Specialized crop engines (Pro Features)
 import { calculateStrawberryTasks, StrawberryTaskAdvice } from './strawberryEngine';
 import { calculateFruitTreeTasks, FruitTreeTaskAdvice } from './fruitTreeEngine';
@@ -328,6 +330,17 @@ export const getDailyGardenPlan = async (
   const lifecycleTasks: LifecycleTask[] = [];
   const nutrientTasks: NutrientTask[] = [];
   const healthTasks: HealthTask[] = [];
+  const warnings: ClimateWarning[] = [...climateWarnings]; // Inizia con i warning climatici
+
+  // Ottieni forecast 7 giorni per gestione pioggia
+  let forecast7Days: WeatherForecast[] = [];
+  if (garden.coordinates) {
+    try {
+      forecast7Days = await getWeatherForecast7Days(garden.coordinates.latitude, garden.coordinates.longitude) || [];
+    } catch (error) {
+      console.warn('Could not load 7-day forecast:', error);
+    }
+  }
 
   // Filtra solo piante attive (non completate)
   const activeTasks = getActivePlants(tasks.filter(t => t.gardenId === garden.id));
@@ -565,11 +578,13 @@ export const getDailyGardenPlan = async (
       }
     }
 
+    // Calcola giorni attivi per tutti i task (usato anche fuori dal blocco)
+    const daysActive = Math.floor(
+      (currentDate.getTime() - new Date(task.date).getTime()) / (1000 * 60 * 60 * 24)
+    );
+
     // Se non c'è lifecycle advice ma la pianta è attiva, calcola comunque nutrienti e salute
     if (!lifecycleAdvice) {
-      const daysActive = Math.floor(
-        (currentDate.getTime() - new Date(task.date).getTime()) / (1000 * 60 * 60 * 24)
-      );
 
       const nutrientAdvice = calculateNutrientNeeds(masterData, daysActive, garden.soilType);
       if (nutrientAdvice.shouldFertilize) {
@@ -644,15 +659,15 @@ export const getDailyGardenPlan = async (
         });
 
         // PHYTO ENGINE: Suggerisci prodotto concreto con timing critico
-        if (healthAdvice.actionType && (healthAdvice.actionType === 'Prevent' || healthAdvice.actionType === 'Treat')) {
+        if (healthAdvice.actionType === 'Prevent') {
           try {
             const weatherForecast = garden.coordinates
-              ? await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude)
+              ? await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude) || undefined
               : undefined;
             const phytoRec = await suggestPhytoProduct(
               healthAdvice.reason,
               masterData,
-              weatherForecast,
+              weatherForecast || undefined,
               userProfile
             );
 
@@ -664,7 +679,7 @@ export const getDailyGardenPlan = async (
               if (harvestTask) {
                 const timingCheck = await checkTreatmentTiming(
                   phytoRec.product,
-                  weatherForecast,
+                  weatherForecast || undefined,
                   new Date(harvestTask.date)
                 );
 
@@ -722,11 +737,12 @@ export const getDailyGardenPlan = async (
           // Aggiungi solo se non ci sono già health tasks critici
           const hasCriticalHealth = healthTasks.some(ht => ht.priority === 'High' && ht.plantName === task.plantName);
           if (!hasCriticalHealth) {
-            warnings.push({
-              type: 'Disease Prevention',
-              severity: 'Low',
+            // Aggiungi come UrgentAlert invece di ClimateWarning (prevenzione malattie non è un warning climatico)
+            urgentAlerts.push({
+              type: 'Planning',
               message: `Prevenzione malattie per ${task.plantName}: ${preventiveMeasures.slice(0, 2).join(', ')}`,
-              recommendation: preventiveMeasures.join('; ')
+              action: preventiveMeasures.join('; '),
+              blockOperations: false
             });
           }
         }
@@ -767,7 +783,8 @@ export const getDailyGardenPlan = async (
 
   if (garden.coordinates) {
     try {
-      weatherForecast = await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude);
+      const forecast = await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude);
+      weatherForecast = forecast || undefined;
     } catch (error) {
       console.error('Error fetching weather for specialized crops:', error);
     }
@@ -992,26 +1009,26 @@ export const getDailyGardenPlan = async (
   }
 
   // ACCESSORI
-  try {
-    // TODO: Ottenere accessori da storage provider quando disponibile
-    const accessories: GardenAccessory[] | undefined = undefined;
-    if (accessories) {
-      const accessoryTasks = calculateAccessoryTasks(garden, accessories, currentDate);
-      
-      for (const at of accessoryTasks) {
-        advancedSystemTasks.push({
-          taskId: at.accessoryId || '',
-          plantName: at.accessoryId ? `Accessorio: ${accessories.find(a => a.id === at.accessoryId)?.name || 'Accessorio'}` : 'Accessori Giardino',
-          phase: `Accessori: ${at.taskType}`,
-          message: at.message,
-          priority: at.priority === 'High' ? 'High' : 'Medium',
-          action: at.instructions.join('; ')
-        });
-      }
-    }
-  } catch (error) {
-    console.error('Error calculating accessory tasks:', error);
-  }
+  // TODO: Implementare quando storage provider supporta accessori
+  // try {
+  //   const accessories = await storageProvider.getAccessories(garden.id);
+  //   if (accessories && accessories.length > 0) {
+  //     const accessoryTasks = calculateAccessoryTasks(garden, accessories, currentDate);
+  //     for (const at of accessoryTasks) {
+  //       const accessoryName = accessories.find(a => a.id === at.accessoryId)?.name || 'Accessorio';
+  //       advancedSystemTasks.push({
+  //         taskId: at.accessoryId || '',
+  //         plantName: at.accessoryId ? `Accessorio: ${accessoryName}` : 'Accessori Giardino',
+  //         phase: `Accessori: ${at.taskType}`,
+  //         message: at.message,
+  //         priority: at.priority === 'High' ? 'High' : 'Medium',
+  //         action: at.instructions.join('; ')
+  //       });
+  //     }
+  //   }
+  // } catch (error) {
+  //   console.error('Error calculating accessory tasks:', error);
+  // }
 
   // Aggiungi task sistemi avanzati al piano
   lifecycleTasks.push(...advancedSystemTasks);

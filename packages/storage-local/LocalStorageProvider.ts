@@ -613,7 +613,7 @@ export class LocalStorageProvider implements IStorageProvider {
   }
 
   // Hydroponic Readings
-  private getHydroponicReadings(): HydroponicReading[] {
+  private getAllHydroponicReadings(): HydroponicReading[] {
     const saved = localStorage.getItem(this.STORAGE_KEYS.HYDROPONIC_READINGS);
     if (!saved) return [];
     try {
@@ -628,7 +628,7 @@ export class LocalStorageProvider implements IStorageProvider {
   }
 
   async getHydroponicReadings(gardenId: string, limit?: number): Promise<HydroponicReading[]> {
-    const allReadings = this.getHydroponicReadings();
+    const allReadings = this.getAllHydroponicReadings();
     const filtered = allReadings
       .filter(r => r.gardenId === gardenId)
       .sort((a, b) => new Date(b.readingDate).getTime() - new Date(a.readingDate).getTime());
@@ -641,14 +641,14 @@ export class LocalStorageProvider implements IStorageProvider {
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
     };
-    const allReadings = this.getHydroponicReadings();
+    const allReadings = this.getAllHydroponicReadings();
     allReadings.push(newReading);
     this.saveHydroponicReadings(allReadings);
     return newReading;
   }
 
   // Aquaponic Readings
-  private getAquaponicReadings(): AquaponicReading[] {
+  private getAllAquaponicReadings(): AquaponicReading[] {
     const saved = localStorage.getItem(this.STORAGE_KEYS.AQUAPONIC_READINGS);
     if (!saved) return [];
     try {
@@ -663,7 +663,7 @@ export class LocalStorageProvider implements IStorageProvider {
   }
 
   async getAquaponicReadings(gardenId: string, limit?: number): Promise<AquaponicReading[]> {
-    const allReadings = this.getAquaponicReadings();
+    const allReadings = this.getAllAquaponicReadings();
     const filtered = allReadings
       .filter(r => r.gardenId === gardenId)
       .sort((a, b) => new Date(b.readingDate).getTime() - new Date(a.readingDate).getTime());
@@ -676,7 +676,7 @@ export class LocalStorageProvider implements IStorageProvider {
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
     };
-    const allReadings = this.getAquaponicReadings();
+    const allReadings = this.getAllAquaponicReadings();
     allReadings.push(newReading);
     this.saveAquaponicReadings(allReadings);
     return newReading;
@@ -705,7 +705,10 @@ export class LocalStorageProvider implements IStorageProvider {
 
   private saveGardenBeds(beds: GardenBed[]): void {
     localStorage.setItem(this.STORAGE_KEYS.GARDEN_BEDS, JSON.stringify(beds));
-    saveAutoBackup();
+    // Trigger backup automatico (non bloccare se fallisce)
+    saveAutoBackup(this).catch(err => 
+      console.error('Error saving auto backup after saveGardenBeds:', err)
+    );
   }
 
   async getGardenBeds(gardenId: string): Promise<GardenBed[]> {
