@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyTier } from '@/lib/auth'
-import { getSupabaseClient } from '@/lib/auth'
+import { verifyTier } from '@/lib/auth.server'
+import { getSupabaseClient } from '@/lib/auth.server'
 
 export async function GET(request: NextRequest) {
   try {

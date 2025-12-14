@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Cloud, CloudOff, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
-import { isSupabaseAvailable } from '@/lib/auth'
+import { isSupabaseAvailable } from '@/lib/auth.client'
 
 export function CloudSyncStatus() {
   const { storageProvider } = useStorage()

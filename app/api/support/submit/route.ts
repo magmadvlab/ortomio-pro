@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isSupabaseAvailable } from '@/lib/auth';
+import { isSupabaseAvailable } from '@/lib/auth.server';
 
 /**
  * Support Request API Route

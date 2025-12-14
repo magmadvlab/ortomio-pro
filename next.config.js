@@ -9,16 +9,8 @@ const nextConfig = {
       },
     ],
   },
-  experimental: {
-    turbo: {
-      rules: {
-        '*.ts': {
-          loaders: ['swc-loader'],
-          as: '*.js',
-        },
-      },
-    },
-  },
+  // Removed experimental.turbo - not supported in Next.js 16
+  // Turbopack is now the default bundler
 }
 
 // In sviluppo, esporta direttamente senza PWA

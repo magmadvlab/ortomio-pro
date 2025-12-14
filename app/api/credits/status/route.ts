@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyTier, isSupabaseAvailable } from '@/lib/auth'
+import { verifyTier, isSupabaseAvailable } from '@/lib/auth.server'
 
 export async function GET(request: NextRequest) {
   try {

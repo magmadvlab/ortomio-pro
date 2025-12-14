@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyTier } from '@/lib/auth'
-import { getSupabaseClient } from '@/lib/auth'
+import { verifyTier, getSupabaseClient } from '@/lib/auth.server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getCreditCost } from '@/lib/credits'
 

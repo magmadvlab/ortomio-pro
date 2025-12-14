@@ -1,3 +1,0 @@
-module.exports=[93322,a=>{"use strict";async function b(a){console.warn("Google Drive sync not yet implemented, using localStorage fallback");try{let b={timestamp:new Date().toISOString(),data:a,version:"2.0",source:"local"};localStorage.setItem("ortomio_full_backup",JSON.stringify(b))}catch(a){console.error("Error saving local backup fallback:",a)}}async function c(){return[]}async function d(a){return null}a.s(["detectGoogleDriveBackups",()=>c,"restoreFromGoogleDrive",()=>d,"syncToGoogleDrive",()=>b])}];
-
-//# sourceMappingURL=services_googleDriveSyncService_ts_a007fe70._.js.map

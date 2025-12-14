@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyTier } from '@/lib/auth'
-import { getSupabaseClient, isSupabaseAvailable } from '@/lib/auth'
+import { verifyTier } from '@/lib/auth.server'
+import { getSupabaseClient, isSupabaseAvailable } from '@/lib/auth.server'
 import {
   calculateDailySunHours,
   calculateMonthlySunHours,

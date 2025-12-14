@@ -184,9 +184,10 @@ const VisualSunInput: React.FC<VisualSunInputProps> = ({
                 if (obstacle.id === 'nessuno') {
                   handleChange({ obstacles: [] });
                 } else {
+                  const isObstacleIncluded = data.obstacles.includes(obstacle.id);
                   const newObstacles = data.obstacles.includes('nessuno')
                     ? [obstacle.id]
-                    : toggleObstacle(obstacle.id)
+                    : isObstacleIncluded
                     ? data.obstacles.filter((o) => o !== obstacle.id)
                     : [...data.obstacles.filter((o) => o !== 'nessuno'), obstacle.id];
                   handleChange({ obstacles: newObstacles });

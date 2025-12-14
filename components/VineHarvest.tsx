@@ -284,8 +284,8 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
               </label>
               <input
                 type="date"
-                value={harvestData.bottlingDate || ''}
-                onChange={(e) => onUpdate({ bottlingDate: e.target.value })}
+                value={(harvestData as any).bottlingDate || ''}
+                onChange={(e) => onUpdate({ bottlingDate: e.target.value } as any)}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
@@ -297,8 +297,8 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
               <input
                 type="number"
                 min="0"
-                value={harvestData.bottlesProduced || ''}
-                onChange={(e) => onUpdate({ bottlesProduced: parseInt(e.target.value) || 0 })}
+                value={(harvestData as any).bottlesProduced || ''}
+                onChange={(e) => onUpdate({ bottlesProduced: parseInt(e.target.value) || 0 } as any)}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
