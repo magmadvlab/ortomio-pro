@@ -10,6 +10,7 @@ import { isPlantNearHarvestEnd, checkEmptySpaceOpportunity } from './successionE
 import { getAllMasterSheets } from '../services/plantMasterService';
 import { calculateAltitudeDelay, calculateAltitudePlantingDelay, adjustPlantingDates } from '../utils/altitudeUtils';
 import { scheduleNextTreatment } from './healthEngine';
+import { getSoilCompatibility } from '../utils/soilTemperatureUtils';
 import { determineWasteDisposal, suggestHumusAddition } from './compostEngine';
 
 export type LifecyclePhase = 'Sowing' | 'Germination' | 'Nursing' | 'Hardening' | 'Transplanting' | 'Production';
