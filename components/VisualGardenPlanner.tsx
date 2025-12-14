@@ -300,7 +300,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
               </button>
             )}
             {/* NEW: Toggle for Structures */}
-            {can('advancedSystems') && (garden.greenhouseConfig || garden.hydroponicConfig || garden.aquaponicConfig || garden.aeroponicConfig) && (
+            {can('visualGardenPlanner') && (garden.greenhouseConfig || garden.hydroponicConfig || garden.aquaponicConfig || garden.aeroponicConfig) && (
               <button
                 onClick={() => setShowStructures(!showStructures)}
                 className={`p-2 rounded-lg ${showStructures ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}
@@ -310,7 +310,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
               </button>
             )}
             {/* NEW: Toggle for Accessories */}
-            {can('advancedSystems') && accessories.length > 0 && (
+            {can('visualGardenPlanner') && accessories.length > 0 && (
               <button
                 onClick={() => setShowAccessories(!showAccessories)}
                 className={`p-2 rounded-lg ${showAccessories ? 'bg-purple-100 text-purple-700' : 'bg-gray-100'}`}
@@ -406,7 +406,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
                 >
                   {garden.gardenType === 'Greenhouse' ? '🏠 Serra' : '🌉 Tunnel'}
                 </text>
-                {garden.greenhouseConfig.widthMeters && garden.greenhouseConfig.lengthMeters && (
+                {garden.greenhouseConfig.width && garden.greenhouseConfig.length && (
                   <text
                     x={gardenSizeCm * 0.5}
                     y={gardenSizeCm * 0.2}
@@ -414,7 +414,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
                     fontSize="10"
                     fill="#3b82f6"
                   >
-                    {garden.greenhouseConfig.widthMeters}m × {garden.greenhouseConfig.lengthMeters}m
+                    {garden.greenhouseConfig.width}m × {garden.greenhouseConfig.length}m
                   </text>
                 )}
               </g>
@@ -426,9 +426,9 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
                 {garden.hydroponicConfig.systemType === 'NFT' && garden.hydroponicConfig.nftConfig && (
                   <>
                     {/* Draw NFT channels */}
-                    {Array.from({ length: garden.hydroponicConfig.nftConfig.channelCount || 1 }).map((_, i) => {
+                    {Array.from({ length: garden.hydroponicConfig?.nftConfig?.channelCount || 1 }).map((_, i) => {
                       const channelWidth = 20; // cm
-                      const channelLength = (garden.hydroponicConfig.nftConfig?.channelLength || 100) / 100 * gardenSizeCm;
+                      const channelLength = (garden.hydroponicConfig?.nftConfig?.channelLength || 100) / 100 * gardenSizeCm;
                       const spacing = 50; // cm between channels
                       const startX = gardenSizeCm * 0.1;
                       const startY = gardenSizeCm * 0.3 + (i * spacing);
@@ -460,7 +460,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
                     })}
                   </>
                 )}
-                {garden.hydroponicConfig.systemType === 'DWC' && garden.hydroponicConfig.dwcConfig && (
+                {garden.hydroponicConfig?.systemType === 'DWC' && garden.hydroponicConfig?.dwcConfig && (
                   <>
                     {/* Draw DWC buckets */}
                     {Array.from({ length: Math.min(garden.hydroponicConfig.dwcConfig.bucketCount || 1, 10) }).map((_, i) => {
@@ -498,7 +498,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
                   </>
                 )}
                 {/* Reservoir */}
-                {garden.hydroponicConfig.nutrientSolution.reservoirCapacity > 0 && (
+                {garden.hydroponicConfig?.nutrientSolution?.reservoirCapacity && garden.hydroponicConfig.nutrientSolution.reservoirCapacity > 0 && (
                   <g>
                     <rect
                       x={gardenSizeCm * 0.8}
@@ -698,7 +698,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
                   
                   if (accessory.category === 'Support') {
                     // Draw stake/tutor as a vertical line
-                    const height = accessory.heightCm || 50;
+                    const height = accessory.height || 50;
                     return (
                       <g key={accessory.id}>
                         <line
@@ -728,8 +728,8 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
                     );
                   } else if (accessory.category === 'Netting') {
                     // Draw netting as a rectangle
-                    const width = accessory.widthCm || 100;
-                    const height = accessory.heightCm || 100;
+                    const width = accessory.width || 100;
+                    const height = accessory.height || 100;
                     return (
                       <g key={accessory.id}>
                         <rect
@@ -756,8 +756,8 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
                     );
                   } else if (accessory.category === 'Structure') {
                     // Draw structure (arch, trellis) as a larger rectangle
-                    const width = accessory.widthCm || 200;
-                    const height = accessory.heightCm || 100;
+                    const width = accessory.width || 200;
+                    const height = accessory.height || 100;
                     return (
                       <g key={accessory.id}>
                         <rect
@@ -813,8 +813,9 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
                       height={cellSize}
                       fill={color}
                       opacity={opacity}
-                      title={`${cell.dailySunHours}h sole - ${cell.sunExposure}`}
-                    />
+                    >
+                      <title>{`${cell.dailySunHours}h sole - ${cell.sunExposure}`}</title>
+                    </rect>
                   );
                 })}
               </>

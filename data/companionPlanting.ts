@@ -260,10 +260,11 @@ export const findCompanionRule = (
   // Cerca in entrambe le direzioni (A+B e B+A)
   return companionRules.find(
     rule =>
-      (rule.plant1.toUpperCase() === plant1.toUpperCase() &&
+      rule.plant1 && rule.plant2 &&
+      ((rule.plant1.toUpperCase() === plant1.toUpperCase() &&
         rule.plant2.toUpperCase() === plant2.toUpperCase()) ||
       (rule.plant1.toUpperCase() === plant2.toUpperCase() &&
-        rule.plant2.toUpperCase() === plant1.toUpperCase())
+        rule.plant2.toUpperCase() === plant1.toUpperCase()))
   );
 };
 
@@ -273,6 +274,7 @@ export const findCompanionRule = (
 export const findBeneficialCompanions = (plantName: string): CompanionRule[] => {
   return companionRules.filter(
     rule =>
+      rule.plant1 && rule.plant2 &&
       (rule.plant1.toUpperCase() === plantName.toUpperCase() ||
         rule.plant2.toUpperCase() === plantName.toUpperCase()) &&
       rule.relationship === 'Beneficial'
@@ -285,6 +287,7 @@ export const findBeneficialCompanions = (plantName: string): CompanionRule[] => 
 export const findHarmfulCompanions = (plantName: string): CompanionRule[] => {
   return companionRules.filter(
     rule =>
+      rule.plant1 && rule.plant2 &&
       (rule.plant1.toUpperCase() === plantName.toUpperCase() ||
         rule.plant2.toUpperCase() === plantName.toUpperCase()) &&
       rule.relationship === 'Harmful'

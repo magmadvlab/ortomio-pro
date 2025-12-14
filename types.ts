@@ -961,9 +961,18 @@ export interface RotationAdvice {
 // ============================================
 
 export interface CompanionRule {
-  plantId: string; // Riferimento a plantMasterSheets.id
-  goodCompanions: string[]; // Array di plantMasterSheets.id
-  badCompanions: string[]; // Array di plantMasterSheets.id
+  // Formato 1: Per database strutturato
+  plantId?: string; // Riferimento a plantMasterSheets.id
+  goodCompanions?: string[]; // Array di plantMasterSheets.id
+  badCompanions?: string[]; // Array di plantMasterSheets.id
+  
+  // Formato 2: Per database relazionale (data/companionPlanting.ts)
+  plant1?: string;
+  plant2?: string;
+  relationship?: 'Beneficial' | 'Harmful' | 'Neutral';
+  spacingModifier?: number; // Modificatore distanza in cm
+  
+  // Campi comuni
   benefit?: string; // Descrizione beneficio
   reason?: string; // Motivo incompatibilità
   distanceMin?: number; // Distanza minima in cm (default 200cm)

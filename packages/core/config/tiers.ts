@@ -43,6 +43,7 @@ export interface TierConfig {
     seedlingManagement: boolean; // Gestione avanzata semenzai
     annualPlanner: boolean; // Pianificazione annuale
     specializedCrops: boolean; // Strawberries, Fruit Trees, Olives, Vines
+    advancedSystems: boolean; // Serre, Idroponica, Acquaponica, Aeroponica
     rotationEngine: boolean;
     companionPlanting: boolean;
     cloudSync: boolean;
@@ -95,6 +96,7 @@ export const FREE_TIER: TierConfig = {
     seedlingManagement: false,
     annualPlanner: false,
     specializedCrops: false,
+    advancedSystems: false,
     rotationEngine: false,
     companionPlanting: false,
     cloudSync: false,
@@ -188,6 +190,7 @@ export const PRO_CONSUMER_TIER: TierConfig = {
     seedlingManagement: true,
     annualPlanner: true,
     specializedCrops: true,
+    advancedSystems: true,
     rotationEngine: true,
     companionPlanting: true,
     cloudSync: true,
@@ -241,6 +244,7 @@ export const PRO_PROFESSIONAL_TIER: TierConfig = {
     seedlingManagement: true,
     annualPlanner: true,
     specializedCrops: true,
+    advancedSystems: true,
     rotationEngine: true,
     companionPlanting: true,
     cloudSync: true,

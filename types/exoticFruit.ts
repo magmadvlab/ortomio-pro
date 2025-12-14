@@ -3,7 +3,7 @@
  * Support for tropical and exotic fruits
  */
 
-import { PlantMasterSheet } from './types';
+import { PlantMasterSheet } from '../types';
 
 /**
  * Exotic Fruit Crop - Extends PlantMasterSheet with exotic fruit specific data

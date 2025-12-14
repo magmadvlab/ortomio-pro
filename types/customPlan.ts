@@ -3,7 +3,7 @@
  * Allow expert farmers to create personalized plans based on master sheets
  */
 
-import { PlantMasterSheet } from './types';
+import { PlantMasterSheet } from '../types';
 
 /**
  * Custom Plan - Personalized plan based on a master sheet
