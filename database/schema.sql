@@ -68,6 +68,7 @@ CREATE TABLE garden_beds (
   width_cm DECIMAL(8, 2),
   diameter_cm DECIMAL(8, 2),
   size_sq_meters DECIMAL(5, 2),
+  sun_exposure TEXT CHECK (sun_exposure IN ('FullSun', 'PartSun', 'Shade')),
   daily_sun_hours INTEGER,
   aspect_direction TEXT,
   soil_type TEXT,

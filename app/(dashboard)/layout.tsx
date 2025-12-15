@@ -4,7 +4,6 @@ import React from 'react'
 import { TierProvider } from '@/packages/core/context/TierContext'
 import { StorageProvider } from '@/packages/core/context/StorageContext'
 import { AuthProvider } from '@/packages/core/hooks/useAuth'
-import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { AppTier } from '@/packages/core/config/tiers'
 import { ConsumerSidebar } from '@/components/consumer/Sidebar'
@@ -57,8 +56,6 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const storageProvider = getDefaultStorageProvider()
-  
   // LOCALE: Sblocca tutte le feature impostando PRO_PROFESSIONAL di default
   // In produzione, ripristinare AppTier.FREE
   const isLocalDev = process.env.NODE_ENV === 'development' || typeof window !== 'undefined' && window.location.hostname === 'localhost'
@@ -66,7 +63,7 @@ export default function DashboardLayout({
   
   return (
     <AuthProvider>
-      <StorageProvider initialProvider={storageProvider}>
+      <StorageProvider>
         <TierProvider defaultTier={defaultTier}>
           <DashboardContent>{children}</DashboardContent>
         </TierProvider>

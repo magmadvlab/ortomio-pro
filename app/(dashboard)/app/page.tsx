@@ -12,11 +12,13 @@ import GardenOnboarding from '@/components/GardenOnboarding'
 import { Garden, GardenTask } from '@/types'
 import { useRouter } from 'next/navigation'
 import { attemptAutoRestore, AutoRestoreResult } from '@/services/autoRestoreService'
-import { CheckCircle, Loader2 } from 'lucide-react'
+import { CheckCircle, Loader2, LogIn, UserPlus } from 'lucide-react'
+import { getSupabaseClient } from '@/config/supabase'
+import Link from 'next/link'
 
 export default function DashboardPage() {
   const { tier, isProfessional, isConsumer } = useTier()
-  const { storageProvider } = useStorage()
+  const { storageProvider, isInitialized } = useStorage()
   const router = useRouter()
   const [gardens, setGardens] = useState<Garden[]>([])
   const [tasks, setTasks] = useState<GardenTask[]>([])
@@ -24,8 +26,46 @@ export default function DashboardPage() {
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [restoreResult, setRestoreResult] = useState<AutoRestoreResult | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+
+  // Verifica autenticazione
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const supabase = getSupabaseClient()
+        if (supabase) {
+          const { data: { session } } = await supabase.auth.getSession()
+          setIsAuthenticated(!!session?.user)
+        } else {
+          setIsAuthenticated(false) // Supabase non configurato = offline mode
+        }
+      } catch (error) {
+        console.error('Error checking auth:', error)
+        setIsAuthenticated(false)
+      }
+    }
+    
+    checkAuth()
+    
+    // Ascolta cambiamenti autenticazione
+    const supabase = getSupabaseClient()
+    if (supabase) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        setIsAuthenticated(!!session?.user)
+      })
+      
+      return () => {
+        subscription.unsubscribe()
+      }
+    }
+  }, [])
 
   useEffect(() => {
+    // Aspetta che il provider sia inizializzato prima di usarlo
+    if (!isInitialized) {
+      return
+    }
+    
     const initializeApp = async () => {
       try {
         setLoading(true)
@@ -61,7 +101,8 @@ export default function DashboardPage() {
           setTasks(gardenTasks || [])
         }
         
-        if (loadedGardens.length === 0) {
+        // Mostra onboarding solo se ci sono giardini (non mostrare se utente non autenticato)
+        if (loadedGardens.length === 0 && isAuthenticated !== false) {
           setShowOnboarding(true)
         }
       } catch (error) {
@@ -72,7 +113,7 @@ export default function DashboardPage() {
     }
     
     initializeApp()
-  }, [storageProvider, tier])
+  }, [storageProvider, tier, isInitialized, isAuthenticated])
 
   const handleOnboardingComplete = async (garden: Garden) => {
     try {
@@ -110,8 +151,47 @@ export default function DashboardPage() {
     )
   }
 
-  // Mostra onboarding se non ci sono giardini
-  if (showOnboarding || gardens.length === 0) {
+  // Se utente non autenticato e nessun giardino, mostra opzione login
+  if (isAuthenticated === false && gardens.length === 0 && !loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Benvenuto in OrtoMio</h1>
+          <p className="text-gray-600 mb-6">
+            Per iniziare, puoi registrarti per sincronizzare i tuoi dati su più dispositivi, 
+            oppure continuare senza account usando solo il browser.
+          </p>
+          
+          <div className="space-y-3 mb-6">
+            <Link
+              href="/register"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+            >
+              <UserPlus size={20} />
+              Registrati
+            </Link>
+            <Link
+              href="/login"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              <LogIn size={20} />
+              Accedi
+            </Link>
+          </div>
+          
+          <button
+            onClick={() => setShowOnboarding(true)}
+            className="w-full px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm"
+          >
+            Continua senza account →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Mostra onboarding se non ci sono giardini (e utente autenticato o ha scelto di continuare)
+  if (showOnboarding || (gardens.length === 0 && isAuthenticated !== false && !loading)) {
     return (
       <div className="min-h-screen">
         <GardenOnboarding

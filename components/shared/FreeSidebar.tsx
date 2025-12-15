@@ -3,6 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTier } from '@/packages/core/hooks/useTier'
 import {
   LayoutDashboard,
   Calendar,
@@ -14,6 +15,7 @@ import {
   CalendarDays,
   Trophy,
   HelpCircle,
+  Crown,
 } from 'lucide-react'
 
 const menuItems = [
@@ -30,6 +32,17 @@ const menuItems = [
 
 export function FreeSidebar() {
   const pathname = usePathname()
+  const { isProfessional } = useTier()
+  
+  // Add admin menu item if user is PRO_PROFESSIONAL or in development
+  const isDev = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1'
+  )
+  
+  const allMenuItems = (isDev || isProfessional)
+    ? [...menuItems, { icon: Crown, label: 'Admin', path: '/app/admin' }]
+    : menuItems
   
   return (
     <aside className="w-64 bg-white border-r border-gray-200 min-h-screen p-4">
@@ -39,7 +52,7 @@ export function FreeSidebar() {
       </div>
       
       <nav className="space-y-2">
-        {menuItems.map((item) => {
+        {allMenuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.path
           

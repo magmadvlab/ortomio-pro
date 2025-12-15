@@ -19,6 +19,7 @@ import {
   Tractor,
   Wifi,
   HelpCircle,
+  Crown,
 } from 'lucide-react'
 import { useTier } from '@/packages/core/hooks/useTier'
 
@@ -41,7 +42,13 @@ const menuItems = [
 
 export function ProfessionalSidebar() {
   const pathname = usePathname()
-  const { tier } = useTier()
+  const { tier, isProfessional } = useTier()
+  
+  // Add admin menu item if user is PRO_PROFESSIONAL (always available for PRO)
+  const allMenuItems = [
+    ...menuItems,
+    { icon: Crown, label: 'Admin', path: '/app/admin', tier: 'PRO_PROFESSIONAL' as const }
+  ]
   
   return (
     <aside className="w-64 bg-white border-r border-gray-200 min-h-screen p-4">
@@ -51,11 +58,11 @@ export function ProfessionalSidebar() {
       </div>
       
       <nav className="space-y-2">
-        {menuItems.map((item) => {
+        {allMenuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.path
           const isAvailable = item.tier === 'all' || 
-                             (item.tier === 'PRO_PROFESSIONAL' && tier === 'PRO_PROFESSIONAL')
+                             (item.tier === 'PRO_PROFESSIONAL' && isProfessional)
           
           if (!isAvailable) return null
           
