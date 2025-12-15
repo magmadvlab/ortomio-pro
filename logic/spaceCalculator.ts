@@ -54,7 +54,7 @@ function calculatePlantArea(
   quantity: number
 ): { areaPerPlant: number; spacing?: { row: number; between: number } } {
   // Prova a prendere spacing da transplanting
-  const spacingString =  
+  const spacingString = 
     plant.transplanting?.spacing || 
     '30cm x 30cm';
   

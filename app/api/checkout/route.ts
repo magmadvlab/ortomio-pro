@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyTier } from '@/lib/auth.server'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+// Initialize Stripe only if key is available (prevents build errors)
+const stripeKey = process.env.STRIPE_SECRET_KEY || ''
+const stripe = stripeKey ? new Stripe(stripeKey) : null
 
 const TIER_PRICES: Record<string, number> = {
   'pro-consumer': 999, // €9.99 in centesimi
@@ -11,6 +13,13 @@ const TIER_PRICES: Record<string, number> = {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!stripe) {
+      return NextResponse.json(
+        { error: 'Stripe not configured' },
+        { status: 503 }
+      )
+    }
+    
     const { tier } = await request.json()
     
     if (!tier || !TIER_PRICES[tier]) {

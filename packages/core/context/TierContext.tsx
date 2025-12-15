@@ -27,19 +27,22 @@ export const TierProvider: React.FC<TierProviderProps> = ({
   defaultTier = AppTier.FREE,
 }) => {
   const [tier, setTierState] = useState<AppTier>(() => {
+    // Durante SSR, usa sempre defaultTier
+    if (typeof window === 'undefined') {
+      return defaultTier;
+    }
+    
     // LOCALE: Forza PRO_PROFESSIONAL in sviluppo locale
-    const isLocalDev = typeof window !== 'undefined' && (
-      window.location.hostname === 'localhost' || 
+    const isLocalDev = window.location.hostname === 'localhost' || 
       window.location.hostname === '127.0.0.1' ||
       process.env.NODE_ENV === 'development'
-    )
     
     if (isLocalDev) {
       // In locale, forza sempre PRO_PROFESSIONAL (il tier più completo)
       return AppTier.PRO_PROFESSIONAL;
     }
     
-    // Load from localStorage on mount (solo in produzione)
+    // Load from localStorage on mount (solo in produzione, solo nel browser)
     try {
       const saved = localStorage.getItem(TIER_STORAGE_KEY);
       if (saved && (
@@ -56,8 +59,10 @@ export const TierProvider: React.FC<TierProviderProps> = ({
     return defaultTier;
   });
 
-  // Persist to localStorage when tier changes
+  // Persist to localStorage when tier changes (solo nel browser)
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     try {
       localStorage.setItem(TIER_STORAGE_KEY, tier);
     } catch (e) {

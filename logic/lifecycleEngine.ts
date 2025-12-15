@@ -393,7 +393,7 @@ export const calculateEndOfCycle = (
   
   if (typeof harvestWindow === 'string') {
     // Formato stringa: "60-90 giorni"
-    const harvestDaysMatch = harvestWindow.match(/(\d+)\s*-\s*(\d+)/);
+  const harvestDaysMatch = harvestWindow.match(/(\d+)\s*-\s*(\d+)/);
     maxHarvestDays = harvestDaysMatch ? parseInt(harvestDaysMatch[2], 10) : 90;
   } else if (typeof harvestWindow === 'object' && harvestWindow !== null) {
     // Formato oggetto: { startMonth: number; endMonth: number; }

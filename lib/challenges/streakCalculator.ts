@@ -88,6 +88,15 @@ export async function updateStreak(
  * @returns StreakData
  */
 export function getStreak(userId: string): StreakData {
+  // Durante SSR, ritorna valori di default
+  if (typeof window === 'undefined') {
+    return {
+      current: 0,
+      longest: 0,
+      lastDate: null
+    };
+  }
+  
   try {
     const stored = localStorage.getItem(`user_streak_${userId}`);
     if (!stored) {
@@ -118,6 +127,9 @@ export function getStreak(userId: string): StreakData {
  * Salva streak (localStorage per ora)
  */
 function saveStreak(userId: string, streakData: StreakData): void {
+  // Solo nel browser
+  if (typeof window === 'undefined') return;
+  
   try {
     localStorage.setItem(
       `user_streak_${userId}`,

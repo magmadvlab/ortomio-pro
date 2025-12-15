@@ -38,9 +38,12 @@ export async function awardBadge(
     };
     
     // Salva in localStorage (temporaneo, poi migrare a Supabase)
-    const badges = getUserBadges(userId);
-    badges.push(badgeData);
-    localStorage.setItem(`user_badges_${userId}`, JSON.stringify(badges));
+    // Solo nel browser
+    if (typeof window !== 'undefined') {
+      const badges = getUserBadges(userId);
+      badges.push(badgeData);
+      localStorage.setItem(`user_badges_${userId}`, JSON.stringify(badges));
+    }
     
     return true;
   } catch (error) {
@@ -74,6 +77,11 @@ export async function checkBadgeEarned(
  * @returns Array di badge guadagnati
  */
 export function getUserBadges(userId: string): BadgeInfo[] {
+  // Durante SSR, ritorna array vuoto
+  if (typeof window === 'undefined') {
+    return [];
+  }
+  
   try {
     const stored = localStorage.getItem(`user_badges_${userId}`);
     if (!stored) return [];

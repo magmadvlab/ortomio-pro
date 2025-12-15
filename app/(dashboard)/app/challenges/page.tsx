@@ -18,6 +18,10 @@ export default function ChallengesPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedType, setSelectedType] = useState<string>('all');
   const [userId] = useState<string | null>(() => {
+    // Durante SSR, usa valore di default
+    if (typeof window === 'undefined') {
+      return 'demo-user';
+    }
     // TODO: Get from auth context
     return localStorage.getItem('user_id') || 'demo-user';
   });

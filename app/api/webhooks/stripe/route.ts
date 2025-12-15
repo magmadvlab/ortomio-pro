@@ -2,13 +2,28 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseClient } from '@/lib/auth.server'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+// Initialize Stripe only if key is available (prevents build errors)
+const stripeKey = process.env.STRIPE_SECRET_KEY || ''
+const stripe = stripeKey ? new Stripe(stripeKey) : null
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ''
 
 export async function POST(request: NextRequest) {
+  if (!stripe || !webhookSecret) {
+    return NextResponse.json(
+      { error: 'Stripe not configured' },
+      { status: 503 }
+    )
+  }
+  
   const body = await request.text()
   const signature = request.headers.get('stripe-signature')!
+  
+  if (!signature) {
+    return NextResponse.json(
+      { error: 'Missing signature' },
+      { status: 400 }
+    )
+  }
   
   let event: Stripe.Event
   
