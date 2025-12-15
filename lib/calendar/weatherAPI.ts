@@ -38,7 +38,7 @@ export async function getWeatherForecast(
     'precipitation_sum',
     'precipitation_probability_max',
     'weathercode',
-    'windspeed_10m_max',
+    'wind_speed_10m_max',
     'uv_index_max'
   ].join(','));
   url.searchParams.append('forecast_days', days.toString());
@@ -67,7 +67,7 @@ export async function getWeatherForecast(
       precipitation_probability: data.daily.precipitation_probability_max[idx] || 0,
       condition: getConditionFromCode(data.daily.weathercode[idx]),
       icon: getWeatherIcon(data.daily.weathercode[idx]),
-      wind_speed: data.daily.windspeed_10m_max[idx] || 0,
+      wind_speed: data.daily.wind_speed_10m_max[idx] || 0,
       uv_index: data.daily.uv_index_max[idx] || 0
     }));
   } catch (error) {

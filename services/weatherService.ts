@@ -63,8 +63,14 @@ export const getWeatherForecast7Days = async (
 ): Promise<WeatherForecast[]> => {
   try {
     const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,weathercode,relativehumidity_2m,windspeed_10m&timezone=auto&forecast_days=7`
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,weathercode&timezone=auto&forecast_days=7`
     );
+    
+    if (!response.ok) {
+      console.error(`Weather API error: ${response.status} ${response.statusText}`);
+      return [];
+    }
+    
     const data = await response.json();
     
     if (data.daily && data.daily.time) {
@@ -75,8 +81,8 @@ export const getWeatherForecast7Days = async (
         code: data.daily.weathercode[i],
         rainForecastMm: data.daily.precipitation_sum[i] || 0,
         date,
-        humidity: data.daily.relativehumidity_2m?.[i],
-        windSpeed: data.daily.windspeed_10m?.[i],
+        humidity: undefined,
+        windSpeed: undefined,
       }));
     }
     
