@@ -69,7 +69,8 @@ export function compareNaiveVsOptimized(
   }
 
   // Calcola resa naive (ridotta se score basso)
-  const resaBaseNaive = naivePlantMaster?.yield?.kgPerSqm || 3;
+  // Nota: PlantMasterSheet non ha proprietà yield, usiamo valore di default
+  const resaBaseNaive = 3; // kg/m² default
   const resaNaive = Math.round((resaBaseNaive * naiveScore) / 100 * 10) / 10;
 
   // Rischio fallimento basato su score
@@ -79,7 +80,8 @@ export function compareNaiveVsOptimized(
   const cicliNaive = naiveScore >= 70 ? 1 : 0;
 
   // Consumo acqua naive (più alto se score basso per stress)
-  const consumoAcquaBase = naivePlantMaster?.water?.litersPerSqmPerWeek || 10;
+  // Nota: PlantMasterSheet non ha proprietà water, usiamo valore di default
+  const consumoAcquaBase = 10; // litri/m²/settimana default
   const consumoAcquaNaive = Math.round(consumoAcquaBase * (naiveScore < 50 ? 1.5 : 1.0) * 10) / 10;
 
   // Calcola approccio ottimizzato
@@ -89,8 +91,8 @@ export function compareNaiveVsOptimized(
 
   // Consumo acqua ottimizzato (più efficiente)
   const consumoAcquaOttimizzato = rotation.reduce((sum, r) => {
-    const plant = allPlants.find((p) => p.commonName === r.coltura);
-    const waterPerWeek = plant?.water?.litersPerSqmPerWeek || 10;
+    // Nota: PlantMasterSheet non ha proprietà water, usiamo valore di default
+    const waterPerWeek = 10; // litri/m²/settimana default
     const weeks = Math.ceil((r.fine.getTime() - r.inizio.getTime()) / (7 * 24 * 60 * 60 * 1000));
     return sum + waterPerWeek * weeks;
   }, 0);
