@@ -20,6 +20,13 @@ export function useAICredits() {
       const response = await fetch('/api/credits/status')
       
       if (!response.ok) {
+        // Handle 401 (Unauthorized) gracefully - user is not authenticated
+        if (response.status === 401) {
+          setCredits({ total: 0, used: 0, resetDate: null, remaining: 0 })
+          setError(null)
+          setIsLoading(false)
+          return
+        }
         throw new Error('Failed to fetch credits')
       }
       
@@ -30,8 +37,14 @@ export function useAICredits() {
       })
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'))
-      setCredits(null)
+      // Only set error for non-401 errors
+      if (err instanceof Error && !err.message.includes('401')) {
+        setError(err)
+      } else {
+        setError(null)
+      }
+      // Set default credits on error
+      setCredits({ total: 0, used: 0, resetDate: null, remaining: 0 })
     } finally {
       setIsLoading(false)
     }

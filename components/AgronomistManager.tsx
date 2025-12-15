@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { Agronomist } from '../types/agronomist';
 import { useStorage } from '../packages/core/hooks/useStorage';
 import { useTier } from '../packages/core/hooks/useTier';
+import { getSupabaseClient } from '../config/supabase';
 import { User, Mail, Phone, Plus, Edit2, Trash2, X } from 'lucide-react';
 
 interface AgronomistManagerProps {
@@ -35,11 +36,36 @@ const AgronomistManager: React.FC<AgronomistManagerProps> = ({ onSelectAgronomis
     loadAgronomists();
   }, []);
 
+  const getCurrentUserId = async (): Promise<string | null> => {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      // Fallback to localStorage for local development
+      return localStorage.getItem('user_id') || null;
+    }
+    
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        // Fallback to localStorage for local development
+        return localStorage.getItem('user_id') || null;
+      }
+      return user.id;
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      // Fallback to localStorage for local development
+      return localStorage.getItem('user_id') || null;
+    }
+  };
+
   const loadAgronomists = async () => {
     try {
       setLoading(true);
-      // Get user ID (for now, use placeholder - in real app, get from auth)
-      const userId = 'current-user-id'; // TODO: Get from auth context
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        console.warn('No user ID available, skipping agronomist load');
+        setAgronomists([]);
+        return;
+      }
       const loaded = await storageProvider.getAgronomists(userId);
       setAgronomists(loaded);
     } catch (error) {
@@ -56,7 +82,11 @@ const AgronomistManager: React.FC<AgronomistManagerProps> = ({ onSelectAgronomis
     }
 
     try {
-      const userId = 'current-user-id'; // TODO: Get from auth context
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        alert('Devi essere autenticato per salvare un agronomo');
+        return;
+      }
       
       if (editingId) {
         await storageProvider.updateAgronomist(editingId, formData);

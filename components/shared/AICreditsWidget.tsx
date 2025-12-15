@@ -25,13 +25,28 @@ export function AICreditsWidget() {
     
     // Fetch credits status
     fetch('/api/credits/status')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          // Handle 401 (Unauthorized) gracefully - user is not authenticated
+          if (res.status === 401) {
+            setCredits({ total: 0, used: 0, resetDate: null, remaining: 0 })
+            setIsLoading(false)
+            return
+          }
+          throw new Error(`HTTP ${res.status}`)
+        }
+        return res.json()
+      })
       .then(data => {
-        setCredits(data)
+        if (data) {
+          setCredits(data)
+        }
         setIsLoading(false)
       })
       .catch(err => {
         console.error('Error fetching credits:', err)
+        // Set default credits on error
+        setCredits({ total: 0, used: 0, resetDate: null, remaining: 0 })
         setIsLoading(false)
       })
   }, [isFree])

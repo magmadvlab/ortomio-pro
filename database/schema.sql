@@ -263,6 +263,46 @@ CREATE INDEX idx_seed_inventory_garden_id ON seed_inventory(garden_id);
 CREATE INDEX idx_seed_inventory_expiry_year ON seed_inventory(expiry_year);
 
 -- ============================================
+-- SEEDLING BATCHES (Batch Semenzai)
+-- ============================================
+CREATE TABLE seedling_batches (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
+  plant_name TEXT NOT NULL,
+  variety TEXT,
+  sowing_date DATE NOT NULL,
+  quantity INTEGER NOT NULL,
+  location TEXT CHECK (location IN ('Indoor', 'Greenhouse', 'ColdFrame')) NOT NULL,
+  phase TEXT CHECK (phase IN ('Sowing', 'Germination', 'Nursing', 'Hardening', 'ReadyToTransplant')) DEFAULT 'Sowing',
+  current_quantity INTEGER,
+  expected_transplant_date DATE,
+  notes TEXT,
+  photo_log JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_seedling_batches_garden_id ON seedling_batches(garden_id);
+CREATE INDEX idx_seedling_batches_sowing_date ON seedling_batches(sowing_date);
+CREATE INDEX idx_seedling_batches_phase ON seedling_batches(phase);
+
+-- RLS Policies for seedling_batches
+ALTER TABLE seedling_batches ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can access seedling batches in their gardens"
+  ON seedling_batches FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM gardens
+      WHERE gardens.id = seedling_batches.garden_id
+      AND gardens.user_id = auth.uid()
+    )
+  );
+
+CREATE TRIGGER update_seedling_batches_updated_at BEFORE UPDATE ON seedling_batches
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
 -- WEATHER CACHE
 -- ============================================
 CREATE TABLE weather_cache (
@@ -289,6 +329,7 @@ ALTER TABLE garden_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE harvest_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE photo_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE seed_inventory ENABLE ROW LEVEL SECURITY;
+ALTER TABLE seedling_batches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE weather_cache ENABLE ROW LEVEL SECURITY;
 
 -- Gardens: Users can only access their own gardens
