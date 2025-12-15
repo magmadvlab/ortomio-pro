@@ -155,7 +155,7 @@ export const PRO_TIER: TierConfig = {
     companionPlanting: true,
     cloudSync: true,
     exportData: true,
-
+    
     // Consumer Features (legacy PRO has these)
     recipes: true,
     guides: true,

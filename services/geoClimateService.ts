@@ -169,7 +169,7 @@ export const inferGeoClimate = async (
 
   // Prova prima con Gemini API
   try {
-    if (checkApiAvailable()) {
+  if (checkApiAvailable()) {
       const prompt = `Coordinate geografiche: Latitudine ${lat.toFixed(4)}, Longitudine ${lng.toFixed(4)} (Italia).
 
 Fornisci informazioni geoclimatiche accurate per questa zona:
@@ -193,7 +193,7 @@ IMPORTANTE: L'altitudine deve essere precisa e basata su dati topografici reali.
         responseSchema: geoClimateSchema
       }
     });
-    
+
     const text = result.text;
     
     if (!text) {
@@ -239,38 +239,38 @@ IMPORTANTE: L'altitudine deve essere precisa e basata su dati topografici reali.
       geoClimateCache.set(cacheKey, { data: parsed, timestamp: Date.now() });
     }
     
-      return parsed;
+    return parsed;
     }
   } catch (error) {
     console.error("Errore nell'inferenza geoclimatica con Gemini:", error);
   }
   
   // Fallback a Open-Elevation per altitudine se API non disponibile o errore
-  try {
-    const elevation = await getAltitudeFromOpenElevation(lat, lng);
-    if (elevation !== null) {
-      const validatedAlt = validateAltitude(elevation);
-      const { calculateAltitudeDelay } = await import('../utils/altitudeUtils');
-      const delayDays = calculateAltitudeDelay(validatedAlt);
-      const result: GeoClimateInfo = {
-        altitude: validatedAlt,
-        delayFactorDays: delayDays,
-        minTempApril: 8, // Default
-        region: 'Italia',
-        source: 'open-elevation'
-      };
-      // Salva in cache
-      if (useCache) {
-        geoClimateCache.set(cacheKey, { data: result, timestamp: Date.now() });
+    try {
+      const elevation = await getAltitudeFromOpenElevation(lat, lng);
+      if (elevation !== null) {
+        const validatedAlt = validateAltitude(elevation);
+        const { calculateAltitudeDelay } = await import('../utils/altitudeUtils');
+        const delayDays = calculateAltitudeDelay(validatedAlt);
+        const result: GeoClimateInfo = {
+          altitude: validatedAlt,
+          delayFactorDays: delayDays,
+          minTempApril: 8, // Default
+          region: 'Italia',
+          source: 'open-elevation'
+        };
+        // Salva in cache
+        if (useCache) {
+          geoClimateCache.set(cacheKey, { data: result, timestamp: Date.now() });
+        }
+        return result;
       }
-      return result;
+    } catch (elevError) {
+      console.error("Errore anche con Open-Elevation:", elevError);
     }
-  } catch (elevError) {
-    console.error("Errore anche con Open-Elevation:", elevError);
-  }
   
   // Fallback finale
-  return null;
+    return null;
 };
 
 /**

@@ -5,14 +5,17 @@
  * Displays comprehensive search results with filters and sorting
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+
+// Force dynamic rendering since we use useSearchParams
+export const dynamic = 'force-dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useStorage } from '@/packages/core/hooks/useStorage';
 import { searchAll, SearchResult } from '@/services/globalSearchService';
 import { Calendar, Package, Sprout, Home, Wrench, Droplet, Filter, ArrowUpDown } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 
-const SearchPage: React.FC = () => {
+const SearchContent: React.FC = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { storageProvider } = useStorage();
@@ -249,6 +252,28 @@ const SearchPage: React.FC = () => {
         )}
       </div>
     </div>
+  );
+};
+
+const SearchPage: React.FC = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50">
+        <PageHeader 
+          title="Risultati Ricerca" 
+          subtitle="Caricamento..."
+          showBack
+        />
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+            <p className="mt-4 text-gray-600">Caricamento...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
   );
 };
 
