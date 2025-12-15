@@ -9,6 +9,9 @@ import {
   calculateSunPosition,
   Obstacle3D,
 } from './preciseSunCalculator';
+import { HistoricalWeatherData } from './historicalWeatherService';
+import { calculateEffectiveTemperature } from '../utils/altitudeUtils';
+import { calculateSoilHeatingRate } from '../utils/soilTemperatureUtils';
 
 export interface SeasonalSunWindow {
   period: 'Feb-Mar' | 'Apr-Mag' | 'Giu-Lug' | 'Ago-Set';

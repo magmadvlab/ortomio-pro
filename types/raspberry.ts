@@ -1,4 +1,4 @@
-import { PlantMasterSheet } from '../types';
+import { PlantMasterSheet, GardenTask, HarvestLogData } from '../types';
 
 /**
  * Interfaccia per colture di lamponi (Pro Feature)

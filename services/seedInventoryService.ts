@@ -82,8 +82,7 @@ export const getExpiringSeeds = (gardenId: string, currentYear: number): SeedPac
 export const getLowStockSeeds = (gardenId: string): SeedPacket[] => {
   const packets = getSeedPackets(gardenId);
   return packets.filter(p => 
-    (p.quantityRemaining === 'Low' || p.quantityRemaining === 'Medium') &&
-    p.quantityRemaining !== 'Empty'
+    p.quantityRemaining === 'Low' || p.quantityRemaining === 'Medium'
   );
 };
 

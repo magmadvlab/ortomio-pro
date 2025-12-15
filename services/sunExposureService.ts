@@ -20,7 +20,7 @@ export interface SunExposureData {
 export const calculateSunExposure = (
   lat: number,
   lng: number,
-  orientation?: Garden['orientation'],
+  orientation?: Garden['aspectDirection'],
   obstacles?: Obstacle3D[],
   date?: Date
 ): SunExposureData => {
@@ -103,7 +103,7 @@ export const getGardenSunExposure = (
   if (garden.sunExposure && garden.dailySunHours && (!garden.obstacles || garden.obstacles.length === 0)) {
     return {
       estimatedHours: garden.dailySunHours,
-      exposure: garden.sunExposure,
+      exposure: convertSunExposure(garden.sunExposure),
       recommendation: getRecommendationForExposure(garden.sunExposure)
     };
   }
@@ -135,6 +135,19 @@ export const getGardenOptimalPeriod = (
     garden.obstacles || [],
     minSunHours
   );
+};
+
+/**
+ * Converte il tipo di esposizione da Garden a SunExposureData
+ */
+const convertSunExposure = (exposure: Garden['sunExposure']): SunExposureData['exposure'] => {
+  const mapping: Record<string, SunExposureData['exposure']> = {
+    'FullSun': 'FullSun',
+    'PartSun': 'PartialSun',
+    'Shade': 'PartialShade',
+  };
+  
+  return mapping[exposure || 'PartSun'] || 'PartialSun';
 };
 
 /**

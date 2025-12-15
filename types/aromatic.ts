@@ -1,4 +1,4 @@
-import { PlantMasterSheet } from '../types';
+import { PlantMasterSheet, GardenTask, HarvestLogData } from '../types';
 
 /**
  * Interfaccia per erbe aromatiche e officinali (Pro Feature)

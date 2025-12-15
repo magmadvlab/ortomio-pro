@@ -92,7 +92,8 @@ export function generatePointRotation(
     if (!plantMaster) continue;
 
     // Calcola date di impianto
-    const cycleDays = plantMaster.lifecycle?.harvestDays?.min || 60;
+    // Usa cycleDurationDays da aiMetadata.timeline se disponibile, altrimenti default 60 giorni
+    const cycleDays = plantMaster.aiMetadata?.timeline?.cycleDurationDays || 60;
     const inizio = new Date(currentYear, startMonth - 1, 15); // Metà mese
     const fine = new Date(inizio);
     fine.setDate(fine.getDate() + cycleDays);

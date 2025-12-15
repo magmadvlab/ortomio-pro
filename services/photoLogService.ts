@@ -68,7 +68,13 @@ export class PhotoLogService {
     const photoBase64 = await fileToBase64(photoFile);
     
     // Analyze plant health with Gemini Vision
-    let analysisResult;
+    let analysisResult: {
+      isHealthy: boolean;
+      growthRate: 'normal' | 'slow' | 'fast';
+      issues?: string[];
+      phase?: string;
+      leafCount?: number;
+    } | undefined;
     try {
       const healthAnalysis = await analyzePlantHealth(
         photoBase64,
@@ -88,7 +94,7 @@ export class PhotoLogService {
       console.error('Error analyzing plant health:', error);
       analysisResult = {
         isHealthy: true,
-        growthRate: 'normal',
+        growthRate: 'normal' as const,
         issues: [],
       };
     }

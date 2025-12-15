@@ -4,7 +4,8 @@
  */
 
 import { SeasonalSunWindow, GardenClassification } from './seasonalSunWindows';
-import { PlantMasterSheet, getAllMasterSheets } from '../data/plantMasterSheets';
+import { PlantMasterSheet } from '../types';
+import { getAllMasterSheets } from '../data/plantMasterSheets';
 import { calculateDailySunHours, Obstacle3D } from './preciseSunCalculator';
 import { Garden } from '../types';
 import {
