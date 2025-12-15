@@ -110,55 +110,6 @@ export async function searchAll(
       }
     });
 
-    // Search in Treatments (if available)
-    try {
-      const treatments = await storageProvider.getTreatments?.(userId);
-      if (treatments) {
-        treatments.forEach((treatment: any) => {
-          const relevance = calculateRelevance(searchTerm, [
-            treatment.plantName,
-            treatment.product,
-            treatment.notes,
-          ]);
-          if (relevance > 0 && treatment.id) {
-            results.push({
-              type: 'treatment',
-              id: treatment.id,
-              title: `Trattamento: ${treatment.plantName || 'Trattamento'}`,
-              description: treatment.product || treatment.notes || '',
-              date: treatment.date,
-              plantName: treatment.plantName,
-              relevanceScore: relevance,
-            });
-          }
-        });
-      }
-    } catch (e) {
-      // Treatments might not be available
-    }
-
-    // Search in Mechanical Work (if available)
-    try {
-      const mechanicalWork = await storageProvider.getMechanicalWork?.(userId);
-      if (mechanicalWork) {
-        mechanicalWork.forEach((work: any) => {
-          const relevance = calculateRelevance(searchTerm, [work.workType, work.notes]);
-          if (relevance > 0 && work.id) {
-            results.push({
-              type: 'mechanical',
-              id: work.id,
-              title: `Lavorazione: ${work.workType || 'Lavorazione'}`,
-              description: work.notes || work.workType,
-              date: work.date,
-              relevanceScore: relevance,
-            });
-          }
-        });
-      }
-    } catch (e) {
-      // Mechanical work might not be available
-    }
-
     // Sort by relevance score (descending)
     return results.sort((a, b) => b.relevanceScore - a.relevanceScore);
   } catch (error) {
