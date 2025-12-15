@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Advice from '@/components/Advice'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useTier } from '@/packages/core/hooks/useTier'
@@ -9,7 +9,7 @@ import { AIRequestModal } from '@/components/shared/AIRequestModal'
 import { useAICredits } from '@/hooks/useAICredits'
 import { useSearchParams } from 'next/navigation'
 
-export default function AdvicePage() {
+function AdvicePageContent() {
   const { storageProvider } = useStorage()
   const { tier, isFree } = useTier()
   const { credits } = useAICredits()
@@ -67,6 +67,18 @@ export default function AdvicePage() {
         initialTab={initialTab}
       />
     </div>
+  )
+}
+
+export default function AdvicePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Caricamento...</p>
+      </div>
+    }>
+      <AdvicePageContent />
+    </Suspense>
   )
 }
 
