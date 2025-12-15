@@ -124,14 +124,39 @@ export interface DailyPlan {
   solarClassification?: SolarClassificationData; // Classificazione solare stagionale
 }
 
+// Work types for mechanical operations
+export type MechanicalWorkType = 
+  // Suolo
+  | 'Plowing' | 'Subsoiling' | 'Harrowing' | 'Tilling' | 'Rolling' | 'Hoeing' | 'EarthingUp' | 'Mulching' | 'PostSowingRolling'
+  // Chioma
+  | 'FormativePruning' | 'MaintenancePruning' | 'RejuvenationPruning' | 'SummerPruning' | 'WinterPruning'
+  | 'Thinning' | 'Suckering' | 'Defoliation' | 'Tying' | 'OliveShredding' | 'RunnerManagement'
+  | 'StrawberryMulching' | 'StrawberryCleaning' | 'CaneRemoval' | 'TipPruning' | 'RaspberryTying'
+  | 'SuckerThinning' | 'FruitBagging' | 'ExoticThinning' | 'Shredding'
+  // Generale
+  | 'Topping' | 'Pruning'
+
+// Equipment types for mechanical operations
+export type MechanicalEquipmentType = 
+  // Trattore e attrezzi trattore
+  | 'Tractor' | 'RotaryHarrow' | 'Shredder' | 'FertilizerSpreader' | 'Seeder'
+  | 'Topper' | 'Defoliator' | 'PrePruner' | 'Thinner'
+  // Piccoli mezzi
+  | 'Rototiller' | 'Cultivator' | 'Mower' | 'BrushCutter' | 'TrackedCart' | 'BackpackSprayer'
+  // Attrezzi elettrificati
+  | 'ElectricTier' | 'ElectricPruner' | 'TelescopicPruner'
+  // Manuale
+  | 'Manual'
+
 export interface MechanicalWorkTask {
   taskId?: string; // Se già creato come GardenTask
-  workType: 'Plowing' | 'Tilling';
+  workType: MechanicalWorkType;
   suggestedDate: string;
   priority: 'High' | 'Medium' | 'Low';
   message: string;
   instructions: string[];
-  equipmentType: 'Tractor' | 'Manual';
+  equipmentType: MechanicalEquipmentType;
+  equipmentAttachment?: string; // Attrezzo specifico quando equipmentType = 'Tractor'
   area?: number;
   weatherWarning?: string;
 }
@@ -488,7 +513,7 @@ export interface GardenTask {
   initialQuantity?: number; // How many seeds/plants started
   currentQuantity?: number; // How many survived/are active
   
-  taskType: 'Sowing' | 'Transplant' | 'Fertilize' | 'Prune' | 'Harvest' | 'Treatment' | 'Plowing' | 'Tilling' | 'TreePruning';
+  taskType: 'Sowing' | 'Transplant' | 'Fertilize' | 'Prune' | 'Harvest' | 'Treatment' | 'Plowing' | 'Subsoiling' | 'Harrowing' | 'Tilling' | 'Rolling' | 'Hoeing' | 'EarthingUp' | 'Mulching' | 'PostSowingRolling' | 'FormativePruning' | 'MaintenancePruning' | 'RejuvenationPruning' | 'SummerPruning' | 'WinterPruning' | 'Thinning' | 'Suckering' | 'Defoliation' | 'Tying' | 'OliveShredding' | 'RunnerManagement' | 'StrawberryMulching' | 'StrawberryCleaning' | 'CaneRemoval' | 'TipPruning' | 'RaspberryTying' | 'SuckerThinning' | 'FruitBagging' | 'ExoticThinning' | 'Shredding' | 'Topping' | 'Pruning' | 'TreePruning';
   durationMinutes?: number; // Durata task (es. irrigazione in minuti)
   stage?: 'Germination' | 'Vegetative' | 'ReadyToTransplant' | 'Flowering' | 'Fruiting' | 'Harvested';
   lifecycleState?: 'Sowing' | 'Germination' | 'Nursing' | 'Hardening' | 'Transplanting' | 'Production'; // Fase del ciclo vitale
@@ -585,8 +610,18 @@ export interface GardenTask {
   };
   // Lavorazioni meccaniche per terreni più grandi
   mechanicalWorkData?: {
-    workType: 'Plowing' | 'Tilling';
-    equipmentType?: 'Tractor' | 'Manual';
+    workType: MechanicalWorkType;
+    equipmentType?: MechanicalEquipmentType;
+    equipmentAttachment?: string; // Attrezzo specifico quando equipmentType = 'Tractor'
+    workMetadata?: {
+      category?: 'Soil' | 'Canopy' | 'General';
+      cropId?: string;
+      cropName?: string;
+      period?: { month?: number[]; phenologicalPhase?: string; daysAfterSowing?: number };
+      equipment?: string[];
+      standardCost?: number;
+      description?: string;
+    };
     depth?: number; // cm
     area?: number; // m²
   };

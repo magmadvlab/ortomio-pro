@@ -9,6 +9,7 @@ interface AICreditsData {
   total: number
   used: number
   resetDate: string | null
+  remaining?: number
 }
 
 export function AICreditsWidget() {

@@ -97,6 +97,8 @@ export async function POST(request: NextRequest) {
       area_m2,
       depth_cm,
       equipment_type,
+      equipment_attachment,
+      work_metadata,
       weather_conditions,
       operator_name,
       notes,
@@ -108,6 +110,42 @@ export async function POST(request: NextRequest) {
         { error: 'missing_required_fields' },
         { status: 400 }
       )
+    }
+    
+    // Validate work_type
+    const validWorkTypes = [
+      // Suolo
+      'Plowing', 'Subsoiling', 'Harrowing', 'Tilling', 'Rolling', 'Hoeing', 'EarthingUp', 'Mulching', 'PostSowingRolling',
+      // Chioma
+      'FormativePruning', 'MaintenancePruning', 'RejuvenationPruning', 'SummerPruning', 'WinterPruning',
+      'Thinning', 'Suckering', 'Defoliation', 'Tying', 'OliveShredding', 'RunnerManagement',
+      'StrawberryMulching', 'StrawberryCleaning', 'CaneRemoval', 'TipPruning', 'RaspberryTying',
+      'SuckerThinning', 'FruitBagging', 'ExoticThinning', 'Shredding',
+      // Generale
+      'Topping', 'Pruning'
+    ]
+    if (!validWorkTypes.includes(work_type)) {
+      return NextResponse.json(
+        { error: 'invalid_work_type' },
+        { status: 400 }
+      )
+    }
+    
+    // Validate equipment_type if provided
+    if (equipment_type) {
+      const validEquipmentTypes = [
+        'Tractor', 'RotaryHarrow', 'Shredder', 'FertilizerSpreader', 'Seeder',
+        'Topper', 'Defoliator', 'PrePruner', 'Thinner',
+        'Rototiller', 'Cultivator', 'Mower', 'BrushCutter', 'TrackedCart', 'BackpackSprayer',
+        'ElectricTier', 'ElectricPruner', 'TelescopicPruner',
+        'Manual'
+      ]
+      if (!validEquipmentTypes.includes(equipment_type)) {
+        return NextResponse.json(
+          { error: 'invalid_equipment_type' },
+          { status: 400 }
+        )
+      }
     }
     
     const supabase = getSupabaseClient()
@@ -122,6 +160,8 @@ export async function POST(request: NextRequest) {
         area_m2: parseFloat(area_m2),
         depth_cm: depth_cm ? parseFloat(depth_cm) : null,
         equipment_type: equipment_type || null,
+        equipment_attachment: equipment_type === 'Tractor' ? (equipment_attachment || null) : null,
+        work_metadata: work_metadata || null,
         weather_conditions: weather_conditions || null,
         operator_name: operator_name || null,
         notes: notes || null,
@@ -142,6 +182,7 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
 
 
 

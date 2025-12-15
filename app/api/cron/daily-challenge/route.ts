@@ -5,18 +5,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { requireSupabase } from '../../../../lib/supabase-server';
 import { getChallengeForDate } from '../../../../data/giornateSpeciali';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Verifica CRON_SECRET per sicurezza
 const CRON_SECRET = process.env.CRON_SECRET;
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = requireSupabase();
     // Verifica secret (protezione da chiamate non autorizzate)
     const authHeader = request.headers.get('authorization');
     if (authHeader !== `Bearer ${CRON_SECRET}`) {

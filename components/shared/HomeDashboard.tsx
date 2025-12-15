@@ -92,6 +92,16 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
   const [showAccessoriesManager, setShowAccessoriesManager] = useState(false)
   const [showBedManager, setShowBedManager] = useState(false)
   const [showReadingForm, setShowReadingForm] = useState<'hydroponic' | 'aquaponic' | 'aeroponic' | null>(null)
+  
+  // States for new garden creation
+  const [showNewGardenModal, setShowNewGardenModal] = useState(false)
+  const [newGardenData, setNewGardenData] = useState({
+    name: '',
+    sizeSqMeters: '',
+    soilPh: '',
+    soilType: ''
+  })
+  const [gardenTasks, setGardenTasks] = useState<GardenTask[]>(tasks || [])
 
   useEffect(() => {
     const loadSeedlingBatches = async () => {
@@ -121,6 +131,24 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
     loadGardens()
   }, [storageProvider])
 
+  // Load tasks when active garden changes
+  useEffect(() => {
+    const loadTasksForGarden = async () => {
+      if (activeGarden) {
+        try {
+          const loadedTasks = await storageProvider.getTasks(activeGarden.id)
+          setGardenTasks(loadedTasks || [])
+        } catch (error) {
+          console.error('Error loading tasks for garden:', error)
+          setGardenTasks([])
+        }
+      } else {
+        setGardenTasks([])
+      }
+    }
+    loadTasksForGarden()
+  }, [activeGarden, storageProvider])
+
   // Inizializza gardenType solo quando cambia activeGarden
   useEffect(() => {
     if (activeGarden) {
@@ -145,11 +173,11 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
   }, [activeGarden, gardenType])
 
   useEffect(() => {
-    if (activeGarden && tasks) {
+    if (activeGarden && gardenTasks) {
       // Carica daily plan quando cambiano batch o tasks
       loadDailyPlan()
     }
-  }, [activeGarden, tasks, seedlingBatches])
+  }, [activeGarden, gardenTasks, seedlingBatches])
 
   const fetchWeather = async (lat: number, lng: number) => {
     setWeatherLoading(true)
@@ -173,10 +201,10 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
   }
 
   const loadDailyPlan = async () => {
-    if (!activeGarden || !tasks) return
+    if (!activeGarden || !gardenTasks) return
     setLoadingPlan(true)
     try {
-      const plan = await getDailyGardenPlan(activeGarden, tasks, new Date(), undefined, undefined, seedlingBatches)
+      const plan = await getDailyGardenPlan(activeGarden, gardenTasks, new Date(), undefined, undefined, seedlingBatches)
       setDailyPlan(plan)
     } catch (error) {
       console.error('Error loading daily plan:', error)
@@ -254,11 +282,20 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
             </button>
             <p className="text-xs text-gray-500 mt-0.5">Localizzato</p>
           </div>
-          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowNewGardenModal(true)}
+              className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              title="Aggiungi Nuovo Orto"
+            >
+              <Plus size={20} />
+            </button>
+            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+          </div>
         </div>
         
         {/* Garden Selector Dropdown */}
-        {isGardenSelectorOpen && gardens.length > 1 && (
+        {isGardenSelectorOpen && (
           <div className="absolute left-4 right-4 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
             {gardens.map(g => (
               <button
@@ -274,6 +311,18 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                 <p className="text-xs text-gray-500">{g.sizeSqMeters} m²</p>
               </button>
             ))}
+            <div className="border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setIsGardenSelectorOpen(false)
+                  setShowNewGardenModal(true)
+                }}
+                className="w-full text-left px-4 py-3 hover:bg-green-50 text-green-600 font-semibold flex items-center gap-2"
+              >
+                <Plus size={16} />
+                Aggiungi Nuovo Orto
+              </button>
+            </div>
           </div>
         )}
 
@@ -893,6 +942,140 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                 }}
                 onCancel={() => setShowReadingForm(null)}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Garden Creation Modal */}
+      {showNewGardenModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Nuovo Orto</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nome Orto <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newGardenData.name}
+                  onChange={(e) => setNewGardenData({...newGardenData, name: e.target.value})}
+                  placeholder="Es. Orto Casa"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Dimensioni (m²) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newGardenData.sizeSqMeters}
+                    onChange={(e) => setNewGardenData({...newGardenData, sizeSqMeters: e.target.value})}
+                    placeholder="50"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    pH Suolo
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="4"
+                    max="9"
+                    value={newGardenData.soilPh}
+                    onChange={(e) => setNewGardenData({...newGardenData, soilPh: e.target.value})}
+                    placeholder="6.5"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipo di Terreno
+                </label>
+                <select
+                  value={newGardenData.soilType}
+                  onChange={(e) => setNewGardenData({...newGardenData, soilType: e.target.value})}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
+                >
+                  <option value="">Seleziona...</option>
+                  <option value="Loamy">Franco (Equilibrato)</option>
+                  <option value="Clay">Argilloso</option>
+                  <option value="Sandy">Sabbioso</option>
+                  <option value="Silty">Limoso</option>
+                  <option value="Peaty">Torba</option>
+                  <option value="Chalky">Calcareo</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowNewGardenModal(false)
+                  setNewGardenData({ name: '', sizeSqMeters: '', soilPh: '', soilType: '' })
+                }}
+                className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={async () => {
+                  if (!newGardenData.name.trim() || !newGardenData.sizeSqMeters.trim()) {
+                    alert('Compila almeno nome e dimensioni')
+                    return
+                  }
+                  
+                  const size = parseInt(newGardenData.sizeSqMeters)
+                  if (isNaN(size) || size <= 0) {
+                    alert('Le dimensioni devono essere un numero positivo')
+                    return
+                  }
+                  
+                  try {
+                    const newGarden: Garden = {
+                      id: crypto.randomUUID(),
+                      name: newGardenData.name.trim(),
+                      sizeSqMeters: size,
+                      soilPh: newGardenData.soilPh ? parseFloat(newGardenData.soilPh) : undefined,
+                      soilType: (newGardenData.soilType as Garden['soilType']) || undefined,
+                      createdAt: new Date().toISOString(),
+                      coordinates: activeGarden?.coordinates // Usa coordinate dell'orto corrente se disponibili
+                    }
+                    
+                    await storageProvider.createGarden(newGarden)
+                    const updatedGardens = await storageProvider.getGardens()
+                    setGardens(updatedGardens)
+                    setActiveGarden(newGarden)
+                    setShowNewGardenModal(false)
+                    setNewGardenData({ name: '', sizeSqMeters: '', soilPh: '', soilType: '' })
+                    
+                    // Carica task per il nuovo orto (saranno vuoti inizialmente)
+                    const newGardenTasks = await storageProvider.getTasks(newGarden.id)
+                    setGardenTasks(newGardenTasks || [])
+                    
+                    if (onUpdateGarden) {
+                      onUpdateGarden(newGarden)
+                    }
+                  } catch (error) {
+                    console.error('Error creating garden:', error)
+                    alert('Errore nella creazione dell\'orto: ' + (error instanceof Error ? error.message : 'Errore sconosciuto'))
+                  }
+                }}
+                className="flex-1 py-3 px-4 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
+              >
+                Crea Orto
+              </button>
             </div>
           </div>
         </div>

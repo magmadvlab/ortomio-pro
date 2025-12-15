@@ -91,11 +91,46 @@ CREATE TABLE IF NOT EXISTS mechanical_work_register (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE,
   
-  work_type TEXT NOT NULL CHECK (work_type IN ('Plowing', 'Tilling')),
+  -- Work types: Suolo, Chioma, Generale
+  work_type TEXT NOT NULL CHECK (work_type IN (
+    -- Suolo
+    'Plowing', 'Subsoiling', 'Harrowing', 'Tilling', 'Rolling', 'Hoeing', 'EarthingUp', 'Mulching', 'PostSowingRolling',
+    -- Chioma
+    'FormativePruning', 'MaintenancePruning', 'RejuvenationPruning', 'SummerPruning', 'WinterPruning', 
+    'Thinning', 'Suckering', 'Defoliation', 'Tying', 'OliveShredding', 'RunnerManagement', 
+    'StrawberryMulching', 'StrawberryCleaning', 'CaneRemoval', 'TipPruning', 'RaspberryTying', 
+    'SuckerThinning', 'FruitBagging', 'ExoticThinning', 'Shredding',
+    -- Generale
+    'Topping', 'Pruning'
+  )),
   work_date DATE NOT NULL,
   area_m2 DECIMAL(10, 2) NOT NULL, -- Area lavorata in m²
   depth_cm DECIMAL(5, 2), -- Profondità lavorazione in cm
-  equipment_type TEXT CHECK (equipment_type IN ('Tractor', 'Manual')),
+  
+  -- Equipment types: Trattore, Piccoli mezzi, Elettrificati, Manuale
+  equipment_type TEXT CHECK (equipment_type IN (
+    -- Trattore e attrezzi trattore
+    'Tractor', 'RotaryHarrow', 'Shredder', 'FertilizerSpreader', 'Seeder', 
+    'Topper', 'Defoliator', 'PrePruner', 'Thinner',
+    -- Piccoli mezzi
+    'Rototiller', 'Cultivator', 'Mower', 'BrushCutter', 'TrackedCart', 'BackpackSprayer',
+    -- Attrezzi elettrificati
+    'ElectricTier', 'ElectricPruner', 'TelescopicPruner',
+    -- Manuale
+    'Manual'
+  )),
+  equipment_attachment TEXT, -- Attrezzo specifico quando equipment_type = 'Tractor'
+  
+  -- Metadati lavorazione (categoria, periodo, attrezzatura, costo, coltura)
+  work_metadata JSONB, -- {
+  --   category: 'Soil' | 'Canopy' | 'General',
+  --   cropId?: string,
+  --   cropName?: string,
+  --   period?: { month: number[], phenologicalPhase?: string, daysAfterSowing?: number },
+  --   equipment?: string[],
+  --   standardCost?: number,
+  --   description?: string
+  -- }
   
   weather_conditions JSONB, -- {temp: 20, humidity: 60, wind: 'low', rain: false}
   operator_name TEXT, -- Chi ha fatto la lavorazione
@@ -116,6 +151,35 @@ ALTER TABLE mechanical_work_register ENABLE ROW LEVEL SECURITY;
 CREATE POLICY IF NOT EXISTS "Users can only access their own mechanical work"
   ON mechanical_work_register FOR ALL
   USING (auth.uid() = user_id);
+
+-- ============================================
+-- CROP MECHANICAL WORKS (Mapping Coltura-Lavorazioni)
+-- ============================================
+CREATE TABLE IF NOT EXISTS crop_mechanical_works (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  crop_id TEXT NOT NULL, -- Riferimento a plantMasterSheets.id
+  crop_name TEXT NOT NULL,
+  work_type TEXT NOT NULL, -- Riferimento a mechanical_work_register.work_type
+  priority INTEGER DEFAULT 0 CHECK (priority >= 0 AND priority <= 10), -- Priorità suggerimento (0-10)
+  timing JSONB, -- { month: number[], phase?: string, daysAfterSowing?: number }
+  equipment_suggested TEXT[], -- Attrezzature consigliate
+  critical BOOLEAN DEFAULT false, -- Se è essenziale per quella coltura
+  frequency TEXT, -- "Ogni 7-10 giorni", "Una volta", ecc.
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_crop_mechanical_works_crop_id ON crop_mechanical_works(crop_id);
+CREATE INDEX IF NOT EXISTS idx_crop_mechanical_works_work_type ON crop_mechanical_works(work_type);
+CREATE INDEX IF NOT EXISTS idx_crop_mechanical_works_priority ON crop_mechanical_works(priority DESC);
+
+-- Enable RLS
+ALTER TABLE crop_mechanical_works ENABLE ROW LEVEL SECURITY;
+
+-- Crop Mechanical Works: Public read (mapping standard per tutte le colture)
+CREATE POLICY IF NOT EXISTS "Crop mechanical works are publicly readable"
+  ON crop_mechanical_works FOR SELECT
+  USING (true);
 
 
 

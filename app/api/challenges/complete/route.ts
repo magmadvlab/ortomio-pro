@@ -4,17 +4,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { requireSupabase } from '../../../../lib/supabase-server';
 import { awardBadge } from '../../../../lib/challenges/badgeSystem';
 import { updateStreak } from '../../../../lib/challenges/streakCalculator';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // POST /api/challenges/complete
 export async function POST(request: NextRequest) {
   try {
+    const supabase = requireSupabase();
     const body = await request.json();
     const { 
       user_id, 
@@ -119,6 +116,7 @@ export async function POST(request: NextRequest) {
 // GET /api/challenges/complete?user_id=&challenge_id=
 export async function GET(request: NextRequest) {
   try {
+    const supabase = requireSupabase();
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('user_id');
     const challengeId = searchParams.get('challenge_id');

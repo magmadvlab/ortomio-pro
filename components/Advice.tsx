@@ -3,17 +3,23 @@ import React, { useState, useRef, useEffect } from 'react';
 import { getTreatmentAdvice, diagnosePlantHealth } from '../services/geminiService';
 import { TreatmentAdvice, Garden } from '../types';
 import { useStorage } from '../packages/core/hooks/useStorage';
-import { Agronomist } from '../types/agronomist';
-import { Search, Loader2, ShieldCheck, Leaf, AlertCircle, Camera, Sparkles, Activity, CalendarClock, AlertTriangle, Bug, ClipboardList, X, UserCheck, Users, Mail, Phone, Plus } from 'lucide-react';
+import { Agronomist, AgronomistConsultation } from '../types/agronomist';
+import { Search, Loader2, ShieldCheck, Leaf, AlertCircle, Camera, Sparkles, Activity, CalendarClock, AlertTriangle, Bug, ClipboardList, X, UserCheck, Users, Mail, Phone, Plus, MessageSquare, Calendar } from 'lucide-react';
 import { suggestPhytoProduct, PhytoRecommendation, checkTreatmentTiming, calculateSafetyInterval } from '../logic/phytoEngine';
 import { getMasterSheet } from '../services/plantMasterService';
 import { getWeatherForecast } from '../services/weatherService';
+import ConsultationList from './agronomist/ConsultationList';
+import ConsultationForm from './agronomist/ConsultationForm';
+import AgronomistSearch from './agronomist/AgronomistSearch';
+import AgronomistManager from './AgronomistManager';
+import { getSupabaseClient } from '../config/supabase';
 
 interface AdviceProps {
   onAddToJournal: (title: string, notes: string, date: string) => void;
+  initialTab?: 'diagnosis' | 'consultations' | 'agronomists';
 }
 
-const Advice: React.FC<AdviceProps> = ({ onAddToJournal }) => {
+const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis' }) => {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [advice, setAdvice] = useState<TreatmentAdvice | null>(null);
@@ -29,6 +35,20 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal }) => {
   const [agronomists, setAgronomists] = useState<Agronomist[]>([]);
   const [showAgronomistModal, setShowAgronomistModal] = useState(false);
   const [loadingAgronomists, setLoadingAgronomists] = useState(false);
+  
+  // Tab navigation
+  const [activeTab, setActiveTab] = useState<'diagnosis' | 'consultations' | 'agronomists'>(initialTab);
+  
+  // Update tab when initialTab changes (from URL params)
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+  
+  // Consultations
+  const [consultations, setConsultations] = useState<AgronomistConsultation[]>([]);
+  const [showConsultationForm, setShowConsultationForm] = useState(false);
+  const [editingConsultation, setEditingConsultation] = useState<AgronomistConsultation | null>(null);
+  const [selectedAgronomistId, setSelectedAgronomistId] = useState<string | undefined>();
 
   // Phyto Engine - Prodotti concreti con dosaggi
   const [phytoRecommendations, setPhytoRecommendations] = useState<PhytoRecommendation[]>([]);
@@ -144,12 +164,35 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal }) => {
     loadGarden();
   }, [storageProvider]);
 
+  // Get current user ID helper
+  const getCurrentUserId = async (): Promise<string | null> => {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      return localStorage.getItem('user_id') || null;
+    }
+    
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        return localStorage.getItem('user_id') || null;
+      }
+      return user.id;
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return localStorage.getItem('user_id') || null;
+    }
+  };
+
   // Load agronomists
   useEffect(() => {
     const loadAgronomists = async () => {
       try {
         setLoadingAgronomists(true);
-        const userId = 'current-user-id'; // TODO: Get from auth context
+        const userId = await getCurrentUserId();
+        if (!userId) {
+          setAgronomists([]);
+          return;
+        }
         const loaded = await storageProvider.getAgronomists(userId);
         setAgronomists(loaded);
       } catch (error) {
@@ -160,6 +203,47 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal }) => {
     };
     loadAgronomists();
   }, [storageProvider]);
+
+  // Load consultations
+  useEffect(() => {
+    const loadConsultations = async () => {
+      try {
+        const userId = await getCurrentUserId();
+        if (!userId) {
+          setConsultations([]);
+          return;
+        }
+        const loaded = await storageProvider.getConsultations(userId, selectedAgronomistId);
+        setConsultations(loaded);
+      } catch (error) {
+        console.error('Error loading consultations:', error);
+      }
+    };
+    if (activeTab === 'consultations' || activeTab === 'agronomists') {
+      loadConsultations();
+    }
+  }, [storageProvider, activeTab, selectedAgronomistId]);
+
+  const handleCreateConsultation = async (consultation: Omit<AgronomistConsultation, 'id' | 'createdAt'>) => {
+    try {
+      await storageProvider.createConsultation(consultation);
+      const userId = await getCurrentUserId();
+      if (userId) {
+        const loaded = await storageProvider.getConsultations(userId, selectedAgronomistId);
+        setConsultations(loaded);
+      }
+      setShowConsultationForm(false);
+      setEditingConsultation(null);
+    } catch (error) {
+      console.error('Error creating consultation:', error);
+      alert('Errore nella creazione della consultazione');
+    }
+  };
+
+  const handleSelectAgronomist = (agronomist: Agronomist) => {
+    setSelectedAgronomistId(agronomist.id);
+    setActiveTab('consultations');
+  };
 
   // Quando riceviamo un TreatmentAdvice, convertiamo i prodotti generici in prodotti concreti con phytoEngine
   useEffect(() => {
@@ -393,7 +477,51 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal }) => {
         <p className="text-green-600">Chiedi consiglio o scatta una foto per diagnosticare malattie.</p>
       </header>
 
-      <form onSubmit={handleSearch} className="mb-8 flex gap-2">
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-lg shadow-md mb-6">
+        <div className="border-b border-gray-200">
+          <nav className="flex -mb-px">
+            <button
+              onClick={() => setActiveTab('diagnosis')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 ${
+                activeTab === 'diagnosis'
+                  ? 'border-green-600 text-green-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Sparkles className="inline mr-2" size={16} />
+              Diagnosi AI
+            </button>
+            <button
+              onClick={() => setActiveTab('consultations')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 ${
+                activeTab === 'consultations'
+                  ? 'border-green-600 text-green-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Calendar className="inline mr-2" size={16} />
+              Consultazioni
+            </button>
+            <button
+              onClick={() => setActiveTab('agronomists')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 ${
+                activeTab === 'agronomists'
+                  ? 'border-green-600 text-green-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Users className="inline mr-2" size={16} />
+              Agronomi
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      {/* Tab Content - Diagnosis */}
+      {activeTab === 'diagnosis' && (
+        <div>
+          <form onSubmit={handleSearch} className="mb-8 flex gap-2">
         <div className="relative flex-1">
             <input
             type="text"
@@ -455,27 +583,27 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal }) => {
         )}
       </form>
 
-      {isCameraActive && (
-        <div className="mt-4 relative rounded-xl overflow-hidden border-2 border-green-500">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            className="w-full h-auto max-h-96 object-cover"
-          />
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-            <button
-              onClick={capturePhoto}
-              className="bg-green-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-            >
-              <Camera size={20} />
-              <span>Scatta Foto</span>
-            </button>
-          </div>
-        </div>
-      )}
+          {isCameraActive && (
+            <div className="mt-4 relative rounded-xl overflow-hidden border-2 border-green-500">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                className="w-full h-auto max-h-96 object-cover"
+              />
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+                <button
+                  onClick={capturePhoto}
+                  className="bg-green-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                >
+                  <Camera size={20} />
+                  <span>Scatta Foto</span>
+                </button>
+              </div>
+            </div>
+          )}
 
-      {advice && (
+          {advice && (
         <div className="bg-white rounded-2xl shadow-xl border border-green-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4">
           <div className="bg-green-50 p-5 border-b border-green-100">
             <div className="flex justify-between items-start mb-2">
@@ -626,8 +754,8 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal }) => {
         </div>
       )}
 
-      {/* Consulenza Agronomica Professionale - Sempre visibile */}
-      <div className="bg-white rounded-2xl shadow-xl border border-green-100 overflow-hidden mt-6">
+          {/* Consulenza Agronomica Professionale */}
+          <div className="bg-white rounded-2xl shadow-xl border border-green-100 overflow-hidden mt-6">
         <div className="p-5">
           <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
             <p className="text-blue-800 text-sm">
@@ -696,8 +824,17 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal }) => {
           <p className="text-xs text-gray-500 mt-3 text-center">
             OrtoMio collabora con agronomi professionisti per offrire il meglio di entrambi i mondi.
           </p>
+          </div>
         </div>
-      </div>
+
+          {!advice && !loading && !isAnalyzingImage && !error && (
+              <div className="text-center py-10 opacity-50">
+                  <Sparkles size={48} className="mx-auto mb-3 text-green-300" />
+                  <p className="text-sm text-green-800">Usa l'AI per identificare problemi e ricevere cure personalizzate.</p>
+              </div>
+          )}
+        </div>
+      )}
 
       {/* Modal Selezione Agronomo */}
       {showAgronomistModal && (
@@ -764,8 +901,8 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal }) => {
                     <p className="text-gray-600 mb-3">Nessun agronomo di fiducia salvato.</p>
                     <button
                       onClick={() => {
-                        // TODO: Navigate to agronomist manager
-                        alert('Apri gestione agronomi per aggiungere il tuo agronomo di fiducia');
+                        setShowAgronomistModal(false);
+                        setActiveTab('agronomists');
                       }}
                       className="py-2 px-4 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors flex items-center gap-2 mx-auto"
                     >
@@ -796,7 +933,8 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal }) => {
           </div>
         </div>
       )}
-      
+
+      {/* Error message - visibile in tutte le tab */}
       {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
               <p className="text-sm text-red-800 font-medium flex items-center gap-2">
@@ -806,11 +944,82 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal }) => {
           </div>
       )}
 
-      {!advice && !loading && !isAnalyzingImage && !error && (
-          <div className="text-center py-10 opacity-50">
-              <Sparkles size={48} className="mx-auto mb-3 text-green-300" />
-              <p className="text-sm text-green-800">Usa l'AI per identificare problemi e ricevere cure personalizzate.</p>
+      {activeTab === 'consultations' && (
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2">
+              {selectedAgronomistId && (
+                <button
+                  onClick={() => {
+                    setSelectedAgronomistId(undefined);
+                    const loadConsultations = async () => {
+                      const userId = await getCurrentUserId();
+                      if (userId) {
+                        const loaded = await storageProvider.getConsultations(userId);
+                        setConsultations(loaded);
+                      }
+                    };
+                    loadConsultations();
+                  }}
+                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                >
+                  Rimuovi filtro
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => {
+                setShowConsultationForm(true);
+                setEditingConsultation(null);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <Plus size={20} />
+              Nuova Consultazione
+            </button>
           </div>
+
+          {showConsultationForm && (
+            <div className="mb-6">
+              <ConsultationForm
+                agronomists={agronomists}
+                consultation={editingConsultation || undefined}
+                onSave={handleCreateConsultation}
+                onCancel={() => {
+                  setShowConsultationForm(false);
+                  setEditingConsultation(null);
+                }}
+              />
+            </div>
+          )}
+
+          <ConsultationList
+            consultations={consultations}
+            agronomists={agronomists}
+            onEdit={(consultation) => {
+              setEditingConsultation(consultation);
+              setShowConsultationForm(true);
+            }}
+            onSelectAgronomist={handleSelectAgronomist}
+          />
+        </div>
+      )}
+
+      {activeTab === 'agronomists' && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Agronomi di Fiducia</h2>
+            <AgronomistManager onSelectAgronomist={handleSelectAgronomist} />
+          </div>
+
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Cerca Agronomo</h2>
+            <AgronomistSearch
+              onSelectAgronomist={handleSelectAgronomist}
+              existingAgronomists={agronomists}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

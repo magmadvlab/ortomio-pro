@@ -127,14 +127,32 @@ export default function DashboardPage() {
       console.error('Error creating garden:', error)
       const errorMessage = error?.message || 'Errore nella creazione dell\'orto'
       
-      // Se è un errore di autenticazione, suggerisci di autenticarsi o usa localStorage
-      if (errorMessage.includes('not authenticated')) {
-        alert('Per sincronizzare i dati su più dispositivi, effettua il login. Altrimenti i dati verranno salvati localmente.')
-        // Riprova con il provider corrente (dovrebbe essere già LocalStorageProvider)
-        // Il StorageContext dovrebbe aver già fatto il fallback
-        router.refresh()
+      // Se è un errore di autenticazione, prova con LocalStorageProvider
+      if (errorMessage.includes('not authenticated') || errorMessage.includes('User not authenticated')) {
+        try {
+          // Ottieni LocalStorageProvider direttamente
+          const { getLocalStorageProvider } = await import('@/packages/core/storage/factory')
+          const localProvider = getLocalStorageProvider()
+          
+          // Prova a creare con LocalStorageProvider
+          await localProvider.createGarden(garden)
+          const updatedGardens = await localProvider.getGardens()
+          setGardens(updatedGardens)
+          setShowOnboarding(false)
+          
+          // Mostra messaggio informativo
+          alert('Orto creato e salvato localmente. Per sincronizzare su più dispositivi, effettua il login.')
+          router.refresh()
+        } catch (localError: any) {
+          console.error('Error creating garden with LocalStorageProvider:', localError)
+          alert(`Errore nella creazione dell'orto: ${localError?.message || 'Errore sconosciuto'}`)
+          // Mantieni showOnboarding a true per permettere di riprovare
+          setShowOnboarding(true)
+        }
       } else {
         alert(`Errore nella creazione dell'orto: ${errorMessage}`)
+        // Mantieni showOnboarding a true per permettere di riprovare
+        setShowOnboarding(true)
       }
     }
   }
@@ -251,6 +269,11 @@ export default function DashboardPage() {
             await storageProvider.updateGarden(updatedGarden.id, updatedGarden)
             const updatedGardens = await storageProvider.getGardens()
             setGardens(updatedGardens)
+            // Se l'orto aggiornato è quello attivo, ricarica i task
+            if (updatedGarden.id === gardens[0]?.id) {
+              const updatedTasks = await storageProvider.getTasks(updatedGarden.id)
+              setTasks(updatedTasks || [])
+            }
           }}
           onUpdateTask={async (task) => {
             await storageProvider.updateTask(task.id, task)

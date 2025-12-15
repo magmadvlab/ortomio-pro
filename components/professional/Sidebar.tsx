@@ -62,7 +62,8 @@ export function ProfessionalSidebar() {
           const Icon = item.icon
           const isActive = pathname === item.path
           const isAvailable = item.tier === 'all' || 
-                             (item.tier === 'PRO_PROFESSIONAL' && isProfessional)
+                             (item.tier === 'PRO_PROFESSIONAL' && isProfessional) ||
+                             (item.tier === 'PRO' && (tier === 'PRO' || tier === 'PRO_CONSUMER' || tier === 'PRO_PROFESSIONAL'))
           
           if (!isAvailable) return null
           

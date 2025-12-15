@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { ProFeatureGate } from '@/components/shared/ProFeatureGate'
@@ -8,15 +8,53 @@ import { Tractor, Plus, Calendar, MapPin, Ruler, Wrench, FileText, Loader2, Aler
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { suggestTillageWork, TillageWork, calculateTemperaTiming } from '@/logic/tillageEngine'
+import { getMechanicalWorksForCrop, cropMechanicalWorksConfig } from '@/data/cropMechanicalWork'
+
+// Work types
+type WorkType = 
+  // Suolo
+  | 'Plowing' | 'Subsoiling' | 'Harrowing' | 'Tilling' | 'Rolling' | 'Hoeing' | 'EarthingUp' | 'Mulching' | 'PostSowingRolling'
+  // Chioma
+  | 'FormativePruning' | 'MaintenancePruning' | 'RejuvenationPruning' | 'SummerPruning' | 'WinterPruning'
+  | 'Thinning' | 'Suckering' | 'Defoliation' | 'Tying' | 'OliveShredding' | 'RunnerManagement'
+  | 'StrawberryMulching' | 'StrawberryCleaning' | 'CaneRemoval' | 'TipPruning' | 'RaspberryTying'
+  | 'SuckerThinning' | 'FruitBagging' | 'ExoticThinning' | 'Shredding'
+  // Generale
+  | 'Topping' | 'Pruning'
+
+// Work category
+type WorkCategory = 'Soil' | 'Canopy' | 'General'
+
+// Equipment types
+type EquipmentType = 
+  // Trattore e attrezzi trattore
+  | 'Tractor' | 'RotaryHarrow' | 'Shredder' | 'FertilizerSpreader' | 'Seeder'
+  | 'Topper' | 'Defoliator' | 'PrePruner' | 'Thinner'
+  // Piccoli mezzi
+  | 'Rototiller' | 'Cultivator' | 'Mower' | 'BrushCutter' | 'TrackedCart' | 'BackpackSprayer'
+  // Attrezzi elettrificati
+  | 'ElectricTier' | 'ElectricPruner' | 'TelescopicPruner'
+  // Manuale
+  | 'Manual'
 
 interface MechanicalWork {
   id: string
   garden_id?: string
-  work_type: 'Plowing' | 'Tilling'
+  work_type: WorkType
   work_date: string
   area_m2: number
   depth_cm?: number
-  equipment_type?: 'Tractor' | 'Manual'
+  equipment_type?: EquipmentType
+  equipment_attachment?: string // Attrezzo specifico quando equipment_type = 'Tractor'
+  work_metadata?: {
+    category?: WorkCategory
+    cropId?: string
+    cropName?: string
+    period?: { month?: number[]; phenologicalPhase?: string; daysAfterSowing?: number }
+    equipment?: string[]
+    standardCost?: number
+    description?: string
+  }
   weather_conditions?: {
     temp?: number
     humidity?: number
@@ -36,6 +74,7 @@ export default function MechanicalWorkPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [selectedGardenId, setSelectedGardenId] = useState<string>('')
+  const [selectedCropId, setSelectedCropId] = useState<string>('')
   
   // Tillage Engine - Suggerimenti lavorazioni
   const [tillageRecommendation, setTillageRecommendation] = useState<TillageWork | null>(null)
@@ -49,14 +88,21 @@ export default function MechanicalWorkPage() {
     area_m2: undefined,
     depth_cm: undefined,
     equipment_type: 'Tractor',
+    equipment_attachment: '',
     operator_name: '',
     notes: '',
-    weather_conditions: {}
+    weather_conditions: {},
+    work_metadata: {}
   })
-
+  
   useEffect(() => {
     loadData()
   }, [storageProvider, selectedGardenId])
+  
+  // Ottieni lavorazioni suggerite per la coltura selezionata
+  const suggestedWorks = useMemo(() => {
+    return selectedCropId ? getMechanicalWorksForCrop(selectedCropId) : []
+  }, [selectedCropId])
 
   // Carica suggerimenti lavorazioni quando cambia giardino
   useEffect(() => {
@@ -152,11 +198,13 @@ export default function MechanicalWorkPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
+          body: JSON.stringify({
           ...formData,
           garden_id: selectedGardenId || null,
           area_m2: formData.area_m2 ? parseFloat(formData.area_m2.toString()) : null,
           depth_cm: formData.depth_cm ? parseFloat(formData.depth_cm.toString()) : null,
+          equipment_attachment: formData.equipment_type === 'Tractor' ? (formData.equipment_attachment || null) : null,
+          work_metadata: formData.work_metadata || null,
         }),
       })
 
@@ -183,10 +231,115 @@ export default function MechanicalWorkPage() {
       area_m2: undefined,
       depth_cm: undefined,
       equipment_type: 'Tractor',
+      equipment_attachment: '',
       operator_name: '',
       notes: '',
-      weather_conditions: {}
+      weather_conditions: {},
+      work_metadata: {}
     })
+    setSelectedCropId('')
+  }
+  
+  // Quando cambia la coltura, suggerisci lavorazioni
+  useEffect(() => {
+    if (selectedCropId && suggestedWorks.length > 0) {
+      // Pre-compila con la prima lavorazione suggerita critica, o la prima disponibile
+      const criticalWork = suggestedWorks.find(w => w.critical) || suggestedWorks[0]
+      if (criticalWork) {
+        setFormData(prev => ({
+          ...prev,
+          work_type: criticalWork.workType as WorkType,
+          work_metadata: {
+            category: criticalWork.category,
+            cropId: selectedCropId,
+            cropName: cropMechanicalWorksConfig.find(c => c.cropId === selectedCropId)?.cropName || '',
+            description: criticalWork.description,
+            equipment: criticalWork.equipmentSuggested
+          }
+        }))
+      }
+    }
+  }, [selectedCropId, suggestedWorks])
+
+  // Get work category
+  const getWorkCategory = (type: WorkType): WorkCategory => {
+    const soilWorks: WorkType[] = ['Plowing', 'Subsoiling', 'Harrowing', 'Tilling', 'Rolling', 'Hoeing', 'EarthingUp', 'Mulching', 'PostSowingRolling']
+    const canopyWorks: WorkType[] = ['FormativePruning', 'MaintenancePruning', 'RejuvenationPruning', 'SummerPruning', 'WinterPruning', 'Thinning', 'Suckering', 'Defoliation', 'Tying', 'OliveShredding', 'RunnerManagement', 'StrawberryMulching', 'StrawberryCleaning', 'CaneRemoval', 'TipPruning', 'RaspberryTying', 'SuckerThinning', 'FruitBagging', 'ExoticThinning', 'Shredding']
+    
+    if (soilWorks.includes(type)) return 'Soil'
+    if (canopyWorks.includes(type)) return 'Canopy'
+    return 'General'
+  }
+
+  // Translation functions
+  const translateWorkType = (type: WorkType): string => {
+    const translations: Record<WorkType, string> = {
+      // Suolo
+      'Plowing': 'Aratura',
+      'Subsoiling': 'Ripuntatura / Subsolatura',
+      'Harrowing': 'Erpicatura / Frangizzolatura',
+      'Tilling': 'Fresatura',
+      'Rolling': 'Livellamento / Rullatura',
+      'Hoeing': 'Sarchiatura',
+      'EarthingUp': 'Rincalzatura',
+      'Mulching': 'Pacciamatura',
+      'PostSowingRolling': 'Rullatura Post-Semina',
+      // Chioma
+      'FormativePruning': 'Potatura di Formazione',
+      'MaintenancePruning': 'Potatura di Produzione',
+      'RejuvenationPruning': 'Potatura di Ringiovanimento',
+      'SummerPruning': 'Potatura Verde',
+      'WinterPruning': 'Potatura Secca (Guyot/Cordone)',
+      'Thinning': 'Diradamento Frutti',
+      'Suckering': 'Potatura Verde / Scacchiatura',
+      'Defoliation': 'Defogliazione',
+      'Tying': 'Legatura / Palizzamento',
+      'OliveShredding': 'Trinciatura Residui',
+      'RunnerManagement': 'Gestione Stoloni (Runners)',
+      'StrawberryMulching': 'Pacciamatura ai Filari',
+      'StrawberryCleaning': 'Pulizia Foglie e Frutti',
+      'CaneRemoval': 'Potatura Canne Vecchie',
+      'TipPruning': 'Tip-Pruning / Cimatura',
+      'RaspberryTying': 'Legatura a Fili',
+      'SuckerThinning': 'Diradamento Polloni',
+      'FruitBagging': 'Insacchettamento Frutti',
+      'ExoticThinning': 'Diradamento Frutticini',
+      'Shredding': 'Trinciatura Inerbimento',
+      // Generale
+      'Topping': 'Cimatura',
+      'Pruning': 'Potatura'
+    }
+    return translations[type] || type
+  }
+
+  const translateEquipmentType = (type?: EquipmentType): string => {
+    if (!type) return '-'
+    const translations: Record<EquipmentType, string> = {
+      // Trattore e attrezzi trattore
+      'Tractor': 'Trattore',
+      'RotaryHarrow': 'Erpice Rotante',
+      'Shredder': 'Trincia',
+      'FertilizerSpreader': 'Spandiconcime',
+      'Seeder': 'Seminatrice',
+      'Topper': 'Cimatrice',
+      'Defoliator': 'Defogliatrice',
+      'PrePruner': 'Pre-potatrice',
+      'Thinner': 'Diradatrice Meccanica',
+      // Piccoli mezzi
+      'Rototiller': 'Motozappa',
+      'Cultivator': 'Motocoltivatore',
+      'Mower': 'Motofalciatrice',
+      'BrushCutter': 'Decespugliatore',
+      'TrackedCart': 'Motocarriola',
+      'BackpackSprayer': 'Atomizzatore a spalla',
+      // Attrezzi elettrificati
+      'ElectricTier': 'Legatrice Elettrica',
+      'ElectricPruner': 'Forbice Elettrica',
+      'TelescopicPruner': 'Svettatoio Telescopico',
+      // Manuale
+      'Manual': 'Manuale'
+    }
+    return translations[type] || type
   }
 
   return (
@@ -249,6 +402,30 @@ export default function MechanicalWorkPage() {
             <h2 className="text-xl font-bold text-gray-900 mb-4">Nuova Lavorazione Meccanica</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Campo Coltura (opzionale) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Coltura (opzionale)
+                  </label>
+                  <select
+                    value={selectedCropId}
+                    onChange={(e) => setSelectedCropId(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="">Nessuna coltura specifica</option>
+                    {cropMechanicalWorksConfig.map(crop => (
+                      <option key={crop.cropId} value={crop.cropId}>
+                        {crop.cropName}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedCropId && suggestedWorks.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {suggestedWorks.length} lavorazione{suggestedWorks.length !== 1 ? 'i' : ''} suggerita{suggestedWorks.length !== 1 ? 'e' : ''} per questa coltura
+                    </p>
+                  )}
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Tipo Lavorazione *
@@ -256,11 +433,59 @@ export default function MechanicalWorkPage() {
                   <select
                     required
                     value={formData.work_type || 'Plowing'}
-                    onChange={(e) => setFormData({ ...formData, work_type: e.target.value as 'Plowing' | 'Tilling' })}
+                    onChange={(e) => {
+                      const newWorkType = e.target.value as WorkType
+                      const category = getWorkCategory(newWorkType)
+                      setFormData({ 
+                        ...formData, 
+                        work_type: newWorkType,
+                        work_metadata: {
+                          ...formData.work_metadata,
+                          category,
+                          cropId: selectedCropId || undefined,
+                          cropName: selectedCropId ? cropMechanicalWorksConfig.find(c => c.cropId === selectedCropId)?.cropName : undefined
+                        }
+                      })
+                    }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   >
-                    <option value="Plowing">Aratura</option>
-                    <option value="Tilling">Fresatura</option>
+                    <optgroup label="Suolo">
+                      <option value="Plowing">Aratura</option>
+                      <option value="Subsoiling">Ripuntatura / Subsolatura</option>
+                      <option value="Harrowing">Erpicatura / Frangizzolatura</option>
+                      <option value="Tilling">Fresatura</option>
+                      <option value="Rolling">Livellamento / Rullatura</option>
+                      <option value="Hoeing">Sarchiatura</option>
+                      <option value="EarthingUp">Rincalzatura</option>
+                      <option value="Mulching">Pacciamatura</option>
+                      <option value="PostSowingRolling">Rullatura Post-Semina</option>
+                    </optgroup>
+                    <optgroup label="Chioma">
+                      <option value="FormativePruning">Potatura di Formazione</option>
+                      <option value="MaintenancePruning">Potatura di Produzione</option>
+                      <option value="RejuvenationPruning">Potatura di Ringiovanimento</option>
+                      <option value="SummerPruning">Potatura Verde</option>
+                      <option value="WinterPruning">Potatura Secca (Guyot/Cordone)</option>
+                      <option value="Thinning">Diradamento Frutti</option>
+                      <option value="Suckering">Potatura Verde / Scacchiatura</option>
+                      <option value="Defoliation">Defogliazione</option>
+                      <option value="Tying">Legatura / Palizzamento</option>
+                      <option value="OliveShredding">Trinciatura Residui</option>
+                      <option value="RunnerManagement">Gestione Stoloni (Runners)</option>
+                      <option value="StrawberryMulching">Pacciamatura ai Filari</option>
+                      <option value="StrawberryCleaning">Pulizia Foglie e Frutti</option>
+                      <option value="CaneRemoval">Potatura Canne Vecchie</option>
+                      <option value="TipPruning">Tip-Pruning / Cimatura</option>
+                      <option value="RaspberryTying">Legatura a Fili</option>
+                      <option value="SuckerThinning">Diradamento Polloni</option>
+                      <option value="FruitBagging">Insacchettamento Frutti</option>
+                      <option value="ExoticThinning">Diradamento Frutticini</option>
+                      <option value="Shredding">Trinciatura Inerbimento</option>
+                    </optgroup>
+                    <optgroup label="Generale">
+                      <option value="Topping">Cimatura</option>
+                      <option value="Pruning">Potatura</option>
+                    </optgroup>
                   </select>
                 </div>
 
@@ -315,13 +540,53 @@ export default function MechanicalWorkPage() {
                   </label>
                   <select
                     value={formData.equipment_type || 'Tractor'}
-                    onChange={(e) => setFormData({ ...formData, equipment_type: e.target.value as 'Tractor' | 'Manual' })}
+                    onChange={(e) => setFormData({ ...formData, equipment_type: e.target.value as EquipmentType, equipment_attachment: e.target.value === 'Tractor' ? formData.equipment_attachment : '' })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   >
-                    <option value="Tractor">Trattore</option>
-                    <option value="Manual">Manuale</option>
+                    <optgroup label="Trattore e Attrezzi">
+                      <option value="Tractor">Trattore</option>
+                      <option value="RotaryHarrow">Erpice Rotante</option>
+                      <option value="Shredder">Trincia</option>
+                      <option value="FertilizerSpreader">Spandiconcime</option>
+                      <option value="Seeder">Seminatrice</option>
+                      <option value="Topper">Cimatrice</option>
+                      <option value="Defoliator">Defogliatrice</option>
+                      <option value="PrePruner">Pre-potatrice</option>
+                      <option value="Thinner">Diradatrice Meccanica</option>
+                    </optgroup>
+                    <optgroup label="Piccoli Mezzi">
+                      <option value="Rototiller">Motozappa</option>
+                      <option value="Cultivator">Motocoltivatore</option>
+                      <option value="Mower">Motofalciatrice</option>
+                      <option value="BrushCutter">Decespugliatore</option>
+                      <option value="TrackedCart">Motocarriola</option>
+                      <option value="BackpackSprayer">Atomizzatore a spalla</option>
+                    </optgroup>
+                    <optgroup label="Attrezzi Manuali Elettrificati">
+                      <option value="ElectricTier">Legatrice Elettrica</option>
+                      <option value="ElectricPruner">Forbice Elettrica</option>
+                      <option value="TelescopicPruner">Svettatoio Telescopico</option>
+                    </optgroup>
+                    <optgroup label="Manuale">
+                      <option value="Manual">Manuale</option>
+                    </optgroup>
                   </select>
                 </div>
+                
+                {formData.equipment_type === 'Tractor' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Attrezzo Specifico
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.equipment_attachment || ''}
+                      onChange={(e) => setFormData({ ...formData, equipment_attachment: e.target.value })}
+                      placeholder="es. Aratro, Fresa, Erpice..."
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -423,13 +688,24 @@ export default function MechanicalWorkPage() {
                         {format(new Date(work.work_date), 'dd/MM/yyyy', { locale: it })}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700 font-medium">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          work.work_type === 'Plowing' 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          {work.work_type === 'Plowing' ? 'Aratura' : 'Fresatura'}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className={`px-2 py-1 rounded text-xs inline-block ${
+                            getWorkCategory(work.work_type) === 'Soil'
+                              ? 'bg-blue-100 text-blue-800'
+                              : getWorkCategory(work.work_type) === 'Canopy'
+                              ? 'bg-orange-100 text-orange-800'
+                              : 'bg-purple-100 text-purple-800'
+                          }`}>
+                            {translateWorkType(work.work_type)}
+                          </span>
+                          {work.work_metadata?.category && (
+                            <span className="text-xs text-gray-500">
+                              {work.work_metadata.category === 'Soil' ? 'Suolo' : 
+                               work.work_metadata.category === 'Canopy' ? 'Chioma' : 'Generale'}
+                              {work.work_metadata.cropName && ` • ${work.work_metadata.cropName}`}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
                         {work.area_m2} m²
@@ -439,7 +715,8 @@ export default function MechanicalWorkPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
                         <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">
-                          {work.equipment_type === 'Tractor' ? 'Trattore' : 'Manuale'}
+                          {translateEquipmentType(work.equipment_type)}
+                          {work.equipment_attachment && ` - ${work.equipment_attachment}`}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">

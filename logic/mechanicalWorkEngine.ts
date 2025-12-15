@@ -7,13 +7,38 @@ import { Garden, GardenTask } from '../types';
 import { getWeatherForecast } from '../services/weatherService';
 import { convertToSqMeters } from '../utils/areaConverter';
 
+// Work types
+export type WorkType = 
+  // Suolo
+  | 'Plowing' | 'Subsoiling' | 'Harrowing' | 'Tilling' | 'Rolling' | 'Hoeing' | 'EarthingUp' | 'Mulching' | 'PostSowingRolling'
+  // Chioma
+  | 'FormativePruning' | 'MaintenancePruning' | 'RejuvenationPruning' | 'SummerPruning' | 'WinterPruning'
+  | 'Thinning' | 'Suckering' | 'Defoliation' | 'Tying' | 'OliveShredding' | 'RunnerManagement'
+  | 'StrawberryMulching' | 'StrawberryCleaning' | 'CaneRemoval' | 'TipPruning' | 'RaspberryTying'
+  | 'SuckerThinning' | 'FruitBagging' | 'ExoticThinning' | 'Shredding'
+  // Generale
+  | 'Topping' | 'Pruning'
+
+// Equipment types
+export type EquipmentType = 
+  // Trattore e attrezzi trattore
+  | 'Tractor' | 'RotaryHarrow' | 'Shredder' | 'FertilizerSpreader' | 'Seeder'
+  | 'Topper' | 'Defoliator' | 'PrePruner' | 'Thinner'
+  // Piccoli mezzi
+  | 'Rototiller' | 'Cultivator' | 'Mower' | 'BrushCutter' | 'TrackedCart' | 'BackpackSprayer'
+  // Attrezzi elettrificati
+  | 'ElectricTier' | 'ElectricPruner' | 'TelescopicPruner'
+  // Manuale
+  | 'Manual'
+
 export interface MechanicalWorkAdvice {
-  taskType: 'Plowing' | 'Tilling';
+  taskType: WorkType;
   priority: 'High' | 'Medium' | 'Low';
   message: string;
   suggestedDate: string; // ISO date string - data suggerita
   instructions: string[];
-  equipmentType: 'Tractor' | 'Manual';
+  equipmentType: EquipmentType;
+  equipmentAttachment?: string; // Attrezzo specifico quando equipmentType = 'Tractor'
   depth?: number; // cm
   area?: number; // m²
   weatherWarning?: string;
