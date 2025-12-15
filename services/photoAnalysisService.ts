@@ -79,7 +79,8 @@ export const analyzeSunExposure = async (photoBase64: string): Promise<SunExposu
     throw new Error('Gemini API key not configured');
   }
 
-  const model = genAI.generativeModel({ model: 'gemini-pro-vision' });
+  // TypeScript workaround: cast to any per evitare errore tipo (il metodo esiste runtime)
+  const model = (genAI as any).generativeModel({ model: 'gemini-pro-vision' });
 
   const prompt = `Analizza questa foto di un orto scattata a mezzogiorno (12:30).
   
@@ -157,7 +158,8 @@ export const analyzeAspectDirection = async (photoBase64: string): Promise<Aspec
     throw new Error('Gemini API key not configured');
   }
 
-  const model = genAI.generativeModel({ model: 'gemini-pro-vision' });
+  // TypeScript workaround: cast to any per evitare errore tipo (il metodo esiste runtime)
+  const model = (genAI as any).generativeModel({ model: 'gemini-pro-vision' });
 
   const prompt = `Analizza questa foto dell'orizzonte dell'orto scattata all'alba o al tramonto.
   
@@ -221,7 +223,8 @@ export const analyzePlantHealth = async (
     throw new Error('Gemini API key not configured');
   }
 
-  const model = genAI.generativeModel({ model: 'gemini-pro-vision' });
+  // TypeScript workaround: cast to any per evitare errore tipo (il metodo esiste runtime)
+  const model = (genAI as any).generativeModel({ model: 'gemini-pro-vision' });
 
   const prompt = `Analizza questa foto di una pianta di ${plantName}.
   
@@ -325,7 +328,8 @@ export const analyzePanoramic360 = async (photoBase64: string): Promise<Panorami
     throw new Error('Gemini API key not configured');
   }
 
-  const model = genAI.generativeModel({ model: 'gemini-pro-vision' });
+  // TypeScript workaround: cast to any per evitare errore tipo (il metodo esiste runtime)
+  const model = (genAI as any).generativeModel({ model: 'gemini-pro-vision' });
 
   const prompt = `Analizza questa foto panoramica 360° di un orto/giardino.
   
