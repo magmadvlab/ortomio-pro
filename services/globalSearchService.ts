@@ -55,7 +55,7 @@ export async function searchAll(
     });
 
     // Search in Harvest Logs
-    const harvests = await storageProvider.getHarvestLogs(userId);
+    const harvests = await storageProvider.getHarvestLogs();
     harvests.forEach((harvest) => {
       const relevance = calculateRelevance(searchTerm, [
         harvest.plantName,
@@ -76,36 +76,35 @@ export async function searchAll(
     });
 
     // Search in Seed Inventory
-    const seeds = await storageProvider.getSeedInventory(userId);
+    const seeds = await storageProvider.getSeedPackets();
     seeds.forEach((seed) => {
       const relevance = calculateRelevance(searchTerm, [
-        seed.plantName,
-        seed.variety,
-        seed.brand,
+        seed.speciesName,
+        seed.varietyName,
         seed.notes,
       ]);
       if (relevance > 0) {
         results.push({
           type: 'seed',
           id: seed.id,
-          title: `Seme: ${seed.plantName || 'Seme'}`,
-          description: `${seed.variety || ''} ${seed.brand || ''}`.trim() || seed.notes || '',
-          plantName: seed.plantName,
+          title: `Seme: ${seed.speciesName || 'Seme'}`,
+          description: `${seed.varietyName || ''}`.trim() || seed.notes || '',
+          plantName: seed.speciesName,
           relevanceScore: relevance,
         });
       }
     });
 
     // Search in Gardens
-    const gardens = await storageProvider.getGardens(userId);
+    const gardens = await storageProvider.getGardens();
     gardens.forEach((garden) => {
-      const relevance = calculateRelevance(searchTerm, [garden.name, garden.notes]);
+      const relevance = calculateRelevance(searchTerm, [garden.name]);
       if (relevance > 0) {
         results.push({
           type: 'garden',
           id: garden.id,
           title: `Orto: ${garden.name}`,
-          description: garden.notes || `Dimensione: ${garden.area} m²`,
+          description: `Dimensione: ${garden.sizeSqMeters} m²`,
           relevanceScore: relevance,
         });
       }
