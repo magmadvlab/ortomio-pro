@@ -28,11 +28,12 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
   initialProvider 
 }) => {
   // Se initialProvider è fornito, usalo (per compatibilità)
-  // Altrimenti usa switch automatico basato su auth
+  // Altrimenti inizia con LocalStorageProvider per evitare problemi di timing
+  // e poi fa switch automatico basato su auth
   const [storageProvider, setStorageProvider] = useState<IStorageProvider>(
-    () => initialProvider || getDefaultStorageProvider()
+    () => initialProvider || getLocalStorageProvider()
   );
-  const [isInitialized, setIsInitialized] = useState<boolean>(true);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
   // Verifica autenticazione Supabase direttamente (senza hook)
@@ -98,7 +99,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
     }
   }, [initialProvider]);
 
-  // Optional: Test connection on mount
+  // Optional: Test connection on mount and handle auth errors
   useEffect(() => {
     const testConnection = async () => {
       try {
@@ -109,6 +110,17 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
         setError(null);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        
+        // Se è un errore di autenticazione e stiamo usando SupabaseStorageProvider,
+        // fallback a LocalStorageProvider
+        if (errorMessage.includes('not authenticated') && !initialProvider) {
+          console.warn('User not authenticated, switching to LocalStorageProvider');
+          setStorageProvider(getLocalStorageProvider());
+          setIsInitialized(true);
+          setError(null);
+          return;
+        }
+        
         setError(errorMessage);
         setIsInitialized(true); // Still initialized, just with error
         console.error('Storage provider initialization error:', err);
@@ -116,7 +128,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
     };
 
     testConnection();
-  }, [storageProvider]);
+  }, [storageProvider, initialProvider]);
 
   return (
     <StorageContext.Provider value={{ storageProvider, isInitialized, error }}>

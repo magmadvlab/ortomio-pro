@@ -82,9 +82,19 @@ export default function DashboardPage() {
       setShowOnboarding(false)
       // Ricarica la pagina per aggiornare i dati
       router.refresh()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating garden:', error)
-      alert('Errore nella creazione dell\'orto. Riprova.')
+      const errorMessage = error?.message || 'Errore nella creazione dell\'orto'
+      
+      // Se è un errore di autenticazione, suggerisci di autenticarsi o usa localStorage
+      if (errorMessage.includes('not authenticated')) {
+        alert('Per sincronizzare i dati su più dispositivi, effettua il login. Altrimenti i dati verranno salvati localmente.')
+        // Riprova con il provider corrente (dovrebbe essere già LocalStorageProvider)
+        // Il StorageContext dovrebbe aver già fatto il fallback
+        router.refresh()
+      } else {
+        alert(`Errore nella creazione dell'orto: ${errorMessage}`)
+      }
     }
   }
 

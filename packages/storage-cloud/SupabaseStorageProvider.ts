@@ -62,7 +62,9 @@ export class SupabaseStorageProvider implements IStorageProvider {
   async createGarden(garden: Omit<Garden, 'id' | 'createdAt'>): Promise<Garden> {
     const client = this.ensureClient();
     const { data: { user } } = await client.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) {
+      throw new Error('User not authenticated. Please log in to sync your data, or the app will use local storage automatically.');
+    }
 
     const dbGarden = this.mapGardenToDB(garden);
     const { data, error } = await client

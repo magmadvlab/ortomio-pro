@@ -126,6 +126,12 @@ export default function AuthStatus() {
         <span className="text-sm text-gray-600">Offline</span>
       </div>
       <button
+        onClick={() => router.push('/register')}
+        className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+      >
+        Registrati
+      </button>
+      <button
         onClick={() => router.push('/login')}
         className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
       >
