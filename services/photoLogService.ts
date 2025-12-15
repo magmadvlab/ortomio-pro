@@ -70,19 +70,26 @@ export class PhotoLogService {
     // Analyze plant health with Gemini Vision
     let analysisResult;
     try {
-      analysisResult = await analyzePlantHealth(
+      const healthAnalysis = await analyzePlantHealth(
         photoBase64,
         plantName,
         expectedPhase,
         daysFromPlanting
       );
+      // Extract only the properties that match PlantPhotoLog.analysisResult type
+      analysisResult = {
+        isHealthy: healthAnalysis.isHealthy,
+        growthRate: healthAnalysis.growthRate,
+        issues: healthAnalysis.issues,
+        phase: healthAnalysis.phase,
+        leafCount: healthAnalysis.leafCount,
+      };
     } catch (error) {
       console.error('Error analyzing plant health:', error);
       analysisResult = {
         isHealthy: true,
         growthRate: 'normal',
         issues: [],
-        confidence: 0.5,
       };
     }
 
