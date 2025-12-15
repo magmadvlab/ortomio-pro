@@ -10,6 +10,7 @@ import { Agronomist, AgronomistConsultation, AgronomistAdvice } from '@/types/ag
 import { GardenAccessory } from '@/types/accessories';
 import { HydroponicReading, AquaponicReading } from '@/types/indoorGrowing';
 import { GardenBed } from '@/types/gardenBed';
+import { SeedlingBatch } from '@/services/seedlingService';
 import { getSupabaseClient } from '@/config/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -1207,8 +1208,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     const { data, error } = await client
       .from('garden_beds')
+      .select('*')
       .eq('id', id)
-      .select()
       .single();
     if (error) {
       if (error.code === 'PGRST116') return null; // Not found
@@ -1355,6 +1356,70 @@ export class SupabaseStorageProvider implements IStorageProvider {
       createdAt: db.created_at,
       updatedAt: db.updated_at,
     };
+  }
+
+  // Seedling Batches
+  async getSeedlingBatches(gardenId?: string): Promise<SeedlingBatch[]> {
+    const client = this.ensureClient();
+    let query = client.from('seedling_batches').select('*');
+    
+    if (gardenId) {
+      query = query.eq('garden_id', gardenId);
+    }
+    
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []) as SeedlingBatch[];
+  }
+
+  async getSeedlingBatch(id: string): Promise<SeedlingBatch | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('seedling_batches')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Not found
+      throw error;
+    }
+    return data as SeedlingBatch;
+  }
+
+  async createSeedlingBatch(batch: Omit<SeedlingBatch, 'id'>): Promise<SeedlingBatch> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('seedling_batches')
+      .insert(batch)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data as SeedlingBatch;
+  }
+
+  async updateSeedlingBatch(id: string, updates: Partial<SeedlingBatch>): Promise<SeedlingBatch> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('seedling_batches')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data as SeedlingBatch;
+  }
+
+  async deleteSeedlingBatch(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client
+      .from('seedling_batches')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
   }
 }
 

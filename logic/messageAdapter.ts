@@ -20,9 +20,13 @@ export function adaptMessage(
   message: Message,
   userProfile?: UserProfile
 ): string {
-  const expertise = 'intermediate'; // Default expertise level
+  const expertise = userProfile?.expertise || 'intermediate'; // Default expertise level
   const detailLevel = userProfile?.preferences?.detailLevel || 'standard';
-  const style = userProfile?.preferences?.preferredCommunicationStyle || 'conversational';
+  const userStyle = userProfile?.preferences?.preferredCommunicationStyle || 'conversational';
+  
+  // Map user style to format function style: 'technical' -> 'formal', 'brief' -> 'conversational'
+  const style: 'conversational' | 'formal' = 
+    userStyle === 'technical' ? 'formal' : 'conversational';
 
   switch (expertise) {
     case 'beginner':
@@ -166,7 +170,7 @@ export function formatForNotification(
   userProfile?: UserProfile
 ): { title: string; body: string } {
   const adapted = adaptMessage(message, userProfile);
-  const expertise = 'intermediate'; // Default expertise level
+  const expertise = userProfile?.expertise || 'intermediate'; // Default expertise level
 
   let title = message.title || 'OrtoMio';
   let body = adapted;

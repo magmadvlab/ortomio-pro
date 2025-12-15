@@ -89,8 +89,8 @@ export function getDeviceInfo(): {
   userAgent: string;
 } {
   const deviceId = getDeviceId();
-  const isFirstLaunch = isFirstLaunch();
-  const isDeviceChanged = isDeviceChanged();
+  const firstLaunch = isFirstLaunch();
+  const deviceChanged = isDeviceChanged();
   
   // Rileva piattaforma
   const userAgent = typeof window !== 'undefined' ? window.navigator.userAgent.toLowerCase() : '';
@@ -109,8 +109,8 @@ export function getDeviceInfo(): {
   
   return {
     deviceId,
-    isFirstLaunch,
-    isDeviceChanged,
+    isFirstLaunch: firstLaunch,
+    isDeviceChanged: deviceChanged,
     platform,
     userAgent,
   };

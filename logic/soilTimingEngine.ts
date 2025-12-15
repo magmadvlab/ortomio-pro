@@ -42,7 +42,7 @@ export async function calculateTemperaDate(
   }
 
   // Verifica previsioni: se piove ancora, aggiungi giorni
-  if (forecast?.precipitation && forecast.precipitation > 5) {
+  if (forecast?.rainForecastMm && forecast.rainForecastMm > 5) {
     requiredDays += 1;
   }
 
@@ -110,7 +110,7 @@ export async function getOptimalWorkWindow(
   if (garden.coordinates) {
     try {
       const forecast = await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude);
-      if (forecast?.precipitation && forecast.precipitation > 10) {
+      if (forecast?.rainForecastMm && forecast.rainForecastMm > 10) {
         confidence = 0.5; // Pioggia prevista riduce confidence
       }
     } catch (error) {

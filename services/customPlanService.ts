@@ -98,7 +98,13 @@ export const mergePlanWithMaster = (customPlan: CustomPlan): PlantMasterSheet =>
     merged.baseInstructions = { ...merged.baseInstructions, ...customPlan.overrides.baseInstructions };
   }
   if (customPlan.overrides.susceptibility) {
-    merged.susceptibility = { ...merged.susceptibility, ...customPlan.overrides.susceptibility };
+    merged.susceptibility = {
+      ...merged.susceptibility,
+      ...customPlan.overrides.susceptibility,
+      fungalDiseases: customPlan.overrides.susceptibility.fungalDiseases ?? merged.susceptibility?.fungalDiseases ?? [],
+      pests: customPlan.overrides.susceptibility.pests ?? merged.susceptibility?.pests ?? [],
+      preventiveStrategy: customPlan.overrides.susceptibility.preventiveStrategy ?? merged.susceptibility?.preventiveStrategy ?? 'MEDIUM',
+    };
   }
 
   return merged;

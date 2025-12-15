@@ -101,6 +101,19 @@ export const FREE_TIER: TierConfig = {
     companionPlanting: false,
     cloudSync: false,
     exportData: false,
+    
+    // Consumer Features (disabled)
+    recipes: false,
+    guides: false,
+    community: false,
+    
+    // Professional Features (disabled)
+    advancedAnalytics: false,
+    treatmentRegister: false,
+    nutrientCalculator: false,
+    cropRotation: false,
+    exportCSV: false,
+    exportPDF: false,
   },
 };
 
@@ -137,23 +150,24 @@ export const PRO_TIER: TierConfig = {
     seedlingManagement: true,
     annualPlanner: true,
     specializedCrops: true,
+    advancedSystems: true,
     rotationEngine: true,
     companionPlanting: true,
     cloudSync: true,
     exportData: true,
-    
+
     // Consumer Features (legacy PRO has these)
     recipes: true,
     guides: true,
     community: true,
     
-    // Professional Features (legacy PRO has basic versions)
-    advancedAnalytics: false,
-    treatmentRegister: false,
-    nutrientCalculator: false,
+    // Professional Features (legacy PRO has these)
+    advancedAnalytics: true,
+    treatmentRegister: true,
+    nutrientCalculator: true,
     cropRotation: true,
-    exportCSV: false,
-    exportPDF: false,
+    exportCSV: true,
+    exportPDF: true,
   },
 };
 

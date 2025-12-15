@@ -113,11 +113,11 @@ export const calculateWaterNeeds = (
     litersPerDay: totalLiters,
     litersPerPlant,
     frequency: irrigation.frequency[phase],
-    method: irrigation.method,
+    method: irrigation.method || 'Drip',
     phase,
     modifiers: {
       soilType: soilModifier || undefined,
-      criticalPeriod: criticalPeriod ? 'Periodo critico: aumenta irrigazione' : undefined
+      criticalPeriod: criticalPeriod || undefined
     }
   };
 };
@@ -232,7 +232,7 @@ export const getWateringSchedule = (
     notes.push(waterNeeds.modifiers.soilType);
   }
   if (waterNeeds.modifiers.criticalPeriod) {
-    notes.push(waterNeeds.modifiers.criticalPeriod);
+    notes.push('Periodo critico: aumenta irrigazione');
   }
   
   return {

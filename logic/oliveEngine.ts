@@ -1,5 +1,5 @@
 import { OliveCrop } from '../types/olive';
-import { WeatherForecast } from '../types';
+import { WeatherForecast } from '../services/weatherService';
 
 /**
  * Motore logico per gestione olivo (Pro Feature)
@@ -135,7 +135,7 @@ export const calculateOptimalHarvestDate = (
   if (currentMonth >= harvestStartMonth || currentMonth <= harvestEndMonth) {
     if (weather) {
       // Evita giorni di pioggia
-      const daysToAdd = weather.daily?.some(d => d.precipitation > 5) ? 3 : 0;
+      const daysToAdd = weather.rainForecastMm > 5 ? 3 : 0;
       return new Date(currentDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
     }
     return currentDate;

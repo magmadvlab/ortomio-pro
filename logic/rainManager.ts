@@ -84,14 +84,14 @@ export const adjustIrrigationForRain = (
   garden: Garden
 ): TaskAdjustment => {
   // Filtra ultimi 3 giorni con precipitazioni
-  const recentRain = weatherHistory
+  const recentRain: RainEvent[] = weatherHistory
     .slice(0, 3)
     .filter(f => f.rainForecastMm > 0)
     .map(f => ({
       date: f.date || new Date().toISOString().split('T')[0],
       precipitationMM: f.rainForecastMm,
       duration: 60, // Stima: 1 ora per default
-      intensity: f.rainForecastMm > 10 ? 'heavy' : f.rainForecastMm > 5 ? 'moderate' : 'light' as const,
+      intensity: (f.rainForecastMm > 10 ? 'heavy' : f.rainForecastMm > 5 ? 'moderate' : 'light') as 'light' | 'moderate' | 'heavy',
     }));
 
   if (recentRain.length === 0) {

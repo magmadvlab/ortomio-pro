@@ -88,6 +88,7 @@ const calculateSuccessionTiming = (
 export const checkEmptySpaceOpportunity = (
   harvestTask: GardenTask,
   allMasterSheets: PlantMasterSheet[],
+  garden: Garden,
   currentDate: Date = new Date()
 ): SuccessionSuggestion | null => {
   // Trova la pianta rimossa
@@ -145,6 +146,7 @@ export const checkEmptySpaceOpportunity = (
  */
 export const findAllSuccessionOpportunities = (
   tasks: GardenTask[],
+  garden: Garden,
   currentDate: Date = new Date()
 ): SuccessionSuggestion[] => {
   const allMasterSheets = getAllMasterSheets();
@@ -161,7 +163,7 @@ export const findAllSuccessionOpportunities = (
   });
   
   for (const task of productionTasks) {
-    const suggestion = checkEmptySpaceOpportunity(task, allMasterSheets, currentDate);
+    const suggestion = checkEmptySpaceOpportunity(task, allMasterSheets, garden, currentDate);
     if (suggestion) {
       suggestions.push(suggestion);
     }

@@ -387,9 +387,22 @@ export const calculateEndOfCycle = (
   const endOfCycle = new Date(transplantDate);
   
   // Estrai giorni massimi da harvestWindow (es. "60-90 giorni" -> 90)
+  // harvestWindow può essere una stringa o un oggetto con startMonth/endMonth
   const harvestWindow = masterData.harvestWindow || '60-90 giorni';
-  const harvestDaysMatch = harvestWindow.match(/(\d+)\s*-\s*(\d+)/);
-  const maxHarvestDays = harvestDaysMatch ? parseInt(harvestDaysMatch[2], 10) : 90;
+  let maxHarvestDays = 90; // Default
+  
+  if (typeof harvestWindow === 'string') {
+    // Formato stringa: "60-90 giorni"
+    const harvestDaysMatch = harvestWindow.match(/(\d+)\s*-\s*(\d+)/);
+    maxHarvestDays = harvestDaysMatch ? parseInt(harvestDaysMatch[2], 10) : 90;
+  } else if (typeof harvestWindow === 'object' && harvestWindow !== null) {
+    // Formato oggetto: { startMonth: number; endMonth: number; }
+    // Per colture specializzate, stima giorni basandosi sulla differenza di mesi
+    const monthDiff = harvestWindow.endMonth >= harvestWindow.startMonth 
+      ? harvestWindow.endMonth - harvestWindow.startMonth
+      : (12 - harvestWindow.startMonth) + harvestWindow.endMonth;
+    maxHarvestDays = monthDiff * 30; // Approssimazione: ~30 giorni per mese
+  }
   
   endOfCycle.setDate(endOfCycle.getDate() + maxHarvestDays + 30);
   

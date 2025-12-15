@@ -221,9 +221,9 @@ export async function restoreFromExportData(
     // Ripristina task
     for (const task of exportData.tasks || []) {
       try {
+        const { id, ...taskWithoutId } = task;
         await storage.createTask({
-          ...task,
-          id: crypto.randomUUID(),
+          ...taskWithoutId,
           gardenId: restoredGarden.id,
         });
         tasksRestored++;
@@ -235,10 +235,8 @@ export async function restoreFromExportData(
     // Ripristina raccolti
     for (const harvest of exportData.harvests || []) {
       try {
-        await storage.createHarvestLog({
-          ...harvest,
-          id: crypto.randomUUID(),
-        });
+        const { id: harvestId, ...harvestWithoutId } = harvest;
+        await storage.createHarvestLog(harvestWithoutId);
         harvestsRestored++;
       } catch (error: any) {
         errors.push(`Errore import harvest: ${error.message}`);
@@ -248,9 +246,9 @@ export async function restoreFromExportData(
     // Ripristina semi
     for (const seed of exportData.seedInventory || []) {
       try {
+        const { id: seedId, ...seedWithoutId } = seed;
         await storage.createSeedPacket({
-          ...seed,
-          id: crypto.randomUUID(),
+          ...seedWithoutId,
           gardenId: restoredGarden.id,
         });
         seedsRestored++;

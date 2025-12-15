@@ -33,7 +33,7 @@ export async function searchAll(
 
   try {
     // Search in Tasks
-    const tasks = await storageProvider.getGardenTasks(userId);
+    const tasks = await storageProvider.getTasks();
     tasks.forEach((task) => {
       const relevance = calculateRelevance(searchTerm, [
         task.plantName,
@@ -60,7 +60,7 @@ export async function searchAll(
       const relevance = calculateRelevance(searchTerm, [
         harvest.plantName,
         harvest.notes,
-        harvest.variety,
+        harvest.plantName,
       ]);
       if (relevance > 0) {
         results.push({

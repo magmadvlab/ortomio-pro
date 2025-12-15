@@ -32,6 +32,12 @@
     position: relative;
     z-index: 1;
   }
+  
+  /* Next.js portal positioning */
+  nextjs-portal {
+    left: 3px;
+    top: 1px;
+  }
 }
 
 /* Card eleganti con ombre più sofisticate */

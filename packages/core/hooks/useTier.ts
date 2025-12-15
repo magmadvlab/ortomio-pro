@@ -48,7 +48,7 @@ export const useTier = (): UseTierReturn => {
   };
 
   const limit = <K extends keyof TierConfig['limits']>(limitKey: K): number => {
-    return config.limits[limitKey];
+    return config.limits[limitKey] ?? -1;
   };
 
   const checkLimit = <K extends keyof TierConfig['limits']>(
@@ -65,7 +65,7 @@ export const useTier = (): UseTierReturn => {
       return { allowed: true, remaining: -1 }; // Illimitato in locale
     }
     
-    const maxValue = config.limits[limitKey];
+    const maxValue = config.limits[limitKey] ?? -1;
     
     // -1 means unlimited
     if (maxValue === -1) {

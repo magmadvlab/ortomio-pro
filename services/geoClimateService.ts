@@ -168,8 +168,8 @@ export const inferGeoClimate = async (
   }
 
   // Prova prima con Gemini API
-  if (checkApiAvailable()) {
-    try {
+  try {
+    if (checkApiAvailable()) {
       const prompt = `Coordinate geografiche: Latitudine ${lat.toFixed(4)}, Longitudine ${lng.toFixed(4)} (Italia).
 
 Fornisci informazioni geoclimatiche accurate per questa zona:
@@ -181,17 +181,20 @@ Fornisci informazioni geoclimatiche accurate per questa zona:
 
 IMPORTANTE: L'altitudine deve essere precisa e basata su dati topografici reali.`;
 
-    const model = ai!.generativeModel({
+    if (!ai) {
+      throw new Error('AI client not available');
+    }
+    
+    const result = await ai.models.generateContent({
       model: "gemini-2.0-flash-exp",
-      generationConfig: {
+      contents: prompt,
+      config: {
         responseMimeType: "application/json",
         responseSchema: geoClimateSchema
       }
     });
-
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
+    
+    const text = result.text;
     
     if (!text) {
       console.error("Risposta vuota da Gemini API");
@@ -236,34 +239,38 @@ IMPORTANTE: L'altitudine deve essere precisa e basata su dati topografici reali.
       geoClimateCache.set(cacheKey, { data: parsed, timestamp: Date.now() });
     }
     
-    return parsed;
+      return parsed;
+    }
   } catch (error) {
     console.error("Errore nell'inferenza geoclimatica con Gemini:", error);
-    // Fallback a Open-Elevation per altitudine
-    try {
-      const elevation = await getAltitudeFromOpenElevation(lat, lng);
-      if (elevation !== null) {
-        const validatedAlt = validateAltitude(elevation);
-        const { calculateAltitudeDelay } = await import('../utils/altitudeUtils');
-        const delayDays = calculateAltitudeDelay(validatedAlt);
-        const result: GeoClimateInfo = {
-          altitude: validatedAlt,
-          delayFactorDays: delayDays,
-          minTempApril: 8, // Default
-          region: 'Italia',
-          source: 'open-elevation'
-        };
-        // Salva in cache
-        if (useCache) {
-          geoClimateCache.set(cacheKey, { data: result, timestamp: Date.now() });
-        }
-        return result;
-      }
-    } catch (elevError) {
-      console.error("Errore anche con Open-Elevation:", elevError);
-    }
-    return null;
   }
+  
+  // Fallback a Open-Elevation per altitudine se API non disponibile o errore
+  try {
+    const elevation = await getAltitudeFromOpenElevation(lat, lng);
+    if (elevation !== null) {
+      const validatedAlt = validateAltitude(elevation);
+      const { calculateAltitudeDelay } = await import('../utils/altitudeUtils');
+      const delayDays = calculateAltitudeDelay(validatedAlt);
+      const result: GeoClimateInfo = {
+        altitude: validatedAlt,
+        delayFactorDays: delayDays,
+        minTempApril: 8, // Default
+        region: 'Italia',
+        source: 'open-elevation'
+      };
+      // Salva in cache
+      if (useCache) {
+        geoClimateCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      }
+      return result;
+    }
+  } catch (elevError) {
+    console.error("Errore anche con Open-Elevation:", elevError);
+  }
+  
+  // Fallback finale
+  return null;
 };
 
 /**
@@ -294,7 +301,6 @@ export const getGeoClimateInfo = async (
 // Export default per compatibilità con import dinamici
 export default {
   getGeoClimateInfo,
-  inferGeoClimate,
-  GeoClimateInfo
+  inferGeoClimate
 };
 

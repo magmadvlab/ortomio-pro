@@ -249,7 +249,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     // Filter tasks to only include those from the active garden
     const activeGardenTasks = tasks.filter(task => task.gardenId === activeGardenId);
-    const opportunities = findAllSuccessionOpportunities(activeGardenTasks);
+    const opportunities = findAllSuccessionOpportunities(activeGardenTasks, activeGarden);
     setSuccessionOpportunities(opportunities);
   }, [tasks, activeGarden, activeGardenId]);
 

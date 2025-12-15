@@ -293,6 +293,11 @@ export interface UserProfile {
     isValid: boolean;
   };
   preferredTreatmentType?: 'organic' | 'classic' | 'mixed';
+  expertise?: 'beginner' | 'intermediate' | 'expert';
+  preferences?: {
+    detailLevel?: 'minimal' | 'standard' | 'detailed';
+    preferredCommunicationStyle?: 'conversational' | 'technical' | 'brief';
+  };
   created_at?: string;
   updated_at?: string;
 }
@@ -483,6 +488,8 @@ export type MoonPhase =
 export interface GardenTask {
   id: string;
   gardenId: string; // Link to specific garden
+  bedId?: string; // ID della zona/letto di coltivazione (opzionale)
+  quantity?: number; // Quantità di piante (opzionale, default: 1)
   plantName: string;
   variety?: string; // e.g., "Datterino"
   plantingMethod?: 'Seed' | 'Seedling'; // Started from seed or bought plant
@@ -699,6 +706,7 @@ export interface PlantMasterSheet {
   scientificName: string;
   family: string; // "Solanaceae", "Cucurbitaceae", etc.
   cropType?: CropType; // Tipo di coltura (opzionale, per estensioni Pro)
+  season?: 'Spring' | 'Summer' | 'Autumn' | 'Winter'; // Stagione preferita per trapianto
   
   // FASE 0: Strumenti necessari
   requiredTools: {
@@ -716,6 +724,8 @@ export interface PlantMasterSheet {
     sowingDepth: number; // cm (es. 0.5)
     idealTemp: string; // "20-24°C"
     minTemp: number; // Temperatura minima per germinare (es. 12)
+    optimalTemp?: number; // Temperatura ottimale per germinare (es. 22)
+    maxTemp?: number; // Temperatura massima per germinare (es. 30)
     lightRequirement: 'Dark' | 'Light' | 'Either'; // Buio o luce per germinare
     emergenceDays: { min: number; max: number }; // Range giorni per emergenza (es. { min: 7, max: 14 })
     coveringNeeded: boolean; // Pellicola trasparente?
@@ -770,6 +780,29 @@ export interface PlantMasterSheet {
     introduction: string; // 2-3 frasi
     commonMistakes: string[]; // 4 errori comuni
     harvestGuide: string; // 3-4 frasi
+  };
+  
+  // Finestra di raccolta (opzionale)
+  // Può essere una stringa (es. "60-90 giorni") o un oggetto con mesi (per colture specializzate)
+  harvestWindow?: string | { startMonth: number; endMonth: number; };
+  
+  // Dettagli irrigazione per fase (opzionale)
+  irrigationDetails?: {
+    litersPerPlantPerDay: {
+      germination: number;
+      vegetative: number;
+      production: number;
+    };
+    criticalPeriods?: Array<{
+      days: [number, number]; // Range giorni attivi
+      multiplier: number; // Moltiplicatore per periodo critico
+    }>;
+    frequency: {
+      germination: string; // "Ogni 2-3 giorni"
+      vegetative: string; // "Ogni 1-2 giorni"
+      production: string; // "Ogni giorno"
+    };
+    method?: 'Drip' | 'Sprinkler' | 'Manual' | 'Flood';
   };
   
   // Suscettibilità e strategia di difesa (opzionale)
