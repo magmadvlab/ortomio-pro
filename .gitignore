@@ -43,6 +43,7 @@ yarn-error.log*
 # Vercel
 .vercel
 
-# Other
+# Other - Vecchi sistemi Vite (non più necessari)
 ortomio/
+orto-mio/
 

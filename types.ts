@@ -180,22 +180,6 @@ export type GardenType =
   | 'Wick'                // Wick System
   | 'Kratky';             // Kratky Method (passive)
 
-/**
- * Punto dell'orto con caratteristiche solari specifiche
- */
-export interface GardenPoint {
-  id: string;
-  name: string;
-  coordinates: {
-    x: number; // Coordinate relative (0-100%)
-    y: number;
-  };
-  sunExposure: 'FullSun' | 'PartialSun' | 'PartialShade' | 'FullShade';
-  dailySunHours: number;
-  score?: any; // Score calcolato - può essere number o GardenPointScore
-  notes?: string;
-}
-
 export interface Garden {
   id: string;
   name: string;
@@ -249,8 +233,12 @@ export type SoilType = 'Clay' | 'Sandy' | 'Loamy' | 'Peaty' | 'Chalky' | 'Silty'
 export interface GardenPoint {
   id: string;
   name: string;
-  position: { x: number; y: number }; // Nella griglia (0-100%)
+  // Posizione nella griglia (0-100%) - supporta sia 'position' che 'coordinates' per retrocompatibilità
+  position: { x: number; y: number };
+  coordinates?: { x: number; y: number }; // Alias per retrocompatibilità, usa 'position' per nuovo codice
   size?: number; // m² del punto
+  sunExposure?: 'FullSun' | 'PartialSun' | 'PartialShade' | 'FullShade';
+  dailySunHours?: number;
   visualSunInput?: VisualSunInputData;
   obstacles?: Array<{
     azimuth: number;
@@ -275,7 +263,8 @@ export interface GardenPoint {
       cycles: number;
       resaStimata: number;
     }>;
-  }; // Score calcolato
+  };
+  notes?: string;
 }
 
 // Deprecated in favor of Garden, keeping for transition types if needed

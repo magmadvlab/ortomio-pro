@@ -62,7 +62,7 @@ export async function searchAll(
         harvest.notes,
         harvest.plantName,
       ]);
-      if (relevance > 0) {
+      if (relevance > 0 && harvest.id) {
         results.push({
           type: 'harvest',
           id: harvest.id,
@@ -121,7 +121,7 @@ export async function searchAll(
             treatment.product,
             treatment.notes,
           ]);
-          if (relevance > 0) {
+          if (relevance > 0 && treatment.id) {
             results.push({
               type: 'treatment',
               id: treatment.id,
@@ -144,7 +144,7 @@ export async function searchAll(
       if (mechanicalWork) {
         mechanicalWork.forEach((work: any) => {
           const relevance = calculateRelevance(searchTerm, [work.workType, work.notes]);
-          if (relevance > 0) {
+          if (relevance > 0 && work.id) {
             results.push({
               type: 'mechanical',
               id: work.id,
