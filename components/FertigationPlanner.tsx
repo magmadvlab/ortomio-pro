@@ -17,12 +17,15 @@ const FertigationPlanner: React.FC<FertigationPlannerProps> = ({ task, garden })
   const [plant, setPlant] = useState<PlantMasterSheet | null>(null);
 
   useEffect(() => {
-    const masterSheet = getMasterSheet(task.plantName);
-    if (masterSheet) {
-      setPlant(masterSheet);
-      const fertigationPlan = calculateFertigationPlan(task, masterSheet, garden);
-      setPlan(fertigationPlan);
-    }
+    const loadData = async () => {
+      const masterSheet = await getMasterSheet(task.plantName);
+      if (masterSheet) {
+        setPlant(masterSheet);
+        const fertigationPlan = calculateFertigationPlan(task, masterSheet, garden);
+        setPlan(fertigationPlan);
+      }
+    };
+    loadData();
   }, [task, garden]);
 
   if (!plan || !plant) return null;

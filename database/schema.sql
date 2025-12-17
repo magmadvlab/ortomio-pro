@@ -36,7 +36,8 @@ CREATE TABLE gardens (
     garden_type IN (
       'OpenField', 'Greenhouse', 'Tunnel', 'RaisedBed', 
       'Indoor', 'Hydroponic', 'Aquaponic', 'Aeroponic',
-      'NFT', 'DWC', 'EbbFlow', 'Drip', 'Wick', 'Kratky'
+      'NFT', 'DWC', 'EbbFlow', 'Drip', 'Wick', 'Kratky',
+      'Orchard', 'OliveGrove', 'Vineyard'
     )
   ),
   greenhouse_config JSONB,

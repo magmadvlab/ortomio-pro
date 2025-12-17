@@ -28,17 +28,17 @@ BEGIN
     RAISE EXCEPTION 'User % does not exist in auth.users. Please create the user via Supabase Auth API first.', p_email;
   END IF;
   
-  -- Create or update profile with superadmin tier
+  -- Create or update profile with superadmin tier (new tier system: PRO)
   INSERT INTO profiles (id, tier, ai_credits_total, ai_credits_used)
-  VALUES (v_user_id, 'PRO_PROFESSIONAL', 999999, 0)
+  VALUES (v_user_id, 'PRO', 999999, 0)
   ON CONFLICT (id) DO UPDATE
-  SET tier = 'PRO_PROFESSIONAL',
+  SET tier = 'PRO',
       ai_credits_total = 999999,
       ai_credits_used = 0;
   
   RETURN v_user_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- ============================================
 -- ADMIN FUNCTIONS
@@ -51,9 +51,9 @@ CREATE OR REPLACE FUNCTION set_user_tier(
 )
 RETURNS VOID AS $$
 BEGIN
-  -- Validate tier
-  IF p_tier NOT IN ('FREE', 'PRO_CONSUMER', 'PRO_PROFESSIONAL') THEN
-    RAISE EXCEPTION 'Invalid tier: %. Must be FREE, PRO_CONSUMER, or PRO_PROFESSIONAL', p_tier;
+  -- Validate tier (new tier system: FREE, PLUS, PRO)
+  IF p_tier NOT IN ('FREE', 'PLUS', 'PRO', 'PRO_CONSUMER', 'PRO_PROFESSIONAL') THEN
+    RAISE EXCEPTION 'Invalid tier: %. Must be FREE, PLUS, PRO (or legacy PRO_CONSUMER, PRO_PROFESSIONAL)', p_tier;
   END IF;
   
   -- Update profile
@@ -63,7 +63,7 @@ BEGIN
   SET tier = p_tier::TEXT,
       updated_at = NOW();
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- Function to grant credits to user
 CREATE OR REPLACE FUNCTION admin_grant_credits(
@@ -84,7 +84,7 @@ BEGIN
   INSERT INTO ai_credit_transactions (user_id, amount, type, description)
   VALUES (p_user_id, p_amount, 'bonus', 'Admin granted credits');
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- Function to list all users (admin view)
 CREATE OR REPLACE FUNCTION list_all_users()
@@ -109,7 +109,7 @@ BEGIN
   LEFT JOIN profiles p ON p.id = u.id
   ORDER BY u.created_at DESC;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- ============================================
 -- RLS POLICIES FOR ADMIN FUNCTIONS
@@ -127,5 +127,5 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- First, get the user ID from auth.users:
 -- SELECT id, email FROM auth.users WHERE email = 'your-email@example.com';
 -- Then run:
--- SELECT set_user_tier('USER_ID_HERE', 'PRO_PROFESSIONAL');
+-- SELECT set_user_tier('USER_ID_HERE', 'PRO');
 -- SELECT admin_grant_credits('USER_ID_HERE', 999999);

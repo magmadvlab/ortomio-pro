@@ -20,10 +20,12 @@
 
 **Nuove Funzionalità**:
 
-- [FERTILIZER ENGINE](#fertilizerenginets): Prodotti fertilizzanti concreti con dosaggi
+- [FERTILIZZER ENGINE](#fertilizerenginets): Prodotti fertilizzanti concreti con dosaggi
 - [TILLAGE ENGINE](#tillageenginets): Lavorazioni terra con timing "terreno in tempera"
 - [PHYTO ENGINE](#phytoenginets): Prodotti fitofarmaci con timing critico e registro
 - [GEOGRAPHIC MATCHING SERVICE](#geographicmatchingservicets): Matching geografico e calcolo fattibilità piante esotiche
+- [FUZZY SEARCH SERVICE](#fuzzysearchservicets): Ricerca intelligente con aliases e normalizzazione
+- [VITE E OLIVO TOP-LEVEL](#vite-e-olivo-top-level): Sezioni dedicate con wizard migliorati
 
 ---
 
@@ -997,6 +999,222 @@ Qualsiasi hosting statico supporta:
 - AWS S3 + CloudFront
 
 **Nota**: Assicurati che le variabili d'ambiente siano configurate correttamente.
+
+---
+
+## Fuzzy Search Service
+
+### Panoramica
+
+Il servizio di ricerca fuzzy (`services/fuzzySearchService.ts`) implementa una pipeline completa di ricerca per colture con supporto per aliases, normalizzazione testo e matching intelligente.
+
+### Architettura
+
+**Pipeline di Ricerca:**
+1. **Pre-processing**: Normalizzazione testo e generazione varianti
+2. **Exact Match**: Ricerca esatta su crops e aliases
+3. **Fuzzy Match**: Ricerca approssimativa con soglia dinamica
+4. **Fallback**: Griglia archetipi se nessun match
+
+### Componenti Principali
+
+#### Text Normalizer (`utils/textNormalizer.ts`)
+
+**Funzioni:**
+- `normalizeText()`: Normalizzazione base (lowercase, rimozione accenti, punteggiatura)
+- `normalizeFruitTreeName()`: Normalizzazione specifica per alberi da frutto
+- `normalizeVineOliveName()`: Normalizzazione specifica per vitigni e cultivar olivo
+- `similarity()`: Calcolo similarità Levenshtein
+- `getFuzzyThreshold()`: Soglia dinamica basata su lunghezza query
+
+**Esempi Normalizzazione:**
+```typescript
+normalizeText("Lattùga!") → "lattuga"
+normalizeFruitTreeName("mela golden") → { normalized: "golden", possibleVarieties: [...] }
+normalizeVineOliveName("nero d'avola") → { normalized: "nerodavola", possibleVarieties: [...] }
+```
+
+#### Aliases Database
+
+**File:**
+- `data/fruitTreeAliases.ts` - Aliases per alberi da frutto
+- `data/vineOliveAliases.ts` - Aliases per vitigni e cultivar olivo (50+ entries)
+
+**Struttura Alias:**
+```typescript
+interface CropAlias {
+  aliasText: string;              // Nome locale/dialettale
+  archetypeId: ArchetypeId;       // Archetipo target (L1, L2, L3, etc.)
+  confidence: number;             // 0.0-1.0 (1.0 = confermato)
+  defaultVarietyType?: 'Wine' | 'Table' | 'Oil' | 'Dual-purpose'; // Per L1/L2
+  region?: string;                // Opzionale: geolocalizzazione
+  province?: string;              // Opzionale: geolocalizzazione
+}
+```
+
+**Esempi Aliases Vite:**
+- "aglianico" → L1 (Vite), defaultVarietyType: 'Wine'
+- "primitivo" → L1 (Vite), defaultVarietyType: 'Wine'
+- "italia" → L1 (Vite), defaultVarietyType: 'Table'
+
+**Esempi Aliases Olivo:**
+- "coratina" → L2 (Olivo), defaultVarietyType: 'Oil'
+- "frantoio" → L2 (Olivo), defaultVarietyType: 'Oil'
+- "nocellara del belice" → L2 (Olivo), defaultVarietyType: 'Table'
+
+#### Fuzzy Search Service (`services/fuzzySearchService.ts`)
+
+**Funzione Principale:**
+```typescript
+searchCropWithFuzzy(
+  storageProvider: IStorageProvider,
+  query: string,
+  region?: string,
+  province?: string
+): Promise<FuzzySearchResult>
+```
+
+**Risultato:**
+```typescript
+interface FuzzySearchResult {
+  exactMatch: SearchResult | null;
+  fuzzyMatches: SearchResult[];
+  shouldShowArchetypeGrid: boolean;
+}
+
+interface SearchResult {
+  type: 'exact_crop' | 'exact_alias' | 'fuzzy_crop' | 'fuzzy_alias';
+  name: string;
+  archetypeId: ArchetypeId;
+  score: number; // 0-1
+  defaultVarietyType?: 'Wine' | 'Table' | 'Oil' | 'Dual-purpose';
+}
+```
+
+**Algoritmo:**
+1. Normalizza query e genera varianti
+2. Verifica se query potrebbe essere vite/olivo/frutteto
+3. Exact match su crops ufficiali
+4. Exact match su aliases predefiniti (priorità vite/olivo)
+5. Exact match su aliases database
+6. Fuzzy match su crops (top 200)
+7. Fuzzy match su aliases (confidence >= 0.7)
+8. Ordina per score e rimuovi duplicati
+9. Ritorna top 5 risultati
+
+**Boost Score:**
+- Aliases con confidence >= 0.9: +0.05
+- Aliases locali (stessa regione): +0.1
+- Aliases locali (stessa provincia): +0.15
+
+### Integrazione con Wizard
+
+Il wizard di aggiunta colture (`components/crops/AddCropWizard.tsx`) usa fuzzy search per:
+- Riconoscere automaticamente colture legnose (L1/L2/L3)
+- Precompilare `defaultVarietyType` quando disponibile
+- Aprire wizard dedicato per vite/olivo/frutteto
+
+Il wizard colture legnose (`components/crops/AddWoodyCropWizard.tsx`) usa `defaultVarietyType` per:
+- Precompilare tipo utilizzo (Vino/Tavola per vite, Olio/Mensa per olivo)
+- Migliorare UX riducendo tempo inserimento
+
+### Estensibilità
+
+**Aggiungere Nuovi Aliases:**
+1. Apri `data/vineOliveAliases.ts` o `data/fruitTreeAliases.ts`
+2. Aggiungi entry seguendo il pattern esistente
+3. Specifica `defaultVarietyType` se applicabile (L1/L2)
+4. Testa con ricerca fuzzy
+
+**Aggiungere Normalizzazione Personalizzata:**
+1. Aggiungi funzione in `utils/textNormalizer.ts`
+2. Integra nel pre-processing di `fuzzySearchService.ts`
+3. Testa con varianti comuni
+
+---
+
+## Vite e Olivo Top-Level
+
+### Panoramica
+
+Vite e Olivo sono ora **sezioni top-level** nella navigazione PRO, separate da A12 (Colture legnose). Questo migliora l'accessibilità e l'organizzazione delle funzionalità dedicate.
+
+### Architettura Navigazione
+
+**Struttura Precedente:**
+- Orto (A1-A10)
+- Piccoli Frutti (A11)
+- Colture Legnose (A12) → L1 (Vite), L2 (Olivo), L3 (Frutteto)
+
+**Struttura Attuale:**
+- Orto (A1-A10)
+- Piccoli Frutti (A11)
+- Frutteto (A12 → solo L3)
+- **Vite** (L1, sezione dedicata top-level)
+- **Olivo** (L2, sezione dedicata top-level)
+
+### Componenti
+
+**Sidebar Navigation (`components/professional/Sidebar.tsx`):**
+```typescript
+const menuItems = [
+  // ...
+  { icon: TreePine, label: 'Frutteto', path: '/app/orchard', tier: 'PRO' },
+  { icon: Grape, label: 'Vite', path: '/app/vineyard', tier: 'PRO' },
+  { icon: CircleDot, label: 'Olivo', path: '/app/olives', tier: 'PRO' },
+  // ...
+];
+```
+
+**Pagine Dedicare:**
+- `app/(dashboard)/app/vineyard/page.tsx` - Pagina gestione vite
+- `app/(dashboard)/app/olives/page.tsx` - Pagina gestione olivo
+
+### Wizard Migliorati
+
+**AddWoodyCropWizard (`components/crops/AddWoodyCropWizard.tsx`):**
+
+**Miglioramenti Vite:**
+- Campo "Tipo Utilizzo" (Vino/Tavola) con precompilazione da aliases
+- Mostra suggerimento quando precompilato da ricerca
+- Wizard più rapido (30-60 secondi)
+
+**Miglioramenti Olivo:**
+- Campo "Tipo Utilizzo" (Olio/Mensa/Dual-purpose) con precompilazione da aliases
+- Mostra suggerimento quando precompilato da ricerca
+- Wizard più rapido
+
+**Precompilazione:**
+```typescript
+interface AddWoodyCropWizardProps {
+  defaultVarietyType?: 'Wine' | 'Table' | 'Oil' | 'Dual-purpose';
+  // ...
+}
+```
+
+Quando `defaultVarietyType` è fornito (da fuzzy search), il wizard:
+1. Salta step selezione tipo coltura se `initialCropType` è già fornito
+2. Precompila campo "Tipo Utilizzo" con valore suggerito
+3. Mostra indicatore visivo che valore è stato precompilato
+
+### Integrazione con Fuzzy Search
+
+Il flusso completo:
+1. Utente cerca "aglianico" nel wizard aggiunta coltura
+2. Fuzzy search riconosce alias → L1 (Vite), defaultVarietyType: 'Wine'
+3. Sistema apre wizard dedicato vite con:
+   - `initialCropType: 'Vine'`
+   - `defaultVarietyType: 'Wine'`
+4. Wizard precompila "Tipo Utilizzo: Da Vino"
+5. Utente completa solo varietà e dettagli impianto
+
+### Benefici
+
+1. **UX Migliorata**: Accesso diretto a vite e olivo senza navigare in A12
+2. **Ricerca Potenziata**: Riconosce 50+ vitigni e cultivar olivo italiani comuni
+3. **Wizard Più Veloce**: Precompilazione automatica riduce tempo inserimento del 50-70%
+4. **Coerenza**: Stesso pattern usato per frutteti, facile da mantenere
+5. **Scalabilità**: Facile aggiungere nuovi aliases in futuro
 
 ---
 

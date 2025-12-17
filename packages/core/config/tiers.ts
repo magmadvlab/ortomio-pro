@@ -5,9 +5,8 @@
 
 export enum AppTier {
   FREE = 'FREE',
-  PRO = 'PRO', // Legacy, will be migrated to PRO_CONSUMER
-  PRO_CONSUMER = 'PRO_CONSUMER',
-  PRO_PROFESSIONAL = 'PRO_PROFESSIONAL',
+  PLUS = 'PLUS',
+  PRO = 'PRO',
 }
 
 export interface TierConfig {
@@ -20,6 +19,7 @@ export interface TierConfig {
     maxHarvestLogs: number;
     maxPhotoLogs?: number; // Pro only
     maxSeedlingBatches?: number; // Free: max 3 batch semenzai
+    maxSaplingBatches?: number; // Free: max batch alberelli
     maxPhotosPerBatch?: number; // Free: max 5 foto per batch
   };
   features: {
@@ -73,6 +73,7 @@ export const FREE_TIER: TierConfig = {
     maxSeedPackets: 20,
     maxHarvestLogs: 100,
     maxSeedlingBatches: 3, // Free: max 3 batch semenzai
+    maxSaplingBatches: 2, // Free: max 2 batch alberelli
     maxPhotosPerBatch: 5, // Free: max 5 foto per batch
   },
   features: {
@@ -117,9 +118,9 @@ export const FREE_TIER: TierConfig = {
   },
 };
 
-export const PRO_TIER: TierConfig = {
-  tier: AppTier.PRO,
-  name: 'Pro',
+export const PLUS_TIER: TierConfig = {
+  tier: AppTier.PLUS,
+  name: 'Plus',
   limits: {
     maxGardens: -1, // Unlimited
     maxTasksPerGarden: -1, // Unlimited
@@ -127,60 +128,7 @@ export const PRO_TIER: TierConfig = {
     maxHarvestLogs: -1, // Unlimited
     maxPhotoLogs: -1, // Unlimited
     maxSeedlingBatches: -1, // Unlimited
-    maxPhotosPerBatch: -1, // Unlimited
-  },
-  features: {
-    // Core Features
-    basicPlanner: true,
-    basicJournal: true,
-    basicHarvestLog: true,
-    seedInventory: true,
-    lunarCalendar: true,
-    lifecycleEngine: true,
-    nutrientEngine: true,
-    healthEngine: true,
-    
-    // Pro Features (all enabled)
-    visualGardenPlanner: true,
-    photoTimeLapse: true,
-    harvestAnalytics: true,
-    advancedWeather: true,
-    photoOnboarding: true,
-    diseaseDiagnosis: true,
-    seedlingManagement: true,
-    annualPlanner: true,
-    specializedCrops: true,
-    advancedSystems: true,
-    rotationEngine: true,
-    companionPlanting: true,
-    cloudSync: true,
-    exportData: true,
-    
-    // Consumer Features (legacy PRO has these)
-    recipes: true,
-    guides: true,
-    community: true,
-    
-    // Professional Features (legacy PRO has these)
-    advancedAnalytics: true,
-    treatmentRegister: true,
-    nutrientCalculator: true,
-    cropRotation: true,
-    exportCSV: true,
-    exportPDF: true,
-  },
-};
-
-export const PRO_CONSUMER_TIER: TierConfig = {
-  tier: AppTier.PRO_CONSUMER,
-  name: 'Pro Consumer',
-  limits: {
-    maxGardens: -1, // Unlimited
-    maxTasksPerGarden: -1, // Unlimited
-    maxSeedPackets: -1, // Unlimited
-    maxHarvestLogs: -1, // Unlimited
-    maxPhotoLogs: -1, // Unlimited
-    maxSeedlingBatches: -1, // Unlimited
+    maxSaplingBatches: -1, // Unlimited
     maxPhotosPerBatch: -1, // Unlimited
   },
   features: {
@@ -225,9 +173,9 @@ export const PRO_CONSUMER_TIER: TierConfig = {
   },
 };
 
-export const PRO_PROFESSIONAL_TIER: TierConfig = {
-  tier: AppTier.PRO_PROFESSIONAL,
-  name: 'Pro Professional',
+export const PRO_TIER: TierConfig = {
+  tier: AppTier.PRO,
+  name: 'Pro',
   limits: {
     maxGardens: -1, // Unlimited
     maxTasksPerGarden: -1, // Unlimited
@@ -235,6 +183,7 @@ export const PRO_PROFESSIONAL_TIER: TierConfig = {
     maxHarvestLogs: -1, // Unlimited
     maxPhotoLogs: -1, // Unlimited
     maxSeedlingBatches: -1, // Unlimited
+    maxSaplingBatches: -1, // Unlimited
     maxPhotosPerBatch: -1, // Unlimited
   },
   features: {
@@ -279,22 +228,27 @@ export const PRO_PROFESSIONAL_TIER: TierConfig = {
   },
 };
 
+
 /**
  * Get tier configuration
+ * Supports migration from old tier names for backward compatibility
  */
 export const getTierConfig = (tier: AppTier | string): TierConfig => {
   switch (tier) {
+    case AppTier.PLUS:
+    case 'PLUS':
+      return PLUS_TIER;
     case AppTier.PRO:
     case 'PRO':
       return PRO_TIER;
-    case AppTier.PRO_CONSUMER:
-    case 'PRO_CONSUMER':
-      return PRO_CONSUMER_TIER;
-    case AppTier.PRO_PROFESSIONAL:
-    case 'PRO_PROFESSIONAL':
-      return PRO_PROFESSIONAL_TIER;
     case AppTier.FREE:
     case 'FREE':
+      return FREE_TIER;
+    // Legacy tier migration (backward compatibility)
+    case 'PRO_CONSUMER':
+      return PLUS_TIER; // Migrate PRO_CONSUMER to PLUS
+    case 'PRO_PROFESSIONAL':
+      return PRO_TIER; // Migrate PRO_PROFESSIONAL to PRO
     default:
       return FREE_TIER;
   }

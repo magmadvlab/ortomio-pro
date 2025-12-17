@@ -12,8 +12,13 @@ import { getMechanicalWorksForCrop, cropMechanicalWorksConfig } from '@/data/cro
 
 // Work types
 type WorkType = 
-  // Suolo
+  // Suolo (esistenti)
   | 'Plowing' | 'Subsoiling' | 'Harrowing' | 'Tilling' | 'Rolling' | 'Hoeing' | 'EarthingUp' | 'Mulching' | 'PostSowingRolling'
+  // Preparazione Terreno (nuove)
+  | 'Clearing' | 'Stumping' | 'StoneRemoval' | 'Leveling' | 'DeepSubsoiling'
+  | 'Digging' | 'DeepHarrowing' | 'Crumbling' | 'Scraping' | 'SurfaceLeveling'
+  // Tecniche Moderne
+  | 'MinimumTillage' | 'StripTillage' | 'NoTill'
   // Chioma
   | 'FormativePruning' | 'MaintenancePruning' | 'RejuvenationPruning' | 'SummerPruning' | 'WinterPruning'
   | 'Thinning' | 'Suckering' | 'Defoliation' | 'Tying' | 'OliveShredding' | 'RunnerManagement'
@@ -68,7 +73,7 @@ interface MechanicalWork {
 
 export default function MechanicalWorkPage() {
   const { storageProvider } = useStorage()
-  const { isProfessional } = useTier()
+  const { isPro } = useTier()
   const [works, setWorks] = useState<MechanicalWork[]>([])
   const [gardens, setGardens] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -166,21 +171,24 @@ export default function MechanicalWorkPage() {
         setSelectedGardenId(gardensList[0].id)
       }
       
-      // Load works from API
-      const params = new URLSearchParams()
-      if (selectedGardenId) {
-        params.append('garden_id', selectedGardenId)
-      }
-      params.append('limit', '100')
-      
-      const response = await fetch(`/api/mechanical-work?${params.toString()}`)
-      if (response.ok) {
-        const data = await response.json()
-        setWorks(data.works || [])
-      } else {
-        console.error('Error loading mechanical works:', response.statusText)
-        setWorks([])
-      }
+      // Load works from storageProvider
+      const worksList = await storageProvider.getMechanicalWorks(selectedGardenId || undefined)
+      // Convert MechanicalWorkRecord to MechanicalWork format for component
+      setWorks(worksList.map(w => ({
+        id: w.id,
+        garden_id: w.garden_id,
+        work_type: w.work_type,
+        work_date: w.work_date,
+        area_m2: w.area_m2,
+        depth_cm: w.depth_cm,
+        equipment_type: w.equipment_type as EquipmentType | undefined,
+        equipment_attachment: w.equipment_attachment,
+        work_metadata: w.work_metadata,
+        weather_conditions: w.weather_conditions,
+        operator_name: w.operator_name,
+        notes: w.notes,
+        created_at: w.created_at,
+      })))
     } catch (error) {
       console.error('Error loading mechanical works:', error)
       setWorks([])
@@ -193,31 +201,38 @@ export default function MechanicalWorkPage() {
     e.preventDefault()
     
     try {
-      const response = await fetch('/api/mechanical-work', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-          body: JSON.stringify({
-          ...formData,
-          garden_id: selectedGardenId || null,
-          area_m2: formData.area_m2 ? parseFloat(formData.area_m2.toString()) : null,
-          depth_cm: formData.depth_cm ? parseFloat(formData.depth_cm.toString()) : null,
-          equipment_attachment: formData.equipment_type === 'Tractor' ? (formData.equipment_attachment || null) : null,
-          work_metadata: formData.work_metadata || null,
-        }),
+      const newWork = await storageProvider.createMechanicalWork({
+        garden_id: selectedGardenId || undefined,
+        work_type: formData.work_type!,
+        work_date: formData.work_date!,
+        area_m2: formData.area_m2 ? parseFloat(formData.area_m2.toString()) : 0,
+        depth_cm: formData.depth_cm ? parseFloat(formData.depth_cm.toString()) : undefined,
+        equipment_type: formData.equipment_type,
+        equipment_attachment: formData.equipment_type === 'Tractor' ? (formData.equipment_attachment || undefined) : undefined,
+        work_metadata: formData.work_metadata,
+        weather_conditions: formData.weather_conditions,
+        operator_name: formData.operator_name,
+        notes: formData.notes,
       })
-
-      if (response.ok) {
-        const data = await response.json()
-        setWorks([data.work, ...works])
-        setShowForm(false)
-        resetForm()
-        loadData()
-      } else {
-        const error = await response.json()
-        alert(`Errore: ${error.message || 'Impossibile salvare la lavorazione'}`)
-      }
+      
+      // Convert to component format and add to list
+      setWorks([{
+        id: newWork.id,
+        garden_id: newWork.garden_id,
+        work_type: newWork.work_type,
+        work_date: newWork.work_date,
+        area_m2: newWork.area_m2,
+        depth_cm: newWork.depth_cm,
+        equipment_type: newWork.equipment_type as EquipmentType | undefined,
+        equipment_attachment: newWork.equipment_attachment,
+        work_metadata: newWork.work_metadata,
+        weather_conditions: newWork.weather_conditions,
+        operator_name: newWork.operator_name,
+        notes: newWork.notes,
+        created_at: newWork.created_at,
+      }, ...works])
+      setShowForm(false)
+      resetForm()
     } catch (error: any) {
       console.error('Error saving mechanical work:', error)
       alert(`Errore: ${error.message || 'Impossibile salvare la lavorazione'}`)
@@ -263,7 +278,15 @@ export default function MechanicalWorkPage() {
 
   // Get work category
   const getWorkCategory = (type: WorkType): WorkCategory => {
-    const soilWorks: WorkType[] = ['Plowing', 'Subsoiling', 'Harrowing', 'Tilling', 'Rolling', 'Hoeing', 'EarthingUp', 'Mulching', 'PostSowingRolling']
+    const soilWorks: WorkType[] = [
+      // Suolo (esistenti)
+      'Plowing', 'Subsoiling', 'Harrowing', 'Tilling', 'Rolling', 'Hoeing', 'EarthingUp', 'Mulching', 'PostSowingRolling',
+      // Preparazione Terreno (nuove)
+      'Clearing', 'Stumping', 'StoneRemoval', 'Leveling', 'DeepSubsoiling',
+      'Digging', 'DeepHarrowing', 'Crumbling', 'Scraping', 'SurfaceLeveling',
+      // Tecniche Moderne
+      'MinimumTillage', 'StripTillage', 'NoTill'
+    ]
     const canopyWorks: WorkType[] = ['FormativePruning', 'MaintenancePruning', 'RejuvenationPruning', 'SummerPruning', 'WinterPruning', 'Thinning', 'Suckering', 'Defoliation', 'Tying', 'OliveShredding', 'RunnerManagement', 'StrawberryMulching', 'StrawberryCleaning', 'CaneRemoval', 'TipPruning', 'RaspberryTying', 'SuckerThinning', 'FruitBagging', 'ExoticThinning', 'Shredding']
     
     if (soilWorks.includes(type)) return 'Soil'
@@ -274,7 +297,7 @@ export default function MechanicalWorkPage() {
   // Translation functions
   const translateWorkType = (type: WorkType): string => {
     const translations: Record<WorkType, string> = {
-      // Suolo
+      // Suolo (esistenti)
       'Plowing': 'Aratura',
       'Subsoiling': 'Ripuntatura / Subsolatura',
       'Harrowing': 'Erpicatura / Frangizzolatura',
@@ -284,6 +307,21 @@ export default function MechanicalWorkPage() {
       'EarthingUp': 'Rincalzatura',
       'Mulching': 'Pacciamatura',
       'PostSowingRolling': 'Rullatura Post-Semina',
+      // Preparazione Terreno (nuove)
+      'Clearing': 'Disboscamento',
+      'Stumping': 'Estirpazione Ceppi',
+      'StoneRemoval': 'Rimozione Pietre',
+      'Leveling': 'Livellamento',
+      'DeepSubsoiling': 'Ripuntatura Profonda',
+      'Digging': 'Scavo',
+      'DeepHarrowing': 'Erpicatura Profonda',
+      'Crumbling': 'Frangizzolatura',
+      'Scraping': 'Raschiamento',
+      'SurfaceLeveling': 'Livellamento Superficie',
+      // Tecniche Moderne
+      'MinimumTillage': 'Lavorazione Minima',
+      'StripTillage': 'Lavorazione a Strisce',
+      'NoTill': 'No-Till',
       // Chioma
       'FormativePruning': 'Potatura di Formazione',
       'MaintenancePruning': 'Potatura di Produzione',
@@ -348,7 +386,7 @@ export default function MechanicalWorkPage() {
         feature="mechanical-work-register"
         title="Registro Lavorazioni Meccaniche"
         description="Registra e gestisci arature e fresature per terreni più grandi"
-        requiredTier="PRO_PROFESSIONAL"
+        requiredTier="PRO"
       >
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
@@ -459,6 +497,23 @@ export default function MechanicalWorkPage() {
                       <option value="EarthingUp">Rincalzatura</option>
                       <option value="Mulching">Pacciamatura</option>
                       <option value="PostSowingRolling">Rullatura Post-Semina</option>
+                    </optgroup>
+                    <optgroup label="Preparazione Terreno">
+                      <option value="Clearing">Disboscamento</option>
+                      <option value="Stumping">Estirpazione Ceppi</option>
+                      <option value="StoneRemoval">Rimozione Pietre</option>
+                      <option value="Leveling">Livellamento</option>
+                      <option value="DeepSubsoiling">Ripuntatura Profonda</option>
+                      <option value="Digging">Scavo</option>
+                      <option value="DeepHarrowing">Erpicatura Profonda</option>
+                      <option value="Crumbling">Frangizzolatura</option>
+                      <option value="Scraping">Raschiamento</option>
+                      <option value="SurfaceLeveling">Livellamento Superficie</option>
+                    </optgroup>
+                    <optgroup label="Tecniche Moderne">
+                      <option value="MinimumTillage">Lavorazione Minima</option>
+                      <option value="StripTillage">Lavorazione a Strisce</option>
+                      <option value="NoTill">No-Till</option>
                     </optgroup>
                     <optgroup label="Chioma">
                       <option value="FormativePruning">Potatura di Formazione</option>

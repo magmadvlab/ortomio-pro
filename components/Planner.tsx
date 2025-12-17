@@ -7,13 +7,14 @@ import { getCurrentPositionWithRetry, getDefaultCoordinates } from '../services/
 import { findSeedsForPlant, getExpiringSeeds } from '../services/seedInventoryService';
 import { calculateMoonPhase, getMoonPhaseName, isIdealPhaseFor } from '../logic/lunarCalendar';
 import { getSuggestedBatches, calculateStaggeredPlanting } from '../logic/staggeredPlantingEngine';
-import { getAllMasterSheets } from '../services/plantMasterService';
+import { getAllMasterSheets, getMasterSheetSync } from '../services/plantMasterService';
 import { getAllSpecializedMasterSheets, getMasterSheetsByCropType } from '../data/specializedCropMasterSheets';
 import { checkPHCompatibility } from '../logic/soilPHEngine';
 import PHCompatibilityChecker from './PHCompatibilityChecker';
 import FertigationPlanner from './FertigationPlanner';
 import VisualGardenPlanner from './VisualGardenPlanner';
 import SpecializedCropForm, { SpecializedCropType } from './SpecializedCropForm';
+import CustomCropForm from './CustomCropForm';
 import { useTier } from '../packages/core/hooks/useTier';
 import { PlantSuggestionForWindow } from '../services/seasonalPlantSuggestions';
 import { GardenClassification } from '../services/seasonalSunWindows';
@@ -153,6 +154,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
   // Specialized crops state
   const [selectedCropCategory, setSelectedCropCategory] = useState<'all' | SpecializedCropType>('all');
   const [selectedSpecializedCrop, setSelectedSpecializedCrop] = useState<any>(null);
+  const [showCustomCropForm, setShowCustomCropForm] = useState(false);
 
   // Custom Irrigation & Batches State
   const [customIrrigationFreq, setCustomIrrigationFreq] = useState('');
@@ -227,7 +229,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
           const masterSheets: Map<string, any> = new Map<string, any>();
           tasks.forEach(task => {
             if (task.plantName) {
-              const master = getMasterSheet(task.plantName);
+              const master = getMasterSheetSync(task.plantName);
               if (master) {
                 masterSheets.set(task.plantName.toLowerCase(), master);
               }
@@ -730,6 +732,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
           </button>
         </div>
         
+        {/* TODO: Integrare PlantFuzzySearch per supportare ricerca con sinonimi dialettali (barattiere, pummador, ecc.) */}
         <form onSubmit={handleSpecificSearch} className="relative">
             <input 
                 type="text" 
@@ -760,10 +763,32 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
       {/* SPECIALIZED CROPS SECTION */}
       {isPro && (
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-200">
-          <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Sparkles size={20} className="text-purple-600"/>
-            Colture Specializzate
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <Sparkles size={20} className="text-purple-600"/>
+              Colture Specializzate
+            </h2>
+            <button
+              onClick={() => setShowCustomCropForm(true)}
+              className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+            >
+              <PlusCircle size={16} />
+              Aggiungi Coltura Personalizzata
+            </button>
+          </div>
+          
+          {/* Custom Crop Form */}
+          {showCustomCropForm && (
+            <div className="mb-4">
+              <CustomCropForm
+                gardenId={garden.id}
+                onSuccess={() => {
+                  setShowCustomCropForm(false);
+                }}
+                onCancel={() => setShowCustomCropForm(false)}
+              />
+            </div>
+          )}
           
           {/* Category Filter */}
           <div className="mb-4">
@@ -778,9 +803,9 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
             >
               <option value="all">Tutte</option>
               <option value="FruitTree">Alberi da Frutto</option>
+              <option value="Olive">Olive 🇮🇹 TRADIZIONALE</option>
+              <option value="Vine">Vite 🇮🇹 TRADIZIONALE</option>
               <option value="Strawberry">Fragole</option>
-              <option value="Olive">Olive</option>
-              <option value="Vine">Vite</option>
               <option value="ExoticFruit">Frutti Esotici</option>
               <option value="Aromatic">Erbe Aromatiche</option>
               <option value="Raspberry">Lamponi</option>
@@ -1365,7 +1390,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                 {specificResult && (
                   <AccessoriesSuggestionsSection
                     plantName={specificResult.name}
-                    masterData={getMasterSheet(specificResult.name)}
+                    masterData={getMasterSheetSync(specificResult.name)}
                     garden={garden}
                   />
                 )}

@@ -62,7 +62,6 @@ export function ConsumerDashboard() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
         <GardenOnboarding
-          existingGardensCount={gardens.length}
           onComplete={handleOnboardingComplete}
           onCancel={handleOnboardingCancel}
         />

@@ -1,11 +1,13 @@
 /**
  * useAuth Hook
  * Gestisce stato autenticazione e integrazione con Supabase Auth
+ * Supporta bypass completo per sviluppo locale
  */
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react'
 import { getSupabaseClient } from '@/config/supabase'
 import { User } from '@supabase/supabase-js'
+import { isBypassActive, getMockUser, logBypassStatus } from '@/lib/auth-bypass'
 
 interface AuthContextType {
   user: User | null
@@ -26,6 +28,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Verifica sessione esistente al mount
   useEffect(() => {
+    // Se bypass attivo, usa mock user
+    if (isBypassActive()) {
+      logBypassStatus()
+      const mockUser = getMockUser() as User
+      setUser(mockUser)
+      setLoading(false)
+      setError(null)
+      return
+    }
+
     const checkSession = async () => {
       try {
         const supabase = getSupabaseClient()
@@ -52,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     checkSession()
 
-    // Ascolta cambiamenti autenticazione
+    // Ascolta cambiamenti autenticazione (solo se bypass non attivo)
     const supabase = getSupabaseClient()
     if (supabase) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -73,6 +85,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = async (email: string, password: string) => {
+    // Se bypass attivo, simula login immediato
+    if (isBypassActive()) {
+      const mockUser = getMockUser() as User
+      setUser(mockUser)
+      setLoading(false)
+      setError(null)
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -101,6 +122,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async () => {
+    // Se bypass attivo, simula logout
+    if (isBypassActive()) {
+      setUser(null)
+      setLoading(false)
+      setError(null)
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -119,6 +148,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const register = async (email: string, password: string) => {
+    // Se bypass attivo, simula registrazione immediata
+    if (isBypassActive()) {
+      const mockUser = getMockUser() as User
+      setUser(mockUser)
+      setLoading(false)
+      setError(null)
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -150,6 +188,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const refreshUser = async () => {
+    // Se bypass attivo, mantieni mock user
+    if (isBypassActive()) {
+      const mockUser = getMockUser() as User
+      setUser(mockUser)
+      return
+    }
+
     try {
       const supabase = getSupabaseClient()
       if (!supabase) return

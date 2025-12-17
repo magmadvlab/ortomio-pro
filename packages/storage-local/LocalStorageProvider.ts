@@ -4,7 +4,8 @@
  */
 
 import { IStorageProvider } from '../core/storage/interface';
-import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog } from '@/types';
+import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB } from '@/types';
+import { CustomCrop, CropLearningEvent } from '@/types/customCrop';
 import { CustomPlan } from '@/types/customPlan';
 import { Agronomist, AgronomistConsultation, AgronomistAdvice } from '@/types/agronomist';
 import { StorageService } from '@/services/storageService';
@@ -13,6 +14,8 @@ import { SeedlingBatch } from '@/services/seedlingService';
 import { GardenAccessory } from '@/types/accessories';
 import { HydroponicReading, AquaponicReading } from '@/types/indoorGrowing';
 import { GardenBed } from '@/types/gardenBed';
+import { CropArchetype, CropProfile, CropAlias, ArchetypeId, OfficialCrop } from '@/types/archetypes';
+import { IrrigationSystem, IrrigationZone, IrrigationComponent, WateringLog } from '@/types/irrigation';
 
 export class LocalStorageProvider implements IStorageProvider {
   private readonly STORAGE_KEYS = {
@@ -31,6 +34,10 @@ export class LocalStorageProvider implements IStorageProvider {
     HYDROPONIC_READINGS: 'ortoHydroponicReadings',
     AQUAPONIC_READINGS: 'ortoAquaponicReadings',
     GARDEN_BEDS: 'ortoGardenBeds',
+    IRRIGATION_SYSTEMS: 'ortoIrrigationSystems',
+    IRRIGATION_ZONES: 'ortoIrrigationZones',
+    IRRIGATION_COMPONENTS: 'ortoIrrigationComponents',
+    WATERING_LOGS: 'ortoWateringLogs',
   } as const;
 
   isAvailable(): boolean {
@@ -779,6 +786,582 @@ export class LocalStorageProvider implements IStorageProvider {
     const allBeds = this.getAllGardenBeds();
     const filtered = allBeds.filter(b => b.id !== id);
     this.saveGardenBeds(filtered);
+  }
+
+  // Mechanical Work
+  async getMechanicalWorks(gardenId?: string): Promise<MechanicalWorkRecord[]> {
+    const key = 'ortomio_mechanical_works';
+    const allWorks = JSON.parse(localStorage.getItem(key) || '[]') as MechanicalWorkRecord[];
+    
+    let filtered = allWorks;
+    if (gardenId) {
+      filtered = allWorks.filter(w => w.garden_id === gardenId);
+    }
+    
+    return filtered.sort((a, b) => new Date(b.work_date).getTime() - new Date(a.work_date).getTime());
+  }
+
+  async getMechanicalWork(id: string): Promise<MechanicalWorkRecord | null> {
+    const allWorks = await this.getMechanicalWorks();
+    return allWorks.find(w => w.id === id) || null;
+  }
+
+  async createMechanicalWork(work: Omit<MechanicalWorkRecord, 'id' | 'user_id' | 'created_at'>): Promise<MechanicalWorkRecord> {
+    const key = 'ortomio_mechanical_works';
+    const allWorks = JSON.parse(localStorage.getItem(key) || '[]') as MechanicalWorkRecord[];
+    
+    const newWork: MechanicalWorkRecord = {
+      ...work,
+      id: crypto.randomUUID(),
+      user_id: 'local_user',
+      created_at: new Date().toISOString(),
+    };
+    
+    allWorks.push(newWork);
+    localStorage.setItem(key, JSON.stringify(allWorks));
+    return newWork;
+  }
+
+  async updateMechanicalWork(id: string, updates: Partial<MechanicalWorkRecord>): Promise<MechanicalWorkRecord> {
+    const key = 'ortomio_mechanical_works';
+    const allWorks = JSON.parse(localStorage.getItem(key) || '[]') as MechanicalWorkRecord[];
+    const index = allWorks.findIndex(w => w.id === id);
+    
+    if (index === -1) {
+      throw new Error(`MechanicalWork with id ${id} not found`);
+    }
+    
+    const updatedWork: MechanicalWorkRecord = {
+      ...allWorks[index],
+      ...updates,
+    };
+    
+    allWorks[index] = updatedWork;
+    localStorage.setItem(key, JSON.stringify(allWorks));
+    return updatedWork;
+  }
+
+  async deleteMechanicalWork(id: string): Promise<void> {
+    const key = 'ortomio_mechanical_works';
+    const allWorks = JSON.parse(localStorage.getItem(key) || '[]') as MechanicalWorkRecord[];
+    const filtered = allWorks.filter(w => w.id !== id);
+    localStorage.setItem(key, JSON.stringify(filtered));
+  }
+
+  // Treatments
+  async getTreatments(gardenId?: string): Promise<TreatmentRecordDB[]> {
+    const key = 'ortomio_treatments';
+    const allTreatments = JSON.parse(localStorage.getItem(key) || '[]') as TreatmentRecordDB[];
+    
+    let filtered = allTreatments;
+    if (gardenId) {
+      filtered = allTreatments.filter(t => t.garden_id === gardenId);
+    }
+    
+    return filtered.sort((a, b) => new Date(b.treatment_date).getTime() - new Date(a.treatment_date).getTime());
+  }
+
+  async getTreatment(id: string): Promise<TreatmentRecordDB | null> {
+    const allTreatments = await this.getTreatments();
+    return allTreatments.find(t => t.id === id) || null;
+  }
+
+  async createTreatment(treatment: Omit<TreatmentRecordDB, 'id' | 'user_id' | 'created_at'>): Promise<TreatmentRecordDB> {
+    const key = 'ortomio_treatments';
+    const allTreatments = JSON.parse(localStorage.getItem(key) || '[]') as TreatmentRecordDB[];
+    
+    const newTreatment: TreatmentRecordDB = {
+      ...treatment,
+      id: crypto.randomUUID(),
+      user_id: 'local_user',
+      created_at: new Date().toISOString(),
+    };
+    
+    allTreatments.push(newTreatment);
+    localStorage.setItem(key, JSON.stringify(allTreatments));
+    return newTreatment;
+  }
+
+  async updateTreatment(id: string, updates: Partial<TreatmentRecordDB>): Promise<TreatmentRecordDB> {
+    const key = 'ortomio_treatments';
+    const allTreatments = JSON.parse(localStorage.getItem(key) || '[]') as TreatmentRecordDB[];
+    const index = allTreatments.findIndex(t => t.id === id);
+    
+    if (index === -1) {
+      throw new Error(`Treatment with id ${id} not found`);
+    }
+    
+    const updatedTreatment: TreatmentRecordDB = {
+      ...allTreatments[index],
+      ...updates,
+    };
+    
+    allTreatments[index] = updatedTreatment;
+    localStorage.setItem(key, JSON.stringify(allTreatments));
+    return updatedTreatment;
+  }
+
+  async deleteTreatment(id: string): Promise<void> {
+    const key = 'ortomio_treatments';
+    const allTreatments = JSON.parse(localStorage.getItem(key) || '[]') as TreatmentRecordDB[];
+    const filtered = allTreatments.filter(t => t.id !== id);
+    localStorage.setItem(key, JSON.stringify(filtered));
+  }
+
+  // Custom Crops
+  async getCustomCrops(gardenId?: string): Promise<CustomCrop[]> {
+    const key = 'ortomio_custom_crops';
+    const allCrops = JSON.parse(localStorage.getItem(key) || '[]') as CustomCrop[];
+    
+    let filtered = allCrops;
+    if (gardenId) {
+      filtered = allCrops.filter(c => c.garden_id === gardenId);
+    }
+    
+    return filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  async getCustomCrop(id: string): Promise<CustomCrop | null> {
+    const allCrops = await this.getCustomCrops();
+    return allCrops.find(c => c.id === id) || null;
+  }
+
+  async createCustomCrop(crop: Omit<CustomCrop, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<CustomCrop> {
+    const key = 'ortomio_custom_crops';
+    const allCrops = JSON.parse(localStorage.getItem(key) || '[]') as CustomCrop[];
+    
+    const newCrop: CustomCrop = {
+      ...crop,
+      id: crypto.randomUUID(),
+      user_id: 'local_user',
+      learned_patterns: crop.learned_patterns || {
+        plantingTiming: { successfulDates: [], failedDates: [], confidence: 0 },
+        harvestTiming: { successfulDates: [], confidence: 0 },
+        successfulWorks: [],
+        successfulTreatments: [],
+        recurringProblems: []
+      },
+      stats: crop.stats || {
+        totalPlantings: 0,
+        totalHarvests: 0,
+        successRate: 0
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    
+    allCrops.push(newCrop);
+    localStorage.setItem(key, JSON.stringify(allCrops));
+    return newCrop;
+  }
+
+  async updateCustomCrop(id: string, updates: Partial<CustomCrop>): Promise<CustomCrop> {
+    const key = 'ortomio_custom_crops';
+    const allCrops = JSON.parse(localStorage.getItem(key) || '[]') as CustomCrop[];
+    const index = allCrops.findIndex(c => c.id === id);
+    
+    if (index === -1) {
+      throw new Error(`CustomCrop with id ${id} not found`);
+    }
+    
+    const updatedCrop: CustomCrop = {
+      ...allCrops[index],
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
+    
+    allCrops[index] = updatedCrop;
+    localStorage.setItem(key, JSON.stringify(allCrops));
+    return updatedCrop;
+  }
+
+  async deleteCustomCrop(id: string): Promise<void> {
+    const key = 'ortomio_custom_crops';
+    const allCrops = JSON.parse(localStorage.getItem(key) || '[]') as CustomCrop[];
+    const filtered = allCrops.filter(c => c.id !== id);
+    localStorage.setItem(key, JSON.stringify(filtered));
+  }
+
+  // Learning Events
+  async recordLearningEvent(event: Omit<CropLearningEvent, 'id' | 'created_at'>): Promise<CropLearningEvent> {
+    const key = 'ortomio_learning_events';
+    const allEvents = JSON.parse(localStorage.getItem(key) || '[]') as CropLearningEvent[];
+    
+    const newEvent: CropLearningEvent = {
+      ...event,
+      id: crypto.randomUUID(),
+      user_id: 'local_user',
+      created_at: new Date().toISOString(),
+    };
+    
+    allEvents.push(newEvent);
+    localStorage.setItem(key, JSON.stringify(allEvents));
+    return newEvent;
+  }
+
+  async getLearningEvents(cropId: string): Promise<CropLearningEvent[]> {
+    const key = 'ortomio_learning_events';
+    const allEvents = JSON.parse(localStorage.getItem(key) || '[]') as CropLearningEvent[];
+    
+    return allEvents
+      .filter(e => e.custom_crop_id === cropId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  // Sistema Archetipi
+  async getArchetypes(): Promise<CropArchetype[]> {
+    // Archetipi sono dati statici
+    const { archetypes } = await import('../../data/archetypes');
+    return archetypes;
+  }
+
+  async getArchetype(id: ArchetypeId): Promise<CropArchetype | null> {
+    const { getArchetypeById } = await import('../../data/archetypes');
+    return getArchetypeById(id) || null;
+  }
+
+  async getProfile(archetypeId: ArchetypeId): Promise<CropProfile | null> {
+    const { getProfileByArchetypeId } = await import('../../data/archetypeProfiles');
+    return getProfileByArchetypeId(archetypeId) || null;
+  }
+
+  // Aliases
+  async searchAlias(query: string, region?: string, province?: string): Promise<CropAlias | null> {
+    const key = 'ortomio_crop_aliases';
+    const aliases = JSON.parse(localStorage.getItem(key) || '[]') as CropAlias[];
+    const { normalizeText } = await import('../../utils/textNormalizer');
+    const normalizedQuery = normalizeText(query);
+    
+    const matches = aliases.filter(a => {
+      const aliasNormalized = normalizeText(a.aliasText);
+      // Cerca su aliasText (case-insensitive) o normalized_alias se disponibile
+      const textMatch = aliasNormalized === normalizedQuery || 
+                       a.aliasText.toLowerCase() === query.toLowerCase().trim();
+      if (!textMatch) return false;
+      if (region && a.region !== region) return false;
+      if (province && a.province !== province) return false;
+      return true;
+    });
+    
+    if (matches.length === 0) return null;
+    
+    // Ritorna quello con confidence più alta
+    return matches.sort((a, b) => b.confidence - a.confidence)[0];
+  }
+
+  async createAlias(alias: Omit<CropAlias, 'id' | 'createdAt' | 'updatedAt' | 'usageCount'>): Promise<CropAlias> {
+    const key = 'ortomio_crop_aliases';
+    const aliases = JSON.parse(localStorage.getItem(key) || '[]') as CropAlias[];
+    const { normalizeText } = await import('../../utils/textNormalizer');
+    
+    // Auto-popola normalized_alias
+    const normalizedAlias = normalizeText(alias.aliasText);
+    
+    const newAlias: CropAlias = {
+      ...alias,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      usageCount: 1
+    };
+    
+    // Aggiungi normalized_alias se non presente (per retrocompatibilità)
+    (newAlias as any).normalizedAlias = normalizedAlias;
+    
+    aliases.push(newAlias);
+    localStorage.setItem(key, JSON.stringify(aliases));
+    return newAlias;
+  }
+
+  async updateAliasConfidence(aliasId: string, confidence: number): Promise<void> {
+    const key = 'ortomio_crop_aliases';
+    const aliases = JSON.parse(localStorage.getItem(key) || '[]') as CropAlias[];
+    const index = aliases.findIndex(a => a.id === aliasId);
+    
+    if (index === -1) throw new Error(`Alias with id ${aliasId} not found`);
+    
+    aliases[index].confidence = Math.max(0, Math.min(1, confidence));
+    aliases[index].updatedAt = new Date().toISOString();
+    localStorage.setItem(key, JSON.stringify(aliases));
+  }
+
+  async getAlias(aliasId: string): Promise<CropAlias | null> {
+    const key = 'ortomio_crop_aliases';
+    const aliases = JSON.parse(localStorage.getItem(key) || '[]') as CropAlias[];
+    return aliases.find(a => a.id === aliasId) || null;
+  }
+
+  async updateAlias(aliasId: string, updates: Partial<CropAlias>): Promise<CropAlias> {
+    const key = 'ortomio_crop_aliases';
+    const aliases = JSON.parse(localStorage.getItem(key) || '[]') as CropAlias[];
+    const index = aliases.findIndex(a => a.id === aliasId);
+    
+    if (index === -1) throw new Error(`Alias with id ${aliasId} not found`);
+    
+    aliases[index] = {
+      ...aliases[index],
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+    
+    localStorage.setItem(key, JSON.stringify(aliases));
+    return aliases[index];
+  }
+
+  async getAliasesByArchetype(archetypeId: ArchetypeId): Promise<CropAlias[]> {
+    const key = 'ortomio_crop_aliases';
+    const aliases = JSON.parse(localStorage.getItem(key) || '[]') as CropAlias[];
+    
+    return aliases
+      .filter(a => a.archetypeId === archetypeId)
+      .sort((a, b) => b.usageCount - a.usageCount);
+  }
+
+  // Official Crops
+  async getOfficialCrop(name: string): Promise<OfficialCrop | null> {
+    const key = 'ortomio_official_crops';
+    const crops = JSON.parse(localStorage.getItem(key) || '[]') as OfficialCrop[];
+    const { normalizeText } = await import('../../utils/textNormalizer');
+    const normalizedName = normalizeText(name);
+    
+    // Cerca su name (case-insensitive) o normalized_name se disponibile
+    return crops.find(c => {
+      const cropNormalized = normalizeText(c.name);
+      return cropNormalized === normalizedName || c.name.toLowerCase() === name.toLowerCase();
+    }) || null;
+  }
+
+  async searchOfficialCrops(query: string): Promise<OfficialCrop[]> {
+    const key = 'ortomio_official_crops';
+    const crops = JSON.parse(localStorage.getItem(key) || '[]') as OfficialCrop[];
+    
+    // Se query vuota, restituisci tutti (limitato a 200 per performance)
+    if (!query || query.trim().length === 0) {
+      return crops.slice(0, 200);
+    }
+    
+    const { normalizeText } = await import('../../utils/textNormalizer');
+    const normalizedQuery = normalizeText(query);
+    
+    return crops
+      .filter(c => {
+        const cropNormalized = normalizeText(c.name);
+        return cropNormalized.includes(normalizedQuery) || 
+               c.name.toLowerCase().includes(query.toLowerCase());
+      })
+      .slice(0, 50);
+  }
+
+  async getAllAliases(): Promise<CropAlias[]> {
+    const key = 'ortomio_crop_aliases';
+    return JSON.parse(localStorage.getItem(key) || '[]') as CropAlias[];
+  }
+
+  // Irrigation Systems
+  async getIrrigationSystems(gardenId: string): Promise<IrrigationSystem[]> {
+    const key = this.STORAGE_KEYS.IRRIGATION_SYSTEMS;
+    const systems = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationSystem[];
+    return systems.filter(s => s.gardenId === gardenId);
+  }
+
+  async getIrrigationSystem(id: string): Promise<IrrigationSystem | null> {
+    const key = this.STORAGE_KEYS.IRRIGATION_SYSTEMS;
+    const systems = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationSystem[];
+    return systems.find(s => s.id === id) || null;
+  }
+
+  async createIrrigationSystem(system: Omit<IrrigationSystem, 'id' | 'createdAt' | 'updatedAt'>): Promise<IrrigationSystem> {
+    const key = this.STORAGE_KEYS.IRRIGATION_SYSTEMS;
+    const systems = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationSystem[];
+    const newSystem: IrrigationSystem = {
+      ...system,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    systems.push(newSystem);
+    localStorage.setItem(key, JSON.stringify(systems));
+    return newSystem;
+  }
+
+  async updateIrrigationSystem(id: string, updates: Partial<IrrigationSystem>): Promise<IrrigationSystem> {
+    const key = this.STORAGE_KEYS.IRRIGATION_SYSTEMS;
+    const systems = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationSystem[];
+    const index = systems.findIndex(s => s.id === id);
+    if (index === -1) throw new Error(`Irrigation system with id ${id} not found`);
+    
+    systems[index] = {
+      ...systems[index],
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem(key, JSON.stringify(systems));
+    return systems[index];
+  }
+
+  async deleteIrrigationSystem(id: string): Promise<void> {
+    const key = this.STORAGE_KEYS.IRRIGATION_SYSTEMS;
+    const systems = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationSystem[];
+    const filtered = systems.filter(s => s.id !== id);
+    localStorage.setItem(key, JSON.stringify(filtered));
+  }
+
+  // Irrigation Zones
+  async getIrrigationZones(systemId: string): Promise<IrrigationZone[]> {
+    const key = this.STORAGE_KEYS.IRRIGATION_ZONES;
+    const zones = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationZone[];
+    return zones.filter(z => z.systemId === systemId);
+  }
+
+  async getIrrigationZone(id: string): Promise<IrrigationZone | null> {
+    const key = this.STORAGE_KEYS.IRRIGATION_ZONES;
+    const zones = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationZone[];
+    return zones.find(z => z.id === id) || null;
+  }
+
+  async createIrrigationZone(zone: Omit<IrrigationZone, 'id' | 'createdAt' | 'updatedAt'>): Promise<IrrigationZone> {
+    const key = this.STORAGE_KEYS.IRRIGATION_ZONES;
+    const zones = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationZone[];
+    const newZone: IrrigationZone = {
+      ...zone,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    zones.push(newZone);
+    localStorage.setItem(key, JSON.stringify(zones));
+    return newZone;
+  }
+
+  async updateIrrigationZone(id: string, updates: Partial<IrrigationZone>): Promise<IrrigationZone> {
+    const key = this.STORAGE_KEYS.IRRIGATION_ZONES;
+    const zones = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationZone[];
+    const index = zones.findIndex(z => z.id === id);
+    if (index === -1) throw new Error(`Irrigation zone with id ${id} not found`);
+    
+    zones[index] = {
+      ...zones[index],
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem(key, JSON.stringify(zones));
+    return zones[index];
+  }
+
+  async deleteIrrigationZone(id: string): Promise<void> {
+    const key = this.STORAGE_KEYS.IRRIGATION_ZONES;
+    const zones = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationZone[];
+    const filtered = zones.filter(z => z.id !== id);
+    localStorage.setItem(key, JSON.stringify(filtered));
+    
+    // Elimina anche i componenti associati
+    const componentsKey = this.STORAGE_KEYS.IRRIGATION_COMPONENTS;
+    const components = JSON.parse(localStorage.getItem(componentsKey) || '[]') as IrrigationComponent[];
+    const filteredComponents = components.filter(c => c.zoneId !== id);
+    localStorage.setItem(componentsKey, JSON.stringify(filteredComponents));
+  }
+
+  // Irrigation Components
+  async getIrrigationComponents(zoneId: string): Promise<IrrigationComponent[]> {
+    const key = this.STORAGE_KEYS.IRRIGATION_COMPONENTS;
+    const components = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationComponent[];
+    return components.filter(c => c.zoneId === zoneId);
+  }
+
+  async getIrrigationComponent(id: string): Promise<IrrigationComponent | null> {
+    const key = this.STORAGE_KEYS.IRRIGATION_COMPONENTS;
+    const components = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationComponent[];
+    return components.find(c => c.id === id) || null;
+  }
+
+  async createIrrigationComponent(component: Omit<IrrigationComponent, 'id' | 'createdAt'>): Promise<IrrigationComponent> {
+    const key = this.STORAGE_KEYS.IRRIGATION_COMPONENTS;
+    const components = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationComponent[];
+    const newComponent: IrrigationComponent = {
+      ...component,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString()
+    };
+    components.push(newComponent);
+    localStorage.setItem(key, JSON.stringify(components));
+    return newComponent;
+  }
+
+  async updateIrrigationComponent(id: string, updates: Partial<IrrigationComponent>): Promise<IrrigationComponent> {
+    const key = this.STORAGE_KEYS.IRRIGATION_COMPONENTS;
+    const components = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationComponent[];
+    const index = components.findIndex(c => c.id === id);
+    if (index === -1) throw new Error(`Irrigation component with id ${id} not found`);
+    
+    components[index] = {
+      ...components[index],
+      ...updates
+    };
+    localStorage.setItem(key, JSON.stringify(components));
+    return components[index];
+  }
+
+  async deleteIrrigationComponent(id: string): Promise<void> {
+    const key = this.STORAGE_KEYS.IRRIGATION_COMPONENTS;
+    const components = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationComponent[];
+    const filtered = components.filter(c => c.id !== id);
+    localStorage.setItem(key, JSON.stringify(filtered));
+  }
+
+  // Watering Logs
+  async getWateringLogs(zoneId: string, startDate?: string, endDate?: string): Promise<WateringLog[]> {
+    const key = this.STORAGE_KEYS.WATERING_LOGS;
+    let logs = JSON.parse(localStorage.getItem(key) || '[]') as WateringLog[];
+    logs = logs.filter(l => l.zoneId === zoneId);
+    
+    if (startDate) {
+      logs = logs.filter(l => l.date >= startDate);
+    }
+    if (endDate) {
+      logs = logs.filter(l => l.date <= endDate);
+    }
+    
+    return logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  async getWateringLog(id: string): Promise<WateringLog | null> {
+    const key = this.STORAGE_KEYS.WATERING_LOGS;
+    const logs = JSON.parse(localStorage.getItem(key) || '[]') as WateringLog[];
+    return logs.find(l => l.id === id) || null;
+  }
+
+  async logWatering(log: Omit<WateringLog, 'id' | 'createdAt'>): Promise<WateringLog> {
+    const key = this.STORAGE_KEYS.WATERING_LOGS;
+    const logs = JSON.parse(localStorage.getItem(key) || '[]') as WateringLog[];
+    const newLog: WateringLog = {
+      ...log,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString()
+    };
+    logs.push(newLog);
+    localStorage.setItem(key, JSON.stringify(logs));
+    return newLog;
+  }
+
+  async updateWateringLog(id: string, updates: Partial<WateringLog>): Promise<WateringLog> {
+    const key = this.STORAGE_KEYS.WATERING_LOGS;
+    const logs = JSON.parse(localStorage.getItem(key) || '[]') as WateringLog[];
+    const index = logs.findIndex(l => l.id === id);
+    if (index === -1) throw new Error(`Watering log with id ${id} not found`);
+    
+    logs[index] = {
+      ...logs[index],
+      ...updates
+    };
+    localStorage.setItem(key, JSON.stringify(logs));
+    return logs[index];
+  }
+
+  async deleteWateringLog(id: string): Promise<void> {
+    const key = this.STORAGE_KEYS.WATERING_LOGS;
+    const logs = JSON.parse(localStorage.getItem(key) || '[]') as WateringLog[];
+    const filtered = logs.filter(l => l.id !== id);
+    localStorage.setItem(key, JSON.stringify(filtered));
   }
 }
 

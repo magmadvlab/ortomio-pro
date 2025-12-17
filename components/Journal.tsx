@@ -5,13 +5,17 @@ import { GardenTask, HarvestLogData, GrowingLocation, Garden } from '../types';
 import { analyzePlantImage, checkHarvestReadiness } from '../services/geminiService';
 import { calculateNutrientNeeds, NutrientAdvice } from '../logic/nutrientEngine';
 import { calculateHealthStrategy } from '../logic/healthEngine';
-import { getMasterSheet } from '../services/plantMasterService';
+import { getMasterSheetSync, getMasterSheet } from '../services/plantMasterService';
 import { suggestFertilizerProduct, FertilizerRecommendation } from '../logic/fertilizerEngine';
 import { calculatePlantDaysActive } from '../services/taskCalculationService';
 import { checkLifecycleStatus, LifecycleAdvice } from '../logic/lifecycleEngine';
 import { calculateMoonPhase, getMoonPhaseName, getMoonPhaseNameFromPhase, getMoonPhaseEmoji } from '../logic/lunarCalendar';
 import { CheckCircle2, Circle, Calendar, Droplets, Shovel, Scissors, FlaskConical, Camera, Sparkles, Loader2, Sprout, X, PlusCircle, AlertCircle, Clock, Gauge, Scale, Star, ShoppingBasket, Snowflake, Sun, Box, Flower2, LayoutGrid, Users, History, Leaf, Shield, CheckCircle, XCircle, Moon } from 'lucide-react';
 import { shouldFertigateNow } from '../logic/fertigationEngine';
+import { AddCropWizard } from './crops/AddCropWizard';
+import { useStorage } from '../packages/core/hooks/useStorage';
+import { createAlias } from '../services/aliasService';
+import { searchCropWithFuzzy, SearchResult } from '../services/fuzzySearchService';
 
 interface JournalProps {
   tasks: GardenTask[];
@@ -23,7 +27,11 @@ interface JournalProps {
 }
 
 const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTask, onDeleteTask, onUpdateTask }) => {
+  const { storageProvider } = useStorage();
   const [isAdding, setIsAdding] = useState(false);
+  const [showCropWizard, setShowCropWizard] = useState(false);
+  const [wizardPlantName, setWizardPlantName] = useState('');
+  const [fuzzySuggestions, setFuzzySuggestions] = useState<SearchResult[]>([]);
   const [analyzingImg, setAnalyzingImg] = useState<string | null>(null);
   const [checkingBrixId, setCheckingBrixId] = useState<string | null>(null);
   
@@ -117,11 +125,63 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
     return 'Terra';
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!garden) {
+      alert('Seleziona un giardino prima di aggiungere un task.');
+      return;
+    }
+    
+    const query = newTask.plantName.trim();
+    if (query.length < 2) {
+      alert('Il nome della pianta deve avere almeno 2 caratteri.');
+      return;
+    }
+
+    // Usa fuzzy search per trovare match esatti o fuzzy
+    const result = await searchCropWithFuzzy(
+      storageProvider, 
+      query, 
+      undefined, // region (non disponibile in GeoLocation)
+      undefined  // province (non disponibile in GeoLocation)
+    );
+
+    if (result.exactMatch) {
+      // Exact match trovato, aggiungi task direttamente
+      onAddTask({
+        plantName: result.exactMatch.name,
+        variety: newTask.variety,
+        taskType: newTask.taskType,
+        plantingMethod: (newTask.taskType === 'Sowing' || newTask.taskType === 'Transplant') ? newTask.plantingMethod : undefined,
+        date: newTask.date,
+        notes: newTask.notes,
+        nextDueDate: newTask.nextDueDate || undefined,
+        season: detectSeason(newTask.date),
+        initialQuantity: newTask.quantity,
+        currentQuantity: newTask.quantity,
+        locationType: newTask.locationType,
+        archetypeId: result.exactMatch.archetypeId
+      });
+      setIsAdding(false);
+      setNewTask({ ...newTask, plantName: '', variety: '', notes: '', nextDueDate: '', quantity: 1 });
+      setFuzzySuggestions([]);
+    } else if (result.fuzzyMatches.length > 0) {
+      // Mostra suggerimenti fuzzy
+      setFuzzySuggestions(result.fuzzyMatches);
+    } else {
+      // Nessun match, apri wizard
+      setWizardPlantName(newTask.plantName);
+      setShowCropWizard(true);
+      setFuzzySuggestions([]);
+    }
+  };
+
+  const handleFuzzySuggestionSelect = async (suggestion: SearchResult) => {
+    // Usa il nome suggerito e l'archetipo
     onAddTask({
-      plantName: newTask.plantName,
-      variety: newTask.variety,
+      plantName: suggestion.name,
+      variety: newTask.variety, // Mantieni varietà originale
       taskType: newTask.taskType,
       plantingMethod: (newTask.taskType === 'Sowing' || newTask.taskType === 'Transplant') ? newTask.plantingMethod : undefined,
       date: newTask.date,
@@ -130,10 +190,45 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
       season: detectSeason(newTask.date),
       initialQuantity: newTask.quantity,
       currentQuantity: newTask.quantity,
-      locationType: newTask.locationType
+      locationType: newTask.locationType,
+      archetypeId: suggestion.archetypeId
     });
     setIsAdding(false);
     setNewTask({ ...newTask, plantName: '', variety: '', notes: '', nextDueDate: '', quantity: 1 });
+    setFuzzySuggestions([]);
+
+    // Opzionalmente aggiorna usage count o crea alias se necessario
+    if (suggestion.aliasId) {
+      try {
+        const alias = await storageProvider.getAlias(suggestion.aliasId);
+        if (alias) {
+          await storageProvider.updateAlias(suggestion.aliasId, {
+            usageCount: (alias.usageCount || 0) + 1
+          });
+        }
+      } catch (error) {
+        console.error('Error updating alias usage:', error);
+      }
+    } else if (suggestion.source === 'crop' && suggestion.type === 'fuzzy_crop') {
+      // Se era un fuzzy match su crop, crea alias per il nome inserito dall'utente
+      createAlias(
+        storageProvider,
+        newTask.plantName.trim(),
+        suggestion.archetypeId,
+        undefined, // region (non disponibile in GeoLocation)
+        undefined, // province (non disponibile in GeoLocation)
+        undefined, // userId (TODO: ottenere da auth)
+        0.7 // Confidence media per fuzzy match confermato
+      ).catch(console.error);
+    }
+  };
+  
+  const handleWizardComplete = (task: GardenTask) => {
+    // Il wizard restituisce un task completo, aggiungilo direttamente
+    onAddTask(task);
+    setShowCropWizard(false);
+    setWizardPlantName('');
+    setIsAdding(false);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, taskId: string) => {
@@ -292,7 +387,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
 
     Promise.all(
       activePlantingTasks.map(async (task) => {
-        const masterData = getMasterSheet(task.plantName);
+        const masterData = await getMasterSheet(task.plantName);
         if (!masterData) return;
 
         try {
@@ -328,7 +423,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
 
     Promise.all(
       activePlantingTasks.map(async (task) => {
-        const masterSheet = getMasterSheet(task.plantName);
+        const masterSheet = getMasterSheetSync(task.plantName);
         if (!masterSheet) return;
 
         const daysActive = calculatePlantDaysActive(tasks, task.plantName, task.variety);
@@ -419,7 +514,19 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
   });
 
   return (
-    <div className="p-4 pb-24 max-w-2xl mx-auto">
+    <>
+      {showCropWizard && garden && (
+        <AddCropWizard
+          garden={garden}
+          onComplete={handleWizardComplete}
+          onCancel={() => {
+            setShowCropWizard(false);
+            setWizardPlantName('');
+          }}
+          initialPlantName={wizardPlantName}
+        />
+      )}
+      <div className="p-4 pb-24 max-w-2xl mx-auto">
       <header className="flex justify-between items-center mb-6 sticky top-0 bg-green-50/95 backdrop-blur py-2 z-10">
         <div>
           <h1 className="text-2xl font-bold text-green-800">Diario dell'Orto</h1>
@@ -484,6 +591,53 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
         </div>
       )}
 
+      {/* Fuzzy Suggestions */}
+      {fuzzySuggestions.length > 0 && (
+        <div className="bg-white p-4 rounded-xl border border-blue-200 space-y-2 mb-4">
+          <p className="text-sm text-gray-600 font-medium mb-2">
+            Intendevi:
+          </p>
+          {fuzzySuggestions.map((suggestion, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleFuzzySuggestionSelect(suggestion)}
+              className="w-full p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-left flex items-center gap-3"
+            >
+              <span className="text-2xl">{suggestion.archetypeIcon}</span>
+              <div className="flex-1">
+                <div className="font-medium text-gray-800">
+                  {suggestion.name}
+                  {suggestion.source === 'alias' && (
+                    <span className="text-xs text-gray-500 ml-2">
+                      (alias locale)
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-600">
+                  {suggestion.archetypeLabel}
+                </div>
+              </div>
+              <span className="text-xs text-gray-400">
+                {Math.round(suggestion.score * 100)}% match
+              </span>
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              setFuzzySuggestions([]);
+              setWizardPlantName(newTask.plantName);
+              setShowCropWizard(true);
+              setIsAdding(false);
+            }}
+            className="w-full p-2 text-sm text-gray-600 hover:text-gray-800 underline text-center"
+          >
+            Non lo trovo → apri wizard completo
+          </button>
+        </div>
+      )}
+
       {isAdding && (
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-xl border border-green-100 mb-8 animate-in slide-in-from-top-4">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Nuova Attività</h2>
@@ -491,8 +645,9 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Pianta</label>
+                {/* TODO: Sostituire con PlantFuzzySearch per supportare sinonimi dialettali */}
                 <input required className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none" 
-                  value={newTask.plantName} onChange={e => setNewTask({...newTask, plantName: e.target.value})} placeholder="Es: Pomodoro" />
+                  value={newTask.plantName} onChange={e => setNewTask({...newTask, plantName: e.target.value})} placeholder="Es: Pomodoro, barattiere, pummador..." />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Varietà</label>
@@ -742,7 +897,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
 
                     {/* Nutrient Advice Section */}
                     {!task.completed && (task.taskType === 'Sowing' || task.taskType === 'Transplant') && (() => {
-                      const masterSheet = getMasterSheet(task.plantName);
+                      const masterSheet = getMasterSheetSync(task.plantName);
                       if (!masterSheet || !garden) return null;
                       
                       const daysActive = calculatePlantDaysActive(tasks, task.plantName, task.variety);
@@ -836,7 +991,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
 
                     {/* Health Protection Advice Section */}
                     {!task.completed && (task.taskType === 'Sowing' || task.taskType === 'Transplant') && (() => {
-                      const masterSheet = getMasterSheet(task.plantName);
+                      const masterSheet = getMasterSheetSync(task.plantName);
                       if (!masterSheet || !garden) return null;
                       
                       const daysActive = calculatePlantDaysActive(tasks, task.plantName, task.variety);
@@ -1021,6 +1176,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
         )}
       </div>
     </div>
+    </>
   );
 };
 

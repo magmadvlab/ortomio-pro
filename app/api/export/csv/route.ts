@@ -4,8 +4,8 @@ import { getSupabaseClient } from '@/lib/auth.server'
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify tier PRO_PROFESSIONAL
-    const result = await verifyTier(request, ['PRO_PROFESSIONAL'])
+    // Verify tier PRO
+    const result = await verifyTier(request, ['PRO'])
     
     if ('error' in result) {
       return NextResponse.json(

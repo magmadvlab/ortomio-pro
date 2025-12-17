@@ -20,6 +20,10 @@ import {
   Wifi,
   HelpCircle,
   Crown,
+  TreePine,
+  CircleDot,
+  Grape,
+  ChefHat,
 } from 'lucide-react'
 import { useTier } from '@/packages/core/hooks/useTier'
 
@@ -34,6 +38,10 @@ const menuItems = [
   { icon: BarChart3, label: 'Analytics', path: '/app/analytics', tier: 'PRO', badge: 'PRO' },
   { icon: FlaskConical, label: 'Trattamenti', path: '/app/treatments', tier: 'PRO', badge: 'PRO' },
   { icon: Tractor, label: 'Lavorazioni', path: '/app/mechanical-work', tier: 'PRO', badge: 'PRO' },
+  { icon: TreePine, label: 'Frutteto', path: '/app/orchard', tier: 'PRO', badge: 'PRO' },
+  { icon: CircleDot, label: 'Olivi', path: '/app/olives', tier: 'PRO', badge: 'PRO' },
+  { icon: Grape, label: 'Vite', path: '/app/vineyard', tier: 'PRO', badge: 'PRO' },
+  { icon: ChefHat, label: 'Ricette', path: '/app/recipes', tier: 'PRO', badge: 'PRO' },
   { icon: Database, label: 'Export', path: '/app/export', tier: 'PRO', badge: 'PRO' },
   { icon: Wifi, label: 'Smart Hub', path: '/app/smart', tier: 'all' },
   { icon: HelpCircle, label: 'Aiuto', path: '/app/help', tier: 'all' },

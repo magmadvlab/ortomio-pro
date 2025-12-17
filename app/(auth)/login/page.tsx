@@ -1,10 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSupabaseClient } from '@/config/supabase'
-import { Mail, Lock, Loader2, AlertCircle, ArrowRight } from 'lucide-react'
+import { Mail, Lock, Loader2, AlertCircle, ArrowRight, Shield } from 'lucide-react'
 import Link from 'next/link'
+import { isBypassActive, logBypassStatus } from '@/lib/auth-bypass'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -12,9 +13,32 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [bypassActive, setBypassActive] = useState(false)
+
+  // Controlla se bypass è attivo e reindirizza automaticamente
+  useEffect(() => {
+    if (isBypassActive()) {
+      logBypassStatus()
+      setBypassActive(true)
+      // Reindirizza automaticamente all'app dopo un breve delay per mostrare il banner
+      const timer = setTimeout(() => {
+        router.push('/app')
+        router.refresh()
+      }, 1500)
+      return () => clearTimeout(timer)
+    }
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Se bypass attivo, reindirizza direttamente
+    if (isBypassActive()) {
+      router.push('/app')
+      router.refresh()
+      return
+    }
+
     setError(null)
     setLoading(true)
 
@@ -54,13 +78,30 @@ export default function LoginPage() {
           <p className="text-gray-600">Accedi al tuo account</p>
         </div>
 
+        {/* Banner bypass attivo */}
+        {bypassActive && (
+          <div className="mb-6 p-4 bg-green-50 border-2 border-green-300 rounded-lg flex items-start gap-3">
+            <Shield size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-green-800 mb-1">
+                🔓 Auth Bypass Attivo
+              </p>
+              <p className="text-xs text-green-700">
+                Modalità sviluppo locale: autenticazione bypassata. Reindirizzamento automatico all'app...
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Messaggio login opzionale */}
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-800">
-            <strong>Login opzionale:</strong> L'app funziona anche offline senza account. 
-            Il login ti permette di sincronizzare i tuoi dati su più dispositivi.
-          </p>
-        </div>
+        {!bypassActive && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Login opzionale:</strong> L'app funziona anche offline senza account. 
+              Il login ti permette di sincronizzare i tuoi dati su più dispositivi.
+            </p>
+          </div>
+        )}
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">

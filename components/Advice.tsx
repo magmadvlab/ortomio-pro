@@ -261,7 +261,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
         for (const productName of advice.products.slice(0, 3)) { // Limita a 3 prodotti
           // Estrai nome pianta dal problema (semplificato)
           const plantName = advice.problem.split(' ')[0]; // Esempio semplificato
-          const masterSheet = getMasterSheet(plantName);
+          const masterSheet = await getMasterSheet(plantName);
           
           if (masterSheet) {
             // Ottieni previsioni meteo se disponibili

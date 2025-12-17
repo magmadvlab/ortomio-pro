@@ -9,8 +9,13 @@ import { convertToSqMeters } from '../utils/areaConverter';
 
 // Work types
 export type WorkType = 
-  // Suolo
+  // Suolo (esistenti)
   | 'Plowing' | 'Subsoiling' | 'Harrowing' | 'Tilling' | 'Rolling' | 'Hoeing' | 'EarthingUp' | 'Mulching' | 'PostSowingRolling'
+  // Preparazione Terreno (nuove)
+  | 'Clearing' | 'Stumping' | 'StoneRemoval' | 'Leveling' | 'DeepSubsoiling'
+  | 'Digging' | 'DeepHarrowing' | 'Crumbling' | 'Scraping' | 'SurfaceLeveling'
+  // Tecniche Moderne
+  | 'MinimumTillage' | 'StripTillage' | 'NoTill'
   // Chioma
   | 'FormativePruning' | 'MaintenancePruning' | 'RejuvenationPruning' | 'SummerPruning' | 'WinterPruning'
   | 'Thinning' | 'Suckering' | 'Defoliation' | 'Tying' | 'OliveShredding' | 'RunnerManagement'

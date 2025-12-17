@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const { data: profiles, error: fetchError } = await supabase
       .from('profiles')
       .select('id, tier, ai_credits_total, ai_credits_used, ai_credits_reset_date')
-      .in('tier', ['PRO', 'PRO_CONSUMER', 'PRO_PROFESSIONAL'])
+      .in('tier', ['PLUS', 'PRO', 'PRO_CONSUMER', 'PRO_PROFESSIONAL']) // Include legacy tiers for backward compatibility
       .lte('ai_credits_reset_date', today.toISOString().split('T')[0])
     
     if (fetchError) {
@@ -45,12 +45,14 @@ export async function GET(request: NextRequest) {
     let resetCount = 0
     
     for (const profile of profiles) {
-      const newTotal = profile.tier === 'PRO_PROFESSIONAL' ? 200 : 50
+      // Map tier to credits (new and legacy)
+      const isProTier = profile.tier === 'PRO' || profile.tier === 'PRO_PROFESSIONAL'
+      const newTotal = isProTier ? 200 : 50
       const nextResetDate = getNextMonthFirstDay()
       
       // Accumula credits non usati (fino al cap)
       const currentRemaining = (profile.ai_credits_total || 0) - (profile.ai_credits_used || 0)
-      const cap = profile.tier === 'PRO_PROFESSIONAL' ? 500 : 200
+      const cap = isProTier ? 500 : 200
       const accumulated = Math.min(currentRemaining + newTotal, cap)
       
       // Update profile

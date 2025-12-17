@@ -17,7 +17,7 @@ interface UserProfile {
 
 export default function AdminPage() {
   const { storageProvider } = useStorage()
-  const { tier, isProfessional } = useTier()
+  const { tier, isPro } = useTier()
   const [users, setUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
@@ -47,7 +47,7 @@ export default function AdminPage() {
       return
     }
 
-    // Check if user is PRO_PROFESSIONAL (admin access)
+    // Check if user is PRO (admin access)
     // In production, you might want to add an is_admin column
     const { data: profile } = await supabase
       .from('profiles')
@@ -56,14 +56,15 @@ export default function AdminPage() {
       .single()
 
     // Allow access if:
-    // 1. User is PRO_PROFESSIONAL
+    // 1. User is PRO (or legacy PRO_PROFESSIONAL)
     // 2. Or in development mode
     const isDev = typeof window !== 'undefined' && (
       window.location.hostname === 'localhost' || 
       window.location.hostname === '127.0.0.1'
     )
     
-    setIsAdmin(profile?.tier === 'PRO_PROFESSIONAL' || isDev)
+    const userTier = profile?.tier
+    setIsAdmin(userTier === 'PRO' || userTier === 'PRO_PROFESSIONAL' || isDev)
   }
 
   const loadCurrentUser = async () => {
@@ -168,7 +169,7 @@ export default function AdminPage() {
       return
     }
 
-    await setUserTier(currentUser.id, 'PRO_PROFESSIONAL')
+    await setUserTier(currentUser.id, 'PRO')
     await grantCredits(currentUser.id, 999999)
     
     // Reload page to apply changes
@@ -193,7 +194,7 @@ export default function AdminPage() {
             Questa pagina è riservata agli amministratori.
           </p>
           <p className="text-sm text-gray-500 mb-6">
-            Devi essere un utente PRO_PROFESSIONAL per accedere al pannello admin.
+            Devi essere un utente PRO per accedere al pannello admin.
           </p>
           <button
             onClick={() => window.location.href = '/app'}
@@ -269,8 +270,8 @@ export default function AdminPage() {
                     </td>
                     <td className="py-3 px-4">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        user.tier === 'PRO_PROFESSIONAL' ? 'bg-purple-100 text-purple-800' :
-                        user.tier === 'PRO_CONSUMER' ? 'bg-blue-100 text-blue-800' :
+                        user.tier === 'PRO' || user.tier === 'PRO_PROFESSIONAL' ? 'bg-purple-100 text-purple-800' :
+                        user.tier === 'PLUS' || user.tier === 'PRO_CONSUMER' ? 'bg-blue-100 text-blue-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
                         {user.tier}
@@ -290,8 +291,11 @@ export default function AdminPage() {
                           className="px-2 py-1 border border-gray-300 rounded text-sm"
                         >
                           <option value="FREE">FREE</option>
-                          <option value="PRO_CONSUMER">PRO_CONSUMER</option>
-                          <option value="PRO_PROFESSIONAL">PRO_PROFESSIONAL</option>
+                          <option value="PLUS">PLUS</option>
+                          <option value="PRO">PRO</option>
+                          {/* Legacy tiers for backward compatibility */}
+                          <option value="PRO_CONSUMER">PRO_CONSUMER (Legacy)</option>
+                          <option value="PRO_PROFESSIONAL">PRO_PROFESSIONAL (Legacy)</option>
                         </select>
                         <button
                           onClick={() => grantCredits(user.id, 100)}

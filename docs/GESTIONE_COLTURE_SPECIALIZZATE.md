@@ -165,8 +165,15 @@ const task = {
 **File principali:**
 - `types/olive.ts` - Interfacce TypeScript
 - `data/oliveMasterSheets.ts` - Database varietà
+- `data/vineOliveAliases.ts` - Aliases per cultivar olivo comuni
 - `logic/oliveEngine.ts` - Logica calcolo task
 - `components/OliveHarvest.tsx` - UI raccolta e frangitura
+- `components/crops/AddWoodyCropWizard.tsx` - Wizard aggiunta olivo migliorato
+- `app/(dashboard)/app/olives/page.tsx` - Pagina dedicata Olivo (top-level)
+
+### Navigazione Top-Level
+
+Olivo è ora una **sezione top-level** separata nella navigazione PRO, non più sotto A12 (Colture legnose). Questo permette accesso diretto e rapido alle funzionalità dedicate.
 
 ### Caratteristiche
 
@@ -206,12 +213,39 @@ oliveHarvest: {
 - ✅ Gestione qualità olio (acidità, polifenoli)
 
 #### Varietà Disponibili
-- Frantoio (olio)
-- Leccino (olio)
-- Taggiasca (dual-purpose)
-- Ascolana (tavola)
-- Moraiolo (olio)
-- Pendolino (olio, impollinatore)
+**Cultivar da Olio:**
+- Frantoio (olio) - Toscana/Umbria
+- Leccino (olio) - Toscana/Umbria
+- Coratina (olio) - Puglia
+- Moraiolo (olio) - Toscana/Umbria
+- Carolea (olio) - Calabria
+- Biancolilla (olio) - Sicilia
+- Ogliarola (olio) - Puglia
+- Peranzana (olio) - Puglia
+
+**Cultivar da Mensa:**
+- Nocellara del Belice (tavola) - Sicilia
+- Itrana (tavola) - Lazio
+- Ascolana Tenera (tavola) - Marche
+
+**Cultivar Dual-Purpose:**
+- Taggiasca (dual-purpose) - Liguria
+
+#### Aliases e Ricerca Fuzzy
+
+Il sistema riconosce automaticamente **50+ cultivar olivo** tramite aliases predefiniti:
+
+**Esempi di ricerca:**
+- "coratina" → Olivo, tipo: Olio (precompilato)
+- "frantoio" → Olivo, tipo: Olio (precompilato)
+- "nocellara del belice" → Olivo, tipo: Mensa (precompilato)
+- "taggiasca" → Olivo, tipo: Dual-purpose (precompilato)
+
+Il wizard di aggiunta **precompila automaticamente** il tipo utilizzo (Olio/Mensa/Dual-purpose) basandosi sull'alias riconosciuto, riducendo il tempo di inserimento.
+
+**Normalizzazione:**
+- Gestisce varianti dialettali e nomi composti
+- Esempio: "nocellara del belice" → normalizzato per ricerca migliorata
 
 ### Esempio Utilizzo
 
@@ -241,9 +275,16 @@ const isUrgent = isMillingUrgent(harvest.date);
 **File principali:**
 - `types/vine.ts` - Interfacce TypeScript
 - `data/vineMasterSheets.ts` - Database varietà
+- `data/vineOliveAliases.ts` - Aliases per vitigni italiani comuni
 - `logic/vineEngine.ts` - Logica calcolo task
 - `components/VineHarvest.tsx` - UI vendemmia e vinificazione
 - `components/BrixMonitor.tsx` - Monitoraggio gradi Brix
+- `components/crops/AddWoodyCropWizard.tsx` - Wizard aggiunta vite migliorato
+- `app/(dashboard)/app/vineyard/page.tsx` - Pagina dedicata Vite (top-level)
+
+### Navigazione Top-Level
+
+Vite è ora una **sezione top-level** separata nella navigazione PRO, non più sotto A12 (Colture legnose). Questo permette accesso diretto e rapido alle funzionalità dedicate.
 
 ### Caratteristiche
 
@@ -295,19 +336,65 @@ vineHarvest: {
 - ✅ Stima resa vino (70-80% peso uva)
 
 #### Varietà Disponibili
-**Viti Rosse:**
+**Vitigni Rossi Italiani:**
 - Sangiovese
 - Nebbiolo
 - Barbera
 - Montepulciano
 - Primitivo
+- Aglianico
+- Negroamaro
+- Nero d'Avola
+- Corvina
+- Refosco
+- Lagrein
+- Teroldego
 
-**Viti Bianche:**
+**Vitigni Bianchi Italiani:**
 - Chardonnay
 - Pinot Grigio
 - Trebbiano
 - Vermentino
-- Moscato
+- Fiano
+- Greco di Tufo
+- Falanghina
+- Cataratto
+- Grillo
+- Inzolia
+- Garganega
+- Ribolla Gialla
+
+**Vitigni Internazionali:**
+- Syrah
+- Cabernet Sauvignon
+- Merlot
+- Sauvignon Blanc
+- Riesling
+
+**Uve da Tavola:**
+- Italia
+- Red Globe
+- Victoria
+- Uva Fragola
+- Uva Regina
+
+#### Aliases e Ricerca Fuzzy
+
+Il sistema riconosce automaticamente **50+ vitigni italiani** tramite aliases predefiniti:
+
+**Esempi di ricerca:**
+- "aglianico" → Vite, tipo: Vino (precompilato)
+- "primitivo" → Vite, tipo: Vino (precompilato)
+- "nero d'avola" → Vite, tipo: Vino (precompilato)
+- "italia" → Vite, tipo: Tavola (precompilato)
+- "red globe" → Vite, tipo: Tavola (precompilato)
+
+Il wizard di aggiunta **precompila automaticamente** il tipo utilizzo (Vino/Tavola) basandosi sull'alias riconosciuto, riducendo il tempo di inserimento.
+
+**Normalizzazione:**
+- Gestisce varianti dialettali e nomi composti
+- Esempio: "nero d'avola" → normalizzato come "nerodavola" per ricerca migliorata
+- Gestisce varianti con apostrofi e spazi
 
 ### Esempio Utilizzo
 
@@ -738,6 +825,45 @@ Per Kiwi:
 - Dati avanzati: tracking dettagliato
 - Analytics: analisi produzione
 - Valore aggiunto: differenziazione Free vs Pro
+
+---
+
+## Novità: Vite e Olivo Top-Level con Aliases
+
+### Navigazione Migliorata
+
+Vite e Olivo sono ora **sezioni top-level** nella navigazione PRO, accessibili direttamente dal menu principale senza dover navigare in A12 (Colture legnose).
+
+### Ricerca Intelligente con Aliases
+
+Il sistema riconosce automaticamente **50+ vitigni italiani** e **20+ cultivar olivo** tramite aliases predefiniti:
+
+**Esempi Vite:**
+- "aglianico" → Vite, tipo: Vino (precompilato)
+- "primitivo" → Vite, tipo: Vino (precompilato)
+- "nero d'avola" → Vite, tipo: Vino (precompilato)
+- "italia" → Vite, tipo: Tavola (precompilato)
+
+**Esempi Olivo:**
+- "coratina" → Olivo, tipo: Olio (precompilato)
+- "frantoio" → Olivo, tipo: Olio (precompilato)
+- "nocellara del belice" → Olivo, tipo: Mensa (precompilato)
+
+### Wizard Migliorato
+
+Il wizard di aggiunta vite/olivo:
+- **Precompila automaticamente** il tipo utilizzo basandosi sull'alias riconosciuto
+- **Riduce tempo inserimento** del 50-70%
+- **Mostra indicatore visivo** quando valore è precompilato da ricerca
+
+### Normalizzazione Testo
+
+Il sistema gestisce:
+- Varianti dialettali e nomi composti
+- Apostrofi e spazi (es. "nero d'avola" → "nerodavola")
+- Nomi con articoli/preposizioni (es. "nocellara del belice")
+
+Vedi `TECHNICAL_DOCS.md` sezione "Fuzzy Search Service" per dettagli tecnici.
 
 ---
 

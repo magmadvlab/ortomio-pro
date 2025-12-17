@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify tier PRO
-    const result = await verifyTier(request, ['PRO', 'PRO_CONSUMER', 'PRO_PROFESSIONAL'])
+    const result = await verifyTier(request, ['PLUS', 'PRO'])
     
     if ('error' in result) {
       return NextResponse.json(

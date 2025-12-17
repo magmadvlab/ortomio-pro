@@ -10,7 +10,7 @@ import { it } from 'date-fns/locale'
 
 export default function ExportPage() {
   const { storageProvider } = useStorage()
-  const { isProfessional } = useTier()
+  const { isPro } = useTier()
   const [gardens, setGardens] = useState<any[]>([])
   const [selectedGardenId, setSelectedGardenId] = useState<string>('')
   const [exportType, setExportType] = useState<'analytics' | 'treatments' | 'tasks' | 'harvest'>('analytics')
@@ -77,7 +77,7 @@ export default function ExportPage() {
         feature="data-export"
         title="Export Dati"
         description="Esporta i tuoi dati in formato CSV o PDF"
-        requiredTier="PRO_PROFESSIONAL"
+        requiredTier="PRO"
       >
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
@@ -219,6 +219,7 @@ export default function ExportPage() {
     </div>
   )
 }
+
 
 
 

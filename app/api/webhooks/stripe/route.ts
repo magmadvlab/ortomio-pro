@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: true })
       }
       
-      // Map tier IDs to database tier values
-      const dbTier = tier === 'pro-consumer' ? 'PRO_CONSUMER' : 'PRO_PROFESSIONAL'
+      // Map tier IDs to database tier values (new tier system)
+      const dbTier = tier === 'pro-consumer' ? 'PLUS' : 'PRO'
       const initialCredits = tier === 'pro-consumer' ? 50 : 200
       
       const supabase = getSupabaseClient()

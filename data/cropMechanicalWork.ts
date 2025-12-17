@@ -410,3 +410,4 @@ export function isWorkCriticalForCrop(cropId: string, workType: MechanicalWorkTy
   return works.some(work => work.workType === workType && work.critical);
 }
 
+

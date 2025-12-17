@@ -5,6 +5,8 @@
 
 import { ZoneMemory, TreeMemory, PlantingRecord, Correlation, LocalPattern, SeasonAnalysis } from '../types/memory';
 import { Garden, GardenTask, HarvestLogData } from '../types';
+import { CustomCrop } from '../types/customCrop';
+import { useStorage } from '../packages/core/hooks/useStorage';
 
 /**
  * Salva contesto completo di una piantagione

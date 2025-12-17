@@ -1,5 +1,5 @@
 import { Garden, GardenTask, VacationPlan, VacationTask, PlantMasterSheet } from '../types';
-import { getMasterSheet } from '../services/plantMasterService';
+import { getMasterSheetSync } from '../services/plantMasterService';
 import { calculateDaysActive } from '../services/taskCalculationService';
 
 /**
@@ -38,7 +38,7 @@ export const generateVacationPlan = (
   
   // Task 1: Raccolta preventiva (per piante in fruttificazione)
   activeTasks.forEach(task => {
-    const masterData = getMasterSheet(task.plantName);
+    const masterData = getMasterSheetSync(task.plantName);
     if (!masterData) return;
     
     const daysAlive = calculateDaysActive(task);
@@ -116,7 +116,7 @@ export const generateVacationPlan = (
   
   // Task 5: Protezione da parassiti (se ci sono piante vulnerabili)
   activeTasks.forEach(task => {
-    const masterData = getMasterSheet(task.plantName);
+    const masterData = getMasterSheetSync(task.plantName);
     if (!masterData || !masterData.susceptibility) return;
     
     if (masterData.susceptibility.preventiveStrategy === 'HIGH') {

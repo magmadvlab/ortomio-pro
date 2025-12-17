@@ -1,6 +1,9 @@
 /**
  * Companion Engine
  * Gestisce consociazioni, rotazioni e allelopatia
+ * 
+ * NOTE: Per migliorare precisione, considera integrazione con plantTaxonomyService
+ * per ottenere family_id da taxonomy invece di botanicalFamilies locale
  */
 
 import { companionRelationships, allelopathyInfo, botanicalFamilies } from '../data/companionPlants';

@@ -46,9 +46,11 @@ export function ConsumerSidebar() {
         {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.path
+          const tierStr = tier as string
           const isAvailable = item.tier === 'all' || 
-                             (item.tier === 'PRO_CONSUMER' && (tier === 'PRO_CONSUMER' || tier === 'PRO')) ||
-                             (item.tier === 'PRO' && (tier === 'PRO' || tier === 'PRO_CONSUMER' || tier === 'PRO_PROFESSIONAL'))
+                             (item.tier === 'PRO_CONSUMER' && (tierStr === 'PLUS' || tierStr === 'PRO_CONSUMER')) ||
+                             (item.tier === 'PLUS' && (tierStr === 'PLUS' || tierStr === 'PRO')) ||
+                             (item.tier === 'PRO' && (tierStr === 'PRO' || tierStr === 'PRO_PROFESSIONAL'))
           
           if (!isAvailable) return null
           

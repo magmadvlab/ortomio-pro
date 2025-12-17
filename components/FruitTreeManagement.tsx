@@ -4,7 +4,7 @@ import { useTier } from '../packages/core/hooks/useTier';
 import UpgradePrompt from './UpgradePrompt';
 import { FruitTreeCrop, PruningRecord, GraftingRecord } from '../types/fruitTree';
 import { calculateFruitTreeTasks, isChillRequirementMet } from '../logic/fruitTreeEngine';
-import { getMasterSheet } from '../services/plantMasterService';
+import { getMasterSheetSync } from '../services/plantMasterService';
 import { Scissors, TreePine, Calendar, CheckCircle, XCircle, MapPin, AlertCircle } from 'lucide-react';
 
 interface FruitTreeManagementProps {
@@ -26,7 +26,7 @@ const FruitTreeManagement: React.FC<FruitTreeManagementProps> = ({
 
   // Filtra solo task di frutteti
   const fruitTreeTasks = tasks.filter(t => {
-    const master = getMasterSheet(t.plantName);
+    const master = getMasterSheetSync(t.plantName);
     return master?.cropType === 'FruitTree';
   });
 
@@ -43,7 +43,7 @@ const FruitTreeManagement: React.FC<FruitTreeManagementProps> = ({
   }
 
   const currentTask = selectedTask || fruitTreeTasks[0];
-  const masterData = getMasterSheet(currentTask.plantName);
+  const masterData = getMasterSheetSync(currentTask.plantName);
   const fruitTreeCrop = masterData as unknown as FruitTreeCrop | undefined;
 
   if (!fruitTreeCrop || fruitTreeCrop.cropType !== 'FruitTree') {

@@ -11,8 +11,8 @@ import { getSupabaseClient } from '@/config/supabase';
 interface TierContextType {
   tier: AppTier;
   setTier: (tier: AppTier) => void;
-  isConsumer: () => boolean;
-  isProfessional: () => boolean;
+  isPlus: () => boolean;
+  isPro: () => boolean;
 }
 
 const TierContext = createContext<TierContextType | undefined>(undefined);
@@ -34,14 +34,14 @@ export const TierProvider: React.FC<TierProviderProps> = ({
       return defaultTier;
     }
     
-    // LOCALE: Forza PRO_PROFESSIONAL in sviluppo locale
+    // LOCALE: Forza PRO in sviluppo locale
     const isLocalDev = window.location.hostname === 'localhost' || 
       window.location.hostname === '127.0.0.1' ||
       process.env.NODE_ENV === 'development'
     
     if (isLocalDev) {
-      // In locale, forza sempre PRO_PROFESSIONAL (il tier più completo)
-      return AppTier.PRO_PROFESSIONAL;
+      // In locale, forza sempre PRO (il tier più completo)
+      return AppTier.PRO;
     }
     
     // Load from localStorage on mount (solo in produzione, solo nel browser)
@@ -49,10 +49,15 @@ export const TierProvider: React.FC<TierProviderProps> = ({
       const saved = localStorage.getItem(TIER_STORAGE_KEY);
       if (saved && (
         saved === AppTier.FREE || 
-        saved === AppTier.PRO || 
-        saved === AppTier.PRO_CONSUMER || 
-        saved === AppTier.PRO_PROFESSIONAL
+        saved === AppTier.PLUS || 
+        saved === AppTier.PRO ||
+        // Legacy tier support (backward compatibility)
+        saved === 'PRO_CONSUMER' ||
+        saved === 'PRO_PROFESSIONAL'
       )) {
+        // Map legacy tiers to new ones
+        if (saved === 'PRO_CONSUMER') return AppTier.PLUS;
+        if (saved === 'PRO_PROFESSIONAL') return AppTier.PRO;
         return saved as AppTier;
       }
     } catch (e) {
@@ -71,6 +76,40 @@ export const TierProvider: React.FC<TierProviderProps> = ({
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) return;
 
+        // FASE DI TEST: Forza PRO per tutti gli utenti autenticati online
+        // TODO: Rimuovere questa logica quando si passa a produzione reale
+        const FORCE_PRO_IN_TEST = process.env.NEXT_PUBLIC_FORCE_PRO_TEST === 'true' || 
+                                  process.env.NODE_ENV !== 'production';
+        
+        if (FORCE_PRO_IN_TEST) {
+          // Aggiorna il tier nel database per mantenere consistenza
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('tier')
+            .eq('id', session.user.id)
+            .single();
+
+          // Se il tier nel database non è PRO, aggiornalo
+          if (!profile || profile.tier !== 'PRO') {
+            await supabase
+              .from('profiles')
+              .upsert({
+                id: session.user.id,
+                tier: 'PRO',
+              }, {
+                onConflict: 'id',
+              });
+          }
+
+          // Forza sempre PRO in fase di test
+          setTierState(AppTier.PRO);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(TIER_STORAGE_KEY, AppTier.PRO);
+          }
+          return;
+        }
+
+        // PRODUZIONE: Carica tier dal database normalmente
         // Load tier from profiles table
         const { data: profile, error } = await supabase
           .from('profiles')
@@ -85,19 +124,26 @@ export const TierProvider: React.FC<TierProviderProps> = ({
         }
 
         if (profile?.tier) {
-          // Map database tier to AppTier enum
+          // Map database tier to AppTier enum (with legacy tier migration)
           const dbTier = profile.tier as string;
           let appTier: AppTier;
           
           switch (dbTier) {
-            case 'PRO_CONSUMER':
-              appTier = AppTier.PRO_CONSUMER;
-              break;
-            case 'PRO_PROFESSIONAL':
-              appTier = AppTier.PRO_PROFESSIONAL;
+            case 'PLUS':
+              appTier = AppTier.PLUS;
               break;
             case 'PRO':
-              appTier = AppTier.PRO; // Legacy
+              appTier = AppTier.PRO;
+              break;
+            case 'FREE':
+              appTier = AppTier.FREE;
+              break;
+            // Legacy tier migration (backward compatibility)
+            case 'PRO_CONSUMER':
+              appTier = AppTier.PLUS; // Migrate PRO_CONSUMER to PLUS
+              break;
+            case 'PRO_PROFESSIONAL':
+              appTier = AppTier.PRO; // Migrate PRO_PROFESSIONAL to PRO
               break;
             default:
               appTier = AppTier.FREE;
@@ -124,9 +170,22 @@ export const TierProvider: React.FC<TierProviderProps> = ({
           loadTierFromDatabase();
         } else if (event === 'SIGNED_OUT') {
           // Reset to default tier on logout
-          setTierState(defaultTier);
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem(TIER_STORAGE_KEY);
+          // In fase di test, mantieni PRO anche dopo logout (solo locale)
+          const isLocalDev = typeof window !== 'undefined' && (
+            window.location.hostname === 'localhost' || 
+            window.location.hostname === '127.0.0.1'
+          );
+          
+          if (isLocalDev) {
+            setTierState(AppTier.PRO);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(TIER_STORAGE_KEY, AppTier.PRO);
+            }
+          } else {
+            setTierState(defaultTier);
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem(TIER_STORAGE_KEY);
+            }
           }
         }
       });
@@ -152,16 +211,16 @@ export const TierProvider: React.FC<TierProviderProps> = ({
     setTierState(newTier);
   };
 
-  const isConsumer = () => {
-    return tier === AppTier.PRO_CONSUMER || tier === AppTier.PRO; // Legacy PRO is treated as Consumer
+  const isPlus = () => {
+    return tier === AppTier.PLUS;
   };
 
-  const isProfessional = () => {
-    return tier === AppTier.PRO_PROFESSIONAL;
+  const isPro = () => {
+    return tier === AppTier.PRO;
   };
 
   return (
-    <TierContext.Provider value={{ tier, setTier, isConsumer, isProfessional }}>
+    <TierContext.Provider value={{ tier, setTier, isPlus, isPro }}>
       {children}
     </TierContext.Provider>
   );

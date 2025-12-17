@@ -4,7 +4,8 @@
  */
 
 import { PlantMasterSheet } from '../types';
-import { getMasterSheet } from '../services/plantMasterService';
+import { getMasterSheetSync } from '../services/plantMasterService';
+import { getPlantFamily as getTaxonomyPlantFamily } from '../services/plantTaxonomyService';
 import { Season } from '../utils/seasonalAdjustment';
 
 export interface BedRotation {
@@ -38,15 +39,23 @@ export const plantFamilies: Record<string, string[]> = {
 };
 
 /**
- * Ottieni famiglia botanica di una pianta
+ * Ottieni famiglia botanica di una pianta (versione asincrona con taxonomy service)
  */
-export const getPlantFamily = (plantName: string): string | null => {
-  const masterData = getMasterSheet(plantName);
+export const getPlantFamilyAsync = async (plantName: string): Promise<string | null> => {
+  return await getTaxonomyPlantFamily(plantName);
+};
+
+/**
+ * Ottieni famiglia botanica di una pianta (versione sincrona per retrocompatibilità)
+ * Usa PlantMasterSheet come fallback
+ */
+export const getPlantFamilySync = (plantName: string): string | null => {
+  const masterData = getMasterSheetSync(plantName);
   if (masterData?.family) {
     return masterData.family;
   }
   
-  // Fallback: cerca nel database
+  // Fallback: cerca nel database locale
   for (const [family, plants] of Object.entries(plantFamilies)) {
     if (plants.some(p => p.toLowerCase().includes(plantName.toLowerCase()) || plantName.toLowerCase().includes(p.toLowerCase()))) {
       return family;
@@ -57,11 +66,26 @@ export const getPlantFamily = (plantName: string): string | null => {
 };
 
 /**
- * Verifica se due piante sono della stessa famiglia
+ * @deprecated Usa getPlantFamilySync o getPlantFamilyAsync
+ * Mantenuto per retrocompatibilità
+ */
+export const getPlantFamily = getPlantFamilySync;
+
+/**
+ * Verifica se due piante sono della stessa famiglia (versione sincrona)
  */
 export const areSameFamily = (plant1: string, plant2: string): boolean => {
-  const family1 = getPlantFamily(plant1);
-  const family2 = getPlantFamily(plant2);
+  const family1 = getPlantFamilySync(plant1);
+  const family2 = getPlantFamilySync(plant2);
+  return family1 !== null && family1 === family2;
+};
+
+/**
+ * Verifica se due piante sono della stessa famiglia (versione asincrona)
+ */
+export const areSameFamilyAsync = async (plant1: string, plant2: string): Promise<boolean> => {
+  const family1 = await getPlantFamilyAsync(plant1);
+  const family2 = await getPlantFamilyAsync(plant2);
   return family1 !== null && family1 === family2;
 };
 
@@ -115,7 +139,7 @@ export const optimizeBedRotation = (
     let bestScore = 0;
 
     for (const plant of availablePlants) {
-      const family = getPlantFamily(plant);
+      const family = getPlantFamilySync(plant);
       if (!family) continue;
 
       // Skip se stessa famiglia recente
@@ -127,7 +151,7 @@ export const optimizeBedRotation = (
       // 1. Leguminose dopo solanacee (arricchiscono terreno)
       const lastPlant = last3Years[last3Years.length - 1]?.plant;
       if (lastPlant) {
-        const lastFamily = getPlantFamily(lastPlant);
+        const lastFamily = getPlantFamilySync(lastPlant);
         if (lastFamily === 'Solanaceae' && family === 'Leguminose') {
           bestPlant = plant;
           bestScore = 100;
@@ -164,8 +188,8 @@ export const isGoodSuccession = (
   previousPlant: string,
   nextPlant: string
 ): { compatible: boolean; reason: string } => {
-  const prevFamily = getPlantFamily(previousPlant);
-  const nextFamily = getPlantFamily(nextPlant);
+  const prevFamily = getPlantFamilySync(previousPlant);
+  const nextFamily = getPlantFamilySync(nextPlant);
 
   if (!prevFamily || !nextFamily) {
     return { compatible: true, reason: 'Famiglia non identificata' };
@@ -177,12 +201,12 @@ export const isGoodSuccession = (
   }
 
   // Leguminose dopo solanacee = ottimo
-  if (prevFamily === 'Solanaceae' && nextFamily === 'Leguminose') {
+  if (prevFamily === 'Solanaceae' && nextFamily === 'Fabaceae') {
     return { compatible: true, reason: 'Leguminose arricchiscono terreno dopo solanacee' };
   }
 
   // Solanacee dopo leguminose = buono
-  if (prevFamily === 'Leguminose' && nextFamily === 'Solanaceae') {
+  if (prevFamily === 'Fabaceae' && nextFamily === 'Solanaceae') {
     return { compatible: true, reason: 'Solanacee beneficiano di azoto da leguminose' };
   }
 

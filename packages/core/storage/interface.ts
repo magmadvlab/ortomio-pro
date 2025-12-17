@@ -3,13 +3,16 @@
  * Abstract interface for storage operations (localStorage or Supabase)
  */
 
-import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog } from '../../../types';
+import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB } from '../../../types';
 import { CustomPlan } from '../../../types/customPlan';
 import { Agronomist, AgronomistConsultation, AgronomistAdvice } from '../../../types/agronomist';
 import { SeedlingBatch } from '../../../services/seedlingService';
 import { GardenAccessory } from '../../../types/accessories';
 import { HydroponicReading, AquaponicReading } from '../../../types/indoorGrowing';
 import { GardenBed } from '../../../types/gardenBed';
+import { CustomCrop, CropLearningEvent } from '../../../types/customCrop';
+import { CropArchetype, CropProfile, CropAlias, ArchetypeId, OfficialCrop } from '../../../types/archetypes';
+import { IrrigationSystem, IrrigationZone, IrrigationComponent, WateringLog } from '../../../types/irrigation';
 
 export interface IStorageProvider {
   // Gardens
@@ -104,6 +107,77 @@ export interface IStorageProvider {
   createGardenBed(bed: Omit<GardenBed, 'id' | 'createdAt' | 'updatedAt'>): Promise<GardenBed>;
   updateGardenBed(id: string, updates: Partial<GardenBed>): Promise<GardenBed>;
   deleteGardenBed(id: string): Promise<void>;
+  
+  // Mechanical Work (Pro Feature)
+  getMechanicalWorks(gardenId?: string): Promise<MechanicalWorkRecord[]>;
+  getMechanicalWork(id: string): Promise<MechanicalWorkRecord | null>;
+  createMechanicalWork(work: Omit<MechanicalWorkRecord, 'id' | 'user_id' | 'created_at'>): Promise<MechanicalWorkRecord>;
+  updateMechanicalWork(id: string, updates: Partial<MechanicalWorkRecord>): Promise<MechanicalWorkRecord>;
+  deleteMechanicalWork(id: string): Promise<void>;
+  
+  // Treatments (Pro Feature)
+  getTreatments(gardenId?: string): Promise<TreatmentRecordDB[]>;
+  getTreatment(id: string): Promise<TreatmentRecordDB | null>;
+  createTreatment(treatment: Omit<TreatmentRecordDB, 'id' | 'user_id' | 'created_at'>): Promise<TreatmentRecordDB>;
+  updateTreatment(id: string, updates: Partial<TreatmentRecordDB>): Promise<TreatmentRecordDB>;
+  deleteTreatment(id: string): Promise<void>;
+  
+  // Custom Crops (Pro Feature)
+  getCustomCrops(gardenId?: string): Promise<CustomCrop[]>;
+  getCustomCrop(id: string): Promise<CustomCrop | null>;
+  createCustomCrop(crop: Omit<CustomCrop, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<CustomCrop>;
+  updateCustomCrop(id: string, updates: Partial<CustomCrop>): Promise<CustomCrop>;
+  deleteCustomCrop(id: string): Promise<void>;
+  
+  // Learning Events (Pro Feature)
+  recordLearningEvent(event: Omit<CropLearningEvent, 'id' | 'created_at'>): Promise<CropLearningEvent>;
+  getLearningEvents(cropId: string): Promise<CropLearningEvent[]>;
+  
+  // Archetype System
+  getArchetypes(): Promise<CropArchetype[]>;
+  getArchetype(id: ArchetypeId): Promise<CropArchetype | null>;
+  getProfile(archetypeId: ArchetypeId): Promise<CropProfile | null>;
+  
+  // Crop Aliases
+  searchAlias(query: string, region?: string, province?: string): Promise<CropAlias | null>;
+  createAlias(alias: Omit<CropAlias, 'id' | 'createdAt' | 'updatedAt' | 'usageCount'>): Promise<CropAlias>;
+  updateAlias(aliasId: string, updates: Partial<CropAlias>): Promise<CropAlias>;
+  updateAliasConfidence(aliasId: string, confidence: number): Promise<void>;
+  getAlias(aliasId: string): Promise<CropAlias | null>;
+  getAliasesByArchetype(archetypeId: ArchetypeId): Promise<CropAlias[]>;
+  getAllAliases(): Promise<CropAlias[]>;
+  
+  // Official Crops
+  getOfficialCrop(name: string): Promise<OfficialCrop | null>;
+  searchOfficialCrops(query: string): Promise<OfficialCrop[]>;
+  
+  // Irrigation Systems
+  getIrrigationSystems(gardenId: string): Promise<IrrigationSystem[]>;
+  getIrrigationSystem(id: string): Promise<IrrigationSystem | null>;
+  createIrrigationSystem(system: Omit<IrrigationSystem, 'id' | 'createdAt' | 'updatedAt'>): Promise<IrrigationSystem>;
+  updateIrrigationSystem(id: string, updates: Partial<IrrigationSystem>): Promise<IrrigationSystem>;
+  deleteIrrigationSystem(id: string): Promise<void>;
+  
+  // Irrigation Zones
+  getIrrigationZones(systemId: string): Promise<IrrigationZone[]>;
+  getIrrigationZone(id: string): Promise<IrrigationZone | null>;
+  createIrrigationZone(zone: Omit<IrrigationZone, 'id' | 'createdAt' | 'updatedAt'>): Promise<IrrigationZone>;
+  updateIrrigationZone(id: string, updates: Partial<IrrigationZone>): Promise<IrrigationZone>;
+  deleteIrrigationZone(id: string): Promise<void>;
+  
+  // Irrigation Components (Pro Feature)
+  getIrrigationComponents(zoneId: string): Promise<IrrigationComponent[]>;
+  getIrrigationComponent(id: string): Promise<IrrigationComponent | null>;
+  createIrrigationComponent(component: Omit<IrrigationComponent, 'id' | 'createdAt'>): Promise<IrrigationComponent>;
+  updateIrrigationComponent(id: string, updates: Partial<IrrigationComponent>): Promise<IrrigationComponent>;
+  deleteIrrigationComponent(id: string): Promise<void>;
+  
+  // Watering Logs
+  getWateringLogs(zoneId: string, startDate?: string, endDate?: string): Promise<WateringLog[]>;
+  getWateringLog(id: string): Promise<WateringLog | null>;
+  logWatering(log: Omit<WateringLog, 'id' | 'createdAt'>): Promise<WateringLog>;
+  updateWateringLog(id: string, updates: Partial<WateringLog>): Promise<WateringLog>;
+  deleteWateringLog(id: string): Promise<void>;
   
   // Check if provider is available
   isAvailable(): boolean;

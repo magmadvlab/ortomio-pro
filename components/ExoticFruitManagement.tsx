@@ -4,7 +4,7 @@ import { useTier } from '../packages/core/hooks/useTier';
 import UpgradePrompt from './UpgradePrompt';
 import { ExoticFruitCrop } from '../types/exoticFruit';
 import { calculateExoticFruitTasks, checkClimateRequirements } from '../logic/exoticFruitEngine';
-import { getMasterSheet } from '../services/plantMasterService';
+import { getMasterSheetSync } from '../services/plantMasterService';
 import { ThermometerSun, AlertTriangle, CheckCircle, Calendar, Cloud, Sprout } from 'lucide-react';
 
 interface ExoticFruitManagementProps {
@@ -36,7 +36,7 @@ const ExoticFruitManagement: React.FC<ExoticFruitManagementProps> = ({
 
   // Filtra solo task di frutti esotici
   const exoticFruitTasks = tasks.filter(t => {
-    const master = getMasterSheet(t.plantName);
+    const master = getMasterSheetSync(t.plantName);
     return master?.cropType === 'ExoticFruit';
   });
 
@@ -53,7 +53,7 @@ const ExoticFruitManagement: React.FC<ExoticFruitManagementProps> = ({
   }
 
   const currentTask = selectedTask || exoticFruitTasks[0];
-  const masterData = getMasterSheet(currentTask.plantName);
+  const masterData = getMasterSheetSync(currentTask.plantName);
   const exoticCrop = masterData as unknown as ExoticFruitCrop | undefined;
 
   if (!exoticCrop || exoticCrop.cropType !== 'ExoticFruit') {
@@ -218,5 +218,9 @@ const ExoticFruitManagement: React.FC<ExoticFruitManagementProps> = ({
 };
 
 export default ExoticFruitManagement;
+
+
+
+
 
 

@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { GardenTask, Garden } from '../types';
-import { Sun, CloudRain, CalendarCheck, AlertTriangle, AlertCircle, Settings, Save, Cloud, CloudLightning, Snowflake, CloudFog, Loader2, MapPin, Droplets, ThermometerSun, FlaskConical, Shovel, ChevronDown, Plus, Trash2, Home, Sparkles, CheckCircle, XCircle, Moon, Package, Plane, BarChart3 } from 'lucide-react';
+import { Sun, CloudRain, CalendarCheck, AlertTriangle, AlertCircle, Settings, Save, Cloud, CloudLightning, Snowflake, CloudFog, Loader2, MapPin, Droplets, ThermometerSun, FlaskConical, Shovel, ChevronDown, Plus, Trash2, Home, Sparkles, CheckCircle, XCircle, Moon, Package, Plane, BarChart3, Grid, Clock } from 'lucide-react';
+import { DeleteGardenConfirm } from './shared/DeleteGardenConfirm';
 import { SunExposureWidget } from './sunExposure/SunExposureWidget';
 import SolarClassificationBadge from './sunExposure/SolarClassificationBadge';
 import SoilAltitudeInfo from './shared/SoilAltitudeInfo';
@@ -22,6 +23,10 @@ import TierBadge from './TierBadge';
 import LimitIndicator from './LimitIndicator';
 import SeasonAnalysisView from './analysis/SeasonAnalysisView';
 import { getSeasonForDate } from '../utils/seasonalAdjustment';
+import { handleTaskCompletion } from '../services/taskCompletionHook';
+import { GardenStructuresEditor } from './gardens/GardenStructuresEditor';
+import { WateringLogForm } from './irrigation/WateringLogForm';
+import { IrrigationZone } from '../types/irrigation';
 
 interface DashboardProps {
   tasks: GardenTask[];
@@ -42,6 +47,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   const { tier, isPro, checkLimit, limit } = useTier();
   const activeGarden = gardens.find(g => g.id === activeGardenId);
   const [isEditingSettings, setIsEditingSettings] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [gardenToDelete, setGardenToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [showStructuresEditor, setShowStructuresEditor] = useState(false);
   
   // Settings Form State
   const [tempName, setTempName] = useState('');
@@ -82,6 +90,9 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   // Season Analysis State
   const [showSeasonAnalysis, setShowSeasonAnalysis] = useState(false);
+  // Irrigation Log State
+  const [showWateringLogForm, setShowWateringLogForm] = useState(false);
+  const [selectedZoneForLog, setSelectedZoneForLog] = useState<IrrigationZone | null>(null);
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
   const currentSeason = getSeasonForDate(currentDate, activeGarden?.coordinates?.latitude || 0);
@@ -222,7 +233,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     Promise.all(
       activePlantTasks.map(async (task) => {
-        const masterData = getMasterSheet(task.plantName);
+        const masterData = await getMasterSheet(task.plantName);
         if (!masterData) return;
 
         try {
@@ -467,8 +478,30 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
   };
 
+  const handleConfirmDelete = async () => {
+    if (gardenToDelete) {
+      await onDeleteGarden(gardenToDelete.id);
+      setShowDeleteConfirm(false);
+      setGardenToDelete(null);
+      setIsEditingSettings(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setGardenToDelete(null);
+  };
+
   return (
-    <div className="p-4 sm:p-6 pb-32 max-w-2xl mx-auto space-y-4 sm:space-y-6">
+    <>
+      {showDeleteConfirm && gardenToDelete && (
+        <DeleteGardenConfirm
+          gardenName={gardenToDelete.name}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+        />
+      )}
+      <div className="p-4 sm:p-6 pb-32 max-w-2xl mx-auto space-y-4 sm:space-y-6">
       <header className="mt-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
         <div className="relative">
              {/* GARDEN SWITCHER */}
@@ -582,8 +615,11 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <div className="flex gap-2">
                       {!isCreatingNew && (
                           <button 
-                            onClick={() => { onDeleteGarden(activeGardenId); setIsEditingSettings(false); }}
-                            className="p-3 bg-red-50 text-red-600 rounded-xl font-bold border border-red-100"
+                            onClick={() => {
+                              setGardenToDelete({ id: activeGardenId, name: activeGarden?.name || 'Orto' });
+                              setShowDeleteConfirm(true);
+                            }}
+                            className="p-3 bg-red-50 text-red-600 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition-colors"
                           >
                               <Trash2 size={20}/>
                           </button>
@@ -608,7 +644,15 @@ const Dashboard: React.FC<DashboardProps> = ({
                   {activeGarden.soilPh && <span className="text-green-800 flex items-center gap-1"><FlaskConical size={14}/> pH <b>{activeGarden.soilPh}</b></span>}
                   {activeGarden.soilType && <span className="text-green-800 flex items-center gap-1"><Shovel size={14}/> <b>{getSoilLabel(activeGarden.soilType)}</b></span>}
               </div>
-              <div className="flex-shrink-0">
+              <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                      onClick={() => setShowStructuresEditor(true)}
+                      className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 flex items-center gap-1.5 transition-colors"
+                      title="Modifica strutture dell'orto"
+                  >
+                      <Grid size={14} />
+                      Strutture
+                  </button>
                   <SunExposureWidget garden={activeGarden} />
               </div>
           </div>
@@ -903,6 +947,132 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
           )}
 
+          {/* Irrigation Tasks */}
+          {dailyPlan.irrigationTasks && dailyPlan.irrigationTasks.length > 0 && (
+            <div className="mb-4">
+              <h3 className="text-sm font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">
+                <Droplets size={14} />
+                Irrigazione Zone
+              </h3>
+              <div className="space-y-2">
+                {dailyPlan.irrigationTasks.map((task, idx) => {
+                  const showLitersOnly = task.showLitersOnly || (task.durationMinutes === 0 && task.manualMode === 'liters');
+                  
+                  return (
+                    <div key={idx} className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-800">{task.zoneName}</p>
+                          <div className="mt-2 space-y-1 text-sm">
+                            {showLitersOnly ? (
+                              <div className="flex items-center gap-2">
+                                <Droplets size={12} className="text-blue-600" />
+                                <span className="text-gray-700">
+                                  <span className="font-semibold">{task.litersNeeded.toFixed(1)} L</span>
+                                  {' '}necessari
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <Clock size={12} className="text-blue-600" />
+                                <span className="text-gray-700">
+                                  <span className="font-semibold">{Math.round(task.durationMinutes)} min</span>
+                                  {' '}({task.litersNeeded.toFixed(1)} L)
+                                </span>
+                              </div>
+                            )}
+                            {task.weatherAdjustment && task.weatherAdjustment.action !== 'PROCEED' && (
+                              <div className="flex items-center gap-2 text-orange-700">
+                                <AlertTriangle size={12} />
+                                <span className="text-xs">{task.weatherAdjustment.reason}</span>
+                              </div>
+                            )}
+                            {task.fertigationInfo && task.fertigationInfo.shouldFertigate && (
+                              <div className="flex items-center gap-2 text-green-700">
+                                <FlaskConical size={12} />
+                                <span className="text-xs">
+                                  Fertirrigazione: {task.fertigationInfo.totalDosage?.toFixed(1)} {task.fertigationInfo.unit} {task.fertigationInfo.productName}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          task.priority === 'Critical' ? 'bg-red-100 text-red-700' :
+                          task.priority === 'High' ? 'bg-orange-100 text-orange-700' :
+                          task.priority === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>
+                          {task.priority === 'Critical' ? 'Critico' :
+                           task.priority === 'High' ? 'Alta' :
+                           task.priority === 'Medium' ? 'Media' : 'Normale'}
+                        </span>
+                      </div>
+                      
+                      {/* Pulsanti azione */}
+                      {!showLitersOnly && (
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            onClick={() => {
+                              // TODO: Implementare timer
+                              alert('Timer non ancora implementato');
+                            }}
+                            className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 flex items-center justify-center gap-1"
+                          >
+                            ⏱️ Avvia Timer
+                          </button>
+                          <button
+                            onClick={async () => {
+                              // Carica zona per log
+                              const { getDefaultStorageProvider } = await import('../packages/core/storage/factory');
+                              const storageProvider = getDefaultStorageProvider();
+                              const systems = await storageProvider.getIrrigationSystems(activeGarden?.id || '');
+                              if (systems.length > 0) {
+                                const zones = await storageProvider.getIrrigationZones(systems[0].id);
+                                const zone = zones.find(z => z.id === task.zoneId);
+                                if (zone) {
+                                  setSelectedZoneForLog(zone);
+                                  setShowWateringLogForm(true);
+                                }
+                              }
+                            }}
+                            className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 flex items-center justify-center gap-1"
+                          >
+                            ✓ Segna fatto
+                          </button>
+                        </div>
+                      )}
+                      
+                      {showLitersOnly && (
+                        <div className="mt-3">
+                          <button
+                            onClick={async () => {
+                              // Carica zona per log
+                              const { getDefaultStorageProvider } = await import('../packages/core/storage/factory');
+                              const storageProvider = getDefaultStorageProvider();
+                              const systems = await storageProvider.getIrrigationSystems(activeGarden?.id || '');
+                              if (systems.length > 0) {
+                                const zones = await storageProvider.getIrrigationZones(systems[0].id);
+                                const zone = zones.find(z => z.id === task.zoneId);
+                                if (zone) {
+                                  setSelectedZoneForLog(zone);
+                                  setShowWateringLogForm(true);
+                                }
+                              }
+                            }}
+                            className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700"
+                          >
+                            ✓ Segna come fatto
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Lunar Advice */}
           {dailyPlan.lunarAdvice && (
             <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
@@ -1032,6 +1202,30 @@ const Dashboard: React.FC<DashboardProps> = ({
           onUpdateGarden={(updatedGarden) => {
             onUpdateGarden(updatedGarden);
             setShowVacationMode(false);
+          }}
+        />
+      )}
+
+      {/* Watering Log Form */}
+      {showWateringLogForm && selectedZoneForLog && (
+        <WateringLogForm
+          zone={selectedZoneForLog}
+          onComplete={async (log) => {
+            // Salva log
+            const { getDefaultStorageProvider } = await import('../packages/core/storage/factory');
+            const storageProvider = getDefaultStorageProvider();
+            await storageProvider.logWatering(log);
+            setShowWateringLogForm(false);
+            setSelectedZoneForLog(null);
+            // Ricarica daily plan
+            if (activeGarden) {
+              const plan = await getDailyGardenPlan(activeGarden, tasks);
+              setDailyPlan(plan);
+            }
+          }}
+          onCancel={() => {
+            setShowWateringLogForm(false);
+            setSelectedZoneForLog(null);
           }}
         />
       )}
@@ -1303,7 +1497,20 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
         )}
       </div>
+
+      {/* Garden Structures Editor */}
+      {showStructuresEditor && activeGarden && (
+        <GardenStructuresEditor
+          garden={activeGarden}
+          onSave={(updatedGarden) => {
+            onUpdateGarden(updatedGarden);
+            setShowStructuresEditor(false);
+          }}
+          onCancel={() => setShowStructuresEditor(false)}
+        />
+      )}
     </div>
+    </>
   );
 };
 

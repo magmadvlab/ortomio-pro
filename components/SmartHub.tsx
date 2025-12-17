@@ -157,6 +157,11 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
                                  * Controllo manuale della valvola.
                                  * Toggle per aprire/chiudere manualmente. Se la modalità automatica è attiva,
                                  * la valvola può aprirsi automaticamente quando l'umidità scende sotto la soglia.
+                                 * 
+                                 * INTEGRAZIONE ZONE IRRIGUE:
+                                 * Le zone irrigue possono essere associate a questa valvola tramite zone.valveId.
+                                 * Quando una zona ha bisogno di irrigazione, il Director calcola i minuti necessari
+                                 * e può controllare automaticamente questa valvola per la durata calcolata.
                                  */}
                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex justify-between items-center">
                                    <div>

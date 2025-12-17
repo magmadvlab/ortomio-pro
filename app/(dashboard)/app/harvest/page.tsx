@@ -8,7 +8,7 @@ import { ProFeatureGate } from '@/components/shared/ProFeatureGate'
 
 export default function HarvestPage() {
   const { storageProvider } = useStorage()
-  const { tier, isConsumer, isProfessional } = useTier()
+  const { tier, isPlus, isPro } = useTier()
   const [garden, setGarden] = React.useState<any>(null)
   const [harvestLogs, setHarvestLogs] = React.useState<any[]>([])
   
@@ -34,7 +34,7 @@ export default function HarvestPage() {
   
   return (
     <div className="min-h-screen">
-      {isConsumer && (
+      {isPlus && (
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             🍳 Ricette per i tuoi raccolti
@@ -43,7 +43,7 @@ export default function HarvestPage() {
         </div>
       )}
       
-      {isProfessional && (
+      {isPro && tier === 'PRO' && (
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             Analytics Avanzate

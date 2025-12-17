@@ -12,8 +12,7 @@ export interface UseTierReturn {
   config: TierConfig;
   isPro: boolean;
   isFree: boolean;
-  isConsumer: boolean;
-  isProfessional: boolean;
+  isPlus: boolean;
   can: (feature: keyof TierConfig['features']) => boolean;
   limit: <K extends keyof TierConfig['limits']>(limitKey: K) => number;
   checkLimit: <K extends keyof TierConfig['limits']>(
@@ -31,7 +30,7 @@ export const useTier = (): UseTierReturn => {
     throw new Error('useTier must be used within a TierProvider');
   }
 
-  const { tier, setTier, isConsumer: contextIsConsumer, isProfessional: contextIsProfessional } = context;
+  const { tier, setTier, isPlus: contextIsPlus, isPro: contextIsPro } = context;
   const config = getTierConfig(tier);
 
   const can = (feature: keyof TierConfig['features']): boolean => {
@@ -99,10 +98,9 @@ export const useTier = (): UseTierReturn => {
   return {
     tier,
     config,
-    isPro: tier === AppTier.PRO || tier === AppTier.PRO_CONSUMER || tier === AppTier.PRO_PROFESSIONAL,
+    isPro: tier === AppTier.PRO || tier === AppTier.PLUS,
     isFree: tier === AppTier.FREE,
-    isConsumer: contextIsConsumer(),
-    isProfessional: contextIsProfessional(),
+    isPlus: contextIsPlus(),
     can,
     limit,
     checkLimit,

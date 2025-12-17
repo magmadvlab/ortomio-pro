@@ -197,3 +197,7 @@ Se hai problemi, controlla i log in:
 - **Supabase Studio** → Logs
 - **Vercel Dashboard** → Functions Logs
 
+
+
+
+

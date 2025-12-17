@@ -74,12 +74,14 @@ ALTER TABLE professional_analytics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE treatment_register ENABLE ROW LEVEL SECURITY;
 
 -- Professional Analytics: Users can only access their own analytics
-CREATE POLICY IF NOT EXISTS "Users can only access their own analytics"
+DROP POLICY IF EXISTS "Users can only access their own analytics" ON professional_analytics;
+CREATE POLICY "Users can only access their own analytics"
   ON professional_analytics FOR ALL
   USING (auth.uid() = user_id);
 
 -- Treatment Register: Users can only access their own treatments
-CREATE POLICY IF NOT EXISTS "Users can only access their own treatments"
+DROP POLICY IF EXISTS "Users can only access their own treatments" ON treatment_register;
+CREATE POLICY "Users can only access their own treatments"
   ON treatment_register FOR ALL
   USING (auth.uid() = user_id);
 
@@ -93,8 +95,13 @@ CREATE TABLE IF NOT EXISTS mechanical_work_register (
   
   -- Work types: Suolo, Chioma, Generale
   work_type TEXT NOT NULL CHECK (work_type IN (
-    -- Suolo
+    -- Suolo (esistenti)
     'Plowing', 'Subsoiling', 'Harrowing', 'Tilling', 'Rolling', 'Hoeing', 'EarthingUp', 'Mulching', 'PostSowingRolling',
+    -- Preparazione Terreno (nuove)
+    'Clearing', 'Stumping', 'StoneRemoval', 'Leveling', 'DeepSubsoiling',
+    'Digging', 'DeepHarrowing', 'Crumbling', 'Scraping', 'SurfaceLeveling',
+    -- Tecniche Moderne
+    'MinimumTillage', 'StripTillage', 'NoTill',
     -- Chioma
     'FormativePruning', 'MaintenancePruning', 'RejuvenationPruning', 'SummerPruning', 'WinterPruning', 
     'Thinning', 'Suckering', 'Defoliation', 'Tying', 'OliveShredding', 'RunnerManagement', 
@@ -148,7 +155,8 @@ CREATE INDEX IF NOT EXISTS idx_mechanical_work_type ON mechanical_work_register(
 ALTER TABLE mechanical_work_register ENABLE ROW LEVEL SECURITY;
 
 -- Mechanical Work Register: Users can only access their own work
-CREATE POLICY IF NOT EXISTS "Users can only access their own mechanical work"
+DROP POLICY IF EXISTS "Users can only access their own mechanical work" ON mechanical_work_register;
+CREATE POLICY "Users can only access their own mechanical work"
   ON mechanical_work_register FOR ALL
   USING (auth.uid() = user_id);
 
@@ -177,7 +185,8 @@ CREATE INDEX IF NOT EXISTS idx_crop_mechanical_works_priority ON crop_mechanical
 ALTER TABLE crop_mechanical_works ENABLE ROW LEVEL SECURITY;
 
 -- Crop Mechanical Works: Public read (mapping standard per tutte le colture)
-CREATE POLICY IF NOT EXISTS "Crop mechanical works are publicly readable"
+DROP POLICY IF EXISTS "Crop mechanical works are publicly readable" ON crop_mechanical_works;
+CREATE POLICY "Crop mechanical works are publicly readable"
   ON crop_mechanical_works FOR SELECT
   USING (true);
 

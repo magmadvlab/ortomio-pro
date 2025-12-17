@@ -4,7 +4,7 @@ import { useTier } from '../packages/core/hooks/useTier';
 import UpgradePrompt from './UpgradePrompt';
 import { AromaticMedicinalCrop } from '../types/aromatic';
 import { calculateAromaticTasks } from '../logic/aromaticEngine';
-import { getMasterSheet } from '../services/plantMasterService';
+import { getMasterSheetSync } from '../services/plantMasterService';
 import { Leaf, Calendar, CheckCircle, Droplets, Scissors, Package } from 'lucide-react';
 
 interface AromaticManagementProps {
@@ -36,7 +36,7 @@ const AromaticManagement: React.FC<AromaticManagementProps> = ({
 
   // Filtra solo task di erbe aromatiche
   const aromaticTasks = tasks.filter(t => {
-    const master = getMasterSheet(t.plantName);
+    const master = getMasterSheetSync(t.plantName);
     return master?.cropType === 'Aromatic' || master?.cropType === 'Medicinal';
   });
 
@@ -53,7 +53,7 @@ const AromaticManagement: React.FC<AromaticManagementProps> = ({
   }
 
   const currentTask = selectedTask || aromaticTasks[0];
-  const masterData = getMasterSheet(currentTask.plantName);
+  const masterData = getMasterSheetSync(currentTask.plantName);
   const aromaticCrop = masterData as unknown as AromaticMedicinalCrop | undefined;
 
   if (!aromaticCrop || (aromaticCrop.cropType !== 'Aromatic' && aromaticCrop.cropType !== 'Medicinal')) {
@@ -215,5 +215,9 @@ const AromaticManagement: React.FC<AromaticManagementProps> = ({
 };
 
 export default AromaticManagement;
+
+
+
+
 
 

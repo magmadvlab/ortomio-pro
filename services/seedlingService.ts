@@ -4,7 +4,7 @@
  */
 
 import { PlantMasterSheet, Garden } from '../types';
-import { getMasterSheet } from './plantMasterService';
+import { getMasterSheetSync } from './plantMasterService';
 
 export interface SeedlingBatch {
   id: string;
@@ -32,7 +32,7 @@ export const createSeedlingBatch = (
   gardenId: string,
   variety?: string
 ): SeedlingBatch => {
-  const masterData = getMasterSheet(plantName);
+  const masterData = getMasterSheetSync(plantName);
   if (!masterData) {
     throw new Error(`Pianta ${plantName} non trovata nel database`);
   }
@@ -70,7 +70,7 @@ export const calculateOptimalSowingDate = (
   targetTransplantDate: string,
   garden: Garden
 ): string | null => {
-  const masterData = getMasterSheet(plantName);
+  const masterData = getMasterSheetSync(plantName);
   if (!masterData) return null;
 
   // Calcola giorni necessari (germinazione + nursing + hardening)
@@ -108,7 +108,7 @@ export const getSeedlingTimeline = (batch: SeedlingBatch): {
   sowingDate.setHours(0, 0, 0, 0);
   const daysSinceSowing = Math.floor((today.getTime() - sowingDate.getTime()) / (1000 * 60 * 60 * 24));
 
-  const masterData = getMasterSheet(batch.plantName);
+  const masterData = getMasterSheetSync(batch.plantName);
   if (!masterData) {
     return { phase: batch.phase, daysInPhase: daysSinceSowing };
   }

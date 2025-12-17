@@ -9,7 +9,7 @@ import {
   suggestInitialPosition,
   Footprint
 } from '../logic/gardenLayoutEngine';
-import { getMasterSheet } from '../services/plantMasterService';
+import { getMasterSheetSync } from '../services/plantMasterService';
 import { suggestPlantPlacement, isAreaSuitableForPlant } from '../logic/spatialPlanner';
 import { calculateSunIncidence, SunIncidenceCell } from '../logic/sunIncidenceCalculator';
 import { 
@@ -127,7 +127,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
   // Crea mappa master data
   const masterDataMap = new Map<string, PlantMasterSheet>();
   activeTasks.forEach(task => {
-    const master = getMasterSheet(task.plantName);
+    const master = getMasterSheetSync(task.plantName);
     if (master) {
       masterDataMap.set(task.plantName, master);
     }

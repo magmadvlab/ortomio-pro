@@ -7,6 +7,7 @@ import { PlantMasterSheet, Garden, GardenTask } from '../types';
 import { NutrientAdvice, calculateNutrientNeeds } from './nutrientEngine';
 import { fertigationProducts, FertigationProduct } from '../data/fertigationProducts';
 import { getSeasonForDate } from '../utils/seasonalAdjustment';
+import { getDefaultProfile } from '../services/archetypeService';
 
 export interface FertigationPlan {
   shouldFertigate: boolean;
@@ -28,12 +29,14 @@ export interface FertigationPlan {
 
 /**
  * Calcola piano fertirrigazione completo
+ * @param irrigationVolume - Volume irrigazione in litri (opzionale, se fornito usa questo invece di calcolarlo)
  */
 export const calculateFertigationPlan = (
   task: GardenTask,
   plant: PlantMasterSheet,
   garden: Garden,
-  currentDate: Date = new Date()
+  currentDate: Date = new Date(),
+  irrigationVolume?: number
 ): FertigationPlan => {
   const daysActive = Math.floor(
     (currentDate.getTime() - new Date(task.date).getTime()) / (1000 * 60 * 60 * 24)
@@ -112,15 +115,20 @@ export const calculateFertigationPlan = (
   }
 
   // 5. Calcola volume irrigazione necessario
-  // Stima: 5-10 litri per m² per irrigazione standard
-  let irrigationPerSqM = 6; // Default Loamy
-  if (garden.soilType === 'Sandy') {
-    irrigationPerSqM = 8; // Più acqua per terreno sabbioso
-  } else if (garden.soilType === 'Clay') {
-    irrigationPerSqM = 5; // Meno acqua per terreno argilloso
+  // Se irrigationVolume è fornito (da zona), usalo direttamente
+  // Altrimenti stima: 5-10 litri per m² per irrigazione standard
+  let totalIrrigationVolume: number;
+  if (irrigationVolume !== undefined && irrigationVolume > 0) {
+    totalIrrigationVolume = irrigationVolume;
+  } else {
+    let irrigationPerSqM = 6; // Default Loamy
+    if (garden.soilType === 'Sandy') {
+      irrigationPerSqM = 8; // Più acqua per terreno sabbioso
+    } else if (garden.soilType === 'Clay') {
+      irrigationPerSqM = 5; // Meno acqua per terreno argilloso
+    }
+    totalIrrigationVolume = garden.sizeSqMeters * irrigationPerSqM;
   }
-
-  const totalIrrigationVolume = garden.sizeSqMeters * irrigationPerSqM;
 
   // 6. Calcola dosaggio totale
   const totalDosage = adjustedDosage * totalIrrigationVolume;

@@ -49,13 +49,13 @@ async function setSuperadminOnline(email: string) {
 
     console.log(`✅ Found user: ${user.email} (${user.id})`)
 
-    // 2. Set tier to PRO_PROFESSIONAL
-    console.log('🔧 Setting tier to PRO_PROFESSIONAL...')
+    // 2. Set tier to PRO (new tier system)
+    console.log('🔧 Setting tier to PRO...')
     const { error: tierError } = await supabase
       .from('profiles')
       .upsert({
         id: user.id,
-        tier: 'PRO_PROFESSIONAL',
+        tier: 'PRO',
         ai_credits_total: 999999,
         ai_credits_used: 0,
       }, {
@@ -66,7 +66,7 @@ async function setSuperadminOnline(email: string) {
       throw tierError
     }
 
-    console.log('✅ Tier set to PRO_PROFESSIONAL')
+    console.log('✅ Tier set to PRO')
     console.log('✅ Credits set to 999999')
 
     // 3. Grant credits via function (optional, for logging)

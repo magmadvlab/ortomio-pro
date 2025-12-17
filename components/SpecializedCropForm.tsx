@@ -398,8 +398,8 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
     switch (cropType) {
       case 'FruitTree': return <TreePine className="text-green-500" size={24} />;
       case 'Strawberry': return <Package className="text-red-500" size={24} />;
-      case 'Olive': return <Droplets className="text-green-600" size={24} />;
-      case 'Vine': return <Wine className="text-purple-500" size={24} />;
+      case 'Olive': return <Droplets className="text-green-700" size={24} />;
+      case 'Vine': return <Wine className="text-purple-700" size={24} />;
       case 'ExoticFruit': return <Sprout className="text-orange-500" size={24} />;
       case 'Aromatic': return <Leaf className="text-green-500" size={24} />;
       case 'Raspberry': return <Grid className="text-purple-500" size={24} />;
@@ -407,13 +407,24 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
     }
   };
 
+  const isTraditional = cropType === 'Olive' || cropType === 'Vine';
+
   return (
     <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-lg">
-      <div className="flex items-center gap-3 mb-6">
-        {getIcon()}
-        <h3 className="text-xl font-bold text-gray-800">
-          Aggiungi {masterSheet.commonName}
-        </h3>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          {getIcon()}
+          <div className="flex items-center gap-2">
+            <h3 className="text-xl font-bold text-gray-800">
+              Aggiungi {masterSheet.commonName}
+            </h3>
+            {isTraditional && (
+              <span className="px-2 py-0.5 text-xs font-bold bg-red-100 text-red-700 rounded-full border border-red-200">
+                TRADIZIONALE
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -497,5 +508,6 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
 };
 
 export default SpecializedCropForm;
+
 
 

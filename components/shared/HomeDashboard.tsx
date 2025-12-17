@@ -15,7 +15,11 @@ import VacationMode from '@/components/VacationMode'
 import SeedInventory from '@/components/SeedInventory'
 import { SeedlingReadyWidget } from '@/components/shared/SeedlingReadyWidget'
 import SeedlingManager from '@/components/SeedlingManager'
+import { SaplingReadyWidget } from '@/components/shared/SaplingReadyWidget'
+import SaplingManager from '@/components/SaplingManager'
+import { GardenTypeWizard } from '@/components/GardenTypeWizard'
 import { SpecializedCropsWidget } from '@/components/shared/SpecializedCropsWidget'
+import { TraditionalCropsWidget } from '@/components/shared/TraditionalCropsWidget'
 import FruitTreeManagement from '@/components/FruitTreeManagement'
 import StrawberryManagement from '@/components/StrawberryManagement'
 import ExoticFruitManagement from '@/components/ExoticFruitManagement'
@@ -25,6 +29,8 @@ import OliveHarvest from '@/components/OliveHarvest'
 import VineHarvest from '@/components/VineHarvest'
 import { AccessoriesWidget } from '@/components/shared/AccessoriesWidget'
 import { GardenBedsWidget } from '@/components/shared/GardenBedsWidget'
+import { IrrigationZonesWidget } from '@/components/irrigation/IrrigationZonesWidget'
+import { IrrigationZoneManager } from '@/components/irrigation/IrrigationZoneManager'
 import { HydroponicMonitorWidget } from '@/components/shared/HydroponicMonitorWidget'
 import { AquaponicMonitorWidget } from '@/components/shared/AquaponicMonitorWidget'
 import { AeroponicMonitorWidget } from '@/components/shared/AeroponicMonitorWidget'
@@ -35,7 +41,7 @@ import { ReadingForm } from '@/components/hydroponic/ReadingForm'
 import { getDailyGardenPlan } from '@/logic/director'
 import { DailyPlan } from '@/types'
 import { SeedlingBatch } from '@/services/seedlingService'
-import { getMasterSheet } from '@/services/plantMasterService'
+import { getMasterSheetSync } from '@/services/plantMasterService'
 import Link from 'next/link'
 
 interface HomeDashboardProps {
@@ -76,6 +82,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
   const [gardenType, setGardenType] = useState<'Summer' | 'Winter'>('Winter')
   const [showSeedInventory, setShowSeedInventory] = useState(false)
   const [showSeedlingManager, setShowSeedlingManager] = useState(false)
+  const [showSaplingManager, setShowSaplingManager] = useState(false)
   const [showVacationMode, setShowVacationMode] = useState(false)
   const [showSpecializedCropManagement, setShowSpecializedCropManagement] = useState<string | null>(null)
   const [prepTasks, setPrepTasks] = useState<any[]>([])
@@ -91,16 +98,11 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
   const [showAeroponicReadingForm, setShowAeroponicReadingForm] = useState(false)
   const [showAccessoriesManager, setShowAccessoriesManager] = useState(false)
   const [showBedManager, setShowBedManager] = useState(false)
+  const [showIrrigationManager, setShowIrrigationManager] = useState(false)
   const [showReadingForm, setShowReadingForm] = useState<'hydroponic' | 'aquaponic' | 'aeroponic' | null>(null)
   
   // States for new garden creation
-  const [showNewGardenModal, setShowNewGardenModal] = useState(false)
-  const [newGardenData, setNewGardenData] = useState({
-    name: '',
-    sizeSqMeters: '',
-    soilPh: '',
-    soilType: ''
-  })
+  const [showGardenTypeWizard, setShowGardenTypeWizard] = useState(false)
   const [gardenTasks, setGardenTasks] = useState<GardenTask[]>(tasks || [])
 
   useEffect(() => {
@@ -284,9 +286,9 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowNewGardenModal(true)}
+              onClick={() => setShowGardenTypeWizard(true)}
               className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              title="Aggiungi Nuovo Orto"
+              title="Aggiungi Nuovo"
             >
               <Plus size={20} />
             </button>
@@ -315,12 +317,12 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
               <button
                 onClick={() => {
                   setIsGardenSelectorOpen(false)
-                  setShowNewGardenModal(true)
+                  setShowGardenTypeWizard(true)
                 }}
                 className="w-full text-left px-4 py-3 hover:bg-green-50 text-green-600 font-semibold flex items-center gap-2"
               >
                 <Plus size={16} />
-                Aggiungi Nuovo Orto
+                Aggiungi Nuovo
               </button>
             </div>
           </div>
@@ -600,6 +602,19 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
           />
         )}
 
+        {/* Sapling Ready Widget */}
+        {activeGarden && (
+          <SaplingReadyWidget 
+            garden={activeGarden} 
+            onOpenManager={() => setShowSaplingManager(true)}
+            onCreateOrchard={(batch) => {
+              // TODO: Implementare creazione impianto specializzato
+              console.log('Create orchard from batch:', batch)
+              alert('Funzionalità in sviluppo: creazione impianto da alberello')
+            }}
+          />
+        )}
+
         {/* Specialized Crops Widget */}
         {activeGarden && tasks && (
           <SpecializedCropsWidget
@@ -671,6 +686,15 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
           </div>
         )}
 
+        {/* Irrigation Zones Widget */}
+        {activeGarden && (
+          <IrrigationZonesWidget
+            garden={activeGarden}
+            tasks={tasks}
+            onOpenManager={() => setShowIrrigationManager(true)}
+          />
+        )}
+
         {/* Urgent Reminders */}
         <div className="bg-green-50 border border-green-200 rounded-xl p-4">
           {upcomingReminders > 0 ? (
@@ -736,6 +760,47 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                   await storageProvider.createSeedlingBatch(batch)
                   const updated = await storageProvider.getSeedlingBatches(activeGarden.id)
                   setSeedlingBatches(updated)
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSaplingManager && activeGarden && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold">Gestione Alberelli</h2>
+              <button
+                onClick={() => setShowSaplingManager(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-4">
+              <SaplingManager
+                garden={activeGarden}
+                batches={[]}
+                onBatchUpdate={async (batch) => {
+                  // TODO: Implementare updateSaplingBatch nello storage provider
+                  const stored = localStorage.getItem(`saplingBatches_${activeGarden.id}`)
+                  const batches = stored ? JSON.parse(stored) : []
+                  const updated = batches.map((b: any) => b.id === batch.id ? batch : b)
+                  localStorage.setItem(`saplingBatches_${activeGarden.id}`, JSON.stringify(updated))
+                }}
+                onBatchCreate={async (batch) => {
+                  // TODO: Implementare createSaplingBatch nello storage provider
+                  const stored = localStorage.getItem(`saplingBatches_${activeGarden.id}`)
+                  const batches = stored ? JSON.parse(stored) : []
+                  const updated = [...batches, batch]
+                  localStorage.setItem(`saplingBatches_${activeGarden.id}`, JSON.stringify(updated))
+                }}
+                onCreateOrchard={(batch) => {
+                  // TODO: Implementare creazione impianto specializzato
+                  console.log('Create orchard from batch:', batch)
+                  alert('Funzionalità in sviluppo: creazione impianto da alberello')
                 }}
               />
             </div>
@@ -836,7 +901,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <p className="text-sm text-gray-700">
                       <strong>Colture Olivi Attive:</strong> {tasks.filter(t => {
-                        const master = getMasterSheet(t.plantName);
+                        const master = getMasterSheetSync(t.plantName);
                         return master?.cropType === 'Olive';
                       }).length}
                     </p>
@@ -856,7 +921,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                   <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                     <p className="text-sm text-gray-700">
                       <strong>Colture Viti Attive:</strong> {tasks.filter(t => {
-                        const master = getMasterSheet(t.plantName);
+                        const master = getMasterSheetSync(t.plantName);
                         return master?.cropType === 'Vine';
                       }).length}
                     </p>
@@ -915,6 +980,38 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         </div>
       )}
 
+      {/* Irrigation Zone Manager Modal */}
+      {showIrrigationManager && activeGarden && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold">Gestione Zone Irrigue</h2>
+              <button
+                onClick={() => setShowIrrigationManager(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-4">
+              <IrrigationZoneManager
+                garden={activeGarden}
+                zones={[]} // TODO: Caricare zone da storage
+                onZoneUpdate={async (zone) => {
+                  // TODO: Implementare update
+                }}
+                onZoneDelete={async (zoneId) => {
+                  // TODO: Implementare delete
+                }}
+                onZoneCreate={async (zone) => {
+                  // TODO: Implementare create
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Reading Form Modal */}
       {showReadingForm && activeGarden && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -947,138 +1044,31 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         </div>
       )}
 
-      {/* New Garden Creation Modal */}
-      {showNewGardenModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Nuovo Orto</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nome Orto <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={newGardenData.name}
-                  onChange={(e) => setNewGardenData({...newGardenData, name: e.target.value})}
-                  placeholder="Es. Orto Casa"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
-                />
-              </div>
+      {/* Garden Type Wizard */}
+      {showGardenTypeWizard && (
+        <GardenTypeWizard
+          onComplete={async (garden) => {
+            try {
+              await storageProvider.createGarden(garden)
+              const updatedGardens = await storageProvider.getGardens()
+              setGardens(updatedGardens)
+              setActiveGarden(garden)
+              setShowGardenTypeWizard(false)
               
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Dimensioni (m²) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={newGardenData.sizeSqMeters}
-                    onChange={(e) => setNewGardenData({...newGardenData, sizeSqMeters: e.target.value})}
-                    placeholder="50"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    pH Suolo
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="4"
-                    max="9"
-                    value={newGardenData.soilPh}
-                    onChange={(e) => setNewGardenData({...newGardenData, soilPh: e.target.value})}
-                    placeholder="6.5"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
-                  />
-                </div>
-              </div>
+              // Carica task per il nuovo giardino (saranno vuoti inizialmente)
+              const newGardenTasks = await storageProvider.getTasks(garden.id)
+              setGardenTasks(newGardenTasks || [])
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo di Terreno
-                </label>
-                <select
-                  value={newGardenData.soilType}
-                  onChange={(e) => setNewGardenData({...newGardenData, soilType: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
-                >
-                  <option value="">Seleziona...</option>
-                  <option value="Loamy">Franco (Equilibrato)</option>
-                  <option value="Clay">Argilloso</option>
-                  <option value="Sandy">Sabbioso</option>
-                  <option value="Silty">Limoso</option>
-                  <option value="Peaty">Torba</option>
-                  <option value="Chalky">Calcareo</option>
-                </select>
-              </div>
-            </div>
-            
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowNewGardenModal(false)
-                  setNewGardenData({ name: '', sizeSqMeters: '', soilPh: '', soilType: '' })
-                }}
-                className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
-              >
-                Annulla
-              </button>
-              <button
-                onClick={async () => {
-                  if (!newGardenData.name.trim() || !newGardenData.sizeSqMeters.trim()) {
-                    alert('Compila almeno nome e dimensioni')
-                    return
-                  }
-                  
-                  const size = parseInt(newGardenData.sizeSqMeters)
-                  if (isNaN(size) || size <= 0) {
-                    alert('Le dimensioni devono essere un numero positivo')
-                    return
-                  }
-                  
-                  try {
-                    const newGarden: Garden = {
-                      id: crypto.randomUUID(),
-                      name: newGardenData.name.trim(),
-                      sizeSqMeters: size,
-                      soilPh: newGardenData.soilPh ? parseFloat(newGardenData.soilPh) : undefined,
-                      soilType: (newGardenData.soilType as Garden['soilType']) || undefined,
-                      createdAt: new Date().toISOString(),
-                      coordinates: activeGarden?.coordinates // Usa coordinate dell'orto corrente se disponibili
-                    }
-                    
-                    await storageProvider.createGarden(newGarden)
-                    const updatedGardens = await storageProvider.getGardens()
-                    setGardens(updatedGardens)
-                    setActiveGarden(newGarden)
-                    setShowNewGardenModal(false)
-                    setNewGardenData({ name: '', sizeSqMeters: '', soilPh: '', soilType: '' })
-                    
-                    // Carica task per il nuovo orto (saranno vuoti inizialmente)
-                    const newGardenTasks = await storageProvider.getTasks(newGarden.id)
-                    setGardenTasks(newGardenTasks || [])
-                    
-                    if (onUpdateGarden) {
-                      onUpdateGarden(newGarden)
-                    }
-                  } catch (error) {
-                    console.error('Error creating garden:', error)
-                    alert('Errore nella creazione dell\'orto: ' + (error instanceof Error ? error.message : 'Errore sconosciuto'))
-                  }
-                }}
-                className="flex-1 py-3 px-4 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
-              >
-                Crea Orto
-              </button>
-            </div>
-          </div>
-        </div>
+              if (onUpdateGarden) {
+                onUpdateGarden(garden)
+              }
+            } catch (error) {
+              console.error('Error creating garden:', error)
+              alert('Errore nella creazione: ' + (error instanceof Error ? error.message : 'Errore sconosciuto'))
+            }
+          }}
+          onCancel={() => setShowGardenTypeWizard(false)}
+        />
       )}
     </div>
   )

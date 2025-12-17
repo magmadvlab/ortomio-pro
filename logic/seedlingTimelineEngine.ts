@@ -5,7 +5,7 @@
 
 import { SeedlingBatch } from '../services/seedlingService';
 import { PlantMasterSheet, Garden } from '../types';
-import { getMasterSheet } from '../services/plantMasterService';
+import { getMasterSheetSync } from '../services/plantMasterService';
 import { getWeatherForecast7Days, WeatherForecast } from '../services/weatherService';
 import { calculateMoonPhase, isIdealPhaseFor } from './lunarCalendar';
 import { analyzeNightTemperatures } from './nightTempAnalysis';
@@ -48,7 +48,7 @@ export const calculateSeedlingTimeline = (
   garden: Garden,
   weatherForecast?: WeatherForecast[]
 ): SeedlingTimeline => {
-  const masterData = getMasterSheet(batch.plantName);
+  const masterData = getMasterSheetSync(batch.plantName);
   if (!masterData) {
     throw new Error(`Pianta ${batch.plantName} non trovata`);
   }
@@ -165,7 +165,7 @@ const calculateOptimalTransplantDate = (
   // Verifica temperatura notturna
   if (weatherForecast && weatherForecast.length > 0) {
     const forecast = weatherForecast[0];
-    const masterData = getMasterSheet(batch.plantName);
+    const masterData = getMasterSheetSync(batch.plantName);
     
     if (masterData && forecast.tempMin !== undefined) {
       const minTemp = masterData.germination.minTemp || 10; // Default 10°C
@@ -192,7 +192,7 @@ const calculateOptimalTransplantDate = (
 
   // Verifica fase lunare
   const moonInfo = calculateMoonPhase(recommendedDate);
-  const masterData = getMasterSheet(batch.plantName);
+  const masterData = getMasterSheetSync(batch.plantName);
   if (masterData) {
     const isIdeal = isIdealPhaseFor('transplant', masterData.nutrientCategory, recommendedDate);
     if (!isIdeal) {

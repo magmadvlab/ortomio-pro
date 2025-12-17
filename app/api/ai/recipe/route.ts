@@ -8,8 +8,8 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify tier PRO_CONSUMER ONLY (not PRO_PROFESSIONAL!)
-    const result = await verifyTier(request, ['PRO_CONSUMER', 'PRO']) // Legacy PRO = PRO_CONSUMER
+    // Verify tier PLUS or PRO
+    const result = await verifyTier(request, ['PLUS', 'PRO'])
     
     if ('error' in result) {
       return NextResponse.json(
@@ -19,17 +19,6 @@ export async function POST(request: NextRequest) {
     }
     
     const { user, profile, tier } = result
-    
-    // Explicitly check: PRO_PROFESSIONAL cannot access recipes
-    if (tier === 'PRO_PROFESSIONAL') {
-      return NextResponse.json(
-        {
-          error: 'feature_not_available',
-          message: 'Le ricette AI sono disponibili solo per PRO Consumer, non per PRO Professional.',
-        },
-        { status: 403 }
-      )
-    }
     
     const { ingredients, cuisine } = await request.json()
     

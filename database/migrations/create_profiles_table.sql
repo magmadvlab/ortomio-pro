@@ -18,3 +18,7 @@ DROP POLICY IF EXISTS "Users can only access their own profile" ON profiles;
 CREATE POLICY "Users can only access their own profile"
   ON profiles FOR ALL
   USING (auth.uid() = id);
+
+
+
+

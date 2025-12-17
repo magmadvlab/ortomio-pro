@@ -83,7 +83,7 @@ export default function PlannerPage() {
         feature="visual-planner"
         title="Visual Garden Planner"
         description="Pianifica il tuo orto con layout visivo interattivo"
-        requiredTier="PRO_CONSUMER"
+        requiredTier="PLUS"
         showPreview={tier === 'FREE'}
       >
         <Planner

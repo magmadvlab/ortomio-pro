@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify tier (potrebbe essere PRO_PROFESSIONAL o altro a seconda dei requisiti)
-    const result = await verifyTier(request, ['PRO_PROFESSIONAL', 'PRO_CONSUMER'])
+    const result = await verifyTier(request, ['PRO', 'PLUS'])
     
     if ('error' in result) {
       return NextResponse.json(
@@ -168,7 +168,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Verify tier
-    const result = await verifyTier(request, ['PRO_PROFESSIONAL', 'PRO_CONSUMER'])
+    const result = await verifyTier(request, ['PRO', 'PLUS'])
     
     if ('error' in result) {
       return NextResponse.json(

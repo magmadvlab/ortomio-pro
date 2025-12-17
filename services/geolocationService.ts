@@ -8,6 +8,9 @@ export interface GeolocationResult {
   success: boolean;
   latitude?: number;
   longitude?: number;
+  accuracy?: number; // Precisione in metri
+  altitude?: number | null;
+  altitudeAccuracy?: number | null;
   error?: string;
   errorCode?: number;
 }
@@ -19,15 +22,35 @@ let lastSuccessTime: number = 0;
 const CACHE_DURATION = 300000; // 5 minuti
 
 /**
- * Funzione migliorata per geolocalizzazione con gestione errori specifica per mobile
+ * Rileva se siamo su dispositivo mobile
+ */
+const isMobileDevice = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  
+  const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+  const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
+  
+  // Verifica anche la larghezza dello schermo
+  const isMobileScreen = window.innerWidth <= 768;
+  
+  return mobileRegex.test(userAgent.toLowerCase()) || isMobileScreen;
+};
+
+/**
+ * Funzione migliorata per geolocalizzazione con ottimizzazioni per desktop/mobile
+ * Migliorata per distinguere serre/campi vicini (richiede maggiore precisione)
  */
 export const getCurrentPosition = async (
   options: GeolocationOptions = {}
 ): Promise<GeolocationResult> => {
+  const isMobile = isMobileDevice();
+  
+  // Ottimizzazioni diverse per desktop e mobile
+  // Migliorata precisione: anche su desktop prova GPS se disponibile per distinguere posizioni vicine
   const {
-    timeout = 20000, // 20 secondi su mobile (più tempo per i permessi)
-    enableHighAccuracy = false, // False per risparmiare batteria e velocità
-    maximumAge = 300000, // 5 minuti - accetta posizione cached se recente
+    timeout = isMobile ? 30000 : 15000, // Mobile: 30s, Desktop: 15s (aumentato per permettere GPS)
+    enableHighAccuracy = options.enableHighAccuracy ?? true, // Default: sempre alta precisione per distinguere serre vicine
+    maximumAge = isMobile ? 30000 : 60000, // Ridotto: Mobile 30s, Desktop 1 minuto (dati più freschi)
   } = options;
 
   // Se c'è già una richiesta in corso, ritorna quella invece di crearne una nuova
@@ -65,7 +88,9 @@ export const getCurrentPosition = async (
     const timeoutId = setTimeout(() => {
       resolve({
         success: false,
-        error: "Timeout: la richiesta di posizione ha impiegato troppo tempo. Verifica i permessi GPS nelle impostazioni del dispositivo.",
+        error: isMobile 
+          ? "Timeout GPS: assicurati che il GPS sia attivo e che ci sia visibilità del cielo."
+          : "Timeout: la richiesta di posizione ha impiegato troppo tempo. Verifica i permessi nelle impostazioni del browser.",
         errorCode: 3, // TIMEOUT
       });
     }, timeout);
@@ -77,6 +102,9 @@ export const getCurrentPosition = async (
           success: true,
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy, // Precisione in metri
+          altitude: position.coords.altitude,
+          altitudeAccuracy: position.coords.altitudeAccuracy,
         };
         // Salva in cache
         lastSuccessResult = result;
@@ -91,15 +119,21 @@ export const getCurrentPosition = async (
 
         switch (error.code) {
           case 1: // PERMISSION_DENIED
-            errorMessage = "Permesso di geolocalizzazione negato. Abilita la geolocalizzazione nelle impostazioni del browser o dell'app.";
+            errorMessage = isMobile
+              ? "Permesso GPS negato. Abilita la geolocalizzazione nelle impostazioni del dispositivo."
+              : "Permesso di geolocalizzazione negato. Abilita la geolocalizzazione nelle impostazioni del browser.";
             // Salva flag per evitare chiamate future
             localStorage.setItem('geolocation_permission_denied', 'true');
             break;
           case 2: // POSITION_UNAVAILABLE
-            errorMessage = "Posizione non disponibile. Verifica che il GPS sia attivo sul dispositivo.";
+            errorMessage = isMobile
+              ? "GPS non disponibile. Verifica che il GPS sia attivo e che ci sia visibilità del cielo."
+              : "Posizione non disponibile. Verifica la connessione internet.";
             break;
           case 3: // TIMEOUT
-            errorMessage = "Timeout: la richiesta ha impiegato troppo tempo. Riprova o verifica la connessione.";
+            errorMessage = isMobile
+              ? "Timeout GPS: il GPS sta impiegando troppo tempo. Assicurati di essere all'aperto con visibilità del cielo."
+              : "Timeout: la richiesta ha impiegato troppo tempo. Riprova o verifica la connessione.";
             break;
           default:
             errorMessage = `Errore geolocalizzazione: ${error.message || "Errore sconosciuto"}`;
@@ -151,6 +185,75 @@ export const getCurrentPositionWithRetry = async (
 
   // Se tutti i tentativi falliscono, restituisci l'ultimo errore
   return await getCurrentPosition(options);
+};
+
+/**
+ * Funzione per forzare nuova lettura GPS con alta precisione
+ * Utile quando si devono distinguere serre/campi vicini
+ */
+export const getCurrentPositionForceRefresh = async (
+  options: GeolocationOptions = {}
+): Promise<GeolocationResult> => {
+  // Pulisci cache per forzare nuova lettura
+  lastSuccessResult = null;
+  lastSuccessTime = 0;
+  pendingRequest = null;
+  
+  // Forza alta precisione e nessuna cache
+  return getCurrentPosition({
+    ...options,
+    enableHighAccuracy: true, // Sempre GPS per massima precisione
+    maximumAge: 0, // Non usare cache
+    timeout: options.timeout ?? 20000, // Timeout più lungo per GPS
+  });
+};
+
+/**
+ * Ottiene posizione con precisione garantita (accetta solo se accuracy < threshold metri)
+ * Utile per distinguere serre/campi a pochi metri di distanza
+ */
+export const getCurrentPositionWithAccuracy = async (
+  maxAccuracyMeters: number = 20, // Default: accetta solo se precisione < 20m
+  maxRetries: number = 3,
+  options: GeolocationOptions = {}
+): Promise<GeolocationResult> => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const result = await getCurrentPosition({
+      ...options,
+      enableHighAccuracy: true, // Sempre GPS
+      maximumAge: attempt === 1 ? (options.maximumAge ?? 0) : 0, // Prima chiamata può usare cache, poi no
+    });
+    
+    if (result.success && result.accuracy !== undefined) {
+      if (result.accuracy <= maxAccuracyMeters) {
+        return result; // Precisione sufficiente
+      }
+      
+      // Precisione insufficiente, ritenta se non è l'ultimo tentativo
+      if (attempt < maxRetries) {
+        // Aspetta prima di ritentare (GPS ha bisogno di tempo)
+        await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+        // Forza nuova lettura
+        lastSuccessResult = null;
+        lastSuccessTime = 0;
+      }
+    } else if (result.success) {
+      // Se non abbiamo accuracy ma success è true, accettiamo comunque
+      return result;
+    }
+    
+    // Se è un errore di permesso, non ritentare
+    if (result.errorCode === 1) {
+      return result;
+    }
+  }
+  
+  // Se tutti i tentativi falliscono o precisione insufficiente, restituisci l'ultimo risultato
+  return await getCurrentPosition({
+    ...options,
+    enableHighAccuracy: true,
+    maximumAge: 0,
+  });
 };
 
 /**

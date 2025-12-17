@@ -32,7 +32,7 @@ interface Treatment {
 
 export default function TreatmentsPage() {
   const { storageProvider } = useStorage()
-  const { isProfessional } = useTier()
+  const { isPro } = useTier()
   const [treatments, setTreatments] = useState<Treatment[]>([])
   const [gardens, setGardens] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -69,22 +69,26 @@ export default function TreatmentsPage() {
         setSelectedGardenId(gardensList[0].id)
       }
       
-      // Load treatments from API
-      const params = new URLSearchParams()
-      if (selectedGardenId) {
-        params.append('garden_id', selectedGardenId)
-      }
-      params.append('limit', '100')
-      
-      const response = await fetch(`/api/treatments?${params.toString()}`)
-      if (response.ok) {
-        const data = await response.json()
-        setTreatments(data.treatments || [])
-      } else {
-        console.error('Error loading treatments:', response.statusText)
-        // In locale, mostra array vuoto se API non disponibile
-        setTreatments([])
-      }
+      // Load treatments from storageProvider
+      const treatmentsList = await storageProvider.getTreatments(selectedGardenId || undefined)
+      // Convert TreatmentRecordDB to Treatment format for component
+      setTreatments(treatmentsList.map(t => ({
+        id: t.id,
+        garden_id: t.garden_id,
+        crop_name: t.crop_name,
+        treatment_date: t.treatment_date,
+        product_name: t.product_name,
+        active_ingredient: t.active_ingredient,
+        dosage: t.dosage,
+        dosage_unit: t.dosage_unit,
+        area_treated: t.area_treated,
+        method: t.method,
+        reason: t.reason,
+        weather_conditions: t.weather_conditions,
+        operator_name: t.operator_name,
+        notes: t.notes,
+        created_at: t.created_at,
+      })))
     } catch (error) {
       console.error('Error loading treatments:', error)
       setTreatments([])
@@ -97,29 +101,42 @@ export default function TreatmentsPage() {
     e.preventDefault()
     
     try {
-      const response = await fetch('/api/treatments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          garden_id: selectedGardenId || null,
-          dosage: formData.dosage ? parseFloat(formData.dosage.toString()) : null,
-          area_treated: formData.area_treated ? parseFloat(formData.area_treated.toString()) : null,
-        }),
+      const newTreatment = await storageProvider.createTreatment({
+        garden_id: selectedGardenId || undefined,
+        crop_name: formData.crop_name!,
+        treatment_date: formData.treatment_date!,
+        product_name: formData.product_name!,
+        active_ingredient: formData.active_ingredient,
+        dosage: formData.dosage ? parseFloat(formData.dosage.toString()) : undefined,
+        dosage_unit: formData.dosage_unit,
+        area_treated: formData.area_treated ? parseFloat(formData.area_treated.toString()) : undefined,
+        method: formData.method,
+        reason: formData.reason,
+        weather_conditions: formData.weather_conditions,
+        operator_name: formData.operator_name,
+        notes: formData.notes,
       })
-
-      if (response.ok) {
-        const data = await response.json()
-        setTreatments([data.treatment, ...treatments])
-        setShowForm(false)
-        resetForm()
-        loadData() // Reload to get updated list
-      } else {
-        const error = await response.json()
-        alert(`Errore: ${error.message || 'Impossibile salvare il trattamento'}`)
-      }
+      
+      // Convert to component format and add to list
+      setTreatments([{
+        id: newTreatment.id,
+        garden_id: newTreatment.garden_id,
+        crop_name: newTreatment.crop_name,
+        treatment_date: newTreatment.treatment_date,
+        product_name: newTreatment.product_name,
+        active_ingredient: newTreatment.active_ingredient,
+        dosage: newTreatment.dosage,
+        dosage_unit: newTreatment.dosage_unit,
+        area_treated: newTreatment.area_treated,
+        method: newTreatment.method,
+        reason: newTreatment.reason,
+        weather_conditions: newTreatment.weather_conditions,
+        operator_name: newTreatment.operator_name,
+        notes: newTreatment.notes,
+        created_at: newTreatment.created_at,
+      }, ...treatments])
+      setShowForm(false)
+      resetForm()
     } catch (error: any) {
       console.error('Error saving treatment:', error)
       alert(`Errore: ${error.message || 'Impossibile salvare il trattamento'}`)
@@ -149,7 +166,7 @@ export default function TreatmentsPage() {
         feature="treatment-register"
         title="Registro Trattamenti"
         description="Registra e gestisci tutti i trattamenti effettuati sulle tue colture"
-        requiredTier="PRO_PROFESSIONAL"
+        requiredTier="PRO"
       >
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
@@ -482,6 +499,7 @@ export default function TreatmentsPage() {
     </div>
   )
 }
+
 
 
 

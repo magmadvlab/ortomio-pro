@@ -81,7 +81,7 @@ export async function getUserProfile(userId: string) {
  */
 export async function verifyTier(
   request: NextRequest,
-  requiredTiers: string[] = ['PRO', 'PRO_CONSUMER', 'PRO_PROFESSIONAL']
+  requiredTiers: string[] = ['PLUS', 'PRO']
 ) {
   const user = await getUserFromRequest(request)
   
@@ -103,9 +103,26 @@ export async function verifyTier(
   
   const userTier = profile.tier || 'FREE'
   
-  // Check if user has required tier
-  const hasAccess = requiredTiers.includes(userTier) || 
-                    (userTier === 'PRO' && requiredTiers.includes('PRO_CONSUMER')) // Legacy PRO = PRO_CONSUMER
+  // Map legacy tiers to new ones for comparison
+  const normalizedTier = 
+    userTier === 'PRO_CONSUMER' ? 'PLUS' :
+    userTier === 'PRO_PROFESSIONAL' ? 'PRO' :
+    userTier === 'PRO' && !requiredTiers.includes('PRO') ? 'PLUS' : // Legacy PRO defaults to PLUS if PRO not required
+    userTier
+  
+  // Normalize required tiers (map legacy to new)
+  const normalizedRequiredTiers = requiredTiers.map(tier => 
+    tier === 'PRO_CONSUMER' ? 'PLUS' :
+    tier === 'PRO_PROFESSIONAL' ? 'PRO' :
+    tier
+  )
+  
+  // Check if user has required tier (with legacy tier support)
+  const hasAccess = normalizedRequiredTiers.includes(normalizedTier) ||
+                    normalizedRequiredTiers.includes(userTier) || // Direct match for legacy tiers
+                    (userTier === 'PRO' && normalizedRequiredTiers.includes('PLUS')) || // Legacy PRO = PLUS
+                    (userTier === 'PRO_PROFESSIONAL' && normalizedRequiredTiers.includes('PRO')) || // Legacy PRO_PROFESSIONAL = PRO
+                    (userTier === 'PRO_CONSUMER' && normalizedRequiredTiers.includes('PLUS')) // Legacy PRO_CONSUMER = PLUS
   
   if (!hasAccess) {
     return {

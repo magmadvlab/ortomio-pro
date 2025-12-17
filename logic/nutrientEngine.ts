@@ -1,3 +1,12 @@
+/**
+ * Nutrient Engine
+ * Calcola fabbisogno nutrizionale (NPK) basato su categoria e fase
+ * 
+ * NOTE: Usa plant.nutrientCategory da PlantMasterSheet. Per migliorare precisione,
+ * considera integrazione con plantTaxonomyService.getPlantFunctionalCategory()
+ * per ottenere functionalCategory da taxonomy (LEAF, FRUIT, ROOT, AROMATIC, LEGUME)
+ */
+
 import { PlantMasterSheet, Garden } from '../types';
 
 export interface NutrientAdvice {

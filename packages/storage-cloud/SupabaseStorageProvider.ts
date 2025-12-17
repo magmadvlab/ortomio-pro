@@ -4,7 +4,8 @@
  */
 
 import { IStorageProvider } from '../core/storage/interface';
-import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog } from '@/types';
+import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB } from '@/types';
+import { CustomCrop, CropLearningEvent } from '@/types/customCrop';
 import { CustomPlan } from '@/types/customPlan';
 import { Agronomist, AgronomistConsultation, AgronomistAdvice } from '@/types/agronomist';
 import { GardenAccessory } from '@/types/accessories';
@@ -13,6 +14,8 @@ import { GardenBed } from '@/types/gardenBed';
 import { SeedlingBatch } from '@/services/seedlingService';
 import { getSupabaseClient } from '@/config/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { CropArchetype, CropProfile, CropAlias, ArchetypeId, OfficialCrop } from '@/types/archetypes';
+import { IrrigationSystem, IrrigationZone, IrrigationComponent, WateringLog } from '@/types/irrigation';
 
 export class SupabaseStorageProvider implements IStorageProvider {
   private client: SupabaseClient | null;
@@ -393,6 +396,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       name: db.name,
       coordinates: db.coordinates,
       sizeSqMeters: Number(db.size_sq_meters),
+      sizeUnit: db.size_unit,
       soilType: db.soil_type,
       soilPh: db.soil_ph ? Number(db.soil_ph) : undefined,
       altitudeMeters: db.altitude_meters,
@@ -403,7 +407,17 @@ export class SupabaseStorageProvider implements IStorageProvider {
       windProtection: db.wind_protection,
       hasCompostBin: db.has_compost_bin,
       isRaisedBed: db.is_raised_bed,
+      gardenType: db.garden_type,
+      greenhouseConfig: db.greenhouse_config,
+      indoorConfig: db.indoor_config,
+      hydroponicConfig: db.hydroponic_config,
+      aquaponicConfig: db.aquaponic_config,
+      aeroponicConfig: db.aeroponic_config,
+      structureConfig: db.structure_config || undefined,
       vacationMode: db.vacation_mode,
+      orchardConfig: db.orchard_config || undefined,
+      oliveGroveConfig: db.olive_grove_config || undefined,
+      vineyardConfig: db.vineyard_config || undefined,
       createdAt: db.created_at,
     };
   }
@@ -413,6 +427,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (garden.name !== undefined) db.name = garden.name;
     if (garden.coordinates !== undefined) db.coordinates = garden.coordinates;
     if (garden.sizeSqMeters !== undefined) db.size_sq_meters = garden.sizeSqMeters;
+    if (garden.sizeUnit !== undefined) db.size_unit = garden.sizeUnit;
     if (garden.soilType !== undefined) db.soil_type = garden.soilType;
     if (garden.soilPh !== undefined) db.soil_ph = garden.soilPh;
     if (garden.altitudeMeters !== undefined) db.altitude_meters = garden.altitudeMeters;
@@ -423,7 +438,17 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (garden.windProtection !== undefined) db.wind_protection = garden.windProtection;
     if (garden.hasCompostBin !== undefined) db.has_compost_bin = garden.hasCompostBin;
     if (garden.isRaisedBed !== undefined) db.is_raised_bed = garden.isRaisedBed;
+    if (garden.gardenType !== undefined) db.garden_type = garden.gardenType;
+    if (garden.greenhouseConfig !== undefined) db.greenhouse_config = garden.greenhouseConfig;
+    if (garden.indoorConfig !== undefined) db.indoor_config = garden.indoorConfig;
+    if (garden.hydroponicConfig !== undefined) db.hydroponic_config = garden.hydroponicConfig;
+    if (garden.aquaponicConfig !== undefined) db.aquaponic_config = garden.aquaponicConfig;
+    if (garden.aeroponicConfig !== undefined) db.aeroponic_config = garden.aeroponicConfig;
+    if (garden.structureConfig !== undefined) db.structure_config = garden.structureConfig;
     if (garden.vacationMode !== undefined) db.vacation_mode = garden.vacationMode;
+    if (garden.orchardConfig !== undefined) db.orchard_config = garden.orchardConfig;
+    if (garden.oliveGroveConfig !== undefined) db.olive_grove_config = garden.oliveGroveConfig;
+    if (garden.vineyardConfig !== undefined) db.vineyard_config = garden.vineyardConfig;
     return db;
   }
 
@@ -466,6 +491,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
       vineData: db.vine_data,
       images: db.images,
       lastPhotoDate: db.last_photo_date,
+      // Sistema Archetipi
+      archetypeId: db.archetype_id,
+      rootZoneDepthCm: db.root_zone_depth_cm,
+      irrigationSetup: db.irrigation_setup,
     };
   }
 
@@ -503,6 +532,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (task.vineData !== undefined) db.vine_data = task.vineData;
     if (task.images !== undefined) db.images = task.images;
     if (task.lastPhotoDate !== undefined) db.last_photo_date = task.lastPhotoDate;
+    // Sistema Archetipi
+    if (task.archetypeId !== undefined) db.archetype_id = task.archetypeId;
+    if (task.rootZoneDepthCm !== undefined) db.root_zone_depth_cm = task.rootZoneDepthCm;
+    if (task.irrigationSetup !== undefined) db.irrigation_setup = task.irrigationSetup;
     return db;
   }
 
@@ -1422,6 +1455,1066 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .eq('id', id);
     
     if (error) throw error;
+  }
+
+  // Mechanical Work
+  async getMechanicalWorks(gardenId?: string): Promise<MechanicalWorkRecord[]> {
+    const client = this.ensureClient();
+    let query = client
+      .from('mechanical_work_register')
+      .select('*')
+      .order('work_date', { ascending: false });
+    
+    if (gardenId) {
+      query = query.eq('garden_id', gardenId);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []).map(db => this.mapMechanicalWorkFromDB(db));
+  }
+
+  async getMechanicalWork(id: string): Promise<MechanicalWorkRecord | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('mechanical_work_register')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Not found
+      throw error;
+    }
+    return this.mapMechanicalWorkFromDB(data);
+  }
+
+  async createMechanicalWork(work: Omit<MechanicalWorkRecord, 'id' | 'user_id' | 'created_at'>): Promise<MechanicalWorkRecord> {
+    const client = this.ensureClient();
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    
+    const { data, error } = await client
+      .from('mechanical_work_register')
+      .insert({
+        user_id: user.id,
+        garden_id: work.garden_id || null,
+        work_type: work.work_type,
+        work_date: work.work_date,
+        area_m2: work.area_m2,
+        depth_cm: work.depth_cm || null,
+        equipment_type: work.equipment_type || null,
+        equipment_attachment: work.equipment_attachment || null,
+        work_metadata: work.work_metadata || null,
+        weather_conditions: work.weather_conditions || null,
+        operator_name: work.operator_name || null,
+        notes: work.notes || null,
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapMechanicalWorkFromDB(data);
+  }
+
+  async updateMechanicalWork(id: string, updates: Partial<MechanicalWorkRecord>): Promise<MechanicalWorkRecord> {
+    const client = this.ensureClient();
+    const dbData: any = {};
+    
+    if (updates.garden_id !== undefined) dbData.garden_id = updates.garden_id || null;
+    if (updates.work_type !== undefined) dbData.work_type = updates.work_type;
+    if (updates.work_date !== undefined) dbData.work_date = updates.work_date;
+    if (updates.area_m2 !== undefined) dbData.area_m2 = updates.area_m2;
+    if (updates.depth_cm !== undefined) dbData.depth_cm = updates.depth_cm || null;
+    if (updates.equipment_type !== undefined) dbData.equipment_type = updates.equipment_type || null;
+    if (updates.equipment_attachment !== undefined) dbData.equipment_attachment = updates.equipment_attachment || null;
+    if (updates.work_metadata !== undefined) dbData.work_metadata = updates.work_metadata || null;
+    if (updates.weather_conditions !== undefined) dbData.weather_conditions = updates.weather_conditions || null;
+    if (updates.operator_name !== undefined) dbData.operator_name = updates.operator_name || null;
+    if (updates.notes !== undefined) dbData.notes = updates.notes || null;
+    
+    const { data, error } = await client
+      .from('mechanical_work_register')
+      .update(dbData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapMechanicalWorkFromDB(data);
+  }
+
+  async deleteMechanicalWork(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client
+      .from('mechanical_work_register')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+
+  private mapMechanicalWorkFromDB(db: any): MechanicalWorkRecord {
+    return {
+      id: db.id,
+      user_id: db.user_id,
+      garden_id: db.garden_id,
+      work_type: db.work_type,
+      work_date: db.work_date,
+      area_m2: parseFloat(db.area_m2),
+      depth_cm: db.depth_cm ? parseFloat(db.depth_cm) : undefined,
+      equipment_type: db.equipment_type,
+      equipment_attachment: db.equipment_attachment,
+      work_metadata: db.work_metadata,
+      weather_conditions: db.weather_conditions,
+      operator_name: db.operator_name,
+      notes: db.notes,
+      created_at: db.created_at,
+    };
+  }
+
+  // Treatments
+  async getTreatments(gardenId?: string): Promise<TreatmentRecordDB[]> {
+    const client = this.ensureClient();
+    let query = client
+      .from('treatment_register')
+      .select('*')
+      .order('treatment_date', { ascending: false });
+    
+    if (gardenId) {
+      query = query.eq('garden_id', gardenId);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []).map(db => this.mapTreatmentFromDB(db));
+  }
+
+  async getTreatment(id: string): Promise<TreatmentRecordDB | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('treatment_register')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Not found
+      throw error;
+    }
+    return this.mapTreatmentFromDB(data);
+  }
+
+  async createTreatment(treatment: Omit<TreatmentRecordDB, 'id' | 'user_id' | 'created_at'>): Promise<TreatmentRecordDB> {
+    const client = this.ensureClient();
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    
+    const { data, error } = await client
+      .from('treatment_register')
+      .insert({
+        user_id: user.id,
+        garden_id: treatment.garden_id || null,
+        crop_name: treatment.crop_name,
+        treatment_date: treatment.treatment_date,
+        product_name: treatment.product_name,
+        active_ingredient: treatment.active_ingredient || null,
+        dosage: treatment.dosage || null,
+        dosage_unit: treatment.dosage_unit || null,
+        area_treated: treatment.area_treated || null,
+        method: treatment.method || null,
+        reason: treatment.reason || null,
+        weather_conditions: treatment.weather_conditions || null,
+        operator_name: treatment.operator_name || null,
+        notes: treatment.notes || null,
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapTreatmentFromDB(data);
+  }
+
+  async updateTreatment(id: string, updates: Partial<TreatmentRecordDB>): Promise<TreatmentRecordDB> {
+    const client = this.ensureClient();
+    const dbData: any = {};
+    
+    if (updates.garden_id !== undefined) dbData.garden_id = updates.garden_id || null;
+    if (updates.crop_name !== undefined) dbData.crop_name = updates.crop_name;
+    if (updates.treatment_date !== undefined) dbData.treatment_date = updates.treatment_date;
+    if (updates.product_name !== undefined) dbData.product_name = updates.product_name;
+    if (updates.active_ingredient !== undefined) dbData.active_ingredient = updates.active_ingredient || null;
+    if (updates.dosage !== undefined) dbData.dosage = updates.dosage || null;
+    if (updates.dosage_unit !== undefined) dbData.dosage_unit = updates.dosage_unit || null;
+    if (updates.area_treated !== undefined) dbData.area_treated = updates.area_treated || null;
+    if (updates.method !== undefined) dbData.method = updates.method || null;
+    if (updates.reason !== undefined) dbData.reason = updates.reason || null;
+    if (updates.weather_conditions !== undefined) dbData.weather_conditions = updates.weather_conditions || null;
+    if (updates.operator_name !== undefined) dbData.operator_name = updates.operator_name || null;
+    if (updates.notes !== undefined) dbData.notes = updates.notes || null;
+    
+    const { data, error } = await client
+      .from('treatment_register')
+      .update(dbData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapTreatmentFromDB(data);
+  }
+
+  async deleteTreatment(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client
+      .from('treatment_register')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+
+  private mapTreatmentFromDB(db: any): TreatmentRecordDB {
+    return {
+      id: db.id,
+      user_id: db.user_id,
+      garden_id: db.garden_id,
+      crop_name: db.crop_name,
+      treatment_date: db.treatment_date,
+      product_name: db.product_name,
+      active_ingredient: db.active_ingredient,
+      dosage: db.dosage ? parseFloat(db.dosage) : undefined,
+      dosage_unit: db.dosage_unit,
+      area_treated: db.area_treated ? parseFloat(db.area_treated) : undefined,
+      method: db.method,
+      reason: db.reason,
+      weather_conditions: db.weather_conditions,
+      operator_name: db.operator_name,
+      notes: db.notes,
+      created_at: db.created_at,
+    };
+  }
+
+  // Custom Crops
+  async getCustomCrops(gardenId?: string): Promise<CustomCrop[]> {
+    const client = this.ensureClient();
+    let query = client
+      .from('custom_crops')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (gardenId) {
+      query = query.eq('garden_id', gardenId);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []).map(db => this.mapCustomCropFromDB(db));
+  }
+
+  async getCustomCrop(id: string): Promise<CustomCrop | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('custom_crops')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return this.mapCustomCropFromDB(data);
+  }
+
+  async createCustomCrop(crop: Omit<CustomCrop, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<CustomCrop> {
+    const client = this.ensureClient();
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    
+    const { data, error } = await client
+      .from('custom_crops')
+      .insert({
+        user_id: user.id,
+        garden_id: crop.garden_id || null,
+        common_name: crop.common_name,
+        scientific_name: crop.scientific_name || null,
+        family: crop.family || null,
+        initial_data: crop.initial_data || {},
+        learned_patterns: crop.learned_patterns || {
+          plantingTiming: { successfulDates: [], failedDates: [], confidence: 0 },
+          harvestTiming: { successfulDates: [], confidence: 0 },
+          successfulWorks: [],
+          successfulTreatments: [],
+          recurringProblems: []
+        },
+        stats: crop.stats || {
+          totalPlantings: 0,
+          totalHarvests: 0,
+          successRate: 0
+        }
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapCustomCropFromDB(data);
+  }
+
+  async updateCustomCrop(id: string, updates: Partial<CustomCrop>): Promise<CustomCrop> {
+    const client = this.ensureClient();
+    const dbData: any = {};
+    
+    if (updates.garden_id !== undefined) dbData.garden_id = updates.garden_id || null;
+    if (updates.common_name !== undefined) dbData.common_name = updates.common_name;
+    if (updates.scientific_name !== undefined) dbData.scientific_name = updates.scientific_name || null;
+    if (updates.family !== undefined) dbData.family = updates.family || null;
+    if (updates.initial_data !== undefined) dbData.initial_data = updates.initial_data;
+    if (updates.learned_patterns !== undefined) dbData.learned_patterns = updates.learned_patterns;
+    if (updates.stats !== undefined) dbData.stats = updates.stats;
+    
+    const { data, error } = await client
+      .from('custom_crops')
+      .update(dbData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapCustomCropFromDB(data);
+  }
+
+  async deleteCustomCrop(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client
+      .from('custom_crops')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+
+  private mapCustomCropFromDB(db: any): CustomCrop {
+    return {
+      id: db.id,
+      user_id: db.user_id,
+      garden_id: db.garden_id,
+      common_name: db.common_name,
+      scientific_name: db.scientific_name,
+      family: db.family,
+      initial_data: db.initial_data,
+      learned_patterns: db.learned_patterns || {
+        plantingTiming: { successfulDates: [], failedDates: [], confidence: 0 },
+        harvestTiming: { successfulDates: [], confidence: 0 },
+        successfulWorks: [],
+        successfulTreatments: [],
+        recurringProblems: []
+      },
+      stats: db.stats || {
+        totalPlantings: 0,
+        totalHarvests: 0,
+        successRate: 0
+      },
+      created_at: db.created_at,
+      updated_at: db.updated_at,
+    };
+  }
+
+  // Learning Events
+  async recordLearningEvent(event: Omit<CropLearningEvent, 'id' | 'created_at'>): Promise<CropLearningEvent> {
+    const client = this.ensureClient();
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    
+    const { data, error } = await client
+      .from('crop_learning_events')
+      .insert({
+        custom_crop_id: event.custom_crop_id || null,
+        user_id: user.id,
+        garden_id: event.garden_id || null,
+        event_type: event.event_type,
+        event_data: event.event_data,
+        outcome: event.outcome || null
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapLearningEventFromDB(data);
+  }
+
+  async getLearningEvents(cropId: string): Promise<CropLearningEvent[]> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('crop_learning_events')
+      .select('*')
+      .eq('custom_crop_id', cropId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return (data || []).map(db => this.mapLearningEventFromDB(db));
+  }
+
+  private mapLearningEventFromDB(db: any): CropLearningEvent {
+    return {
+      id: db.id,
+      custom_crop_id: db.custom_crop_id,
+      user_id: db.user_id,
+      garden_id: db.garden_id,
+      event_type: db.event_type,
+      event_data: db.event_data,
+      outcome: db.outcome,
+      created_at: db.created_at,
+    };
+  }
+
+  // Sistema Archetipi
+  async getArchetypes(): Promise<CropArchetype[]> {
+    // Archetipi sono dati statici, non vengono dal database
+    const { archetypes } = await import('../../data/archetypes');
+    return archetypes;
+  }
+
+  async getArchetype(id: ArchetypeId): Promise<CropArchetype | null> {
+    const { getArchetypeById } = await import('../../data/archetypes');
+    return getArchetypeById(id) || null;
+  }
+
+  async getProfile(archetypeId: ArchetypeId): Promise<CropProfile | null> {
+    const { getProfileByArchetypeId } = await import('../../data/archetypeProfiles');
+    return getProfileByArchetypeId(archetypeId) || null;
+  }
+
+  // Aliases
+  async searchAlias(query: string, region?: string, province?: string): Promise<CropAlias | null> {
+    const client = this.ensureClient();
+    const { normalizeText } = await import('../../utils/textNormalizer');
+    const normalizedQuery = normalizeText(query);
+    
+    // Cerca prima su alias_text (case-insensitive)
+    let queryBuilder = client
+      .from('crop_aliases')
+      .select('*')
+      .ilike('alias_text', query.trim());
+    
+    if (region) {
+      queryBuilder = queryBuilder.eq('region', region);
+    }
+    if (province) {
+      queryBuilder = queryBuilder.eq('province', province);
+    }
+    
+    let { data, error } = await queryBuilder.order('confidence', { ascending: false }).limit(1);
+    
+    if (error) throw error;
+    if (data && data.length > 0) {
+      return this.mapAliasFromDB(data[0]);
+    }
+    
+    // Se non trovato, cerca su normalized_alias
+    queryBuilder = client
+      .from('crop_aliases')
+      .select('*')
+      .eq('normalized_alias', normalizedQuery);
+    
+    if (region) {
+      queryBuilder = queryBuilder.eq('region', region);
+    }
+    if (province) {
+      queryBuilder = queryBuilder.eq('province', province);
+    }
+    
+    ({ data, error } = await queryBuilder.order('confidence', { ascending: false }).limit(1));
+    
+    if (error) throw error;
+    if (!data || data.length === 0) return null;
+    
+    return this.mapAliasFromDB(data[0]);
+  }
+
+  async createAlias(alias: Omit<CropAlias, 'id' | 'createdAt' | 'updatedAt' | 'usageCount'>): Promise<CropAlias> {
+    const client = this.ensureClient();
+    const { data: { user } } = await client.auth.getUser();
+    const { normalizeText } = await import('../../utils/textNormalizer');
+    
+    // Auto-popola normalized_alias
+    const normalizedAlias = normalizeText(alias.aliasText);
+    
+    const { data, error } = await client
+      .from('crop_aliases')
+      .insert({
+        alias_text: alias.aliasText,
+        normalized_alias: normalizedAlias,
+        archetype_id: alias.archetypeId,
+        region: alias.region || null,
+        province: alias.province || null,
+        confidence: alias.confidence || 1.0,
+        created_by: alias.createdBy || user?.id || null,
+        usage_count: 1
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapAliasFromDB(data);
+  }
+
+  async updateAliasConfidence(aliasId: string, confidence: number): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client
+      .from('crop_aliases')
+      .update({ confidence: Math.max(0, Math.min(1, confidence)) })
+      .eq('id', aliasId);
+    
+    if (error) throw error;
+  }
+
+  async getAlias(aliasId: string): Promise<CropAlias | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('crop_aliases')
+      .select('*')
+      .eq('id', aliasId)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    
+    return this.mapAliasFromDB(data);
+  }
+
+  async updateAlias(aliasId: string, updates: Partial<CropAlias>): Promise<CropAlias> {
+    const client = this.ensureClient();
+    const dbUpdates: any = {};
+    
+    if (updates.aliasText !== undefined) {
+      dbUpdates.alias_text = updates.aliasText;
+      // Aggiorna anche normalized_alias se aliasText cambia
+      const { normalizeText } = await import('../../utils/textNormalizer');
+      dbUpdates.normalized_alias = normalizeText(updates.aliasText);
+    }
+    if (updates.archetypeId !== undefined) dbUpdates.archetype_id = updates.archetypeId;
+    if (updates.region !== undefined) dbUpdates.region = updates.region;
+    if (updates.province !== undefined) dbUpdates.province = updates.province;
+    if (updates.confidence !== undefined) dbUpdates.confidence = updates.confidence;
+    if (updates.usageCount !== undefined) dbUpdates.usage_count = updates.usageCount;
+    
+    const { data, error } = await client
+      .from('crop_aliases')
+      .update(dbUpdates)
+      .eq('id', aliasId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapAliasFromDB(data);
+  }
+
+  async getAliasesByArchetype(archetypeId: ArchetypeId): Promise<CropAlias[]> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('crop_aliases')
+      .select('*')
+      .eq('archetype_id', archetypeId)
+      .order('usage_count', { ascending: false });
+    
+    if (error) throw error;
+    return (data || []).map(db => this.mapAliasFromDB(db));
+  }
+
+  async getAllAliases(): Promise<CropAlias[]> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('crop_aliases')
+      .select('*')
+      .order('usage_count', { ascending: false });
+    
+    if (error) throw error;
+    return (data || []).map(db => this.mapAliasFromDB(db));
+  }
+
+  // Official Crops
+  async getOfficialCrop(name: string): Promise<OfficialCrop | null> {
+    const client = this.ensureClient();
+    
+    // Cerca prima su name (case-insensitive)
+    let { data, error } = await client
+      .from('official_crops')
+      .select('*')
+      .ilike('name', name)
+      .limit(1)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
+    
+    if (data) {
+      return this.mapOfficialCropFromDB(data);
+    }
+    
+    // Se non trovato, cerca su normalized_name
+    const { normalizeText } = await import('../../utils/textNormalizer');
+    const normalizedName = normalizeText(name);
+    
+    ({ data, error } = await client
+      .from('official_crops')
+      .select('*')
+      .eq('normalized_name', normalizedName)
+      .limit(1)
+      .single());
+    
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    
+    return data ? this.mapOfficialCropFromDB(data) : null;
+  }
+
+  async searchOfficialCrops(query: string): Promise<OfficialCrop[]> {
+    const client = this.ensureClient();
+    
+    // Se query vuota, restituisci tutti i crops (limitato a 200 per performance fuzzy search)
+    if (!query || query.trim().length === 0) {
+      const { data, error } = await client
+        .from('official_crops')
+        .select('*')
+        .order('name', { ascending: true })
+        .limit(200);
+      
+      if (error) throw error;
+      return (data || []).map(db => this.mapOfficialCropFromDB(db));
+    }
+    
+    // Cerca su name e normalized_name
+    const { normalizeText } = await import('../../utils/textNormalizer');
+    const normalizedQuery = normalizeText(query);
+    
+    const { data, error } = await client
+      .from('official_crops')
+      .select('*')
+      .or(`name.ilike.%${query}%,normalized_name.eq.${normalizedQuery}`)
+      .limit(50);
+    
+    if (error) throw error;
+    return (data || []).map(db => this.mapOfficialCropFromDB(db));
+  }
+
+  private mapAliasFromDB(db: any): CropAlias {
+    return {
+      id: db.id,
+      aliasText: db.alias_text,
+      archetypeId: db.archetype_id,
+      region: db.region,
+      province: db.province,
+      confidence: Number(db.confidence),
+      createdBy: db.created_by,
+      usageCount: db.usage_count || 1,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at
+    };
+  }
+
+  private mapOfficialCropFromDB(db: any): OfficialCrop {
+    return {
+      id: db.id,
+      name: db.name,
+      archetypeId: db.archetype_id,
+      profileOverrideId: db.profile_override_id,
+      scientificName: db.scientific_name
+    };
+  }
+
+  // Irrigation Systems
+  async getIrrigationSystems(gardenId: string): Promise<IrrigationSystem[]> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('irrigation_systems')
+      .select('*')
+      .eq('garden_id', gardenId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return (data || []).map(db => this.mapIrrigationSystemFromDB(db));
+  }
+
+  async getIrrigationSystem(id: string): Promise<IrrigationSystem | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('irrigation_systems')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return this.mapIrrigationSystemFromDB(data);
+  }
+
+  async createIrrigationSystem(system: Omit<IrrigationSystem, 'id' | 'createdAt' | 'updatedAt'>): Promise<IrrigationSystem> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('irrigation_systems')
+      .insert({
+        garden_id: system.gardenId,
+        name: system.name
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapIrrigationSystemFromDB(data);
+  }
+
+  async updateIrrigationSystem(id: string, updates: Partial<IrrigationSystem>): Promise<IrrigationSystem> {
+    const client = this.ensureClient();
+    const dbUpdates: any = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    
+    const { data, error } = await client
+      .from('irrigation_systems')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapIrrigationSystemFromDB(data);
+  }
+
+  async deleteIrrigationSystem(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client
+      .from('irrigation_systems')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+
+  // Irrigation Zones
+  async getIrrigationZones(systemId: string): Promise<IrrigationZone[]> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('irrigation_zones')
+      .select('*')
+      .eq('system_id', systemId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return (data || []).map(db => this.mapIrrigationZoneFromDB(db));
+  }
+
+  async getIrrigationZone(id: string): Promise<IrrigationZone | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('irrigation_zones')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return this.mapIrrigationZoneFromDB(data);
+  }
+
+  async createIrrigationZone(zone: Omit<IrrigationZone, 'id' | 'createdAt' | 'updatedAt'>): Promise<IrrigationZone> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('irrigation_zones')
+      .insert({
+        system_id: zone.systemId,
+        name: zone.name,
+        method: zone.method,
+        flow_rate_lph: zone.flowRateLph,
+        valve_id: zone.valveId || null,
+        bed_ids: zone.bedIds || [],
+        plant_task_ids: zone.plantTaskIds || [],
+        notes: zone.notes || null,
+        calculated_from_components: zone.calculatedFromComponents || false
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapIrrigationZoneFromDB(data);
+  }
+
+  async updateIrrigationZone(id: string, updates: Partial<IrrigationZone>): Promise<IrrigationZone> {
+    const client = this.ensureClient();
+    const dbUpdates: any = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.method !== undefined) dbUpdates.method = updates.method;
+    if (updates.flowRateLph !== undefined) dbUpdates.flow_rate_lph = updates.flowRateLph;
+    if (updates.valveId !== undefined) dbUpdates.valve_id = updates.valveId || null;
+    if (updates.bedIds !== undefined) dbUpdates.bed_ids = updates.bedIds;
+    if (updates.plantTaskIds !== undefined) dbUpdates.plant_task_ids = updates.plantTaskIds;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes || null;
+    if (updates.calculatedFromComponents !== undefined) dbUpdates.calculated_from_components = updates.calculatedFromComponents;
+    
+    const { data, error } = await client
+      .from('irrigation_zones')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapIrrigationZoneFromDB(data);
+  }
+
+  async deleteIrrigationZone(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client
+      .from('irrigation_zones')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+
+  // Irrigation Components
+  async getIrrigationComponents(zoneId: string): Promise<IrrigationComponent[]> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('irrigation_components')
+      .select('*')
+      .eq('zone_id', zoneId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return (data || []).map(db => this.mapIrrigationComponentFromDB(db));
+  }
+
+  async getIrrigationComponent(id: string): Promise<IrrigationComponent | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('irrigation_components')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return this.mapIrrigationComponentFromDB(data);
+  }
+
+  async createIrrigationComponent(component: Omit<IrrigationComponent, 'id' | 'createdAt'>): Promise<IrrigationComponent> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('irrigation_components')
+      .insert({
+        zone_id: component.zoneId,
+        type: component.type,
+        length_meters: component.lengthMeters || null,
+        flow_rate_per_meter_lph: component.flowRatePerMeterLph || null,
+        dripper_spacing: component.dripperSpacing || null,
+        dripper_flow_rate_lph: component.dripperFlowRateLph || null,
+        quantity: component.quantity || null,
+        flow_rate_lph: component.flowRateLph || null,
+        brand: component.brand || null,
+        model: component.model || null,
+        notes: component.notes || null
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapIrrigationComponentFromDB(data);
+  }
+
+  async updateIrrigationComponent(id: string, updates: Partial<IrrigationComponent>): Promise<IrrigationComponent> {
+    const client = this.ensureClient();
+    const dbUpdates: any = {};
+    if (updates.type !== undefined) dbUpdates.type = updates.type;
+    if (updates.lengthMeters !== undefined) dbUpdates.length_meters = updates.lengthMeters || null;
+    if (updates.flowRatePerMeterLph !== undefined) dbUpdates.flow_rate_per_meter_lph = updates.flowRatePerMeterLph || null;
+    if (updates.dripperSpacing !== undefined) dbUpdates.dripper_spacing = updates.dripperSpacing || null;
+    if (updates.dripperFlowRateLph !== undefined) dbUpdates.dripper_flow_rate_lph = updates.dripperFlowRateLph || null;
+    if (updates.quantity !== undefined) dbUpdates.quantity = updates.quantity || null;
+    if (updates.flowRateLph !== undefined) dbUpdates.flow_rate_lph = updates.flowRateLph || null;
+    if (updates.brand !== undefined) dbUpdates.brand = updates.brand || null;
+    if (updates.model !== undefined) dbUpdates.model = updates.model || null;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes || null;
+    
+    const { data, error } = await client
+      .from('irrigation_components')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapIrrigationComponentFromDB(data);
+  }
+
+  async deleteIrrigationComponent(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client
+      .from('irrigation_components')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+
+  // Watering Logs
+  async getWateringLogs(zoneId: string, startDate?: string, endDate?: string): Promise<WateringLog[]> {
+    const client = this.ensureClient();
+    let query = client
+      .from('watering_logs')
+      .select('*')
+      .eq('zone_id', zoneId);
+    
+    if (startDate) {
+      query = query.gte('date', startDate);
+    }
+    if (endDate) {
+      query = query.lte('date', endDate);
+    }
+    
+    const { data, error } = await query.order('date', { ascending: false });
+    
+    if (error) throw error;
+    return (data || []).map(db => this.mapWateringLogFromDB(db));
+  }
+
+  async getWateringLog(id: string): Promise<WateringLog | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('watering_logs')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return this.mapWateringLogFromDB(data);
+  }
+
+  async logWatering(log: Omit<WateringLog, 'id' | 'createdAt'>): Promise<WateringLog> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('watering_logs')
+      .insert({
+        zone_id: log.zoneId,
+        date: log.date,
+        duration_minutes: log.durationMinutes,
+        liters_applied: log.litersApplied,
+        method: log.method,
+        notes: log.notes || null,
+        valve_id: log.valveId || null,
+        completed: log.completed
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapWateringLogFromDB(data);
+  }
+
+  async updateWateringLog(id: string, updates: Partial<WateringLog>): Promise<WateringLog> {
+    const client = this.ensureClient();
+    const dbUpdates: any = {};
+    if (updates.date !== undefined) dbUpdates.date = updates.date;
+    if (updates.durationMinutes !== undefined) dbUpdates.duration_minutes = updates.durationMinutes;
+    if (updates.litersApplied !== undefined) dbUpdates.liters_applied = updates.litersApplied;
+    if (updates.method !== undefined) dbUpdates.method = updates.method;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes || null;
+    if (updates.valveId !== undefined) dbUpdates.valve_id = updates.valveId || null;
+    if (updates.completed !== undefined) dbUpdates.completed = updates.completed;
+    
+    const { data, error } = await client
+      .from('watering_logs')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapWateringLogFromDB(data);
+  }
+
+  async deleteWateringLog(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client
+      .from('watering_logs')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+
+  // Mappers
+  private mapIrrigationSystemFromDB(db: any): IrrigationSystem {
+    return {
+      id: db.id,
+      gardenId: db.garden_id,
+      name: db.name,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at
+    };
+  }
+
+  private mapIrrigationZoneFromDB(db: any): IrrigationZone {
+    return {
+      id: db.id,
+      systemId: db.system_id,
+      name: db.name,
+      method: db.method,
+      flowRateLph: Number(db.flow_rate_lph),
+      valveId: db.valve_id || undefined,
+      bedIds: db.bed_ids || [],
+      plantTaskIds: db.plant_task_ids || [],
+      notes: db.notes || undefined,
+      calculatedFromComponents: db.calculated_from_components || false,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at
+    };
+  }
+
+  private mapIrrigationComponentFromDB(db: any): IrrigationComponent {
+    return {
+      id: db.id,
+      zoneId: db.zone_id,
+      type: db.type,
+      lengthMeters: db.length_meters ? Number(db.length_meters) : undefined,
+      flowRatePerMeterLph: db.flow_rate_per_meter_lph ? Number(db.flow_rate_per_meter_lph) : undefined,
+      dripperSpacing: db.dripper_spacing ? Number(db.dripper_spacing) : undefined,
+      dripperFlowRateLph: db.dripper_flow_rate_lph ? Number(db.dripper_flow_rate_lph) : undefined,
+      quantity: db.quantity || undefined,
+      flowRateLph: db.flow_rate_lph ? Number(db.flow_rate_lph) : undefined,
+      brand: db.brand || undefined,
+      model: db.model || undefined,
+      notes: db.notes || undefined,
+      createdAt: db.created_at
+    };
+  }
+
+  private mapWateringLogFromDB(db: any): WateringLog {
+    return {
+      id: db.id,
+      zoneId: db.zone_id,
+      date: db.date,
+      durationMinutes: db.duration_minutes,
+      litersApplied: Number(db.liters_applied),
+      method: db.method,
+      notes: db.notes || undefined,
+      valveId: db.valve_id || undefined,
+      completed: db.completed,
+      createdAt: db.created_at
+    };
   }
 }
 

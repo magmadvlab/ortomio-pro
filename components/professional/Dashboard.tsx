@@ -7,14 +7,18 @@ import { AnalyticsTable } from './AnalyticsTable'
 import { TreatmentRegister } from './TreatmentRegister'
 import GardenOnboarding from '@/components/GardenOnboarding'
 import { Garden } from '@/types'
-import { Plus, Home } from 'lucide-react'
+import { Plus, Home, Scissors, Link as LinkIcon } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { format } from 'date-fns'
+import { it } from 'date-fns/locale'
+import Link from 'next/link'
 
 export function ProfessionalDashboard() {
   const { storageProvider } = useStorage()
   const [gardens, setGardens] = useState<Garden[]>([])
   const [loading, setLoading] = useState(true)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [upcomingPrunings, setUpcomingPrunings] = useState<any[]>([])
 
   useEffect(() => {
     const loadGardens = async () => {
@@ -23,6 +27,9 @@ export function ProfessionalDashboard() {
         setGardens(loadedGardens)
         if (loadedGardens.length === 0) {
           setShowOnboarding(true)
+        } else {
+          // Carica prossime potature
+          loadUpcomingPrunings(loadedGardens[0].id)
         }
       } catch (error) {
         console.error('Error loading gardens:', error)
@@ -32,6 +39,25 @@ export function ProfessionalDashboard() {
     }
     loadGardens()
   }, [storageProvider])
+
+  const loadUpcomingPrunings = async (gardenId: string) => {
+    try {
+      const mechanicalWorks = await storageProvider.getMechanicalWorks(gardenId)
+      const pruningWorks = mechanicalWorks
+        .filter(w => w.work_type.includes('Pruning') || w.work_type === 'OliveShredding')
+        .map(w => ({
+          ...w,
+          work_date: new Date(w.work_date)
+        }))
+        .filter(w => w.work_date >= new Date())
+        .sort((a, b) => a.work_date.getTime() - b.work_date.getTime())
+        .slice(0, 5)
+      
+      setUpcomingPrunings(pruningWorks)
+    } catch (error) {
+      console.error('Error loading prunings:', error)
+    }
+  }
 
   const handleOnboardingComplete = async (garden: Garden) => {
     try {
@@ -61,7 +87,6 @@ export function ProfessionalDashboard() {
     return (
       <div className="min-h-screen bg-gray-50">
         <GardenOnboarding
-          existingGardensCount={gardens.length}
           onComplete={handleOnboardingComplete}
           onCancel={handleOnboardingCancel}
         />
@@ -120,6 +145,66 @@ export function ProfessionalDashboard() {
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Ultimi Trattamenti</h2>
           <TreatmentRegister limit={10} />
         </div>
+
+        {/* Prossime Potature */}
+        {upcomingPrunings.length > 0 && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Scissors className="text-green-600" size={20} />
+                Prossime Potature
+              </h2>
+              <Link
+                href="/app/mechanical-work?filter=Pruning"
+                className="text-sm text-green-600 hover:text-green-800 flex items-center gap-1"
+              >
+                Vedi tutte
+                <LinkIcon size={14} />
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {upcomingPrunings.map((pruning, idx) => {
+                const daysUntil = Math.ceil((pruning.work_date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                const isUrgent = daysUntil <= 7
+                const isSoon = daysUntil <= 14
+                
+                return (
+                  <div
+                    key={idx}
+                    className={`p-3 rounded-lg border-2 flex items-center justify-between ${
+                      isUrgent
+                        ? 'bg-red-50 border-red-200'
+                        : isSoon
+                        ? 'bg-yellow-50 border-yellow-200'
+                        : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-800">
+                        {pruning.work_metadata?.cropName || pruning.work_type}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {format(pruning.work_date, 'dd MMMM yyyy', { locale: it })}
+                        {daysUntil > 0 && (
+                          <span className="ml-2">
+                            ({daysUntil} {daysUntil === 1 ? 'giorno' : 'giorni'})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <Link
+                      href={`/app/mechanical-work?filter=Pruning`}
+                      className="text-green-600 hover:text-green-800 text-sm flex items-center gap-1"
+                    >
+                      Dettagli
+                      <LinkIcon size={14} />
+                    </Link>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )

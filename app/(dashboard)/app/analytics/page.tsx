@@ -14,7 +14,7 @@ import { getMarketPrice } from '@/data/marketPrices'
 
 export default function AnalyticsPage() {
   const { storageProvider } = useStorage()
-  const { tier, isProfessional, isConsumer } = useTier()
+  const { tier, isPro, isPlus } = useTier()
   const [harvests, setHarvests] = useState<HarvestLogData[]>([])
   const [gardens, setGardens] = useState<Garden[]>([])
   const [selectedGarden, setSelectedGarden] = useState<Garden | null>(null)
@@ -48,8 +48,8 @@ export default function AnalyticsPage() {
     )
   }
 
-  // PRO Professional: mostra analytics avanzate dettagliate
-  if (isProfessional) {
+  // PRO: mostra analytics avanzate dettagliate (solo PRO, non PLUS)
+  if (isPro && tier === 'PRO') {
     // Calcola dati per ROI Summary e Analytics Table dai raccolti
     const analyticsData = harvests.map(h => {
       // Calcola kg dalla quantità e unità
@@ -189,8 +189,8 @@ export default function AnalyticsPage() {
     )
   }
 
-  // PRO Consumer: mostra analytics raccolti
-  if (isConsumer) {
+  // PLUS: mostra analytics raccolti
+  if (isPlus) {
     return (
       <div className="min-h-screen p-6">
         <div className="max-w-7xl mx-auto">
@@ -213,7 +213,7 @@ export default function AnalyticsPage() {
         feature="analytics"
         title="Analytics Avanzate"
         description="Visualizza analisi dettagliate dei tuoi raccolti, ROI e performance"
-        requiredTier="PRO_CONSUMER"
+        requiredTier="PLUS"
         showPreview={true}
       >
         {selectedGarden && (

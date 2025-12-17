@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Garden, GardenTask } from '@/types';
-import { getMasterSheet } from '@/services/plantMasterService';
+import { getMasterSheetSync } from '@/services/plantMasterService';
 import { TreePine, Package, Droplets, Wine, Sprout, Leaf, Grid, ChevronRight } from 'lucide-react';
 
 interface SpecializedCropsWidgetProps {
@@ -15,6 +15,9 @@ interface CropCount {
   icon: React.ReactNode;
   color: string;
   count: number;
+  isTraditional?: boolean;
+  priority?: number;
+  badge?: string;
 }
 
 const SpecializedCropsWidget: React.FC<SpecializedCropsWidgetProps> = ({
@@ -25,61 +28,78 @@ const SpecializedCropsWidget: React.FC<SpecializedCropsWidgetProps> = ({
   const [expanded, setExpanded] = useState(false);
 
   // Raggruppa task per tipo coltura specializzata
+  // Riordinato per dare priorità a Olive e Vine (colture tradizionali italiane)
   const cropCounts: CropCount[] = [
     {
       type: 'FruitTree',
       label: 'Alberi da Frutto',
       icon: <TreePine size={20} />,
       color: 'green',
-      count: 0
+      count: 0,
+      isTraditional: false,
+      priority: 1
+    },
+    {
+      type: 'Olive',
+      label: 'Olive',
+      icon: <Droplets size={20} />,
+      color: 'green-dark',
+      count: 0,
+      isTraditional: true,
+      priority: 2,
+      badge: 'ITALIANO'
+    },
+    {
+      type: 'Vine',
+      label: 'Vite',
+      icon: <Wine size={20} />,
+      color: 'purple-dark',
+      count: 0,
+      isTraditional: true,
+      priority: 3,
+      badge: 'ITALIANO'
     },
     {
       type: 'Strawberry',
       label: 'Fragole',
       icon: <Package size={20} />,
       color: 'red',
-      count: 0
-    },
-    {
-      type: 'Olive',
-      label: 'Olive',
-      icon: <Droplets size={20} />,
-      color: 'green',
-      count: 0
-    },
-    {
-      type: 'Vine',
-      label: 'Vite',
-      icon: <Wine size={20} />,
-      color: 'purple',
-      count: 0
+      count: 0,
+      isTraditional: false,
+      priority: 4
     },
     {
       type: 'ExoticFruit',
       label: 'Frutti Esotici',
       icon: <Sprout size={20} />,
       color: 'orange',
-      count: 0
+      count: 0,
+      isTraditional: false,
+      priority: 5
     },
     {
       type: 'Aromatic',
       label: 'Erbe Aromatiche',
       icon: <Leaf size={20} />,
       color: 'green',
-      count: 0
+      count: 0,
+      isTraditional: false,
+      priority: 6
     },
     {
       type: 'Raspberry',
       label: 'Lamponi',
       icon: <Grid size={20} />,
       color: 'purple',
-      count: 0
+      count: 0,
+      isTraditional: false,
+      priority: 7
     }
   ];
 
   // Conta task per tipo
   tasks.forEach(task => {
-    const master = getMasterSheet(task.plantName);
+    const master = getMasterSheetSync(task.plantName);
     if (master?.cropType) {
       const cropCount = cropCounts.find(c => c.type === master.cropType);
       if (cropCount) {
@@ -95,8 +115,10 @@ const SpecializedCropsWidget: React.FC<SpecializedCropsWidgetProps> = ({
     }
   });
 
-  // Filtra solo colture presenti
-  const activeCrops = cropCounts.filter(c => c.count > 0);
+  // Ordina per priorità e filtra solo colture presenti
+  const activeCrops = cropCounts
+    .filter(c => c.count > 0)
+    .sort((a, b) => (a.priority || 999) - (b.priority || 999));
   const totalCount = activeCrops.reduce((sum, c) => sum + c.count, 0);
 
   if (totalCount === 0) {
@@ -106,8 +128,10 @@ const SpecializedCropsWidget: React.FC<SpecializedCropsWidgetProps> = ({
   const getColorClasses = (color: string) => {
     const colors: Record<string, { bg: string; border: string; text: string }> = {
       green: { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-600' },
+      'green-dark': { bg: 'bg-green-100', border: 'border-green-300', text: 'text-green-700' },
       red: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600' },
       purple: { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-600' },
+      'purple-dark': { bg: 'bg-purple-100', border: 'border-purple-300', text: 'text-purple-700' },
       orange: { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600' }
     };
     return colors[color] || colors.green;
@@ -150,8 +174,20 @@ const SpecializedCropsWidget: React.FC<SpecializedCropsWidgetProps> = ({
                   <div className={colorClasses.text}>
                     {crop.icon}
                   </div>
-                  <div className="text-left">
-                    <div className="font-semibold text-gray-800">{crop.label}</div>
+                  <div className="text-left flex-1">
+                    <div className="flex items-center gap-2">
+                      <div className="font-semibold text-gray-800">{crop.label}</div>
+                      {crop.badge && (
+                        <span className="px-2 py-0.5 text-xs font-bold bg-red-100 text-red-700 rounded-full border border-red-200">
+                          {crop.badge}
+                        </span>
+                      )}
+                      {crop.count > 0 && (
+                        <span className="px-2 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full">
+                          POPOLARE
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-gray-600">{crop.count} {crop.count === 1 ? 'coltura' : 'colture'}</div>
                   </div>
                 </div>
@@ -169,12 +205,15 @@ const SpecializedCropsWidget: React.FC<SpecializedCropsWidgetProps> = ({
             return (
               <div
                 key={crop.type}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${colorClasses.bg} ${colorClasses.border} border text-xs`}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${colorClasses.bg} ${colorClasses.border} border text-xs relative`}
               >
                 <div className={colorClasses.text}>
                   {crop.icon}
                 </div>
                 <span className="font-medium text-gray-700">{crop.label}</span>
+                {crop.badge && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                )}
                 <span className="text-gray-500">({crop.count})</span>
               </div>
             );

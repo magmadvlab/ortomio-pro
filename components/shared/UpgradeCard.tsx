@@ -8,7 +8,7 @@ interface UpgradeCardProps {
   description?: string
   benefits?: string[]
   variant?: 'banner' | 'modal' | 'inline'
-  requiredTier?: 'PRO_CONSUMER' | 'PRO_PROFESSIONAL' | 'PRO'
+  requiredTier?: 'PLUS' | 'PRO' | 'PRO_CONSUMER' | 'PRO_PROFESSIONAL' | string
 }
 
 export function UpgradeCard({
@@ -18,13 +18,13 @@ export function UpgradeCard({
   variant = 'inline',
   requiredTier = 'PRO'
 }: UpgradeCardProps) {
-  const tierName = requiredTier === 'PRO_PROFESSIONAL' 
-    ? 'PRO Professional' 
-    : requiredTier === 'PRO_CONSUMER'
-    ? 'PRO Consumer'
+  const tierName = requiredTier === 'PRO_PROFESSIONAL' || requiredTier === 'PRO'
+    ? 'PRO' 
+    : requiredTier === 'PRO_CONSUMER' || requiredTier === 'PLUS'
+    ? 'PLUS'
     : 'PRO'
   
-  const tierPrice = requiredTier === 'PRO_PROFESSIONAL' 
+  const tierPrice = requiredTier === 'PRO_PROFESSIONAL' || requiredTier === 'PRO'
     ? '€29.99/mese' 
     : '€9.99/mese'
   

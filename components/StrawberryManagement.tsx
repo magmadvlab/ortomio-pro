@@ -4,7 +4,7 @@ import { useTier } from '../packages/core/hooks/useTier';
 import UpgradePrompt from './UpgradePrompt';
 import { StrawberryCrop } from '../types/strawberry';
 import { calculateStrawberryTasks, isOptimalHarvestTime, calculateNextRenovationDate } from '../logic/strawberryEngine';
-import { getMasterSheet } from '../services/plantMasterService';
+import { getMasterSheetSync } from '../services/plantMasterService';
 import { Calendar, Scissors, Sprout, Package, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface StrawberryManagementProps {
@@ -18,7 +18,7 @@ const StrawberryManagement: React.FC<StrawberryManagementProps> = ({ tasks, gard
 
   // Filtra solo task di fragole
   const strawberryTasks = tasks.filter(t => {
-    const master = getMasterSheet(t.plantName);
+    const master = getMasterSheetSync(t.plantName);
     return master?.cropType === 'Strawberry';
   });
 
@@ -35,7 +35,7 @@ const StrawberryManagement: React.FC<StrawberryManagementProps> = ({ tasks, gard
   }
 
   const currentTask = selectedTask || strawberryTasks[0];
-  const masterData = getMasterSheet(currentTask.plantName);
+  const masterData = getMasterSheetSync(currentTask.plantName);
   const strawberryCrop = masterData as unknown as StrawberryCrop | undefined;
 
   if (!strawberryCrop || strawberryCrop.cropType !== 'Strawberry') {

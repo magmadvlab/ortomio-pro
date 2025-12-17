@@ -4,7 +4,7 @@ import { useTier } from '../packages/core/hooks/useTier';
 import UpgradePrompt from './UpgradePrompt';
 import { RaspberryCrop } from '../types/raspberry';
 import { calculateRaspberryTasks, isOptimalHarvestTime } from '../logic/raspberryEngine';
-import { getMasterSheet } from '../services/plantMasterService';
+import { getMasterSheetSync } from '../services/plantMasterService';
 import { Calendar, Scissors, Package, AlertCircle, CheckCircle, Grid } from 'lucide-react';
 
 interface RaspberryManagementProps {
@@ -32,7 +32,7 @@ const RaspberryManagement: React.FC<RaspberryManagementProps> = ({ tasks, garden
 
   // Filtra solo task di lamponi
   const raspberryTasks = tasks.filter(t => {
-    const master = getMasterSheet(t.plantName);
+    const master = getMasterSheetSync(t.plantName);
     return master?.cropType === 'Raspberry' as any; // Raspberry è un CropType valido ma TypeScript non lo riconosce
   });
 
@@ -49,7 +49,7 @@ const RaspberryManagement: React.FC<RaspberryManagementProps> = ({ tasks, garden
   }
 
   const currentTask = selectedTask || raspberryTasks[0];
-  const masterData = getMasterSheet(currentTask.plantName);
+  const masterData = getMasterSheetSync(currentTask.plantName);
   const raspberryCrop = masterData as unknown as RaspberryCrop | undefined;
 
   if (!raspberryCrop || raspberryCrop.cropType !== 'Raspberry') {

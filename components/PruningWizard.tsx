@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { GardenTask } from '../types';
 import { FruitTreeCrop, PruningRecord } from '../types/fruitTree';
-import { getMasterSheet } from '../services/plantMasterService';
+import { getMasterSheetSync } from '../services/plantMasterService';
 import { Scissors, ChevronRight, ChevronLeft, Camera, CheckCircle } from 'lucide-react';
 
 interface PruningWizardProps {
@@ -21,7 +21,7 @@ const PruningWizard: React.FC<PruningWizardProps> = ({ task, onComplete, onCance
   const [notes, setNotes] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
 
-  const masterData = getMasterSheet(task.plantName);
+  const masterData = getMasterSheetSync(task.plantName);
   const isVine = masterData?.cropType === 'Vine';
   const isFruitTree = masterData?.cropType === 'FruitTree';
 

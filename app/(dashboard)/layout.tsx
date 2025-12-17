@@ -14,13 +14,13 @@ import AuthStatus from '@/components/shared/AuthStatus'
 import InstallPrompt from '@/components/shared/InstallPrompt'
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
-  const { isProfessional, isConsumer } = useTier()
+  const { tier, isPro, isPlus } = useTier()
   
   const getSidebar = () => {
-    if (isProfessional) {
+    if (tier === 'PRO') {
       return <ProfessionalSidebar />
     }
-    if (isConsumer) {
+    if (isPlus || tier === 'PLUS') {
       return <ConsumerSidebar />
     }
     return <FreeSidebar />
@@ -56,10 +56,10 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  // LOCALE: Sblocca tutte le feature impostando PRO_PROFESSIONAL di default
+  // LOCALE: Sblocca tutte le feature impostando PRO di default
   // In produzione, ripristinare AppTier.FREE
   const isLocalDev = process.env.NODE_ENV === 'development' || typeof window !== 'undefined' && window.location.hostname === 'localhost'
-  const defaultTier = isLocalDev ? AppTier.PRO_PROFESSIONAL : AppTier.FREE
+  const defaultTier = isLocalDev ? AppTier.PRO : AppTier.FREE
   
   return (
     <AuthProvider>

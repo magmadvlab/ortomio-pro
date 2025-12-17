@@ -1,3 +1,12 @@
+/**
+ * Health Engine
+ * Gestisce prevenzione e trattamento malattie
+ * 
+ * NOTE: Usa plant.family da PlantMasterSheet. Per migliorare precisione,
+ * considera integrazione con plantTaxonomyService.getPlantFamily() per
+ * ottenere family_id da taxonomy (supporta sinonimi dialettali)
+ */
+
 import { PlantMasterSheet, GardenTask, Garden, UserProfile, PlantProtectionProduct } from '../types';
 import { protectionProducts } from '../data/treatments';
 import { getSeasonForDate, Season } from '../utils/seasonalAdjustment';

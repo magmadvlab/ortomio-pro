@@ -15,9 +15,10 @@ import { attemptAutoRestore, AutoRestoreResult } from '@/services/autoRestoreSer
 import { CheckCircle, Loader2, LogIn, UserPlus } from 'lucide-react'
 import { getSupabaseClient } from '@/config/supabase'
 import Link from 'next/link'
+import { isBypassActive } from '@/lib/auth-bypass'
 
 export default function DashboardPage() {
-  const { tier, isProfessional, isConsumer } = useTier()
+  const { tier, isPro } = useTier()
   const { storageProvider, isInitialized } = useStorage()
   const router = useRouter()
   const [gardens, setGardens] = useState<Garden[]>([])
@@ -31,6 +32,12 @@ export default function DashboardPage() {
   // Verifica autenticazione
   useEffect(() => {
     const checkAuth = async () => {
+      // Se bypass attivo, considera sempre autenticato
+      if (isBypassActive()) {
+        setIsAuthenticated(true)
+        return
+      }
+
       try {
         const supabase = getSupabaseClient()
         if (supabase) {
@@ -47,15 +54,17 @@ export default function DashboardPage() {
     
     checkAuth()
     
-    // Ascolta cambiamenti autenticazione
-    const supabase = getSupabaseClient()
-    if (supabase) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        setIsAuthenticated(!!session?.user)
-      })
-      
-      return () => {
-        subscription.unsubscribe()
+    // Ascolta cambiamenti autenticazione (solo se bypass non attivo)
+    if (!isBypassActive()) {
+      const supabase = getSupabaseClient()
+      if (supabase) {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          setIsAuthenticated(!!session?.user)
+        })
+        
+        return () => {
+          subscription.unsubscribe()
+        }
       }
     }
   }, [])
@@ -213,7 +222,6 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen">
         <GardenOnboarding
-          existingGardensCount={gardens.length}
           onComplete={handleOnboardingComplete}
           onCancel={handleOnboardingCancel}
         />
@@ -286,7 +294,7 @@ export default function DashboardPage() {
       )}
       
       {/* Dashboard alternative per PRO (se necessario) */}
-      {isProfessional && gardens.length === 0 && (
+      {isPro && gardens.length === 0 && (
         <ProfessionalDashboard />
       )}
     </>

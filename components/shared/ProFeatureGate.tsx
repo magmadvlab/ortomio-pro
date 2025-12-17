@@ -12,7 +12,7 @@ interface ProFeatureGateProps {
   benefits?: string[]
   children: React.ReactNode
   showPreview?: boolean
-  requiredTier?: 'PRO_CONSUMER' | 'PRO_PROFESSIONAL' | 'PRO'
+  requiredTier?: 'PLUS' | 'PRO' | 'PRO_CONSUMER' | 'PRO_PROFESSIONAL' | string // Legacy tiers supported for backward compatibility
 }
 
 export function ProFeatureGate({ 
@@ -24,7 +24,7 @@ export function ProFeatureGate({
   showPreview = false,
   requiredTier = 'PRO'
 }: ProFeatureGateProps) {
-  const { tier, isPro, isConsumer, isProfessional } = useTier()
+  const { tier, isPro, isPlus } = useTier()
   
   // LOCALE: Bypassa tutti i controlli in sviluppo locale
   const isLocalDev = typeof window !== 'undefined' && (
@@ -40,13 +40,23 @@ export function ProFeatureGate({
       return true
     }
     
+    // New tier system
+    if (requiredTier === 'PRO') {
+      return tier === AppTier.PRO
+    }
+    if (requiredTier === 'PLUS') {
+      return tier === AppTier.PLUS || tier === AppTier.PRO
+    }
+    
+    // Legacy tier support (backward compatibility)
     if (requiredTier === 'PRO_PROFESSIONAL') {
-      return isProfessional
+      return tier === AppTier.PRO
     }
     if (requiredTier === 'PRO_CONSUMER') {
-      return isConsumer || tier === AppTier.PRO
+      return tier === AppTier.PLUS || tier === AppTier.PRO
     }
-    // PRO (legacy) or any PRO tier
+    
+    // Default: any PRO tier (PLUS or PRO)
     return isPro
   }
   
@@ -66,7 +76,7 @@ export function ProFeatureGate({
         feature={title || feature}
         description={description}
         benefits={benefits}
-        requiredTier={requiredTier}
+        requiredTier={requiredTier as any}
       />
     </div>
   )

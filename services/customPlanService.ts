@@ -20,7 +20,7 @@ export const createCustomPlan = async (
   gardenId?: string,
   description?: string
 ): Promise<CustomPlan> => {
-  const baseMasterSheet = getMasterSheet(baseMasterSheetId);
+  const baseMasterSheet = await getMasterSheet(baseMasterSheetId);
   if (!baseMasterSheet) {
     throw new Error(`Master sheet not found: ${baseMasterSheetId}`);
   }
@@ -78,8 +78,8 @@ export const applyCustomPlanToTask = async (
 /**
  * Merge custom plan with master sheet to get final plan
  */
-export const mergePlanWithMaster = (customPlan: CustomPlan): PlantMasterSheet => {
-  const baseMasterSheet = getMasterSheet(customPlan.baseMasterSheetId);
+export const mergePlanWithMaster = async (customPlan: CustomPlan): Promise<PlantMasterSheet> => {
+  const baseMasterSheet = await getMasterSheet(customPlan.baseMasterSheetId);
   if (!baseMasterSheet) {
     throw new Error(`Master sheet not found: ${customPlan.baseMasterSheetId}`);
   }

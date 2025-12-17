@@ -1,6 +1,7 @@
 import { GardenTask, PlantMasterSheet, Garden } from '../types';
 import { WeatherForecast } from '../services/weatherService';
 import { calculatePlantDaysActive } from '../services/taskCalculationService';
+import { calculateRootDepth } from './rootDepthCalculator';
 
 export interface WaterNeeds {
   litersPerDay: number; // Litri totali per giorno per questa pianta

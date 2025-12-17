@@ -100,6 +100,13 @@ OrtoMio automatizza e semplifica tutte queste decisioni, fornendo consigli perso
 - **Alert scadenze**: notifiche per semi in scadenza
 - **Quantità e varietà**: tracciamento completo delle disponibilità
 
+### 🍇 Vite e Olivo (PRO)
+- **Sezioni Top-Level**: Accesso diretto a vite e olivo dal menu principale
+- **Ricerca Intelligente**: Riconosce automaticamente 50+ vitigni italiani e 20+ cultivar olivo
+- **Wizard Migliorato**: Precompilazione automatica tipo utilizzo (Vino/Tavola, Olio/Mensa)
+- **Aliases Predefiniti**: Supporto per nomi dialettali e varianti locali
+- **Normalizzazione Testo**: Gestione intelligente di apostrofi, spazi e nomi composti
+
 ## Vantaggi e Benefici
 
 ### 🎯 Per Principianti

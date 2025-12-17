@@ -51,6 +51,56 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 npm run dev
 ```
 
+## 🧪 Test Produzione Locale
+
+Prima di fare deploy su Vercel, è importante testare la build di produzione localmente per identificare eventuali errori.
+
+### Workflow Test Produzione
+
+1. **Ferma il server dev** (se attivo):
+   ```bash
+   # Premi Ctrl+C nel terminale dove gira `npm run dev`
+   ```
+
+2. **Esegui build produzione**:
+   ```bash
+   npm run build
+   ```
+   - Verifica che non ci siano errori TypeScript
+   - Verifica che non ci siano import mancanti
+   - Verifica che tutte le variabili ambiente siano configurate
+
+3. **Avvia server produzione**:
+   ```bash
+   npm run start
+   ```
+   - Il server si avvia su porta 3002 (o quella configurata)
+   - Apri `http://localhost:3002` nel browser
+
+4. **Testa funzionalità critiche**:
+   - Dashboard
+   - Irrigation system (nuovo)
+   - Plant taxonomy (nuovo)
+   - Garden creation wizard
+   - Director daily plan
+   - Controlla console browser (F12) per errori runtime
+
+### Comandi Utili
+
+```bash
+# Build + Start (sequenziale)
+npm run build && npm run start
+
+# Verifica solo build (senza avviare server)
+npm run build
+```
+
+### Note Importanti
+
+- Il build di produzione usa ottimizzazioni diverse (code splitting, tree shaking)
+- Alcuni errori possono apparire solo in produzione
+- Testa sempre dopo modifiche significative al codice
+
 Apri: **http://localhost:3002/app/**
 
 ### 4. Tier Automatico in Locale

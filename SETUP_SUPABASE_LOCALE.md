@@ -92,3 +92,7 @@ L'app sarà disponibile su: **http://localhost:3002**
 - Esegui `database/schema.sql` in Supabase Studio (Step 5)
 
 
+
+
+
+

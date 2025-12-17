@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ works: [] })
     }
 
-    // Verify tier PRO_PROFESSIONAL
-    const result = await verifyTier(request, ['PRO_PROFESSIONAL'])
+    // Verify tier PRO
+    const result = await verifyTier(request, ['PRO'])
     
     if ('error' in result) {
       return NextResponse.json(
@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Verify tier PRO_PROFESSIONAL
-    const result = await verifyTier(request, ['PRO_PROFESSIONAL'])
+    // Verify tier PRO
+    const result = await verifyTier(request, ['PRO'])
     
     if ('error' in result) {
       return NextResponse.json(
@@ -114,8 +114,13 @@ export async function POST(request: NextRequest) {
     
     // Validate work_type
     const validWorkTypes = [
-      // Suolo
+      // Suolo (esistenti)
       'Plowing', 'Subsoiling', 'Harrowing', 'Tilling', 'Rolling', 'Hoeing', 'EarthingUp', 'Mulching', 'PostSowingRolling',
+      // Preparazione Terreno (nuove)
+      'Clearing', 'Stumping', 'StoneRemoval', 'Leveling', 'DeepSubsoiling',
+      'Digging', 'DeepHarrowing', 'Crumbling', 'Scraping', 'SurfaceLeveling',
+      // Tecniche Moderne
+      'MinimumTillage', 'StripTillage', 'NoTill',
       // Chioma
       'FormativePruning', 'MaintenancePruning', 'RejuvenationPruning', 'SummerPruning', 'WinterPruning',
       'Thinning', 'Suckering', 'Defoliation', 'Tying', 'OliveShredding', 'RunnerManagement',

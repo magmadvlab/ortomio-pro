@@ -32,15 +32,15 @@ const menuItems = [
 
 export function FreeSidebar() {
   const pathname = usePathname()
-  const { isProfessional } = useTier()
+  const { tier, isPro } = useTier()
   
-  // Add admin menu item if user is PRO_PROFESSIONAL or in development
+  // Add admin menu item if user is PRO or in development
   const isDev = typeof window !== 'undefined' && (
     window.location.hostname === 'localhost' || 
     window.location.hostname === '127.0.0.1'
   )
   
-  const allMenuItems = (isDev || isProfessional)
+  const allMenuItems = (isDev || isPro || tier === 'PRO')
     ? [...menuItems, { icon: Crown, label: 'Admin', path: '/app/admin' }]
     : menuItems
   

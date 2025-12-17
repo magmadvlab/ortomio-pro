@@ -9,6 +9,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { IStorageProvider } from '../storage/interface';
 import { getDefaultStorageProvider, getSupabaseStorageProvider, getLocalStorageProvider } from '../storage/factory';
 import { getSupabaseClient } from '@/config/supabase';
+import { isBypassActive } from '@/lib/auth-bypass';
 
 interface StorageContextType {
   storageProvider: IStorageProvider;
@@ -42,6 +43,15 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
     const checkAuthAndSwitch = async () => {
       try {
         setIsInitialized(false);
+        
+        // Se bypass attivo, usa sempre LocalStorageProvider
+        if (isBypassActive()) {
+          console.log('🔓 Auth bypass active: using LocalStorageProvider');
+          setStorageProvider(getLocalStorageProvider());
+          setIsInitialized(true);
+          setError(null);
+          return;
+        }
         
         // Verifica se c'è una sessione Supabase attiva
         const supabase = getSupabaseClient();
@@ -86,17 +96,19 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
     
     checkAuthAndSwitch();
     
-    // Ascolta cambiamenti autenticazione
-    const supabase = getSupabaseClient();
-    if (supabase) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-          checkAuthAndSwitch();
+    // Ascolta cambiamenti autenticazione (solo se bypass non attivo)
+    if (!isBypassActive()) {
+      const supabase = getSupabaseClient();
+      if (supabase) {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+            checkAuthAndSwitch();
+          }
+        });
+        
+        return () => {
+          subscription.unsubscribe();
         }
-      });
-      
-      return () => {
-        subscription.unsubscribe();
       }
     }
   }, []);

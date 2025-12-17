@@ -6,7 +6,9 @@ import { checkLifecycleStatus, LifecycleAdvice } from './lifecycleEngine';
 import { calculateNutrientNeeds, NutrientAdvice } from './nutrientEngine';
 import { calculateHealthStrategy, HealthAdvice, calculateWindEffect } from './healthEngine';
 import { calculateMoonPhase, isIdealPhaseFor } from './lunarCalendar';
-import { getMasterSheet } from '../services/plantMasterService';
+import { getMasterSheetSync } from '../services/plantMasterService';
+import { isCustomCrop } from '../services/taskCompletionHook';
+import { generateSuggestions, calculatePlantingTiming, calculateHarvestTiming } from '../services/learningEngine';
 import { getActivePlants } from '../services/taskCalculationService';
 import { adjustIrrigationForRain } from './rainManager';
 import { calculateFertigationPlan } from './fertigationEngine';
@@ -474,7 +476,7 @@ export const getDailyGardenPlan = async (
   }
 
   for (const task of activeTasks) {
-    const masterData = getMasterSheet(task.plantName);
+    const masterData = getMasterSheetSync(task.plantName);
     if (!masterData) continue;
 
     // Check lifecycle status
@@ -791,7 +793,7 @@ export const getDailyGardenPlan = async (
   }
 
   for (const task of activeTasks) {
-    const masterData = getMasterSheet(task.plantName);
+    const masterData = getMasterSheetSync(task.plantName);
     if (!masterData || !masterData.cropType) continue;
 
     try {
@@ -1044,7 +1046,58 @@ export const getDailyGardenPlan = async (
 
   const timelineSuggestedTasks: GardenTask[] = [];
   for (const sowing of completedSowings) {
-    const sowingMasterData = getMasterSheet(sowing.plantName);
+    // Verifica se è una coltura personalizzata
+    const customCrop = await isCustomCrop(sowing.plantName);
+    let sowingMasterData = getMasterSheetSync(sowing.plantName);
+    
+    // Se è una coltura personalizzata, usa suggerimenti appresi invece del master sheet
+    if (customCrop && !sowingMasterData) {
+      const suggestions = generateSuggestions(customCrop);
+      const harvestTiming = calculateHarvestTiming(customCrop);
+      
+      // Crea timeline basata su pattern appresi
+      if (harvestTiming.confidence > 0.4 && harvestTiming.avgDays) {
+        // Crea un master sheet minimo per generare timeline
+        // Nota: Cast a unknown necessario perché PlantMasterSheet richiede molte proprietà
+        // che non abbiamo per colture personalizzate. Questo è un workaround temporaneo.
+        sowingMasterData = {
+          id: customCrop.id,
+          commonName: customCrop.common_name,
+          scientificName: customCrop.scientific_name || '',
+          family: customCrop.family || 'Unknown',
+          nutrientCategory: 'FRUITING' as any,
+          requiredTools: {
+            seedTray: false,
+            seedSoil: false,
+            heatingMat: false,
+            sprayer: false
+          },
+          germination: {
+            preSoak: false,
+            sowingDepth: 1,
+            idealTemp: '20-24°C',
+            minTemp: 15,
+            lightRequirement: 'Either',
+            emergenceDays: { min: 7, max: 14 },
+            coveringNeeded: false
+          },
+          seedlingCare: {
+            idealTemp: '18-22°C',
+            wateringFrequency: 'Daily',
+            lightRequirement: 'FullSun',
+            transplantReadyDays: { min: 30, max: 45 }
+          },
+          baseInstructions: {
+            sowing: { window: suggestions.planting || 'Da definire' },
+            harvest: { window: `${harvestTiming.avgDays} giorni dalla semina` }
+          }
+        } as unknown as PlantMasterSheet;
+      } else {
+        // Dati insufficienti, salta
+        continue;
+      }
+    }
+    
     if (sowingMasterData) {
       const timeline = generateTimelineFromSowing(sowing, sowingMasterData, garden);
       // Converti i suggerimenti in GardenTask
@@ -1139,6 +1192,64 @@ export const getDailyGardenPlan = async (
   // Determina priorità complessiva
   const overallPriority = determineOverallPriority(urgentAlerts, lifecycleTasks);
 
+  // PRIORITÀ 2.5: IRRIGAZIONE (dopo ciclo vitale, prima di nutrienti)
+  const irrigationTasks: import('../types/irrigation').IrrigationTask[] = [];
+  try {
+    // Carica zone irrigue per questo giardino
+    const { getDefaultStorageProvider } = await import('../packages/core/storage/factory');
+    const storageProvider = getDefaultStorageProvider();
+    
+    // Per ora 1 sistema = 1 giardino (semplificazione)
+    const systems = await storageProvider.getIrrigationSystems(garden.id);
+    if (systems.length > 0) {
+      const system = systems[0]; // Prendi il primo sistema
+      const zones = await storageProvider.getIrrigationZones(system.id);
+      
+      // Calcola schedule per ogni zona
+      const { calculateZoneIrrigationSchedule } = await import('../services/irrigationService');
+      
+      let weather = null;
+      if (garden.coordinates) {
+        try {
+          weather = await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude);
+        } catch (error) {
+          console.warn('Could not load weather for irrigation:', error);
+        }
+      }
+      
+      for (const zone of zones) {
+        if (zone.plantTaskIds.length === 0) continue; // Salta zone senza piante
+        
+        const schedule = await calculateZoneIrrigationSchedule(
+          zone,
+          zone.plantTaskIds,
+          tasks,
+          garden,
+          weather
+        );
+        
+        // Includi anche zone manuali senza portata (mostrano solo litri)
+        if (schedule.litersNeeded > 0) {
+          irrigationTasks.push({
+            zoneId: schedule.zoneId,
+            zoneName: schedule.zoneName,
+            litersNeeded: schedule.litersNeeded,
+            durationMinutes: schedule.suggestedDurationMinutes,
+            priority: schedule.priority,
+            valveId: zone.valveId,
+            manualMode: schedule.manualMode,
+            showLitersOnly: schedule.showLitersOnly,
+            weatherAdjustment: schedule.weatherAdjustment,
+            fertigationInfo: schedule.fertigationInfo
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Error calculating irrigation tasks:', error);
+    // Continua senza irrigation tasks se errore
+  }
+
   return {
     date: currentDate.toISOString().split('T')[0],
     urgentAlerts,
@@ -1151,7 +1262,8 @@ export const getDailyGardenPlan = async (
     mechanicalWorkTasks,
     treePruningTasks,
     pendingSuggestions,
-    solarClassification: solarClassification || undefined
+    solarClassification: solarClassification || undefined,
+    irrigationTasks: irrigationTasks.length > 0 ? irrigationTasks : undefined
   };
 };
 

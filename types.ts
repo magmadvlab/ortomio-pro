@@ -98,7 +98,11 @@ import {
   AquaponicTaskData,
   AeroponicTaskData
 } from './types/indoorGrowing';
-import { GreenhouseConfig, GreenhouseStructure } from './types/greenhouse';
+import { GreenhouseConfig } from './types/greenhouse';
+import { ArchetypeId } from './types/archetypes';
+
+// Re-export ArchetypeId for convenience
+export type { ArchetypeId };
 
 export interface SolarClassificationData {
   windows: SeasonalSunWindow[];
@@ -122,6 +126,7 @@ export interface DailyPlan {
   treePruningTasks?: TreePruningTask[];
   pendingSuggestions?: GardenTask[]; // Task suggeriti non ancora completati
   solarClassification?: SolarClassificationData; // Classificazione solare stagionale
+  irrigationTasks?: import('./types/irrigation').IrrigationTask[]; // Task irrigazione per zone
 }
 
 // Work types for mechanical operations
@@ -208,7 +213,47 @@ export type GardenType =
   | 'EbbFlow'             // Ebb and Flow / Flood and Drain
   | 'Drip'                // Drip System
   | 'Wick'                // Wick System
-  | 'Kratky';             // Kratky Method (passive)
+  | 'Kratky'              // Kratky Method (passive)
+  | 'Orchard'             // Frutteto
+  | 'OliveGrove'          // Oliveto
+  | 'Vineyard';           // Vigneto
+
+/**
+ * Configurazione dettagliata delle strutture del giardino
+ * Permette di salvare i dettagli completi di tutte le strutture configurate
+ * per permettere modifiche successive e tracciabilità completa
+ */
+export interface StructureConfig {
+  openField?: {
+    size: number;
+    unit: 'sqm' | 'are' | 'hectare';
+  };
+  pots?: Array<{
+    count: number;
+    diameter: number; // cm
+  }>;
+  beds?: Array<{
+    count: number;
+    length: number; // cm
+    width: number; // cm
+    height: number; // cm
+    holes?: number; // numero buchi/piante per letto
+  }>;
+  containers?: Array<{
+    count: number;
+    length: number; // cm
+    width: number; // cm
+    height: number; // cm
+    holes?: number; // numero piante per cassone
+  }>;
+  tanks?: Array<{
+    count: number;
+    length: number; // cm
+    width: number; // cm
+    height: number; // cm
+    holes?: number; // numero piante per vasca
+  }>;
+}
 
 export interface Garden {
   id: string;
@@ -241,22 +286,46 @@ export interface Garden {
   
   // INFRASTRUTTURA
   hasCompostBin?: boolean;
-  /**
-   * @deprecated Le aiuole rialzate sono gestite tramite garden_beds con bedType: 'RaisedBed'
-   * Mantenuto per retrocompatibilità con dati esistenti
-   */
   isRaisedBed?: boolean;
   
   // NUOVO: Tipo spazio coltivabile e configurazioni avanzate
   gardenType?: GardenType;
-  greenhouseConfig?: GreenhouseConfig | { structures: GreenhouseStructure[] }; // Supporta singola serra o multiple
+  greenhouseConfig?: GreenhouseConfig;
   indoorConfig?: IndoorGrowingConfig;
   hydroponicConfig?: HydroponicSystemConfig;
   aquaponicConfig?: AquaponicSystemConfig;
   aeroponicConfig?: AeroponicSystemConfig;
   
+  // Configurazione dettagliata strutture (vasi, cassoni, vasche, letti, campo aperto)
+  structureConfig?: StructureConfig;
+  
   // SOLAR ENGINE - Punti mappati dell'orto
   points?: GardenPoint[]; // Punti mappati dell'orto con score
+  
+  // NUOVO: Configurazioni colture legnose specializzate (Pro Feature)
+  orchardConfig?: {
+    category: 'DRUPACEE' | 'POMACEE' | 'AGRUMI' | 'FRUTTA_GUSCIO' | 
+              'MEDITERRANEA' | 'KIWI' | 'ESOTICHE';
+    profileId: string; // ID CropProfile da fruitTreeProfiles
+    establishedDate?: string; // Data impianto (ISO string)
+    totalTrees?: number; // Numero totale alberi
+    varieties?: string[]; // Varietà presenti nel frutteto
+  };
+  
+  oliveGroveConfig?: {
+    type: 'OIL' | 'TABLE' | 'DUAL_PURPOSE';
+    establishedDate?: string;
+    totalTrees?: number;
+    varieties?: string[];
+  };
+  
+  vineyardConfig?: {
+    type: 'WINE' | 'TABLE';
+    establishedDate?: string;
+    totalVines?: number;
+    varieties?: string[];
+    trainingSystem?: 'Guyot' | 'Cordon' | 'Pergola' | 'Alberello';
+  };
 }
 
 export type SoilType = 'Clay' | 'Sandy' | 'Loamy' | 'Peaty' | 'Chalky' | 'Silty';
@@ -487,6 +556,7 @@ export type GrowingLocation =
   | 'Pot' 
   | 'Ground' 
   | 'RaisedBed'
+  | 'Greenhouse'
   | 'HydroponicNFT'
   | 'HydroponicDWC'
   | 'HydroponicEbbFlow'
@@ -522,7 +592,7 @@ export interface GardenTask {
   initialQuantity?: number; // How many seeds/plants started
   currentQuantity?: number; // How many survived/are active
   
-  taskType: 'Sowing' | 'Transplant' | 'Fertilize' | 'Prune' | 'Harvest' | 'Treatment' | 'Plowing' | 'Subsoiling' | 'Harrowing' | 'Tilling' | 'Rolling' | 'Hoeing' | 'EarthingUp' | 'Mulching' | 'PostSowingRolling' | 'FormativePruning' | 'MaintenancePruning' | 'RejuvenationPruning' | 'SummerPruning' | 'WinterPruning' | 'Thinning' | 'Suckering' | 'Defoliation' | 'Tying' | 'OliveShredding' | 'RunnerManagement' | 'StrawberryMulching' | 'StrawberryCleaning' | 'CaneRemoval' | 'TipPruning' | 'RaspberryTying' | 'SuckerThinning' | 'FruitBagging' | 'ExoticThinning' | 'Shredding' | 'Topping' | 'Pruning' | 'TreePruning';
+  taskType: 'Sowing' | 'Transplant' | 'Fertilize' | 'Prune' | 'Harvest' | 'Treatment' | 'Plowing' | 'Subsoiling' | 'Harrowing' | 'Tilling' | 'Rolling' | 'Hoeing' | 'EarthingUp' | 'Mulching' | 'PostSowingRolling' | 'Clearing' | 'Stumping' | 'StoneRemoval' | 'Leveling' | 'DeepSubsoiling' | 'Digging' | 'DeepHarrowing' | 'Crumbling' | 'Scraping' | 'SurfaceLeveling' | 'MinimumTillage' | 'StripTillage' | 'NoTill' | 'FormativePruning' | 'MaintenancePruning' | 'RejuvenationPruning' | 'SummerPruning' | 'WinterPruning' | 'Thinning' | 'Suckering' | 'Defoliation' | 'Tying' | 'OliveShredding' | 'RunnerManagement' | 'StrawberryMulching' | 'StrawberryCleaning' | 'CaneRemoval' | 'TipPruning' | 'RaspberryTying' | 'SuckerThinning' | 'FruitBagging' | 'ExoticThinning' | 'Shredding' | 'Topping' | 'Pruning' | 'TreePruning';
   durationMinutes?: number; // Durata task (es. irrigazione in minuti)
   stage?: 'Germination' | 'Vegetative' | 'ReadyToTransplant' | 'Flowering' | 'Fruiting' | 'Harvested';
   lifecycleState?: 'Sowing' | 'Germination' | 'Nursing' | 'Hardening' | 'Transplanting' | 'Production'; // Fase del ciclo vitale
@@ -644,6 +714,20 @@ export interface GardenTask {
   hydroponicData?: HydroponicTaskData;
   aquaponicData?: AquaponicTaskData;
   aeroponicData?: AeroponicTaskData;
+  
+  // Sistema Archetipi 3 Livelli
+  archetypeId?: ArchetypeId; // Riferimento all'archetipo della coltura
+  rootZoneDepthCm?: number; // Override profondità radici in cm (se diversa dal default archetipo)
+  irrigationSetup?: {
+    method: 'Drip' | 'Sprinkler' | 'Manual' | 'Flood' | 'NFT' | 'DWC' | 'EbbFlow' | 'Wick' | 'Kratky';
+    flowRateLpm?: number; // Portata impianto (litri/minuto)
+    areaSqm?: number; // Area irrigata (m²)
+    sensorData?: {
+      hasMoistureSensor: boolean;
+      hasECSensor: boolean;
+      hasPHSensor: boolean;
+    };
+  };
 }
 
 export interface GeoLocation {

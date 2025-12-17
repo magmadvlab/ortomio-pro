@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { isApiKeyConfigured } from "./geminiService";
+import { findAltitudeByComune, findAltitudeByCoordinates } from "../data/italianComunesAltitude";
 
 // Support both Next.js and Vite environments
 // In Next.js, use process.env.NEXT_PUBLIC_* for client-side
@@ -58,6 +59,102 @@ const geoClimateSchema: Schema = {
 // Cache per risultati già calcolati (in memoria, per sessione)
 const geoClimateCache = new Map<string, { data: GeoClimateInfo; timestamp: number }>();
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 ore
+
+/**
+ * Reverse geocoding con Nominatim per ottenere comune da coordinate
+ * 
+ * @param lat - Latitudine
+ * @param lng - Longitudine
+ * @returns Promise<{ comune: string; provincia: string } | null>
+ */
+const reverseGeocodeToComune = async (
+  lat: number,
+  lng: number
+): Promise<{ comune: string; provincia: string } | null> => {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?` +
+      `lat=${lat}&lon=${lng}&format=json&accept-language=it`,
+      {
+        headers: {
+          'User-Agent': 'OrtoMio/1.0' // Richiesto da Nominatim
+        }
+      }
+    );
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    const data = await response.json();
+    
+    if (!data.address) {
+      return null;
+    }
+    
+    const comune = data.address.city || data.address.town || data.address.village;
+    const provincia = data.address.province || data.address.county;
+    
+    if (!comune) {
+      return null;
+    }
+    
+    return {
+      comune,
+      provincia: provincia || ''
+    };
+  } catch (error) {
+    console.error('Reverse geocoding failed:', error);
+    return null;
+  }
+};
+
+/**
+ * Ottiene altitudine precisa usando database locale + fallback API
+ * 
+ * **Priorità**:
+ * 1. Database locale dei comuni italiani (altitudine ufficiale del centro abitato)
+ * 2. Ricerca per coordinate nel database (se comune non trovato)
+ * 3. Open-Elevation API (fallback)
+ * 
+ * @param lat - Latitudine
+ * @param lng - Longitudine
+ * @returns Promise<{ altitude: number; source: 'database' | 'open-elevation' }>
+ */
+const getAccurateAltitude = async (
+  lat: number,
+  lng: number
+): Promise<{ altitude: number; source: 'database' | 'open-elevation' }> => {
+  // 1. Prova reverse geocoding per ottenere comune
+  const geocodeResult = await reverseGeocodeToComune(lat, lng);
+  
+  if (geocodeResult) {
+    // 2. Cerca nel database locale per comune
+    const dbAltitude = findAltitudeByComune(
+      geocodeResult.comune,
+      geocodeResult.provincia
+    );
+    
+    if (dbAltitude !== null) {
+      return { altitude: dbAltitude, source: 'database' };
+    }
+  }
+  
+  // 3. Prova ricerca per coordinate nel database (entro 5km)
+  const coordAltitude = findAltitudeByCoordinates(lat, lng, 5);
+  if (coordAltitude !== null) {
+    return { altitude: coordAltitude, source: 'database' };
+  }
+  
+  // 4. Fallback a Open-Elevation API
+  const elevation = await getAltitudeFromOpenElevation(lat, lng);
+  if (elevation !== null) {
+    return { altitude: elevation, source: 'open-elevation' };
+  }
+  
+  // Fallback finale: valore default
+  return { altitude: 200, source: 'open-elevation' };
+};
 
 /**
  * Ottiene altitudine precisa da Open-Elevation API (fallback gratuito)
@@ -167,19 +264,25 @@ export const inferGeoClimate = async (
     }
   }
 
+  // Ottieni altitudine precisa PRIMA di chiamare Gemini
+  const { altitude: accurateAltitude, source: altitudeSource } = await getAccurateAltitude(lat, lng);
+
   // Prova prima con Gemini API
   try {
   if (checkApiAvailable()) {
       const prompt = `Coordinate geografiche: Latitudine ${lat.toFixed(4)}, Longitudine ${lng.toFixed(4)} (Italia).
 
 Fornisci informazioni geoclimatiche accurate per questa zona:
-1. Altitudine media della zona in metri sul livello del mare (range 0-5000m per Italia)
+1. Altitudine PRECISA del centro abitato più vicino in metri sul livello del mare.
+   IMPORTANTE: Se conosci l'altitudine ufficiale del comune/paese più vicino, usa quella (es. Pisticci = 106m, non la media della zona collinare).
+   Se non conosci l'altitudine precisa, usa ${accurateAltitude}m come riferimento (fonte: ${altitudeSource}).
+   Range valido: 0-5000m per Italia.
 2. Ritardo in giorni per semina pomodoro rispetto alla costa (0 per costa, ~20-30 per 500m, ~50-70 per 1500m)
 3. Temperatura minima notturna prevista fine Aprile in gradi Celsius
 4. Regione o zona geografica identificata (es. 'Pianura Padana', 'Appennino Centrale', 'Alpi', 'Sicilia')
 5. Note aggiuntive sul clima locale (se rilevanti)
 
-IMPORTANTE: L'altitudine deve essere precisa e basata su dati topografici reali.`;
+IMPORTANTE: L'altitudine deve essere quella del centro abitato più vicino, non la media della zona collinare circostante.`;
 
     if (!ai) {
       throw new Error('AI client not available');
@@ -208,30 +311,34 @@ IMPORTANTE: L'altitudine deve essere precisa e basata su dati topografici reali.
         typeof parsed.delayFactorDays !== 'number' || 
         typeof parsed.minTempApril !== 'number') {
       console.error("Risposta Gemini non valida:", parsed);
-      // Fallback a Open-Elevation per altitudine
-      const elevation = await getAltitudeFromOpenElevation(lat, lng);
-      if (elevation !== null) {
-        const validatedAlt = validateAltitude(elevation);
-        const { calculateAltitudeDelay } = await import('../utils/altitudeUtils');
-        const delayDays = calculateAltitudeDelay(validatedAlt);
-        const result: GeoClimateInfo = {
-          altitude: validatedAlt,
-          delayFactorDays: delayDays,
-          minTempApril: 8, // Default
-          region: 'Italia',
-          source: 'open-elevation'
-        };
-        // Salva in cache
-        if (useCache) {
-          geoClimateCache.set(cacheKey, { data: result, timestamp: Date.now() });
-        }
-        return result;
+      // Fallback a altitudine accurata già ottenuta
+      const validatedAlt = validateAltitude(accurateAltitude);
+      const { calculateAltitudeDelay } = await import('../utils/altitudeUtils');
+      const delayDays = calculateAltitudeDelay(validatedAlt);
+      const result: GeoClimateInfo = {
+        altitude: validatedAlt,
+        delayFactorDays: delayDays,
+        minTempApril: 8, // Default
+        region: 'Italia',
+        source: altitudeSource === 'database' ? 'open-elevation' : 'open-elevation' // Mantieni compatibilità
+      };
+      // Salva in cache
+      if (useCache) {
+        geoClimateCache.set(cacheKey, { data: result, timestamp: Date.now() });
       }
-      return null;
+      return result;
     }
 
     // Valida e corregge altitudine
     parsed.altitude = validateAltitude(parsed.altitude);
+    
+    // Se l'altitudine dal database è più accurata (differenza > 50m), usa quella
+    // Questo corregge casi in cui Gemini fornisce la media della zona invece dell'altitudine del centro abitato
+    if (altitudeSource === 'database' && Math.abs(parsed.altitude - accurateAltitude) > 50) {
+      console.log(`Correzione altitudine: Gemini=${parsed.altitude}m, Database=${accurateAltitude}m. Usando valore database.`);
+      parsed.altitude = accurateAltitude;
+    }
+    
     parsed.source = 'gemini';
     
     // Salva in cache
@@ -245,28 +352,25 @@ IMPORTANTE: L'altitudine deve essere precisa e basata su dati topografici reali.
     console.error("Errore nell'inferenza geoclimatica con Gemini:", error);
   }
   
-  // Fallback a Open-Elevation per altitudine se API non disponibile o errore
+  // Fallback: usa altitudine accurata già ottenuta
     try {
-      const elevation = await getAltitudeFromOpenElevation(lat, lng);
-      if (elevation !== null) {
-        const validatedAlt = validateAltitude(elevation);
-        const { calculateAltitudeDelay } = await import('../utils/altitudeUtils');
-        const delayDays = calculateAltitudeDelay(validatedAlt);
-        const result: GeoClimateInfo = {
-          altitude: validatedAlt,
-          delayFactorDays: delayDays,
-          minTempApril: 8, // Default
-          region: 'Italia',
-          source: 'open-elevation'
-        };
-        // Salva in cache
-        if (useCache) {
-          geoClimateCache.set(cacheKey, { data: result, timestamp: Date.now() });
-        }
-        return result;
+      const validatedAlt = validateAltitude(accurateAltitude);
+      const { calculateAltitudeDelay } = await import('../utils/altitudeUtils');
+      const delayDays = calculateAltitudeDelay(validatedAlt);
+      const result: GeoClimateInfo = {
+        altitude: validatedAlt,
+        delayFactorDays: delayDays,
+        minTempApril: 8, // Default
+        region: 'Italia',
+        source: altitudeSource === 'database' ? 'open-elevation' : 'open-elevation' // Mantieni compatibilità
+      };
+      // Salva in cache
+      if (useCache) {
+        geoClimateCache.set(cacheKey, { data: result, timestamp: Date.now() });
       }
+      return result;
     } catch (elevError) {
-      console.error("Errore anche con Open-Elevation:", elevError);
+      console.error("Errore nel fallback:", elevError);
     }
   
   // Fallback finale
