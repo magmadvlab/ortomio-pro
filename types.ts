@@ -98,7 +98,7 @@ import {
   AquaponicTaskData,
   AeroponicTaskData
 } from './types/indoorGrowing';
-import { GreenhouseConfig } from './types/greenhouse';
+import { GreenhouseConfig, GreenhouseStructure } from './types/greenhouse';
 
 export interface SolarClassificationData {
   windows: SeasonalSunWindow[];
@@ -126,8 +126,13 @@ export interface DailyPlan {
 
 // Work types for mechanical operations
 export type MechanicalWorkType = 
-  // Suolo
+  // Suolo (esistenti)
   | 'Plowing' | 'Subsoiling' | 'Harrowing' | 'Tilling' | 'Rolling' | 'Hoeing' | 'EarthingUp' | 'Mulching' | 'PostSowingRolling'
+  // Preparazione Terreno (nuove)
+  | 'Clearing' | 'Stumping' | 'StoneRemoval' | 'Leveling' | 'DeepSubsoiling'
+  | 'Digging' | 'DeepHarrowing' | 'Crumbling' | 'Scraping' | 'SurfaceLeveling'
+  // Tecniche Moderne
+  | 'MinimumTillage' | 'StripTillage' | 'NoTill'
   // Chioma
   | 'FormativePruning' | 'MaintenancePruning' | 'RejuvenationPruning' | 'SummerPruning' | 'WinterPruning'
   | 'Thinning' | 'Suckering' | 'Defoliation' | 'Tying' | 'OliveShredding' | 'RunnerManagement'
@@ -236,11 +241,15 @@ export interface Garden {
   
   // INFRASTRUTTURA
   hasCompostBin?: boolean;
+  /**
+   * @deprecated Le aiuole rialzate sono gestite tramite garden_beds con bedType: 'RaisedBed'
+   * Mantenuto per retrocompatibilità con dati esistenti
+   */
   isRaisedBed?: boolean;
   
   // NUOVO: Tipo spazio coltivabile e configurazioni avanzate
   gardenType?: GardenType;
-  greenhouseConfig?: GreenhouseConfig;
+  greenhouseConfig?: GreenhouseConfig | { structures: GreenhouseStructure[] }; // Supporta singola serra o multiple
   indoorConfig?: IndoorGrowingConfig;
   hydroponicConfig?: HydroponicSystemConfig;
   aquaponicConfig?: AquaponicSystemConfig;
@@ -1183,7 +1192,7 @@ export type { FertilizerProduct, CoverCrop } from './data/fertilizers';
 // Re-export from data/phytoproducts.ts for convenience
 export type { PhytoProduct } from './data/phytoproducts';
 
-// Treatment Record (from services/treatmentRegistryService.ts)
+// Treatment Record (from services/treatmentRegistryService.ts) - Legacy interface
 export interface TreatmentRecord {
   id: string;
   gardenId: string;
@@ -1203,6 +1212,65 @@ export interface TreatmentRecord {
   safetyIntervalEndDate: Date;
   notes?: string;
   createdAt: Date;
+}
+
+// ============================================
+// DATABASE RECORDS (for storageProvider)
+// ============================================
+
+// Mechanical Work Record (per database)
+export interface MechanicalWorkRecord {
+  id: string
+  user_id: string
+  garden_id?: string
+  work_type: MechanicalWorkType
+  work_date: string // ISO date string
+  area_m2: number
+  depth_cm?: number
+  equipment_type?: string
+  equipment_attachment?: string
+  work_metadata?: {
+    category?: 'Soil' | 'Canopy' | 'General'
+    cropId?: string
+    cropName?: string
+    period?: { month?: number[]; phenologicalPhase?: string; daysAfterSowing?: number }
+    equipment?: string[]
+    standardCost?: number
+    description?: string
+  }
+  weather_conditions?: {
+    temp?: number
+    humidity?: number
+    wind?: string
+    rain?: boolean
+  }
+  operator_name?: string
+  notes?: string
+  created_at: string
+}
+
+// Treatment Record (per database)
+export interface TreatmentRecordDB {
+  id: string
+  user_id: string
+  garden_id?: string
+  crop_name: string
+  treatment_date: string // ISO date string
+  product_name: string
+  active_ingredient?: string
+  dosage?: number
+  dosage_unit?: 'ml' | 'g' | 'kg' | 'L'
+  area_treated?: number
+  method?: 'spray' | 'soil' | 'seed' | 'foliar'
+  reason?: 'preventive' | 'curative' | 'pest_control' | 'disease_control' | 'nutrient'
+  weather_conditions?: {
+    temp?: number
+    humidity?: number
+    wind?: string
+  }
+  operator_name?: string
+  notes?: string
+  created_at: string
 }
 
 // ============================================

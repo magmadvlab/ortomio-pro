@@ -31,10 +31,10 @@ const menuItems = [
   { icon: ShoppingBasket, label: 'Raccolto', path: '/app/harvest', tier: 'all' },
   { icon: Sparkles, label: 'Cura', path: '/app/advice', tier: 'all' },
   { icon: Trophy, label: 'Challenge', path: '/app/challenges', tier: 'all' },
-  { icon: BarChart3, label: 'Analytics', path: '/app/analytics', tier: 'PRO_PROFESSIONAL', badge: 'PRO' },
-  { icon: FlaskConical, label: 'Trattamenti', path: '/app/treatments', tier: 'PRO_PROFESSIONAL', badge: 'PRO' },
-  { icon: Tractor, label: 'Lavorazioni', path: '/app/mechanical-work', tier: 'PRO_PROFESSIONAL', badge: 'PRO' },
-  { icon: Database, label: 'Export', path: '/app/export', tier: 'PRO_PROFESSIONAL', badge: 'PRO' },
+  { icon: BarChart3, label: 'Analytics', path: '/app/analytics', tier: 'PRO', badge: 'PRO' },
+  { icon: FlaskConical, label: 'Trattamenti', path: '/app/treatments', tier: 'PRO', badge: 'PRO' },
+  { icon: Tractor, label: 'Lavorazioni', path: '/app/mechanical-work', tier: 'PRO', badge: 'PRO' },
+  { icon: Database, label: 'Export', path: '/app/export', tier: 'PRO', badge: 'PRO' },
   { icon: Wifi, label: 'Smart Hub', path: '/app/smart', tier: 'all' },
   { icon: HelpCircle, label: 'Aiuto', path: '/app/help', tier: 'all' },
   { icon: Settings, label: 'Settings', path: '/app/settings', tier: 'all' },
@@ -42,12 +42,12 @@ const menuItems = [
 
 export function ProfessionalSidebar() {
   const pathname = usePathname()
-  const { tier, isProfessional } = useTier()
+  const { tier, isPro } = useTier()
   
-  // Add admin menu item if user is PRO_PROFESSIONAL (always available for PRO)
+  // Add admin menu item if user is PRO (always available for PRO)
   const allMenuItems = [
     ...menuItems,
-    { icon: Crown, label: 'Admin', path: '/app/admin', tier: 'PRO_PROFESSIONAL' as const }
+    { icon: Crown, label: 'Admin', path: '/app/admin', tier: 'PRO' as const }
   ]
   
   return (
@@ -61,9 +61,9 @@ export function ProfessionalSidebar() {
         {allMenuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.path
+          const tierStr = tier as string
           const isAvailable = item.tier === 'all' || 
-                             (item.tier === 'PRO_PROFESSIONAL' && isProfessional) ||
-                             (item.tier === 'PRO' && (tier === 'PRO' || tier === 'PRO_CONSUMER' || tier === 'PRO_PROFESSIONAL'))
+                             (item.tier === 'PRO' && (tierStr === 'PRO' || tierStr === 'PRO_PROFESSIONAL' || isPro))
           
           if (!isAvailable) return null
           

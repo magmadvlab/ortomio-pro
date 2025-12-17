@@ -4,7 +4,7 @@ import { getCurrentPositionWithRetry, getDefaultCoordinates } from '../services/
 // getGeoClimateInfo importato dinamicamente per evitare problemi con 'use client'
 import { analyzeSunExposure, analyzeAspectDirection, analyzePanoramic360, fileToBase64 } from '../services/photoAnalysisService';
 import { convertToSqMeters, convertFromSqMeters, AreaUnit } from '../utils/areaConverter';
-import { MapPin, ArrowRight, ArrowLeft, Loader2, CheckCircle, Mountain, Sun, Wind, Home, Camera, Upload, X, Shovel } from 'lucide-react';
+import { MapPin, ArrowRight, ArrowLeft, Loader2, CheckCircle, Mountain, Sun, Wind, Home, Camera, Upload, X, Shovel, Info } from 'lucide-react';
 import { ObstacleManager } from './sunExposure/ObstacleManager';
 import { Obstacle3D } from '../services/preciseSunCalculator';
 import { InfoTooltip } from './shared/InfoTooltip';
@@ -18,7 +18,11 @@ import { HydroponicConfigForm } from './gardens/HydroponicConfigForm';
 import { AquaponicConfigForm } from './gardens/AquaponicConfigForm';
 import { AeroponicConfigForm } from './gardens/AeroponicConfigForm';
 import { IndoorConfigForm } from './gardens/IndoorConfigForm';
-import { GreenhouseConfig } from '../types/greenhouse';
+import { GreenhouseConfig, GreenhouseStructure } from '../types/greenhouse';
+import { LocationStep } from './gardens/LocationStep';
+import { MultipleGreenhouseConfig } from './gardens/MultipleGreenhouseConfig';
+import { SoilTypeInfo } from './shared/SoilTypeInfo';
+import { CompostBinInfo } from './shared/CompostBinInfo';
 import { HydroponicSystemConfig, AquaponicSystemConfig, AeroponicSystemConfig, IndoorGrowingConfig } from '../types/indoorGrowing';
 import { GardenBed } from '../types/gardenBed';
 import { BedForm } from './gardens/BedForm';
@@ -54,7 +58,14 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
 
   // Step 2: Tipo Spazio Coltivabile
   const [gardenType, setGardenType] = useState<GardenType | ''>(existingGarden?.gardenType || '');
-  const [greenhouseConfig, setGreenhouseConfig] = useState<GreenhouseConfig | undefined>(existingGarden?.greenhouseConfig);
+  const [greenhouseConfig, setGreenhouseConfig] = useState<GreenhouseConfig | { structures: GreenhouseStructure[] } | undefined>(existingGarden?.greenhouseConfig);
+  const [greenhouseStructures, setGreenhouseStructures] = useState<GreenhouseStructure[]>(() => {
+    // Se greenhouseConfig è un array di strutture, estrailo
+    if (existingGarden?.greenhouseConfig && 'structures' in existingGarden.greenhouseConfig) {
+      return existingGarden.greenhouseConfig.structures;
+    }
+    return [];
+  });
   const [hydroponicConfig, setHydroponicConfig] = useState<HydroponicSystemConfig | undefined>(existingGarden?.hydroponicConfig);
   const [aquaponicConfig, setAquaponicConfig] = useState<AquaponicSystemConfig | undefined>(existingGarden?.aquaponicConfig);
   const [aeroponicConfig, setAeroponicConfig] = useState<AeroponicSystemConfig | undefined>(existingGarden?.aeroponicConfig);
@@ -91,7 +102,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
   const [aspectDirection, setAspectDirection] = useState<Garden['aspectDirection'] | ''>(existingGarden?.aspectDirection || '');
   const [windProtection, setWindProtection] = useState<Garden['windProtection'] | ''>(existingGarden?.windProtection || '');
   const [hasCompostBin, setHasCompostBin] = useState(existingGarden?.hasCompostBin || false);
-  const [isRaisedBed, setIsRaisedBed] = useState(existingGarden?.isRaisedBed || false);
+  // isRaisedBed deprecato - gestito tramite garden_beds con bedType: 'RaisedBed'
   const [obstacles, setObstacles] = useState<Obstacle3D[]>(existingGarden?.obstacles || []);
   
   // Visual Sun Input (wizard semplificato)
@@ -178,6 +189,9 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
     }
   };
 
+  // Determina se Step 3 (posizione) è necessario
+  const needsLocation = !['Indoor', 'Hydroponic', 'Aquaponic', 'Aeroponic'].includes(gardenType);
+
   const handleNext = () => {
     if (step === 1) {
       // Validazione step 1: solo nome richiesto
@@ -188,9 +202,22 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
     }
     if (step === 2) {
       // Validazione step 2: tipo selezionato (opzionale, può essere vuoto)
+      // Se tipo richiede posizione, vai a Step 3, altrimenti salta a Step 4
+      if (!needsLocation) {
+        // Salta Step 3 (posizione) per indoor/idroponico
+        setStep(4);
+        return;
+      }
     }
     if (step === 3) {
-      // Validazione step 3: configurazione dimensioni completata
+      // Validazione step 3: posizione geografica (solo se necessaria)
+      if (needsLocation && (!latitude || !longitude)) {
+        alert('Inserisci latitudine e longitudine');
+        return;
+      }
+    }
+    if (step === 4) {
+      // Validazione step 4: configurazione dimensioni completata
       if (calculatedSizeSqMeters <= 0) {
         alert('Configura le dimensioni del tuo spazio coltivabile');
         return;
@@ -208,9 +235,24 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
         alert('Inserisci la superficie del campo aperto');
         return;
       }
-      if ((gardenType === 'Greenhouse' || gardenType === 'Tunnel') && (!greenhouseConfig?.length || !greenhouseConfig?.width)) {
-        alert('Configura le dimensioni della serra');
-        return;
+      if ((gardenType === 'Greenhouse' || gardenType === 'Tunnel')) {
+        // Supporta sia singola serra che multiple
+        if ('structures' in (greenhouseConfig || {})) {
+          const structures = (greenhouseConfig as { structures: GreenhouseStructure[] })?.structures || [];
+          if (structures.length === 0) {
+            alert('Aggiungi almeno una serra/tunnel');
+            return;
+          }
+        } else if (greenhouseConfig && 'structureType' in greenhouseConfig) {
+          const singleConfig = greenhouseConfig as GreenhouseConfig;
+          if (!singleConfig.length && !singleConfig.width) {
+            alert('Configura le dimensioni della serra');
+            return;
+          }
+        } else if (!greenhouseConfig) {
+          alert('Configura le dimensioni della serra');
+          return;
+        }
       }
       if (gardenType === 'Indoor' && (!indoorConfig?.growSpace?.length || !indoorConfig?.growSpace?.width)) {
         alert('Configura le dimensioni dello spazio indoor');
@@ -493,7 +535,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
       aspectDirection: aspectDirection || undefined,
       windProtection: windProtection || undefined,
       hasCompostBin: hasCompostBin,
-      isRaisedBed: isRaisedBed,
+      // isRaisedBed deprecato - gestito tramite garden_beds con bedType: 'RaisedBed'
       obstacles: obstacles.length > 0 ? obstacles : undefined,
       // panoramicPhoto non è parte dell'interfaccia Garden, viene gestito separatamente
       createdAt: existingGarden?.createdAt || new Date().toISOString()
@@ -545,14 +587,14 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
 
           {/* Progress Steps */}
           <div className="flex items-center justify-between mb-8">
-            {[1, 2, 3, 4, 5, 6].map((s) => (
+            {[1, 2, 3, 4, 5, 6, 7].map((s) => (
               <div key={s} className="flex items-center flex-1">
                 <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
                   step >= s ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 text-gray-400'
                 }`}>
                   {step > s ? <CheckCircle size={20} /> : s}
                 </div>
-                {s < 6 && (
+                {s < 7 && (
                   <div className={`flex-1 h-1 mx-2 ${
                     step > s ? 'bg-green-600' : 'bg-gray-300'
                   }`} />
@@ -561,12 +603,12 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
             ))}
           </div>
 
-          {/* Step 1: Identità e Posizione */}
+          {/* Step 1: Nome Giardino */}
           {step === 1 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-4">
                 <Home size={24} className="text-green-600" />
-                <h3 className="text-xl font-bold text-gray-800">Identità e Posizione</h3>
+                <h3 className="text-xl font-bold text-gray-800">Nome Giardino</h3>
               </div>
 
               {/* Badge informativo per FREE */}
@@ -590,104 +632,14 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                   placeholder="Es. Orto di Casa, Balcone Sud..."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
-              </div>
-
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Latitudine
-                  </label>
-                  <input
-                    type="number"
-                    value={latitude}
-                    onChange={(e) => setLatitude(e.target.value)}
-                    placeholder="Es. 41.9028"
-                    step="0.0001"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Longitudine
-                  </label>
-                  <input
-                    type="number"
-                    value={longitude}
-                    onChange={(e) => setLongitude(e.target.value)}
-                    placeholder="Es. 12.4964"
-                    step="0.0001"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              <button
-                onClick={handleGetLocation}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    <span>Rilevamento posizione...</span>
-                  </>
-                ) : (
-                  <>
-                    <MapPin size={18} />
-                    <span>Usa la mia posizione</span>
-                  </>
-                )}
-              </button>
-
-              {inferringGeo && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Loader2 size={16} className="animate-spin" />
-                  <span>Inferenza dati geoclimatici...</span>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                  <Mountain size={16} />
-                  Altitudine (metri)
-                  {altitudeSource === 'inferred' && (
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded" title="Altitudine calcolata automaticamente dalle coordinate">
-                      ⚡ Inferita
-                    </span>
-                  )}
-                  {altitudeSource === 'manual' && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded" title="Altitudine inserita manualmente">
-                      ✏️ Manuale
-                    </span>
-                  )}
-                </label>
-                <input
-                  type="number"
-                  value={altitudeMeters}
-                  onChange={(e) => {
-                    setAltitudeMeters(e.target.value);
-                    if (e.target.value) {
-                      setAltitudeSource('manual');
-                    } else {
-                      setAltitudeSource(null);
-                    }
-                  }}
-                  placeholder="Es. 200 (opzionale)"
-                  min="0"
-                  max="5000"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
                 <p className="text-xs text-gray-500 mt-1">
-                  {altitudeSource === 'inferred' 
-                    ? 'Altitudine calcolata automaticamente. Puoi correggerla manualmente se necessario.'
-                    : 'Se lasciato vuoto, verrà inferito automaticamente dalle coordinate (range: 0-5000m)'}
+                  Scegli un nome che ti aiuti a identificare questo giardino
                 </p>
               </div>
             </div>
           )}
 
-          {/* Step 2: Tipo Spazio Coltivabile */}
+          {/* Step 2: Tipo Giardino */}
           {step === 2 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-4">
@@ -761,29 +713,34 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
               </div>
 
               {/* Form condizionali per configurazione */}
-              {isPro && gardenType === 'Greenhouse' && (
+              {isPro && (gardenType === 'Greenhouse' || gardenType === 'Tunnel') && (
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold text-gray-800 mb-3">Configurazione Serra</h4>
-                  <GreenhouseConfigForm
-                    initialConfig={greenhouseConfig}
-                    onSubmit={(config) => setGreenhouseConfig(config)}
-                  />
-                  <div className="mt-4 pt-4 border-t border-gray-300">
-                    <p className="text-sm text-gray-600 mb-2">
-                      💡 <strong>Suggerimento:</strong> Puoi aggiungere letti dentro la serra nello Step 5 (Zone di Coltivazione).
-                      I letti dentro la serra saranno automaticamente associati a questa configurazione.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {isPro && gardenType === 'Tunnel' && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold text-gray-800 mb-3">Configurazione Tunnel</h4>
-                  <GreenhouseConfigForm
-                    initialConfig={greenhouseConfig}
-                    onSubmit={(config) => setGreenhouseConfig(config)}
-                  />
+                  <h4 className="font-semibold text-gray-800 mb-3">
+                    Configurazione {gardenType === 'Greenhouse' ? 'Serra' : 'Tunnel'}
+                  </h4>
+                  {greenhouseConfig && 'structures' in greenhouseConfig ? (
+                    <MultipleGreenhouseConfig
+                      structures={(greenhouseConfig as { structures: GreenhouseStructure[] }).structures}
+                      onChange={(structures) => setGreenhouseConfig({ structures })}
+                      onTotalAreaCalculated={(totalArea) => {
+                        // Aggiorna superficie totale
+                        setCalculatedSizeSqMeters(totalArea);
+                      }}
+                    />
+                  ) : (
+                    <>
+                      <GreenhouseConfigForm
+                        initialConfig={greenhouseConfig && 'structureType' in greenhouseConfig ? greenhouseConfig as GreenhouseConfig : undefined}
+                        onSubmit={(config) => setGreenhouseConfig(config)}
+                      />
+                      <div className="mt-4 pt-4 border-t border-gray-300">
+                        <p className="text-sm text-gray-600 mb-2">
+                          💡 <strong>Suggerimento:</strong> Puoi aggiungere più serre/tunnel o aggiungere letti dentro la serra nello Step 7 (Zone di Coltivazione).
+                          I letti dentro la serra saranno automaticamente associati a questa configurazione.
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -829,8 +786,29 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
             </div>
           )}
 
-          {/* Step 3: Configurazione Dimensioni */}
+          {/* Step 3: Posizione Geografica (Condizionale) */}
           {step === 3 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <MapPin size={24} className="text-green-600" />
+                <h3 className="text-xl font-bold text-gray-800">Posizione Geografica</h3>
+              </div>
+              <LocationStep
+                gardenType={gardenType}
+                latitude={latitude}
+                longitude={longitude}
+                altitudeMeters={altitudeMeters}
+                onLatitudeChange={setLatitude}
+                onLongitudeChange={setLongitude}
+                onAltitudeChange={setAltitudeMeters}
+                onAltitudeSourceChange={setAltitudeSource}
+                altitudeSource={altitudeSource}
+              />
+            </div>
+          )}
+
+          {/* Step 4: Configurazione Strutture e Dimensioni */}
+          {step === 4 && (
             <SizeConfigurationStep
               gardenType={gardenType}
               onSizeCalculated={(sizeSqMeters, sizeUnit) => {
@@ -839,8 +817,8 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
               }}
               initialSize={calculatedSizeSqMeters}
               initialUnit={calculatedSizeUnit}
-              greenhouseConfig={greenhouseConfig}
-              onGreenhouseConfigChange={setGreenhouseConfig}
+              greenhouseConfig={greenhouseConfig && 'structureType' in greenhouseConfig ? greenhouseConfig as GreenhouseConfig : undefined}
+              onGreenhouseConfigChange={(config) => setGreenhouseConfig(config)}
               hydroponicConfig={hydroponicConfig}
               onHydroponicConfigChange={setHydroponicConfig}
               aquaponicConfig={aquaponicConfig}
@@ -876,8 +854,8 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
             />
           )}
 
-          {/* Step 4: Suolo (rinumerato da Step 3) */}
-          {step === 4 && (
+          {/* Step 5: Suolo */}
+          {step === 5 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-4">
                 <Shovel size={24} className="text-green-600" />
@@ -885,13 +863,13 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Tipo di Terreno
                 </label>
                 <select
                   value={soilType}
                   onChange={(e) => setSoilType(e.target.value as Garden['soilType'] | '')}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent mb-3"
                 >
                   <option value="">Seleziona...</option>
                   <option value="Loamy">Franco (Ideale)</option>
@@ -901,6 +879,12 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                   <option value="Chalky">Calcareo</option>
                   <option value="Silty">Limoso</option>
                 </select>
+                {soilType && (
+                  <SoilTypeInfo soilType={soilType as any} onSelect={(type) => setSoilType(type)} />
+                )}
+                {!soilType && (
+                  <SoilTypeInfo soilType="" onSelect={(type) => setSoilType(type)} />
+                )}
               </div>
 
               <div>
@@ -918,14 +902,15 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  La maggior parte delle piante preferisce pH 6.0-7.0
+                  La maggior parte delle piante preferisce pH 6.0-7.0. Se non conosci il pH del tuo terreno, 
+                  puoi lasciarlo vuoto e il sistema userà valori di default basati sul tipo di terreno selezionato.
                 </p>
               </div>
             </div>
           )}
 
-          {/* Step 5: Microclima (rinumerato da Step 4) */}
-          {step === 5 && (
+          {/* Step 6: Microclima */}
+          {step === 6 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-4">
                 <Sun size={24} className="text-green-600" />
@@ -1027,36 +1012,40 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                   </div>
 
                   {/* Foto Panoramica 360° (Opzionale - Analisi Completa) */}
-                  {/* 
-                    IMPORTANTE: La foto panoramica 360° è fondamentale per calcolare con precisione
-                    l'incidenza della luce solare e del sole sull'orto.
-                    
-                    Perché è importante:
-                    - Analizza l'esposizione solare da TUTTE le direzioni (Nord, Sud, Est, Ovest)
-                    - Identifica ostacoli (edifici, alberi, montagne) che possono ombreggiare l'orto
-                    - Calcola ore di sole per ogni direzione, non solo un momento (come foto mezzogiorno)
-                    - Permette calcolo automatico preciso di esposizione e orientamento
-                    
-                    Cosa viene analizzato:
-                    - Ore sole per direzione cardinale
-                    - Ostacoli con direzione, tipo e altezza
-                    - Esposizione complessiva (FullSun/PartSun/Shade)
-                    - Direzione esposizione principale
-                    
-                    Come viene usata:
-                    - Popola automaticamente campi esposizione solare e orientamento
-                    - Migliora precisione suggerimenti orchestrator basati su esposizione reale
-                  */}
                   <div className="mt-4 pt-4 border-t border-purple-200">
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-3">
+                      <div className="flex items-start gap-2 mb-2">
+                        <Info size={16} className="text-purple-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-purple-800 mb-1">
+                            📸 Foto Panoramica 360° - Analisi Completa Esposizione
+                          </p>
+                          <p className="text-xs text-purple-700 mb-2">
+                            <strong>Perché è utile:</strong>
+                          </p>
+                          <ul className="text-xs text-purple-700 space-y-1 ml-4 list-disc mb-2">
+                            <li>Analizza l'esposizione solare da <strong>TUTTE le direzioni</strong> (Nord, Sud, Est, Ovest)</li>
+                            <li>Identifica ostacoli (edifici, alberi, montagne) che possono ombreggiare l'orto</li>
+                            <li>Calcola ore di sole per ogni direzione cardinale</li>
+                            <li>Migliora la precisione dei suggerimenti personalizzati</li>
+                          </ul>
+                          <p className="text-xs text-purple-700 mb-1">
+                            <strong>Come scattarla:</strong>
+                          </p>
+                          <ol className="text-xs text-purple-700 space-y-0.5 ml-4 list-decimal">
+                            <li>Posizionati al centro del tuo giardino</li>
+                            <li>Ruota lentamente scattando foto in tutte le direzioni</li>
+                            <li>Oppure usa un'app per foto panoramiche 360°</li>
+                          </ol>
+                          <p className="text-xs text-purple-700 mt-2">
+                            <strong>Cosa viene analizzato automaticamente:</strong> Ore di sole per direzione • Tipo esposizione (Pieno Sole/Mezz'Ombra/Ombra) • Ostacoli identificati • Direzione esposizione principale
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                     <label className="block text-xs font-medium text-gray-700 mb-2">
-                      🌐 Foto Panoramica 360° (Opzionale) - Analisi completa esposizione
+                      Carica Foto Panoramica 360°
                     </label>
-                    <p className="text-xs text-gray-500 mb-2">
-                      <strong>Per calcolare bene l'incidenza della luce e del sole sull'orto</strong>, 
-                      carica una foto panoramica 360° che permette un'analisi completa dell'esposizione 
-                      solare da tutte le direzioni. Identifica ostacoli (edifici, alberi) e calcola 
-                      ore di sole per ogni direzione cardinale.
-                    </p>
                     {panoramicPhotoPreview ? (
                       <div className="relative">
                         <img
@@ -1185,10 +1174,22 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <Wind size={16} />
                   Direzione Esposizione
                 </label>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                  <p className="text-xs text-blue-800 mb-2">
+                    <strong>La direzione dell'esposizione determina quanta luce solare riceve il giardino:</strong>
+                  </p>
+                  <ul className="text-xs text-blue-700 space-y-1 ml-4 list-disc">
+                    <li><strong>Sud:</strong> Massima esposizione (ideale per la maggior parte delle piante)</li>
+                    <li><strong>Est:</strong> Sole mattutino, meno caldo</li>
+                    <li><strong>Ovest:</strong> Sole pomeridiano, più caldo</li>
+                    <li><strong>Nord:</strong> Meno sole, ideale per piante che preferiscono ombra</li>
+                    <li><strong>Piano:</strong> Esposizione uniforme su tutte le direzioni</li>
+                  </ul>
+                </div>
                 <select
                   value={aspectDirection}
                   onChange={(e) => setAspectDirection(e.target.value as Garden['aspectDirection'] | '')}
@@ -1209,9 +1210,22 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Protezione dal Vento
                 </label>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                  <p className="text-xs text-green-800 mb-2">
+                    <strong>La protezione dal vento aiuta a:</strong>
+                  </p>
+                  <ul className="text-xs text-green-700 space-y-1 ml-4 list-disc">
+                    <li>Ridurre l'evaporazione dell'acqua</li>
+                    <li>Proteggere piante delicate</li>
+                    <li>Mantenere temperatura più stabile</li>
+                  </ul>
+                  <p className="text-xs text-green-700 mt-2">
+                    <strong>Esempi:</strong> Alta (muri, siepi alte, edifici) • Media (alberi, siepi medie) • Bassa (poco o nessun ostacolo)
+                  </p>
+                </div>
                 <select
                   value={windProtection}
                   onChange={(e) => setWindProtection(e.target.value as Garden['windProtection'] | '')}
@@ -1251,36 +1265,20 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                 </div>
               )}
 
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={hasCompostBin}
-                    onChange={(e) => setHasCompostBin(e.target.checked)}
-                    className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">
-                    Ho una compostiera
-                  </span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isRaisedBed}
-                    onChange={(e) => setIsRaisedBed(e.target.checked)}
-                    className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">
-                    Uso aiuole rialzate (raised bed)
-                  </span>
-                </label>
+              {/* Compostiera - Card dedicata migliorata */}
+              <div className="mt-4">
+                <CompostBinInfo
+                  checked={hasCompostBin}
+                  onChange={setHasCompostBin}
+                />
               </div>
+              
+              {/* Nota: isRaisedBed rimosso - gestito tramite garden_beds nello Step 7 */}
             </div>
           )}
 
-          {/* Step 6: Zone Aggiuntive (Opzionale, rinumerato da Step 5) */}
-          {step === 6 && (
+          {/* Step 7: Zone di Coltivazione (Opzionale) */}
+          {step === 7 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-4">
                 <Grid size={24} className="text-green-600" />
@@ -1407,7 +1405,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
               {step === 1 ? 'Annulla' : 'Indietro'}
             </button>
 
-            {step < 6 ? (
+            {step < 7 ? (
               <button
                 onClick={handleNext}
                 className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -1415,7 +1413,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                 Avanti
                 <ArrowRight size={18} />
               </button>
-            ) : step === 6 ? (
+            ) : step === 7 ? (
               <button
                 onClick={handleComplete}
                 className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
