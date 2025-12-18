@@ -120,10 +120,17 @@ export const TierProvider: React.FC<TierProviderProps> = ({
           .eq('id', session.user.id)
           .maybeSingle();
 
+        // Handle 406 errors and other cases where profile doesn't exist
+        // 406 can occur even with maybeSingle() due to RLS or PostgREST configuration
         if (error) {
-          console.error('Error fetching profile:', error);
-          // Try to create profile if it doesn't exist
-          if (error.code === 'PGRST116' || error.message?.includes('No rows')) {
+          // 406 (Not Acceptable) or PGRST116 (No rows) means profile doesn't exist
+          const isNotFoundError = error.code === 'PGRST116' || 
+                                  error.status === 406 || 
+                                  error.message?.includes('No rows') ||
+                                  error.message?.includes('not found');
+          
+          if (isNotFoundError) {
+            // Profile doesn't exist - create it
             console.log('Profile not found, creating default profile');
             const { error: createError } = await supabase
               .from('profiles')
@@ -135,7 +142,17 @@ export const TierProvider: React.FC<TierProviderProps> = ({
               });
             
             if (createError) {
-              console.error('Error creating profile:', createError);
+              // If profile was just created by another request (race condition), that's ok
+              if (createError.code === '23505') {
+                console.log('Profile already exists (created by another request)');
+              } else {
+                console.error('Error creating profile:', createError);
+              }
+              // Use default tier even if creation fails
+              setTierState(AppTier.FREE);
+              if (typeof window !== 'undefined') {
+                localStorage.setItem(TIER_STORAGE_KEY, AppTier.FREE);
+              }
               return;
             }
             
@@ -144,8 +161,12 @@ export const TierProvider: React.FC<TierProviderProps> = ({
             if (typeof window !== 'undefined') {
               localStorage.setItem(TIER_STORAGE_KEY, AppTier.FREE);
             }
+            return;
+          } else {
+            // Other error - log but don't create profile
+            console.error('Error fetching profile:', error);
+            return;
           }
-          return;
         }
 
         // If profile is null, create it
@@ -161,7 +182,12 @@ export const TierProvider: React.FC<TierProviderProps> = ({
             });
           
           if (createError) {
-            console.error('Error creating profile:', createError);
+            // If insert fails due to conflict, profile was just created - use default
+            if (createError.code === '23505') {
+              console.log('Profile was just created by another request');
+            } else {
+              console.error('Error creating profile:', createError);
+            }
             // Use default tier even if creation fails
             setTierState(AppTier.FREE);
             if (typeof window !== 'undefined') {
