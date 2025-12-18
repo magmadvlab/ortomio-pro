@@ -85,7 +85,7 @@ export const TierProvider: React.FC<TierProviderProps> = ({
           // Aggiorna il tier nel database per mantenere consistenza
           const { data: profile } = await supabase
             .from('profiles')
-            .select('tier')
+            .select('tier, ai_credits_total, ai_credits_used')
             .eq('id', session.user.id)
             .maybeSingle();
 
