@@ -222,7 +222,7 @@ export const getSpecificPlantDetails = async (query: string, lat: number, lng: n
   }
 
   // Cerca prima nel sistema di schede master
-  const varietyInfo = getMasterVarietyInfo(query);
+  const varietyInfo = await getMasterVarietyInfo(query);
   let masterGuide = null;
   let speciesName = query;
   let varietyName: string | undefined = undefined;
@@ -231,16 +231,16 @@ export const getSpecificPlantDetails = async (query: string, lat: number, lng: n
     // Varietà trovata nel sistema master
     speciesName = varietyInfo.speciesId;
     varietyName = varietyInfo.varietyName;
-    masterGuide = generateCompleteGuide(speciesName, varietyName);
+    masterGuide = await generateCompleteGuide(speciesName, varietyName);
   } else {
     // Prova a trovare la specie direttamente
     const speciesFromVariety = findSpeciesFromVariety(query);
     if (speciesFromVariety) {
       speciesName = speciesFromVariety.speciesId;
-      masterGuide = generateCompleteGuide(speciesName);
+      masterGuide = await generateCompleteGuide(speciesName);
     } else {
       // Prova a cercare per nome specie
-      masterGuide = generateCompleteGuide(query);
+      masterGuide = await generateCompleteGuide(query);
       if (masterGuide) {
         speciesName = query;
       }
