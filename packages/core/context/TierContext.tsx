@@ -114,6 +114,46 @@ export const TierProvider: React.FC<TierProviderProps> = ({
         // PRODUZIONE: Carica tier dal database normalmente
         // Load tier from profiles table
         // Use maybeSingle() instead of single() to avoid 406 error when profile doesn't exist
+        
+        // SPECIAL CASE: Forza PRO per roberto.lalinga@gmail.com (superadmin)
+        const isSuperAdmin = session.user.email === 'roberto.lalinga@gmail.com';
+        
+        if (isSuperAdmin) {
+          console.log('[TierContext] Superadmin detected:', session.user.email, 'forcing PRO tier');
+          // Assicurati che il profilo esista con tier PRO
+          const { data: existingProfile, error: profileError } = await supabase
+            .from('profiles')
+            .select('tier, ai_credits_total, ai_credits_used')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          
+          console.log('[TierContext] Existing profile:', existingProfile, 'Error:', profileError);
+          
+          if (!existingProfile || (existingProfile.tier !== 'PRO' && existingProfile.tier !== 'PRO_PROFESSIONAL')) {
+            console.log('[TierContext] Creating/updating superadmin profile with PRO tier');
+            // Crea o aggiorna il profilo con tier PRO e crediti illimitati
+            const { data: upsertData, error: upsertError } = await supabase
+              .from('profiles')
+              .upsert({
+                id: session.user.id,
+                tier: 'PRO',
+                ai_credits_total: 999999,
+                ai_credits_used: existingProfile?.ai_credits_used ?? 0,
+              }, {
+                onConflict: 'id',
+              });
+            
+            console.log('[TierContext] Upsert result:', upsertData, 'Error:', upsertError);
+          }
+          
+          console.log('[TierContext] Setting tier to PRO for superadmin');
+          setTierState(AppTier.PRO);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(TIER_STORAGE_KEY, AppTier.PRO);
+          }
+          return;
+        }
+        
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('tier')
@@ -210,6 +250,8 @@ export const TierProvider: React.FC<TierProviderProps> = ({
           const dbTier = profile.tier as string;
           let appTier: AppTier;
           
+          console.log('[TierContext] Loading tier from database:', dbTier, 'for user:', session.user.email);
+          
           switch (dbTier) {
             case 'PLUS':
               appTier = AppTier.PLUS;
@@ -228,14 +270,18 @@ export const TierProvider: React.FC<TierProviderProps> = ({
               appTier = AppTier.PRO; // Migrate PRO_PROFESSIONAL to PRO
               break;
             default:
+              console.warn(`[TierContext] Unknown tier in database: ${dbTier}, defaulting to FREE`);
               appTier = AppTier.FREE;
           }
 
+          console.log('[TierContext] Mapped tier:', dbTier, '->', appTier);
           setTierState(appTier);
           // Also save to localStorage for offline access
           if (typeof window !== 'undefined') {
             localStorage.setItem(TIER_STORAGE_KEY, appTier);
           }
+        } else {
+          console.log('[TierContext] No tier in profile, using default FREE');
         }
       } catch (error) {
         console.error('Error loading tier from database:', error);

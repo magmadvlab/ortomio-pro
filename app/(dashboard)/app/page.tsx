@@ -29,10 +29,60 @@ export default function DashboardPage() {
   const [restoreResult, setRestoreResult] = useState<AutoRestoreResult | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
 
-  // Verifica autenticazione
+  // Verifica autenticazione - DISABILITATO BYPASS ONLINE
   useEffect(() => {
     const checkAuth = async () => {
-      // Se bypass attivo, considera sempre autenticato
+      // Controlla se siamo online (non localhost)
+      const hostname = typeof window !== 'undefined' ? window.location.hostname : ''
+      const isOnline = hostname !== 'localhost' && 
+        hostname !== '127.0.0.1' &&
+        hostname !== '[::1]' &&
+        !hostname.includes('localhost') &&
+        hostname !== ''
+      
+      console.log('[Dashboard Auth] Hostname:', hostname, 'isOnline:', isOnline)
+
+      // Se siamo online, bypass disabilitato - richiedi sempre autenticazione
+      if (isOnline) {
+        console.log('[Dashboard Auth] Online mode - requiring authentication')
+        try {
+          const supabase = getSupabaseClient()
+          if (supabase) {
+            const { data: { session }, error } = await supabase.auth.getSession()
+            if (error) {
+              console.error('[Dashboard Auth] Error checking session:', error)
+              // Rimuovi sessione invalida
+              await supabase.auth.signOut()
+              setIsAuthenticated(false)
+              return
+            }
+            // Verifica che la sessione sia valida e non scaduta
+            const now = Math.floor(Date.now() / 1000)
+            const isValidSession = session?.user && 
+              session.expires_at && 
+              session.expires_at > now
+            
+            console.log('[Dashboard Auth] Session exists:', !!session, 'Valid:', isValidSession, 'Expires at:', session?.expires_at, 'Now:', now)
+            
+            if (!isValidSession && session) {
+              // Sessione scaduta, rimuovila
+              console.log('[Dashboard Auth] Invalid session, signing out')
+              await supabase.auth.signOut()
+            }
+            
+            setIsAuthenticated(isValidSession || false)
+          } else {
+            console.log('[Dashboard Auth] Supabase not configured')
+            setIsAuthenticated(false)
+          }
+        } catch (error) {
+          console.error('[Dashboard Auth] Error checking auth:', error)
+          setIsAuthenticated(false)
+        }
+        return
+      }
+
+      // In locale, controlla bypass solo se esplicitamente configurato
       if (isBypassActive()) {
         setIsAuthenticated(true)
         return
@@ -44,7 +94,7 @@ export default function DashboardPage() {
           const { data: { session } } = await supabase.auth.getSession()
           setIsAuthenticated(!!session?.user)
         } else {
-          setIsAuthenticated(false) // Supabase non configurato = offline mode
+          setIsAuthenticated(false)
         }
       } catch (error) {
         console.error('Error checking auth:', error)
@@ -54,8 +104,13 @@ export default function DashboardPage() {
     
     checkAuth()
     
-    // Ascolta cambiamenti autenticazione (solo se bypass non attivo)
-    if (!isBypassActive()) {
+    // Ascolta cambiamenti autenticazione
+    const isOnline = typeof window !== 'undefined' && 
+      window.location.hostname !== 'localhost' && 
+      window.location.hostname !== '127.0.0.1' &&
+      window.location.hostname !== '[::1]'
+
+    if (!isBypassActive() || isOnline) {
       const supabase = getSupabaseClient()
       if (supabase) {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -71,7 +126,16 @@ export default function DashboardPage() {
 
   // Reindirizza al login se non autenticato
   useEffect(() => {
-    if (isAuthenticated === false && !loading && !isBypassActive()) {
+    const isOnline = typeof window !== 'undefined' && 
+      window.location.hostname !== 'localhost' && 
+      window.location.hostname !== '127.0.0.1' &&
+      window.location.hostname !== '[::1]'
+
+    // Online: sempre richiedi autenticazione
+    // Locale: richiedi autenticazione a meno che bypass non sia esplicitamente attivo
+    const shouldRequireAuth = isOnline || !isBypassActive()
+    
+    if (isAuthenticated === false && !loading && shouldRequireAuth) {
       router.push('/login')
     }
   }, [isAuthenticated, loading, router])
@@ -211,7 +275,14 @@ export default function DashboardPage() {
   }
 
   // Se utente non autenticato, mostra messaggio di attesa durante reindirizzamento
-  if (isAuthenticated === false && !loading && !isBypassActive()) {
+  const isOnline = typeof window !== 'undefined' && 
+    window.location.hostname !== 'localhost' && 
+    window.location.hostname !== '127.0.0.1' &&
+    window.location.hostname !== '[::1]'
+  
+  const shouldRequireAuth = isOnline || !isBypassActive()
+  
+  if (isAuthenticated === false && !loading && shouldRequireAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 p-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
