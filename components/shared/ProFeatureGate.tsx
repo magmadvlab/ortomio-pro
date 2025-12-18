@@ -73,7 +73,7 @@ export function ProFeatureGate({
       )}
       
       <UpgradeCard
-        feature={title || feature}
+        feature={title || feature || 'Feature Pro'}
         description={description}
         benefits={benefits}
         requiredTier={requiredTier as any}

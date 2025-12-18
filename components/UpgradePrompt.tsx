@@ -46,16 +46,16 @@ const UpgradePrompt: React.FC<UpgradePromptProps> = ({
           </div>
           <p className="text-xs sm:text-sm text-gray-700 mb-2 break-words">
             {limit ? (
-              <>Hai raggiunto il limite per <strong>{feature}</strong>: {limit}</>
+              <>Hai raggiunto il limite per <strong>{feature || 'questa funzionalità'}</strong>: {limit || ''}</>
             ) : (
-              <>La funzionalità <strong>{feature}</strong> è disponibile solo in versione Pro</>
+              <>La funzionalità <strong>{feature || 'questa funzionalità'}</strong> è disponibile solo in versione Pro</>
             )}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
             {proFeatures.map((feat, idx) => (
               <div key={idx} className="flex items-center gap-2 text-xs text-gray-600">
                 <feat.icon size={14} className="text-purple-600" />
-                <span>{feat.text}</span>
+                <span>{feat.text || ''}</span>
               </div>
             ))}
           </div>

@@ -35,7 +35,7 @@ export function UpgradeCard({
           <div className="text-3xl">🔒</div>
           <div className="flex-1">
             <h3 className="text-xl font-bold text-gray-900 mb-2">
-              {feature} - {tierName} Feature
+              {feature || 'Feature'} - {tierName} Feature
             </h3>
             {description && (
               <p className="text-gray-700 mb-4">{description}</p>
@@ -43,7 +43,7 @@ export function UpgradeCard({
             {benefits && benefits.length > 0 && (
               <ul className="list-disc list-inside text-gray-600 mb-4 space-y-1">
                 {benefits.map((benefit, idx) => (
-                  <li key={idx}>{benefit}</li>
+                  <li key={idx}>{benefit || ''}</li>
                 ))}
               </ul>
             )}
@@ -99,7 +99,7 @@ export function UpgradeCard({
         <div className="text-2xl">🔒</div>
         <div className="flex-1">
           <h4 className="font-semibold text-gray-900 mb-1">
-            {feature} - {tierName} Feature
+            {feature || 'Feature'} - {tierName} Feature
           </h4>
           {description && (
             <p className="text-sm text-gray-700 mb-2">{description}</p>
