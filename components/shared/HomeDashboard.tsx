@@ -103,7 +103,14 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
   
   // States for new garden creation
   const [showGardenTypeWizard, setShowGardenTypeWizard] = useState(false)
-  const [gardenTasks, setGardenTasks] = useState<GardenTask[]>(tasks || [])
+  // Memoizza tasks per evitare re-render inutili
+  const tasksMemo = React.useMemo(() => tasks || [], [tasks])
+  const [gardenTasks, setGardenTasks] = useState<GardenTask[]>(tasksMemo)
+  
+  // Aggiorna gardenTasks solo se tasks cambia realmente
+  React.useEffect(() => {
+    setGardenTasks(tasksMemo)
+  }, [tasksMemo])
 
   useEffect(() => {
     const loadSeedlingBatches = async () => {
@@ -179,7 +186,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
       // Carica daily plan quando cambiano batch o tasks
       loadDailyPlan()
     }
-  }, [activeGarden, gardenTasks, seedlingBatches])
+  }, [activeGarden, gardenTasks, seedlingBatches, loadDailyPlan])
 
   const fetchWeather = async (lat: number, lng: number) => {
     setWeatherLoading(true)
@@ -202,18 +209,31 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
     }
   }
 
-  const loadDailyPlan = async () => {
+  const loadDailyPlan = React.useCallback(async () => {
     if (!activeGarden || !gardenTasks) return
     setLoadingPlan(true)
     try {
       const plan = await getDailyGardenPlan(activeGarden, gardenTasks, new Date(), undefined, undefined, seedlingBatches)
       setDailyPlan(plan)
     } catch (error) {
-      console.error('Error loading daily plan:', error)
+      // Gestisci silenziosamente l'errore (es. tabella irrigation_systems non esiste)
+      // Il director continua comunque a funzionare senza irrigation tasks
+      console.warn('Error loading daily plan (continuing without irrigation tasks):', error)
+      // Imposta un piano vuoto per evitare loop
+      setDailyPlan({
+        date: new Date().toISOString().split('T')[0],
+        urgentAlerts: [],
+        lifecycleTasks: [],
+        nutrientTasks: [],
+        healthTasks: [],
+        climateWarnings: [],
+        lunarAdvice: null,
+        irrigationTasks: []
+      })
     } finally {
       setLoadingPlan(false)
     }
-  }
+  }, [activeGarden, gardenTasks, seedlingBatches])
 
   const moonPhase = calculateMoonPhase(new Date())
   const moonName = moonPhase.isWaxing ? 'Primo Quarto' : moonPhase.isWaning ? 'Ultimo Quarto' : moonPhase.phase === 'Full' ? 'Luna Piena' : moonPhase.phase === 'New' ? 'Luna Nuova' : 'Primo Quarto'

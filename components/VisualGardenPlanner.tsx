@@ -116,24 +116,39 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
   }, [garden]);
   
   // Converti dimensioni orto da m² a cm (assumendo forma quadrata)
-  const gardenSizeCm = Math.sqrt(garden.sizeSqMeters * 10000); // m² * 10000 = cm², poi sqrt
+  // Aggiungi controllo per evitare dimensioni 0 o NaN
+  const gardenSizeSqMeters = React.useMemo(() => {
+    return garden.sizeSqMeters && garden.sizeSqMeters > 0 
+      ? garden.sizeSqMeters 
+      : 10; // Default a 10 m² se non specificato o invalido
+  }, [garden.sizeSqMeters]);
+  
+  const gardenSizeCm = React.useMemo(() => {
+    return Math.max(100, Math.sqrt(gardenSizeSqMeters * 10000)); // Minimo 100cm
+  }, [gardenSizeSqMeters]);
+  
   const viewBoxSize = gardenSizeCm;
   
   // Filtra solo task con posizione o task di semina/trapianto attivi
-  const activeTasks = tasks.filter(t => 
-    (t.taskType === 'Sowing' || t.taskType === 'Transplant') && !t.completed
-  );
+  const activeTasks = React.useMemo(() => {
+    return tasks.filter(t => 
+      (t.taskType === 'Sowing' || t.taskType === 'Transplant') && !t.completed
+    );
+  }, [tasks]);
   
-  // Crea mappa master data
-  const masterDataMap = new Map<string, PlantMasterSheet>();
-  activeTasks.forEach(task => {
-    const master = getMasterSheetSync(task.plantName);
-    if (master) {
-      masterDataMap.set(task.plantName, master);
-    }
-  });
+  // Crea mappa master data (memoizzato per evitare re-render)
+  const masterDataMap = React.useMemo(() => {
+    const map = new Map<string, PlantMasterSheet>();
+    activeTasks.forEach(task => {
+      const master = getMasterSheetSync(task.plantName);
+      if (master) {
+        map.set(task.plantName, master);
+      }
+    });
+    return map;
+  }, [activeTasks]);
 
-  const handleMouseDown = (e: React.MouseEvent, taskId: string) => {
+  const handleMouseDown = React.useCallback((e: React.MouseEvent, taskId: string) => {
     if (!svgRef.current) return;
     
     const svg = svgRef.current;
@@ -150,9 +165,9 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
         y: svgPoint.y - task.gridPosition.y
       });
     }
-  };
+  }, [activeTasks]);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = React.useCallback((e: React.MouseEvent) => {
     if (!draggingTaskId || !svgRef.current) return;
     
     const svg = svgRef.current;
@@ -194,12 +209,12 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
       };
       onUpdateTask(updatedTask);
     }
-  };
+  }, [draggingTaskId, dragOffset, gardenSizeCm, activeTasks, masterDataMap, garden, onUpdateTask]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = React.useCallback(() => {
     setDraggingTaskId(null);
     setPlacementAdvice(null);
-  };
+  }, []);
 
   const getTaskColor = (task: GardenTask): string => {
     const collisions = checkAllCollisions(task, activeTasks, masterDataMap);
@@ -236,9 +251,11 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
     return 'valid';
   };
 
-  const handleAddToGrid = (task: GardenTask) => {
+  const handleAddToGrid = React.useCallback((task: GardenTask) => {
     const master = masterDataMap.get(task.plantName);
-    if (!master) return;
+    if (!master) {
+      return;
+    }
     
     const suggestion = suggestInitialPosition(
       task,
@@ -256,7 +273,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
       };
       onUpdateTask(updatedTask);
     }
-  };
+  }, [masterDataMap, activeTasks, gardenSizeCm, onUpdateTask]);
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -352,15 +369,16 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
 
         {/* SVG Canvas */}
         <div className="flex-1 overflow-auto p-4 bg-gray-50">
-          <svg
-            ref={svgRef}
-            viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
-            className="w-full h-full border border-gray-300 bg-white rounded-lg"
-            style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-          >
+          {gardenSizeCm > 0 && !isNaN(gardenSizeCm) ? (
+            <svg
+              ref={svgRef}
+              viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
+              className="w-full h-full border border-gray-300 bg-white rounded-lg"
+              style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', minHeight: '400px' }}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+            >
             {/* Grid */}
             {showGrid && (
               <defs>
@@ -833,7 +851,53 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
               strokeDasharray="5,5"
             />
             
-            {/* Tasks */}
+            {/* Empty State - Nessun task attivo */}
+            {activeTasks.length === 0 && (
+              <g>
+                <rect
+                  x={gardenSizeCm * 0.1}
+                  y={gardenSizeCm * 0.3}
+                  width={gardenSizeCm * 0.8}
+                  height={gardenSizeCm * 0.4}
+                  fill="rgba(249, 250, 251, 0.8)"
+                  stroke="#e5e7eb"
+                  strokeWidth="2"
+                  strokeDasharray="10,5"
+                  rx="10"
+                />
+                <text
+                  x={gardenSizeCm / 2}
+                  y={gardenSizeCm / 2 - 20}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize="18"
+                  fill="#6b7280"
+                  fontWeight="600"
+                >
+                  Nessuna pianta da posizionare
+                </text>
+                <text
+                  x={gardenSizeCm / 2}
+                  y={gardenSizeCm / 2 + 10}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize="14"
+                  fill="#9ca3af"
+                >
+                  Il Visual Garden Planner mostra solo
+                </text>
+                <text
+                  x={gardenSizeCm / 2}
+                  y={gardenSizeCm / 2 + 30}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize="14"
+                  fill="#9ca3af"
+                >
+                  semine e trapianti non completati
+                </text>
+              </g>
+            )}
             {activeTasks.map(task => {
               if (!task.gridPosition) {
                 // Task senza posizione - mostra nella sidebar
@@ -841,7 +905,9 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
               }
               
               const master = masterDataMap.get(task.plantName);
-              if (!master) return null;
+              if (!master) {
+                return null;
+              }
               
               const footprint = calculateFootprint(master);
               const status = getTaskStatus(task);
@@ -916,29 +982,75 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
                 </g>
               );
             })}
-          </svg>
+            </svg>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center border border-gray-300 bg-white rounded-lg min-h-[400px]">
+              <div className="text-center p-8">
+                <AlertTriangle size={48} className="mx-auto mb-4 text-yellow-500" />
+                <p className="text-lg font-semibold text-gray-700 mb-2">
+                  Dimensioni orto non valide
+                </p>
+                <p className="text-sm text-gray-500 mb-4">
+                  L'orto deve avere una dimensione valida per visualizzare il planner
+                </p>
+                <p className="text-xs text-gray-400">
+                  Dimensione attuale: {garden.sizeSqMeters || 0} m²
+                </p>
+                <p className="text-xs text-gray-400 mt-2">
+                  Vai alle impostazioni dell'orto e imposta una dimensione valida (es. 10 m²)
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sidebar - Tasks senza posizione */}
         <div className="border-t border-gray-200 p-4 bg-gray-50 max-h-40 overflow-y-auto">
           <h3 className="font-bold text-sm text-gray-700 mb-2">Piante da posizionare:</h3>
-          <div className="flex flex-wrap gap-2">
-            {activeTasks
-              .filter(t => !t.gridPosition)
-              .map(task => (
-                <button
-                  key={task.id}
-                  onClick={() => handleAddToGrid(task)}
-                  className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 flex items-center gap-2"
-                >
-                  <Move size={14} />
-                  {task.plantName}
-                </button>
-              ))}
-            {activeTasks.filter(t => !t.gridPosition).length === 0 && (
-              <p className="text-sm text-gray-500">Tutte le piante sono posizionate!</p>
-            )}
-          </div>
+          {activeTasks.length === 0 ? (
+            <div className="text-center py-4 space-y-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm font-semibold text-blue-900 mb-1">
+                  ℹ️ Come funziona
+                </p>
+                <p className="text-xs text-blue-800 mb-2">
+                  Il Visual Garden Planner mostra solo <strong>semine</strong> e <strong>trapianti</strong> non completati.
+                </p>
+                <p className="text-xs text-blue-700">
+                  Vai al <strong>Planner</strong> per aggiungere una nuova semina o trapianto, poi torna qui per posizionarla visivamente.
+                </p>
+              </div>
+              <div className="text-left">
+                <p className="text-xs text-gray-500 mb-1">
+                  <strong>Task totali nel giardino:</strong> {tasks.length}
+                </p>
+                <p className="text-xs text-gray-500 mb-1">
+                  <strong>Task di semina/trapianto:</strong> {tasks.filter(t => (t.taskType === 'Sowing' || t.taskType === 'Transplant')).length}
+                </p>
+                <p className="text-xs text-gray-500">
+                  <strong>Task non completati:</strong> {tasks.filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant')).length}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {activeTasks
+                .filter(t => !t.gridPosition)
+                .map(task => (
+                  <button
+                    key={task.id}
+                    onClick={() => handleAddToGrid(task)}
+                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 flex items-center gap-2"
+                  >
+                    <Move size={14} />
+                    {task.plantName || 'Pianta senza nome'}
+                  </button>
+                ))}
+              {activeTasks.filter(t => !t.gridPosition).length === 0 && (
+                <p className="text-sm text-gray-500">Tutte le piante sono posizionate!</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Collision Warnings */}
