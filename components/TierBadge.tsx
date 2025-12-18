@@ -16,9 +16,12 @@ const TierBadge: React.FC<TierBadgeProps> = ({ variant = 'default', showIcon = f
     large: 'px-3 py-1.5 text-sm'
   };
 
+  // Fallback a 'default' se variant non valido
+  const safeVariant = variant && variants[variant] ? variant : 'default';
+
   if (isPro) {
     return (
-      <span className={`${variants[variant]} bg-purple-100 text-purple-700 rounded-full font-bold flex items-center gap-1`}>
+      <span className={`${variants[safeVariant]} bg-purple-100 text-purple-700 rounded-full font-bold flex items-center gap-1`}>
         {showIcon && <Sparkles size={12} />}
         PRO
       </span>
@@ -26,7 +29,7 @@ const TierBadge: React.FC<TierBadgeProps> = ({ variant = 'default', showIcon = f
   }
 
   return (
-    <span className={`${variants[variant]} bg-gray-100 text-gray-600 rounded-full font-bold`}>
+    <span className={`${variants[safeVariant]} bg-gray-100 text-gray-600 rounded-full font-bold`}>
       FREE
     </span>
   );

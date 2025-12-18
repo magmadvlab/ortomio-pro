@@ -46,7 +46,7 @@ export function ConsumerSidebar() {
         {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.path
-          const tierStr = tier as string
+          const tierStr = (tier || 'FREE') as string
           const isAvailable = item.tier === 'all' || 
                              (item.tier === 'PRO_CONSUMER' && (tierStr === 'PLUS' || tierStr === 'PRO_CONSUMER')) ||
                              (item.tier === 'PLUS' && (tierStr === 'PLUS' || tierStr === 'PRO')) ||
@@ -65,8 +65,8 @@ export function ConsumerSidebar() {
               }`}
             >
               <Icon size={20} />
-              <span>{item.label}</span>
-              {item.badge && (
+              <span>{item.label || ''}</span>
+              {item.badge && typeof item.badge === 'string' && (
                 <span className="ml-auto text-xs bg-green-600 text-white px-2 py-0.5 rounded">
                   {item.badge}
                 </span>

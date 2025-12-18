@@ -67,7 +67,7 @@ export function FreeSidebar() {
               }`}
             >
               <Icon size={20} />
-              <span>{item.label}</span>
+              <span>{item.label || ''}</span>
             </Link>
           )
         })}

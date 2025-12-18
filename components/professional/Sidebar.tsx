@@ -69,7 +69,7 @@ export function ProfessionalSidebar() {
         {allMenuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.path
-          const tierStr = tier as string
+          const tierStr = (tier || 'FREE') as string
           const isAvailable = item.tier === 'all' || 
                              (item.tier === 'PRO' && (tierStr === 'PRO' || tierStr === 'PRO_PROFESSIONAL' || isPro))
           
@@ -86,8 +86,8 @@ export function ProfessionalSidebar() {
               }`}
             >
               <Icon size={20} />
-              <span>{item.label}</span>
-              {item.badge && (
+              <span>{item.label || ''}</span>
+              {item.badge && typeof item.badge === 'string' && (
                 <span className="ml-auto text-xs bg-gray-600 text-white px-2 py-0.5 rounded">
                   {item.badge}
                 </span>

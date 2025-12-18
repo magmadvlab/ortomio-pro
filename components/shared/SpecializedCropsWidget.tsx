@@ -177,7 +177,7 @@ const SpecializedCropsWidget: React.FC<SpecializedCropsWidgetProps> = ({
                   <div className="text-left flex-1">
                     <div className="flex items-center gap-2">
                       <div className="font-semibold text-gray-800">{crop.label}</div>
-                      {crop.badge && (
+                      {crop.badge && typeof crop.badge === 'string' && (
                         <span className="px-2 py-0.5 text-xs font-bold bg-red-100 text-red-700 rounded-full border border-red-200">
                           {crop.badge}
                         </span>
