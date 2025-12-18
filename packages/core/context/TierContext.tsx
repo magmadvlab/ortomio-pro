@@ -123,11 +123,12 @@ export const TierProvider: React.FC<TierProviderProps> = ({
         // Handle 406 errors and other cases where profile doesn't exist
         // 406 can occur even with maybeSingle() due to RLS or PostgREST configuration
         if (error) {
-          // 406 (Not Acceptable) or PGRST116 (No rows) means profile doesn't exist
+          // PGRST116 (No rows) or error messages indicating not found mean profile doesn't exist
+          // Note: PostgrestError doesn't have a status property, we check code and message
           const isNotFoundError = error.code === 'PGRST116' || 
-                                  error.status === 406 || 
                                   error.message?.includes('No rows') ||
-                                  error.message?.includes('not found');
+                                  error.message?.includes('not found') ||
+                                  error.message?.includes('406');
           
           if (isNotFoundError) {
             // Profile doesn't exist - create it
