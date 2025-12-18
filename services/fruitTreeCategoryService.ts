@@ -110,8 +110,7 @@ export function getCategoryForMasterSheet(master: FruitTreeCrop): FruitTreeCateg
       name.includes('lychee') ||
       name.includes('passion') ||
       name.includes('guava') ||
-      name.includes('ananas') ||
-      treeType === 'Exotic') {
+      name.includes('ananas')) {
     return 'ESOTICHE';
   }
   
