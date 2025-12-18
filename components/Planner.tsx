@@ -70,11 +70,31 @@ const parseMonthsFromText = (text: string | undefined): number[] => {
 
 const PlantCalendar: React.FC<{ sowing: string, transplant: string, harvest: string }> = ({ sowing, transplant, harvest }) => {
   // Scroll orizzontale su mobile
-    const monthLabels = ['G', 'F', 'M', 'A', 'M', 'G', 'L', 'A', 'S', 'O', 'N', 'D'];
-    const activeSowing = parseMonthsFromText(sowing);
-    const activeTransplant = parseMonthsFromText(transplant);
-    const activeHarvest = parseMonthsFromText(harvest);
-    const currentMonth = new Date().getMonth();
+  const [mounted, setMounted] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(0);
+  
+  useEffect(() => {
+    setMounted(true);
+    setCurrentMonth(new Date().getMonth());
+  }, []);
+  
+  const monthLabels = ['G', 'F', 'M', 'A', 'M', 'G', 'L', 'A', 'S', 'O', 'N', 'D'];
+  const activeSowing = parseMonthsFromText(sowing);
+  const activeTransplant = parseMonthsFromText(transplant);
+  const activeHarvest = parseMonthsFromText(harvest);
+  
+  if (!mounted) {
+    return (
+      <div className="bg-white p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
+        <h4 className="font-bold text-gray-700 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
+          <Calendar size={16}/> Calendario Colturale
+        </h4>
+        <div className="h-32 flex items-center justify-center text-gray-400">
+          Caricamento...
+        </div>
+      </div>
+    );
+  }
 
     return (
         <div className="bg-white p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">

@@ -240,7 +240,8 @@ export const convertMasterSheetToSpecificInfo = (
   lng?: number
 ): SpecificPlantInfo => {
   // Calcola stagione e finestre di semina/trapianto basate su data e posizione
-  const today = new Date();
+  // Usa typeof window check per evitare problemi di idratazione SSR
+  const today = typeof window !== 'undefined' ? new Date() : new Date();
   const month = today.toLocaleDateString('it-IT', { month: 'long' });
   const season = today.getMonth() >= 2 && today.getMonth() <= 4 ? 'Primavera' : 
                  today.getMonth() >= 5 && today.getMonth() <= 7 ? 'Estate' :

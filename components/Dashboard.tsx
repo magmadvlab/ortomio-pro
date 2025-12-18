@@ -93,18 +93,30 @@ const Dashboard: React.FC<DashboardProps> = ({
   // Irrigation Log State
   const [showWateringLogForm, setShowWateringLogForm] = useState(false);
   const [selectedZoneForLog, setSelectedZoneForLog] = useState<IrrigationZone | null>(null);
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentSeason = getSeasonForDate(currentDate, activeGarden?.coordinates?.latitude || 0);
   
-  // Determina se mostrare analisi stagione (fine stagione o inizio nuova)
-  const shouldShowSeasonAnalysis = (() => {
-    if (!activeGarden) return false;
-    const month = currentDate.getMonth() + 1;
-    // Fine estate: settembre, inizio inverno: ottobre
-    // Fine inverno: marzo, inizio estate: aprile
-    return (month === 9 || month === 10 || month === 3 || month === 4);
-  })();
+  // Client-side only date to avoid hydration errors
+  const [mounted, setMounted] = useState(false);
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+  const [currentYear, setCurrentYear] = useState<number>(0);
+  const [currentSeason, setCurrentSeason] = useState<string>('');
+  const [shouldShowSeasonAnalysis, setShouldShowSeasonAnalysis] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+    const now = new Date();
+    setCurrentDate(now);
+    setCurrentYear(now.getFullYear());
+    const season = getSeasonForDate(now, activeGarden?.coordinates?.latitude || 0);
+    setCurrentSeason(season);
+    
+    // Determina se mostrare analisi stagione (fine stagione o inizio nuova)
+    if (activeGarden) {
+      const month = now.getMonth() + 1;
+      // Fine estate: settembre, inizio inverno: ottobre
+      // Fine inverno: marzo, inizio estate: aprile
+      setShouldShowSeasonAnalysis(month === 9 || month === 10 || month === 3 || month === 4);
+    }
+  }, [activeGarden]);
 
   // Initialize form when opening settings or creating new
   useEffect(() => {
@@ -132,21 +144,22 @@ const Dashboard: React.FC<DashboardProps> = ({
    * aiutando l'utente a concentrarsi sulle attività appropriate al periodo dell'anno.
    */
   useEffect(() => {
-      const month = new Date().getMonth() + 1;
-      setSeasonFilter((month >= 4 && month <= 9) ? 'Summer' : 'Winter');
-  }, []);
+      if (mounted && currentDate) {
+        const month = currentDate.getMonth() + 1;
+        setSeasonFilter((month >= 4 && month <= 9) ? 'Summer' : 'Winter');
+      }
+  }, [mounted, currentDate]);
 
   // Filtra i task in base alla stagione selezionata
   const pendingTasks = tasks.filter(t => !t.completed && (!t.season || t.season === seasonFilter)).length;
   
-  const today = new Date();
-  const upcomingReminders = tasks.filter(t => {
+  const upcomingReminders = mounted && currentDate ? tasks.filter(t => {
       if (!t.nextDueDate || t.completed) return false;
       const due = new Date(t.nextDueDate);
-      const diffTime = due.getTime() - today.getTime();
+      const diffTime = due.getTime() - currentDate.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
       return diffDays >= 0 && diffDays <= 7; 
-  });
+  }) : [];
 
   // Weather Fetching Logic
   useEffect(() => {
@@ -1440,8 +1453,8 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="mt-4">
               <SeasonAnalysisView
                 garden={activeGarden}
-                year={currentYear}
-                season={currentSeason === 'Summer' ? 'Summer' : 'Winter'}
+                year={mounted ? currentYear : new Date().getFullYear()}
+                season={mounted && currentSeason ? (currentSeason === 'Summer' ? 'Summer' : 'Winter') : 'Summer'}
                 onAdjustmentsAccepted={(adjustments) => {
                   console.log('Aggiustamenti accettati:', adjustments);
                   // TODO: Salvare aggiustamenti accettati

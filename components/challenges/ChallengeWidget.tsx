@@ -18,11 +18,28 @@ interface ChallengeWidgetProps {
 }
 
 const ChallengeWidget: React.FC<ChallengeWidgetProps> = ({ 
-  date = new Date(),
+  date,
   userId,
   onComplete
 }) => {
-  const challenge = getChallengeForDate(date);
+  const [mounted, setMounted] = useState(false);
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+  
+  useEffect(() => {
+    setMounted(true);
+    setCurrentDate(date || new Date());
+  }, [date]);
+  
+  if (!mounted || !currentDate) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6 text-center">
+        <div className="text-6xl mb-3">🌱</div>
+        <p className="text-gray-600">Caricamento...</p>
+      </div>
+    );
+  }
+  
+  const challenge = getChallengeForDate(currentDate);
   const [completedActions, setCompletedActions] = useState<number[]>([]);
   const [photo, setPhoto] = useState<File | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -31,7 +48,7 @@ const ChallengeWidget: React.FC<ChallengeWidgetProps> = ({
   
   // Verifica se challenge già completata (da localStorage o API)
   useEffect(() => {
-    if (challenge && userId) {
+    if (mounted && challenge && userId) {
       const challengeId = `${challenge.giorno}-${challenge.mese}`;
       const completed = localStorage.getItem(`challenge_${challengeId}_${userId}`);
       if (completed) {
@@ -40,7 +57,7 @@ const ChallengeWidget: React.FC<ChallengeWidgetProps> = ({
         setCompletedActions(data.actions_completed || []);
       }
     }
-  }, [challenge, userId]);
+  }, [mounted, challenge, userId]);
   
   if (!challenge) {
     // Nessuna challenge oggi
