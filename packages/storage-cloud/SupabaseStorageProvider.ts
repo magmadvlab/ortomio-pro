@@ -491,11 +491,13 @@ export class SupabaseStorageProvider implements IStorageProvider {
       hydroponicConfig: db.hydroponic_config,
       aquaponicConfig: db.aquaponic_config,
       aeroponicConfig: db.aeroponic_config,
-      structureConfig: db.structure_config || undefined,
+      // Note: structure_config, orchard_config, olive_grove_config, vineyard_config 
+      // non esistono nello schema del database online
+      structureConfig: undefined, // db.structure_config non esiste nel DB
       vacationMode: db.vacation_mode,
-      orchardConfig: db.orchard_config || undefined,
-      oliveGroveConfig: db.olive_grove_config || undefined,
-      vineyardConfig: db.vineyard_config || undefined,
+      orchardConfig: undefined, // db.orchard_config non esiste nel DB
+      oliveGroveConfig: undefined, // db.olive_grove_config non esiste nel DB
+      vineyardConfig: undefined, // db.vineyard_config non esiste nel DB
       createdAt: db.created_at,
     };
   }
@@ -522,11 +524,13 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (garden.hydroponicConfig !== undefined) db.hydroponic_config = garden.hydroponicConfig;
     if (garden.aquaponicConfig !== undefined) db.aquaponic_config = garden.aquaponicConfig;
     if (garden.aeroponicConfig !== undefined) db.aeroponic_config = garden.aeroponicConfig;
-    if (garden.structureConfig !== undefined) db.structure_config = garden.structureConfig;
+    // Note: structure_config, orchard_config, olive_grove_config, vineyard_config 
+    // non esistono nello schema del database online, quindi non vengono inseriti
+    // if (garden.structureConfig !== undefined) db.structure_config = garden.structureConfig;
     if (garden.vacationMode !== undefined) db.vacation_mode = garden.vacationMode;
-    if (garden.orchardConfig !== undefined) db.orchard_config = garden.orchardConfig;
-    if (garden.oliveGroveConfig !== undefined) db.olive_grove_config = garden.oliveGroveConfig;
-    if (garden.vineyardConfig !== undefined) db.vineyard_config = garden.vineyardConfig;
+    // if (garden.orchardConfig !== undefined) db.orchard_config = garden.orchardConfig;
+    // if (garden.oliveGroveConfig !== undefined) db.olive_grove_config = garden.oliveGroveConfig;
+    // if (garden.vineyardConfig !== undefined) db.vineyard_config = garden.vineyardConfig;
     return db;
   }
 
