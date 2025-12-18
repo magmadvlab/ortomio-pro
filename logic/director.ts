@@ -292,7 +292,8 @@ export const getDailyGardenPlan = async (
   currentDate: Date = new Date(),
   annualPlan?: AnnualPlan,
   userProfile?: UserProfile,
-  seedlingBatches?: SeedlingBatch[]
+  seedlingBatches?: SeedlingBatch[],
+  storageProvider?: any // IStorageProvider - opzionale per retrocompatibilità
 ): Promise<DailyPlan> => {
   // PRIORITÀ 1: CLIMA (incontrollabile, blocca operazioni)
   const { alerts: urgentAlerts, warnings: climateWarnings } = await checkWeatherUrgency(
@@ -1046,8 +1047,8 @@ export const getDailyGardenPlan = async (
 
   const timelineSuggestedTasks: GardenTask[] = [];
   for (const sowing of completedSowings) {
-    // Verifica se è una coltura personalizzata
-    const customCrop = await isCustomCrop(sowing.plantName);
+    // Verifica se è una coltura personalizzata (solo se storageProvider è disponibile)
+    const customCrop = storageProvider ? await isCustomCrop(storageProvider, sowing.plantName) : null;
     let sowingMasterData = getMasterSheetSync(sowing.plantName);
     
     // Se è una coltura personalizzata, usa suggerimenti appresi invece del master sheet

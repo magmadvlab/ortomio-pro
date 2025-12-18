@@ -181,6 +181,32 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
     }
   }, [activeGarden, gardenType])
 
+  const loadDailyPlan = React.useCallback(async () => {
+    if (!activeGarden || !gardenTasks) return
+    setLoadingPlan(true)
+    try {
+      const plan = await getDailyGardenPlan(activeGarden, gardenTasks, new Date(), undefined, undefined, seedlingBatches, storageProvider)
+      setDailyPlan(plan)
+    } catch (error) {
+      // Gestisci silenziosamente l'errore (es. tabella irrigation_systems non esiste)
+      // Il director continua comunque a funzionare senza irrigation tasks
+      console.warn('Error loading daily plan (continuing without irrigation tasks):', error)
+      // Imposta un piano vuoto per evitare loop
+      setDailyPlan({
+        date: new Date().toISOString().split('T')[0],
+        urgentAlerts: [],
+        lifecycleTasks: [],
+        nutrientTasks: [],
+        healthTasks: [],
+        climateWarnings: [],
+        lunarAdvice: null,
+        irrigationTasks: []
+      })
+    } finally {
+      setLoadingPlan(false)
+    }
+  }, [activeGarden, gardenTasks, seedlingBatches, storageProvider])
+
   useEffect(() => {
     if (activeGarden && gardenTasks) {
       // Carica daily plan quando cambiano batch o tasks
@@ -208,32 +234,6 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
       setWeatherLoading(false)
     }
   }
-
-  const loadDailyPlan = React.useCallback(async () => {
-    if (!activeGarden || !gardenTasks) return
-    setLoadingPlan(true)
-    try {
-      const plan = await getDailyGardenPlan(activeGarden, gardenTasks, new Date(), undefined, undefined, seedlingBatches)
-      setDailyPlan(plan)
-    } catch (error) {
-      // Gestisci silenziosamente l'errore (es. tabella irrigation_systems non esiste)
-      // Il director continua comunque a funzionare senza irrigation tasks
-      console.warn('Error loading daily plan (continuing without irrigation tasks):', error)
-      // Imposta un piano vuoto per evitare loop
-      setDailyPlan({
-        date: new Date().toISOString().split('T')[0],
-        urgentAlerts: [],
-        lifecycleTasks: [],
-        nutrientTasks: [],
-        healthTasks: [],
-        climateWarnings: [],
-        lunarAdvice: null,
-        irrigationTasks: []
-      })
-    } finally {
-      setLoadingPlan(false)
-    }
-  }, [activeGarden, gardenTasks, seedlingBatches])
 
   const moonPhase = calculateMoonPhase(new Date())
   const moonName = moonPhase.isWaxing ? 'Primo Quarto' : moonPhase.isWaning ? 'Ultimo Quarto' : moonPhase.phase === 'Full' ? 'Luna Piena' : moonPhase.phase === 'New' ? 'Luna Nuova' : 'Primo Quarto'

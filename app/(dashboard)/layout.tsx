@@ -17,10 +17,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const { tier, isPro, isPlus } = useTier()
   
   const getSidebar = () => {
-    if (tier === 'PRO') {
+    const safeTier = tier || 'FREE'
+    if (safeTier === 'PRO') {
       return <ProfessionalSidebar />
     }
-    if (isPlus || tier === 'PLUS') {
+    if (isPlus || safeTier === 'PLUS') {
       return <ConsumerSidebar />
     }
     return <FreeSidebar />

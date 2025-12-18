@@ -5,15 +5,17 @@
 
 import { GardenTask } from '../types';
 import { CustomCrop, CropLearningEvent } from '../types/customCrop';
-import { useStorage } from '../packages/core/hooks/useStorage';
+import { IStorageProvider } from '../packages/core/storage/interface';
 import { getMasterSheet } from './plantMasterService';
 import { processEvent } from './learningEngine';
 
 /**
  * Verifica se una pianta è una coltura personalizzata
  */
-export const isCustomCrop = async (plantName: string): Promise<CustomCrop | null> => {
-  const { storageProvider } = useStorage();
+export const isCustomCrop = async (
+  storageProvider: IStorageProvider,
+  plantName: string
+): Promise<CustomCrop | null> => {
   const crops = await storageProvider.getCustomCrops();
   return crops.find(c => c.common_name.toLowerCase() === plantName.toLowerCase()) || null;
 };
@@ -23,6 +25,7 @@ export const isCustomCrop = async (plantName: string): Promise<CustomCrop | null
  * Registra automaticamente eventi di apprendimento per colture personalizzate
  */
 export const handleTaskCompletion = async (
+  storageProvider: IStorageProvider,
   task: GardenTask,
   outcome?: {
     success: boolean;
@@ -33,14 +36,12 @@ export const handleTaskCompletion = async (
 ): Promise<void> => {
   try {
     // Verifica se la pianta è una coltura personalizzata
-    const customCrop = await isCustomCrop(task.plantName);
+    const customCrop = await isCustomCrop(storageProvider, task.plantName);
     
     if (!customCrop) {
       // Non è una coltura personalizzata, non fare nulla
       return;
     }
-
-    const { storageProvider } = useStorage();
     
     // Determina il tipo di evento in base al taskType
     let eventType: CropLearningEvent['event_type'] | null = null;
@@ -136,7 +137,7 @@ export const handleTaskCompletion = async (
     await storageProvider.recordLearningEvent(learningEvent);
     
     // Processa l'evento per aggiornare i pattern
-    await processEvent(customCrop.id, {
+    await processEvent(storageProvider, customCrop.id, {
       ...learningEvent,
       id: '', // Verrà generato
       created_at: new Date().toISOString()
@@ -152,18 +153,17 @@ export const handleTaskCompletion = async (
  * Registra un problema per una coltura personalizzata
  */
 export const recordProblem = async (
+  storageProvider: IStorageProvider,
   plantName: string,
   problem: string,
   gardenId: string
 ): Promise<void> => {
   try {
-    const customCrop = await isCustomCrop(plantName);
+    const customCrop = await isCustomCrop(storageProvider, plantName);
     
     if (!customCrop) {
       return;
     }
-
-    const { storageProvider } = useStorage();
     
     const learningEvent: Omit<CropLearningEvent, 'id' | 'created_at'> = {
       custom_crop_id: customCrop.id,
@@ -178,7 +178,7 @@ export const recordProblem = async (
     };
 
     await storageProvider.recordLearningEvent(learningEvent);
-    await processEvent(customCrop.id, {
+    await processEvent(storageProvider, customCrop.id, {
       ...learningEvent,
       id: '',
       created_at: new Date().toISOString()

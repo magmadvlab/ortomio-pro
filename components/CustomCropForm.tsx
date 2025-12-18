@@ -16,6 +16,7 @@ const CustomCropForm: React.FC<CustomCropFormProps> = ({
   onSuccess,
   onCancel
 }) => {
+  const { storageProvider } = useStorage();
   const [formData, setFormData] = useState({
     commonName: '',
     scientificName: '',
@@ -38,6 +39,7 @@ const CustomCropForm: React.FC<CustomCropFormProps> = ({
     
     try {
       await createCustomCrop(
+        storageProvider,
         formData.commonName.trim(),
         formData.scientificName.trim() || undefined,
         formData.family.trim() || undefined,

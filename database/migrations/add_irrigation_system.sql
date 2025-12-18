@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS irrigation_systems (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_irrigation_systems_garden ON irrigation_systems(garden_id);
+CREATE INDEX IF NOT EXISTS idx_irrigation_systems_garden ON irrigation_systems(garden_id);
 
 -- ============================================
 -- IRRIGATION ZONES
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS irrigation_zones (
   name TEXT NOT NULL,
   method TEXT NOT NULL CHECK (method IN ('Manual', 'Hose', 'Dripline', 'Drippers', 'MicroSprinkler', 'Sprinkler', 'Mixed')),
   flow_rate_lph DECIMAL(10, 2) NOT NULL,
-  valve_id UUID REFERENCES smart_devices(id),
+  valve_id UUID, -- Riferimento opzionale a smart_devices se presente
   bed_ids UUID[] DEFAULT '{}',
   plant_task_ids UUID[] DEFAULT '{}',
   notes TEXT,
@@ -35,8 +35,8 @@ CREATE TABLE IF NOT EXISTS irrigation_zones (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_irrigation_zones_system ON irrigation_zones(system_id);
-CREATE INDEX idx_irrigation_zones_valve ON irrigation_zones(valve_id) WHERE valve_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_irrigation_zones_system ON irrigation_zones(system_id);
+CREATE INDEX IF NOT EXISTS idx_irrigation_zones_valve ON irrigation_zones(valve_id) WHERE valve_id IS NOT NULL;
 
 -- ============================================
 -- IRRIGATION COMPONENTS (Livello Pro)
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS irrigation_components (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_irrigation_components_zone ON irrigation_components(zone_id);
+CREATE INDEX IF NOT EXISTS idx_irrigation_components_zone ON irrigation_components(zone_id);
 
 -- ============================================
 -- WATERING LOGS
@@ -70,31 +70,86 @@ CREATE TABLE IF NOT EXISTS watering_logs (
   liters_applied DECIMAL(10, 2) NOT NULL,
   method TEXT NOT NULL CHECK (method IN ('Manual', 'Automatic', 'Timer')),
   notes TEXT,
-  valve_id UUID REFERENCES smart_devices(id),
+  valve_id UUID, -- Riferimento opzionale a smart_devices se presente
   completed BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_watering_logs_zone ON watering_logs(zone_id);
-CREATE INDEX idx_watering_logs_zone_date ON watering_logs(zone_id, date);
-CREATE INDEX idx_watering_logs_date ON watering_logs(date);
+CREATE INDEX IF NOT EXISTS idx_watering_logs_zone ON watering_logs(zone_id);
+CREATE INDEX IF NOT EXISTS idx_watering_logs_zone_date ON watering_logs(zone_id, date);
+CREATE INDEX IF NOT EXISTS idx_watering_logs_date ON watering_logs(date);
 
 -- ============================================
 -- TRIGGERS per updated_at
 -- ============================================
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ language 'plpgsql';
+-- La funzione update_updated_at_column() dovrebbe già esistere da database/schema.sql
+-- Se non esiste, verrà creata automaticamente quando necessario
+-- Qui creiamo solo i trigger
 
+DROP TRIGGER IF EXISTS update_irrigation_systems_updated_at ON irrigation_systems;
 CREATE TRIGGER update_irrigation_systems_updated_at 
   BEFORE UPDATE ON irrigation_systems 
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_irrigation_zones_updated_at ON irrigation_zones;
 CREATE TRIGGER update_irrigation_zones_updated_at 
   BEFORE UPDATE ON irrigation_zones 
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- ROW LEVEL SECURITY (RLS)
+-- ============================================
+ALTER TABLE irrigation_systems ENABLE ROW LEVEL SECURITY;
+ALTER TABLE irrigation_zones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE irrigation_components ENABLE ROW LEVEL SECURITY;
+ALTER TABLE watering_logs ENABLE ROW LEVEL SECURITY;
+
+-- Irrigation Systems: Users can only access systems in their gardens
+CREATE POLICY "Users can only access irrigation systems in their gardens"
+  ON irrigation_systems FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM gardens
+      WHERE gardens.id = irrigation_systems.garden_id
+      AND gardens.user_id = auth.uid()
+    )
+  );
+
+-- Irrigation Zones: Users can only access zones in their systems
+CREATE POLICY "Users can only access irrigation zones in their systems"
+  ON irrigation_zones FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM irrigation_systems
+      JOIN gardens ON gardens.id = irrigation_systems.garden_id
+      WHERE irrigation_systems.id = irrigation_zones.system_id
+      AND gardens.user_id = auth.uid()
+    )
+  );
+
+-- Irrigation Components: Users can only access components in their zones
+CREATE POLICY "Users can only access irrigation components in their zones"
+  ON irrigation_components FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM irrigation_zones
+      JOIN irrigation_systems ON irrigation_systems.id = irrigation_zones.system_id
+      JOIN gardens ON gardens.id = irrigation_systems.garden_id
+      WHERE irrigation_zones.id = irrigation_components.zone_id
+      AND gardens.user_id = auth.uid()
+    )
+  );
+
+-- Watering Logs: Users can only access logs in their zones
+CREATE POLICY "Users can only access watering logs in their zones"
+  ON watering_logs FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM irrigation_zones
+      JOIN irrigation_systems ON irrigation_systems.id = irrigation_zones.system_id
+      JOIN gardens ON gardens.id = irrigation_systems.garden_id
+      WHERE irrigation_zones.id = watering_logs.zone_id
+      AND gardens.user_id = auth.uid()
+    )
+  );
 

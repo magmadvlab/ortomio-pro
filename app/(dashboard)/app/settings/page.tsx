@@ -96,7 +96,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
                       <Crown className="text-yellow-500" size={24} />
                       <div>
-                        <p className="font-semibold text-gray-900">{tier}</p>
+                        <p className="font-semibold text-gray-900">{tier || 'FREE'}</p>
                         {isFree && (
                           <Link
                             href="/pricing"

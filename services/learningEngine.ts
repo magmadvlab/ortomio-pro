@@ -5,15 +5,17 @@
 
 import { CustomCrop, CropLearningEvent, LearnedPatterns } from '../types/customCrop';
 import { updateLearnedPatterns, getSuggestions } from './customCropService';
+import { IStorageProvider } from '../packages/core/storage/interface';
 
 /**
  * Processa un evento e aggiorna i pattern appresi
  */
 export const processEvent = async (
+  storageProvider: IStorageProvider,
   cropId: string,
   event: CropLearningEvent
 ): Promise<CustomCrop> => {
-  return await updateLearnedPatterns(cropId, event);
+  return await updateLearnedPatterns(storageProvider, cropId, event);
 };
 
 /**

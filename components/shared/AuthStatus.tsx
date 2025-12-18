@@ -93,7 +93,7 @@ export default function AuthStatus() {
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
               <div className="p-3 border-b border-gray-200">
                 <p className="text-xs text-gray-500">Account</p>
-                <p className="text-sm font-medium text-gray-900 truncate">{user.email}</p>
+                <p className="text-sm font-medium text-gray-900 truncate">{user.email || 'Utente'}</p>
               </div>
               <button
                 onClick={handleLogout}

@@ -4,19 +4,19 @@
  */
 
 import { CustomCrop, CropLearningEvent, LearnedPatterns, CropStats } from '../types/customCrop';
-import { useStorage } from '../packages/core/hooks/useStorage';
+import { IStorageProvider } from '../packages/core/storage/interface';
 
 /**
  * Crea una nuova coltura personalizzata
  */
 export const createCustomCrop = async (
+  storageProvider: IStorageProvider,
   commonName: string,
   scientificName?: string,
   family?: string,
   gardenId?: string,
   initialData?: CustomCrop['initial_data']
 ): Promise<CustomCrop> => {
-  const { storageProvider } = useStorage();
   
   const newCrop: Omit<CustomCrop, 'id' | 'user_id' | 'created_at' | 'updated_at'> = {
     garden_id: gardenId,
@@ -45,10 +45,10 @@ export const createCustomCrop = async (
  * Aggiorna i pattern appresi dopo un evento
  */
 export const updateLearnedPatterns = async (
+  storageProvider: IStorageProvider,
   cropId: string,
   event: CropLearningEvent
 ): Promise<CustomCrop> => {
-  const { storageProvider } = useStorage();
   const crop = await storageProvider.getCustomCrop(cropId);
   
   if (!crop) {
@@ -220,8 +220,10 @@ export const getSuggestions = (crop: CustomCrop): {
 /**
  * Analizza la storia degli eventi e calcola pattern
  */
-export const analyzeHistory = async (cropId: string): Promise<LearnedPatterns> => {
-  const { storageProvider } = useStorage();
+export const analyzeHistory = async (
+  storageProvider: IStorageProvider,
+  cropId: string
+): Promise<LearnedPatterns> => {
   const events = await storageProvider.getLearningEvents(cropId);
   const crop = await storageProvider.getCustomCrop(cropId);
   
@@ -231,7 +233,7 @@ export const analyzeHistory = async (cropId: string): Promise<LearnedPatterns> =
   
   // Processa ogni evento per aggiornare pattern
   for (const event of events) {
-    await updateLearnedPatterns(cropId, event);
+    await updateLearnedPatterns(storageProvider, cropId, event);
   }
   
   const updatedCrop = await storageProvider.getCustomCrop(cropId);
