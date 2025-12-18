@@ -69,6 +69,13 @@ export default function DashboardPage() {
     }
   }, [])
 
+  // Reindirizza al login se non autenticato
+  useEffect(() => {
+    if (isAuthenticated === false && !loading && !isBypassActive()) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, loading, router])
+
   useEffect(() => {
     // Aspetta che il provider sia inizializzato prima di usarlo
     if (!isInitialized) {
@@ -203,40 +210,15 @@ export default function DashboardPage() {
     )
   }
 
-  // Se utente non autenticato e nessun giardino, mostra opzione login
-  if (isAuthenticated === false && gardens.length === 0 && !loading) {
+  // Se utente non autenticato, mostra messaggio di attesa durante reindirizzamento
+  if (isAuthenticated === false && !loading && !isBypassActive()) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 p-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Benvenuto in OrtoMio</h1>
           <p className="text-gray-600 mb-6">
-            Per iniziare, puoi registrarti per sincronizzare i tuoi dati su più dispositivi, 
-            oppure continuare senza account usando solo il browser.
+            Reindirizzamento al login...
           </p>
-          
-          <div className="space-y-3 mb-6">
-            <Link
-              href="/register"
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-            >
-              <UserPlus size={20} />
-              Registrati
-            </Link>
-            <Link
-              href="/login"
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              <LogIn size={20} />
-              Accedi
-            </Link>
-          </div>
-          
-          <button
-            onClick={() => setShowOnboarding(true)}
-            className="w-full px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm"
-          >
-            Continua senza account →
-          </button>
         </div>
       </div>
     )

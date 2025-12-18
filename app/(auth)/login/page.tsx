@@ -93,12 +93,11 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Messaggio login opzionale */}
+        {/* Messaggio login richiesto */}
         {!bypassActive && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
-              <strong>Login opzionale:</strong> L'app funziona anche offline senza account. 
-              Il login ti permette di sincronizzare i tuoi dati su più dispositivi.
+              <strong>Login richiesto:</strong> Per utilizzare OrtoMio, effettua il login o registrati per creare un nuovo account.
             </p>
           </div>
         )}
@@ -174,15 +173,6 @@ export default function LoginPage() {
               Registrati
             </Link>
           </p>
-        </div>
-
-        <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-          <Link
-            href="/app"
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            Continua senza login →
-          </Link>
         </div>
       </div>
     </div>

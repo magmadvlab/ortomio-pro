@@ -90,11 +90,10 @@ export default function RegisterPage() {
           <p className="text-gray-600">Registrati per sincronizzare i tuoi dati</p>
         </div>
 
-        {/* Messaggio registrazione opzionale */}
+        {/* Messaggio registrazione richiesta */}
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800">
-            <strong>Registrazione opzionale:</strong> Puoi usare OrtoMio anche senza account. 
-            La registrazione ti permette di sincronizzare i tuoi dati su più dispositivi.
+            <strong>Registrazione richiesta:</strong> Crea un account per utilizzare OrtoMio e sincronizzare i tuoi dati su più dispositivi.
           </p>
         </div>
 
@@ -190,15 +189,6 @@ export default function RegisterPage() {
               Accedi
             </Link>
           </p>
-        </div>
-
-        <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-          <Link
-            href="/app"
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            Continua senza registrazione →
-          </Link>
         </div>
       </div>
     </div>
