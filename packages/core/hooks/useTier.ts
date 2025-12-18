@@ -35,11 +35,8 @@ export const useTier = (): UseTierReturn => {
 
   const can = (feature: keyof TierConfig['features']): boolean => {
     // LOCALE: Bypassa controlli in sviluppo locale
-    const isLocalDev = typeof window !== 'undefined' && (
-      window.location.hostname === 'localhost' || 
-      window.location.hostname === '127.0.0.1' ||
-      process.env.NODE_ENV === 'development'
-    );
+    // Usa solo process.env.NODE_ENV per evitare hydration mismatch
+    const isLocalDev = process.env.NODE_ENV === 'development';
     if (isLocalDev) {
       return true; // Permetti sempre accesso in locale
     }
@@ -55,11 +52,8 @@ export const useTier = (): UseTierReturn => {
     currentValue: number
   ): { allowed: boolean; remaining: number } => {
     // LOCALE: Bypassa limiti in sviluppo locale
-    const isLocalDev = typeof window !== 'undefined' && (
-      window.location.hostname === 'localhost' || 
-      window.location.hostname === '127.0.0.1' ||
-      process.env.NODE_ENV === 'development'
-    );
+    // Usa solo process.env.NODE_ENV per evitare hydration mismatch
+    const isLocalDev = process.env.NODE_ENV === 'development';
     if (isLocalDev) {
       return { allowed: true, remaining: -1 }; // Illimitato in locale
     }
@@ -80,11 +74,8 @@ export const useTier = (): UseTierReturn => {
 
   const hasFeature = (feature: string): boolean => {
     // LOCALE: Bypassa controlli in sviluppo locale
-    const isLocalDev = typeof window !== 'undefined' && (
-      window.location.hostname === 'localhost' || 
-      window.location.hostname === '127.0.0.1' ||
-      process.env.NODE_ENV === 'development'
-    );
+    // Usa solo process.env.NODE_ENV per evitare hydration mismatch
+    const isLocalDev = process.env.NODE_ENV === 'development';
     if (isLocalDev) {
       return true; // Permetti sempre accesso in locale
     }

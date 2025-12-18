@@ -27,11 +27,8 @@ export function ProFeatureGate({
   const { tier, isPro, isPlus } = useTier()
   
   // LOCALE: Bypassa tutti i controlli in sviluppo locale
-  const isLocalDev = typeof window !== 'undefined' && (
-    window.location.hostname === 'localhost' || 
-    window.location.hostname === '127.0.0.1' ||
-    process.env.NODE_ENV === 'development'
-  )
+  // Usa solo process.env.NODE_ENV per evitare hydration mismatch
+  const isLocalDev = process.env.NODE_ENV === 'development'
   
   // Check if user has required tier
   const hasAccess = () => {

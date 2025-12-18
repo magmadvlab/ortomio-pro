@@ -35,10 +35,8 @@ export function FreeSidebar() {
   const { tier, isPro } = useTier()
   
   // Add admin menu item if user is PRO or in development
-  const isDev = typeof window !== 'undefined' && (
-    window.location.hostname === 'localhost' || 
-    window.location.hostname === '127.0.0.1'
-  )
+  // Usa solo process.env.NODE_ENV per evitare hydration mismatch
+  const isDev = process.env.NODE_ENV === 'development'
   
   const allMenuItems = (isDev || isPro || tier === 'PRO')
     ? [...menuItems, { icon: Crown, label: 'Admin', path: '/app/admin' }]
