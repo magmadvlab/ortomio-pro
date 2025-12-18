@@ -143,18 +143,20 @@ export async function calculateZoneIrrigationSchedule(
   if (weather && zone.valveId) {
     const mockTask: GardenTask = {
       id: zone.id,
-      taskType: 'Watering',
+      taskType: 'Treatment', // Using 'Treatment' as generic type for irrigation mock task
       date: new Date().toISOString(),
       plantName: zone.name,
       durationMinutes,
       gardenId: garden.id,
       completed: false,
-      createdAt: new Date().toISOString(),
     };
     const adjustment = adjustIrrigationForRain(mockTask, [weather], garden);
     
+    // Map 'SKIP' to 'CANCEL' for IrrigationSchedule type compatibility
+    const mappedAction = adjustment.action === 'SKIP' ? 'CANCEL' : adjustment.action;
+    
     weatherAdjustment = {
-      action: adjustment.action,
+      action: mappedAction as 'PROCEED' | 'REDUCE' | 'CANCEL',
       adjustedDuration: adjustment.adjustedDuration,
       reason: adjustment.message
     };

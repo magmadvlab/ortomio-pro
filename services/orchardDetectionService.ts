@@ -43,13 +43,14 @@ export async function detectExistingOrchard(
   gardenId: string,
   tasks: GardenTask[]
 ): Promise<OrchardDetectionResult> {
-  // Filtra solo task di alberi da frutto
-  const fruitTreeTasks = tasks.filter(t => {
-    if (!t.fruitTreeData) return false;
-    
-    const master = getMasterSheet(t.plantName);
-    return master?.cropType === 'FruitTree';
+  // Filtra solo task di alberi da frutto (con verifica async)
+  const fruitTreeTasksPromises = tasks.map(async (t) => {
+    if (!t.fruitTreeData) return null;
+    const master = await getMasterSheet(t.plantName);
+    return master?.cropType === 'FruitTree' ? t : null;
   });
+  const fruitTreeTasksResults = await Promise.all(fruitTreeTasksPromises);
+  const fruitTreeTasks = fruitTreeTasksResults.filter((t): t is GardenTask => t !== null);
   
   if (fruitTreeTasks.length === 0) {
     return { exists: false };
@@ -60,9 +61,9 @@ export async function detectExistingOrchard(
   const varieties: string[] = [];
   
   for (const task of fruitTreeTasks) {
-    const master = getMasterSheet(task.plantName) as FruitTreeCrop | undefined;
-    if (master) {
-      const category = getCategoryForMasterSheet(master);
+    const master = await getMasterSheet(task.plantName);
+    if (master && 'cropType' in master && master.cropType === 'FruitTree') {
+      const category = getCategoryForMasterSheet(master as FruitTreeCrop);
       if (category) {
         categories.push(category);
       }
@@ -99,13 +100,14 @@ export async function detectExistingOliveGrove(
   gardenId: string,
   tasks: GardenTask[]
 ): Promise<OliveGroveDetectionResult> {
-  // Filtra solo task di olivi
-  const oliveTasks = tasks.filter(t => {
-    if (!t.oliveData) return false;
-    
-    const master = getMasterSheet(t.plantName);
-    return master?.cropType === 'Olive';
+  // Filtra solo task di olivi (con verifica async)
+  const oliveTasksPromises = tasks.map(async (t) => {
+    if (!t.oliveData) return null;
+    const master = await getMasterSheet(t.plantName);
+    return master?.cropType === 'Olive' ? t : null;
   });
+  const oliveTasksResults = await Promise.all(oliveTasksPromises);
+  const oliveTasks = oliveTasksResults.filter((t): t is GardenTask => t !== null);
   
   if (oliveTasks.length === 0) {
     return { exists: false };
@@ -117,7 +119,15 @@ export async function detectExistingOliveGrove(
   
   for (const task of oliveTasks) {
     if (task.oliveData?.varietyType) {
-      types.push(task.oliveData.varietyType);
+      // Mappa i valori dal task ai tipi corretti
+      const varietyType = task.oliveData.varietyType;
+      if (varietyType === 'Oil') {
+        types.push('OIL');
+      } else if (varietyType === 'Table') {
+        types.push('TABLE');
+      } else if (varietyType === 'Dual-purpose') {
+        types.push('DUAL_PURPOSE');
+      }
     }
     if (task.variety) {
       varieties.push(task.variety);
@@ -151,13 +161,14 @@ export async function detectExistingVineyard(
   gardenId: string,
   tasks: GardenTask[]
 ): Promise<VineyardDetectionResult> {
-  // Filtra solo task di viti
-  const vineTasks = tasks.filter(t => {
-    if (!t.vineData) return false;
-    
-    const master = getMasterSheet(t.plantName);
-    return master?.cropType === 'Vine';
+  // Filtra solo task di viti (con verifica async)
+  const vineTasksPromises = tasks.map(async (t) => {
+    if (!t.vineData) return null;
+    const master = await getMasterSheet(t.plantName);
+    return master?.cropType === 'Vine' ? t : null;
   });
+  const vineTasksResults = await Promise.all(vineTasksPromises);
+  const vineTasks = vineTasksResults.filter((t): t is GardenTask => t !== null);
   
   if (vineTasks.length === 0) {
     return { exists: false };
@@ -170,7 +181,13 @@ export async function detectExistingVineyard(
   
   for (const task of vineTasks) {
     if (task.vineData?.varietyType) {
-      types.push(task.vineData.varietyType);
+      // Mappa i valori dal task ai tipi corretti
+      const varietyType = task.vineData.varietyType;
+      if (varietyType === 'Wine') {
+        types.push('WINE');
+      } else if (varietyType === 'Table' || varietyType === 'Raisin') {
+        types.push('TABLE');
+      }
     }
     if (task.vineData?.trainingSystem) {
       trainingSystems.push(task.vineData.trainingSystem);

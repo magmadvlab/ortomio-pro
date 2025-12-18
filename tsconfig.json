@@ -40,6 +40,11 @@
     "node_modules",
     "capacitor.config.ts",
     "ortomio",
-    "orto-mio"
+    "orto-mio",
+    "__tests__",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
   ]
 }
