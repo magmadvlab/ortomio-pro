@@ -7,7 +7,7 @@ import { Plus, X, Info } from 'lucide-react';
 
 interface CustomCropFormProps {
   gardenId?: string;
-  onSuccess: () => void;
+  onSuccess: (cropData: { commonName: string; notes?: string; scientificName?: string; family?: string }) => void;
   onCancel: () => void;
 }
 
@@ -46,7 +46,12 @@ const CustomCropForm: React.FC<CustomCropFormProps> = ({
         gardenId,
         formData.notes.trim() ? { notes: formData.notes.trim() } : undefined
       );
-      onSuccess();
+      onSuccess({
+        commonName: formData.commonName.trim(),
+        notes: formData.notes.trim() || undefined,
+        scientificName: formData.scientificName.trim() || undefined,
+        family: formData.family.trim() || undefined
+      });
     } catch (err: any) {
       setError(err.message || 'Errore nel salvataggio della coltura');
     } finally {

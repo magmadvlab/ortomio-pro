@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { PlantSuggestion, TreatmentAdvice, SpecificPlantInfo } from "../types";
 import { findSpecies, findVariety, getVarietyInfo, suggestVarieties } from "./plantDatabaseService";
-import { generateCompleteGuide, getVarietyInfo as getMasterVarietyInfo, findSpeciesFromVariety } from "./plantMasterService";
+import { generateCompleteGuide, getVarietyInfo as getMasterVarietyInfo, findSpeciesFromVariety, generateCompleteGuideSync, getVarietyInfoSync, convertMasterSheetToSpecificInfo } from "./plantMasterService";
 import { getSeasonForDate } from "../utils/seasonalAdjustment";
 
 // Per Next.js: usa process.env.NEXT_PUBLIC_*
@@ -217,12 +217,8 @@ export const getSeasonalSuggestions = async (lat: number, lng: number): Promise<
 };
 
 export const getSpecificPlantDetails = async (query: string, lat: number, lng: number): Promise<SpecificPlantInfo | null> => {
-  if (!checkApiAvailable()) {
-    throw new Error("API Key non configurata. Configura NEXT_PUBLIC_GEMINI_API_KEY nel file .env");
-  }
-
-  // Cerca prima nel sistema di schede master
-  const varietyInfo = await getMasterVarietyInfo(query);
+  // STEP 1: Cerca PRIMA nel database locale (senza bisogno di API)
+  const varietyInfo = getVarietyInfoSync(query);
   let masterGuide = null;
   let speciesName = query;
   let varietyName: string | undefined = undefined;
@@ -231,23 +227,40 @@ export const getSpecificPlantDetails = async (query: string, lat: number, lng: n
     // Varietà trovata nel sistema master
     speciesName = varietyInfo.speciesId;
     varietyName = varietyInfo.varietyName;
-    masterGuide = await generateCompleteGuide(speciesName, varietyName);
+    masterGuide = generateCompleteGuideSync(speciesName, varietyName);
   } else {
     // Prova a trovare la specie direttamente
     const speciesFromVariety = findSpeciesFromVariety(query);
     if (speciesFromVariety) {
       speciesName = speciesFromVariety.speciesId;
-      masterGuide = await generateCompleteGuide(speciesName);
+      masterGuide = generateCompleteGuideSync(speciesName);
     } else {
       // Prova a cercare per nome specie
-      masterGuide = await generateCompleteGuide(query);
+      masterGuide = generateCompleteGuideSync(query);
       if (masterGuide) {
         speciesName = query;
       }
     }
   }
 
-  // Verifica anche nel database varietà per retrocompatibilità
+  // STEP 2: Se trovato localmente, converti e restituisci
+  if (masterGuide && masterGuide.masterSheet) {
+    return convertMasterSheetToSpecificInfo(
+      masterGuide.masterSheet,
+      varietyName,
+      lat,
+      lng
+    );
+  }
+
+  // STEP 3: Se non trovato localmente, usa Gemini (se disponibile)
+  if (!checkApiAvailable()) {
+    // API non disponibile e non trovato localmente
+    return null; // Verrà gestito dal chiamante
+  }
+
+  // STEP 4: Usa Gemini AI come fallback per piante non nel database locale
+  // Cerca anche nel database varietà per retrocompatibilità (per il prompt AI)
   const dbVarietyInfo = getVarietyInfo(query);
   const dbSpecies = findSpecies(query);
   let validatedQuery = query;

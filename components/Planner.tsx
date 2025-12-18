@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { getSeasonalSuggestions, getSpecificPlantDetails } from '../services/geminiService';
+import { getSeasonalSuggestions, getSpecificPlantDetails, isApiKeyConfigured } from '../services/geminiService';
 import { PlantSuggestion, GeoLocation, SpecificPlantInfo, Garden, GrowingLocation } from '../types';
 import { MapPin, Loader2, PlusCircle, Search, Leaf, ArrowRight, Droplets, FlaskConical, Scale, Edit3, Sun, Thermometer, Layers, Clock, Info, CalendarPlus, Settings, Gauge, Sprout, AlertTriangle, CheckCircle, Calendar, Sparkles, Box, LayoutGrid, Flower2, Package, Map as MapIcon } from 'lucide-react';
 import { getCurrentPositionWithRetry, getDefaultCoordinates } from '../services/geolocationService';
@@ -15,6 +15,7 @@ import FertigationPlanner from './FertigationPlanner';
 import VisualGardenPlanner from './VisualGardenPlanner';
 import SpecializedCropForm, { SpecializedCropType } from './SpecializedCropForm';
 import CustomCropForm from './CustomCropForm';
+import PlantingWizard from './PlantingWizard';
 import { useTier } from '../packages/core/hooks/useTier';
 import { PlantSuggestionForWindow } from '../services/seasonalPlantSuggestions';
 import { GardenClassification } from '../services/seasonalSunWindows';
@@ -155,6 +156,14 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
   const [selectedCropCategory, setSelectedCropCategory] = useState<'all' | SpecializedCropType>('all');
   const [selectedSpecializedCrop, setSelectedSpecializedCrop] = useState<any>(null);
   const [showCustomCropForm, setShowCustomCropForm] = useState(false);
+  
+  // Planting Wizard state
+  const [showPlantingWizard, setShowPlantingWizard] = useState(false);
+  const [wizardPlantData, setWizardPlantData] = useState<{
+    plantName: string;
+    plantNotes?: string;
+    variety?: string;
+  } | null>(null);
 
   // Custom Irrigation & Batches State
   const [customIrrigationFreq, setCustomIrrigationFreq] = useState('');
@@ -417,25 +426,38 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
     setSearchLoading(true);
     setSpecificResult(null);
     setError(null);
+    
     try {
-        const result = await getSpecificPlantDetails(searchQuery, lat, lng);
-        if (result) {
-          setSpecificResult(result);
+      const result = await getSpecificPlantDetails(searchQuery, lat, lng);
+      if (result) {
+        setSpecificResult(result);
+      } else {
+        // Pianta non trovata né localmente né via AI
+        const localMaster = getMasterSheetSync(searchQuery);
+        if (!localMaster && !isApiKeyConfigured()) {
+          setError("Pianta non trovata nel database locale. Configura NEXT_PUBLIC_GEMINI_API_KEY nel file .env per cercare piante non presenti nel database.");
         } else {
-          setError("Nessun risultato trovato per questa ricerca. Prova con un nome diverso.");
+          setError("Nessun risultato trovato per questa ricerca. Prova con un nome diverso o usa 'Aggiungi Coltura Personalizzata'.");
         }
+      }
     } catch (e: any) {
-        console.error(e);
-        const errorMsg = e?.message || "Errore sconosciuto";
-        if (errorMsg.includes("API Key")) {
-          setError("Chiave API non configurata. Configura VITE_GEMINI_API_KEY nel file .env per utilizzare questa funzionalità.");
-        } else if (errorMsg.includes("401") || errorMsg.includes("403")) {
-          setError("Chiave API non valida. Verifica la configurazione in .env");
+      console.error(e);
+      const errorMsg = e?.message || "Errore sconosciuto";
+      if (errorMsg.includes("API Key")) {
+        // Se API non configurata ma pianta non trovata localmente
+        const localMaster = getMasterSheetSync(searchQuery);
+        if (!localMaster) {
+          setError("Pianta non trovata nel database locale. Configura NEXT_PUBLIC_GEMINI_API_KEY nel file .env per cercare piante non presenti nel database.");
         } else {
-          setError(`Errore nella ricerca: ${errorMsg}`);
+          setError("Errore imprevisto. La pianta dovrebbe essere disponibile localmente.");
         }
+      } else if (errorMsg.includes("401") || errorMsg.includes("403")) {
+        setError("Chiave API non valida. Verifica la configurazione in .env");
+      } else {
+        setError(`Errore nella ricerca: ${errorMsg}`);
+      }
     } finally {
-        setSearchLoading(false);
+      setSearchLoading(false);
     }
   };
 
@@ -782,8 +804,15 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
             <div className="mb-4">
               <CustomCropForm
                 gardenId={garden.id}
-                onSuccess={() => {
+                onSuccess={(cropData) => {
                   setShowCustomCropForm(false);
+                  // Apri il wizard per aggiungere al Diario
+                  setWizardPlantData({
+                    plantName: cropData.commonName,
+                    plantNotes: cropData.notes,
+                    variety: cropData.scientificName // Usa scientificName come variety se disponibile
+                  });
+                  setShowPlantingWizard(true);
                 }}
                 onCancel={() => setShowCustomCropForm(false)}
               />
@@ -1883,6 +1912,54 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                 ))}
             </div>
         </div>
+      )}
+
+      {/* Planting Wizard - per colture personalizzate e piante normali */}
+      {showPlantingWizard && wizardPlantData && (
+        <PlantingWizard
+          plantName={wizardPlantData.plantName}
+          plantNotes={wizardPlantData.plantNotes}
+          variety={wizardPlantData.variety}
+          garden={garden}
+          onComplete={(data) => {
+            // Prepara le note complete
+            let notes = data.notes || '';
+            if (wizardPlantData.plantNotes) {
+              notes = wizardPlantData.plantNotes + (notes ? '\n' + notes : '');
+            }
+            
+            // Prepara additionalData
+            const additionalData: any = {
+              initialQuantity: data.quantity,
+              currentQuantity: data.quantity,
+              locationType: data.locationType,
+              season: data.season
+            };
+            
+            if (data.selectedSeedPacketId) {
+              additionalData.selectedSeedPacketId = data.selectedSeedPacketId;
+            }
+
+            // Chiama onAddToJournal
+            onAddToJournal(
+              data.plantName,
+              notes,
+              data.variety,
+              data.method,
+              data.date,
+              data.taskType,
+              additionalData
+            );
+            
+            // Chiudi wizard
+            setShowPlantingWizard(false);
+            setWizardPlantData(null);
+          }}
+          onCancel={() => {
+            setShowPlantingWizard(false);
+            setWizardPlantData(null);
+          }}
+        />
       )}
     </div>
   );

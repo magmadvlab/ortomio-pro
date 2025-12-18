@@ -1,4 +1,4 @@
-import { PlantMasterSheet, VarietyMapping, BehavioralTag } from '../types';
+import { PlantMasterSheet, VarietyMapping, BehavioralTag, SpecificPlantInfo } from '../types';
 import { plantMasterSheets, behavioralTags } from '../data/plantMasterSheets';
 import { varietyMappings } from '../data/varietyMappings';
 import { getAllSpecializedMasterSheets } from '../data/specializedCropMasterSheets';
@@ -227,6 +227,112 @@ export const getAllMasterSheets = (): PlantMasterSheet[] => {
     ...plantMasterSheets,
     ...getAllSpecializedMasterSheets()
   ];
+};
+
+/**
+ * Converte PlantMasterSheet in SpecificPlantInfo per uso locale
+ * (senza bisogno di Gemini AI)
+ */
+export const convertMasterSheetToSpecificInfo = (
+  masterSheet: PlantMasterSheet,
+  varietyName?: string,
+  lat?: number,
+  lng?: number
+): SpecificPlantInfo => {
+  // Calcola stagione e finestre di semina/trapianto basate su data e posizione
+  const today = new Date();
+  const month = today.toLocaleDateString('it-IT', { month: 'long' });
+  const season = today.getMonth() >= 2 && today.getMonth() <= 4 ? 'Primavera' : 
+                 today.getMonth() >= 5 && today.getMonth() <= 7 ? 'Estate' :
+                 today.getMonth() >= 8 && today.getMonth() <= 10 ? 'Autunno' : 'Inverno';
+  
+  // Costruisci finestre di semina/trapianto/raccolta dai dati master
+  const seedSowingWindow = masterSheet.season === 'Spring' ? 
+    'Febbraio-Marzo in semenzaio, Aprile all\'aperto' :
+    masterSheet.season === 'Summer' ?
+    'Marzo-Aprile in semenzaio, Maggio all\'aperto' :
+    'Da calcolare in base alla stagione';
+    
+  const transplantWindow = masterSheet.transplanting?.when || 
+    'Quando le temperature notturne sono stabili sopra i 10°C';
+    
+  const harvestWindow = typeof masterSheet.harvestWindow === 'string' 
+    ? masterSheet.harvestWindow
+    : masterSheet.harvestWindow 
+      ? `Da calcolare in base alla varietà e stagione`
+      : 'Da calcolare in base alla varietà e stagione';
+
+  // Costruisci guide passo-passo dai dati master
+  const sowingSteps = [
+    `Passo 1: Prepara un contenitore con terriccio da semina fine`,
+    `Passo 2: Semina a ${masterSheet.germination.sowingDepth}cm di profondità`,
+    `Passo 3: ${masterSheet.germination.coveringNeeded ? 'Copri con pellicola trasparente' : 'Non coprire'}`,
+    `Passo 4: Mantieni temperatura ${masterSheet.germination.idealTemp}`,
+    `Passo 5: Innaffia delicatamente con nebulizzatore quando il terreno è asciutto`,
+    `Passo 6: I germogli appariranno tra ${masterSheet.germination.emergenceDays.min} e ${masterSheet.germination.emergenceDays.max} giorni`
+  ];
+
+  const transplantSteps = [
+    `Passo 1: Trapianta quando: ${masterSheet.seedlingCare.transplantWhen}`,
+    `Passo 2: Prepara buca: ${masterSheet.transplanting.holeDepth}cm profonda, ${masterSheet.transplanting.holeWidth}cm larga`,
+    `Passo 3: Distanza: ${masterSheet.transplanting.spacing}`,
+    `Passo 4: Terreno: ${masterSheet.transplanting.soilRequirements}`,
+    `Passo 5: Innaffia abbondantemente dopo il trapianto`
+  ];
+
+  const careTips = [
+    `Innaffia: ${masterSheet.seedlingCare.watering}`,
+    `Luce: ${masterSheet.seedlingCare.lightNeeds}`,
+    `Temperatura: ${masterSheet.seedlingCare.temperature}`,
+    `Controlla regolarmente per parassiti e malattie`,
+    `Fertilizza ogni 3-4 settimane durante la crescita`,
+    `Raccogli: ${masterSheet.baseInstructions.harvestGuide}`
+  ];
+
+  return {
+    name: masterSheet.commonName,
+    variety: varietyName || '',
+    seedSowingWindow,
+    transplantWindow,
+    harvestWindow,
+    notes: masterSheet.baseInstructions.introduction,
+    masterSheetId: masterSheet.id,
+    soil: {
+      phMin: 6.0, // Default, può essere migliorato con dati specifici
+      phMax: 7.0,
+      typeDescription: masterSheet.transplanting?.soilRequirements || 'Terreno ben drenato'
+    },
+    harvest: {
+      minBrix: 0,
+      visualSigns: masterSheet.baseInstructions.harvestGuide || 'Raccogli quando maturo'
+    },
+    indoor: {
+      lightHours: masterSheet.seedlingCare.lightHours || 14,
+      germinationTemp: masterSheet.germination.idealTemp,
+      daysToGerminate: `${masterSheet.germination.emergenceDays.min}-${masterSheet.germination.emergenceDays.max}`,
+      transplantSize: masterSheet.seedlingCare.transplantWhen
+    },
+    irrigation: {
+      frequency: masterSheet.irrigationDetails?.frequency?.vegetative || '2-3 volte a settimana',
+      method: 'Alla base della pianta',
+      tips: masterSheet.seedlingCare.watering
+    },
+    fertilizer: {
+      organicType: 'Compost maturo',
+      organicDosageGm2: 100,
+      classicType: 'NPK bilanciato',
+      classicDosageGm2: 50,
+      timing: 'Alla semina e in fioritura'
+    },
+    guide: {
+      introduction: masterSheet.baseInstructions.introduction,
+      sowingSteps,
+      transplantSteps,
+      careTips,
+      commonMistakes: masterSheet.baseInstructions.commonMistakes,
+      harvestGuide: masterSheet.baseInstructions.harvestGuide
+    }
+  };
 };
 
 
