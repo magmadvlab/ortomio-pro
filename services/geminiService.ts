@@ -4,9 +4,9 @@ import { findSpecies, findVariety, getVarietyInfo, suggestVarieties } from "./pl
 import { generateCompleteGuide, getVarietyInfo as getMasterVarietyInfo, findSpeciesFromVariety } from "./plantMasterService";
 import { getSeasonForDate } from "../utils/seasonalAdjustment";
 
-// Per Vite: usa import.meta.env.VITE_* 
-// Crea un file .env nella root del progetto con: VITE_GEMINI_API_KEY=la_tua_chiave
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+// Per Next.js: usa process.env.NEXT_PUBLIC_*
+// Crea un file .env nella root del progetto con: NEXT_PUBLIC_GEMINI_API_KEY=la_tua_chiave
+const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
 // Validazione API Key
 export const isApiKeyConfigured = (): boolean => {
@@ -14,8 +14,8 @@ export const isApiKeyConfigured = (): boolean => {
 };
 
 if (!isApiKeyConfigured()) {
-  console.warn("⚠️ VITE_GEMINI_API_KEY non configurata! Le funzionalità AI non saranno disponibili.");
-  console.warn("Crea un file .env nella root del progetto con: VITE_GEMINI_API_KEY=la_tua_chiave");
+  console.warn("⚠️ NEXT_PUBLIC_GEMINI_API_KEY non configurata! Le funzionalità AI non saranno disponibili.");
+  console.warn("Crea un file .env nella root del progetto con: NEXT_PUBLIC_GEMINI_API_KEY=la_tua_chiave");
 }
 
 const ai = apiKey ? new GoogleGenAI({ apiKey: apiKey }) : null;
@@ -177,7 +177,7 @@ const specificPlantSchema: Schema = {
 
 export const getSeasonalSuggestions = async (lat: number, lng: number): Promise<PlantSuggestion[]> => {
   if (!checkApiAvailable()) {
-    throw new Error("API Key non configurata. Configura VITE_GEMINI_API_KEY nel file .env");
+    throw new Error("API Key non configurata. Configura NEXT_PUBLIC_GEMINI_API_KEY nel file .env");
   }
 
   const model = "gemini-2.5-flash";
@@ -218,7 +218,7 @@ export const getSeasonalSuggestions = async (lat: number, lng: number): Promise<
 
 export const getSpecificPlantDetails = async (query: string, lat: number, lng: number): Promise<SpecificPlantInfo | null> => {
   if (!checkApiAvailable()) {
-    throw new Error("API Key non configurata. Configura VITE_GEMINI_API_KEY nel file .env");
+    throw new Error("API Key non configurata. Configura NEXT_PUBLIC_GEMINI_API_KEY nel file .env");
   }
 
   // Cerca prima nel sistema di schede master
@@ -525,7 +525,7 @@ Rispondi SOLO in formato JSON valido, rispettando esattamente lo schema fornito.
 
 export const getTreatmentAdvice = async (query: string): Promise<TreatmentAdvice | null> => {
   if (!checkApiAvailable()) {
-    throw new Error("API Key non configurata. Configura VITE_GEMINI_API_KEY nel file .env");
+    throw new Error("API Key non configurata. Configura NEXT_PUBLIC_GEMINI_API_KEY nel file .env");
   }
 
   const model = "gemini-2.5-flash";
@@ -601,7 +601,7 @@ export const analyzePlantImage = async (base64Image: string): Promise<string> =>
 
 export const diagnosePlantHealth = async (base64Image: string): Promise<TreatmentAdvice | null> => {
   if (!checkApiAvailable()) {
-    throw new Error("API Key non configurata. Configura VITE_GEMINI_API_KEY nel file .env");
+    throw new Error("API Key non configurata. Configura NEXT_PUBLIC_GEMINI_API_KEY nel file .env");
   }
 
   const model = "gemini-2.5-flash";
