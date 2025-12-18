@@ -27,16 +27,31 @@ export interface NutrientAdvice {
 export const calculateNutrientNeeds = (
   plant: PlantMasterSheet,
   daysActive: number, // Giorni trascorsi dalla data del task
-  soilType: Garden['soilType'] = 'Loamy' // Default
+  soilType: Garden['soilType'] = 'Loamy', // Default
+  taskType?: 'Sowing' | 'Transplant' | 'Fertilize' | 'Prune' | 'Harvest' | 'Treatment' | 'Plowing' | 'Subsoiling' | 'Harrowing' | 'Tilling' | 'Rolling' | 'Hoeing' | 'EarthingUp' | 'Mulching' | 'PostSowingRolling' | 'Clearing' | 'Stumping' | 'StoneRemoval' | 'Leveling' | 'DeepSubsoiling' | 'Digging' | 'DeepHarrowing' | 'Crumbling' | 'Scraping' | 'SurfaceLeveling' | 'MinimumTillage' | 'StripTillage' | 'NoTill' | 'FormativePruning' | 'MaintenancePruning' | 'RejuvenationPruning' | 'SummerPruning' | 'WinterPruning' | 'Thinning' | 'Suckering' | 'Defoliation' | 'Tying' | 'OliveShredding' | 'RunnerManagement' | 'StrawberryMulching' | 'StrawberryCleaning' | 'CaneRemoval' | 'TipPruning' | 'RaspberryTying' | 'SuckerThinning' | 'FruitBagging' | 'ExoticThinning' | 'Shredding' | 'Topping' | 'Pruning' | 'TreePruning' // Aggiungere parametro opzionale
 ): NutrientAdvice => {
 
+  // Se è giorno 0 e taskType è Sowing, non mostrare consigli nutrizionali
+  // La pianta è ancora in fase di germinazione, non di radicazione
+  if (daysActive === 0 && taskType === 'Sowing') {
+    return {
+      shouldFertilize: false,
+      elementFocus: 'None',
+      adviceTitle: 'Germinazione in corso',
+      adviceBody: 'La pianta è in fase di germinazione. Non concimare ora. Attendi la comparsa dei primi germogli.',
+      soilNote: '',
+      phase: 'Establishment'
+    };
+  }
+
   // 1. DETERMINAZIONE FASE FENOLOGICA (Algoritmo Semplificato)
-  // Establishment: Radicazione (primi 20gg)
+  // Establishment: Radicazione (dopo germinazione, 1-20gg)
   // Vegetative: Crescita fogliare (20-50gg)
   // Reproductive: Fiori/Frutti (50gg+)
   let phase: 'Establishment' | 'Vegetative' | 'Reproductive' = 'Vegetative';
   
-  if (daysActive <= 20) {
+  // Modificare: Establishment solo dopo che la pianta è germinata (daysActive > 0)
+  if (daysActive > 0 && daysActive <= 20) {
     phase = 'Establishment';
   } else if (daysActive > 20 && daysActive <= 50) {
     phase = 'Vegetative';

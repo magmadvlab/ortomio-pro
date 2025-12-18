@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS garden_tasks (
   bed_id UUID REFERENCES garden_beds(id) ON DELETE SET NULL,
   plant_name TEXT NOT NULL,
   variety TEXT,
-  planting_method TEXT CHECK (planting_method IN ('Seed', 'Seedling')),
+  planting_method TEXT CHECK (planting_method IN ('Seed', 'Seedling', 'Sapling')),
   location_type TEXT CHECK (location_type IN ('Pot', 'Ground', 'RaisedBed', 'HydroponicNFT', 'HydroponicDWC', 'HydroponicEbbFlow', 'HydroponicDrip', 'HydroponicWick', 'HydroponicKratky', 'Aquaponic', 'Aeroponic', 'Indoor')),
   initial_quantity INTEGER,
   current_quantity INTEGER,

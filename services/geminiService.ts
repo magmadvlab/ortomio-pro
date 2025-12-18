@@ -563,12 +563,86 @@ export const getTreatmentAdvice = async (query: string): Promise<TreatmentAdvice
   }
 };
 
-export const analyzePlantImage = async (base64Image: string): Promise<string> => {
+interface AnalyzeImageContext {
+  plantName?: string;
+  variety?: string;
+  taskType?: 'Sowing' | 'Transplant' | 'Harvest' | 'Maintenance' | 'Fertilization' | 'PestControl' | 'Irrigation';
+  lifecycleState?: 'Sowing' | 'Germination' | 'Nursing' | 'Hardening' | 'Transplanting' | 'Production';
+  daysActive?: number;
+  locationType?: 'Pot' | 'Ground' | 'RaisedBed' | 'Greenhouse' | 'Tray' | string;
+  plantingMethod?: 'Seed' | 'Seedling' | 'Sapling';
+  masterData?: {
+    germination?: {
+      emergenceDays?: { min: number; max: number };
+      idealTemp?: string;
+    };
+  };
+}
+
+export const analyzePlantImage = async (
+  base64Image: string,
+  context?: AnalyzeImageContext
+): Promise<string> => {
   if (!checkApiAvailable()) {
     return "API Key non configurata. Configura VITE_GEMINI_API_KEY nel file .env per utilizzare questa funzionalità.";
   }
 
   const model = "gemini-2.5-flash";
+  
+  // Costruisci prompt basato sul contesto
+  let prompt = "Analizza questa foto del mio orto. ";
+  
+  if (context?.plantName) {
+    prompt += `La pianta dovrebbe essere: ${context.plantName}`;
+    if (context.variety) {
+      prompt += ` (varietà: ${context.variety})`;
+    }
+    prompt += ". ";
+  }
+
+  // Prompt specifico per fase Sowing/Germination
+  if (context?.taskType === 'Sowing' || context?.lifecycleState === 'Sowing' || context?.lifecycleState === 'Germination') {
+    const daysActive = context.daysActive || 0;
+    const expectedDays = context.masterData?.germination?.emergenceDays;
+    
+    prompt += `\n\nCONTESTO IMPORTANTE: Questa è una SEMINA appena effettuata (${daysActive} giorni fa). `;
+    if (expectedDays) {
+      prompt += `I primi germogli dovrebbero apparire tra ${expectedDays.min} e ${expectedDays.max} giorni dalla semina. `;
+    }
+    
+    prompt += `\n\nCosa devi cercare nell'immagine:\n`;
+    prompt += `- VASSOI PER SEMINA, SCATOLE, MODULI o contenitori con semi appena seminati\n`;
+    prompt += `- Terreno umido ma senza germogli ancora visibili\n`;
+    prompt += `- Eventuali problemi con la semina (semi troppo profondi, terreno troppo secco/bagnato)\n`;
+    prompt += `- Condizioni ambientali (temperatura, umidità visibile)\n\n`;
+    
+    prompt += `NON aspettarti di vedere piantine già cresciute o foglie vere. Se vedi piantine con foglie, indica che la germinazione è già avvenuta e la pianta è in fase di crescita. `;
+    prompt += `Se invece vedi solo vassoi/scatole/moduli con terreno, valuta se le condizioni sono corrette per la germinazione (umidità, temperatura, profondità semi).`;
+  } 
+  // Prompt per fase Nursing (piantine giovani)
+  else if (context?.lifecycleState === 'Nursing' || (context?.daysActive && context.daysActive > 0 && context.daysActive < 20)) {
+    prompt += `\n\nCONTESTO: Questa è una PIANTINA giovane (${context.daysActive || 0} giorni dalla semina). `;
+    prompt += `Valuta:\n`;
+    prompt += `- Se la piantina è sana e sta crescendo normalmente\n`;
+    prompt += `- Se ha bisogno di più luce (se "fila" - stelo troppo lungo e sottile)\n`;
+    prompt += `- Se è pronta per il trapianto (ha almeno 2-3 foglie vere, radici ben formate)\n`;
+    prompt += `- Eventuali problemi di salute (foglie gialle, parassiti, malattie)`;
+  }
+  // Prompt per fase Production (pianta adulta)
+  else if (context?.lifecycleState === 'Production' || (context?.daysActive && context.daysActive > 50)) {
+    prompt += `\n\nCONTESTO: Questa è una PIANTA ADULTA in produzione (${context.daysActive || 0} giorni dalla semina). `;
+    prompt += `Valuta:\n`;
+    prompt += `- Maturità dei frutti/ortaggi (se presenti)\n`;
+    prompt += `- Stato di salute generale\n`;
+    prompt += `- Presenza di malattie, parassiti o carenze nutrizionali\n`;
+    prompt += `- Se è pronta per la raccolta`;
+  }
+  // Prompt generico
+  else {
+    prompt += `Identifica la pianta. Valuta lo stadio di crescita. Se è una piantina in vaso, dimmi se è pronta per il trapianto o se ha bisogno di più luce (se fila). Se è adulta, controlla maturazione o malattie.`;
+  }
+
+  prompt += `\n\nRispondi in Italiano in modo conciso ma utile.`;
   
   try {
     const response = await ai!.models.generateContent({
@@ -582,7 +656,7 @@ export const analyzePlantImage = async (base64Image: string): Promise<string> =>
             }
           },
           {
-            text: "Analizza questa foto di una pianta (o piantina) del mio orto. Identifica la pianta. Valuta lo stadio di crescita. Se è una piantina in vaso, dimmi se è pronta per il trapianto o se ha bisogno di più luce (se fila). Se è adulta, controlla maturazione o malattie. Rispondi in Italiano in modo conciso ma utile."
+            text: prompt
           }
         ]
       }

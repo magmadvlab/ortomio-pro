@@ -13,7 +13,7 @@ export const archetypes: CropArchetype[] = [
     icon: '🍅',
     botanicalFamily: 'Solanaceae',
     defaultProfileId: 'a1-profile',
-    examples: ['pomodoro', 'peperone', 'melanzana']
+    examples: ['pomodoro', 'pomodori', 'peperone', 'peperoni', 'peperoncino', 'peperoncini', 'melanzana', 'melanzane']
   },
   {
     id: 'A2',
@@ -21,7 +21,7 @@ export const archetypes: CropArchetype[] = [
     icon: '🥒',
     botanicalFamily: 'Cucurbitaceae',
     defaultProfileId: 'a2-profile',
-    examples: ['cetriolo', 'carosello', 'barattiere', 'zucchina']
+    examples: ['cetriolo', 'cetrioli', 'zucchina', 'zucchine', 'carosello', 'caroselli', 'barattiere', 'barattieri']
   },
   {
     id: 'A3',
@@ -29,7 +29,7 @@ export const archetypes: CropArchetype[] = [
     icon: '🍈',
     botanicalFamily: 'Cucurbitaceae',
     defaultProfileId: 'a3-profile',
-    examples: ['melone', 'anguria', 'zucca']
+    examples: ['melone', 'meloni', 'anguria', 'angurie', 'zucca', 'zucche']
   },
   {
     id: 'A4',
@@ -37,7 +37,7 @@ export const archetypes: CropArchetype[] = [
     icon: '🥬',
     botanicalFamily: 'Asteraceae',
     defaultProfileId: 'a4-profile',
-    examples: ['lattuga', 'romana', 'gentilina', 'iceberg']
+    examples: ['lattuga', 'lattughe', 'radicchio', 'radicchi', 'cicoria', 'cicorie', 'rucola', 'romana', 'gentilina', 'iceberg']
   },
   {
     id: 'A5',
@@ -45,7 +45,7 @@ export const archetypes: CropArchetype[] = [
     icon: '🥬',
     botanicalFamily: 'Amaranthaceae',
     defaultProfileId: 'a5-profile',
-    examples: ['bietola', 'spinacio']
+    examples: ['bietola', 'bietole', 'spinacio', 'spinaci']
   },
   {
     id: 'A6',
@@ -53,7 +53,7 @@ export const archetypes: CropArchetype[] = [
     icon: '🥦',
     botanicalFamily: 'Brassicaceae',
     defaultProfileId: 'a6-profile',
-    examples: ['cavolfiore', 'broccoli', 'cavolo nero']
+    examples: ['cavolo', 'cavoli', 'broccolo', 'broccoli', 'cavolfiore', 'cavolfiori', 'ravanello', 'ravanelli', 'cavolo nero']
   },
   {
     id: 'A7',
@@ -61,7 +61,7 @@ export const archetypes: CropArchetype[] = [
     icon: '🧅',
     botanicalFamily: 'Amaryllidaceae',
     defaultProfileId: 'a7-profile',
-    examples: ['cipolla', 'aglio', 'porro']
+    examples: ['cipolla', 'cipolle', 'aglio', 'porro', 'porri', 'scalogno']
   },
   {
     id: 'A8',
@@ -69,7 +69,7 @@ export const archetypes: CropArchetype[] = [
     icon: '🥕',
     botanicalFamily: 'Apiaceae/Solanaceae',
     defaultProfileId: 'a8-profile',
-    examples: ['carota', 'patata', 'barbabietola']
+    examples: ['carota', 'carote', 'patata', 'patate', 'barbabietola', 'barbabietole', 'rapa', 'rape']
   },
   {
     id: 'A9',
@@ -77,7 +77,7 @@ export const archetypes: CropArchetype[] = [
     icon: '🫘',
     botanicalFamily: 'Fabaceae',
     defaultProfileId: 'a9-profile',
-    examples: ['fagiolo', 'pisello', 'fava', 'ceci']
+    examples: ['fagiolo', 'fagioli', 'pisello', 'piselli', 'fava', 'fave', 'cece', 'ceci', 'fagiolino', 'fagiolini']
   },
   {
     id: 'A10',
@@ -85,7 +85,7 @@ export const archetypes: CropArchetype[] = [
     icon: '🌿',
     botanicalFamily: 'Lamiaceae/Apiaceae',
     defaultProfileId: 'a10-profile',
-    examples: ['basilico', 'rosmarino', 'salvia', 'prezzemolo']
+    examples: ['basilico', 'rosmarino', 'salvia', 'prezzemolo', 'menta', 'timo', 'origano', 'maggiorana']
   },
   {
     id: 'A11',

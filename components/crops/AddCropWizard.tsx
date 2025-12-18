@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Garden, GardenTask, GrowingLocation, ArchetypeId } from '../../types';
-import { ArchetypeGrid } from './ArchetypeGrid';
 import { AddWoodyCropWizard } from './AddWoodyCropWizard';
 import { useStorage } from '../../packages/core/hooks/useStorage';
 import { createAlias } from '../../services/aliasService';
-import { getArchetypeById, getDefaultProfile } from '../../services/archetypeService';
+import { getArchetypeById, getDefaultProfile, getAllArchetypes } from '../../services/archetypeService';
 import { calculateRootDepthForArchetype } from '../../logic/rootDepthCalculator';
 import { searchCropWithFuzzy, SearchResult } from '../../services/fuzzySearchService';
+import { extractMainPlantName, suggestArchetypeFromKeywords } from '../../services/plantNameExtractor';
+import { searchArchetypesByExample } from '../../services/archetypeService';
 import { X, ArrowRight, ArrowLeft, Search, Loader2, Info } from 'lucide-react';
 import { InfoTooltip } from '../shared/InfoTooltip';
 
@@ -17,7 +18,7 @@ interface AddCropWizardProps {
   initialPlantName?: string; // Nome iniziale se già inserito
 }
 
-type WizardStep = 'name' | 'archetype' | 'setup' | 'advanced';
+type WizardStep = 'name' | 'setup' | 'advanced';
 
 export const AddCropWizard: React.FC<AddCropWizardProps> = ({
   garden,
@@ -34,9 +35,12 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
   const [searching, setSearching] = useState(false);
   const [foundArchetype, setFoundArchetype] = useState<ArchetypeId | null>(null);
   const [fuzzySuggestions, setFuzzySuggestions] = useState<SearchResult[]>([]);
+  const [extractedMainName, setExtractedMainName] = useState<string | null>(null);
+  const [extractedVariety, setExtractedVariety] = useState<string | null>(null);
   
   // Step 2: Archetipo (se non trovato)
   const [selectedArchetype, setSelectedArchetype] = useState<ArchetypeId | null>(null);
+  const [suggestedArchetype, setSuggestedArchetype] = useState<ArchetypeId | null>(null);
   
   // Step 3: Setup impianto
   const [locationType, setLocationType] = useState<GrowingLocation>('Ground');
@@ -70,27 +74,72 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
     if (!plantName.trim()) {
       setFuzzySuggestions([]);
       setFoundArchetype(null);
+      setExtractedMainName(null);
+      setExtractedVariety(null);
       return;
     }
     
     setSearching(true);
     try {
-      // Usa pipeline fuzzy completa
-      const region = garden.coordinates ? undefined : undefined; // TODO: estrai regione da coordinates
+      // Estrai parola principale dal nome composto
+      const extracted = extractMainPlantName(plantName.trim());
+      const mainName = extracted.mainName;
+      setExtractedMainName(mainName);
+      setExtractedVariety(extracted.variety || null);
+      
+      // Cerca prima con la parola principale se diversa dall'input completo
+      let searchQuery = plantName.trim();
+      if (mainName && mainName !== plantName.trim().toLowerCase()) {
+        // Prova prima con la parola principale
+        const region = garden.coordinates ? undefined : undefined;
+        const mainResult = await searchCropWithFuzzy(
+          storageProvider,
+          mainName,
+          region,
+          undefined
+        );
+        
+        if (mainResult.exactMatch) {
+          const archetypeId = mainResult.exactMatch.archetypeId;
+          if (archetypeId === 'L1' || archetypeId === 'L2' || archetypeId === 'L3') {
+            setDetectedWoodyArchetype(archetypeId);
+            setDetectedVarietyType(mainResult.exactMatch.defaultVarietyType);
+            setFoundArchetype(null);
+            setFuzzySuggestions([]);
+            return;
+          }
+          // Trovato con parola principale!
+          setFoundArchetype(archetypeId);
+          setSelectedArchetype(archetypeId);
+          setFuzzySuggestions([]);
+          return;
+        }
+        
+        // Se non trovato con parola principale, prova anche negli esempi degli archetipi
+        const archetypeMatches = searchArchetypesByExample(mainName);
+        if (archetypeMatches.length > 0) {
+          const matchedArchetype = archetypeMatches[0];
+          setFoundArchetype(matchedArchetype.id as ArchetypeId);
+          setSelectedArchetype(matchedArchetype.id as ArchetypeId);
+          setFuzzySuggestions([]);
+          return;
+        }
+      }
+      
+      // Usa pipeline fuzzy completa con il nome originale
+      const region = garden.coordinates ? undefined : undefined;
       const result = await searchCropWithFuzzy(
         storageProvider,
-        plantName.trim(),
+        searchQuery,
         region,
-        undefined // province (TODO: estrai da coordinates)
+        undefined
       );
       
       if (result.exactMatch) {
         // Match esatto trovato → verifica se è coltura legnosa
         const archetypeId = result.exactMatch.archetypeId;
         if (archetypeId === 'L1' || archetypeId === 'L2' || archetypeId === 'L3') {
-          // È una coltura legnosa → suggerisci wizard dedicato
           setDetectedWoodyArchetype(archetypeId);
-          // Salva defaultVarietyType se disponibile (per L1/L2)
           setDetectedVarietyType(result.exactMatch.defaultVarietyType);
           setFoundArchetype(null);
           setFuzzySuggestions([]);
@@ -107,7 +156,6 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
       if (result.fuzzyMatches.length > 0) {
         const woodyMatch = result.fuzzyMatches.find(m => m.archetypeId === 'L1' || m.archetypeId === 'L2' || m.archetypeId === 'L3');
         if (woodyMatch && woodyMatch.score >= 0.8) {
-          // Match fuzzy molto buono per coltura legnosa
           setDetectedWoodyArchetype(woodyMatch.archetypeId);
           setDetectedVarietyType(woodyMatch.defaultVarietyType);
         }
@@ -120,7 +168,34 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
         return;
       }
       
-      // Nessun match → mostra griglia archetipi
+      // Se ancora non trovato, prova suggerimento basato su keywords
+      if (extracted.keywords.length > 0) {
+        const suggestedArchetypeId = suggestArchetypeFromKeywords(extracted.keywords);
+        if (suggestedArchetypeId) {
+          setSuggestedArchetype(suggestedArchetypeId as ArchetypeId);
+          // Se abbiamo un suggerimento e non abbiamo trovato nulla, selezionalo automaticamente
+          if (!foundArchetype && !fuzzySuggestions.length) {
+            const archetypeId = suggestedArchetypeId as ArchetypeId;
+            setSelectedArchetype(archetypeId);
+            // Crea alias con confidence media per selezione automatica basata su riconoscimento
+            createAlias(
+              storageProvider,
+              plantName.trim(),
+              archetypeId,
+              undefined, // region
+              undefined, // province
+              undefined, // userId (TODO: ottenere da auth)
+              0.6 // Confidence media per riconoscimento automatico
+            ).catch(console.error);
+          }
+        } else {
+          setSuggestedArchetype(null);
+        }
+      } else {
+        setSuggestedArchetype(null);
+      }
+      
+      // Nessun match → mostra dropdown archetipo nella prima schermata
       setFuzzySuggestions([]);
       setFoundArchetype(null);
     } catch (error) {
@@ -132,9 +207,12 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
     }
   };
   
-  const handleArchetypeSelect = (archetypeId: ArchetypeId) => {
+  const handleArchetypeChange = (archetypeId: ArchetypeId) => {
     setSelectedArchetype(archetypeId);
-    setStep('setup');
+    // Se era suggerito, rimuovi il suggerimento
+    if (suggestedArchetype === archetypeId) {
+      setSuggestedArchetype(null);
+    }
     
     // Se nome non trovato (né exact né fuzzy), crea alias con confidence bassa
     if (plantName.trim() && !foundArchetype && fuzzySuggestions.length === 0) {
@@ -145,7 +223,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
         undefined, // region
         undefined, // province
         undefined, // userId (TODO: ottenere da auth)
-        0.5 // Confidence bassa per selezione manuale da griglia
+        0.5 // Confidence bassa per selezione manuale
       ).catch(console.error);
     }
   };
@@ -192,19 +270,14 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
         return;
       }
       
-      if (foundArchetype) {
-        // Trovato → vai direttamente a setup
+      // Se abbiamo un archetipo (trovato, suggerito o selezionato), vai direttamente a setup
+      if (foundArchetype || selectedArchetype) {
         setStep('setup');
       } else {
-        // Non trovato → mostra griglia archetipi
-        setStep('archetype');
-      }
-    } else if (step === 'archetype') {
-      if (!selectedArchetype) {
-        alert('Seleziona un tipo di coltura');
+        // Se non abbiamo archetipo, chiedi di selezionarlo dal dropdown
+        alert('Seleziona un tipo di coltura dal menu a tendina');
         return;
       }
-      setStep('setup');
     } else if (step === 'setup') {
       // Valida setup
       if (!areaSqm && !plantCount) {
@@ -312,6 +385,17 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                       <span className="text-xl">{currentArchetype?.icon}</span>
                       <span>✓ Trovato: <strong>{currentArchetype?.label}</strong></span>
                     </p>
+                    {extractedMainName && extractedMainName !== plantName.trim().toLowerCase() && (
+                      <div className="mt-2 pt-2 border-t border-green-200">
+                        <p className="text-xs text-green-700">
+                          ✓ Riconosciuto: <strong>"{extractedMainName}"</strong>
+                          {extractedVariety && <span> (varietà: {extractedVariety})</span>}
+                        </p>
+                        <p className="text-xs text-green-600 mt-1">
+                          Associato a: <strong>{currentArchetype?.label}</strong>
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
                 
@@ -383,16 +467,52 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                         </span>
                       </button>
                     ))}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFuzzySuggestions([]);
-                        setStep('archetype');
+                  </div>
+                )}
+                
+                {/* Dropdown archetipo - mostrare solo se non trovato e nessun suggerimento fuzzy */}
+                {!foundArchetype && !fuzzySuggestions.length && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tipo coltura {selectedArchetype ? '' : '*'}
+                      {extractedMainName && suggestedArchetype && (
+                        <span className="text-xs text-blue-600 ml-2 font-normal">
+                          (Suggerito: {getArchetypeById(suggestedArchetype)?.label})
+                        </span>
+                      )}
+                    </label>
+                    <select
+                      value={selectedArchetype || suggestedArchetype || ''}
+                      onChange={(e) => {
+                        const archetypeId = e.target.value as ArchetypeId;
+                        if (archetypeId) {
+                          handleArchetypeChange(archetypeId);
+                        }
                       }}
-                      className="w-full p-2 text-sm text-gray-600 hover:text-gray-800 underline text-center"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     >
-                      Non lo trovo → mostra griglia archetipi
-                    </button>
+                      <option value="">Seleziona tipo coltura...</option>
+                      {getAllArchetypes().map((archetype) => (
+                        <option key={archetype.id} value={archetype.id}>
+                          {archetype.icon} {archetype.label}
+                          {archetype.examples && archetype.examples.length > 0 && (
+                            ` (${archetype.examples.slice(0, 3).join(', ')}...)`
+                          )}
+                        </option>
+                      ))}
+                    </select>
+                    {extractedMainName && suggestedArchetype && (
+                      <p className="text-xs text-blue-600 mt-2">
+                        💡 Sembra un <strong>"{extractedMainName}"</strong>? 
+                        {extractedVariety && <span> Varietà: <strong>"{extractedVariety}"</strong></span>}
+                        {' '}Abbiamo selezionato automaticamente <strong>{getArchetypeById(suggestedArchetype)?.label}</strong>.
+                      </p>
+                    )}
+                    {!extractedMainName && !selectedArchetype && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        💡 Non trovi il nome? Seleziona il tipo più simile. Il sistema imparerà dai tuoi inserimenti.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -416,32 +536,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
             </div>
           )}
           
-          {/* Step 2: Selezione archetipo */}
-          {step === 'archetype' && (
-            <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-blue-800">
-                  <strong>Non abbiamo trovato "{plantName}"</strong>. Seleziona il tipo più simile:
-                </p>
-              </div>
-              
-              <ArchetypeGrid
-                onSelect={handleArchetypeSelect}
-              />
-              
-              <div className="flex justify-between gap-3 mt-6">
-                <button
-                  onClick={() => setStep('name')}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium flex items-center gap-2"
-                >
-                  <ArrowLeft size={18} />
-                  Indietro
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Step 3: Setup impianto */}
+          {/* Step 2: Setup impianto */}
           {step === 'setup' && (
             <div className="space-y-6">
               <div>
@@ -572,7 +667,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
               
               <div className="flex justify-between gap-3">
                 <button
-                  onClick={() => setStep(selectedArchetype ? 'archetype' : 'name')}
+                  onClick={() => setStep('name')}
                   className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium flex items-center gap-2"
                 >
                   <ArrowLeft size={18} />
@@ -589,7 +684,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
             </div>
           )}
           
-          {/* Step 4: Advanced (opzionale) */}
+          {/* Step 3: Advanced (opzionale) */}
           {step === 'advanced' && (
             <div className="space-y-6">
               <div>

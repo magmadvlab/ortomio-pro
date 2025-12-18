@@ -43,7 +43,7 @@ export const calculateFertigationPlan = (
   );
 
   // 1. Verifica se fertirrigazione è appropriata
-  const nutrientAdvice = calculateNutrientNeeds(plant, daysActive, garden.soilType);
+  const nutrientAdvice = calculateNutrientNeeds(plant, daysActive, garden.soilType, task.taskType);
   
   if (!nutrientAdvice.shouldFertilize) {
     return {

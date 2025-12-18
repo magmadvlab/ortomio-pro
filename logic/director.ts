@@ -589,7 +589,7 @@ export const getDailyGardenPlan = async (
     // Se non c'è lifecycle advice ma la pianta è attiva, calcola comunque nutrienti e salute
     if (!lifecycleAdvice) {
 
-      const nutrientAdvice = calculateNutrientNeeds(masterData, daysActive, garden.soilType);
+      const nutrientAdvice = calculateNutrientNeeds(masterData, daysActive, garden.soilType, task.taskType);
       if (nutrientAdvice.shouldFertilize) {
         nutrientTasks.push({
           plantName: task.plantName,

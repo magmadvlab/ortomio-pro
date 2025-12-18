@@ -556,6 +556,7 @@ export type GrowingLocation =
   | 'Pot' 
   | 'Ground' 
   | 'RaisedBed'
+  | 'Tray' // Vassoio per semina
   | 'Greenhouse'
   | 'HydroponicNFT'
   | 'HydroponicDWC'
@@ -585,7 +586,7 @@ export interface GardenTask {
   quantity?: number; // Quantità di piante (opzionale, default: 1)
   plantName: string;
   variety?: string; // e.g., "Datterino"
-  plantingMethod?: 'Seed' | 'Seedling'; // Started from seed or bought plant
+  plantingMethod?: 'Seed' | 'Seedling' | 'Sapling'; // Started from seed, seedling, or sapling
   
   // Statistics Tracking
   locationType?: GrowingLocation; // Where is it growing?

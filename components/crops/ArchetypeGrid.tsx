@@ -76,13 +76,25 @@ export const ArchetypeGrid: React.FC<ArchetypeGridProps> = ({
             onClick={() => handleArchetypeClick(archetype)}
             className="flex flex-col items-center justify-center p-4 sm:p-5 bg-white border-2 border-gray-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all duration-200 group"
             aria-label={archetype.label}
+            title={archetype.examples && archetype.examples.length > 0 ? `Esempi: ${archetype.examples.join(', ')}` : undefined}
           >
             <span className="text-4xl sm:text-5xl mb-2 group-hover:scale-110 transition-transform">
               {archetype.icon}
             </span>
-            <span className="text-xs sm:text-sm font-medium text-gray-700 text-center leading-tight">
+            <span className="text-xs sm:text-sm font-medium text-gray-700 text-center leading-tight mb-1">
               {archetype.label}
             </span>
+            
+            {/* Mostra esempi sotto l'etichetta */}
+            {archetype.examples && archetype.examples.length > 0 && (
+              <div className="mt-1 px-2">
+                <p className="text-[10px] sm:text-xs text-gray-500 text-center leading-tight line-clamp-2">
+                  {archetype.examples.slice(0, 4).join(', ')}
+                  {archetype.examples.length > 4 && '...'}
+                </p>
+              </div>
+            )}
+            
             {archetypeHasSubArchetypes(archetype.id) && (
               <span className="text-xs text-gray-400 mt-1">→</span>
             )}

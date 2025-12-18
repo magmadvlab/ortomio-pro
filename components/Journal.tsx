@@ -16,6 +16,8 @@ import { AddCropWizard } from './crops/AddCropWizard';
 import { useStorage } from '../packages/core/hooks/useStorage';
 import { createAlias } from '../services/aliasService';
 import { searchCropWithFuzzy, SearchResult } from '../services/fuzzySearchService';
+import { getSeedPackets, findSeedsForPlant, useSeedForPlanting } from '../services/seedInventoryService';
+import { SeedPacket } from '../types';
 
 interface JournalProps {
   tasks: GardenTask[];
@@ -82,6 +84,8 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
     season: 'Summer' | 'Winter';
     quantity: number;
     locationType: GrowingLocation;
+    selectedSeedPacketId?: string; // ID del pacchetto di semi selezionato dalla banca
+    selectedSeedlingId?: string; // ID della piantina/alberello selezionato
   }>({
     plantName: '',
     variety: '',
@@ -92,14 +96,51 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
     nextDueDate: '',
     season: 'Summer',
     quantity: 1,
-    locationType: 'Ground'
+    locationType: 'Ground',
+    selectedSeedPacketId: undefined,
+    selectedSeedlingId: undefined
   });
+
+  // Carica semi disponibili dalla banca
+  const [availableSeeds, setAvailableSeeds] = useState<SeedPacket[]>([]);
+  const [matchingSeeds, setMatchingSeeds] = useState<SeedPacket[]>([]);
+  
+  useEffect(() => {
+    if (garden) {
+      const seeds = getSeedPackets(garden.id);
+      setAvailableSeeds(seeds);
+    }
+  }, [garden]);
+
+  // Trova semi corrispondenti quando cambia il nome della pianta
+  useEffect(() => {
+    if (newTask.plantName && garden) {
+      const matches = findSeedsForPlant(garden.id, newTask.plantName.toUpperCase(), newTask.variety);
+      setMatchingSeeds(matches);
+      // Se c'è un solo match, selezionalo automaticamente
+      if (matches.length === 1 && !newTask.selectedSeedPacketId) {
+        setNewTask({ ...newTask, selectedSeedPacketId: matches[0].id });
+      }
+    } else {
+      setMatchingSeeds([]);
+    }
+  }, [newTask.plantName, newTask.variety, garden]);
 
   // Auto-detect season based on date
   const detectSeason = (dateStr: string): 'Summer' | 'Winter' => {
     const month = new Date(dateStr).getMonth() + 1;
     return (month >= 4 && month <= 9) ? 'Summer' : 'Winter';
   };
+
+  // Auto-update season when date changes (ma permette override manuale)
+  useEffect(() => {
+    if (newTask.date) {
+      const autoSeason = detectSeason(newTask.date);
+      // Aggiorna solo se non è stato modificato manualmente dall'utente
+      // (per ora aggiorniamo sempre, ma potremmo aggiungere un flag per tracciare modifiche manuali)
+      setNewTask(prev => ({ ...prev, season: autoSeason }));
+    }
+  }, [newTask.date]);
 
   const getIcon = (type: string) => {
     switch(type) {
@@ -122,6 +163,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
   const getLocationLabel = (loc?: GrowingLocation) => {
     if (loc === 'Pot') return 'Vaso';
     if (loc === 'RaisedBed') return 'Letto';
+    if (loc === 'Tray') return 'Vassoio';
     return 'Terra';
   };
 
@@ -148,6 +190,15 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
     );
 
     if (result.exactMatch) {
+      // Se è stata selezionata una banca dei semi, usa i semi e aggiorna la quantità
+      if (newTask.selectedSeedPacketId && garden) {
+        const used = useSeedForPlanting(garden.id, newTask.selectedSeedPacketId, newTask.quantity);
+        if (!used) {
+          alert('I semi selezionati sono esauriti. Seleziona un altro pacchetto o aggiungi nuovi semi alla banca.');
+          return;
+        }
+      }
+
       // Exact match trovato, aggiungi task direttamente
       onAddTask({
         plantName: result.exactMatch.name,
@@ -157,15 +208,29 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
         date: newTask.date,
         notes: newTask.notes,
         nextDueDate: newTask.nextDueDate || undefined,
-        season: detectSeason(newTask.date),
+        season: newTask.season, // Usa la stagione selezionata dall'utente
         initialQuantity: newTask.quantity,
         currentQuantity: newTask.quantity,
         locationType: newTask.locationType,
         archetypeId: result.exactMatch.archetypeId
       });
       setIsAdding(false);
-      setNewTask({ ...newTask, plantName: '', variety: '', notes: '', nextDueDate: '', quantity: 1 });
+      setNewTask({ 
+        plantName: '', 
+        variety: '', 
+        taskType: 'Sowing',
+        plantingMethod: 'Seed',
+        date: new Date().toISOString().split('T')[0],
+        notes: '', 
+        nextDueDate: '', 
+        quantity: 1,
+        season: detectSeason(new Date().toISOString().split('T')[0]),
+        locationType: 'Ground',
+        selectedSeedPacketId: undefined,
+        selectedSeedlingId: undefined
+      });
       setFuzzySuggestions([]);
+      setMatchingSeeds([]);
     } else if (result.fuzzyMatches.length > 0) {
       // Mostra suggerimenti fuzzy
       setFuzzySuggestions(result.fuzzyMatches);
@@ -178,6 +243,15 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
   };
 
   const handleFuzzySuggestionSelect = async (suggestion: SearchResult) => {
+    // Se è stata selezionata una banca dei semi, usa i semi e aggiorna la quantità
+    if (newTask.selectedSeedPacketId && garden) {
+      const used = useSeedForPlanting(garden.id, newTask.selectedSeedPacketId, newTask.quantity);
+      if (!used) {
+        alert('I semi selezionati sono esauriti. Seleziona un altro pacchetto o aggiungi nuovi semi alla banca.');
+        return;
+      }
+    }
+
     // Usa il nome suggerito e l'archetipo
     onAddTask({
       plantName: suggestion.name,
@@ -187,15 +261,29 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
       date: newTask.date,
       notes: newTask.notes,
       nextDueDate: newTask.nextDueDate || undefined,
-      season: detectSeason(newTask.date),
+      season: newTask.season, // Usa la stagione selezionata dall'utente
       initialQuantity: newTask.quantity,
       currentQuantity: newTask.quantity,
       locationType: newTask.locationType,
       archetypeId: suggestion.archetypeId
     });
     setIsAdding(false);
-    setNewTask({ ...newTask, plantName: '', variety: '', notes: '', nextDueDate: '', quantity: 1 });
+    setNewTask({ 
+      plantName: '', 
+      variety: '', 
+      taskType: 'Sowing',
+      plantingMethod: 'Seed',
+      date: new Date().toISOString().split('T')[0],
+      notes: '', 
+      nextDueDate: '', 
+      quantity: 1,
+      season: detectSeason(new Date().toISOString().split('T')[0]),
+      locationType: 'Ground',
+      selectedSeedPacketId: undefined,
+      selectedSeedlingId: undefined
+    });
     setFuzzySuggestions([]);
+    setMatchingSeeds([]);
 
     // Opzionalmente aggiorna usage count o crea alias se necessario
     if (suggestion.aliasId) {
@@ -231,7 +319,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
     setIsAdding(false);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, taskId: string) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, taskId: string, replaceIndex?: number) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -250,7 +338,15 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
           
           const taskToUpdate = tasks.find(t => t.id === taskId);
           if (taskToUpdate) {
-            const updatedImages = [...(taskToUpdate.images || []), base64String];
+            let updatedImages: string[];
+            if (replaceIndex !== undefined && taskToUpdate.images) {
+              // Sostituisci la foto esistente
+              updatedImages = [...taskToUpdate.images];
+              updatedImages[replaceIndex] = base64String;
+            } else {
+              // Aggiungi nuova foto
+              updatedImages = [...(taskToUpdate.images || []), base64String];
+            }
             onUpdateTask({ 
               ...taskToUpdate, 
               images: updatedImages,
@@ -262,18 +358,50 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
       };
       reader.readAsDataURL(file);
     }
+    // Reset input per permettere di selezionare lo stesso file di nuovo
+    e.target.value = '';
+  };
+
+  const handleDeleteImage = (taskId: string, imageIndex: number) => {
+    const taskToUpdate = tasks.find(t => t.id === taskId);
+    if (taskToUpdate && taskToUpdate.images) {
+      const updatedImages = taskToUpdate.images.filter((_, idx) => idx !== imageIndex);
+      onUpdateTask({ 
+        ...taskToUpdate, 
+        images: updatedImages.length > 0 ? updatedImages : undefined
+      });
+    }
   };
 
   const handleAnalyzeImage = async (base64Img: string, taskId: string) => {
     setAnalyzingImg(base64Img);
-    const result = await analyzePlantImage(base64Img.split(',')[1]);
-    
     const taskToUpdate = tasks.find(t => t.id === taskId);
-    if (taskToUpdate) {
-      const timestamp = new Date().toLocaleTimeString('it-IT', {day: 'numeric', month: 'numeric', hour: '2-digit', minute:'2-digit'});
-      const newNote = `\n\n🤖 [AI Check ${timestamp}]: ${result}`;
-      onUpdateTask({ ...taskToUpdate, notes: (taskToUpdate.notes || '') + newNote });
+    if (!taskToUpdate) {
+      setAnalyzingImg(null);
+      return;
     }
+
+    // Calcola giorni attivi per il task
+    const daysActive = calculatePlantDaysActive(tasks, taskToUpdate.plantName, taskToUpdate.variety);
+    const masterData = await getMasterSheet(taskToUpdate.plantName);
+    
+    const result = await analyzePlantImage(
+      base64Img.split(',')[1],
+      {
+        plantName: taskToUpdate.plantName,
+        variety: taskToUpdate.variety,
+        taskType: taskToUpdate.taskType,
+        lifecycleState: taskToUpdate.lifecycleState,
+        daysActive: daysActive || 0,
+        locationType: taskToUpdate.locationType,
+        plantingMethod: taskToUpdate.plantingMethod,
+        masterData: masterData || undefined
+      }
+    );
+    
+    const timestamp = new Date().toLocaleTimeString('it-IT', {day: 'numeric', month: 'numeric', hour: '2-digit', minute:'2-digit'});
+    const newNote = `\n\n🤖 [AI Check ${timestamp}]: ${result}`;
+    onUpdateTask({ ...taskToUpdate, notes: (taskToUpdate.notes || '') + newNote });
     setAnalyzingImg(null);
   };
 
@@ -429,7 +557,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
         const daysActive = calculatePlantDaysActive(tasks, task.plantName, task.variety);
         if (daysActive === null) return;
 
-        const nutrientAdvice = calculateNutrientNeeds(masterSheet, daysActive, garden.soilType);
+        const nutrientAdvice = calculateNutrientNeeds(masterSheet, daysActive, garden.soilType, task.taskType);
         if (!nutrientAdvice.shouldFertilize) {
           recommendationsMap.set(task.id, null);
           return;
@@ -677,32 +805,139 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
 
             {(newTask.taskType === 'Sowing' || newTask.taskType === 'Transplant') && (
               <>
+                {/* Selezione Orto Estivo/Invernale */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Metodo di Partenza</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Orto</label>
                   <div className="flex gap-4">
-                    {/* 
-                     * METODO DI PARTENZA - Scelta tra semina diretta o trapianto
-                     * 
-                     * "Dal Seme" (Seed): Semina diretta nel terreno finale.
-                     *   - Vantaggi: Pianta più robusta, radici non disturbate, meno stress
-                     *   - Svantaggi: Tempi più lunghi, richiede più spazio iniziale
-                     *   - Ideale per: Fagioli, zucchine, zucche, carote, ravanelli
-                     * 
-                     * "Da Piantina" (Seedling): Semina in semenzaio, poi trapianto.
-                     *   - Vantaggi: Controllo migliore, anticipa raccolto, risparmia spazio
-                     *   - Svantaggi: Stress da trapianto, richiede semenzaio
-                     *   - Ideale per: Pomodori, peperoni, melanzane, cavoli, lattughe
-                     */}
-                    <label className={`flex-1 p-3 rounded-xl border cursor-pointer text-center transition-colors ${newTask.plantingMethod === 'Seed' ? 'bg-orange-50 border-orange-200 text-orange-800 font-bold' : 'bg-white border-gray-200 text-gray-500'}`}>
-                      <input type="radio" className="hidden" name="method" checked={newTask.plantingMethod === 'Seed'} onChange={() => setNewTask({...newTask, plantingMethod: 'Seed'})} />
-                      🌰 Dal Seme
+                    <label className={`flex-1 p-3 rounded-xl border cursor-pointer text-center transition-colors ${newTask.season === 'Summer' ? 'bg-yellow-50 border-yellow-200 text-yellow-800 font-bold' : 'bg-white border-gray-200 text-gray-500'}`}>
+                      <input type="radio" className="hidden" name="season" checked={newTask.season === 'Summer'} onChange={() => setNewTask({...newTask, season: 'Summer'})} />
+                      ☀️ Orto Estivo
                     </label>
-                    <label className={`flex-1 p-3 rounded-xl border cursor-pointer text-center transition-colors ${newTask.plantingMethod === 'Seedling' ? 'bg-green-50 border-green-200 text-green-800 font-bold' : 'bg-white border-gray-200 text-gray-500'}`}>
-                      <input type="radio" className="hidden" name="method" checked={newTask.plantingMethod === 'Seedling'} onChange={() => setNewTask({...newTask, plantingMethod: 'Seedling'})} />
-                      🌱 Da Piantina
+                    <label className={`flex-1 p-3 rounded-xl border cursor-pointer text-center transition-colors ${newTask.season === 'Winter' ? 'bg-blue-50 border-blue-200 text-blue-800 font-bold' : 'bg-white border-gray-200 text-gray-500'}`}>
+                      <input type="radio" className="hidden" name="season" checked={newTask.season === 'Winter'} onChange={() => setNewTask({...newTask, season: 'Winter'})} />
+                      ❄️ Orto Invernale
                     </label>
                   </div>
                 </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Metodo di Partenza</label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {/* 
+                     * METODO DI PARTENZA - 3 opzioni distinte:
+                     * 
+                     * 1. "Dal Seme" (Seed): Semina diretta nel terreno finale o in vassoio.
+                     *    - Per: Ortaggi, erbe aromatiche, piante annuali
+                     *    - Seleziona dalla BANCA DEI SEMI
+                     * 
+                     * 2. "Da Piantina" (Seedling): Piantina già pronta acquistata.
+                     *    - Per: Ortaggi, piante annuali, piccoli arbusti
+                     *    - Sistema piantine in arrivo
+                     * 
+                     * 3. "Da Alberello" (Sapling): Alberello giovane acquistato.
+                     *    - Per: Frutteti (melo, pero, pesco, etc.)
+                     *    - Per: Uliveti (olivo)
+                     *    - Per: Vigneti (vite)
+                     *    - Per: Alberi da frutto esotici
+                     */}
+                    <label className={`p-3 rounded-xl border cursor-pointer text-center transition-colors ${newTask.plantingMethod === 'Seed' ? 'bg-orange-50 border-orange-200 text-orange-800 font-bold' : 'bg-white border-gray-200 text-gray-500'}`}>
+                      <input type="radio" className="hidden" name="method" checked={newTask.plantingMethod === 'Seed'} onChange={() => setNewTask({...newTask, plantingMethod: 'Seed', selectedSeedlingId: undefined})} />
+                      🌰 Dal Seme
+                    </label>
+                    <label className={`p-3 rounded-xl border cursor-pointer text-center transition-colors ${newTask.plantingMethod === 'Seedling' ? 'bg-green-50 border-green-200 text-green-800 font-bold' : 'bg-white border-gray-200 text-gray-500'}`}>
+                      <input type="radio" className="hidden" name="method" checked={newTask.plantingMethod === 'Seedling'} onChange={() => setNewTask({...newTask, plantingMethod: 'Seedling', selectedSeedPacketId: undefined, selectedSeedlingId: undefined})} />
+                      🌱 Da Piantina
+                    </label>
+                    <label className={`p-3 rounded-xl border cursor-pointer text-center transition-colors ${newTask.plantingMethod === 'Sapling' ? 'bg-blue-50 border-blue-200 text-blue-800 font-bold' : 'bg-white border-gray-200 text-gray-500'}`}>
+                      <input type="radio" className="hidden" name="method" checked={newTask.plantingMethod === 'Sapling'} onChange={() => setNewTask({...newTask, plantingMethod: 'Sapling', selectedSeedPacketId: undefined, selectedSeedlingId: undefined})} />
+                      🌳 Da Alberello
+                    </label>
+                  </div>
+                  {newTask.plantingMethod === 'Sapling' && (
+                    <p className="text-xs text-blue-600 mt-2">
+                      💡 Ideale per: Frutteti, Uliveti, Vigneti, Alberi da frutto esotici
+                    </p>
+                  )}
+                </div>
+
+                {/* Selettore Banca dei Semi - solo se "Dal Seme" */}
+                {newTask.plantingMethod === 'Seed' && matchingSeeds.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                      Seleziona dalla Banca dei Semi
+                    </label>
+                    <select 
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none"
+                      value={newTask.selectedSeedPacketId || ''}
+                      onChange={e => {
+                        const packetId = e.target.value;
+                        const packet = matchingSeeds.find(s => s.id === packetId);
+                        if (packet) {
+                          setNewTask({
+                            ...newTask, 
+                            selectedSeedPacketId: packetId,
+                            plantName: packet.speciesName,
+                            variety: packet.varietyName
+                          });
+                        }
+                      }}
+                    >
+                      <option value="">-- Seleziona pacchetto di semi --</option>
+                      {matchingSeeds.map(packet => (
+                        <option key={packet.id} value={packet.id}>
+                          {packet.varietyName} ({packet.speciesName}) - {packet.quantityRemaining === 'Empty' ? 'Esaurito' : `Disponibile: ${packet.quantityRemaining}`}
+                        </option>
+                      ))}
+                    </select>
+                    {newTask.selectedSeedPacketId && (
+                      <p className="text-xs text-green-600 mt-1">
+                        ✓ Semi selezionati dalla banca. La quantità verrà aggiornata automaticamente dopo il salvataggio.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Selettore Piantine - solo se "Da Piantina" */}
+                {newTask.plantingMethod === 'Seedling' && (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                      Piantine Disponibili
+                    </label>
+                    <select 
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none"
+                      value={newTask.selectedSeedlingId || ''}
+                      onChange={e => setNewTask({...newTask, selectedSeedlingId: e.target.value || undefined})}
+                    >
+                      <option value="">-- Seleziona piantina (opzionale) --</option>
+                      {/* TODO: Integrare con sistema piantine quando disponibile */}
+                      <option value="manual">Inserimento manuale</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      💡 Sistema piantine in arrivo. Per ora inserisci manualmente.
+                    </p>
+                  </div>
+                )}
+
+                {/* Selettore Alberelli - solo se "Da Alberello" */}
+                {newTask.plantingMethod === 'Sapling' && (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                      Alberelli Disponibili
+                    </label>
+                    <select 
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none"
+                      value={newTask.selectedSeedlingId || ''}
+                      onChange={e => setNewTask({...newTask, selectedSeedlingId: e.target.value || undefined})}
+                    >
+                      <option value="">-- Seleziona alberello (opzionale) --</option>
+                      {/* TODO: Integrare con sistema alberelli quando disponibile */}
+                      <option value="manual">Inserimento manuale</option>
+                    </select>
+                    <p className="text-xs text-blue-600 mt-1">
+                      💡 Sistema alberelli in arrivo. Per ora inserisci manualmente. Ideale per frutteti, uliveti, vigneti.
+                    </p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -712,12 +947,61 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Posizione</label>
-                    <select className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none"
-                      value={newTask.locationType} onChange={e => setNewTask({...newTask, locationType: e.target.value as GrowingLocation})}>
-                      <option value="Ground">Piena Terra</option>
-                      <option value="Pot">Vaso</option>
-                      <option value="RaisedBed">Letto/Cassone</option>
+                    <select 
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none"
+                      value={newTask.locationType} 
+                      onChange={e => setNewTask({...newTask, locationType: e.target.value as GrowingLocation})}
+                    >
+                      {/* 
+                        Piena Terra disponibile solo per:
+                        - Orto Estivo (coltivazioni che saranno pronte in primavera/estate)
+                        - Metodo "Dal Seme" (non vassoio)
+                        
+                        Vassoio disponibile per semina in vassoio (poi trapianto)
+                        Alberelli: Piena Terra o Vaso (per esotici)
+                        Per orto invernale, usa sempre vassoio o piantine già pronte
+                      */}
+                      {newTask.plantingMethod === 'Sapling' ? (
+                        <>
+                          <option value="Ground">Piena Terra (per frutteti/uliveti/vigneti)</option>
+                          <option value="Pot">Vaso (per alberelli esotici)</option>
+                        </>
+                      ) : newTask.season === 'Summer' && newTask.plantingMethod === 'Seed' && newTask.locationType !== 'Tray' ? (
+                        <>
+                          <option value="Ground">Piena Terra</option>
+                          <option value="Tray">📦 Vassoio per Semina</option>
+                          <option value="Pot">Vaso</option>
+                          <option value="RaisedBed">Letto/Cassone</option>
+                        </>
+                      ) : newTask.plantingMethod === 'Seed' ? (
+                        <>
+                          <option value="Tray">📦 Vassoio per Semina</option>
+                          <option value="Pot">Vaso (posizione finale al trapianto)</option>
+                          <option value="RaisedBed">Letto/Cassone (posizione finale al trapianto)</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="Pot">Vaso</option>
+                          <option value="RaisedBed">Letto/Cassone</option>
+                          {newTask.season === 'Summer' && <option value="Ground">Piena Terra</option>}
+                        </>
+                      )}
                     </select>
+                    {newTask.locationType === 'Tray' && newTask.plantingMethod === 'Seed' && (
+                      <p className="text-xs text-blue-600 mt-1">ℹ️ Con vassoio, la posizione finale sarà impostata al momento del trapianto</p>
+                    )}
+                    {newTask.season === 'Winter' && newTask.plantingMethod === 'Seed' && newTask.locationType !== 'Tray' && (
+                      <p className="text-xs text-yellow-600 mt-1">⚠️ Per orto invernale, si consiglia "Vassoio per Semina" o "Da Piantina"</p>
+                    )}
+                    {newTask.season === 'Summer' && newTask.plantingMethod === 'Seed' && newTask.locationType === 'Ground' && (
+                      <p className="text-xs text-green-600 mt-1">✓ Piena Terra disponibile per coltivazioni primaverili/estive</p>
+                    )}
+                    {newTask.plantingMethod === 'Sapling' && newTask.locationType === 'Ground' && (
+                      <p className="text-xs text-blue-600 mt-1">✓ Piena Terra ideale per frutteti, uliveti e vigneti</p>
+                    )}
+                    {newTask.plantingMethod === 'Sapling' && newTask.locationType === 'Pot' && (
+                      <p className="text-xs text-blue-600 mt-1">💡 Vaso consigliato per alberelli esotici che richiedono protezione invernale</p>
+                    )}
                   </div>
                 </div>
               </>
@@ -903,7 +1187,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                       const daysActive = calculatePlantDaysActive(tasks, task.plantName, task.variety);
                       if (daysActive === null) return null;
                       
-                      const advice = calculateNutrientNeeds(masterSheet, daysActive, garden.soilType);
+                      const advice = calculateNutrientNeeds(masterSheet, daysActive, garden.soilType, task.taskType);
                       if (!advice.shouldFertilize) return null;
                       
                       const elementColors = {
@@ -1112,20 +1396,62 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                     {/* Image Gallery */}
                     {task.images && task.images.length > 0 && (
                       <div className="mt-4">
-                        <p className="text-xs font-bold text-gray-400 uppercase mb-2">Foto & Analisi</p>
+                        <p className="text-xs font-bold text-gray-400 uppercase mb-2">Foto & Analisi ({task.images.length})</p>
                         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                           {task.images.map((img, idx) => (
-                            <div key={idx} className="relative shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-gray-200 group/img">
-                              <img src={img} alt="Plant" className="w-full h-full object-cover" />
-                              {analyzingImg === img ? (
-                                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white text-xs">
+                            <div key={idx} className="relative shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
+                              <img src={img} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                              
+                              {/* Pulsanti azioni - sempre visibili */}
+                              <div className="absolute top-1 right-1 flex gap-1 z-20">
+                                {/* Pulsante elimina */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm('Eliminare questa foto?')) {
+                                      handleDeleteImage(task.id, idx);
+                                    }
+                                  }}
+                                  className="bg-red-500/90 text-white rounded-full p-1.5 shadow-lg hover:bg-red-600 transition-colors"
+                                  aria-label="Elimina foto"
+                                  title="Elimina foto"
+                                >
+                                  <X size={12} />
+                                </button>
+                                
+                                {/* Pulsante sostituisci */}
+                                <label className="bg-blue-500/90 text-white rounded-full p-1.5 shadow-lg hover:bg-blue-600 transition-colors cursor-pointer">
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    capture="environment"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      handleImageUpload(e, task.id, idx);
+                                    }}
+                                  />
+                                  <Camera size={12} />
+                                </label>
+                              </div>
+                              
+                              {/* Overlay durante analisi */}
+                              {analyzingImg === img && (
+                                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white text-xs z-10">
                                   <Loader2 size={16} className="animate-spin mb-1"/>
                                   Analisi...
                                 </div>
-                              ) : (
+                              )}
+                              
+                              {/* Pulsante AI CHECK in basso - sempre visibile */}
+                              {analyzingImg !== img && (
                                 <button 
-                                  onClick={() => handleAnalyzeImage(img, task.id)}
-                                  className="absolute bottom-0 inset-x-0 bg-green-600/90 text-white text-[10px] py-1.5 font-bold flex justify-center items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover/img:opacity-100 transition-opacity"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAnalyzeImage(img, task.id);
+                                  }}
+                                  className="absolute bottom-0 inset-x-0 bg-green-600/90 text-white text-[10px] py-1.5 font-bold flex justify-center items-center gap-1 hover:bg-green-700 transition-colors z-10"
+                                  title="Analizza con AI"
                                 >
                                   <Sparkles size={10} />
                                   AI CHECK

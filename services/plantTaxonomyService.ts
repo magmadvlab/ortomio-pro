@@ -31,8 +31,30 @@ export async function getPlantTaxonomy(plantId: string): Promise<PlantTaxonomyRe
 
   const supabase = getSupabaseClient();
 
-  // Se Supabase è disponibile, cerca in database
-  if (supabase) {
+  // Verifica se siamo in modalità locale
+  // In locale, la tabella plant_taxonomy potrebbe non esistere, quindi saltiamo la query
+  const isLocalDev = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    process.env.NODE_ENV === 'development'
+  );
+
+  // Verifica anche se l'URL di Supabase è locale
+  let isLocalSupabase = false;
+  if (supabase && typeof window !== 'undefined') {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || (import.meta as any)?.env?.VITE_SUPABASE_URL;
+    if (supabaseUrl && (
+      supabaseUrl.includes('localhost') ||
+      supabaseUrl.includes('127.0.0.1') ||
+      supabaseUrl.includes(':54321') ||
+      supabaseUrl.includes(':8000')
+    )) {
+      isLocalSupabase = true;
+    }
+  }
+
+  // Se Supabase è disponibile e NON siamo in locale (né app né Supabase), cerca in database
+  if (supabase && !isLocalDev && !isLocalSupabase) {
     try {
       const { data, error } = await supabase
         .from('plant_taxonomy')
@@ -49,8 +71,20 @@ export async function getPlantTaxonomy(plantId: string): Promise<PlantTaxonomyRe
           source: 'taxonomy'
         };
       }
-    } catch (error) {
-      console.error('Error fetching plant taxonomy from Supabase:', error);
+      
+      // Ignora errori 404 (tabella non esiste o record non trovato) - sono normali
+      // e verranno gestiti dai fallback
+      if (error && error.code !== 'PGRST116' && error.code !== 'PGRST205') {
+        // PGRST116 = "The result contains 0 rows" (404 equivalente)
+        // PGRST205 = "Could not find the table" (tabella non esiste)
+        // Logga solo errori non-404/205
+        console.error('Error fetching plant taxonomy from Supabase:', error);
+      }
+    } catch (error: any) {
+      // Ignora errori di rete o 404 - sono gestiti dai fallback
+      if (error?.status !== 404 && error?.code !== 'PGRST116' && error?.code !== 'PGRST205') {
+        console.error('Error fetching plant taxonomy from Supabase:', error);
+      }
     }
   }
 

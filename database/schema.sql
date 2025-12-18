@@ -114,7 +114,7 @@ CREATE TABLE garden_tasks (
   
   plant_name TEXT NOT NULL,
   variety TEXT,
-  planting_method TEXT CHECK (planting_method IN ('Seed', 'Seedling')),
+  planting_method TEXT CHECK (planting_method IN ('Seed', 'Seedling', 'Sapling')),
   
   location_type TEXT CHECK (location_type IN ('Pot', 'Ground', 'RaisedBed', 'HydroponicNFT', 'HydroponicDWC', 'HydroponicEbbFlow', 'HydroponicDrip', 'HydroponicWick', 'HydroponicKratky', 'Aquaponic', 'Aeroponic', 'Indoor')),
   initial_quantity INTEGER,

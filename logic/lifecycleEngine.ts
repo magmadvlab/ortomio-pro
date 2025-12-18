@@ -95,13 +95,44 @@ const generateSowingAdvice = (task: GardenTask, masterData: PlantMasterSheet): L
   const moonInfo = calculateMoonPhase(sowingDate);
   const moonCheck = isIdealPhaseFor('sowing', masterData.nutrientCategory, sowingDate);
   
-  const subTasks: string[] = [
-    'Assicurati di avere tutti gli strumenti necessari',
-    'Mantieni il terreno umido con il nebulizzatore',
-    'Controlla la temperatura ideale per la germinazione'
-  ];
+  // Consigli specifici per la germinazione
+  const subTasks: string[] = [];
   
-  let message = `Hai appena seminato ${task.plantName}. ${masterData.baseInstructions.introduction}`;
+  // Temperatura
+  const idealTemp = masterData.germination.idealTemp || '22-26°C';
+  subTasks.push(`🌡️ Temperatura: Mantieni costante tra ${idealTemp}. Usa un termometro per monitorare.`);
+  
+  // Umidità
+  subTasks.push(`💧 Umidità: Mantieni il terreno umido ma non troppo bagnato. Usa un nebulizzatore per non spostare i semi. Controlla ogni giorno.`);
+  
+  // Tempo atteso
+  const minDays = masterData.germination.emergenceDays.min;
+  const maxDays = masterData.germination.emergenceDays.max;
+  subTasks.push(`⏱️ Tempo atteso: I primi germogli dovrebbero apparire tra ${minDays} e ${maxDays} giorni dalla semina.`);
+  
+  // Profondità
+  subTasks.push(`🌱 Profondità: I semi sono stati posti a ${masterData.germination.sowingDepth}cm di profondità.`);
+  
+  // Luce
+  if (masterData.germination.lightRequirement === 'Dark') {
+    subTasks.push('🌑 Luce: I semi hanno bisogno di buio per germinare. Mantieni coperto.');
+  } else if (masterData.germination.lightRequirement === 'Light') {
+    subTasks.push('☀️ Luce: I semi hanno bisogno di luce per germinare. Non coprire.');
+  } else {
+    subTasks.push('🌓 Luce: I semi possono germinare sia al buio che alla luce.');
+  }
+  
+  // Copertura se necessaria
+  if (masterData.germination.coveringNeeded) {
+    subTasks.push(`📦 Copertura: ${masterData.germination.coveringInstructions || 'Usa pellicola trasparente per mantenere umidità e temperatura costante'}`);
+  }
+  
+  // Pre-ammollo se necessario
+  if (masterData.germination.preSoak) {
+    subTasks.unshift('💧 Pre-ammollo: I semi sono stati pre-ammollati prima della semina per favorire la germinazione.');
+  }
+  
+  let message = `Hai appena seminato ${task.plantName}. Segui questi consigli per favorire la germinazione:`;
   let adviceType: LifecycleAdviceType = 'INFO';
   
   // Check lunare per semina
@@ -114,7 +145,7 @@ const generateSowingAdvice = (task: GardenTask, masterData: PlantMasterSheet): L
     } else if (moonCheck.daysUntilIdeal) {
       message += ` 🌙 ${moonCheck.reason}`;
       adviceType = 'WARNING';
-      subTasks.unshift(`Luna: ${moonCheck.reason}`);
+      subTasks.unshift(`🌙 Luna: ${moonCheck.reason}`);
     }
   } else {
     subTasks.unshift(`🌙 Luna ${moonInfo.name}: ${moonCheck.reason}`);
@@ -494,9 +525,27 @@ export const checkLifecycleStatus = async (
   // Determina la fase corrente
   const currentPhase = determineLifecyclePhase(daysAlive, masterData, task);
 
-  // Calcola suggerimenti nutrizionali e di salute
-  const nutrients = calculateNutrientNeeds(masterData, daysAlive, garden.soilType);
-  const health = calculateHealthStrategy(masterData, daysAlive);
+  // Calcola suggerimenti nutrizionali e di salute solo se non è fase Sowing
+  // Durante Sowing (giorno 0), la pianta è in germinazione, non ha bisogno di nutrienti
+  let nutrients: NutrientAdvice;
+  let health: HealthAdvice | null;
+  
+  if (currentPhase === 'Sowing') {
+    // Non calcolare nutrienti durante Sowing
+    nutrients = {
+      shouldFertilize: false,
+      elementFocus: 'None',
+      adviceTitle: '',
+      adviceBody: '',
+      soilNote: '',
+      phase: 'Establishment'
+    };
+    health = null;
+  } else {
+    // Calcola suggerimenti nutrizionali e di salute per le altre fasi
+    nutrients = calculateNutrientNeeds(masterData, daysAlive, garden.soilType, task.taskType);
+    health = calculateHealthStrategy(masterData, daysAlive);
+  }
 
   // Genera suggerimenti in base alla fase
   switch (currentPhase) {
