@@ -114,6 +114,24 @@ export const getCurrentPosition = async (
       },
       (error) => {
         clearTimeout(timeoutId);
+        
+        // Filtra errori non critici (kCLErrorLocationUnknown è spesso temporaneo)
+        const errorMessageText = error.message || '';
+        const isLocationUnknown = errorMessageText.includes('kCLErrorLocationUnknown') || 
+                                 errorMessageText.includes('locationUnknown') ||
+                                 errorMessageText.includes('LocationUnknown');
+        
+        // Se è un errore temporaneo e abbiamo una posizione in cache valida, usala
+        if (isLocationUnknown && lastSuccessResult?.success) {
+          const cacheAge = Date.now() - lastSuccessTime;
+          // Usa cache se ha meno di 10 minuti
+          if (cacheAge < 600000) {
+            pendingRequest = null;
+            resolve(lastSuccessResult);
+            return;
+          }
+        }
+        
         let errorMessage = "Errore sconosciuto nella geolocalizzazione";
         let errorCode = error.code;
 
@@ -126,9 +144,17 @@ export const getCurrentPosition = async (
             localStorage.setItem('geolocation_permission_denied', 'true');
             break;
           case 2: // POSITION_UNAVAILABLE
-            errorMessage = isMobile
-              ? "GPS non disponibile. Verifica che il GPS sia attivo e che ci sia visibilità del cielo."
-              : "Posizione non disponibile. Verifica la connessione internet.";
+            if (isLocationUnknown) {
+              // Errore temporaneo, non critico
+              errorMessage = "Posizione temporaneamente non disponibile. Riprova tra qualche secondo.";
+              // Salva timestamp per evitare retry immediati ma permettere retry dopo un po'
+              localStorage.setItem('geolocation_failed_time', Date.now().toString());
+            } else {
+              errorMessage = isMobile
+                ? "GPS non disponibile. Verifica che il GPS sia attivo e che ci sia visibilità del cielo."
+                : "Posizione non disponibile. Verifica la connessione internet.";
+              localStorage.setItem('geolocation_failed_time', Date.now().toString());
+            }
             break;
           case 3: // TIMEOUT
             errorMessage = isMobile
@@ -136,7 +162,13 @@ export const getCurrentPosition = async (
               : "Timeout: la richiesta ha impiegato troppo tempo. Riprova o verifica la connessione.";
             break;
           default:
-            errorMessage = `Errore geolocalizzazione: ${error.message || "Errore sconosciuto"}`;
+            // Per errori sconosciuti (incluso kCLErrorLocationUnknown), usa messaggio generico
+            if (isLocationUnknown) {
+              errorMessage = "Posizione temporaneamente non disponibile. Riprova tra qualche secondo.";
+              errorCode = 2; // Trattalo come POSITION_UNAVAILABLE
+            } else {
+              errorMessage = `Errore geolocalizzazione: ${error.message || "Errore sconosciuto"}`;
+            }
         }
 
         const result: GeolocationResult = {
@@ -175,6 +207,17 @@ export const getCurrentPositionWithRetry = async (
     // Se è un errore di permesso, non ritentare (l'utente deve dare il permesso manualmente)
     if (result.errorCode === 1) {
       return result;
+    }
+    
+    // Se è un errore temporaneo (locationUnknown), ritenta con backoff più lungo
+    const isTemporaryError = result.error?.includes('temporaneamente') || 
+                             result.error?.includes('locationUnknown') ||
+                             result.error?.includes('LocationUnknown');
+    
+    if (isTemporaryError && attempt < maxRetries) {
+      // Backoff più lungo per errori temporanei: 2s, 5s, 10s
+      await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+      continue;
     }
 
     // Aspetta prima di ritentare (solo se non è l'ultimo tentativo)

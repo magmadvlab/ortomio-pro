@@ -86,18 +86,26 @@ function getBrowserLocation(): Promise<{ lat: number; lng: number }> {
         });
       },
       (error) => {
+        // Filtra errori non critici per evitare spam nella console
+        const errorMessage = error.message || '';
+        const isLocationUnknown = errorMessage.includes('kCLErrorLocationUnknown') || 
+                                 errorMessage.includes('locationUnknown') ||
+                                 errorMessage.includes('LocationUnknown');
+        
         // Gestisci errori silenziosamente per evitare log ripetuti
         if (error.code === 1) {
           // PERMISSION_DENIED - non ritentare
           geolocationPermissionDenied = true;
-        } else {
-          // Altri errori - marca come fallito ma permette retry dopo un po'
+        } else if (!isLocationUnknown) {
+          // Solo loggare errori critici, non quelli temporanei
           geolocationFailed = true;
           // Reset flag dopo 5 minuti per permettere retry
           setTimeout(() => {
             geolocationFailed = false;
           }, 300000);
         }
+        // Per locationUnknown, non loggare (è temporaneo e non critico)
+        
         reject(error);
       },
       { 

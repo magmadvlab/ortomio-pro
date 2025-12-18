@@ -325,8 +325,17 @@ export const getUserLocationProfile = async (): Promise<UserLocation | null> => 
       usdaZone,
       distanceFromSea,
     };
-  } catch (error) {
-    console.error('Error getting user location:', error);
+  } catch (error: any) {
+    // Filtra errori temporanei (kCLErrorLocationUnknown) per evitare spam nella console
+    const errorMessage = error?.message || '';
+    const isLocationUnknown = errorMessage.includes('kCLErrorLocationUnknown') || 
+                             errorMessage.includes('locationUnknown') ||
+                             errorMessage.includes('LocationUnknown');
+    
+    // Log solo errori critici, non quelli temporanei
+    if (!isLocationUnknown) {
+      console.error('Error getting user location:', error);
+    }
     return null;
   }
 };

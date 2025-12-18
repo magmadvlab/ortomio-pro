@@ -199,7 +199,8 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         nutrientTasks: [],
         healthTasks: [],
         climateWarnings: [],
-        lunarAdvice: null,
+        lunarAdvice: undefined,
+        priority: 'Low',
         irrigationTasks: []
       })
     } finally {

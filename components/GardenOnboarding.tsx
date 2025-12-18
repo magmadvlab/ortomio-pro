@@ -207,8 +207,17 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
         setLongitude(defaultCoords.longitude.toString());
         setLocationAccuracy(undefined);
       }
-    } catch (error) {
-      console.error('Error getting location:', error);
+    } catch (error: any) {
+      // Filtra errori temporanei (kCLErrorLocationUnknown) per evitare spam nella console
+      const errorMessage = error?.message || '';
+      const isLocationUnknown = errorMessage.includes('kCLErrorLocationUnknown') || 
+                               errorMessage.includes('locationUnknown') ||
+                               errorMessage.includes('LocationUnknown');
+      
+      // Log solo errori critici, non quelli temporanei
+      if (!isLocationUnknown) {
+        console.error('Error getting location:', error);
+      }
       const defaultCoords = getDefaultCoordinates();
       setLatitude(defaultCoords.latitude.toString());
       setLongitude(defaultCoords.longitude.toString());
