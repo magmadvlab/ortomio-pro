@@ -64,19 +64,35 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
   async createGarden(garden: Omit<Garden, 'id' | 'createdAt'>): Promise<Garden> {
     const client = this.ensureClient();
-    const { data: { user } } = await client.auth.getUser();
+    
+    // Verify user authentication with detailed logging
+    const { data: { user }, error: authError } = await client.auth.getUser();
+    if (authError) {
+      console.error('Auth error in createGarden:', authError);
+      throw new Error('Authentication error. Please log in again.');
+    }
+    
     if (!user) {
+      console.error('No user found in createGarden');
       throw new Error('User not authenticated. Please log in to sync your data, or the app will use local storage automatically.');
     }
 
-    // Ensure profile exists before creating garden
-    const { data: profile } = await client
+    console.log('Creating garden for user:', user.id, 'Garden name:', garden.name);
+
+    // Ensure profile exists before creating garden - use maybeSingle() to avoid 406 error
+    const { data: profile, error: profileCheckError } = await client
       .from('profiles')
       .select('id')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
+    
+    if (profileCheckError) {
+      console.error('Error checking profile:', profileCheckError);
+      // Continue anyway - we'll try to create profile
+    }
     
     if (!profile) {
+      console.log('Profile not found, creating default profile for user:', user.id);
       // Create profile if it doesn't exist
       const { error: profileError } = await client
         .from('profiles')
@@ -88,9 +104,18 @@ export class SupabaseStorageProvider implements IStorageProvider {
         });
       
       if (profileError) {
-        console.error('Error creating profile before garden creation:', profileError);
-        throw new Error('Failed to create user profile. Please try again.');
+        // If profile was just created by another request (race condition), that's ok
+        if (profileError.code === '23505') {
+          console.log('Profile already exists (created by another request)');
+        } else {
+          console.error('Error creating profile before garden creation:', profileError);
+          throw new Error(`Failed to create user profile: ${profileError.message}`);
+        }
+      } else {
+        console.log('Profile created successfully for user:', user.id);
       }
+    } else {
+      console.log('Profile exists for user:', user.id);
     }
 
     const dbGarden = this.mapGardenToDB(garden);
@@ -99,6 +124,13 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (!dbGarden.name) {
       throw new Error('Garden name is required');
     }
+    
+    console.log('Inserting garden into database:', {
+      name: dbGarden.name,
+      user_id: user.id,
+      size_sq_meters: dbGarden.size_sq_meters ?? 0,
+      garden_type: dbGarden.garden_type
+    });
     
     const { data, error } = await client
       .from('gardens')
@@ -112,9 +144,17 @@ export class SupabaseStorageProvider implements IStorageProvider {
     
     if (error) {
       console.error('Error creating garden:', error);
-      console.error('Garden data:', { ...dbGarden, user_id: user.id });
+      console.error('Garden data attempted:', { ...dbGarden, user_id: user.id });
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
       throw new Error(`Failed to create garden: ${error.message}`);
     }
+    
+    console.log('Garden created successfully:', data.id);
     return this.mapGardenFromDB(data);
   }
 

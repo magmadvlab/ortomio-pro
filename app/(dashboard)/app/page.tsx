@@ -126,12 +126,30 @@ export default function DashboardPage() {
 
   const handleOnboardingComplete = async (garden: Garden) => {
     try {
-      await storageProvider.createGarden(garden)
+      console.log('Starting garden creation...', garden.name);
+      const createdGarden = await storageProvider.createGarden(garden)
+      console.log('Garden created successfully:', createdGarden.id);
+      
+      // Ricarica esplicitamente i giardini dal database invece di fare refresh completo
       const updatedGardens = await storageProvider.getGardens()
+      console.log('Loaded gardens after creation:', updatedGardens.length);
       setGardens(updatedGardens)
+      
+      // Se ci sono giardini, carica anche i task del primo giardino
+      if (updatedGardens.length > 0) {
+        try {
+          const gardenTasks = await storageProvider.getTasks(updatedGardens[0].id)
+          setTasks(gardenTasks || [])
+          console.log('Loaded tasks for garden:', gardenTasks?.length || 0);
+        } catch (taskError) {
+          console.error('Error loading tasks after garden creation:', taskError);
+          // Non bloccare il flusso se il caricamento dei task fallisce
+        }
+      }
+      
       setShowOnboarding(false)
-      // Ricarica la pagina per aggiornare i dati
-      router.refresh()
+      // Non usare router.refresh() - aggiorna solo lo stato locale
+      // router.refresh() può causare problemi con il caricamento e mostrare di nuovo il wizard
     } catch (error: any) {
       console.error('Error creating garden:', error)
       const errorMessage = error?.message || 'Errore nella creazione dell\'orto'
@@ -147,11 +165,18 @@ export default function DashboardPage() {
           await localProvider.createGarden(garden)
           const updatedGardens = await localProvider.getGardens()
           setGardens(updatedGardens)
+          
+          // Carica task se ci sono giardini
+          if (updatedGardens.length > 0) {
+            const gardenTasks = await localProvider.getTasks(updatedGardens[0].id)
+            setTasks(gardenTasks || [])
+          }
+          
           setShowOnboarding(false)
           
           // Mostra messaggio informativo
           alert('Orto creato e salvato localmente. Per sincronizzare su più dispositivi, effettua il login.')
-          router.refresh()
+          // Non usare router.refresh() qui
         } catch (localError: any) {
           console.error('Error creating garden with LocalStorageProvider:', localError)
           alert(`Errore nella creazione dell'orto: ${localError?.message || 'Errore sconosciuto'}`)

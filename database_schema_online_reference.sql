@@ -1,6 +1,6 @@
 --
 -- PostgreSQL database dump - FIXED FOR SUPABASE
--- Corrected: extensions.uuid_generate_v4() -> gen_random_uuid()
+-- Corrected: gen_random_uuid() -> gen_random_uuid()
 -- Added: Missing trigger for new user credits
 -- Fixed: Unnecessary casts and optimized policies
 --
@@ -1218,9 +1218,19 @@ ALTER TABLE public.user_badges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.weather_cache ENABLE ROW LEVEL SECURITY;
 
 -- FIXED: Optimized policies (removed unnecessary SELECT subqueries)
+-- FIXED: Added explicit INSERT policies with WITH CHECK for profiles and gardens
 
-CREATE POLICY "Users can only access their gardens" ON public.gardens USING (auth.uid() = user_id);
-CREATE POLICY "Users can only access their own profile" ON public.profiles USING (auth.uid() = id);
+-- Profiles: Separate policies for each operation to explicitly allow INSERT
+CREATE POLICY "Users can view their own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can delete their own profile" ON public.profiles FOR DELETE USING (auth.uid() = id);
+
+-- Gardens: Separate policies for each operation to explicitly allow INSERT
+CREATE POLICY "Users can view their gardens" ON public.gardens FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their gardens" ON public.gardens FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their gardens" ON public.gardens FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete their gardens" ON public.gardens FOR DELETE USING (auth.uid() = user_id);
 CREATE POLICY "Users can only access their own seeds" ON public.seed_inventory USING (auth.uid() = user_id);
 CREATE POLICY "Users can only access their own transactions" ON public.ai_credit_transactions USING (auth.uid() = user_id);
 CREATE POLICY "Users can only access their own treatments" ON public.treatment_register USING (auth.uid() = user_id);
