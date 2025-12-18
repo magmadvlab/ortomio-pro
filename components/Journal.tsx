@@ -373,6 +373,98 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
     }
   };
 
+  // Add this function before handleAnalyzeImage
+  const getBaseTaskType = (detailedType: string): "Harvest" | "Maintenance" | "Sowing" | "Transplant" | "Fertilization" | "Irrigation" | "PestControl" => {
+    const taskTypeMap: Record<string, "Harvest" | "Maintenance" | "Sowing" | "Transplant" | "Fertilization" | "Irrigation" | "PestControl"> = {
+      // Harvest
+      "Harvest": "Harvest",
+      
+      // Maintenance
+      "Pruning": "Maintenance",
+      "Tying": "Maintenance",
+      "Thinning": "Maintenance",
+      "Hoeing": "Maintenance",
+      "EarthingUp": "Maintenance",
+      "Mulching": "Maintenance",
+      "Clearing": "Maintenance",
+      "TreePruning": "Maintenance",
+      "Prune": "Maintenance",
+      "FormativePruning": "Maintenance",
+      "MaintenancePruning": "Maintenance",
+      "RejuvenationPruning": "Maintenance",
+      "SummerPruning": "Maintenance",
+      "WinterPruning": "Maintenance",
+      "Suckering": "Maintenance",
+      "Defoliation": "Maintenance",
+      "OliveShredding": "Maintenance",
+      "RunnerManagement": "Maintenance",
+      "StrawberryMulching": "Maintenance",
+      "StrawberryCleaning": "Maintenance",
+      "CaneRemoval": "Maintenance",
+      "TipPruning": "Maintenance",
+      "RaspberryTying": "Maintenance",
+      "SuckerThinning": "Maintenance",
+      "FruitBagging": "Maintenance",
+      "ExoticThinning": "Maintenance",
+      "Shredding": "Maintenance",
+      "Topping": "Maintenance",
+      
+      // Plowing operations
+      "Plowing": "Maintenance",
+      "Tilling": "Maintenance",
+      "Subsoiling": "Maintenance",
+      "Harrowing": "Maintenance",
+      "Rolling": "Maintenance",
+      "PostSowingRolling": "Maintenance",
+      "DeepSubsoiling": "Maintenance",
+      "Digging": "Maintenance",
+      "DeepHarrowing": "Maintenance",
+      "Crumbling": "Maintenance",
+      "Scraping": "Maintenance",
+      "SurfaceLeveling": "Maintenance",
+      "MinimumTillage": "Maintenance",
+      "StripTillage": "Maintenance",
+      "NoTill": "Maintenance",
+      "Stumping": "Maintenance",
+      "StoneRemoval": "Maintenance",
+      "Leveling": "Maintenance",
+      
+      // Sowing
+      "Sowing": "Sowing",
+      "DirectSowing": "Sowing",
+      "Drilling": "Sowing",
+      "Broadcasting": "Sowing",
+      "Dibbling": "Sowing",
+      
+      // Transplant
+      "Transplant": "Transplant",
+      
+      // Fertilization
+      "Fertilization": "Fertilization",
+      "Fertilize": "Fertilization",
+      "BasalFertilization": "Fertilization",
+      "TopDressing": "Fertilization",
+      "FoliarFertilization": "Fertilization",
+      
+      // Irrigation
+      "Irrigation": "Irrigation",
+      "SprinklerIrrigation": "Irrigation",
+      "DripIrrigation": "Irrigation",
+      "FloodIrrigation": "Irrigation",
+      
+      // Pest Control
+      "PestControl": "PestControl",
+      "Treatment": "PestControl",
+      "Weeding": "PestControl",
+      "HandWeeding": "PestControl",
+      "ChemicalWeeding": "PestControl",
+      "MechanicalWeeding": "PestControl",
+      "Spraying": "PestControl"
+    };
+    
+    return taskTypeMap[detailedType] || "Maintenance";
+  };
+
   const handleAnalyzeImage = async (base64Img: string, taskId: string) => {
     setAnalyzingImg(base64Img);
     const taskToUpdate = tasks.find(t => t.id === taskId);
@@ -390,7 +482,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
       {
         plantName: taskToUpdate.plantName,
         variety: taskToUpdate.variety,
-        taskType: taskToUpdate.taskType,
+        taskType: getBaseTaskType(taskToUpdate.taskType),
         lifecycleState: taskToUpdate.lifecycleState,
         daysActive: daysActive || 0,
         locationType: taskToUpdate.locationType,
