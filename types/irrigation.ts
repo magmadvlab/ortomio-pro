@@ -4,7 +4,7 @@
  */
 
 import { GardenBed } from './gardenBed';
-import { GardenTask } from '../types';
+import { GardenTask } from './types';
 
 export type WateringMethod = 
   | 'Manual'           // Annaffiatoio

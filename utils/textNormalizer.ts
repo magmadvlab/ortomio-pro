@@ -247,6 +247,7 @@ export const normalizeVineOliveName = (query: string): {
   // Normalizza varianti comuni
   const variants: Record<string, string> = {
     'nerodavola': 'nerodavola',
+    'nerodavola': 'nerodavola',
     'nocellaradelbelice': 'nocellaradelbelice',
     'grecoditufo': 'grecoditufo',
     'ogliarolabarese': 'ogliarolabarese',

@@ -69,14 +69,52 @@ export class SupabaseStorageProvider implements IStorageProvider {
       throw new Error('User not authenticated. Please log in to sync your data, or the app will use local storage automatically.');
     }
 
+    // Ensure profile exists before creating garden
+    const { data: profile } = await client
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+    
+    if (!profile) {
+      // Create profile if it doesn't exist
+      const { error: profileError } = await client
+        .from('profiles')
+        .insert({
+          id: user.id,
+          tier: 'FREE',
+          ai_credits_total: 3,
+          ai_credits_used: 0,
+        });
+      
+      if (profileError) {
+        console.error('Error creating profile before garden creation:', profileError);
+        throw new Error('Failed to create user profile. Please try again.');
+      }
+    }
+
     const dbGarden = this.mapGardenToDB(garden);
+    
+    // Ensure required fields are present
+    if (!dbGarden.name) {
+      throw new Error('Garden name is required');
+    }
+    
     const { data, error } = await client
       .from('gardens')
-      .insert({ ...dbGarden, user_id: user.id })
+      .insert({ 
+        ...dbGarden, 
+        user_id: user.id,
+        size_sq_meters: dbGarden.size_sq_meters ?? 0,
+      })
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating garden:', error);
+      console.error('Garden data:', { ...dbGarden, user_id: user.id });
+      throw new Error(`Failed to create garden: ${error.message}`);
+    }
     return this.mapGardenFromDB(data);
   }
 

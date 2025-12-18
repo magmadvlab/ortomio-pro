@@ -87,15 +87,17 @@ export const TierProvider: React.FC<TierProviderProps> = ({
             .from('profiles')
             .select('tier')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle();
 
-          // Se il tier nel database non è PRO, aggiornalo
+          // Se il tier nel database non è PRO, aggiornalo o crealo
           if (!profile || profile.tier !== 'PRO') {
             await supabase
               .from('profiles')
               .upsert({
                 id: session.user.id,
                 tier: 'PRO',
+                ai_credits_total: profile?.ai_credits_total ?? 200,
+                ai_credits_used: profile?.ai_credits_used ?? 0,
               }, {
                 onConflict: 'id',
               });
@@ -111,15 +113,68 @@ export const TierProvider: React.FC<TierProviderProps> = ({
 
         // PRODUZIONE: Carica tier dal database normalmente
         // Load tier from profiles table
+        // Use maybeSingle() instead of single() to avoid 406 error when profile doesn't exist
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('tier')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
-          // Profile might not exist yet, that's ok
-          console.log('Profile not found, using default tier');
+          console.error('Error fetching profile:', error);
+          // Try to create profile if it doesn't exist
+          if (error.code === 'PGRST116' || error.message?.includes('No rows')) {
+            console.log('Profile not found, creating default profile');
+            const { error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: session.user.id,
+                tier: 'FREE',
+                ai_credits_total: 3,
+                ai_credits_used: 0,
+              });
+            
+            if (createError) {
+              console.error('Error creating profile:', createError);
+              return;
+            }
+            
+            // Use default tier after creating profile
+            setTierState(AppTier.FREE);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(TIER_STORAGE_KEY, AppTier.FREE);
+            }
+          }
+          return;
+        }
+
+        // If profile is null, create it
+        if (!profile) {
+          console.log('Profile not found, creating default profile');
+          const { error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: session.user.id,
+              tier: 'FREE',
+              ai_credits_total: 3,
+              ai_credits_used: 0,
+            });
+          
+          if (createError) {
+            console.error('Error creating profile:', createError);
+            // Use default tier even if creation fails
+            setTierState(AppTier.FREE);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(TIER_STORAGE_KEY, AppTier.FREE);
+            }
+            return;
+          }
+          
+          // Use default tier after creating profile
+          setTierState(AppTier.FREE);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(TIER_STORAGE_KEY, AppTier.FREE);
+          }
           return;
         }
 

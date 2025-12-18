@@ -14,37 +14,6 @@ import { getCategoryForMasterSheet } from './fruitTreeCategoryService';
 export type OliveType = 'OIL' | 'TABLE' | 'DUAL_PURPOSE';
 export type VineType = 'WINE' | 'TABLE';
 
-/**
- * Mappa varietyType da GardenTask a OliveType
- */
-function mapOliveVarietyType(varietyType: 'Table' | 'Oil' | 'Dual-purpose'): OliveType {
-  switch (varietyType) {
-    case 'Table':
-      return 'TABLE';
-    case 'Oil':
-      return 'OIL';
-    case 'Dual-purpose':
-      return 'DUAL_PURPOSE';
-    default:
-      return 'DUAL_PURPOSE';
-  }
-}
-
-/**
- * Mappa varietyType da GardenTask a VineType
- */
-function mapVineVarietyType(varietyType: 'Wine' | 'Table' | 'Raisin'): VineType {
-  switch (varietyType) {
-    case 'Wine':
-      return 'WINE';
-    case 'Table':
-    case 'Raisin': // Raisin viene mappato a TABLE
-      return 'TABLE';
-    default:
-      return 'WINE';
-  }
-}
-
 export interface OrchardDetectionResult {
   exists: boolean;
   category?: FruitTreeCategory;
@@ -75,15 +44,12 @@ export async function detectExistingOrchard(
   tasks: GardenTask[]
 ): Promise<OrchardDetectionResult> {
   // Filtra solo task di alberi da frutto
-  const fruitTreeTasksPromises = tasks
-    .filter(t => t.fruitTreeData)
-    .map(async t => {
-      const master = await getMasterSheet(t.plantName);
-      return master?.cropType === 'FruitTree' ? t : null;
-    });
-  
-  const fruitTreeTasksResults = await Promise.all(fruitTreeTasksPromises);
-  const fruitTreeTasks = fruitTreeTasksResults.filter((t): t is GardenTask => t !== null);
+  const fruitTreeTasks = tasks.filter(t => {
+    if (!t.fruitTreeData) return false;
+    
+    const master = getMasterSheet(t.plantName);
+    return master?.cropType === 'FruitTree';
+  });
   
   if (fruitTreeTasks.length === 0) {
     return { exists: false };
@@ -94,9 +60,9 @@ export async function detectExistingOrchard(
   const varieties: string[] = [];
   
   for (const task of fruitTreeTasks) {
-    const master = await getMasterSheet(task.plantName);
-    if (master && master.cropType === 'FruitTree') {
-      const category = getCategoryForMasterSheet(master as FruitTreeCrop);
+    const master = getMasterSheet(task.plantName) as FruitTreeCrop | undefined;
+    if (master) {
+      const category = getCategoryForMasterSheet(master);
       if (category) {
         categories.push(category);
       }
@@ -134,15 +100,12 @@ export async function detectExistingOliveGrove(
   tasks: GardenTask[]
 ): Promise<OliveGroveDetectionResult> {
   // Filtra solo task di olivi
-  const oliveTasksPromises = tasks
-    .filter(t => t.oliveData)
-    .map(async t => {
-      const master = await getMasterSheet(t.plantName);
-      return master?.cropType === 'Olive' ? t : null;
-    });
-  
-  const oliveTasksResults = await Promise.all(oliveTasksPromises);
-  const oliveTasks = oliveTasksResults.filter((t): t is GardenTask => t !== null);
+  const oliveTasks = tasks.filter(t => {
+    if (!t.oliveData) return false;
+    
+    const master = getMasterSheet(t.plantName);
+    return master?.cropType === 'Olive';
+  });
   
   if (oliveTasks.length === 0) {
     return { exists: false };
@@ -154,7 +117,7 @@ export async function detectExistingOliveGrove(
   
   for (const task of oliveTasks) {
     if (task.oliveData?.varietyType) {
-      types.push(mapOliveVarietyType(task.oliveData.varietyType));
+      types.push(task.oliveData.varietyType);
     }
     if (task.variety) {
       varieties.push(task.variety);
@@ -189,15 +152,12 @@ export async function detectExistingVineyard(
   tasks: GardenTask[]
 ): Promise<VineyardDetectionResult> {
   // Filtra solo task di viti
-  const vineTasksPromises = tasks
-    .filter(t => t.vineData)
-    .map(async t => {
-      const master = await getMasterSheet(t.plantName);
-      return master?.cropType === 'Vine' ? t : null;
-    });
-  
-  const vineTasksResults = await Promise.all(vineTasksPromises);
-  const vineTasks = vineTasksResults.filter((t): t is GardenTask => t !== null);
+  const vineTasks = tasks.filter(t => {
+    if (!t.vineData) return false;
+    
+    const master = getMasterSheet(t.plantName);
+    return master?.cropType === 'Vine';
+  });
   
   if (vineTasks.length === 0) {
     return { exists: false };
@@ -210,7 +170,7 @@ export async function detectExistingVineyard(
   
   for (const task of vineTasks) {
     if (task.vineData?.varietyType) {
-      types.push(mapVineVarietyType(task.vineData.varietyType));
+      types.push(task.vineData.varietyType);
     }
     if (task.vineData?.trainingSystem) {
       trainingSystems.push(task.vineData.trainingSystem);

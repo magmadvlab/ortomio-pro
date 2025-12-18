@@ -1,0 +1,67 @@
+
+> ortomio-ai@0.0.0 type-check
+> tsc --noEmit
+
+__tests__/services/plantFuzzySearchService.test.ts(8,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantFuzzySearchService.test.ts(9,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantFuzzySearchService.test.ts(10,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantFuzzySearchService.test.ts(11,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantFuzzySearchService.test.ts(12,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantFuzzySearchService.test.ts(13,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantFuzzySearchService.test.ts(14,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantFuzzySearchService.test.ts(18,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantFuzzySearchService.test.ts(19,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantFuzzySearchService.test.ts(21,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantFuzzySearchService.test.ts(23,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantFuzzySearchService.test.ts(25,9): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantFuzzySearchService.test.ts(29,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantFuzzySearchService.test.ts(31,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantFuzzySearchService.test.ts(33,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantFuzzySearchService.test.ts(35,9): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantFuzzySearchService.test.ts(36,9): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantFuzzySearchService.test.ts(40,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantFuzzySearchService.test.ts(44,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantFuzzySearchService.test.ts(47,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantFuzzySearchService.test.ts(49,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantFuzzySearchService.test.ts(51,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantFuzzySearchService.test.ts(54,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantFuzzySearchService.test.ts(56,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantFuzzySearchService.test.ts(58,9): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantFuzzySearchService.test.ts(62,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantFuzzySearchService.test.ts(64,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(12,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(13,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(14,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(16,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(18,9): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(19,9): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(20,9): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(21,9): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(25,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(27,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(29,9): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(30,9): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(31,9): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(32,9): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(36,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(38,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(42,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(43,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(45,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(48,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(50,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(54,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(55,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(57,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(60,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(62,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(66,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(67,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(69,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(72,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(74,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(77,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(79,7): error TS2304: Cannot find name 'expect'.
+__tests__/services/plantTaxonomyService.test.ts(83,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(84,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/services/plantTaxonomyService.test.ts(88,7): error TS2304: Cannot find name 'expect'.

@@ -4,12 +4,9 @@ import { findSpecies, findVariety, getVarietyInfo, suggestVarieties } from "./pl
 import { generateCompleteGuide, getVarietyInfo as getMasterVarietyInfo, findSpeciesFromVariety } from "./plantMasterService";
 import { getSeasonForDate } from "../utils/seasonalAdjustment";
 
-// Support both Next.js and Vite environments
-// Next.js: GEMINI_API_KEY (server-side) or NEXT_PUBLIC_GEMINI_API_KEY (client-side)
-// Vite: VITE_GEMINI_API_KEY
-const apiKey = typeof window !== 'undefined'
-  ? (process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY)
-  : (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY);
+// Per Vite: usa import.meta.env.VITE_* 
+// Crea un file .env nella root del progetto con: VITE_GEMINI_API_KEY=la_tua_chiave
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
 // Validazione API Key
 export const isApiKeyConfigured = (): boolean => {
@@ -225,7 +222,7 @@ export const getSpecificPlantDetails = async (query: string, lat: number, lng: n
   }
 
   // Cerca prima nel sistema di schede master
-  const varietyInfo = await getMasterVarietyInfo(query);
+  const varietyInfo = getMasterVarietyInfo(query);
   let masterGuide = null;
   let speciesName = query;
   let varietyName: string | undefined = undefined;
@@ -234,16 +231,16 @@ export const getSpecificPlantDetails = async (query: string, lat: number, lng: n
     // Varietà trovata nel sistema master
     speciesName = varietyInfo.speciesId;
     varietyName = varietyInfo.varietyName;
-    masterGuide = await generateCompleteGuide(speciesName, varietyName);
+    masterGuide = generateCompleteGuide(speciesName, varietyName);
   } else {
     // Prova a trovare la specie direttamente
     const speciesFromVariety = findSpeciesFromVariety(query);
     if (speciesFromVariety) {
       speciesName = speciesFromVariety.speciesId;
-      masterGuide = await generateCompleteGuide(speciesName);
+      masterGuide = generateCompleteGuide(speciesName);
     } else {
       // Prova a cercare per nome specie
-      masterGuide = await generateCompleteGuide(query);
+      masterGuide = generateCompleteGuide(query);
       if (masterGuide) {
         speciesName = query;
       }

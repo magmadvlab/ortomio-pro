@@ -126,7 +126,7 @@ export interface DailyPlan {
   treePruningTasks?: TreePruningTask[];
   pendingSuggestions?: GardenTask[]; // Task suggeriti non ancora completati
   solarClassification?: SolarClassificationData; // Classificazione solare stagionale
-  irrigationTasks?: import('./types/irrigation').IrrigationTask[]; // Task irrigazione per zone
+  irrigationTasks?: import('./irrigation').IrrigationTask[]; // Task irrigazione per zone
 }
 
 // Work types for mechanical operations

@@ -61,7 +61,7 @@ export async function getPlantTaxonomy(plantId: string): Promise<PlantTaxonomyRe
   }
 
   // Fallback 2: Usa PlantMasterSheet esistente
-  const masterSheet = await getMasterSheet(plantId);
+  const masterSheet = getMasterSheet(plantId);
   if (masterSheet) {
     return {
       plantId: masterSheet.id,
