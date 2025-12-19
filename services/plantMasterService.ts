@@ -59,7 +59,13 @@ export const getMasterSheet = async (speciesName: string): Promise<PlantMasterSh
  * Normalizza un nome di pianta per il matching (gestisce plurali/singolari italiani)
  */
 const normalizePlantName = (name: string): string => {
-  const normalized = name.toLowerCase().trim();
+  // Pulizia iniziale: rimuovi virgolette e spazi extra
+  let normalized = name
+    .toLowerCase()
+    .trim()
+    .replace(/^["']|["']$/g, '') // Rimuovi virgolette all'inizio e alla fine
+    .replace(/["']/g, '') // Rimuovi tutte le virgolette rimanenti
+    .trim();
   
   // Rimuovi plurali comuni italiani per normalizzare
   // -i -> (rimuovi -i)
@@ -103,7 +109,13 @@ const matchesPlantName = (query: string, dbName: string): boolean => {
 };
 
 export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null => {
-  let normalized = speciesName.toLowerCase().trim();
+  // Pulizia iniziale: rimuovi virgolette, spazi extra, e normalizza
+  let normalized = speciesName
+    .toLowerCase()
+    .trim()
+    .replace(/^["']|["']$/g, '') // Rimuovi virgolette all'inizio e alla fine
+    .replace(/["']/g, '') // Rimuovi tutte le virgolette rimanenti
+    .trim();
   
   // STEP 1: Normalizza sinonimi PRIMA di cercare
   const canonical = normalizeToCanonical(normalized);

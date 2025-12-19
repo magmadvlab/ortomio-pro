@@ -30,6 +30,11 @@ const menuItems = [
   { icon: Settings, label: 'Settings', path: '/app/settings' },
 ]
 
+interface MenuGroup {
+  title: string
+  items: typeof menuItems
+}
+
 export function FreeSidebar() {
   const pathname = usePathname()
   const { tier, isPro } = useTier()
@@ -42,33 +47,58 @@ export function FreeSidebar() {
     ? [...menuItems, { icon: Crown, label: 'Admin', path: '/app/admin' }]
     : menuItems
   
+  // Raggruppamento menu per categorie
+  const menuGroups: MenuGroup[] = [
+    {
+      title: 'PRINCIPALE',
+      items: allMenuItems.filter(item => 
+        ['Dashboard', 'Planner', 'Calendario', 'Diario', 'Raccolto', 'Cura', 'Challenge'].includes(item.label)
+      )
+    },
+    {
+      title: 'IMPOSTAZIONI',
+      items: allMenuItems.filter(item => 
+        ['Aiuto', 'Settings', 'Admin'].includes(item.label)
+      )
+    }
+  ]
+  
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 min-h-screen p-4">
+    <aside className="hidden lg:block w-64 bg-white border-r border-gray-200 min-h-screen p-4">
       <div className="mb-6">
         <h2 className="text-xl font-bold text-green-900">🌱 OrtoMio</h2>
         <p className="text-xs text-gray-500 mt-1">FREE</p>
       </div>
       
-      <nav className="space-y-2">
-        {allMenuItems.map((item) => {
-          const Icon = item.icon
-          const isActive = pathname === item.path
-          
-          return (
-            <Link
-              key={item.path}
-              href={item.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                isActive
-                  ? 'bg-green-100 text-green-900 font-semibold'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <Icon size={20} />
-              <span>{item.label || ''}</span>
-            </Link>
-          )
-        })}
+      <nav className="space-y-6">
+        {menuGroups.map((group) => (
+          <div key={group.title} className="space-y-2">
+            <h3 className="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              {group.title}
+            </h3>
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const Icon = item.icon
+                const isActive = pathname === item.path
+                
+                return (
+                  <Link
+                    key={item.path}
+                    href={item.path}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-green-100 text-green-900 font-semibold'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Icon size={20} />
+                    <span>{item.label || ''}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
       
       <div className="mt-8 p-4 bg-green-50 rounded-lg border border-green-200">

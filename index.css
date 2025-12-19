@@ -38,6 +38,17 @@
     left: 3px;
     top: 1px;
   }
+  
+  /* Safe area support for iOS */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  @supports (padding: max(0px)) {
+    .safe-area-bottom {
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+  }
 }
 
 /* Card eleganti con ombre più sofisticate */
