@@ -42,7 +42,7 @@ export default function PlannerPage() {
     plantName: string,
     notes: string,
     variety?: string,
-    method?: 'Seed' | 'Seedling',
+    method?: 'Seed' | 'Seedling' | 'Sapling',
     date?: string,
     taskType?: any,
     additionalData?: any

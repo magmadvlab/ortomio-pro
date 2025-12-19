@@ -34,7 +34,7 @@ import { useStorage } from '../packages/core/hooks/useStorage';
 import { calculateBedSpace } from '../logic/spaceCalculator';
 
 interface PlannerProps {
-  onAddToJournal: (plantName: string, notes: string, variety?: string, method?: 'Seed' | 'Seedling', date?: string, taskType?: any, additionalData?: any) => void;
+  onAddToJournal: (plantName: string, notes: string, variety?: string, method?: 'Seed' | 'Seedling' | 'Sapling', date?: string, taskType?: any, additionalData?: any) => void;
   garden: Garden;
   tasks?: any[]; // Per il Visual Planner
   onUpdateTask?: (task: any) => void; // Per il Visual Planner
