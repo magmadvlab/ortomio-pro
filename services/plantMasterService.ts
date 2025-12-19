@@ -113,7 +113,7 @@ export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null
   let normalized = speciesName
     .toLowerCase()
     .trim()
-    .replace(/^["']|["']$/g, '') // Rimuovi virgolette all'inizio e alla fine
+    .replace(/^["']+|["']+$/g, '') // Rimuovi virgolette all'inizio e alla fine (una o più)
     .replace(/["']/g, '') // Rimuovi tutte le virgolette rimanenti
     .trim();
   
@@ -130,7 +130,8 @@ export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null
     return null;
   }
   
-  console.error('[getMasterSheetSync] Searching for:', normalized, '| Total sheets:', plantMasterSheets.length);
+  // Log senza virgolette aggiuntive - usa JSON.stringify per mostrare il valore esatto
+  console.error('[getMasterSheetSync] Searching for:', JSON.stringify(normalized), '| Total sheets:', plantMasterSheets.length);
   
   // Cerca prima nelle piante base
   const baseMatch = plantMasterSheets.find(sheet => 
@@ -142,7 +143,7 @@ export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null
   );
   
   if (baseMatch) {
-    console.error('[getMasterSheetSync] ✅ Found in base sheets:', baseMatch.commonName);
+    console.log('[getMasterSheetSync] ✅ Found in base sheets:', baseMatch.commonName);
     return baseMatch;
   }
   
@@ -157,11 +158,11 @@ export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null
   );
   
   if (specializedMatch) {
-    console.error('[getMasterSheetSync] ✅ Found in specialized sheets:', specializedMatch.commonName);
+    console.log('[getMasterSheetSync] ✅ Found in specialized sheets:', specializedMatch.commonName);
     return specializedMatch;
   }
   
-  console.error('[getMasterSheetSync] ❌ Not found for:', normalized);
+  console.warn('[getMasterSheetSync] ❌ Not found for:', JSON.stringify(normalized));
   return null;
 };
 
