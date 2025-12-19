@@ -109,17 +109,27 @@ const matchesPlantName = (query: string, dbName: string): boolean => {
 };
 
 export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null => {
+  // Debug: mostra valore originale
+  if (speciesName && (speciesName.includes('\\') || speciesName.includes('"'))) {
+    console.warn('[getMasterSheetSync] Input con virgolette/escape:', JSON.stringify(speciesName));
+  }
+  
   // Pulizia iniziale: rimuovi virgolette (incluse escape), spazi extra, e normalizza
   let normalized = String(speciesName || '')
     .toLowerCase()
     .trim()
-    // Rimuovi escape characters per virgolette (\", \', \\)
-    .replace(/\\(["'\\])/g, '$1') // Unescape: \" -> ", \' -> ', \\ -> \
+    // Rimuovi tutti i backslash (gestisce \" e \')
+    .replace(/\\/g, '')
     // Rimuovi virgolette all'inizio e alla fine (una o più)
     .replace(/^["']+|["']+$/g, '')
     // Rimuovi tutte le virgolette rimanenti
     .replace(/["']/g, '')
     .trim();
+  
+  // Debug: mostra valore dopo pulizia
+  if (normalized !== String(speciesName || '').toLowerCase().trim()) {
+    console.log('[getMasterSheetSync] Pulizia:', JSON.stringify(speciesName), '->', normalized);
+  }
   
   // STEP 1: Normalizza sinonimi PRIMA di cercare
   const canonical = normalizeToCanonical(normalized);
@@ -134,8 +144,8 @@ export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null
     return null;
   }
   
-  // Log senza virgolette aggiuntive - usa JSON.stringify per mostrare il valore esatto
-  console.error('[getMasterSheetSync] Searching for:', JSON.stringify(normalized), '| Total sheets:', plantMasterSheets.length);
+  // Log per debug - mostra il valore normalizzato (senza JSON.stringify per evitare virgolette aggiuntive)
+  console.log('[getMasterSheetSync] Searching for:', normalized, '| Total sheets:', plantMasterSheets.length);
   
   // Cerca prima nelle piante base
   const baseMatch = plantMasterSheets.find(sheet => 
