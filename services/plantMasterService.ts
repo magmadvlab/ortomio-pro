@@ -308,12 +308,23 @@ export const convertMasterSheetToSpecificInfo = (
   lng?: number
 ): SpecificPlantInfo => {
   // Calcola stagione e finestre di semina/trapianto basate su data e posizione
-  // Usa typeof window check per evitare problemi di idratazione SSR
-  const today = typeof window !== 'undefined' ? new Date() : new Date();
-  const month = today.toLocaleDateString('it-IT', { month: 'long' });
-  const season = today.getMonth() >= 2 && today.getMonth() <= 4 ? 'Primavera' : 
-                 today.getMonth() >= 5 && today.getMonth() <= 7 ? 'Estate' :
-                 today.getMonth() >= 8 && today.getMonth() <= 10 ? 'Autunno' : 'Inverno';
+  // Usa valori statici per evitare problemi di idratazione SSR
+  // I valori dinamici verranno calcolati lato client quando necessario
+  const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 
+                      'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+  
+  // Calcola solo se siamo lato client, altrimenti usa valori di default
+  let month = 'gennaio';
+  let season = 'Inverno';
+  
+  if (typeof window !== 'undefined') {
+    const today = new Date();
+    const monthIndex = today.getMonth();
+    month = monthNames[monthIndex];
+    season = monthIndex >= 2 && monthIndex <= 4 ? 'Primavera' : 
+             monthIndex >= 5 && monthIndex <= 7 ? 'Estate' :
+             monthIndex >= 8 && monthIndex <= 10 ? 'Autunno' : 'Inverno';
+  }
   
   // Costruisci finestre di semina/trapianto/raccolta dai dati master
   const seedSowingWindow = masterSheet.season === 'Spring' ? 

@@ -252,8 +252,12 @@ const FruitTreeManagement: React.FC<FruitTreeManagementProps> = ({
           Periodo Raccolta
         </h4>
         <p className="text-sm text-blue-700">
-          Da {new Date(2024, fruitTreeCrop.harvestWindow.startMonth - 1, 1).toLocaleDateString('it-IT', { month: 'long' })}{' '}
-          a {new Date(2024, fruitTreeCrop.harvestWindow.endMonth - 1, 1).toLocaleDateString('it-IT', { month: 'long' })}
+          {(() => {
+            // Usa array statico per evitare problemi di hydration SSR
+            const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 
+                                'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+            return `Da ${monthNames[fruitTreeCrop.harvestWindow.startMonth - 1]} a ${monthNames[fruitTreeCrop.harvestWindow.endMonth - 1]}`;
+          })()}
         </p>
         {treeAge < fruitTreeCrop.maturityYears && (
           <p className="text-xs text-blue-600 mt-2">

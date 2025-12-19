@@ -287,11 +287,15 @@ export const getSpecificPlantDetails = async (query: string, lat: number, lng: n
   }
 
   const model = "gemini-2.5-flash";
+  // Usa array statico per evitare problemi di hydration SSR
+  const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 
+                      'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
   const today = new Date();
-  const month = today.toLocaleDateString('it-IT', { month: 'long' });
-  const season = today.getMonth() >= 2 && today.getMonth() <= 4 ? 'Primavera' : 
-                 today.getMonth() >= 5 && today.getMonth() <= 7 ? 'Estate' :
-                 today.getMonth() >= 8 && today.getMonth() <= 10 ? 'Autunno' : 'Inverno';
+  const monthIndex = today.getMonth();
+  const month = monthNames[monthIndex];
+  const season = monthIndex >= 2 && monthIndex <= 4 ? 'Primavera' : 
+                 monthIndex >= 5 && monthIndex <= 7 ? 'Estate' :
+                 monthIndex >= 8 && monthIndex <= 10 ? 'Autunno' : 'Inverno';
 
   // Costruisci il prompt basato sulla scheda master se disponibile
   let prompt = '';

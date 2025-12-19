@@ -316,8 +316,11 @@ export function calculateOptimalPeriod(
     recommendations.push('Adatto tutto l\'anno per insalate e verdure a foglia (minimo 4 ore)');
   }
   if (bestPeriod) {
-    const startMonthName = bestPeriod.start.toLocaleDateString('it-IT', { month: 'long' });
-    const endMonthName = bestPeriod.end.toLocaleDateString('it-IT', { month: 'long' });
+    // Usa array statico per evitare problemi di hydration SSR
+    const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 
+                        'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+    const startMonthName = monthNames[bestPeriod.start.getMonth()];
+    const endMonthName = monthNames[bestPeriod.end.getMonth()];
     recommendations.push(
       `Periodo ottimale: ${bestPeriod.durationMonths} mesi consecutivi ` +
       `(${startMonthName} - ${endMonthName}) con media ${bestPeriod.avgSunHours} ore/giorno`
