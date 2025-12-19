@@ -109,12 +109,16 @@ const matchesPlantName = (query: string, dbName: string): boolean => {
 };
 
 export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null => {
-  // Pulizia iniziale: rimuovi virgolette, spazi extra, e normalizza
-  let normalized = speciesName
+  // Pulizia iniziale: rimuovi virgolette (incluse escape), spazi extra, e normalizza
+  let normalized = String(speciesName || '')
     .toLowerCase()
     .trim()
-    .replace(/^["']+|["']+$/g, '') // Rimuovi virgolette all'inizio e alla fine (una o più)
-    .replace(/["']/g, '') // Rimuovi tutte le virgolette rimanenti
+    // Rimuovi escape characters per virgolette (\", \', \\)
+    .replace(/\\(["'\\])/g, '$1') // Unescape: \" -> ", \' -> ', \\ -> \
+    // Rimuovi virgolette all'inizio e alla fine (una o più)
+    .replace(/^["']+|["']+$/g, '')
+    // Rimuovi tutte le virgolette rimanenti
+    .replace(/["']/g, '')
     .trim();
   
   // STEP 1: Normalizza sinonimi PRIMA di cercare
