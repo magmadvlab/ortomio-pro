@@ -54,6 +54,53 @@ export const getMasterSheet = async (speciesName: string): Promise<PlantMasterSh
  * Versione sincrona di getMasterSheet (per retrocompatibilità)
  * Non include archetypeId
  */
+/**
+ * Normalizza un nome di pianta per il matching (gestisce plurali/singolari italiani)
+ */
+const normalizePlantName = (name: string): string => {
+  const normalized = name.toLowerCase().trim();
+  
+  // Rimuovi plurali comuni italiani per normalizzare
+  // -i -> (rimuovi -i)
+  // -e -> (rimuovi -e) 
+  // -a -> (rimuovi -a per nomi femminili plurali)
+  let singular = normalized;
+  
+  // Gestisci plurali maschili (-i)
+  if (singular.endsWith('i') && singular.length > 2) {
+    singular = singular.slice(0, -1); // Rimuovi -i
+  }
+  // Gestisci plurali femminili (-e)
+  else if (singular.endsWith('e') && singular.length > 2) {
+    singular = singular.slice(0, -1) + 'a'; // Cambia -e in -a (singolare femminile)
+  }
+  
+  return singular;
+};
+
+/**
+ * Verifica se due nomi corrispondono (gestisce plurali/singolari)
+ */
+const matchesPlantName = (query: string, dbName: string): boolean => {
+  const queryNorm = query.toLowerCase().trim();
+  const dbNorm = dbName.toLowerCase().trim();
+  
+  // Match esatto
+  if (queryNorm === dbNorm) return true;
+  
+  // Match bidirezionale con includes
+  if (queryNorm.includes(dbNorm) || dbNorm.includes(queryNorm)) return true;
+  
+  // Match normalizzato (gestisce plurali)
+  const querySingular = normalizePlantName(queryNorm);
+  const dbSingular = normalizePlantName(dbNorm);
+  
+  if (querySingular === dbSingular) return true;
+  if (querySingular.includes(dbSingular) || dbSingular.includes(querySingular)) return true;
+  
+  return false;
+};
+
 export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null => {
   const normalized = speciesName.toLowerCase().trim();
   
@@ -68,9 +115,10 @@ export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null
   // Cerca prima nelle piante base
   const baseMatch = plantMasterSheets.find(sheet => 
     sheet.id === normalized ||
+    matchesPlantName(normalized, sheet.commonName) ||
+    matchesPlantName(normalized, sheet.scientificName) ||
     sheet.commonName.toLowerCase().includes(normalized) ||
-    sheet.scientificName.toLowerCase().includes(normalized) ||
-    sheet.commonName.toLowerCase() === normalized
+    sheet.scientificName.toLowerCase().includes(normalized)
   );
   
   if (baseMatch) {
@@ -82,9 +130,10 @@ export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null
   const specializedSheets = getAllSpecializedMasterSheets();
   const specializedMatch = specializedSheets.find(sheet => 
     sheet.id === normalized ||
+    matchesPlantName(normalized, sheet.commonName) ||
+    matchesPlantName(normalized, sheet.scientificName) ||
     sheet.commonName.toLowerCase().includes(normalized) ||
-    sheet.scientificName.toLowerCase().includes(normalized) ||
-    sheet.commonName.toLowerCase() === normalized
+    sheet.scientificName.toLowerCase().includes(normalized)
   );
   
   if (specializedMatch) {
