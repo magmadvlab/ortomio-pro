@@ -218,7 +218,14 @@ export const getSeasonalSuggestions = async (lat: number, lng: number): Promise<
 
 export const getSpecificPlantDetails = async (query: string, lat: number, lng: number): Promise<SpecificPlantInfo | null> => {
   // STEP 1: Cerca PRIMA nel database locale (senza bisogno di API)
+  // DEBUG: Log sempre visibili (anche in produzione) - usiamo console.error per essere sicuri che non vengano rimossi
+  console.error('[SEARCH] ===== STARTING SEARCH =====');
+  console.error('[SEARCH] Query:', query);
+  console.error('[SEARCH] Environment:', typeof window !== 'undefined' ? 'Client' : 'Server');
+  
   const varietyInfo = getVarietyInfoSync(query);
+  console.error('[SEARCH] VarietyInfo result:', varietyInfo ? `✅ Found: ${varietyInfo.speciesId}` : '❌ Not found');
+  
   let masterGuide = null;
   let speciesName = query;
   let varietyName: string | undefined = undefined;
@@ -228,15 +235,18 @@ export const getSpecificPlantDetails = async (query: string, lat: number, lng: n
     speciesName = varietyInfo.speciesId;
     varietyName = varietyInfo.varietyName;
     masterGuide = generateCompleteGuideSync(speciesName, varietyName);
+    console.error('[SEARCH] MasterGuide from variety:', masterGuide ? `Found: ${masterGuide.masterSheet.commonName}` : 'Not found');
   } else {
     // Prova a trovare la specie direttamente
     const speciesFromVariety = findSpeciesFromVariety(query);
     if (speciesFromVariety) {
       speciesName = speciesFromVariety.speciesId;
       masterGuide = generateCompleteGuideSync(speciesName);
+      console.error('[SEARCH] MasterGuide from species:', masterGuide ? `Found: ${masterGuide.masterSheet.commonName}` : 'Not found');
     } else {
       // Prova a cercare per nome specie
       masterGuide = generateCompleteGuideSync(query);
+      console.error('[SEARCH] MasterGuide direct search:', masterGuide ? `Found: ${masterGuide.masterSheet.commonName}` : 'Not found');
       if (masterGuide) {
         speciesName = query;
       }
@@ -245,6 +255,7 @@ export const getSpecificPlantDetails = async (query: string, lat: number, lng: n
 
   // STEP 2: Se trovato localmente, converti e restituisci
   if (masterGuide && masterGuide.masterSheet) {
+    console.error('[SEARCH] ✅ Returning LOCAL result for:', masterGuide.masterSheet.commonName);
     return convertMasterSheetToSpecificInfo(
       masterGuide.masterSheet,
       varietyName,
@@ -252,6 +263,8 @@ export const getSpecificPlantDetails = async (query: string, lat: number, lng: n
       lng
     );
   }
+
+  console.error('[SEARCH] ⚠️ No local match found, falling back to AI');
 
   // STEP 3: Se non trovato localmente, usa Gemini (se disponibile)
   if (!checkApiAvailable()) {

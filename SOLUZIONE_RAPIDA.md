@@ -100,3 +100,4 @@ Se preferisci continuare con Docker Compose, vedi `docker/FIX_AUTHENTICATOR.md`
 
 
 
+

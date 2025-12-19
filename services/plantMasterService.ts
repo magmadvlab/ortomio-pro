@@ -57,6 +57,14 @@ export const getMasterSheet = async (speciesName: string): Promise<PlantMasterSh
 export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null => {
   const normalized = speciesName.toLowerCase().trim();
   
+  // DEBUG: Verifica che plantMasterSheets sia caricato (sempre visibile)
+  if (!plantMasterSheets || plantMasterSheets.length === 0) {
+    console.error('[getMasterSheetSync] ❌ plantMasterSheets è vuoto o non caricato!');
+    return null;
+  }
+  
+  console.error('[getMasterSheetSync] Searching for:', normalized, '| Total sheets:', plantMasterSheets.length);
+  
   // Cerca prima nelle piante base
   const baseMatch = plantMasterSheets.find(sheet => 
     sheet.id === normalized ||
@@ -65,16 +73,27 @@ export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null
     sheet.commonName.toLowerCase() === normalized
   );
   
-  if (baseMatch) return baseMatch;
+  if (baseMatch) {
+    console.error('[getMasterSheetSync] ✅ Found in base sheets:', baseMatch.commonName);
+    return baseMatch;
+  }
   
   // Cerca nelle colture specializzate
   const specializedSheets = getAllSpecializedMasterSheets();
-  return specializedSheets.find(sheet => 
+  const specializedMatch = specializedSheets.find(sheet => 
     sheet.id === normalized ||
     sheet.commonName.toLowerCase().includes(normalized) ||
     sheet.scientificName.toLowerCase().includes(normalized) ||
     sheet.commonName.toLowerCase() === normalized
-  ) || null;
+  );
+  
+  if (specializedMatch) {
+    console.error('[getMasterSheetSync] ✅ Found in specialized sheets:', specializedMatch.commonName);
+    return specializedMatch;
+  }
+  
+  console.error('[getMasterSheetSync] ❌ Not found for:', normalized);
+  return null;
 };
 
 /**
