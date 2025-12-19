@@ -9,18 +9,10 @@ const nextConfig = {
       },
     ],
   },
-  // Assicura che i file di dati siano inclusi nel bundle
-  webpack: (config, { isServer }) => {
-    // Forza l'inclusione dei file di dati nel bundle client
-    if (!isServer) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-      };
-    }
-    return config;
-  },
-  // Removed experimental.turbo - not supported in Next.js 16
-  // Turbopack is now the default bundler
+  // Turbopack è il bundler di default in Next.js 16
+  // I file di dati (plantMasterSheets.ts, varietyMappings.ts, ecc.) 
+  // vengono automaticamente inclusi nel bundle tramite import statici
+  turbopack: {},
 }
 
 // In sviluppo, esporta direttamente senza PWA
