@@ -4,6 +4,7 @@ import { varietyMappings } from '../data/varietyMappings';
 import { getAllSpecializedMasterSheets } from '../data/specializedCropMasterSheets';
 import { getPlantTaxonomy, getPlantArchetype } from './plantTaxonomyService';
 import { ArchetypeId } from '../types/archetypes';
+import { normalizeToCanonical } from '../data/plantAliases';
 
 /**
  * Trova la scheda master per una specie (include anche colture specializzate)
@@ -102,7 +103,14 @@ const matchesPlantName = (query: string, dbName: string): boolean => {
 };
 
 export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null => {
-  const normalized = speciesName.toLowerCase().trim();
+  let normalized = speciesName.toLowerCase().trim();
+  
+  // STEP 1: Normalizza sinonimi PRIMA di cercare
+  const canonical = normalizeToCanonical(normalized);
+  if (canonical !== normalized) {
+    console.error('[getMasterSheetSync] [NORMALIZE]', normalized, '->', canonical);
+    normalized = canonical;
+  }
   
   // DEBUG: Verifica che plantMasterSheets sia caricato (sempre visibile)
   if (!plantMasterSheets || plantMasterSheets.length === 0) {

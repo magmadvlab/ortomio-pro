@@ -416,6 +416,714 @@ export const strawberryMasterSheets: StrawberryCrop[] = [
       pests: ['Afidi', 'Tripide', 'Ragnetto rosso', 'Nottue'],
       preventiveStrategy: 'HIGH'
     }
+  },
+  
+  // FRAGOLA SABRINA
+  {
+    id: 'fragola-sabrina',
+    commonName: 'FRAGOLA SABRINA',
+    cropType: 'Strawberry',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Fragaria × ananassa',
+    family: 'Rosaceae',
+    varietyType: 'June-bearing',
+    plantingSystem: 'Matted Row',
+    runnerManagement: {
+      removeRunners: true,
+      keepForPropagation: false
+    },
+    mulching: {
+      material: 'Straw',
+      thickness: 5
+    },
+    harvestWindow: {
+      startMonth: 5,
+      endMonth: 6
+    },
+    renovationRequired: true,
+    renovationMonth: 7,
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: false
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '18-22°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 14, max: 21 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 3-4 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      lightHours: 10,
+      watering: 'Terreno sempre umido ma non bagnato',
+      temperature: '15-20°C'
+    },
+    transplanting: {
+      when: 'Agosto-settembre o marzo-aprile',
+      minTemp: 5,
+      spacing: '30cm sulla fila, 50cm tra le file',
+      holeDepth: 10,
+      holeWidth: 15,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-6.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Sabrina è una varietà precoce con frutti di buona dimensione e sapore equilibrato. Adatta a diverse condizioni climatiche.',
+      commonMistakes: [
+        'Non rimuovere stoloni durante la produzione',
+        'Irrigazione irregolare',
+        'Non rinnovare l\'impianto dopo 3-4 anni'
+      ],
+      harvestGuide: 'Raccogli quando i frutti sono completamente rossi. Raccolta ogni 2-3 giorni durante il picco.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio', 'Botrite'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'MEDIUM'
+    }
+  },
+  
+  // FRAGOLA ALBA
+  {
+    id: 'fragola-alba',
+    commonName: 'FRAGOLA ALBA',
+    cropType: 'Strawberry',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Fragaria × ananassa',
+    family: 'Rosaceae',
+    varietyType: 'June-bearing',
+    plantingSystem: 'Matted Row',
+    runnerManagement: {
+      removeRunners: true,
+      keepForPropagation: false
+    },
+    mulching: {
+      material: 'Straw',
+      thickness: 5
+    },
+    harvestWindow: {
+      startMonth: 5,
+      endMonth: 6
+    },
+    renovationRequired: true,
+    renovationMonth: 7,
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: false
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '18-22°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 14, max: 21 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 3-4 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      lightHours: 10,
+      watering: 'Terreno sempre umido ma non bagnato',
+      temperature: '15-20°C'
+    },
+    transplanting: {
+      when: 'Agosto-settembre o marzo-aprile',
+      minTemp: 5,
+      spacing: '30cm sulla fila, 50cm tra le file',
+      holeDepth: 10,
+      holeWidth: 15,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-6.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Alba è una varietà precoce molto produttiva, con frutti di buona qualità. Adatta alla coltivazione in diverse regioni italiane.',
+      commonMistakes: [
+        'Non rimuovere stoloni durante la produzione',
+        'Irrigazione irregolare',
+        'Non rinnovare l\'impianto dopo 3-4 anni'
+      ],
+      harvestGuide: 'Raccogli quando i frutti sono completamente rossi. Raccolta ogni 2-3 giorni durante il picco.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio', 'Botrite'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'MEDIUM'
+    }
+  },
+  
+  // FRAGOLA CLERY
+  {
+    id: 'fragola-clery',
+    commonName: 'FRAGOLA CLERY',
+    cropType: 'Strawberry',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Fragaria × ananassa',
+    family: 'Rosaceae',
+    varietyType: 'June-bearing',
+    plantingSystem: 'Matted Row',
+    runnerManagement: {
+      removeRunners: true,
+      keepForPropagation: false
+    },
+    mulching: {
+      material: 'Straw',
+      thickness: 5
+    },
+    harvestWindow: {
+      startMonth: 5,
+      endMonth: 6
+    },
+    renovationRequired: true,
+    renovationMonth: 7,
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: false
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '18-22°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 14, max: 21 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 3-4 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      lightHours: 10,
+      watering: 'Terreno sempre umido ma non bagnato',
+      temperature: '15-20°C'
+    },
+    transplanting: {
+      when: 'Agosto-settembre o marzo-aprile',
+      minTemp: 5,
+      spacing: '30cm sulla fila, 50cm tra le file',
+      holeDepth: 10,
+      holeWidth: 15,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-6.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Clery è una varietà precoce con frutti di forma regolare e colore intenso. Ottima per consumo fresco.',
+      commonMistakes: [
+        'Non rimuovere stoloni durante la produzione',
+        'Irrigazione irregolare',
+        'Non rinnovare l\'impianto dopo 3-4 anni'
+      ],
+      harvestGuide: 'Raccogli quando i frutti sono completamente rossi. Raccolta ogni 2-3 giorni durante il picco.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio', 'Botrite'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'MEDIUM'
+    }
+  },
+  
+  // FRAGOLA ELIANY
+  {
+    id: 'fragola-eliany',
+    commonName: 'FRAGOLA ELIANY',
+    cropType: 'Strawberry',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Fragaria × ananassa',
+    family: 'Rosaceae',
+    varietyType: 'June-bearing',
+    plantingSystem: 'Matted Row',
+    runnerManagement: {
+      removeRunners: true,
+      keepForPropagation: false
+    },
+    mulching: {
+      material: 'Straw',
+      thickness: 5
+    },
+    harvestWindow: {
+      startMonth: 5,
+      endMonth: 6
+    },
+    renovationRequired: true,
+    renovationMonth: 7,
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: false
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '18-22°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 14, max: 21 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 3-4 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      lightHours: 10,
+      watering: 'Terreno sempre umido ma non bagnato',
+      temperature: '15-20°C'
+    },
+    transplanting: {
+      when: 'Agosto-settembre o marzo-aprile',
+      minTemp: 5,
+      spacing: '30cm sulla fila, 50cm tra le file',
+      holeDepth: 10,
+      holeWidth: 15,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-6.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Eliany è una varietà con frutti di buona dimensione e sapore dolce. Adatta a diverse condizioni climatiche.',
+      commonMistakes: [
+        'Non rimuovere stoloni durante la produzione',
+        'Irrigazione irregolare',
+        'Non rinnovare l\'impianto dopo 3-4 anni'
+      ],
+      harvestGuide: 'Raccogli quando i frutti sono completamente rossi. Raccolta ogni 2-3 giorni durante il picco.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio', 'Botrite'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'MEDIUM'
+    }
+  },
+  
+  // FRAGOLA FLORENCE
+  {
+    id: 'fragola-florence',
+    commonName: 'FRAGOLA FLORENCE',
+    cropType: 'Strawberry',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Fragaria × ananassa',
+    family: 'Rosaceae',
+    varietyType: 'June-bearing',
+    plantingSystem: 'Matted Row',
+    runnerManagement: {
+      removeRunners: true,
+      keepForPropagation: false
+    },
+    mulching: {
+      material: 'Straw',
+      thickness: 5
+    },
+    harvestWindow: {
+      startMonth: 5,
+      endMonth: 6
+    },
+    renovationRequired: true,
+    renovationMonth: 7,
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: false
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '18-22°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 14, max: 21 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 3-4 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      lightHours: 10,
+      watering: 'Terreno sempre umido ma non bagnato',
+      temperature: '15-20°C'
+    },
+    transplanting: {
+      when: 'Agosto-settembre o marzo-aprile',
+      minTemp: 5,
+      spacing: '30cm sulla fila, 50cm tra le file',
+      holeDepth: 10,
+      holeWidth: 15,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-6.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Florence è una varietà tardiva con frutti di ottima qualità e sapore intenso. Ottima per consumo fresco.',
+      commonMistakes: [
+        'Non rimuovere stoloni durante la produzione',
+        'Irrigazione irregolare',
+        'Non rinnovare l\'impianto dopo 3-4 anni'
+      ],
+      harvestGuide: 'Raccogli quando i frutti sono completamente rossi. Raccolta ogni 2-3 giorni durante il picco.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio', 'Botrite'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'MEDIUM'
+    }
+  },
+  
+  // FRAGOLA GARIGUETTE
+  {
+    id: 'fragola-gariguette',
+    commonName: 'FRAGOLA GARIGUETTE',
+    cropType: 'Strawberry',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Fragaria × ananassa',
+    family: 'Rosaceae',
+    varietyType: 'June-bearing',
+    plantingSystem: 'Matted Row',
+    runnerManagement: {
+      removeRunners: true,
+      keepForPropagation: false
+    },
+    mulching: {
+      material: 'Straw',
+      thickness: 5
+    },
+    harvestWindow: {
+      startMonth: 4,
+      endMonth: 6
+    },
+    renovationRequired: true,
+    renovationMonth: 7,
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: false
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '18-22°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 14, max: 21 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 3-4 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      lightHours: 10,
+      watering: 'Terreno sempre umido ma non bagnato',
+      temperature: '15-20°C'
+    },
+    transplanting: {
+      when: 'Agosto-settembre o marzo-aprile',
+      minTemp: 5,
+      spacing: '30cm sulla fila, 50cm tra le file',
+      holeDepth: 10,
+      holeWidth: 15,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-6.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Gariguette è una varietà precoce francese molto apprezzata per il sapore intenso e aromatico. Frutti di forma allungata.',
+      commonMistakes: [
+        'Non rimuovere stoloni durante la produzione',
+        'Irrigazione irregolare',
+        'Non rinnovare l\'impianto dopo 3-4 anni'
+      ],
+      harvestGuide: 'Raccogli quando i frutti sono completamente rossi. Raccolta ogni 2-3 giorni durante il picco.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio', 'Botrite'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'MEDIUM'
+    }
+  },
+  
+  // FRAGOLA MALGA
+  {
+    id: 'fragola-malga',
+    commonName: 'FRAGOLA MALGA',
+    cropType: 'Strawberry',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Fragaria × ananassa',
+    family: 'Rosaceae',
+    varietyType: 'June-bearing',
+    plantingSystem: 'Matted Row',
+    runnerManagement: {
+      removeRunners: true,
+      keepForPropagation: false
+    },
+    mulching: {
+      material: 'Straw',
+      thickness: 5
+    },
+    harvestWindow: {
+      startMonth: 5,
+      endMonth: 6
+    },
+    renovationRequired: true,
+    renovationMonth: 7,
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: false
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '18-22°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 14, max: 21 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 3-4 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      lightHours: 10,
+      watering: 'Terreno sempre umido ma non bagnato',
+      temperature: '15-20°C'
+    },
+    transplanting: {
+      when: 'Agosto-settembre o marzo-aprile',
+      minTemp: 5,
+      spacing: '30cm sulla fila, 50cm tra le file',
+      holeDepth: 10,
+      holeWidth: 15,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-6.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Malga è una varietà italiana con frutti di buona dimensione e sapore equilibrato. Adatta a diverse condizioni climatiche.',
+      commonMistakes: [
+        'Non rimuovere stoloni durante la produzione',
+        'Irrigazione irregolare',
+        'Non rinnovare l\'impianto dopo 3-4 anni'
+      ],
+      harvestGuide: 'Raccogli quando i frutti sono completamente rossi. Raccolta ogni 2-3 giorni durante il picco.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio', 'Botrite'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'MEDIUM'
+    }
+  },
+  
+  // FRAGOLA ROXANA
+  {
+    id: 'fragola-roxana',
+    commonName: 'FRAGOLA ROXANA',
+    cropType: 'Strawberry',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Fragaria × ananassa',
+    family: 'Rosaceae',
+    varietyType: 'June-bearing',
+    plantingSystem: 'Matted Row',
+    runnerManagement: {
+      removeRunners: true,
+      keepForPropagation: false
+    },
+    mulching: {
+      material: 'Straw',
+      thickness: 5
+    },
+    harvestWindow: {
+      startMonth: 5,
+      endMonth: 6
+    },
+    renovationRequired: true,
+    renovationMonth: 7,
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: false
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '18-22°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 14, max: 21 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 3-4 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      lightHours: 10,
+      watering: 'Terreno sempre umido ma non bagnato',
+      temperature: '15-20°C'
+    },
+    transplanting: {
+      when: 'Agosto-settembre o marzo-aprile',
+      minTemp: 5,
+      spacing: '30cm sulla fila, 50cm tra le file',
+      holeDepth: 10,
+      holeWidth: 15,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-6.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Roxana è una varietà con frutti di ottima qualità e sapore intenso. Ottima per consumo fresco e trasformazione.',
+      commonMistakes: [
+        'Non rimuovere stoloni durante la produzione',
+        'Irrigazione irregolare',
+        'Non rinnovare l\'impianto dopo 3-4 anni'
+      ],
+      harvestGuide: 'Raccogli quando i frutti sono completamente rossi. Raccolta ogni 2-3 giorni durante il picco.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio', 'Botrite'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'MEDIUM'
+    }
+  },
+  
+  // FRAGOLA SIRIA
+  {
+    id: 'fragola-siria',
+    commonName: 'FRAGOLA SIRIA',
+    cropType: 'Strawberry',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Fragaria × ananassa',
+    family: 'Rosaceae',
+    varietyType: 'June-bearing',
+    plantingSystem: 'Matted Row',
+    runnerManagement: {
+      removeRunners: true,
+      keepForPropagation: false
+    },
+    mulching: {
+      material: 'Straw',
+      thickness: 5
+    },
+    harvestWindow: {
+      startMonth: 5,
+      endMonth: 6
+    },
+    renovationRequired: true,
+    renovationMonth: 7,
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: false
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '18-22°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 14, max: 21 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 3-4 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      lightHours: 10,
+      watering: 'Terreno sempre umido ma non bagnato',
+      temperature: '15-20°C'
+    },
+    transplanting: {
+      when: 'Agosto-settembre o marzo-aprile',
+      minTemp: 5,
+      spacing: '30cm sulla fila, 50cm tra le file',
+      holeDepth: 10,
+      holeWidth: 15,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-6.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Siria è una varietà con frutti di buona dimensione e sapore dolce. Adatta a diverse condizioni climatiche italiane.',
+      commonMistakes: [
+        'Non rimuovere stoloni durante la produzione',
+        'Irrigazione irregolare',
+        'Non rinnovare l\'impianto dopo 3-4 anni'
+      ],
+      harvestGuide: 'Raccogli quando i frutti sono completamente rossi. Raccolta ogni 2-3 giorni durante il picco.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio', 'Botrite'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'MEDIUM'
+    }
+  },
+  
+  // FRAGOLINA DI BOSCO
+  {
+    id: 'fragolina-di-bosco',
+    commonName: 'FRAGOLINA DI BOSCO',
+    cropType: 'Strawberry',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Fragaria vesca',
+    family: 'Rosaceae',
+    varietyType: 'June-bearing',
+    plantingSystem: 'Matted Row',
+    runnerManagement: {
+      removeRunners: false,
+      keepForPropagation: true
+    },
+    mulching: {
+      material: 'Organic',
+      thickness: 3
+    },
+    harvestWindow: {
+      startMonth: 5,
+      endMonth: 6
+    },
+    renovationRequired: false,
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: false
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '18-22°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 14, max: 21 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 3-4 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      watering: 'Mantieni terreno umido ma ben drenato',
+      temperature: '15-25°C'
+    },
+    transplanting: {
+      when: 'Autunno (ottobre-novembre) o primavera (marzo-aprile)',
+      minTemp: 10,
+      spacing: '20-25cm sulla fila, 40cm tra le file',
+      holeDepth: 10,
+      holeWidth: 10,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-6.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'La fragolina di bosco è una varietà selvatica di fragola con frutti piccoli ma molto profumati. Facile da coltivare, si propaga naturalmente per stoloni.',
+      commonMistakes: [
+        'Non lasciare stoloni - si propagano naturalmente',
+        'Terreno troppo umido - preferisce terreno ben drenato',
+        'Gestione malattie inadeguata - sensibile a oidio'
+      ],
+      harvestGuide: 'Raccogli quando i frutti sono completamente rossi e profumati (maggio-giugno). I frutti sono piccoli ma molto saporiti.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio', 'Botrite'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'LOW'
+    }
   }
 ];
 

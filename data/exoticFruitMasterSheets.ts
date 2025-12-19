@@ -656,6 +656,911 @@ export const exoticFruitMasterSheets: ExoticFruitCrop[] = [
       pests: ['Afidi', 'Cocciniglie', 'Nematodi'],
       preventiveStrategy: 'HIGH'
     }
+  },
+  
+  // GELSO
+  {
+    id: 'gelso',
+    commonName: 'GELSO',
+    cropType: 'ExoticFruit',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Morus alba L. / Morus nigra L.',
+    family: 'Moraceae',
+    fruitType: 'MediterraneanExotic',
+    
+    climateRequirements: {
+      minTemp: -15,
+      maxTemp: 35,
+      idealTemp: '15-25°C',
+      humidity: 'Medium',
+      frostTolerant: true,
+      heatTolerant: true
+    },
+    
+    greenhouseRequired: false,
+    greenhouseType: 'Cold',
+    indoorGrowing: false,
+    containerSize: 'Minimo 50L, ideale 100L+',
+    
+    treeType: 'Tree',
+    maturityYears: 3,
+    harvestWindow: {
+      startMonth: 6,
+      endMonth: 7
+    },
+    
+    italianClimateNotes: 'Il gelso è molto adatto al clima italiano. Resiste bene al freddo e al caldo. Varietà nere (Morus nigra) più saporite.',
+    regionalSuitability: [
+      { region: 'Tutte', suitability: 'High', notes: 'Adatto a tutto il territorio italiano' }
+    ],
+    
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: true
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 1,
+      idealTemp: '15-20°C',
+      minTemp: 5,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 14, max: 21 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto',
+      watering: 'Irrigazione regolare',
+      temperature: 'Temperato'
+    },
+    transplanting: {
+      when: 'Autunno o primavera',
+      minTemp: -5,
+      spacing: '5-6m tra gli alberi',
+      holeDepth: 60,
+      holeWidth: 60,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-7.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Il gelso è un albero rustico e resistente, molto adatto al clima italiano. Produce more dolci in estate.',
+      commonMistakes: [
+        'Potatura eccessiva - il gelso non necessita di potatura intensa',
+        'Terreno troppo umido - preferisce terreno ben drenato',
+        'Gestione malattie inadeguata - sensibile a oidio'
+      ],
+      harvestGuide: 'Raccogli quando le more sono mature e si staccano facilmente (giugno-luglio).'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'LOW'
+    }
+  },
+  
+  // GIUGGIOLO
+  {
+    id: 'giuggiolo',
+    commonName: 'GIUGGIOLO',
+    cropType: 'ExoticFruit',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Ziziphus jujuba Mill.',
+    family: 'Rhamnaceae',
+    fruitType: 'MediterraneanExotic',
+    
+    climateRequirements: {
+      minTemp: -20,
+      maxTemp: 40,
+      idealTemp: '20-30°C',
+      humidity: 'Low',
+      frostTolerant: true,
+      heatTolerant: true
+    },
+    
+    greenhouseRequired: false,
+    greenhouseType: 'Cold',
+    indoorGrowing: false,
+    containerSize: 'Minimo 50L, ideale 100L+',
+    
+    treeType: 'Tree',
+    maturityYears: 3,
+    harvestWindow: {
+      startMonth: 9,
+      endMonth: 10
+    },
+    
+    italianClimateNotes: 'Il giuggiolo è molto resistente e adatto al clima italiano, soprattutto zone calde e secche.',
+    regionalSuitability: [
+      { region: 'Tutte', suitability: 'High', notes: 'Adatto a tutto il territorio italiano, preferisce zone calde' }
+    ],
+    
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: true
+    },
+    germination: {
+      preSoak: true,
+      sowingDepth: 2,
+      idealTemp: '20-25°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 21, max: 35 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto',
+      watering: 'Irrigazione moderata, resistente alla siccità',
+      temperature: 'Temperato'
+    },
+    transplanting: {
+      when: 'Autunno o primavera',
+      minTemp: -5,
+      spacing: '4-5m tra gli alberi',
+      holeDepth: 50,
+      holeWidth: 50,
+      soilRequirements: 'Terreno ben drenato, anche povero, pH 6.0-8.0'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Il giuggiolo è un albero molto resistente alla siccità e al freddo. Produce giuggiole dolci in autunno.',
+      commonMistakes: [
+        'Irrigazione eccessiva - resistente alla siccità',
+        'Terreno troppo umido - preferisce terreno ben drenato',
+        'Gestione malattie inadeguata - generalmente resistente'
+      ],
+      harvestGuide: 'Raccogli quando le giuggiole sono marroni e leggermente morbide (settembre-ottobre).'
+    },
+    susceptibility: {
+      fungalDiseases: [],
+      pests: ['Afidi'],
+      preventiveStrategy: 'LOW'
+    }
+  },
+  
+  // CORBEZZOLO
+  {
+    id: 'corbezzolo',
+    commonName: 'CORBEZZOLO',
+    cropType: 'ExoticFruit',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Arbutus unedo L.',
+    family: 'Ericaceae',
+    fruitType: 'MediterraneanExotic',
+    
+    climateRequirements: {
+      minTemp: -10,
+      maxTemp: 35,
+      idealTemp: '15-25°C',
+      humidity: 'Medium',
+      frostTolerant: true,
+      heatTolerant: true
+    },
+    
+    greenhouseRequired: false,
+    greenhouseType: 'Cold',
+    indoorGrowing: false,
+    containerSize: 'Minimo 50L, ideale 100L+',
+    
+    treeType: 'Tree',
+    maturityYears: 4,
+    harvestWindow: {
+      startMonth: 10,
+      endMonth: 12
+    },
+    
+    italianClimateNotes: 'Il corbezzolo è una pianta mediterranea molto adatta al clima italiano, soprattutto zone costiere.',
+    regionalSuitability: [
+      { region: 'Tutte', suitability: 'High', notes: 'Adatto a tutto il territorio italiano, preferisce zone costiere' }
+    ],
+    
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: true
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 1,
+      idealTemp: '15-20°C',
+      minTemp: 5,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 30, max: 60 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      watering: 'Irrigazione moderata',
+      temperature: 'Temperato'
+    },
+    transplanting: {
+      when: 'Autunno o primavera',
+      minTemp: -5,
+      spacing: '4-5m tra gli alberi',
+      holeDepth: 50,
+      holeWidth: 50,
+      soilRequirements: 'Terreno acido o neutro, ben drenato, pH 5.5-7.0'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Il corbezzolo è un albero sempreverde mediterraneo che produce corbezzole in autunno-inverno.',
+      commonMistakes: [
+        'Terreno troppo alcalino - preferisce terreno acido o neutro',
+        'Terreno troppo umido - preferisce terreno ben drenato',
+        'Gestione malattie inadeguata - generalmente resistente'
+      ],
+      harvestGuide: 'Raccogli quando le corbezzole sono rosse e morbide (ottobre-dicembre).'
+    },
+    susceptibility: {
+      fungalDiseases: [],
+      pests: ['Afidi'],
+      preventiveStrategy: 'LOW'
+    }
+  },
+  
+  // MIRTO
+  {
+    id: 'mirto',
+    commonName: 'MIRTO',
+    cropType: 'ExoticFruit',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Myrtus communis L.',
+    family: 'Myrtaceae',
+    fruitType: 'MediterraneanExotic',
+    
+    climateRequirements: {
+      minTemp: -5,
+      maxTemp: 35,
+      idealTemp: '15-25°C',
+      humidity: 'Medium',
+      frostTolerant: true,
+      heatTolerant: true
+    },
+    
+    greenhouseRequired: false,
+    greenhouseType: 'Cold',
+    indoorGrowing: true,
+    containerSize: 'Minimo 20L, ideale 50L+',
+    
+    treeType: 'Shrub',
+    maturityYears: 3,
+    harvestWindow: {
+      startMonth: 10,
+      endMonth: 11
+    },
+    
+    italianClimateNotes: 'Il mirto è una pianta mediterranea molto adatta al clima italiano, soprattutto zone costiere.',
+    regionalSuitability: [
+      { region: 'Tutte', suitability: 'High', notes: 'Adatto a tutto il territorio italiano, preferisce zone costiere' }
+    ],
+    
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: true
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 1,
+      idealTemp: '15-20°C',
+      minTemp: 5,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 30, max: 60 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      watering: 'Irrigazione moderata',
+      temperature: 'Temperato'
+    },
+    transplanting: {
+      when: 'Autunno o primavera',
+      minTemp: -5,
+      spacing: '1-2m tra le piante',
+      holeDepth: 40,
+      holeWidth: 40,
+      soilRequirements: 'Terreno ben drenato, anche povero, pH 6.0-8.0'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Il mirto è un arbusto sempreverde mediterraneo che produce bacche aromatiche in autunno.',
+      commonMistakes: [
+        'Terreno troppo umido - preferisce terreno ben drenato',
+        'Gestione malattie inadeguata - generalmente resistente',
+        'Potatura eccessiva - necessita di potatura leggera'
+      ],
+      harvestGuide: 'Raccogli quando le bacche sono nere e morbide (ottobre-novembre).'
+    },
+    susceptibility: {
+      fungalDiseases: [],
+      pests: ['Afidi'],
+      preventiveStrategy: 'LOW'
+    }
+  },
+  
+  // SORBO DOMESTICO
+  {
+    id: 'sorbo-domestico',
+    commonName: 'SORBO DOMESTICO',
+    cropType: 'ExoticFruit',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Sorbus domestica L.',
+    family: 'Rosaceae',
+    fruitType: 'MediterraneanExotic',
+    
+    climateRequirements: {
+      minTemp: -20,
+      maxTemp: 35,
+      idealTemp: '15-25°C',
+      humidity: 'Medium',
+      frostTolerant: true,
+      heatTolerant: true
+    },
+    
+    greenhouseRequired: false,
+    greenhouseType: 'Cold',
+    indoorGrowing: false,
+    containerSize: 'Minimo 50L, ideale 100L+',
+    
+    treeType: 'Tree',
+    maturityYears: 5,
+    harvestWindow: {
+      startMonth: 9,
+      endMonth: 10
+    },
+    
+    italianClimateNotes: 'Il sorbo domestico è molto adatto al clima italiano, resistente al freddo e al caldo.',
+    regionalSuitability: [
+      { region: 'Tutte', suitability: 'High', notes: 'Adatto a tutto il territorio italiano' }
+    ],
+    
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: true
+    },
+    germination: {
+      preSoak: true,
+      sowingDepth: 2,
+      idealTemp: '15-20°C',
+      minTemp: 5,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 30, max: 90 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto',
+      watering: 'Irrigazione regolare',
+      temperature: 'Temperato'
+    },
+    transplanting: {
+      when: 'Autunno o primavera',
+      minTemp: -10,
+      spacing: '5-6m tra gli alberi',
+      holeDepth: 60,
+      holeWidth: 60,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-7.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Il sorbo domestico è un albero rustico che produce sorbe in autunno. I frutti maturano dopo la raccolta.',
+      commonMistakes: [
+        'Raccogliere troppo presto - i frutti maturano dopo la raccolta',
+        'Terreno troppo umido - preferisce terreno ben drenato',
+        'Gestione malattie inadeguata - generalmente resistente'
+      ],
+      harvestGuide: 'Raccogli quando le sorbe sono gialle-rosse (settembre-ottobre). Lasciare maturare in luogo fresco e asciutto.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'LOW'
+    }
+  },
+  
+  // AZZAROLO
+  {
+    id: 'azzarolo',
+    commonName: 'AZZAROLO',
+    cropType: 'ExoticFruit',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Crataegus azarolus L.',
+    family: 'Rosaceae',
+    fruitType: 'MediterraneanExotic',
+    
+    climateRequirements: {
+      minTemp: -20,
+      maxTemp: 35,
+      idealTemp: '15-25°C',
+      humidity: 'Medium',
+      frostTolerant: true,
+      heatTolerant: true
+    },
+    
+    greenhouseRequired: false,
+    greenhouseType: 'Cold',
+    indoorGrowing: false,
+    containerSize: 'Minimo 50L, ideale 100L+',
+    
+    treeType: 'Tree',
+    maturityYears: 4,
+    harvestWindow: {
+      startMonth: 9,
+      endMonth: 10
+    },
+    
+    italianClimateNotes: 'L\'azzarolo è molto adatto al clima italiano, resistente al freddo e al caldo.',
+    regionalSuitability: [
+      { region: 'Tutte', suitability: 'High', notes: 'Adatto a tutto il territorio italiano' }
+    ],
+    
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: true
+    },
+    germination: {
+      preSoak: true,
+      sowingDepth: 2,
+      idealTemp: '15-20°C',
+      minTemp: 5,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 30, max: 90 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto',
+      watering: 'Irrigazione regolare',
+      temperature: 'Temperato'
+    },
+    transplanting: {
+      when: 'Autunno o primavera',
+      minTemp: -10,
+      spacing: '4-5m tra gli alberi',
+      holeDepth: 50,
+      holeWidth: 50,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-7.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'L\'azzarolo è un albero rustico che produce azzarole in autunno. I frutti sono simili a piccole mele.',
+      commonMistakes: [
+        'Terreno troppo umido - preferisce terreno ben drenato',
+        'Gestione malattie inadeguata - generalmente resistente',
+        'Potatura eccessiva - necessita di potatura leggera'
+      ],
+      harvestGuide: 'Raccogli quando le azzarole sono gialle-rosse e leggermente morbide (settembre-ottobre).'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'LOW'
+    }
+  },
+  
+  // CARRUBO
+  {
+    id: 'carrubo',
+    commonName: 'CARRUBO',
+    cropType: 'ExoticFruit',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Ceratonia siliqua L.',
+    family: 'Fabaceae',
+    fruitType: 'MediterraneanExotic',
+    
+    climateRequirements: {
+      minTemp: -5,
+      maxTemp: 40,
+      idealTemp: '15-25°C',
+      humidity: 'Low',
+      frostTolerant: true,
+      heatTolerant: true
+    },
+    
+    greenhouseRequired: false,
+    greenhouseType: 'Cold',
+    indoorGrowing: false,
+    containerSize: 'Minimo 100L, ideale 200L+',
+    
+    treeType: 'Tree',
+    maturityYears: 6,
+    harvestWindow: {
+      startMonth: 8,
+      endMonth: 10
+    },
+    
+    italianClimateNotes: 'Il carrubo è una pianta mediterranea molto adatta al clima italiano, soprattutto zone costiere del Sud.',
+    regionalSuitability: [
+      { region: 'Sicilia', suitability: 'High', notes: 'Zone costiere' },
+      { region: 'Calabria', suitability: 'High', notes: 'Zone costiere' },
+      { region: 'Puglia', suitability: 'High', notes: 'Zone costiere' },
+      { region: 'Sardegna', suitability: 'High', notes: 'Zone costiere' }
+    ],
+    
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: true
+    },
+    germination: {
+      preSoak: true,
+      sowingDepth: 2,
+      idealTemp: '20-25°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 14, max: 30 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto',
+      watering: 'Irrigazione moderata, resistente alla siccità',
+      temperature: 'Temperato'
+    },
+    transplanting: {
+      when: 'Autunno o primavera',
+      minTemp: -5,
+      spacing: '6-8m tra gli alberi',
+      holeDepth: 60,
+      holeWidth: 60,
+      soilRequirements: 'Terreno ben drenato, anche povero, pH 6.0-8.0'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Il carrubo è un albero sempreverde mediterraneo che produce carrube in estate-autunno. Molto resistente alla siccità.',
+      commonMistakes: [
+        'Irrigazione eccessiva - resistente alla siccità',
+        'Terreno troppo umido - preferisce terreno ben drenato',
+        'Gestione malattie inadeguata - generalmente resistente'
+      ],
+      harvestGuide: 'Raccogli quando le carrube sono marroni e secche (agosto-ottobre).'
+    },
+    susceptibility: {
+      fungalDiseases: [],
+      pests: ['Afidi'],
+      preventiveStrategy: 'LOW'
+    }
+  },
+  
+  // ALCHEMENGI (PHYSALIS)
+  {
+    id: 'alchechengi',
+    commonName: 'ALCHECHENGI',
+    cropType: 'ExoticFruit',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Physalis alkekengi L.',
+    family: 'Solanaceae',
+    fruitType: 'MediterraneanExotic',
+    
+    climateRequirements: {
+      minTemp: -15,
+      maxTemp: 35,
+      idealTemp: '15-25°C',
+      humidity: 'Medium',
+      frostTolerant: true,
+      heatTolerant: true
+    },
+    
+    greenhouseRequired: false,
+    greenhouseType: 'Cold',
+    indoorGrowing: false,
+    containerSize: 'Minimo 20L, ideale 50L+',
+    
+    treeType: 'Herbaceous',
+    maturityYears: 1,
+    harvestWindow: {
+      startMonth: 8,
+      endMonth: 10
+    },
+    
+    italianClimateNotes: 'L\'alchechengi è molto adatto al clima italiano, resistente al freddo e al caldo.',
+    regionalSuitability: [
+      { region: 'Tutte', suitability: 'High', notes: 'Adatto a tutto il territorio italiano' }
+    ],
+    
+    requiredTools: {
+      seedTray: true,
+      seedSoil: true,
+      heatingMat: false,
+      sprayer: true
+    },
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '18-22°C',
+      minTemp: 10,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 14, max: 21 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      watering: 'Irrigazione regolare',
+      temperature: 'Temperato'
+    },
+    transplanting: {
+      when: 'Primavera (aprile-maggio)',
+      minTemp: 5,
+      spacing: '50-60cm tra le piante',
+      holeDepth: 20,
+      holeWidth: 20,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-7.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'L\'alchechengi è una pianta erbacea che produce frutti avvolti in calici arancioni. Facile da coltivare.',
+      commonMistakes: [
+        'Terreno troppo umido - preferisce terreno ben drenato',
+        'Gestione malattie inadeguata - generalmente resistente',
+        'Non raccogliere quando maturo - i frutti maturano in autunno'
+      ],
+      harvestGuide: 'Raccogli quando i calici sono arancioni e i frutti sono gialli (agosto-ottobre).'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'LOW'
+    }
+  },
+  
+  // SAMBUCO
+  {
+    id: 'sambuco',
+    commonName: 'SAMBUCO',
+    cropType: 'ExoticFruit',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Sambucus nigra L.',
+    family: 'Adoxaceae',
+    fruitType: 'MediterraneanExotic',
+    
+    climateRequirements: {
+      minTemp: -20,
+      maxTemp: 35,
+      idealTemp: '15-25°C',
+      humidity: 'Medium',
+      frostTolerant: true,
+      heatTolerant: true
+    },
+    
+    greenhouseRequired: false,
+    greenhouseType: 'Cold',
+    indoorGrowing: false,
+    containerSize: 'Minimo 50L, ideale 100L+',
+    
+    treeType: 'Shrub',
+    maturityYears: 2,
+    harvestWindow: {
+      startMonth: 8,
+      endMonth: 9
+    },
+    
+    italianClimateNotes: 'Il sambuco è molto adatto al clima italiano, resistente al freddo e al caldo.',
+    regionalSuitability: [
+      { region: 'Tutte', suitability: 'High', notes: 'Adatto a tutto il territorio italiano' }
+    ],
+    
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: true
+    },
+    germination: {
+      preSoak: true,
+      sowingDepth: 1,
+      idealTemp: '15-20°C',
+      minTemp: 5,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 30, max: 60 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      watering: 'Irrigazione regolare',
+      temperature: 'Temperato'
+    },
+    transplanting: {
+      when: 'Autunno o primavera',
+      minTemp: -10,
+      spacing: '2-3m tra le piante',
+      holeDepth: 40,
+      holeWidth: 40,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-7.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Il sambuco è un arbusto rustico che produce bacche nere in estate. I frutti sono commestibili solo cotti.',
+      commonMistakes: [
+        'Mangiare frutti crudi - i frutti sono tossici crudi, vanno cotti',
+        'Terreno troppo umido - preferisce terreno ben drenato',
+        'Gestione malattie inadeguata - generalmente resistente'
+      ],
+      harvestGuide: 'Raccogli quando le bacche sono nere e mature (agosto-settembre). Usare solo frutti cotti.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'LOW'
+    }
+  },
+  
+  // CORNIOLO
+  {
+    id: 'corniolo',
+    commonName: 'CORNIOLO',
+    cropType: 'ExoticFruit',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Cornus mas L.',
+    family: 'Cornaceae',
+    fruitType: 'MediterraneanExotic',
+    
+    climateRequirements: {
+      minTemp: -20,
+      maxTemp: 35,
+      idealTemp: '15-25°C',
+      humidity: 'Medium',
+      frostTolerant: true,
+      heatTolerant: true
+    },
+    
+    greenhouseRequired: false,
+    greenhouseType: 'Cold',
+    indoorGrowing: false,
+    containerSize: 'Minimo 50L, ideale 100L+',
+    
+    treeType: 'Tree',
+    maturityYears: 4,
+    harvestWindow: {
+      startMonth: 8,
+      endMonth: 9
+    },
+    
+    italianClimateNotes: 'Il corniolo è molto adatto al clima italiano, resistente al freddo e al caldo.',
+    regionalSuitability: [
+      { region: 'Tutte', suitability: 'High', notes: 'Adatto a tutto il territorio italiano' }
+    ],
+    
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: true
+    },
+    germination: {
+      preSoak: true,
+      sowingDepth: 2,
+      idealTemp: '15-20°C',
+      minTemp: 5,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 30, max: 90 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto o mezz\'ombra',
+      watering: 'Irrigazione regolare',
+      temperature: 'Temperato'
+    },
+    transplanting: {
+      when: 'Autunno o primavera',
+      minTemp: -10,
+      spacing: '4-5m tra gli alberi',
+      holeDepth: 50,
+      holeWidth: 50,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-7.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Il corniolo è un albero rustico che produce corniole rosse in estate. I frutti sono acidi e si usano per marmellate.',
+      commonMistakes: [
+        'Terreno troppo umido - preferisce terreno ben drenato',
+        'Gestione malattie inadeguata - generalmente resistente',
+        'Non raccogliere quando maturo - i frutti maturano in estate'
+      ],
+      harvestGuide: 'Raccogli quando le corniole sono rosse e leggermente morbide (agosto-settembre).'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'LOW'
+    }
+  },
+  
+  // PRUGNOLO
+  {
+    id: 'prugnolo',
+    commonName: 'PRUGNOLO',
+    cropType: 'ExoticFruit',
+    nutrientCategory: 'FRUITING' as NutrientCategory,
+    scientificName: 'Prunus spinosa L.',
+    family: 'Rosaceae',
+    fruitType: 'MediterraneanExotic',
+    
+    climateRequirements: {
+      minTemp: -25,
+      maxTemp: 35,
+      idealTemp: '15-25°C',
+      humidity: 'Medium',
+      frostTolerant: true,
+      heatTolerant: true
+    },
+    
+    greenhouseRequired: false,
+    greenhouseType: 'Cold',
+    indoorGrowing: false,
+    containerSize: 'Minimo 50L, ideale 100L+',
+    
+    treeType: 'Shrub',
+    maturityYears: 3,
+    harvestWindow: {
+      startMonth: 9,
+      endMonth: 10
+    },
+    
+    italianClimateNotes: 'Il prugnolo è molto adatto al clima italiano, molto resistente al freddo.',
+    regionalSuitability: [
+      { region: 'Tutte', suitability: 'High', notes: 'Adatto a tutto il territorio italiano, molto resistente' }
+    ],
+    
+    requiredTools: {
+      seedTray: false,
+      seedSoil: false,
+      heatingMat: false,
+      sprayer: true
+    },
+    germination: {
+      preSoak: true,
+      sowingDepth: 2,
+      idealTemp: '15-20°C',
+      minTemp: 5,
+      lightRequirement: 'Light',
+      emergenceDays: { min: 30, max: 90 },
+      coveringNeeded: false
+    },
+    seedlingCare: {
+      transplantWhen: 'quando le piantine hanno 4-6 foglie',
+      lightNeeds: 'Sole diretto',
+      watering: 'Irrigazione regolare',
+      temperature: 'Temperato'
+    },
+    transplanting: {
+      when: 'Autunno o primavera',
+      minTemp: -15,
+      spacing: '2-3m tra le piante',
+      holeDepth: 40,
+      holeWidth: 40,
+      soilRequirements: 'Terreno fertile, ben drenato, pH 6.0-7.5'
+    },
+    availableTags: [],
+    baseInstructions: {
+      introduction: 'Il prugnolo è un arbusto spinoso molto rustico che produce prugnole in autunno. I frutti sono acidi e si usano per liquori.',
+      commonMistakes: [
+        'Terreno troppo umido - preferisce terreno ben drenato',
+        'Gestione malattie inadeguata - generalmente resistente',
+        'Non raccogliere dopo le gelate - i frutti diventano più dolci dopo le gelate'
+      ],
+      harvestGuide: 'Raccogli quando le prugnole sono blu-nere e leggermente morbide (settembre-ottobre). Meglio dopo le prime gelate.'
+    },
+    susceptibility: {
+      fungalDiseases: ['Oidio'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'LOW'
+    }
   }
 ];
 
