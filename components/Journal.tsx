@@ -546,7 +546,17 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
     const task = tasks.find(t => t.id === harvestModalOpen);
     if (task) {
       const brixInfo = task.recordedBrix ? ` con ${task.recordedBrix}° Brix` : '';
-      const harvestNote = `\n\n🎉 [Raccolto completato il ${new Date(harvestData.date).toLocaleDateString('it-IT')}]: ${harvestData.quantity}${harvestData.unit}. Qualità: ${harvestData.rating}/5. ${brixInfo}.`;
+      // Usa array statico per evitare problemi di hydration SSR
+      const formatDateShort = (dateStr: string) => {
+        const monthNamesShort = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 
+                                 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+        const date = new Date(dateStr);
+        const day = date.getDate();
+        const month = monthNamesShort[date.getMonth()];
+        const year = date.getFullYear();
+        return `${day} ${month} ${year}`;
+      };
+      const harvestNote = `\n\n🎉 [Raccolto completato il ${formatDateShort(harvestData.date)}]: ${harvestData.quantity}${harvestData.unit}. Qualità: ${harvestData.rating}/5. ${brixInfo}.`;
       
       const harvestPhoto = task.images && task.images.length > 0 ? task.images[task.images.length - 1] : undefined;
       
@@ -1277,7 +1287,16 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                     
                     {task.nextDueDate && (
                       <div className="mt-2 text-xs font-bold text-orange-600 flex items-center gap-1 bg-orange-50 inline-block px-2 py-1 rounded border border-orange-100">
-                        ⏳ Prossimo: {new Date(task.nextDueDate).toLocaleDateString('it-IT')}
+                        ⏳ Prossimo: {(() => {
+                          // Usa array statico per evitare problemi di hydration SSR
+                          const monthNamesShort = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 
+                                                   'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+                          const date = new Date(task.nextDueDate);
+                          const day = date.getDate();
+                          const month = monthNamesShort[date.getMonth()];
+                          const year = date.getFullYear();
+                          return `${day} ${month} ${year}`;
+                        })()}
                       </div>
                     )}
 
@@ -1437,7 +1456,16 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                           )}
                           {healthAdvice.nextTreatmentDate && (
                             <div className="mt-2 text-xs font-bold text-gray-600">
-                              Prossimo trattamento consigliato: {new Date(healthAdvice.nextTreatmentDate).toLocaleDateString('it-IT')}
+                              Prossimo trattamento consigliato: {(() => {
+                                // Usa array statico per evitare problemi di hydration SSR
+                                const monthNamesShort = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 
+                                                         'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+                                const date = new Date(healthAdvice.nextTreatmentDate);
+                                const day = date.getDate();
+                                const month = monthNamesShort[date.getMonth()];
+                                const year = date.getFullYear();
+                                return `${day} ${month} ${year}`;
+                              })()}
                             </div>
                           )}
                         </div>
@@ -1450,12 +1478,20 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                         <p className="text-[10px] uppercase font-bold text-orange-400 mb-1 flex items-center gap-1">
                           <History size={10}/> Raccolti parziali
                         </p>
-                        {task.harvestHistory.map(h => (
-                          <div key={h.id} className="text-xs text-gray-600 flex justify-between">
-                            <span>{new Date(h.date).toLocaleDateString('it-IT', {day: 'numeric', month: 'short'})}</span>
-                            <span className="font-bold">{h.quantity}{h.unit}</span>
-                          </div>
-                        ))}
+                        {task.harvestHistory.map(h => {
+                          // Usa array statico per evitare problemi di hydration SSR
+                          const monthNamesShort = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 
+                                                   'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+                          const date = new Date(h.date);
+                          const day = date.getDate();
+                          const month = monthNamesShort[date.getMonth()];
+                          return (
+                            <div key={h.id} className="text-xs text-gray-600 flex justify-between">
+                              <span>{day} {month}</span>
+                              <span className="font-bold">{h.quantity}{h.unit}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 
