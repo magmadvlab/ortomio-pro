@@ -26,6 +26,10 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
   process.exit(1);
 }
 
+// TypeScript type guard: dopo il check sopra, queste sono garantite essere stringhe
+const supabaseUrl: string = SUPABASE_URL;
+const supabaseKey: string = SUPABASE_KEY;
+
 async function applyMigration(): Promise<void> {
   console.log('🌱 Applicazione migrazione plant_taxonomy al database online...\n');
 
@@ -42,7 +46,7 @@ async function applyMigration(): Promise<void> {
   }
 
   // Crea client Supabase
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   // Dividi SQL in statement separati (semplificato - per statement complessi usa RPC)
   const statements = sql
@@ -69,12 +73,12 @@ async function applyMigration(): Promise<void> {
       // Usa RPC per eseguire SQL raw (richiede funzione custom o uso diretto di PostgREST)
       // Nota: Supabase JS client non supporta direttamente SQL raw
       // Opzione 1: Usa REST API direttamente
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
+      const response = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
         },
         body: JSON.stringify({ sql: statement + ';' }),
       });
