@@ -1191,7 +1191,17 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                     
                     <div className="flex items-center gap-2 mt-2 text-xs text-gray-500 flex-wrap">
                       <Calendar size={12} /> 
-                      {new Date(task.date).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'long' })}
+                      {(() => {
+                        // Usa array statico per evitare problemi di hydration SSR
+                        const weekdays = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
+                        const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 
+                                          'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+                        const date = new Date(task.date);
+                        const weekday = weekdays[date.getDay()];
+                        const day = date.getDate();
+                        const month = monthNames[date.getMonth()];
+                        return `${weekday} ${day} ${month}`;
+                      })()}
                       {task.season && (
                         <span className={`flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded ${task.season === 'Summer' ? 'bg-yellow-50 text-yellow-700' : 'bg-blue-50 text-blue-700'}`}>
                           {task.season === 'Summer' ? <Sun size={10}/> : <Snowflake size={10}/>} {task.season === 'Summer' ? 'Estivo' : 'Invernale'}

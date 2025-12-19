@@ -1360,9 +1360,14 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                                             </div>
                                             <div className="text-[10px] text-gray-400">
                                                 Fine: {(() => {
+                                                    // Usa array statico per evitare problemi di hydration SSR
+                                                    const monthNamesShort = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 
+                                                                           'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
                                                     const d = new Date();
                                                     d.setDate(d.getDate() + ((numBatches - 1) * batchInterval));
-                                                    return d.toLocaleDateString('it-IT', {day: 'numeric', month: 'short'});
+                                                    const day = d.getDate();
+                                                    const month = monthNamesShort[d.getMonth()];
+                                                    return `${day} ${month}`;
                                                 })()}
                                             </div>
                                         </div>
@@ -1788,7 +1793,17 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                         <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                           <span className="flex items-center gap-1">
                             <Calendar size={12} />
-                            {displayStartDate.toLocaleDateString('it-IT', { month: 'short', day: 'numeric' })} - {adjustedWindow.endDate.toLocaleDateString('it-IT', { month: 'short', day: 'numeric' })}
+                            {(() => {
+                              // Usa array statico per evitare problemi di hydration SSR
+                              const monthNamesShort = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 
+                                                       'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+                              const formatDate = (date: Date) => {
+                                const day = date.getDate();
+                                const month = monthNamesShort[date.getMonth()];
+                                return `${day} ${month}`;
+                              };
+                              return `${formatDate(displayStartDate)} - ${formatDate(adjustedWindow.endDate)}`;
+                            })()}
                           </span>
                           <span className="flex items-center gap-1">
                             {selectedMethod === 'Seed' ? <Sprout size={12} /> : <Sprout size={12} />}
