@@ -10,15 +10,20 @@ export interface SeedlingBatch {
   id: string;
   plantName: string;
   variety?: string;
-  sowingDate: string; // ISO date string
+  sowingDate: string; // ISO date string (per semine) o purchaseDate (per acquisti)
   quantity: number;
   location: 'Indoor' | 'Greenhouse' | 'ColdFrame';
   phase: 'Sowing' | 'Germination' | 'Nursing' | 'Hardening' | 'ReadyToTransplant';
-  currentQuantity?: number; // Sopravvissute
+  currentQuantity?: number; // Sopravvissute o disponibili
   expectedTransplantDate?: string; // ISO date string
   notes?: string;
   photoLog?: { date: string; image: string; notes?: string }[];
   gardenId: string;
+  
+  // NUOVO: Distingue tra semine in casa e acquisti al vivaio
+  source?: 'home' | 'nursery'; // 'home' = seminate in casa, 'nursery' = acquistate al vivaio
+  purchaseDate?: string; // Data acquisto (solo per source='nursery')
+  nurseryName?: string; // Nome vivaio (opzionale)
 }
 
 /**
@@ -176,6 +181,15 @@ export const isReadyToTransplant = (
   batch: SeedlingBatch,
   garden: Garden
 ): { ready: boolean; reason?: string; warnings?: string[] } => {
+  // Piantine acquistate sono sempre pronte (se hanno quantità disponibile)
+  if (batch.source === 'nursery') {
+    if (!batch.currentQuantity || batch.currentQuantity === 0) {
+      return { ready: false, reason: 'Nessuna piantina disponibile' };
+    }
+    return { ready: true };
+  }
+  
+  // Per semine in casa, usa la logica esistente
   const timeline = getSeedlingTimeline(batch);
   const warnings: string[] = [];
 
@@ -255,6 +269,43 @@ export const updateSurvivalCount = (
   return {
     ...batch,
     currentQuantity: Math.max(0, Math.min(currentQuantity, batch.quantity))
+  };
+};
+
+/**
+ * Crea un batch di piantine acquistate al vivaio
+ * Queste sono già pronte per trapianto (fase ReadyToTransplant)
+ */
+export const createPurchasedSeedlingBatch = (
+  plantName: string,
+  purchaseDate: string,
+  quantity: number,
+  gardenId: string,
+  variety?: string,
+  nurseryName?: string,
+  notes?: string
+): SeedlingBatch => {
+  const masterData = getMasterSheetSync(plantName);
+  if (!masterData) {
+    throw new Error(`Pianta ${plantName} non trovata nel database`);
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    plantName,
+    variety,
+    sowingDate: purchaseDate, // Usa purchaseDate come sowingDate per compatibilità
+    purchaseDate,
+    quantity,
+    location: 'Indoor', // Default, può essere modificato dopo
+    phase: 'ReadyToTransplant', // Piantine acquistate sono già pronte
+    currentQuantity: quantity, // Tutte disponibili inizialmente
+    expectedTransplantDate: purchaseDate, // Può essere trapiantate subito
+    gardenId,
+    source: 'nursery',
+    nurseryName,
+    notes,
+    photoLog: []
   };
 };
 

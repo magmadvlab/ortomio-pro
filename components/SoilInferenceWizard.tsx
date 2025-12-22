@@ -119,6 +119,7 @@ const SoilInferenceWizard: React.FC<SoilInferenceWizardProps> = ({
                     <input
                       type="file"
                       accept="image/*"
+                      capture="environment"
                       onChange={handlePhotoChange}
                       className="hidden"
                     />

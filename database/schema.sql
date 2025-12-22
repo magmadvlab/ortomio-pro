@@ -7,7 +7,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ============================================
 -- GARDENS (Orti)
 -- ============================================
-CREATE TABLE gardens (
+CREATE TABLE IF NOT EXISTS gardens (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
@@ -58,13 +58,13 @@ CREATE TABLE gardens (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_gardens_user_id ON gardens(user_id);
-CREATE INDEX idx_gardens_created_at ON gardens(created_at);
+CREATE INDEX IF NOT EXISTS idx_gardens_user_id ON gardens(user_id);
+CREATE INDEX IF NOT EXISTS idx_gardens_created_at ON gardens(created_at);
 
 -- ============================================
 -- GARDEN BEDS (Aiuole)
 -- ============================================
-CREATE TABLE garden_beds (
+CREATE TABLE IF NOT EXISTS garden_beds (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
@@ -87,12 +87,12 @@ CREATE TABLE garden_beds (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_garden_beds_garden_id ON garden_beds(garden_id);
+CREATE INDEX IF NOT EXISTS idx_garden_beds_garden_id ON garden_beds(garden_id);
 
 -- ============================================
 -- BED PLANTING HISTORY (per rotazioni)
 -- ============================================
-CREATE TABLE bed_planting_history (
+CREATE TABLE IF NOT EXISTS bed_planting_history (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   bed_id UUID REFERENCES garden_beds(id) ON DELETE CASCADE NOT NULL,
   plant_id TEXT NOT NULL, -- Riferimento a plantMasterSheets.id
@@ -105,14 +105,14 @@ CREATE TABLE bed_planting_history (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_bed_history_bed_id ON bed_planting_history(bed_id);
-CREATE INDEX idx_bed_history_year_season ON bed_planting_history(year, season);
-CREATE INDEX idx_bed_history_plant_family ON bed_planting_history(plant_family);
+CREATE INDEX IF NOT EXISTS idx_bed_history_bed_id ON bed_planting_history(bed_id);
+CREATE INDEX IF NOT EXISTS idx_bed_history_year_season ON bed_planting_history(year, season);
+CREATE INDEX IF NOT EXISTS idx_bed_history_plant_family ON bed_planting_history(plant_family);
 
 -- ============================================
 -- GARDEN TASKS
 -- ============================================
-CREATE TABLE garden_tasks (
+CREATE TABLE IF NOT EXISTS garden_tasks (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
   bed_id UUID REFERENCES garden_beds(id) ON DELETE SET NULL,
@@ -127,7 +127,7 @@ CREATE TABLE garden_tasks (
   
   task_type TEXT CHECK (task_type IN ('Sowing', 'Transplant', 'Fertilize', 'Prune', 'Harvest', 'Treatment', 'Plowing', 'Tilling', 'TreePruning')) NOT NULL,
   stage TEXT CHECK (stage IN ('Germination', 'Vegetative', 'ReadyToTransplant', 'Flowering', 'Fruiting', 'Harvested')),
-  lifecycle_state TEXT CHECK (lifecycle_state IN ('Sowing', 'Germination', 'Nursing', 'Hardening', 'Transplanting', 'Production')),
+  lifecycle_state TEXT CHECK (lifecycle_state IN ('Sowing', 'Germination', 'Nursing', 'IntermediateRepotting', 'Hardening', 'Transplanting', 'Production', 'Disposal')),
   season TEXT CHECK (season IN ('Summer', 'Winter')),
   
   date DATE NOT NULL,
@@ -186,19 +186,19 @@ CREATE TABLE garden_tasks (
   completed_at TIMESTAMP WITH TIME ZONE
 );
 
-CREATE INDEX idx_garden_tasks_garden_id ON garden_tasks(garden_id);
-CREATE INDEX idx_garden_tasks_bed_id ON garden_tasks(bed_id);
-CREATE INDEX idx_garden_tasks_date ON garden_tasks(date);
-CREATE INDEX idx_garden_tasks_completed ON garden_tasks(completed);
-CREATE INDEX idx_garden_tasks_plant_name ON garden_tasks(plant_name);
-CREATE INDEX idx_garden_tasks_suggested ON garden_tasks(is_suggested) WHERE is_suggested = true;
-CREATE INDEX idx_garden_tasks_suggested_date ON garden_tasks(suggested_date) WHERE suggested_date IS NOT NULL;
-CREATE INDEX idx_garden_tasks_zone_id ON garden_tasks(zone_id) WHERE zone_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_garden_id ON garden_tasks(garden_id);
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_bed_id ON garden_tasks(bed_id);
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_date ON garden_tasks(date);
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_completed ON garden_tasks(completed);
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_plant_name ON garden_tasks(plant_name);
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_suggested ON garden_tasks(is_suggested) WHERE is_suggested = true;
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_suggested_date ON garden_tasks(suggested_date) WHERE suggested_date IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_zone_id ON garden_tasks(zone_id) WHERE zone_id IS NOT NULL;
 
 -- ============================================
 -- HARVEST LOGS
 -- ============================================
-CREATE TABLE harvest_logs (
+CREATE TABLE IF NOT EXISTS harvest_logs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
   task_id UUID REFERENCES garden_tasks(id) ON DELETE SET NULL,
@@ -225,15 +225,15 @@ CREATE TABLE harvest_logs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_harvest_logs_garden_id ON harvest_logs(garden_id);
-CREATE INDEX idx_harvest_logs_task_id ON harvest_logs(task_id);
-CREATE INDEX idx_harvest_logs_harvest_date ON harvest_logs(harvest_date);
-CREATE INDEX idx_harvest_logs_plant_name ON harvest_logs(plant_name);
+CREATE INDEX IF NOT EXISTS idx_harvest_logs_garden_id ON harvest_logs(garden_id);
+CREATE INDEX IF NOT EXISTS idx_harvest_logs_task_id ON harvest_logs(task_id);
+CREATE INDEX IF NOT EXISTS idx_harvest_logs_harvest_date ON harvest_logs(harvest_date);
+CREATE INDEX IF NOT EXISTS idx_harvest_logs_plant_name ON harvest_logs(plant_name);
 
 -- ============================================
 -- PHOTO LOGS (Time-Lapse - Pro Feature)
 -- ============================================
-CREATE TABLE photo_logs (
+CREATE TABLE IF NOT EXISTS photo_logs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   task_id UUID REFERENCES garden_tasks(id) ON DELETE CASCADE NOT NULL,
   garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
@@ -247,14 +247,14 @@ CREATE TABLE photo_logs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_photo_logs_task_id ON photo_logs(task_id);
-CREATE INDEX idx_photo_logs_garden_id ON photo_logs(garden_id);
-CREATE INDEX idx_photo_logs_photo_date ON photo_logs(photo_date);
+CREATE INDEX IF NOT EXISTS idx_photo_logs_task_id ON photo_logs(task_id);
+CREATE INDEX IF NOT EXISTS idx_photo_logs_garden_id ON photo_logs(garden_id);
+CREATE INDEX IF NOT EXISTS idx_photo_logs_photo_date ON photo_logs(photo_date);
 
 -- ============================================
 -- SEED INVENTORY
 -- ============================================
-CREATE TABLE seed_inventory (
+CREATE TABLE IF NOT EXISTS seed_inventory (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
@@ -270,14 +270,14 @@ CREATE TABLE seed_inventory (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_seed_inventory_user_id ON seed_inventory(user_id);
-CREATE INDEX idx_seed_inventory_garden_id ON seed_inventory(garden_id);
-CREATE INDEX idx_seed_inventory_expiry_year ON seed_inventory(expiry_year);
+CREATE INDEX IF NOT EXISTS idx_seed_inventory_user_id ON seed_inventory(user_id);
+CREATE INDEX IF NOT EXISTS idx_seed_inventory_garden_id ON seed_inventory(garden_id);
+CREATE INDEX IF NOT EXISTS idx_seed_inventory_expiry_year ON seed_inventory(expiry_year);
 
 -- ============================================
 -- SEEDLING BATCHES (Batch Semenzai)
 -- ============================================
-CREATE TABLE seedling_batches (
+CREATE TABLE IF NOT EXISTS seedling_batches (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
   plant_name TEXT NOT NULL,
@@ -294,30 +294,47 @@ CREATE TABLE seedling_batches (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_seedling_batches_garden_id ON seedling_batches(garden_id);
-CREATE INDEX idx_seedling_batches_sowing_date ON seedling_batches(sowing_date);
-CREATE INDEX idx_seedling_batches_phase ON seedling_batches(phase);
+CREATE INDEX IF NOT EXISTS idx_seedling_batches_garden_id ON seedling_batches(garden_id);
+CREATE INDEX IF NOT EXISTS idx_seedling_batches_sowing_date ON seedling_batches(sowing_date);
+CREATE INDEX IF NOT EXISTS idx_seedling_batches_phase ON seedling_batches(phase);
 
 -- RLS Policies for seedling_batches
 ALTER TABLE seedling_batches ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can access seedling batches in their gardens"
-  ON seedling_batches FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM gardens
-      WHERE gardens.id = seedling_batches.garden_id
-      AND gardens.user_id = auth.uid()
-    )
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'seedling_batches' 
+    AND policyname = 'Users can access seedling batches in their gardens'
+  ) THEN
+    CREATE POLICY "Users can access seedling batches in their gardens"
+      ON seedling_batches FOR ALL
+      USING (
+        EXISTS (
+          SELECT 1 FROM gardens
+          WHERE gardens.id = seedling_batches.garden_id
+          AND gardens.user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
 
-CREATE TRIGGER update_seedling_batches_updated_at BEFORE UPDATE ON seedling_batches
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger 
+    WHERE tgname = 'update_seedling_batches_updated_at'
+  ) THEN
+    CREATE TRIGGER update_seedling_batches_updated_at BEFORE UPDATE ON seedling_batches
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END $$;
 
 -- ============================================
 -- WEATHER CACHE
 -- ============================================
-CREATE TABLE weather_cache (
+CREATE TABLE IF NOT EXISTS weather_cache (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   lat_lng TEXT NOT NULL, -- "40.123_16.456" format
   date DATE NOT NULL,
@@ -326,8 +343,8 @@ CREATE TABLE weather_cache (
   UNIQUE(lat_lng, date)
 );
 
-CREATE INDEX idx_weather_cache_lat_lng_date ON weather_cache(lat_lng, date);
-CREATE INDEX idx_weather_cache_cached_at ON weather_cache(cached_at);
+CREATE INDEX IF NOT EXISTS idx_weather_cache_lat_lng_date ON weather_cache(lat_lng, date);
+CREATE INDEX IF NOT EXISTS idx_weather_cache_cached_at ON weather_cache(cached_at);
 
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -345,79 +362,157 @@ ALTER TABLE seedling_batches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE weather_cache ENABLE ROW LEVEL SECURITY;
 
 -- Gardens: Users can only access their own gardens
-CREATE POLICY "Users can only access their gardens"
-  ON gardens FOR ALL
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'gardens' 
+    AND policyname = 'Users can only access their gardens'
+  ) THEN
+    CREATE POLICY "Users can only access their gardens"
+      ON gardens FOR ALL
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- Garden Beds: Users can only access beds in their gardens
-CREATE POLICY "Users can only access beds in their gardens"
-  ON garden_beds FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM gardens
-      WHERE gardens.id = garden_beds.garden_id
-      AND gardens.user_id = auth.uid()
-    )
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'garden_beds' 
+    AND policyname = 'Users can only access beds in their gardens'
+  ) THEN
+    CREATE POLICY "Users can only access beds in their gardens"
+      ON garden_beds FOR ALL
+      USING (
+        EXISTS (
+          SELECT 1 FROM gardens
+          WHERE gardens.id = garden_beds.garden_id
+          AND gardens.user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
 
 -- Bed Planting History: Users can only access history in their beds
-CREATE POLICY "Users can only access history in their beds"
-  ON bed_planting_history FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM garden_beds
-      JOIN gardens ON gardens.id = garden_beds.garden_id
-      WHERE garden_beds.id = bed_planting_history.bed_id
-      AND gardens.user_id = auth.uid()
-    )
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'bed_planting_history' 
+    AND policyname = 'Users can only access history in their beds'
+  ) THEN
+    CREATE POLICY "Users can only access history in their beds"
+      ON bed_planting_history FOR ALL
+      USING (
+        EXISTS (
+          SELECT 1 FROM garden_beds
+          JOIN gardens ON gardens.id = garden_beds.garden_id
+          WHERE garden_beds.id = bed_planting_history.bed_id
+          AND gardens.user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
 
 -- Garden Tasks: Users can only access tasks in their gardens
-CREATE POLICY "Users can only access tasks in their gardens"
-  ON garden_tasks FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM gardens
-      WHERE gardens.id = garden_tasks.garden_id
-      AND gardens.user_id = auth.uid()
-    )
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'garden_tasks' 
+    AND policyname = 'Users can only access tasks in their gardens'
+  ) THEN
+    CREATE POLICY "Users can only access tasks in their gardens"
+      ON garden_tasks FOR ALL
+      USING (
+        EXISTS (
+          SELECT 1 FROM gardens
+          WHERE gardens.id = garden_tasks.garden_id
+          AND gardens.user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
 
 -- Harvest Logs: Users can only access harvests in their gardens
-CREATE POLICY "Users can only access harvests in their gardens"
-  ON harvest_logs FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM gardens
-      WHERE gardens.id = harvest_logs.garden_id
-      AND gardens.user_id = auth.uid()
-    )
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'harvest_logs' 
+    AND policyname = 'Users can only access harvests in their gardens'
+  ) THEN
+    CREATE POLICY "Users can only access harvests in their gardens"
+      ON harvest_logs FOR ALL
+      USING (
+        EXISTS (
+          SELECT 1 FROM gardens
+          WHERE gardens.id = harvest_logs.garden_id
+          AND gardens.user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
 
 -- Photo Logs: Users can only access photos in their gardens
-CREATE POLICY "Users can only access photos in their gardens"
-  ON photo_logs FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM gardens
-      WHERE gardens.id = photo_logs.garden_id
-      AND gardens.user_id = auth.uid()
-    )
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'photo_logs' 
+    AND policyname = 'Users can only access photos in their gardens'
+  ) THEN
+    CREATE POLICY "Users can only access photos in their gardens"
+      ON photo_logs FOR ALL
+      USING (
+        EXISTS (
+          SELECT 1 FROM gardens
+          WHERE gardens.id = photo_logs.garden_id
+          AND gardens.user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
 
 -- Seed Inventory: Users can only access their own seeds
-CREATE POLICY "Users can only access their own seeds"
-  ON seed_inventory FOR ALL
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'seed_inventory' 
+    AND policyname = 'Users can only access their own seeds'
+  ) THEN
+    CREATE POLICY "Users can only access their own seeds"
+      ON seed_inventory FOR ALL
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- Weather Cache: Public read (same data for all users in same location)
-CREATE POLICY "Weather cache is publicly readable"
-  ON weather_cache FOR SELECT
-  USING (true);
-
-CREATE POLICY "Users can insert weather cache"
-  ON weather_cache FOR INSERT
-  WITH CHECK (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'weather_cache' 
+    AND policyname = 'Weather cache is publicly readable'
+  ) THEN
+    CREATE POLICY "Weather cache is publicly readable"
+      ON weather_cache FOR SELECT
+      USING (true);
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'weather_cache' 
+    AND policyname = 'Users can insert weather cache'
+  ) THEN
+    CREATE POLICY "Users can insert weather cache"
+      ON weather_cache FOR INSERT
+      WITH CHECK (true);
+  END IF;
+END $$;
 
 -- ============================================
 -- RPC FUNCTIONS
@@ -523,22 +618,45 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_gardens_updated_at BEFORE UPDATE ON gardens
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_garden_beds_updated_at BEFORE UPDATE ON garden_beds
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_garden_tasks_updated_at BEFORE UPDATE ON garden_tasks
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_seed_inventory_updated_at BEFORE UPDATE ON seed_inventory
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger 
+    WHERE tgname = 'update_gardens_updated_at'
+  ) THEN
+    CREATE TRIGGER update_gardens_updated_at BEFORE UPDATE ON gardens
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger 
+    WHERE tgname = 'update_garden_beds_updated_at'
+  ) THEN
+    CREATE TRIGGER update_garden_beds_updated_at BEFORE UPDATE ON garden_beds
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger 
+    WHERE tgname = 'update_garden_tasks_updated_at'
+  ) THEN
+    CREATE TRIGGER update_garden_tasks_updated_at BEFORE UPDATE ON garden_tasks
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger 
+    WHERE tgname = 'update_seed_inventory_updated_at'
+  ) THEN
+    CREATE TRIGGER update_seed_inventory_updated_at BEFORE UPDATE ON seed_inventory
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END $$;
 
 -- ============================================
 -- CUSTOM PLANS (Piani Personalizzati - Pro Feature)
 -- ============================================
-CREATE TABLE custom_plans (
+CREATE TABLE IF NOT EXISTS custom_plans (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   garden_id UUID REFERENCES gardens(id) ON DELETE SET NULL,
@@ -565,40 +683,81 @@ CREATE TABLE custom_plans (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_custom_plans_user_id ON custom_plans(user_id);
-CREATE INDEX idx_custom_plans_garden_id ON custom_plans(garden_id);
-CREATE INDEX idx_custom_plans_base_master_sheet ON custom_plans(base_master_sheet_id);
+CREATE INDEX IF NOT EXISTS idx_custom_plans_user_id ON custom_plans(user_id);
+CREATE INDEX IF NOT EXISTS idx_custom_plans_garden_id ON custom_plans(garden_id);
+CREATE INDEX IF NOT EXISTS idx_custom_plans_base_master_sheet ON custom_plans(base_master_sheet_id);
 
 -- RLS Policies for custom_plans
 ALTER TABLE custom_plans ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own custom plans"
-  ON custom_plans FOR SELECT
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'custom_plans' 
+    AND policyname = 'Users can view their own custom plans'
+  ) THEN
+    CREATE POLICY "Users can view their own custom plans"
+      ON custom_plans FOR SELECT
+      USING (auth.uid() = user_id);
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'custom_plans' 
+    AND policyname = 'Users can view public custom plans'
+  ) THEN
+    CREATE POLICY "Users can view public custom plans"
+      ON custom_plans FOR SELECT
+      USING (is_public = true);
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'custom_plans' 
+    AND policyname = 'Users can create their own custom plans'
+  ) THEN
+    CREATE POLICY "Users can create their own custom plans"
+      ON custom_plans FOR INSERT
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'custom_plans' 
+    AND policyname = 'Users can update their own custom plans'
+  ) THEN
+    CREATE POLICY "Users can update their own custom plans"
+      ON custom_plans FOR UPDATE
+      USING (auth.uid() = user_id);
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'custom_plans' 
+    AND policyname = 'Users can delete their own custom plans'
+  ) THEN
+    CREATE POLICY "Users can delete their own custom plans"
+      ON custom_plans FOR DELETE
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
-CREATE POLICY "Users can view public custom plans"
-  ON custom_plans FOR SELECT
-  USING (is_public = true);
-
-CREATE POLICY "Users can create their own custom plans"
-  ON custom_plans FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own custom plans"
-  ON custom_plans FOR UPDATE
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own custom plans"
-  ON custom_plans FOR DELETE
-  USING (auth.uid() = user_id);
-
-CREATE TRIGGER update_custom_plans_updated_at BEFORE UPDATE ON custom_plans
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger 
+    WHERE tgname = 'update_custom_plans_updated_at'
+  ) THEN
+    CREATE TRIGGER update_custom_plans_updated_at BEFORE UPDATE ON custom_plans
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END $$;
 
 -- ============================================
 -- AGRONOMISTS (Agronomi di Fiducia - Pro Feature)
 -- ============================================
-CREATE TABLE agronomists (
+CREATE TABLE IF NOT EXISTS agronomists (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   
@@ -615,22 +774,36 @@ CREATE TABLE agronomists (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_agronomists_user_id ON agronomists(user_id);
+CREATE INDEX IF NOT EXISTS idx_agronomists_user_id ON agronomists(user_id);
 
 -- RLS Policies for agronomists
 ALTER TABLE agronomists ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage their own agronomists"
-  ON agronomists FOR ALL
-  USING (auth.uid() = user_id);
-
-CREATE TRIGGER update_agronomists_updated_at BEFORE UPDATE ON agronomists
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'agronomists' 
+    AND policyname = 'Users can manage their own agronomists'
+  ) THEN
+    CREATE POLICY "Users can manage their own agronomists"
+      ON agronomists FOR ALL
+      USING (auth.uid() = user_id);
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger 
+    WHERE tgname = 'update_agronomists_updated_at'
+  ) THEN
+    CREATE TRIGGER update_agronomists_updated_at BEFORE UPDATE ON agronomists
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END $$;
 
 -- ============================================
 -- AGRONOMIST CONSULTATIONS (Consultazioni)
 -- ============================================
-CREATE TABLE agronomist_consultations (
+CREATE TABLE IF NOT EXISTS agronomist_consultations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   agronomist_id UUID REFERENCES agronomists(id) ON DELETE CASCADE NOT NULL,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
@@ -648,21 +821,30 @@ CREATE TABLE agronomist_consultations (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_consultations_agronomist_id ON agronomist_consultations(agronomist_id);
-CREATE INDEX idx_consultations_user_id ON agronomist_consultations(user_id);
-CREATE INDEX idx_consultations_task_id ON agronomist_consultations(task_id);
+CREATE INDEX IF NOT EXISTS idx_consultations_agronomist_id ON agronomist_consultations(agronomist_id);
+CREATE INDEX IF NOT EXISTS idx_consultations_user_id ON agronomist_consultations(user_id);
+CREATE INDEX IF NOT EXISTS idx_consultations_task_id ON agronomist_consultations(task_id);
 
 -- RLS Policies for consultations
 ALTER TABLE agronomist_consultations ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage their own consultations"
-  ON agronomist_consultations FOR ALL
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'agronomist_consultations' 
+    AND policyname = 'Users can manage their own consultations'
+  ) THEN
+    CREATE POLICY "Users can manage their own consultations"
+      ON agronomist_consultations FOR ALL
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- ============================================
 -- AGRONOMIST ADVICE (Consigli Agronomo)
 -- ============================================
-CREATE TABLE agronomist_advice (
+CREATE TABLE IF NOT EXISTS agronomist_advice (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   consultation_id UUID REFERENCES agronomist_consultations(id) ON DELETE CASCADE NOT NULL,
   task_id UUID REFERENCES garden_tasks(id) ON DELETE SET NULL,
@@ -681,31 +863,46 @@ CREATE TABLE agronomist_advice (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_advice_consultation_id ON agronomist_advice(consultation_id);
-CREATE INDEX idx_advice_task_id ON agronomist_advice(task_id);
+CREATE INDEX IF NOT EXISTS idx_advice_consultation_id ON agronomist_advice(consultation_id);
+CREATE INDEX IF NOT EXISTS idx_advice_task_id ON agronomist_advice(task_id);
 
 -- RLS Policies for advice
 ALTER TABLE agronomist_advice ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view advice from their consultations"
-  ON agronomist_advice FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM agronomist_consultations
-      WHERE agronomist_consultations.id = agronomist_advice.consultation_id
-      AND agronomist_consultations.user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can update advice from their consultations"
-  ON agronomist_advice FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM agronomist_consultations
-      WHERE agronomist_consultations.id = agronomist_advice.consultation_id
-      AND agronomist_consultations.user_id = auth.uid()
-    )
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'agronomist_advice' 
+    AND policyname = 'Users can view advice from their consultations'
+  ) THEN
+    CREATE POLICY "Users can view advice from their consultations"
+      ON agronomist_advice FOR SELECT
+      USING (
+        EXISTS (
+          SELECT 1 FROM agronomist_consultations
+          WHERE agronomist_consultations.id = agronomist_advice.consultation_id
+          AND agronomist_consultations.user_id = auth.uid()
+        )
+      );
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'agronomist_advice' 
+    AND policyname = 'Users can update advice from their consultations'
+  ) THEN
+    CREATE POLICY "Users can update advice from their consultations"
+      ON agronomist_advice FOR UPDATE
+      USING (
+        EXISTS (
+          SELECT 1 FROM agronomist_consultations
+          WHERE agronomist_consultations.id = agronomist_advice.consultation_id
+          AND agronomist_consultations.user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
 
 -- ============================================
 -- GARDEN OBSTACLES (Ostacoli per calcolo esposizione solare)
@@ -735,50 +932,77 @@ CREATE INDEX IF NOT EXISTS idx_garden_obstacles_azimuth ON garden_obstacles(azim
 
 ALTER TABLE garden_obstacles ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view obstacles in their gardens"
-  ON garden_obstacles FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM gardens
-      WHERE gardens.id = garden_obstacles.garden_id
-      AND gardens.user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can create obstacles in their gardens"
-  ON garden_obstacles FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM gardens
-      WHERE gardens.id = garden_obstacles.garden_id
-      AND gardens.user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can update obstacles in their gardens"
-  ON garden_obstacles FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM gardens
-      WHERE gardens.id = garden_obstacles.garden_id
-      AND gardens.user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can delete obstacles in their gardens"
-  ON garden_obstacles FOR DELETE
-  USING (
-    EXISTS (
-      SELECT 1 FROM gardens
-      WHERE gardens.id = garden_obstacles.garden_id
-      AND gardens.user_id = auth.uid()
-    )
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'garden_obstacles' 
+    AND policyname = 'Users can view obstacles in their gardens'
+  ) THEN
+    CREATE POLICY "Users can view obstacles in their gardens"
+      ON garden_obstacles FOR SELECT
+      USING (
+        EXISTS (
+          SELECT 1 FROM gardens
+          WHERE gardens.id = garden_obstacles.garden_id
+          AND gardens.user_id = auth.uid()
+        )
+      );
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'garden_obstacles' 
+    AND policyname = 'Users can create obstacles in their gardens'
+  ) THEN
+    CREATE POLICY "Users can create obstacles in their gardens"
+      ON garden_obstacles FOR INSERT
+      WITH CHECK (
+        EXISTS (
+          SELECT 1 FROM gardens
+          WHERE gardens.id = garden_obstacles.garden_id
+          AND gardens.user_id = auth.uid()
+        )
+      );
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'garden_obstacles' 
+    AND policyname = 'Users can update obstacles in their gardens'
+  ) THEN
+    CREATE POLICY "Users can update obstacles in their gardens"
+      ON garden_obstacles FOR UPDATE
+      USING (
+        EXISTS (
+          SELECT 1 FROM gardens
+          WHERE gardens.id = garden_obstacles.garden_id
+          AND gardens.user_id = auth.uid()
+        )
+      );
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'garden_obstacles' 
+    AND policyname = 'Users can delete obstacles in their gardens'
+  ) THEN
+    CREATE POLICY "Users can delete obstacles in their gardens"
+      ON garden_obstacles FOR DELETE
+      USING (
+        EXISTS (
+          SELECT 1 FROM gardens
+          WHERE gardens.id = garden_obstacles.garden_id
+          AND gardens.user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
 
 -- ============================================
 -- GARDEN ACCESSORIES (Paletti, Reti, Fili, etc.)
 -- ============================================
-CREATE TABLE garden_accessories (
+CREATE TABLE IF NOT EXISTS garden_accessories (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
@@ -816,25 +1040,34 @@ CREATE TABLE garden_accessories (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_accessories_garden_id ON garden_accessories(garden_id);
-CREATE INDEX idx_accessories_category ON garden_accessories(category);
+CREATE INDEX IF NOT EXISTS idx_accessories_garden_id ON garden_accessories(garden_id);
+CREATE INDEX IF NOT EXISTS idx_accessories_category ON garden_accessories(category);
 
 ALTER TABLE garden_accessories ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can access accessories in their gardens"
-  ON garden_accessories FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM gardens
-      WHERE gardens.id = garden_accessories.garden_id
-      AND gardens.user_id = auth.uid()
-    )
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'garden_accessories' 
+    AND policyname = 'Users can access accessories in their gardens'
+  ) THEN
+    CREATE POLICY "Users can access accessories in their gardens"
+      ON garden_accessories FOR ALL
+      USING (
+        EXISTS (
+          SELECT 1 FROM gardens
+          WHERE gardens.id = garden_accessories.garden_id
+          AND gardens.user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
 
 -- ============================================
 -- HYDROPONIC READINGS (Monitoraggio parametri idroponica)
 -- ============================================
-CREATE TABLE hydroponic_readings (
+CREATE TABLE IF NOT EXISTS hydroponic_readings (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
   reading_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -846,24 +1079,33 @@ CREATE TABLE hydroponic_readings (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_hydroponic_readings_garden_date ON hydroponic_readings(garden_id, reading_date DESC);
+CREATE INDEX IF NOT EXISTS idx_hydroponic_readings_garden_date ON hydroponic_readings(garden_id, reading_date DESC);
 
 ALTER TABLE hydroponic_readings ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can access hydroponic readings in their gardens"
-  ON hydroponic_readings FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM gardens
-      WHERE gardens.id = hydroponic_readings.garden_id
-      AND gardens.user_id = auth.uid()
-    )
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'hydroponic_readings' 
+    AND policyname = 'Users can access hydroponic readings in their gardens'
+  ) THEN
+    CREATE POLICY "Users can access hydroponic readings in their gardens"
+      ON hydroponic_readings FOR ALL
+      USING (
+        EXISTS (
+          SELECT 1 FROM gardens
+          WHERE gardens.id = hydroponic_readings.garden_id
+          AND gardens.user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
 
 -- ============================================
 -- AQUAPONIC READINGS (Monitoraggio parametri acquaponica)
 -- ============================================
-CREATE TABLE aquaponic_readings (
+CREATE TABLE IF NOT EXISTS aquaponic_readings (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
   reading_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -877,20 +1119,37 @@ CREATE TABLE aquaponic_readings (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_aquaponic_readings_garden_date ON aquaponic_readings(garden_id, reading_date DESC);
+CREATE INDEX IF NOT EXISTS idx_aquaponic_readings_garden_date ON aquaponic_readings(garden_id, reading_date DESC);
 
 ALTER TABLE aquaponic_readings ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can access aquaponic readings in their gardens"
-  ON aquaponic_readings FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM gardens
-      WHERE gardens.id = aquaponic_readings.garden_id
-      AND gardens.user_id = auth.uid()
-    )
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'aquaponic_readings' 
+    AND policyname = 'Users can access aquaponic readings in their gardens'
+  ) THEN
+    CREATE POLICY "Users can access aquaponic readings in their gardens"
+      ON aquaponic_readings FOR ALL
+      USING (
+        EXISTS (
+          SELECT 1 FROM gardens
+          WHERE gardens.id = aquaponic_readings.garden_id
+          AND gardens.user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
 
-CREATE TRIGGER update_garden_obstacles_updated_at BEFORE UPDATE ON garden_obstacles
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger 
+    WHERE tgname = 'update_garden_obstacles_updated_at'
+  ) THEN
+    CREATE TRIGGER update_garden_obstacles_updated_at BEFORE UPDATE ON garden_obstacles
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END $$;
 

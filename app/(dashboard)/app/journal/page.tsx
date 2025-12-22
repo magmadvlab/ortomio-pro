@@ -32,9 +32,27 @@ export default function JournalPage() {
   }
   
   const handleAddTask = async (task: any) => {
-    await storageProvider.createTask({ ...task, gardenId: garden.id })
-    const updatedTasks = await storageProvider.getTasks(garden?.id)
-    setTasks(updatedTasks)
+    try {
+      // Assicurati che gardenId sia sempre presente
+      if (!garden?.id) {
+        console.error('Garden ID mancante');
+        alert('Errore: giardino non selezionato');
+        return;
+      }
+      
+      const newTask = await storageProvider.createTask({ 
+        ...task, 
+        gardenId: garden.id,
+        completed: false // Assicurati che completed sia false di default
+      });
+      
+      // Ricarica i task immediatamente
+      const updatedTasks = await storageProvider.getTasks(garden.id);
+      setTasks(updatedTasks);
+    } catch (error) {
+      console.error('Errore aggiunta task:', error);
+      alert('Errore durante il salvataggio del task: ' + (error as Error).message);
+    }
   }
   
   const handleDeleteTask = async (id: string) => {

@@ -1066,6 +1066,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                       <input
                         type="file"
                         accept="image/*"
+                        capture="environment"
                         onChange={handleNoonPhotoChange}
                         className="hidden"
                         disabled={analyzingPhotos}
@@ -1105,6 +1106,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                       <input
                         type="file"
                         accept="image/*"
+                        capture="environment"
                         onChange={handleHorizonPhotoChange}
                         className="hidden"
                         disabled={analyzingPhotos}
@@ -1170,6 +1172,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                       <input
                         type="file"
                         accept="image/*"
+                        capture="environment"
                         onChange={handlePanoramicPhotoChange}
                         className="hidden"
                         disabled={analyzingPhotos}

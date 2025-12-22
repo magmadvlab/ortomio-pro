@@ -452,7 +452,7 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
                           </div>
                       </div>
                       <label className="block w-full p-3 border-2 border-dashed border-gray-300 rounded-xl text-center cursor-pointer hover:bg-gray-50">
-                          <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                          <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} />
                           {harvestPhoto ? <span className="text-green-600 font-bold text-sm">Foto caricata!</span> : <span className="text-gray-400 text-sm flex items-center justify-center gap-1"><Camera size={16}/> Aggiungi Foto</span>}
                       </label>
                       <button 

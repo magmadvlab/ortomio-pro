@@ -624,7 +624,7 @@ interface AnalyzeImageContext {
   plantName?: string;
   variety?: string;
   taskType?: 'Sowing' | 'Transplant' | 'Harvest' | 'Maintenance' | 'Fertilization' | 'PestControl' | 'Irrigation';
-  lifecycleState?: 'Sowing' | 'Germination' | 'Nursing' | 'IntermediateRepotting' | 'Hardening' | 'Transplanting' | 'Production';
+  lifecycleState?: 'Sowing' | 'Germination' | 'Nursing' | 'IntermediateRepotting' | 'Hardening' | 'Transplanting' | 'Production' | 'Disposal';
   daysActive?: number;
   locationType?: 'Pot' | 'Ground' | 'RaisedBed' | 'Greenhouse' | 'Tray' | string;
   plantingMethod?: 'Seed' | 'Seedling' | 'Sapling';

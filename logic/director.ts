@@ -51,6 +51,8 @@ import { getAllHistoricalWeather } from '../services/historicalWeatherService';
 import { UserProfile } from '../types';
 import { SeedlingBatch } from '../services/seedlingService';
 import { getSeasonForDate } from '../utils/seasonalAdjustment';
+import { getAllReadyBatches, getReadyBatchesForPlant } from '../services/seedlingBatchHelper';
+import { isReadyToTransplant } from '../services/seedlingService';
 // Soil and Altitude utilities
 import {
   calculateSoilWarmingDelay,
@@ -348,6 +350,69 @@ export const getDailyGardenPlan = async (
 
   // Filtra solo piante attive (non completate)
   const activeTasks = getActivePlants(tasks.filter(t => t.gardenId === garden.id));
+
+  // PRIORITÀ 1.6: SUGGERIMENTI TRAPIANTO DA BATCH PIANTINE PRONTE
+  // Controlla se ci sono batch di piantine pronte per trapianto
+  if (seedlingBatches && seedlingBatches.length > 0) {
+    const readyBatches = getAllReadyBatches(seedlingBatches, garden);
+    
+    for (const batch of readyBatches) {
+      // Verifica se esiste già un task di trapianto per questa pianta
+      const existingTransplantTask = activeTasks.find(
+        t => t.plantName === batch.plantName && 
+        t.taskType === 'Transplant' &&
+        (!batch.variety || t.variety === batch.variety)
+      );
+      
+      if (!existingTransplantTask && batch.currentQuantity && batch.currentQuantity > 0) {
+        // Suggerisci trapianto per questo batch
+        const masterData = getMasterSheetSync(batch.plantName);
+        if (masterData && masterData.transplanting) {
+          // Verifica condizioni meteo per trapianto
+          let transplantDate = currentDate;
+          if (batch.expectedTransplantDate) {
+            transplantDate = new Date(batch.expectedTransplantDate);
+          }
+          
+          // Verifica fase lunare ideale
+          const moonCheck = isIdealPhaseFor('transplant', masterData.nutrientCategory, transplantDate);
+          if (!moonCheck.ideal && moonCheck.daysUntilIdeal) {
+            transplantDate.setDate(transplantDate.getDate() + moonCheck.daysUntilIdeal);
+          }
+          
+          // Verifica condizioni meteo
+          try {
+            if (garden.coordinates) {
+              const { checkTransplantConditions } = await import('../services/weatherService');
+              // Recupera temperatura minima richiesta dalla pianta
+              const minTemp = masterData.transplanting.minTemp || 10; // Default 10°C
+              const weatherCheck = await checkTransplantConditions(
+                garden.coordinates.latitude,
+                garden.coordinates.longitude,
+                minTemp
+              );
+              
+              if (!weatherCheck.isSuitable) {
+                // Posticipa se condizioni non ideali (usa giorni suggeriti o default 3)
+                transplantDate.setDate(transplantDate.getDate() + 3);
+              }
+            }
+          } catch (error) {
+            console.warn('Error checking transplant conditions:', error);
+          }
+          
+          lifecycleTasks.push({
+            taskId: batch.id, // Usa ID batch come taskId
+            plantName: batch.plantName + (batch.variety ? ` (${batch.variety})` : ''),
+            phase: 'Transplanting',
+            message: `🌱 Piantine pronte per trapianto: ${batch.plantName}${batch.variety ? ` (${batch.variety})` : ''}. Disponibili: ${batch.currentQuantity}/${batch.quantity} piantine${batch.source === 'nursery' && batch.nurseryName ? ` acquistate da ${batch.nurseryName}` : ' seminate in casa'}. Data suggerita: ${transplantDate.toLocaleDateString('it-IT')}`,
+            priority: 'High',
+            action: `Trapianta ${batch.currentQuantity} piantine. Prepara il terreno con compost maturo, annaffia abbondantemente dopo il trapianto e proteggi dal sole diretto per i primi giorni.${batch.source === 'nursery' && batch.purchaseDate ? ` Acquistate il ${new Date(batch.purchaseDate).toLocaleDateString('it-IT')}.` : ` Seminate il ${new Date(batch.sowingDate).toLocaleDateString('it-IT')}.`}`
+          });
+        }
+      }
+    }
+  }
 
   // Verifica deviazioni dal piano annuale (se disponibile)
   const annualPlanDeviations: UrgentAlert[] = [];

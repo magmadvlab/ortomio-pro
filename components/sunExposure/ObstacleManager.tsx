@@ -152,6 +152,7 @@ export function ObstacleManager({ garden, obstacles, onObstaclesChange, classNam
             <input
               type="file"
               accept="image/*"
+              capture="environment"
               className="hidden"
               onChange={handlePhotoUpload}
               disabled={uploadingPhoto || !garden.coordinates}

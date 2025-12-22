@@ -159,6 +159,7 @@ const SupportForm: React.FC = () => {
           type="file"
           id="screenshot"
           accept="image/*"
+          capture="environment"
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file && file.size <= 5 * 1024 * 1024) {
@@ -223,6 +224,7 @@ const SupportForm: React.FC = () => {
 };
 
 export default SupportForm;
+
 
 
 

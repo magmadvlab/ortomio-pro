@@ -166,6 +166,7 @@ const DiseaseDiagnosis: React.FC<DiseaseDiagnosisProps> = ({ plant, garden, weat
             <input
               type="file"
               accept="image/*"
+              capture="environment"
               className="hidden"
               onChange={handlePhotoUpload}
             />

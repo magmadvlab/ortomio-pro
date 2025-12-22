@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SeedlingBatch } from '../services/seedlingService';
 import { Garden, PlantMasterSheet } from '../types';
-import { createSeedlingBatch, getSeedlingTimeline, shouldStartHardening, isReadyToTransplant, addPhotoToLog, updateSurvivalCount, updateBatchPhase } from '../services/seedlingService';
+import { createSeedlingBatch, createPurchasedSeedlingBatch, getSeedlingTimeline, shouldStartHardening, isReadyToTransplant, addPhotoToLog, updateSurvivalCount, updateBatchPhase } from '../services/seedlingService';
 import { calculateSeedlingTimeline } from '../logic/seedlingTimelineEngine';
 import { getAllMasterSheets } from '../services/plantMasterService';
 import { Sprout, Calendar, Camera, AlertCircle, CheckCircle, Clock, TrendingUp, Upload, X } from 'lucide-react';
@@ -18,12 +18,21 @@ interface SeedlingManagerProps {
 const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBatchUpdate, onBatchCreate }) => {
   const { can, isPro, checkLimit, limit } = useTier();
   const [isCreating, setIsCreating] = useState(false);
+  const [isCreatingPurchased, setIsCreatingPurchased] = useState(false);
   const [newBatch, setNewBatch] = useState({
     plantName: '',
     variety: '',
     sowingDate: new Date().toISOString().split('T')[0],
     quantity: 10,
     location: 'Indoor' as const
+  });
+  const [newPurchasedBatch, setNewPurchasedBatch] = useState({
+    plantName: '',
+    variety: '',
+    purchaseDate: new Date().toISOString().split('T')[0],
+    quantity: 1,
+    nurseryName: '',
+    notes: ''
   });
   const [selectedBatch, setSelectedBatch] = useState<SeedlingBatch | null>(null);
 
@@ -57,6 +66,38 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
         sowingDate: new Date().toISOString().split('T')[0],
         quantity: 10,
         location: 'Indoor'
+      });
+    } catch (error) {
+      alert((error as Error).message);
+    }
+  };
+
+  const handleCreatePurchasedBatch = () => {
+    // Verifica limite batch
+    if (!canCreateBatch) {
+      alert(`Limite raggiunto: massimo ${limit('maxSeedlingBatches')} batch semenzai in versione Free. Passa a Pro per batch illimitati.`);
+      return;
+    }
+
+    try {
+      const batch = createPurchasedSeedlingBatch(
+        newPurchasedBatch.plantName,
+        newPurchasedBatch.purchaseDate,
+        newPurchasedBatch.quantity,
+        garden.id,
+        newPurchasedBatch.variety || undefined,
+        newPurchasedBatch.nurseryName || undefined,
+        newPurchasedBatch.notes || undefined
+      );
+      onBatchCreate(batch);
+      setIsCreatingPurchased(false);
+      setNewPurchasedBatch({
+        plantName: '',
+        variety: '',
+        purchaseDate: new Date().toISOString().split('T')[0],
+        quantity: 1,
+        nurseryName: '',
+        notes: ''
       });
     } catch (error) {
       alert((error as Error).message);
@@ -121,11 +162,24 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
             </div>
           )}
           <button
-            onClick={() => setIsCreating(!isCreating)}
+            onClick={() => {
+              setIsCreating(!isCreating);
+              setIsCreatingPurchased(false);
+            }}
             disabled={!canCreateBatch}
             className="px-4 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex-1 sm:flex-none"
           >
             + Nuovo Batch
+          </button>
+          <button
+            onClick={() => {
+              setIsCreatingPurchased(!isCreatingPurchased);
+              setIsCreating(false);
+            }}
+            disabled={!canCreateBatch}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex-1 sm:flex-none"
+          >
+            + Piantine Acquistate
           </button>
         </div>
       </div>
@@ -140,7 +194,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
         />
       )}
 
-      {/* Form Creazione */}
+      {/* Form Creazione Batch Semenzai */}
       {isCreating && (
         <div className="bg-white p-4 sm:p-6 rounded-xl border-2 border-green-200">
           <h3 className="font-bold text-lg mb-4">Nuovo Batch Semenzai</h3>
@@ -221,6 +275,94 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
         </div>
       )}
 
+      {/* Form Creazione Piantine Acquistate */}
+      {isCreatingPurchased && (
+        <div className="bg-white p-4 sm:p-6 rounded-xl border-2 border-blue-200">
+          <h3 className="font-bold text-lg mb-4 text-blue-800">Aggiungi Piantine Acquistate al Vivaio</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold mb-2">Pianta</label>
+              <select
+                className="w-full p-3 border rounded-lg text-sm sm:text-base"
+                value={newPurchasedBatch.plantName}
+                onChange={(e) => setNewPurchasedBatch({ ...newPurchasedBatch, plantName: e.target.value })}
+              >
+                <option value="">Seleziona pianta</option>
+                {masterSheets.map(p => (
+                  <option key={p.commonName} value={p.commonName}>{p.commonName}</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2">Varietà (opzionale)</label>
+                <input
+                  type="text"
+                  className="w-full p-3 border rounded-lg"
+                  value={newPurchasedBatch.variety}
+                  onChange={(e) => setNewPurchasedBatch({ ...newPurchasedBatch, variety: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-2">Data Acquisto</label>
+                <input
+                  type="date"
+                  className="w-full p-3 border rounded-lg"
+                  value={newPurchasedBatch.purchaseDate}
+                  onChange={(e) => setNewPurchasedBatch({ ...newPurchasedBatch, purchaseDate: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2">Quantità</label>
+                <input
+                  type="number"
+                  min="1"
+                  className="w-full p-3 border rounded-lg text-sm sm:text-base"
+                  value={newPurchasedBatch.quantity}
+                  onChange={(e) => setNewPurchasedBatch({ ...newPurchasedBatch, quantity: parseInt(e.target.value) || 1 })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-2">Nome Vivaio (opzionale)</label>
+                <input
+                  type="text"
+                  className="w-full p-3 border rounded-lg"
+                  value={newPurchasedBatch.nurseryName}
+                  onChange={(e) => setNewPurchasedBatch({ ...newPurchasedBatch, nurseryName: e.target.value })}
+                  placeholder="Es: Vivaio Rossi"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">Note (opzionale)</label>
+              <textarea
+                className="w-full p-3 border rounded-lg h-20"
+                value={newPurchasedBatch.notes}
+                onChange={(e) => setNewPurchasedBatch({ ...newPurchasedBatch, notes: e.target.value })}
+                placeholder="Note aggiuntive..."
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={handleCreatePurchasedBatch}
+                disabled={!newPurchasedBatch.plantName || !canCreateBatch}
+                className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
+              >
+                Aggiungi Piantine
+              </button>
+              <button
+                onClick={() => setIsCreatingPurchased(false)}
+                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 text-sm sm:text-base"
+              >
+                Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Lista Batch */}
       <div className="space-y-4">
         {batches.length === 0 ? (
@@ -242,8 +384,23 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
               <div key={batch.id} className="bg-white p-4 sm:p-6 rounded-xl border-2 border-green-100">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-xl font-bold text-gray-800">{batch.plantName}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-bold text-gray-800">{batch.plantName}</h3>
+                      {batch.source === 'nursery' && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
+                          🏪 Acquistate
+                        </span>
+                      )}
+                      {batch.source === 'home' || !batch.source && (
+                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                          🏠 Seminate
+                        </span>
+                      )}
+                    </div>
                     {batch.variety && <p className="text-sm text-gray-600 italic">{batch.variety}</p>}
+                    {batch.source === 'nursery' && batch.nurseryName && (
+                      <p className="text-xs text-gray-500 mt-1">Vivaio: {batch.nurseryName}</p>
+                    )}
                     <div className="flex items-center gap-2 mt-2">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${getPhaseColor(batch.phase)}`}>
                         {getPhaseLabel(batch.phase)}
@@ -370,6 +527,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
                         <input
                           type="file"
                           accept="image/*"
+                          capture="environment"
                           className="hidden"
                           onChange={(e) => handlePhotoUpload(batch, e)}
                         />

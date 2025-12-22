@@ -303,6 +303,7 @@ const PruningWizard: React.FC<PruningWizardProps> = ({ task, onComplete, onCance
                   <input
                     type="file"
                     accept="image/*"
+                    capture="environment"
                     onChange={handleImageUpload}
                     className="w-full p-2 border border-gray-300 rounded-lg"
                   />

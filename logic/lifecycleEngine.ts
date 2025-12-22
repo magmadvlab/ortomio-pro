@@ -17,7 +17,7 @@ import { createWeeklyReminder, updateReminderFrequency } from '../services/weekl
 import { getSupabaseClient } from '../config/supabase';
 import { getCleaningInstructionsForSpecies } from './equipmentCleaningHelper';
 
-export type LifecyclePhase = 'Sowing' | 'Germination' | 'Nursing' | 'IntermediateRepotting' | 'Hardening' | 'Transplanting' | 'Production';
+export type LifecyclePhase = 'Sowing' | 'Germination' | 'Nursing' | 'IntermediateRepotting' | 'Hardening' | 'Transplanting' | 'Production' | 'Disposal';
 
 export type LifecycleAdviceType = 'CHECK' | 'TASK' | 'WARNING' | 'INFO';
 

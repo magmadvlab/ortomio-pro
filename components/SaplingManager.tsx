@@ -408,6 +408,7 @@ const SaplingManager: React.FC<SaplingManagerProps> = ({
                     <input
                       type="file"
                       accept="image/*"
+                      capture="environment"
                       className="hidden"
                       onChange={(e) => handlePhotoUpload(batch, e)}
                     />

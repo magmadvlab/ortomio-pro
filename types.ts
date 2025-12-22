@@ -589,6 +589,10 @@ export interface GardenTask {
   variety?: string; // e.g., "Datterino"
   plantingMethod?: 'Seed' | 'Seedling' | 'Sapling'; // Started from seed, seedling, or sapling
   
+  // Tracking origine pianta
+  seedPacketId?: string; // ID del pacchetto di semi usato (se plantingMethod === 'Seed')
+  seedlingBatchId?: string; // ID del batch di piantine usato (se plantingMethod === 'Seedling')
+  
   // Statistics Tracking
   locationType?: GrowingLocation; // Where is it growing?
   initialQuantity?: number; // How many seeds/plants started
@@ -597,7 +601,7 @@ export interface GardenTask {
   taskType: 'Sowing' | 'Transplant' | 'Fertilize' | 'Prune' | 'Harvest' | 'Treatment' | 'Plowing' | 'Subsoiling' | 'Harrowing' | 'Tilling' | 'Rolling' | 'Hoeing' | 'EarthingUp' | 'Mulching' | 'PostSowingRolling' | 'Clearing' | 'Stumping' | 'StoneRemoval' | 'Leveling' | 'DeepSubsoiling' | 'Digging' | 'DeepHarrowing' | 'Crumbling' | 'Scraping' | 'SurfaceLeveling' | 'MinimumTillage' | 'StripTillage' | 'NoTill' | 'FormativePruning' | 'MaintenancePruning' | 'RejuvenationPruning' | 'SummerPruning' | 'WinterPruning' | 'Thinning' | 'Suckering' | 'Defoliation' | 'Tying' | 'OliveShredding' | 'RunnerManagement' | 'StrawberryMulching' | 'StrawberryCleaning' | 'CaneRemoval' | 'TipPruning' | 'RaspberryTying' | 'SuckerThinning' | 'FruitBagging' | 'ExoticThinning' | 'Shredding' | 'Topping' | 'Pruning' | 'TreePruning';
   durationMinutes?: number; // Durata task (es. irrigazione in minuti)
   stage?: 'Germination' | 'Vegetative' | 'ReadyToTransplant' | 'Flowering' | 'Fruiting' | 'Harvested';
-  lifecycleState?: 'Sowing' | 'Germination' | 'Nursing' | 'IntermediateRepotting' | 'Hardening' | 'Transplanting' | 'Production'; // Fase del ciclo vitale
+  lifecycleState?: 'Sowing' | 'Germination' | 'Nursing' | 'IntermediateRepotting' | 'Hardening' | 'Transplanting' | 'Production' | 'Disposal'; // Fase del ciclo vitale
   season?: 'Summer' | 'Winter'; // Season classification
   date: string; // ISO date string
   expectedTransplantDate?: string; // If started from seed
