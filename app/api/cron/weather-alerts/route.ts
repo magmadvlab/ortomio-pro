@@ -56,17 +56,16 @@ export async function GET(request: NextRequest) {
         const coordinates = garden.coordinates as { latitude: number; longitude: number };
         if (!coordinates?.latitude || !coordinates?.longitude) continue;
         
-        // Ottieni previsioni meteo
+        // Ottieni previsioni meteo (singolo giorno - oggi)
         const forecast = await getWeatherForecast(
           coordinates.latitude,
           coordinates.longitude
         );
         
-        if (!forecast || forecast.length === 0) continue;
+        if (!forecast) continue;
         
         // Verifica allarmi critici per oggi
-        const todayForecast = forecast.find(f => f.date === today) || forecast[0];
-        const alerts = checkCriticalWeatherAlerts(todayForecast);
+        const alerts = checkCriticalWeatherAlerts(forecast);
         
         if (alerts.length === 0) continue;
         

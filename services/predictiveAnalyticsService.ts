@@ -90,11 +90,22 @@ export async function predictOptimalHarvestDate(
   garden: { coordinates?: { latitude: number; longitude: number }; sizeSqMeters?: number },
   currentDate: Date = new Date()
 ): Promise<HarvestPrediction> {
-  const daysActive = calculateDaysActive(task, currentDate);
+  const daysActive = calculateDaysActive(task);
   const currentPhase = determineLifecyclePhase(daysActive, masterData, task);
   
-  // Calcola giorni attesi alla maturità
-  const expectedDaysToMaturity = masterData.harvest?.daysToMaturity || 90;
+  // Calcola giorni attesi alla maturità da harvestWindow o default
+  let expectedDaysToMaturity = 90; // Default
+  if (masterData.harvestWindow) {
+    if (typeof masterData.harvestWindow === 'string') {
+      // Estrai numeri da stringhe come "60-90 giorni"
+      const match = masterData.harvestWindow.match(/(\d+)-?(\d+)?/);
+      if (match) {
+        const min = parseInt(match[1], 10);
+        const max = match[2] ? parseInt(match[2], 10) : min;
+        expectedDaysToMaturity = Math.round((min + max) / 2); // Media
+      }
+    }
+  }
   const daysRemaining = Math.max(0, expectedDaysToMaturity - daysActive);
   
   // Ottieni previsioni meteo
@@ -108,7 +119,11 @@ export async function predictOptimalHarvestDate(
       );
       if (forecast && forecast.length > 0) {
         // Verifica condizioni favorevoli per raccolto
-        const avgTemp = forecast.reduce((sum, f) => sum + (f.tempMax + f.tempMin) / 2, 0) / forecast.length;
+        const avgTemp = forecast.reduce((sum, f) => {
+          const tempMax = f.tempMax ?? f.temp ?? 0;
+          const tempMin = f.tempMin ?? f.temp ?? 0;
+          return sum + (tempMax + tempMin) / 2;
+        }, 0) / forecast.length;
         const hasRain = forecast.some(f => f.rainForecastMm > 5);
         
         if (avgTemp > 20 && !hasRain) {
@@ -187,7 +202,7 @@ export async function predictYield(
   historicalHarvests: HarvestLogData[],
   currentDate: Date = new Date()
 ): Promise<YieldPrediction> {
-  const daysActive = calculateDaysActive(task, currentDate);
+  const daysActive = calculateDaysActive(task);
   const currentPhase = determineLifecyclePhase(daysActive, masterData, task);
   
   // Calcola resa storica media per questa pianta
@@ -205,7 +220,7 @@ export async function predictYield(
   }
   
   // Resa attesa basata su master data
-  const expectedYieldPerSqm = masterData.harvest?.expectedYieldPerSqm || 2; // kg/m² default
+  const expectedYieldPerSqm = 2; // kg/m² default (non disponibile in PlantMasterSheet)
   const areaSqm = garden.sizeSqMeters || 1;
   const baseYield = expectedYieldPerSqm * areaSqm;
   
@@ -213,8 +228,14 @@ export async function predictYield(
   let growthRate: 'slow' | 'normal' | 'fast' = 'normal';
   let healthScore = 0.8; // Default
   
-  // Se abbiamo foto recenti, usa analisi salute
-  // Per ora usiamo valori di default, ma potremmo integrare photo analysis
+  // Determina crescita basata su fase e giorni
+  // TODO: Integrare analisi foto per determinare crescita reale
+  const expectedDaysToMaturity = 90; // Default, potrebbe essere calcolato da harvestWindow
+  if (currentPhase === 'Production' && daysActive < expectedDaysToMaturity * 0.7) {
+    growthRate = 'fast';
+  } else if (currentPhase !== 'Production' && daysActive > expectedDaysToMaturity * 0.8) {
+    growthRate = 'slow';
+  }
   
   // Calcola resa prevista
   let predictedYield = baseYield;
@@ -292,7 +313,11 @@ export async function predictDiseaseRisk(
         garden.coordinates.longitude
       );
       if (forecast && forecast.length > 0) {
-        temperature = forecast.reduce((sum, f) => sum + (f.tempMax + f.tempMin) / 2, 0) / forecast.length;
+        temperature = forecast.reduce((sum, f) => {
+          const tempMax = f.tempMax ?? f.temp ?? 0;
+          const tempMin = f.tempMin ?? f.temp ?? 0;
+          return sum + (tempMax + tempMin) / 2;
+        }, 0) / forecast.length;
         precipitation = forecast.reduce((sum, f) => sum + f.rainForecastMm, 0);
         humidity = precipitation > 10 ? 80 : 60; // Approssimazione
       }
@@ -371,7 +396,7 @@ export async function predictWaterRequirement(
   garden: { coordinates?: { latitude: number; longitude: number }; sizeSqMeters?: number },
   currentDate: Date = new Date()
 ): Promise<WaterRequirementPrediction> {
-  const daysActive = calculateDaysActive(task, currentDate);
+  const daysActive = calculateDaysActive(task);
   const currentPhase = determineLifecyclePhase(daysActive, masterData, task);
   const areaSqm = garden.sizeSqMeters || 1;
   
@@ -391,7 +416,11 @@ export async function predictWaterRequirement(
       if (forecast && forecast.length > 0) {
         expectedPrecipitation = forecast.reduce((sum, f) => sum + f.rainForecastMm, 0);
         // Stima evapotranspiration basata su temperatura
-        const avgTemp = forecast.reduce((sum, f) => sum + (f.tempMax + f.tempMin) / 2, 0) / forecast.length;
+        const avgTemp = forecast.reduce((sum, f) => {
+          const tempMax = f.tempMax ?? f.temp ?? 0;
+          const tempMin = f.tempMin ?? f.temp ?? 0;
+          return sum + (tempMax + tempMin) / 2;
+        }, 0) / forecast.length;
         evapotranspiration = Math.max(2, Math.min(8, avgTemp / 3)); // Approssimazione
       }
     } catch (error) {

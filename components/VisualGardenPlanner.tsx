@@ -149,9 +149,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
     return Math.max(100, Math.sqrt(gardenSizeSqMeters * 10000)); // Minimo 100cm
   }, [gardenSizeSqMeters]);
   
-  const viewBoxSize = typeof gardenSizeCm === 'object' 
-    ? Math.max(gardenSizeCm.width, gardenSizeCm.height)
-    : gardenSizeCm;
+  const viewBoxSize = gardenSizeCm;
   
   // Filtra solo task con posizione o task di semina/trapianto attivi
   const activeTasks = React.useMemo(() => {

@@ -5,7 +5,7 @@ import { calculateDaysActive } from '../services/taskCalculationService';
 /**
  * Determina la fase del ciclo vitale (versione semplificata per vacation engine)
  */
-const getLifecyclePhase = (daysAlive: number, task: GardenTask): 'Sowing' | 'Germination' | 'Nursing' | 'Hardening' | 'Transplanting' | 'Production' => {
+const getLifecyclePhase = (daysAlive: number, task: GardenTask): 'Sowing' | 'Germination' | 'Nursing' | 'IntermediateRepotting' | 'Hardening' | 'Transplanting' | 'Production' => {
   if (task.lifecycleState) {
     return task.lifecycleState;
   }

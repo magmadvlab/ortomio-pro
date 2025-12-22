@@ -86,19 +86,71 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       sowingDepth: 0.5,
       idealTemp: '20-24°C',
       minTemp: 12,
+      optimalTemp: 22,
+      optimalTempRange: { min: 20, max: 24 },
+      maxTemp: 28,
+      heatingMatTemp: 22, // Opzionale ma aiuta
+      humidityLevel: 'High',
       lightRequirement: 'Dark',
       emergenceDays: parseDaysRange('7-14 giorni'),
       coveringNeeded: true,
-      coveringInstructions: 'Togli la pellicola non appena vedi il primo archietto verde'
+      coveringType: 'PlasticWrap',
+      coveringInstructions: 'Togli la pellicola non appena vedi il primo archietto verde',
+      coveringRemoveWhen: 'Togli IMMEDIATAMENTE la pellicola appena vedi il primo cotiledone verde emergere',
+      soilMoistureCheck: 'Tocca con il dito - deve essere umido ma non bagnato',
+      ventilationNeeded: false
     },
     
     seedlingCare: {
       transplantWhen: 'alla seconda coppia di foglie vere (circa 4-6 foglie totali)',
       lightNeeds: 'Tanta luce diretta o lampade LED',
       lightHours: 14,
+      lightDetails: {
+        type: 'LED',
+        distance: 15,
+        hours: 14,
+        intensity: 'High',
+        spectrum: 'Full'
+      },
+      temperature: '18-22°C',
+      temperatureRange: { min: 18, max: 22 },
       watering: 'Solo quando il terriccio è quasi asciutto',
-      warning: 'Altrimenti la pianta fila (diventa alta e sottile)',
-      temperature: '18-22°C'
+      wateringMethod: 'Bottom',
+      bottomWateringDepth: 2,
+      bottomWateringDuration: 20,
+      ventilation: {
+        needed: true,
+        method: 'ventilatore leggero o finestra leggermente aperta',
+        duration: '2-3 ore al giorno'
+      },
+      firstFertilization: {
+        when: 'alla seconda coppia di foglie vere',
+        type: 'concime liquido bilanciato (NPK 20-20-20)',
+        dilution: '1/4 della dose consigliata'
+      },
+      warning: 'Altrimenti la pianta fila (diventa alta e sottile)'
+    },
+    
+    intermediateRepotting: {
+      needed: true,
+      when: '25-30 giorni dopo la semina, quando le radici escono dai fori di drenaggio',
+      trigger: 'radici visibili dai fori di drenaggio o pianta troppo grande per il contenitore',
+      containerSize: 'vaso 10-12cm di diametro',
+      soilMix: 'terriccio universale + 30% perlite',
+      buryStem: true,
+      buryStemInstructions: 'Puoi interrare parte del gambo per favorire radici avventizie',
+      aftercare: 'mantieni umido per 2-3 giorni, poi normale'
+    },
+    
+    hardening: {
+      duration: 10,
+      procedure: {
+        days1to3: 'Esponi le piantine all\'aperto per 2-3 ore al mattino in luogo ombreggiato. Riporta dentro prima del caldo pomeridiano.',
+        days4to6: 'Aumenta l\'esposizione a 4-6 ore. Puoi esporre anche al sole diretto per 1-2 ore al mattino. Riporta dentro la sera.',
+        days7to10: 'Esponi per 6-8 ore, incluso sole diretto. Se le temperature notturne superano i 12°C, lascia fuori anche la notte negli ultimi 2 giorni.',
+        finalCheck: 'Le piantine sono pronte se hanno foglie verdi e robuste, gambo forte, e hanno resistito alle condizioni esterne senza stress'
+      },
+      temperatureMin: 12
     },
     
     transplanting: {
@@ -111,7 +163,32 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       buryStem: true,
       buryStemInstructions: 'Interra la piantina fino alle prime foglie vere - il gambo farà radici avventizie',
       protectionNeeded: true,
-      protectionInstructions: 'Proteggi dal sole diretto per 2-3 giorni con un telo ombreggiante'
+      protectionInstructions: 'Proteggi dal sole diretto per 2-3 giorni con un telo ombreggiante',
+      finalPlanting: {
+        containerOptions: {
+          minSize: 'vaso 40cm di diametro (per varietà indeterminate)',
+          soilMix: 'terriccio universale + 30% perlite + compost maturo',
+          drainage: 'assicurati che il vaso abbia fori di drenaggio e uno strato di argilla espansa sul fondo'
+        },
+        groundPlanting: {
+          soilPrep: 'vanga profonda 40cm, aggiungi 2-3 manciate di compost maturo sul fondo della buca',
+          spacing: '50cm sulla fila, 70cm tra le file'
+        },
+        raisedBed: {
+          bedHeight: 30,
+          soilMix: 'mix di terra, compost maturo e perlite',
+          spacing: '50cm sulla fila, 70cm tra le file'
+        },
+        supportInstallation: {
+          when: 'AtTransplant',
+          instructions: 'INSTALLA SUBITO un tutore alto almeno 1,80m per varietà indeterminate, o 50-60cm per determinate. Lega delicatamente il fusto.'
+        },
+        finalFertilization: {
+          type: 'Vegetative',
+          product: 'concime ricco di azoto nella fase vegetativa, poi potassio in fioritura',
+          timing: 'applica dopo 2 settimane dal trapianto con azoto, poi passa a potassio durante fioritura'
+        }
+      }
     },
     
     supportRequirements: {
@@ -157,6 +234,26 @@ export const plantMasterSheets: PlantMasterSheet[] = [
     
     visualCategory: 'Orto',
     
+    familySpecificNotes: {
+      growthSpeed: 'Fast',
+      sowingTimingAdvice: 'NON seminare insieme ai peperoncini. Semina 30-40 giorni dopo per evitare crescita eccessiva.',
+      containerSizeAdvice: 'Vaschette standard vanno bene, ma trapianta presto per evitare filatura.',
+      transplantSensitivity: 'Low',
+      specialCareInstructions: [
+        'Tende a "filare" (allungarsi) molto più dei peperoncini - luci vicinissime!',
+        'Al travaso intermedio e finale: puoi interrare quasi tutto il gambo, lasciando solo il ciuffo di foglie. Il gambo sepolto emetterà radici avventizie.',
+        'Crescita molto veloce - gestisci lo spazio con attenzione.'
+      ],
+      comparisonWithSimilar: 'Simile a peperoncini nella fase iniziale, ma crescita molto più rapida. Richiede gestione spazio più attenta.'
+    },
+    
+    equipmentCleaning: {
+      seedTrayCleaning: 'Pulisci e sterilizza dopo ogni uso. I pomodori possono portare patogeni.',
+      heatingMatCleaning: 'Pulisci con panno umido e alcool dopo ogni ciclo.',
+      soilReuse: 'CompostOnly',
+      sterilizationRequired: true
+    },
+    
     susceptibility: {
       fungalDiseases: ['Peronospora', 'Alternaria', 'Oidio'],
       pests: ['Afidi', 'Cimici', 'Tuta absoluta'],
@@ -198,19 +295,70 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       sowingDepth: 0.5,
       idealTemp: '20-28°C',
       minTemp: 18,
+      optimalTemp: 24,
+      optimalTempRange: { min: 20, max: 28 },
+      maxTemp: 32,
+      heatingMatTemp: 24, // Temperatura ottimale per tappetino riscaldante
+      humidityLevel: 'High',
       lightRequirement: 'Dark',
       emergenceDays: parseDaysRange('7-21 giorni'),
       coveringNeeded: true,
-      coveringInstructions: 'Togli la pellicola quando compaiono i primi germogli'
+      coveringType: 'PlasticWrap',
+      coveringInstructions: 'Togli la pellicola quando compaiono i primi germogli',
+      coveringRemoveWhen: 'Togli IMMEDIATAMENTE la pellicola appena vedi il primo cotiledone verde emergere',
+      soilMoistureCheck: 'Tocca con il dito - deve essere umido ma non bagnato. Se esce acqua quando premi, è troppo bagnato',
+      ventilationNeeded: false
     },
     
     seedlingCare: {
       transplantWhen: 'alla seconda coppia di foglie vere',
       lightNeeds: 'Tanta luce diretta o lampade LED (14-16h)',
       lightHours: 14,
+      lightDetails: {
+        type: 'LED',
+        distance: 15,
+        hours: 14,
+        intensity: 'High',
+        spectrum: 'Full'
+      },
+      temperature: '20-25°C',
+      temperatureRange: { min: 20, max: 25 },
       watering: 'Solo quando il terriccio è quasi asciutto',
-      warning: 'Mantieni temperatura costante - i peperoncini sono sensibili agli sbalzi',
-      temperature: '20-25°C'
+      wateringMethod: 'Bottom',
+      bottomWateringDepth: 2,
+      bottomWateringDuration: 20,
+      ventilation: {
+        needed: true,
+        method: 'ventilatore leggero o finestra leggermente aperta',
+        duration: '2-3 ore al giorno'
+      },
+      firstFertilization: {
+        when: 'alla seconda coppia di foglie vere',
+        type: 'concime liquido bilanciato (NPK 20-20-20)',
+        dilution: '1/4 della dose consigliata'
+      },
+      warning: 'Mantieni temperatura costante - i peperoncini sono sensibili agli sbalzi'
+    },
+    
+    intermediateRepotting: {
+      needed: true,
+      when: '25-30 giorni dopo la semina, quando le radici escono dai fori di drenaggio',
+      trigger: 'radici visibili dai fori di drenaggio o pianta troppo grande per il contenitore',
+      containerSize: 'vaso 10-12cm di diametro',
+      soilMix: 'terriccio universale + 30% perlite per drenaggio ottimale',
+      buryStem: false,
+      aftercare: 'mantieni umido per 2-3 giorni, poi normale. Evita concimazione per la prima settimana'
+    },
+    
+    hardening: {
+      duration: 10,
+      procedure: {
+        days1to3: 'Esponi le piantine all\'aperto per 2-3 ore al mattino in luogo ombreggiato. Riporta dentro prima del caldo pomeridiano.',
+        days4to6: 'Aumenta l\'esposizione a 4-6 ore. Puoi esporre anche al sole diretto per 1-2 ore al mattino. Riporta dentro la sera.',
+        days7to10: 'Esponi per 6-8 ore, incluso sole diretto. Se le temperature notturne superano i 15°C, lascia fuori anche la notte negli ultimi 2 giorni.',
+        finalCheck: 'Le piantine sono pronte se hanno foglie verdi e robuste, gambo forte, e hanno resistito alle condizioni esterne senza stress'
+      },
+      temperatureMin: 15
     },
     
     transplanting: {
@@ -222,7 +370,32 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       soilRequirements: 'Ricco di potassio e ben drenato. Aggiungi compost maturo',
       buryStem: false,
       protectionNeeded: true,
-      protectionInstructions: 'Proteggi dal vento forte e dal sole diretto per i primi giorni'
+      protectionInstructions: 'Proteggi dal vento forte e dal sole diretto per i primi giorni',
+      finalPlanting: {
+        containerOptions: {
+          minSize: 'vaso 30cm di diametro',
+          soilMix: 'terriccio universale + 30% perlite + compost maturo',
+          drainage: 'assicurati che il vaso abbia fori di drenaggio e uno strato di argilla espansa sul fondo'
+        },
+        groundPlanting: {
+          soilPrep: 'vanga profonda 30cm, aggiungi 2-3 manciate di compost maturo sul fondo della buca',
+          spacing: '40cm sulla fila, 50cm tra le file'
+        },
+        raisedBed: {
+          bedHeight: 30,
+          soilMix: 'mix di terra, compost maturo e perlite',
+          spacing: '40cm sulla fila, 50cm tra le file'
+        },
+        supportInstallation: {
+          when: 'AsNeeded',
+          instructions: 'Installa un paletto di 80cm quando la pianta raggiunge 30-40cm di altezza, o prima se zona ventosa'
+        },
+        finalFertilization: {
+          type: 'Vegetative',
+          product: 'concime ricco di potassio (NPK 10-10-20)',
+          timing: 'applica dopo 2 settimane dal trapianto, poi ogni 3-4 settimane durante la produzione'
+        }
+      }
     },
     
     supportRequirements: {
@@ -244,6 +417,26 @@ export const plantMasterSheets: PlantMasterSheet[] = [
         'Evita di raccogliere troppo presto - lascia maturare i frutti per il massimo sapore e piccantezza.'
       ],
       harvestGuide: 'Raccogli i peperoncini quando hanno raggiunto il colore caratteristico della varietà (verde, giallo, arancione, rosso). Taglia il picciolo con una forbice, lasciando un pezzetto di stelo. I frutti maturi sono più piccanti. Conserva in un luogo fresco e asciutto, oppure essicca per conservarli a lungo.'
+    },
+    
+    familySpecificNotes: {
+      growthSpeed: 'Slow',
+      sowingTimingAdvice: 'Semina a gennaio/febbraio (base di riferimento per altre Solanacee).',
+      containerSizeAdvice: 'Vaschette standard vanno bene.',
+      transplantSensitivity: 'Low',
+      specialCareInstructions: [
+        'Hanno bisogno di pazienza - germinazione lenta per varietà Chinense (14-28 giorni)',
+        'Mantieni temperatura costante - sono sensibili agli sbalzi termici',
+        'Varietà Chinense richiedono temperatura più alta (24-28°C) rispetto ad Annuum (20-24°C)'
+      ],
+      comparisonWithSimilar: 'Base di riferimento per altre Solanacee. Crescita più lenta rispetto a pomodori, simile a melanzane.'
+    },
+    
+    equipmentCleaning: {
+      seedTrayCleaning: 'Pulisci e sterilizza dopo ogni uso.',
+      heatingMatCleaning: 'Pulisci con panno umido e alcool dopo ogni ciclo.',
+      soilReuse: 'CompostOnly',
+      sterilizationRequired: true
     },
     
     susceptibility: {
@@ -282,19 +475,58 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       sowingDepth: 2,
       idealTemp: '20-25°C',
       minTemp: 15,
+      optimalTemp: 22,
+      optimalTempRange: { min: 20, max: 25 },
+      maxTemp: 28,
+      humidityLevel: 'Medium',
       lightRequirement: 'Dark',
       emergenceDays: parseDaysRange('5-10 giorni'),
       coveringNeeded: false,
-      coveringInstructions: undefined
+      coveringType: 'None',
+      soilMoistureCheck: 'Mantieni umido ma non bagnato',
+      ventilationNeeded: false
     },
     
     seedlingCare: {
       transplantWhen: 'quando ha 2-3 foglie vere (circa 3-4 settimane)',
       lightNeeds: 'Luce diretta o lampade LED',
       lightHours: 12,
+      lightDetails: {
+        type: 'LED',
+        distance: 15,
+        hours: 12,
+        intensity: 'Medium',
+        spectrum: 'Full'
+      },
+      temperature: '18-22°C',
+      temperatureRange: { min: 18, max: 22 },
       watering: 'Mantieni terreno umido ma non bagnato',
-      warning: 'Le zucchine crescono velocemente - non lasciare troppo tempo nel semenzaio',
-      temperature: '18-22°C'
+      wateringMethod: 'Top',
+      ventilation: {
+        needed: true,
+        method: 'finestra leggermente aperta',
+        duration: '2-3 ore al giorno'
+      },
+      firstFertilization: {
+        when: 'alla seconda coppia di foglie',
+        type: 'concime liquido bilanciato',
+        dilution: '1/4 della dose consigliata'
+      },
+      warning: 'Le zucchine crescono velocemente - non lasciare troppo tempo nel semenzaio'
+    },
+    
+    intermediateRepotting: {
+      needed: false // Le zucchine crescono velocemente, meglio trapiantare direttamente
+    },
+    
+    hardening: {
+      duration: 7,
+      procedure: {
+        days1to3: 'Esponi per 2-3 ore al mattino in luogo ombreggiato',
+        days4to6: 'Aumenta a 4-6 ore con sole diretto parziale',
+        days7to10: 'Esponi per 6-8 ore incluso sole diretto'
+      },
+      temperatureMin: 12
     },
     
     transplanting: {
@@ -306,7 +538,27 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       soilRequirements: 'Ricco di sostanza organica e ben drenato. Aggiungi compost o letame maturo',
       buryStem: false,
       protectionNeeded: false,
-      protectionInstructions: undefined
+      finalPlanting: {
+        containerOptions: {
+          minSize: 'vaso 40cm di diametro (per varietà nane)',
+          soilMix: 'terriccio universale + compost maturo',
+          drainage: 'assicurati che il vaso abbia fori di drenaggio'
+        },
+        groundPlanting: {
+          soilPrep: 'vanga profonda 40cm, aggiungi 3-4 manciate di compost o letame maturo',
+          spacing: '80-100cm sulla fila, 100cm tra le file'
+        },
+        raisedBed: {
+          bedHeight: 30,
+          soilMix: 'mix di terra, compost maturo',
+          spacing: '80-100cm sulla fila, 100cm tra le file'
+        },
+        finalFertilization: {
+          type: 'Balanced',
+          product: 'concime bilanciato ricco di sostanza organica',
+          timing: 'applica dopo 2 settimane dal trapianto'
+        }
+      }
     },
     
     supportRequirements: {
@@ -333,6 +585,28 @@ export const plantMasterSheets: PlantMasterSheet[] = [
         'Evita di dimenticare di raccogliere - i frutti crescono velocemente e se diventano troppo grandi diventano amari.'
       ],
       harvestGuide: 'Raccogli le zucchine quando sono lunghe 15-20cm e ancora teneri. Taglia il picciolo con un coltello affilato. Raccogli regolarmente per stimolare la produzione continua. I fiori maschili (quelli senza zucchina) sono commestibili e deliziosi fritti.'
+    },
+    
+    familySpecificNotes: {
+      growthSpeed: 'Explosive',
+      sowingTimingAdvice: 'Semina MOLTO TARDI - massimo 2-3 settimane prima di poterle mettere fuori (es. aprile). Se semini a gennaio/febbraio, moriranno o soffriranno.',
+      containerSizeAdvice: 'NON usare vaschette da 12 celle piccole (3-4cm). La radice riempie quello spazio in 4 giorni. Semina direttamente in vasetti da 10cm o vaschette con celle molto grandi.',
+      transplantSensitivity: 'High',
+      specialCareInstructions: [
+        'Germina in 2-3 giorni e diventa enorme in 10 giorni',
+        'Odiano i trapianti - se rompi il pane di terra, la pianta si blocca',
+        'Ideale: semina in vasetti di torba biodegradabile o cocco che si piantano direttamente senza togliere la pianta',
+        'Tappetino: utile per germinazione veloce (24-48h), ma spegnilo subito dopo',
+        'Travaso con delicatezza estrema - meglio evitare se possibile'
+      ],
+      comparisonWithSimilar: 'Completamente diversa dai peperoncini. Crescita esplosiva, radici delicate, odia i rinvasi. Richiede approccio completamente diverso.'
+    },
+    
+    equipmentCleaning: {
+      seedTrayCleaning: 'Pulisci e sterilizza dopo ogni uso. Le cucurbitacee sono sensibili ai patogeni.',
+      heatingMatCleaning: 'Pulisci con panno umido e alcool dopo ogni ciclo.',
+      soilReuse: 'Never',
+      sterilizationRequired: true
     },
     
     susceptibility: {
@@ -371,19 +645,70 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       sowingDepth: 0.5,
       idealTemp: '24-28°C',
       minTemp: 18,
+      optimalTemp: 26,
+      optimalTempRange: { min: 24, max: 28 },
+      maxTemp: 32,
+      heatingMatTemp: 26,
+      humidityLevel: 'High',
       lightRequirement: 'Dark',
       emergenceDays: parseDaysRange('10-21 giorni'),
       coveringNeeded: true,
-      coveringInstructions: 'Togli la pellicola quando compaiono i primi germogli'
+      coveringType: 'PlasticWrap',
+      coveringInstructions: 'Togli la pellicola quando compaiono i primi germogli',
+      coveringRemoveWhen: 'Togli IMMEDIATAMENTE la pellicola appena vedi il primo cotiledone verde emergere',
+      soilMoistureCheck: 'Tocca con il dito - deve essere umido ma non bagnato',
+      ventilationNeeded: false
     },
     
     seedlingCare: {
       transplantWhen: 'alla seconda coppia di foglie vere',
       lightNeeds: 'Tanta luce diretta o lampade LED',
       lightHours: 14,
+      lightDetails: {
+        type: 'LED',
+        distance: 15,
+        hours: 14,
+        intensity: 'High',
+        spectrum: 'Full'
+      },
+      temperature: '20-25°C',
+      temperatureRange: { min: 20, max: 25 },
       watering: 'Solo quando il terriccio è quasi asciutto',
-      warning: 'Le melanzane amano il caldo - mantieni temperatura costante',
-      temperature: '20-25°C'
+      wateringMethod: 'Bottom',
+      bottomWateringDepth: 2,
+      bottomWateringDuration: 20,
+      ventilation: {
+        needed: true,
+        method: 'ventilatore leggero o finestra leggermente aperta',
+        duration: '2-3 ore al giorno'
+      },
+      firstFertilization: {
+        when: 'alla seconda coppia di foglie vere',
+        type: 'concime liquido bilanciato (NPK 20-20-20)',
+        dilution: '1/4 della dose consigliata'
+      },
+      warning: 'Le melanzane amano il caldo - mantieni temperatura costante'
+    },
+    
+    intermediateRepotting: {
+      needed: true,
+      when: '25-30 giorni dopo la semina, quando le radici escono dai fori di drenaggio',
+      trigger: 'radici visibili dai fori di drenaggio',
+      containerSize: 'vaso 10-12cm di diametro',
+      soilMix: 'terriccio universale + 30% perlite',
+      buryStem: false,
+      aftercare: 'mantieni umido per 2-3 giorni, poi normale'
+    },
+    
+    hardening: {
+      duration: 10,
+      procedure: {
+        days1to3: 'Esponi le piantine all\'aperto per 2-3 ore al mattino in luogo ombreggiato. Riporta dentro prima del caldo pomeridiano.',
+        days4to6: 'Aumenta l\'esposizione a 4-6 ore. Puoi esporre anche al sole diretto per 1-2 ore al mattino. Riporta dentro la sera.',
+        days7to10: 'Esponi per 6-8 ore, incluso sole diretto. Se le temperature notturne superano i 18°C, lascia fuori anche la notte negli ultimi 2 giorni.',
+        finalCheck: 'Le piantine sono pronte se hanno foglie verdi e robuste, gambo forte, e hanno resistito alle condizioni esterne senza stress'
+      },
+      temperatureMin: 18
     },
     
     transplanting: {
@@ -394,6 +719,31 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       holeWidth: 35,
       soilRequirements: 'Ricco di sostanza organica e ben drenato. Aggiungi compost',
       buryStem: false,
+      finalPlanting: {
+        containerOptions: {
+          minSize: 'vaso 35cm di diametro',
+          soilMix: 'terriccio universale + 30% perlite + compost maturo',
+          drainage: 'assicurati che il vaso abbia fori di drenaggio e uno strato di argilla espansa sul fondo'
+        },
+        groundPlanting: {
+          soilPrep: 'vanga profonda 40cm, aggiungi 2-3 manciate di compost maturo sul fondo della buca',
+          spacing: '50cm sulla fila, 60cm tra le file'
+        },
+        raisedBed: {
+          bedHeight: 30,
+          soilMix: 'mix di terra, compost maturo e perlite',
+          spacing: '50cm sulla fila, 60cm tra le file'
+        },
+        supportInstallation: {
+          when: 'AsNeeded',
+          instructions: 'Installa un paletto quando la pianta raggiunge 40-50cm di altezza'
+        },
+        finalFertilization: {
+          type: 'Balanced',
+          product: 'concime bilanciato ricco di potassio',
+          timing: 'applica dopo 2 settimane dal trapianto, poi ogni 3-4 settimane'
+        }
+      },
       protectionNeeded: true,
       protectionInstructions: 'Proteggi dal vento e dal freddo - le melanzane sono molto sensibili'
     },
@@ -409,6 +759,26 @@ export const plantMasterSheets: PlantMasterSheet[] = [
         'Evita di raccogliere troppo tardi - i frutti maturi diventano amari e con molti semi.'
       ],
       harvestGuide: 'Raccogli le melanzane quando la buccia è lucida e il frutto cede leggermente alla pressione ma è ancora sodo. Taglia il picciolo con un coltello affilato. Raccogli regolarmente per stimolare la produzione. I frutti troppo maturi hanno molti semi e sapore amaro.'
+    },
+    
+    familySpecificNotes: {
+      growthSpeed: 'Medium',
+      sowingTimingAdvice: 'Puoi seminare insieme ai peperoncini o 1 settimana dopo.',
+      containerSizeAdvice: 'Vaschette standard vanno bene, ma le foglie grandi occupano spazio. Trapianta prima se si fanno ombra.',
+      transplantSensitivity: 'Medium',
+      specialCareInstructions: [
+        'Foglie molto più grandi dei peperoncini - nelle vaschette da 12 celle possono farsi ombra a vicenda',
+        'Travaso intermedio: potresti dover spostare una settimana prima dei peperoncini per evitare che soffochino i vicini',
+        'Ama il caldo estremo - tappetino riscaldante fondamentale (26-28°C)'
+      ],
+      comparisonWithSimilar: 'Simile ai peperoncini ma con foglie più grandi. Richiede più spazio nelle vaschette.'
+    },
+    
+    equipmentCleaning: {
+      seedTrayCleaning: 'Pulisci e sterilizza dopo ogni uso.',
+      heatingMatCleaning: 'Pulisci con panno umido e alcool dopo ogni ciclo.',
+      soilReuse: 'CompostOnly',
+      sterilizationRequired: true
     },
     
     susceptibility: {
@@ -447,19 +817,53 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       sowingDepth: 0.3,
       idealTemp: '15-20°C',
       minTemp: 5,
+      optimalTemp: 18,
+      optimalTempRange: { min: 15, max: 20 },
+      maxTemp: 24,
+      humidityLevel: 'Medium',
       lightRequirement: 'Light',
       emergenceDays: parseDaysRange('5-10 giorni'),
       coveringNeeded: false,
-      coveringInstructions: undefined
+      coveringType: 'None',
+      soilMoistureCheck: 'Mantieni umido ma non bagnato',
+      ventilationNeeded: false
     },
     
     seedlingCare: {
       transplantWhen: 'quando ha 3-4 foglie vere',
       lightNeeds: 'Luce diretta o lampade LED',
       lightHours: 12,
+      lightDetails: {
+        type: 'LED',
+        distance: 10,
+        hours: 12,
+        intensity: 'Medium',
+        spectrum: 'Full'
+      },
+      temperature: '15-20°C',
+      temperatureRange: { min: 15, max: 20 },
       watering: 'Mantieni terreno costantemente umido',
-      warning: 'Le lattughe non amano il caldo eccessivo',
-      temperature: '15-20°C'
+      wateringMethod: 'Top',
+      ventilation: {
+        needed: false,
+        method: undefined,
+        duration: undefined
+      },
+      warning: 'Le lattughe non amano il caldo eccessivo - sopra i 24-25°C i semi vanno in termodormienza e non nascono'
+    },
+    
+    intermediateRepotting: {
+      needed: false // Le lattughe crescono velocemente, meglio trapiantare direttamente
+    },
+    
+    hardening: {
+      duration: 7,
+      procedure: {
+        days1to3: 'Esponi per 2-3 ore al mattino in luogo ombreggiato',
+        days4to6: 'Aumenta a 4-6 ore con sole diretto parziale',
+        days7to10: 'Esponi per 6-8 ore incluso sole diretto'
+      },
+      temperatureMin: 5
     },
     
     transplanting: {
@@ -485,6 +889,27 @@ export const plantMasterSheets: PlantMasterSheet[] = [
         'Evita di lasciare andare a seme - raccogli prima che fiorisca per il miglior sapore.'
       ],
       harvestGuide: 'Raccogli le foglie esterne quando sono grandi abbastanza, oppure taglia l\'intera pianta alla base quando ha raggiunto la dimensione desiderata. Per le lattughe a cespo, raccogli quando il cespo è compatto e ben formato. Raccogli al mattino per la massima croccantezza.'
+    },
+    
+    familySpecificNotes: {
+      growthSpeed: 'Fast',
+      sowingTimingAdvice: 'Puoi seminare tutto l\'anno indoor. Per raccolto autunnale/invernale: semina a giugno/luglio. Per raccolto primaverile: semina a gennaio/febbraio.',
+      containerSizeAdvice: 'Le celle da 12 sono grandi per una singola lattuga. Tecnica "Multisowing": metti 3-4 semi per cella, cresceranno a ciuffo.',
+      transplantSensitivity: 'Low',
+      specialCareInstructions: [
+        'GRANDE PERICOLO: Termodormienza - Se il terriccio supera i 24-25°C, i semi si rifiutano di nascere',
+        'Tappetino: ASSOLUTAMENTE SPENTO. Se fa caldo in casa, germina appoggiando la vaschetta sul pavimento (è più fresco)',
+        'Luci: Vicinissime (10cm). Le lattughe filano se le guardi male',
+        'Tecnica Multisowing: Metti 3-4 semi per cella. Quando trapianti, metti tutto il blocco di terra con le 3-4 piantine insieme'
+      ],
+      comparisonWithSimilar: 'Simile ad altre Asteracee (radicchi, indivie). Crescita veloce, ama il fresco, odia il caldo durante la germinazione.'
+    },
+    
+    equipmentCleaning: {
+      seedTrayCleaning: 'Pulisci e sterilizza dopo ogni uso.',
+      heatingMatCleaning: 'NON usare tappetino per lattughe - preferiscono fresco.',
+      soilReuse: 'CompostOnly',
+      sterilizationRequired: true
     },
     
     susceptibility: {
@@ -826,19 +1251,54 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       sowingDepth: 0.5,
       idealTemp: '15-20°C',
       minTemp: 5,
+      optimalTemp: 18,
+      optimalTempRange: { min: 15, max: 20 },
+      maxTemp: 22,
+      heatingMatTemp: 20, // Utile solo per germinazione
+      humidityLevel: 'Medium',
       lightRequirement: 'Dark',
       emergenceDays: parseDaysRange('10-14 giorni'),
       coveringNeeded: false,
-      coveringInstructions: undefined
+      coveringType: 'None',
+      soilMoistureCheck: 'Mantieni umido ma non bagnato',
+      ventilationNeeded: false
     },
     
     seedlingCare: {
       transplantWhen: 'quando le piantine hanno 3-4 foglie e sono alte 10-15cm',
       lightNeeds: 'Luce diretta',
       lightHours: 12,
+      lightDetails: {
+        type: 'LED',
+        distance: 15,
+        hours: 12,
+        intensity: 'Medium',
+        spectrum: 'Full'
+      },
+      temperature: '15-20°C',
+      temperatureRange: { min: 15, max: 20 },
       watering: 'Mantieni terreno umido ma non bagnato',
-      warning: 'Le cipolle amano il sole e terreno ben drenato',
-      temperature: '15-20°C'
+      wateringMethod: 'Top',
+      ventilation: {
+        needed: false,
+        method: undefined,
+        duration: undefined
+      },
+      warning: 'Le cipolle amano il sole e terreno ben drenato. Taglia le foglie a metà quando sono alte 10-12cm per rinforzare la base.'
+    },
+    
+    intermediateRepotting: {
+      needed: false // Le cipolle si trapiantano direttamente quando pronte
+    },
+    
+    hardening: {
+      duration: 7,
+      procedure: {
+        days1to3: 'Esponi per 2-3 ore al mattino',
+        days4to6: 'Aumenta a 4-6 ore',
+        days7to10: 'Esponi per 6-8 ore incluso sole diretto'
+      },
+      temperatureMin: 5
     },
     
     transplanting: {
@@ -864,6 +1324,26 @@ export const plantMasterSheets: PlantMasterSheet[] = [
         'Evita di raccogliere troppo presto - aspetta che le foglie si secchino naturalmente.'
       ],
       harvestGuide: 'Raccogli le cipolle quando le foglie sono secche e cadute (luglio-agosto). Scava delicatamente e lascia asciugare al sole per alcuni giorni. Conserva in un luogo fresco, asciutto e buio. Le cipolle da consumo fresco possono essere raccolte prima quando sono ancora verdi.'
+    },
+    
+    familySpecificNotes: {
+      growthSpeed: 'Slow',
+      sowingTimingAdvice: 'Sono lentissime. Si seminano a gennaio (o anche dicembre) per trapiantare ad aprile.',
+      containerSizeAdvice: 'Metodo "Affollato": In una vaschetta da 12 celle, puoi mettere anche 5-8 semi per cella. Non serve separarle subito.',
+      transplantSensitivity: 'Low',
+      specialCareInstructions: [
+        'Tappetino: Utile solo per la germinazione (20°C), poi spegnilo',
+        'Il "Taglio dei Capelli" (Barber Shop): Quando sono alte 10-12cm, taglia le foglie a metà (lascia 5-6cm). Questo costringe la pianta a ingrossare la base e fare radici più forti invece di foglie deboli',
+        'Crescita molto lenta - richiede pazienza'
+      ],
+      comparisonWithSimilar: 'Simile a porri e scalogno. Crescita molto lenta, ma risultati migliori rispetto ai bulbilli.'
+    },
+    
+    equipmentCleaning: {
+      seedTrayCleaning: 'Pulisci e sterilizza dopo ogni uso.',
+      heatingMatCleaning: 'Pulisci con panno umido e alcool dopo ogni ciclo.',
+      soilReuse: 'CompostOnly',
+      sterilizationRequired: true
     },
     
     susceptibility: {
@@ -1028,11 +1508,12 @@ export const plantMasterSheets: PlantMasterSheet[] = [
     family: 'Amaranthaceae',
     
     requiredTools: {
-      seedTray: false, // Si semina direttamente in terra
-      seedSoil: false,
-      heatingMat: false,
+      seedTray: true, // Si può anticipare indoor
+      seedTrayType: 'alveolato',
+      seedSoil: true,
+      heatingMat: false, // ASSOLUTAMENTE SPENTO
       sprayer: true,
-      additionalTools: []
+      additionalTools: ['Vasetti di carta biodegradabili (consigliato)']
     },
     
     germination: {
@@ -1040,19 +1521,53 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       sowingDepth: 1,
       idealTemp: '10-20°C',
       minTemp: 5,
+      optimalTemp: 15,
+      optimalTempRange: { min: 10, max: 20 },
+      maxTemp: 22,
+      humidityLevel: 'Medium',
       lightRequirement: 'Dark',
       emergenceDays: parseDaysRange('7-14 giorni'),
       coveringNeeded: false,
-      coveringInstructions: undefined
+      coveringType: 'None',
+      soilMoistureCheck: 'Mantieni umido ma non bagnato',
+      ventilationNeeded: false
     },
     
     seedlingCare: {
-      transplantWhen: 'Non si trapianta - si semina direttamente in terra',
+      transplantWhen: 'Non si trapianta - si semina direttamente in terra o usa vasetti biodegradabili',
       lightNeeds: 'Luce diretta o mezz\'ombra',
       lightHours: 12,
+      lightDetails: {
+        type: 'LED',
+        distance: 15,
+        hours: 12,
+        intensity: 'Medium',
+        spectrum: 'Full'
+      },
+      temperature: '10-20°C',
+      temperatureRange: { min: 10, max: 20 },
       watering: 'Mantieni terreno costantemente umido',
+      wateringMethod: 'Top',
       warning: 'Gli spinaci amano il fresco e non il caldo',
-      temperature: '10-20°C'
+      firstFertilization: {
+        when: 'non necessario - crescita veloce',
+        type: 'non necessario',
+        dilution: undefined
+      }
+    },
+    
+    intermediateRepotting: {
+      needed: false // Radice fittonante delicata - meglio semina diretta o vasetti biodegradabili
+    },
+    
+    hardening: {
+      duration: 5,
+      procedure: {
+        days1to3: 'Esponi per 2-3 ore al mattino',
+        days4to6: 'Aumenta a 4-6 ore',
+        days7to10: 'Esponi per 6-8 ore incluso sole diretto'
+      },
+      temperatureMin: 5
     },
     
     transplanting: {
@@ -1078,6 +1593,27 @@ export const plantMasterSheets: PlantMasterSheet[] = [
         'Evita di lasciare andare a seme - raccogli prima che fiorisca per il miglior sapore.'
       ],
       harvestGuide: 'Raccogli le foglie esterne quando sono grandi abbastanza, oppure taglia l\'intera pianta alla base quando ha raggiunto la dimensione desiderata. Raccogli regolarmente per stimolare la crescita continua. Raccogli al mattino per la massima freschezza.'
+    },
+    
+    familySpecificNotes: {
+      growthSpeed: 'Fast',
+      sowingTimingAdvice: 'Si semina direttamente in terra da febbraio a maggio e da agosto a ottobre. Se anticipi indoor, usa vasetti biodegradabili.',
+      containerSizeAdvice: 'Radice fittonante lunga e delicata. Meglio semina diretta in campo, ma se vuoi anticipare, usa vasetti di carta che si degradano.',
+      transplantSensitivity: 'High',
+      specialCareInstructions: [
+        'Radice fittonante delicata - se tocca il fondo della plastica si storce per sempre',
+        'Meglio semina diretta in campo, ma se anticipi indoor usa vasetti biodegradabili',
+        'Fai molta attenzione a non rompere il pane di terra al trapianto',
+        'Ama il fresco - non il caldo'
+      ],
+      comparisonWithSimilar: 'Simile a bietole e barbietole (Chenopodiacee). Radice fittonante delicata, meglio semina diretta.'
+    },
+    
+    equipmentCleaning: {
+      seedTrayCleaning: 'Pulisci e sterilizza dopo ogni uso.',
+      heatingMatCleaning: 'NON usare tappetino per spinaci - preferiscono fresco.',
+      soilReuse: 'CompostOnly',
+      sterilizationRequired: true
     },
     
     susceptibility: {
@@ -7479,6 +8015,365 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       pests: ['Afidi'],
       preventiveStrategy: 'LOW',
       criticalPeriods: []
+    }
+  },
+  
+  // PEPERONE (Dolce/Quadrato)
+  {
+    id: 'peperone',
+    commonName: 'PEPERONE',
+    nutrientCategory: 'FRUITING',
+    scientificName: 'Capsicum annuum L.',
+    family: 'Solanaceae',
+    
+    requiredTools: {
+      seedTray: true,
+      seedTrayType: 'alveolato',
+      seedSoil: true,
+      heatingMat: true, // Consigliato
+      sprayer: true,
+      additionalTools: ['Pellicola trasparente']
+    },
+    
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '20-28°C',
+      minTemp: 18,
+      optimalTemp: 24,
+      optimalTempRange: { min: 20, max: 28 },
+      maxTemp: 32,
+      heatingMatTemp: 24,
+      humidityLevel: 'High',
+      lightRequirement: 'Dark',
+      emergenceDays: parseDaysRange('7-14 giorni'), // Spesso germinano leggermente prima dei super-piccanti
+      coveringNeeded: true,
+      coveringType: 'PlasticWrap',
+      coveringInstructions: 'Togli la pellicola quando compaiono i primi germogli',
+      coveringRemoveWhen: 'Togli IMMEDIATAMENTE la pellicola appena vedi il primo cotiledone verde emergere',
+      soilMoistureCheck: 'Tocca con il dito - deve essere umido ma non bagnato',
+      ventilationNeeded: false
+    },
+    
+    seedlingCare: {
+      transplantWhen: 'alla seconda coppia di foglie vere',
+      lightNeeds: 'Tanta luce diretta o lampade LED (14-16h)',
+      lightHours: 14,
+      lightDetails: {
+        type: 'LED',
+        distance: 15,
+        hours: 14,
+        intensity: 'High',
+        spectrum: 'Full'
+      },
+      temperature: '20-25°C',
+      temperatureRange: { min: 20, max: 25 },
+      watering: 'Solo quando il terriccio è quasi asciutto',
+      wateringMethod: 'Bottom',
+      bottomWateringDepth: 2,
+      bottomWateringDuration: 20,
+      ventilation: {
+        needed: true,
+        method: 'ventilatore leggero o finestra leggermente aperta',
+        duration: '2-3 ore al giorno'
+      },
+      firstFertilization: {
+        when: 'alla seconda coppia di foglie vere',
+        type: 'concime liquido bilanciato (NPK 20-20-20)',
+        dilution: '1/4 della dose consigliata'
+      },
+      warning: 'Mantieni temperatura costante'
+    },
+    
+    intermediateRepotting: {
+      needed: true,
+      when: '25-30 giorni dopo la semina, quando le radici escono dai fori di drenaggio',
+      trigger: 'radici visibili dai fori di drenaggio o pianta troppo grande per il contenitore',
+      containerSize: 'vaso 10-12cm di diametro',
+      soilMix: 'terriccio universale + 30% perlite per drenaggio ottimale',
+      buryStem: false,
+      aftercare: 'mantieni umido per 2-3 giorni, poi normale. Evita concimazione per la prima settimana'
+    },
+    
+    hardening: {
+      duration: 10,
+      procedure: {
+        days1to3: 'Esponi le piantine all\'aperto per 2-3 ore al mattino in luogo ombreggiato. Riporta dentro prima del caldo pomeridiano.',
+        days4to6: 'Aumenta l\'esposizione a 4-6 ore. Puoi esporre anche al sole diretto per 1-2 ore al mattino. Riporta dentro la sera.',
+        days7to10: 'Esponi per 6-8 ore, incluso sole diretto. Se le temperature notturne superano i 15°C, lascia fuori anche la notte negli ultimi 2 giorni.',
+        finalCheck: 'Le piantine sono pronte se hanno foglie verdi e robuste, gambo forte, e hanno resistito alle condizioni esterne senza stress'
+      },
+      temperatureMin: 15
+    },
+    
+    transplanting: {
+      when: 'Quando le temperature notturne superano stabilmente i 15°C (maggio-giugno in Italia)',
+      minTemp: 15,
+      spacing: '40cm sulla fila, 50cm tra le file',
+      holeDepth: 25,
+      holeWidth: 30,
+      soilRequirements: 'Ricco di potassio e ben drenato. Aggiungi compost maturo',
+      buryStem: false,
+      protectionNeeded: true,
+      protectionInstructions: 'Proteggi dal vento forte e dal sole diretto per i primi giorni',
+      finalPlanting: {
+        containerOptions: {
+          minSize: 'vaso 30cm di diametro',
+          soilMix: 'terriccio universale + 30% perlite + compost maturo',
+          drainage: 'assicurati che il vaso abbia fori di drenaggio e uno strato di argilla espansa sul fondo'
+        },
+        groundPlanting: {
+          soilPrep: 'vanga profonda 30cm, aggiungi 2-3 manciate di compost maturo sul fondo della buca',
+          spacing: '40cm sulla fila, 50cm tra le file'
+        },
+        raisedBed: {
+          bedHeight: 30,
+          soilMix: 'mix di terra, compost maturo e perlite',
+          spacing: '40cm sulla fila, 50cm tra le file'
+        },
+        supportInstallation: {
+          when: 'AsNeeded',
+          instructions: 'Installa un paletto di 80cm quando la pianta raggiunge 30-40cm di altezza, o prima se zona ventosa'
+        },
+        finalFertilization: {
+          type: 'Vegetative',
+          product: 'concime ricco di potassio (NPK 10-10-20)',
+          timing: 'applica dopo 2 settimane dal trapianto, poi ogni 3-4 settimane durante la produzione'
+        }
+      }
+    },
+    
+    supportRequirements: {
+      needsSupport: true,
+      supportType: 'Stake',
+      supportHeight: 80,
+      supportTiming: 'AsNeeded',
+      notes: 'Paletto opzionale ma consigliato per varietà alte o zone ventose.'
+    },
+    
+    availableTags: [],
+    
+    baseInstructions: {
+      introduction: 'Il peperone dolce è identico al 100% ai peperoncini piccanti nella procedura di coltivazione. Spesso germina leggermente prima dei super-piccanti (tipo Habanero), ma trattalo esattamente allo stesso modo.',
+      commonMistakes: [
+        'Evita di piantare troppo presto - i peperoni amano il caldo e non tollerano il freddo sotto i 15°C.',
+        'Evita di innaffiare troppo - preferiscono terreno leggermente asciutto tra un\'irrigazione e l\'altra.',
+        'Evita di concimare troppo con azoto - favorisce foglie a discapito dei frutti. Usa concimi ricchi di potassio.',
+        'Evita di raccogliere troppo presto - lascia maturare i frutti per il massimo sapore.'
+      ],
+      harvestGuide: 'Raccogli i peperoni quando hanno raggiunto il colore caratteristico della varietà (verde, giallo, arancione, rosso). Taglia il picciolo con una forbice. I frutti maturi hanno sapore più dolce.'
+    },
+    
+    familySpecificNotes: {
+      growthSpeed: 'Medium',
+      sowingTimingAdvice: 'Semina insieme ai peperoncini (gennaio/febbraio).',
+      containerSizeAdvice: 'Vaschette standard vanno bene.',
+      transplantSensitivity: 'Low',
+      specialCareInstructions: [
+        'Procedura identica al 100% ai peperoncini piccanti',
+        'Spesso germinano leggermente prima dei super-piccanti (tipo Habanero), ma trattali esattamente allo stesso modo'
+      ],
+      comparisonWithSimilar: 'Identici ai peperoncini piccanti nella procedura. Germinazione leggermente più veloce rispetto alle varietà Chinense.'
+    },
+    
+    equipmentCleaning: {
+      seedTrayCleaning: 'Pulisci e sterilizza dopo ogni uso.',
+      heatingMatCleaning: 'Pulisci con panno umido e alcool dopo ogni ciclo.',
+      soilReuse: 'CompostOnly',
+      sterilizationRequired: true
+    },
+    
+    susceptibility: {
+      fungalDiseases: ['Peronospora', 'Alternaria'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'MEDIUM',
+      criticalPeriods: [
+        {
+          season: 'Summer',
+          daysActive: { min: 40, max: 100 },
+          risk: 'Medium'
+        }
+      ]
+    }
+  },
+  
+  // ALCHEchengi (Physalis)
+  {
+    id: 'alchechengi',
+    commonName: 'ALCHECHENGI',
+    nutrientCategory: 'FRUITING',
+    scientificName: 'Physalis peruviana L.',
+    family: 'Solanaceae',
+    
+    requiredTools: {
+      seedTray: true,
+      seedTrayType: 'alveolato',
+      seedSoil: true,
+      heatingMat: true,
+      sprayer: true,
+      additionalTools: ['Pellicola trasparente']
+    },
+    
+    germination: {
+      preSoak: false,
+      sowingDepth: 0.5,
+      idealTemp: '20-24°C',
+      minTemp: 18,
+      optimalTemp: 22,
+      optimalTempRange: { min: 20, max: 24 },
+      maxTemp: 28,
+      heatingMatTemp: 22,
+      humidityLevel: 'High',
+      lightRequirement: 'Dark',
+      emergenceDays: parseDaysRange('10-21 giorni'), // Crescita iniziale lenta (tipo peperoncino)
+      coveringNeeded: true,
+      coveringType: 'PlasticWrap',
+      coveringInstructions: 'Togli la pellicola quando compaiono i primi germogli',
+      coveringRemoveWhen: 'Togli IMMEDIATAMENTE la pellicola appena vedi il primo cotiledone verde emergere',
+      soilMoistureCheck: 'Tocca con il dito - deve essere umido ma non bagnato',
+      ventilationNeeded: false
+    },
+    
+    seedlingCare: {
+      transplantWhen: 'alla seconda coppia di foglie vere',
+      lightNeeds: 'Tanta luce diretta o lampade LED (14-16h)',
+      lightHours: 14,
+      lightDetails: {
+        type: 'LED',
+        distance: 15,
+        hours: 14,
+        intensity: 'High',
+        spectrum: 'Full'
+      },
+      temperature: '18-22°C',
+      temperatureRange: { min: 18, max: 22 },
+      watering: 'Solo quando il terriccio è quasi asciutto',
+      wateringMethod: 'Bottom',
+      bottomWateringDepth: 2,
+      bottomWateringDuration: 20,
+      ventilation: {
+        needed: true,
+        method: 'ventilatore leggero o finestra leggermente aperta',
+        duration: '2-3 ore al giorno'
+      },
+      firstFertilization: {
+        when: 'alla seconda coppia di foglie vere',
+        type: 'concime liquido bilanciato (NPK 20-20-20)',
+        dilution: '1/4 della dose consigliata'
+      },
+      warning: 'Crescita iniziale lenta - sii paziente'
+    },
+    
+    intermediateRepotting: {
+      needed: true,
+      when: '30-35 giorni dopo la semina, quando le radici escono dai fori di drenaggio',
+      trigger: 'radici visibili dai fori di drenaggio o pianta troppo grande per il contenitore',
+      containerSize: 'vaso 10-12cm di diametro',
+      soilMix: 'terriccio universale + 30% perlite per drenaggio ottimale',
+      buryStem: false,
+      aftercare: 'mantieni umido per 2-3 giorni, poi normale. Evita concimazione per la prima settimana'
+    },
+    
+    hardening: {
+      duration: 10,
+      procedure: {
+        days1to3: 'Esponi le piantine all\'aperto per 2-3 ore al mattino in luogo ombreggiato. Riporta dentro prima del caldo pomeridiano.',
+        days4to6: 'Aumenta l\'esposizione a 4-6 ore. Puoi esporre anche al sole diretto per 1-2 ore al mattino. Riporta dentro la sera.',
+        days7to10: 'Esponi per 6-8 ore, incluso sole diretto. Se le temperature notturne superano i 15°C, lascia fuori anche la notte negli ultimi 2 giorni.',
+        finalCheck: 'Le piantine sono pronte se hanno foglie verdi e robuste, gambo forte, e hanno resistito alle condizioni esterne senza stress'
+      },
+      temperatureMin: 15
+    },
+    
+    transplanting: {
+      when: 'Quando le temperature notturne superano stabilmente i 15°C (maggio-giugno in Italia)',
+      minTemp: 15,
+      spacing: '50cm sulla fila, 60cm tra le file',
+      holeDepth: 25,
+      holeWidth: 30,
+      soilRequirements: 'Ricco di potassio e ben drenato. Aggiungi compost maturo',
+      buryStem: false,
+      protectionNeeded: true,
+      protectionInstructions: 'Proteggi dal vento forte e dal sole diretto per i primi giorni',
+      finalPlanting: {
+        containerOptions: {
+          minSize: 'vaso 35cm di diametro',
+          soilMix: 'terriccio universale + 30% perlite + compost maturo',
+          drainage: 'assicurati che il vaso abbia fori di drenaggio e uno strato di argilla espansa sul fondo'
+        },
+        groundPlanting: {
+          soilPrep: 'vanga profonda 30cm, aggiungi 2-3 manciate di compost maturo sul fondo della buca',
+          spacing: '50cm sulla fila, 60cm tra le file'
+        },
+        raisedBed: {
+          bedHeight: 30,
+          soilMix: 'mix di terra, compost maturo e perlite',
+          spacing: '50cm sulla fila, 60cm tra le file'
+        },
+        supportInstallation: {
+          when: 'AsNeeded',
+          instructions: 'Installa un paletto o griglia quando la pianta inizia a crescere disordinata (tende a crescere molto cespuglioso)'
+        },
+        finalFertilization: {
+          type: 'Vegetative',
+          product: 'concime ricco di potassio (NPK 10-10-20)',
+          timing: 'applica dopo 2 settimane dal trapianto, poi ogni 3-4 settimane durante la produzione'
+        }
+      }
+    },
+    
+    supportRequirements: {
+      needsSupport: true,
+      supportType: 'Cage',
+      supportHeight: 100,
+      supportTiming: 'AsNeeded',
+      notes: 'Tende a crescere molto disordinato/cespuglioso dopo - supporto consigliato.'
+    },
+    
+    availableTags: [],
+    
+    baseInstructions: {
+      introduction: 'L\'alchechengi (Physalis) è simile al pomodoro ma con crescita iniziale lenta tipo peperoncino. Trattalo come un peperoncino nella fase 1 e 2. Dopo tende a crescere molto disordinato/cespuglioso.',
+      commonMistakes: [
+        'Evita di piantare troppo presto - ama il caldo e non tollera il freddo sotto i 15°C.',
+        'Evita di innaffiare troppo - preferisce terreno leggermente asciutto.',
+        'Evita di non supportare - tende a crescere disordinato e ha bisogno di supporto.',
+        'Evita di raccogliere troppo presto - aspetta che i frutti siano completamente maturi dentro il calice.'
+      ],
+      harvestGuide: 'Raccogli l\'alchechengi quando il calice è secco e il frutto all\'interno è arancione/giallo. Il frutto deve essere dolce e maturo. Taglia il calice con il frutto.'
+    },
+    
+    familySpecificNotes: {
+      growthSpeed: 'Medium',
+      sowingTimingAdvice: 'Semina insieme ai peperoncini (gennaio/febbraio).',
+      containerSizeAdvice: 'Vaschette standard vanno bene.',
+      transplantSensitivity: 'Low',
+      specialCareInstructions: [
+        'Simile al pomodoro ma crescita iniziale lenta (tipo peperoncino)',
+        'Trattalo come un peperoncino nella fase 1 e 2',
+        'Tende a crescere molto disordinato/cespuglioso dopo - supporto consigliato'
+      ],
+      comparisonWithSimilar: 'Simile al pomodoro ma crescita iniziale lenta. Trattalo come un peperoncino nelle prime fasi.'
+    },
+    
+    equipmentCleaning: {
+      seedTrayCleaning: 'Pulisci e sterilizza dopo ogni uso.',
+      heatingMatCleaning: 'Pulisci con panno umido e alcool dopo ogni ciclo.',
+      soilReuse: 'CompostOnly',
+      sterilizationRequired: true
+    },
+    
+    susceptibility: {
+      fungalDiseases: ['Peronospora'],
+      pests: ['Afidi'],
+      preventiveStrategy: 'MEDIUM',
+      criticalPeriods: [
+        {
+          season: 'Summer',
+          daysActive: { min: 40, max: 100 },
+          risk: 'Medium'
+        }
+      ]
     }
   }
 ];

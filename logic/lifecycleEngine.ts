@@ -14,8 +14,9 @@ import { getSoilCompatibility } from '../utils/soilTemperatureUtils';
 import { determineWasteDisposal, suggestHumusAddition } from './compostEngine';
 import { createWeeklyReminder, updateReminderFrequency } from '../services/weeklyPhotoReminder';
 import { getSupabaseClient } from '../config/supabase';
+import { getCleaningInstructionsForSpecies } from './equipmentCleaningHelper';
 
-export type LifecyclePhase = 'Sowing' | 'Germination' | 'Nursing' | 'Hardening' | 'Transplanting' | 'Production';
+export type LifecyclePhase = 'Sowing' | 'Germination' | 'Nursing' | 'IntermediateRepotting' | 'Hardening' | 'Transplanting' | 'Production';
 
 export type LifecycleAdviceType = 'CHECK' | 'TASK' | 'WARNING' | 'INFO';
 
@@ -36,7 +37,7 @@ export interface LifecycleAdvice {
 /**
  * Determina la fase corrente del ciclo vitale basandosi sui giorni trascorsi
  */
-const determineLifecyclePhase = (
+export const determineLifecyclePhase = (
   daysAlive: number,
   masterData: PlantMasterSheet,
   task: GardenTask
@@ -63,6 +64,12 @@ const determineLifecyclePhase = (
 
   // Fase 2: Nursing (dopo germinazione fino a ~30 giorni)
   if (daysAlive > masterData.germination.emergenceDays.max + 3 && daysAlive < 50) {
+    // Fase 2.5: Rinvaso Intermedio (25-35 giorni, se necessario)
+    if (masterData.intermediateRepotting?.needed && 
+        daysAlive >= 25 && daysAlive <= 35 &&
+        !task.userResponses?.intermediateRepottingDone) {
+      return 'IntermediateRepotting';
+    }
     return 'Nursing';
   }
 
@@ -100,20 +107,111 @@ const generateSowingAdvice = (task: GardenTask, masterData: PlantMasterSheet): L
   // Consigli specifici per la germinazione
   const subTasks: string[] = [];
   
-  // Temperatura
-  const idealTemp = masterData.germination.idealTemp || '22-26°C';
-  subTasks.push(`🌡️ Temperatura: Mantieni costante tra ${idealTemp}. Usa un termometro per monitorare.`);
+  // Preparazione terriccio - ADATTATO AL TIPO DI CONTENITORE
+  const seedTrayType = masterData.requiredTools.seedTrayType;
   
-  // Umidità
-  subTasks.push(`💧 Umidità: Mantieni il terreno umido ma non troppo bagnato. Usa un nebulizzatore per non spostare i semi. Controlla ogni giorno.`);
+  subTasks.push('📋 Preparazione:');
   
-  // Tempo atteso
-  const minDays = masterData.germination.emergenceDays.min;
-  const maxDays = masterData.germination.emergenceDays.max;
-  subTasks.push(`⏱️ Tempo atteso: I primi germogli dovrebbero apparire tra ${minDays} e ${maxDays} giorni dalla semina.`);
+  if (seedTrayType === 'vasetti') {
+    subTasks.push('   Contenitore: Usa vasetti individuali (non vaschette alveolate)');
+    subTasks.push('   1. Inumidisci il terriccio prima di riempire i vasetti');
+    subTasks.push('   2. Riempi ogni vasetto senza compattare troppo');
+    subTasks.push('   3. Crea un piccolo foro al centro con un dito');
+  } else if (seedTrayType === 'alveolato') {
+    subTasks.push('   Contenitore: Usa vaschetta alveolata');
+    subTasks.push('   1. Inumidisci il terriccio prima di riempire le celle (deve essere umido ma non bagnato)');
+    subTasks.push('   2. Riempi le celle senza compattare troppo - lascia il terriccio soffice');
+    subTasks.push('   3. Crea un piccolo foro con un dito o uno stuzzicadenti');
+  } else {
+    subTasks.push('   1. Inumidisci il terriccio prima di riempire i contenitori');
+    subTasks.push('   2. Riempi senza compattare troppo - lascia il terriccio soffice');
+    subTasks.push('   3. Crea un piccolo foro con un dito o uno stuzzicadenti');
+  }
+  
+  // Etichettatura
+  subTasks.push('🏷️ Etichettatura: Etichetta immediatamente ogni cella/vasetto con nome varietà e data di semina');
+  
+  // Note specifiche per famiglia botanica
+  if (masterData.familySpecificNotes) {
+    const notes = masterData.familySpecificNotes;
+    
+    if (notes.containerSizeAdvice) {
+      subTasks.push(`\n📦 ${notes.containerSizeAdvice}`);
+    }
+    
+    if (notes.sowingTimingAdvice) {
+      subTasks.push(`\n📅 ${notes.sowingTimingAdvice}`);
+    }
+    
+    if (notes.specialCareInstructions && notes.specialCareInstructions.length > 0) {
+      subTasks.push('\n⚠️ Note speciali:');
+      notes.specialCareInstructions.forEach(instruction => {
+        subTasks.push(`   • ${instruction}`);
+      });
+    }
+  }
   
   // Profondità
-  subTasks.push(`🌱 Profondità: I semi sono stati posti a ${masterData.germination.sowingDepth}cm di profondità.`);
+  subTasks.push(`🌱 Profondità: Posiziona i semi a ${masterData.germination.sowingDepth}cm di profondità`);
+  
+  // Temperatura e tappetino riscaldante
+  const idealTemp = masterData.germination.idealTemp || '22-26°C';
+  const optimalTempRange = masterData.germination.optimalTempRange;
+  const heatingMatTemp = masterData.germination.heatingMatTemp;
+  
+  if (masterData.requiredTools.heatingMat && heatingMatTemp) {
+    subTasks.push(`🌡️ Temperatura: Usa tappetino riscaldante impostato a ${heatingMatTemp}°C`);
+    subTasks.push(`   Range ottimale: ${optimalTempRange ? `${optimalTempRange.min}-${optimalTempRange.max}°C` : idealTemp}`);
+  } else if (optimalTempRange) {
+    subTasks.push(`🌡️ Temperatura: Mantieni costante tra ${optimalTempRange.min}-${optimalTempRange.max}°C`);
+  } else {
+    subTasks.push(`🌡️ Temperatura: Mantieni costante tra ${idealTemp}. Usa un termometro per monitorare`);
+  }
+  
+  // Umidità e controllo
+  const humidityLevel = masterData.germination.humidityLevel;
+  const soilMoistureCheck = masterData.germination.soilMoistureCheck;
+  
+  if (soilMoistureCheck) {
+    subTasks.push(`💧 Controllo umidità: ${soilMoistureCheck}`);
+  } else {
+    subTasks.push('💧 Umidità: Mantieni il terreno umido ma non troppo bagnato');
+  }
+  
+  if (humidityLevel) {
+    const humidityText = humidityLevel === 'High' ? 'alta' : humidityLevel === 'Medium' ? 'media' : 'bassa';
+    subTasks.push(`   Livello umidità richiesto: ${humidityText}`);
+  }
+  
+  subTasks.push('   Usa un nebulizzatore per non spostare i semi');
+  subTasks.push('   ⚠️ Controlla ogni giorno l\'umidità del terreno');
+  
+  // Copertura dettagliata
+  if (masterData.germination.coveringNeeded) {
+    const coveringType = masterData.germination.coveringType;
+    const coveringRemoveWhen = masterData.germination.coveringRemoveWhen;
+    
+    if (coveringType === 'PlasticLid') {
+      subTasks.push('📦 Copertura: Usa il coperchio trasparente del semenzaio');
+    } else if (coveringType === 'PlasticWrap') {
+      subTasks.push('📦 Copertura: Usa pellicola trasparente per mantenere umidità e temperatura');
+    } else {
+      subTasks.push('📦 Copertura: Usa pellicola trasparente per mantenere umidità e temperatura costante');
+    }
+    
+    if (coveringRemoveWhen) {
+      subTasks.push(`   ⚠️ IMPORTANTE: ${coveringRemoveWhen}`);
+    } else if (masterData.germination.coveringInstructions) {
+      subTasks.push(`   ⚠️ ${masterData.germination.coveringInstructions}`);
+    } else {
+      subTasks.push('   ⚠️ Togli la copertura non appena vedi il primo germoglio verde');
+    }
+  }
+  
+  // Ventilazione se necessaria
+  if (masterData.germination.ventilationNeeded) {
+    subTasks.push('💨 Ventilazione: Apri leggermente la copertura ogni 2-3 giorni per evitare condensa eccessiva');
+  }
   
   // Luce
   if (masterData.germination.lightRequirement === 'Dark') {
@@ -124,14 +222,32 @@ const generateSowingAdvice = (task: GardenTask, masterData: PlantMasterSheet): L
     subTasks.push('🌓 Luce: I semi possono germinare sia al buio che alla luce.');
   }
   
-  // Copertura se necessaria
-  if (masterData.germination.coveringNeeded) {
-    subTasks.push(`📦 Copertura: ${masterData.germination.coveringInstructions || 'Usa pellicola trasparente per mantenere umidità e temperatura costante'}`);
-  }
+  // Tempo atteso
+  const minDays = masterData.germination.emergenceDays.min;
+  const maxDays = masterData.germination.emergenceDays.max;
+  subTasks.push(`⏱️ Tempo atteso: I primi germogli dovrebbero apparire tra ${minDays} e ${maxDays} giorni dalla semina`);
   
   // Pre-ammollo se necessario
   if (masterData.germination.preSoak) {
-    subTasks.unshift('💧 Pre-ammollo: I semi sono stati pre-ammollati prima della semina per favorire la germinazione.');
+    subTasks.unshift('💧 Pre-ammollo: I semi sono stati pre-ammollati prima della semina per favorire la germinazione');
+  }
+  
+  // Suggerimento pulizia attrezzature se necessario
+  if (masterData.equipmentCleaning?.sterilizationRequired) {
+    subTasks.push('\n🧹 Pulizia attrezzature:');
+    subTasks.push('   Dopo questa semina, pulisci e sterilizza vaschette e attrezzature per evitare "Damping Off" (moria dei semenzai).');
+    
+    const cleaningInstructions = getCleaningInstructionsForSpecies(
+      masterData.equipmentCleaning.seedTrayCleaning,
+      masterData.equipmentCleaning.heatingMatCleaning,
+      masterData.equipmentCleaning.soilReuse
+    );
+    
+    // Aggiungi solo le prime 3-4 righe per non appesantire troppo
+    cleaningInstructions.slice(0, 4).forEach(instruction => {
+      subTasks.push(`   ${instruction}`);
+    });
+    subTasks.push('   (Vedi protocollo completo nella sezione Attrezzature)');
   }
   
   let message = `Hai appena seminato ${task.plantName}. Segui questi consigli per favorire la germinazione:`;
@@ -174,27 +290,73 @@ const generateGerminationAdvice = (
     return null;
   }
 
-  const isInWindow = daysAlive >= masterData.germination.emergenceDays.min && 
-                     daysAlive <= masterData.germination.emergenceDays.max;
+  const minDays = masterData.germination.emergenceDays.min;
+  const maxDays = masterData.germination.emergenceDays.max;
+  const isInWindow = daysAlive >= minDays && daysAlive <= maxDays;
+  const coveringRemoveWhen = masterData.germination.coveringRemoveWhen;
 
   if (isInWindow) {
+    const subTasks: string[] = [];
+    
+    subTasks.push(`👀 Cosa cercare: I primi germogli dovrebbero apparire tra ${minDays} e ${maxDays} giorni dalla semina`);
+    subTasks.push('   Cerca piccoli archietti verdi che emergono dal terreno');
+    
+    // Istruzioni immediate quando emergono
+    subTasks.push('\n⚡ AZIONE IMMEDIATA quando vedi emergere:');
+    
+    if (masterData.germination.coveringNeeded) {
+      if (coveringRemoveWhen) {
+        subTasks.push(`   1. ${coveringRemoveWhen}`);
+      } else {
+        subTasks.push('   1. Togli IMMEDIATAMENTE la copertura (pellicola/coperchio)');
+      }
+      subTasks.push('   2. Non aspettare che tutti i semi germoglino - togli il coperchio appena vedi il primo cotiledone verde');
+    }
+    
+    // Gestione tappetino riscaldante dopo emergenza
+    if (masterData.requiredTools.heatingMat) {
+      subTasks.push('   3. Spegni o riduci il tappetino riscaldante (le piantine non hanno più bisogno di calore extra)');
+    }
+    
+    // Accensione luci
+    subTasks.push('   4. Accendi le luci LED immediatamente (14-16 ore al giorno)');
+    subTasks.push('      Posiziona le luci a 10-15cm sopra le piantine');
+    
+    // Cambio metodo irrigazione
+    subTasks.push('   5. Cambia metodo irrigazione: NON nebulizzare più');
+    subTasks.push('      Usa bottom watering (acqua nel sottovaso) per evitare di bagnare le foglie');
+    
     return {
       phase: 'Germination',
       type: 'CHECK',
-      message: `Dovresti vedere i primi germogli tra ${masterData.germination.emergenceDays.min} e ${masterData.germination.emergenceDays.max} giorni. È spuntato qualcosa?`,
-      actionYes: 'Ottimo! Passa alla fase Nursing. Cambia l\'irrigazione: non nebulizzare più, dai acqua da sotto nel sottovaso.',
-      actionNo: 'Attendi ancora qualche giorno. Mantieni il terreno umido con il nebulizzatore e controlla la temperatura.'
+      message: `Dovresti vedere i primi germogli tra ${minDays} e ${maxDays} giorni. È spuntato qualcosa?`,
+      subTasks,
+      actionYes: 'Ottimo! Segui le istruzioni sopra per la gestione immediata dopo l\'emergenza.',
+      actionNo: 'Attendi ancora qualche giorno. Mantieni il terreno umido con il nebulizzatore e controlla la temperatura. Se dopo ' + maxDays + ' giorni non vedi nulla, controlla temperatura, umidità e profondità di semina.'
     };
   }
 
-  // Se siamo oltre il range, chiedi comunque
-  if (daysAlive > masterData.germination.emergenceDays.max) {
+  // Se siamo oltre il range, chiedi comunque con più dettagli
+  if (daysAlive > maxDays) {
+    const subTasks: string[] = [];
+    subTasks.push(`⚠️ Sono passati ${daysAlive} giorni dalla semina (range atteso: ${minDays}-${maxDays} giorni)`);
+    subTasks.push('\nPossibili cause del ritardo:');
+    subTasks.push('  • Temperatura troppo bassa o troppo alta');
+    subTasks.push('  • Terreno troppo secco o troppo bagnato');
+    subTasks.push('  • Semi troppo profondi o troppo superficiali');
+    subTasks.push('  • Semi vecchi o non vitali');
+    
+    if (masterData.requiredTools.heatingMat && !masterData.germination.heatingMatTemp) {
+      subTasks.push('  • Manca tappetino riscaldante (consigliato per questa specie)');
+    }
+    
     return {
       phase: 'Germination',
       type: 'WARNING',
       message: `Sono passati ${daysAlive} giorni dalla semina. Hai visto germogliare qualcosa?`,
-      actionYes: 'Ottimo! Passa alla fase Nursing.',
-      actionNo: 'Controlla le condizioni: temperatura, umidità, profondità di semina. Potrebbe essere necessario riseminare.'
+      subTasks,
+      actionYes: 'Ottimo! Passa alla fase Nursing seguendo le istruzioni per la gestione post-emergenza.',
+      actionNo: 'Controlla le condizioni sopra. Potrebbe essere necessario riseminare con semi freschi.'
     };
   }
 
@@ -213,21 +375,140 @@ const generateNursingAdvice = (
   health: HealthAdvice | null
 ): LifecycleAdvice | null => {
   const subTasks: string[] = [];
+  const care = masterData.seedlingCare;
 
-  // Suggerimento rinvaso intermedio (25-30 giorni)
-  if (daysAlive >= 25 && daysAlive <= 35) {
-    subTasks.push('Rinvaso intermedio: sposta in un vaso più grande se necessario');
+  // Dettagli tecnici luce
+  if (care.lightDetails) {
+    const light = care.lightDetails;
+    subTasks.push('💡 Gestione Luce:');
+    
+    if (light.type) {
+      subTasks.push(`   Tipo: ${light.type === 'LED' ? 'LED (consigliato)' : light.type === 'Fluorescent' ? 'Fluorescente' : light.type === 'Natural' ? 'Naturale (finestra)' : 'Misto'}`);
+    }
+    
+    if (light.distance) {
+      subTasks.push(`   Distanza: ${light.distance}cm sopra le piantine`);
+    } else {
+      subTasks.push('   Distanza: 10-15cm sopra le piantine (regola man mano che crescono)');
+    }
+    
+    subTasks.push(`   Fotoperiodo: ${light.hours} ore di luce al giorno`);
+    
+    if (light.intensity) {
+      const intensityText = light.intensity === 'High' ? 'Alta' : light.intensity === 'Medium' ? 'Media' : 'Bassa';
+      subTasks.push(`   Intensità: ${intensityText}`);
+    }
+    
+    if (light.spectrum) {
+      const spectrumText = light.spectrum === 'Full' ? 'Spettro completo' : light.spectrum === 'Blue' ? 'Blu (vegetativa)' : light.spectrum === 'Red' ? 'Rosso (fioritura)' : 'Misto';
+      subTasks.push(`   Spettro: ${spectrumText}`);
+    }
+  } else if (care.lightHours) {
+    subTasks.push(`💡 Luce: ${care.lightNeeds} - ${care.lightHours} ore al giorno`);
+    subTasks.push('   Posiziona le luci a 10-15cm sopra le piantine');
+  } else {
+    subTasks.push(`💡 Luce: ${care.lightNeeds}`);
   }
 
-  // Aggiungi suggerimenti nutrizionali
+  // Temperatura
+  if (care.temperatureRange) {
+    subTasks.push(`🌡️ Temperatura: Mantieni tra ${care.temperatureRange.min}-${care.temperatureRange.max}°C`);
+  } else {
+    subTasks.push(`🌡️ Temperatura: ${care.temperature}`);
+  }
+
+  // Bottom watering dettagliato
+  if (care.wateringMethod === 'Bottom') {
+    subTasks.push('💧 Irrigazione - Bottom Watering:');
+    
+    if (care.bottomWateringDepth && care.bottomWateringDuration) {
+      subTasks.push(`   Riempi il sottovaso con ${care.bottomWateringDepth}cm di acqua`);
+      subTasks.push(`   Lascia assorbire per ${care.bottomWateringDuration} minuti`);
+    } else {
+      subTasks.push('   Riempi il sottovaso con 1-2cm di acqua');
+      subTasks.push('   Lascia assorbire per 15-30 minuti, poi svuota l\'acqua residua');
+    }
+    
+    subTasks.push('   Controlla: il terriccio deve essere umido ma non bagnato');
+    subTasks.push('   Frequenza: solo quando il terriccio è quasi asciutto');
+  } else if (care.wateringMethod === 'Spray') {
+    subTasks.push(`💧 Irrigazione: ${care.watering}`);
+    subTasks.push('   Usa nebulizzatore per non bagnare le foglie');
+  } else {
+    subTasks.push(`💧 Irrigazione: ${care.watering}`);
+    if (care.wateringMethod === 'Top') {
+      subTasks.push('   Innaffia delicatamente alla base della pianta');
+    }
+  }
+
+  // Ventilazione
+  if (care.ventilation?.needed) {
+    subTasks.push('💨 Ventilazione:');
+    if (care.ventilation.method) {
+      subTasks.push(`   Metodo: ${care.ventilation.method}`);
+    } else {
+      subTasks.push('   Usa un ventilatore leggero o apri leggermente la finestra');
+    }
+    
+    if (care.ventilation.duration) {
+      subTasks.push(`   Durata: ${care.ventilation.duration}`);
+    } else {
+      subTasks.push('   Durata: 2-3 ore al giorno per rinforzare il gambo');
+    }
+    
+    subTasks.push('   Beneficio: aiuta a prevenire la "filatura" e rinforza la pianta');
+  }
+
+  // Prima fertilizzazione
+  if (care.firstFertilization) {
+    const fert = care.firstFertilization;
+    subTasks.push('💚 Prima Fertilizzazione:');
+    subTasks.push(`   Quando: ${fert.when}`);
+    subTasks.push(`   Tipo: ${fert.type}`);
+    if (fert.dilution) {
+      subTasks.push(`   Dosaggio: ${fert.dilution}`);
+    } else {
+      subTasks.push('   Dosaggio: usa 1/4 della dose consigliata per iniziare');
+    }
+  }
+
+  // Warning se presente
+  if (care.warning) {
+    subTasks.push(`⚠️ Attenzione: ${care.warning}`);
+  }
+
+  // Note sulla sensibilità ai trapianti
+  if (masterData.familySpecificNotes?.transplantSensitivity) {
+    const sensitivity = masterData.familySpecificNotes.transplantSensitivity;
+    
+    if (sensitivity === 'High') {
+      subTasks.push('\n⚠️ ATTENZIONE - Sensibilità ai trapianti ALTA:');
+      subTasks.push('   • Evita rinvasi multipli se possibile');
+      subTasks.push('   • Se devi trapiantare, fai con estrema delicatezza');
+      subTasks.push('   • Considera vasetti biodegradabili per evitare di disturbare le radici');
+    } else if (sensitivity === 'Medium') {
+      subTasks.push('\n⚠️ Sensibilità ai trapianti MEDIA:');
+      subTasks.push('   • Trapianta con cura, evitando di rompere il pane di terra');
+    }
+  }
+
+  // Note comparative se presenti
+  if (masterData.familySpecificNotes?.comparisonWithSimilar) {
+    subTasks.push(`\n💡 Confronto con specie simili: ${masterData.familySpecificNotes.comparisonWithSimilar}`);
+  }
+
+  // Aggiungi suggerimenti nutrizionali avanzati
   if (nutrients.shouldFertilize) {
-    subTasks.push(`Nutrizione: ${nutrients.adviceTitle} - ${nutrients.adviceBody}`);
+    subTasks.push(`\n💚 Nutrizione: ${nutrients.adviceTitle} - ${nutrients.adviceBody}`);
   }
 
   // Aggiungi suggerimenti salute
   if (health) {
-    subTasks.push(`Protezione: ${health.productToUse} - ${health.reason}`);
+    subTasks.push(`🛡️ Protezione: ${health.productToUse} - ${health.reason}`);
   }
+
+  // Trapianto quando
+  subTasks.push(`\n📅 Prossimo passo: Trapianto ${care.transplantWhen}`);
 
   if (subTasks.length === 0) {
     return null;
@@ -236,7 +517,107 @@ const generateNursingAdvice = (
   return {
     phase: 'Nursing',
     type: 'TASK',
-    message: `Le tue piantine di ${task.plantName} stanno crescendo! Ecco cosa fare ora:`,
+    message: `Le tue piantine di ${task.plantName} stanno crescendo! Segui queste cure dettagliate:`,
+    subTasks,
+    relatedAdvice: {
+      nutrients,
+      health: health || undefined
+    }
+  };
+};
+
+/**
+ * Genera suggerimenti per la fase di Rinvaso Intermedio
+ */
+const generateIntermediateRepottingAdvice = (
+  daysAlive: number,
+  task: GardenTask,
+  masterData: PlantMasterSheet,
+  nutrients: NutrientAdvice,
+  health: HealthAdvice | null
+): LifecycleAdvice | null => {
+  if (!masterData.intermediateRepotting?.needed) {
+    return null;
+  }
+
+  const repotting = masterData.intermediateRepotting;
+  const subTasks: string[] = [];
+
+  // Quando fare il rinvaso
+  subTasks.push(`📅 Quando: ${repotting.when}`);
+  
+  // Trigger per rinvaso
+  if (repotting.trigger) {
+    subTasks.push(`🔍 Segnale: ${repotting.trigger}`);
+  } else {
+    // Default basato sui giorni
+    if (daysAlive >= 25 && daysAlive <= 30) {
+      subTasks.push('🔍 Segnale: È il momento ideale per il rinvaso intermedio');
+    } else if (daysAlive > 30) {
+      subTasks.push('🔍 Segnale: Controlla se le radici escono dai fori di drenaggio');
+    }
+  }
+
+  // Contenitore
+  if (repotting.containerSize) {
+    subTasks.push(`📦 Contenitore: ${repotting.containerSize}`);
+  } else {
+    subTasks.push('📦 Contenitore: vaso 10-12cm di diametro');
+  }
+
+  // Terriccio
+  if (repotting.soilMix) {
+    subTasks.push(`🌱 Terriccio: ${repotting.soilMix}`);
+  } else {
+    subTasks.push('🌱 Terriccio: terriccio universale + 30% perlite');
+  }
+
+  // Procedura passo-passo dettagliata
+  subTasks.push('\n📋 Procedura passo-passo:');
+  subTasks.push('   1. Prepara il nuovo contenitore con terriccio');
+  subTasks.push('   2. Inumidisci leggermente il terriccio');
+  subTasks.push('   3. Rimuovi delicatamente la piantina dal contenitore attuale');
+  
+  // Istruzioni specifiche per seppellimento gambo
+  if (repotting.buryStem && repotting.buryStemInstructions) {
+    subTasks.push(`   4. ${repotting.buryStemInstructions}`);
+  } else if (repotting.buryStem) {
+    subTasks.push('   4. Puoi interrare parte del gambo per favorire radici avventizie');
+  } else {
+    subTasks.push('   4. Posiziona nel nuovo contenitore alla stessa profondità');
+  }
+  
+  subTasks.push('   5. Riempi gli spazi vuoti con terriccio');
+  subTasks.push('   6. Compatta leggermente intorno alla base');
+
+  // Cura dopo rinvaso
+  if (repotting.aftercare) {
+    subTasks.push(`\n💧 Dopo il rinvaso: ${repotting.aftercare}`);
+  } else {
+    subTasks.push('\n💧 Dopo il rinvaso: mantieni umido per 2-3 giorni, poi normale');
+  }
+
+  // Avviso sensibilità trapianti se alta
+  if (masterData.familySpecificNotes?.transplantSensitivity === 'High') {
+    subTasks.push('\n⚠️ ATTENZIONE: Questa specie è molto sensibile ai trapianti.');
+    subTasks.push('   Fai estrema attenzione a non rompere il pane di terra.');
+    subTasks.push('   Se possibile, considera di saltare questo rinvaso intermedio.');
+  }
+
+  // Aggiungi suggerimenti nutrizionali se disponibili
+  if (nutrients.shouldFertilize) {
+    subTasks.push(`\n💚 Nutrizione: ${nutrients.adviceTitle} - ${nutrients.adviceBody}`);
+  }
+
+  // Aggiungi suggerimenti salute se disponibili
+  if (health) {
+    subTasks.push(`🛡️ Protezione: ${health.productToUse} - ${health.reason}`);
+  }
+
+  return {
+    phase: 'IntermediateRepotting',
+    type: 'TASK',
+    message: `È il momento del rinvaso intermedio per le tue piantine di ${task.plantName}!`,
     subTasks,
     relatedAdvice: {
       nutrients,
@@ -252,16 +633,73 @@ const generateHardeningAdvice = (
   task: GardenTask,
   masterData: PlantMasterSheet
 ): LifecycleAdvice | null => {
+  const hardening = masterData.hardening;
+  const subTasks: string[] = [];
+  
+  // Se abbiamo dati dettagliati di hardening, usali
+  if (hardening && hardening.procedure) {
+    const proc = hardening.procedure;
+    const tempMin = hardening.temperatureMin;
+    const duration = hardening.duration || 10;
+    
+    subTasks.push(`📅 Durata hardening: ${duration} giorni`);
+    
+    if (tempMin) {
+      subTasks.push(`🌡️ Temperatura minima notturna: ${tempMin}°C`);
+      subTasks.push(`   ⚠️ NON esporre se le temperature notturne scendono sotto ${tempMin}°C`);
+    }
+    
+    subTasks.push('\n📋 Procedura giorno per giorno:');
+    subTasks.push('\nGiorni 1-3:');
+    subTasks.push(`   ${proc.days1to3 || 'Esponi le piantine all\'aperto per 2-3 ore al mattino (evita il sole diretto). Riporta dentro prima del caldo pomeridiano.'}`);
+    
+    subTasks.push('\nGiorni 4-6:');
+    subTasks.push(`   ${proc.days4to6 || 'Aumenta l\'esposizione a 4-6 ore. Puoi esporre anche al sole diretto per 1-2 ore al mattino. Riporta dentro la sera.'}`);
+    
+    subTasks.push('\nGiorni 7-10:');
+    subTasks.push(`   ${proc.days7to10 || 'Esponi per 6-8 ore, incluso sole diretto. Se le temperature notturne lo permettono, lascia fuori anche la notte negli ultimi 2 giorni.'}`);
+    
+    if (proc.finalCheck) {
+      subTasks.push('\n✅ Controllo finale:');
+      subTasks.push(`   ${proc.finalCheck}`);
+    } else {
+      subTasks.push('\n✅ Controllo finale:');
+      subTasks.push('   Le piantine sono pronte se:');
+      subTasks.push('   • Hanno foglie verdi e robuste (non gialle o bruciate)');
+      subTasks.push('   • Il gambo è forte e non filato');
+      subTasks.push('   • Hanno resistito alle condizioni esterne senza stress');
+    }
+  } else {
+    // Procedura generica se non abbiamo dati specifici
+    subTasks.push('📋 Procedura giorno per giorno:');
+    subTasks.push('\nGiorni 1-3:');
+    subTasks.push('   Esponi le piantine all\'aperto per 2-3 ore al mattino');
+    subTasks.push('   Scegli un luogo ombreggiato (evita il sole diretto)');
+    subTasks.push('   Riporta dentro prima del caldo pomeridiano');
+    
+    subTasks.push('\nGiorni 4-6:');
+    subTasks.push('   Aumenta l\'esposizione a 4-6 ore');
+    subTasks.push('   Puoi esporre anche al sole diretto per 1-2 ore al mattino');
+    subTasks.push('   Riporta dentro la sera per proteggere dal freddo notturno');
+    
+    subTasks.push('\nGiorni 7-10:');
+    subTasks.push('   Esponi per 6-8 ore, incluso sole diretto');
+    subTasks.push('   Se le temperature notturne lo permettono, lascia fuori anche la notte negli ultimi 2 giorni');
+    
+    subTasks.push('\n✅ Controllo finale:');
+    subTasks.push('   Le piantine sono pronte se hanno foglie verdi e robuste, gambo forte, e hanno resistito alle condizioni esterne');
+  }
+  
+  subTasks.push('\n⚠️ Attenzione:');
+  subTasks.push('   • Se vedi foglie gialle o bruciate, riduci l\'esposizione al sole');
+  subTasks.push('   • Se le piantine appassiscono, aumenta l\'irrigazione');
+  subTasks.push('   • Proteggi dal vento forte durante i primi giorni');
+  
   return {
     phase: 'Hardening',
     type: 'TASK',
-    message: `È il momento di preparare le piantine di ${task.plantName} al trapianto. Inizia l'acclimatazione:`,
-    subTasks: [
-      'Metti i vasi fuori di giorno per 2-3 ore (evita il sole diretto)',
-      'Aumenta gradualmente il tempo all\'aperto ogni giorno',
-      'Riporta dentro la sera per proteggere dal freddo notturno',
-      'Dopo 3-5 giorni, le piantine saranno pronte per il trapianto definitivo'
-    ]
+    message: `È il momento di preparare le piantine di ${task.plantName} al trapianto. Segui questa procedura di acclimatazione:`,
+    subTasks
   };
 };
 
@@ -356,33 +794,147 @@ const generateTransplantingAdvice = async (
     subTasks.unshift(`🌙 Luna ${moonInfo.name}: ${moonCheck.reason}`);
   }
 
-  // Preparazione terreno
-  subTasks.push('Prepara il terreno: zappatura e arieggiatura');
-  subTasks.push(`Prepara le buche: ${masterData.transplanting.holeDepth}cm di profondità, ${masterData.transplanting.holeWidth}cm di larghezza`);
+  // Opzioni basate su gardenType e finalPlanting
+  const finalPlanting = masterData.transplanting.finalPlanting;
+  const gardenType = garden.gardenType;
   
-  // Suggerimento humus se disponibile
-  const humusSuggestion = suggestHumusAddition(garden, 6); // Assume compost maturo (6+ mesi)
-  if (humusSuggestion?.shouldAdd) {
-    subTasks.push(`🌱 ${humusSuggestion.suggestion} - ${humusSuggestion.benefit}`);
+  subTasks.push('\n📋 Preparazione in base al tipo di spazio:');
+  
+  // Opzioni per vaso/contenitore
+  if (gardenType === 'Indoor' || (finalPlanting?.containerOptions && gardenType !== 'OpenField')) {
+    subTasks.push('\n🏺 Trapianto in VASO:');
+    if (finalPlanting?.containerOptions?.minSize) {
+      subTasks.push(`   Dimensione minima: ${finalPlanting.containerOptions.minSize}`);
+    } else {
+      subTasks.push('   Dimensione minima: vaso 30cm di diametro (per piante grandi)');
+    }
+    
+    if (finalPlanting?.containerOptions?.soilMix) {
+      subTasks.push(`   Terriccio: ${finalPlanting.containerOptions.soilMix}`);
+    } else {
+      subTasks.push('   Terriccio: universale + 30% perlite per drenaggio');
+    }
+    
+    if (finalPlanting?.containerOptions?.drainage) {
+      subTasks.push(`   Drenaggio: ${finalPlanting.containerOptions.drainage}`);
+    } else {
+      subTasks.push('   Drenaggio: assicurati che il vaso abbia fori di drenaggio');
+      subTasks.push('   Metti uno strato di argilla espansa sul fondo (2-3cm)');
+    }
+    
+    subTasks.push(`   Profondità buca: ${masterData.transplanting.holeDepth}cm`);
   }
   
-  // Concimazione di fondo
-  if (nutrients.shouldFertilize) {
-    subTasks.push(`Concimazione di fondo: ${nutrients.adviceTitle} - ${nutrients.adviceBody}`);
+  // Opzioni per terra aperta
+  if (gardenType === 'OpenField' || !gardenType) {
+    subTasks.push('\n🌍 Trapianto in TERRA APERTA:');
+    
+    if (finalPlanting?.groundPlanting?.soilPrep) {
+      subTasks.push(`   Preparazione terreno: ${finalPlanting.groundPlanting.soilPrep}`);
+    } else {
+      subTasks.push('   Preparazione terreno: zappatura profonda 40cm e arieggiatura');
+    }
+    
+    subTasks.push(`   Buche: ${masterData.transplanting.holeDepth}cm profondità, ${masterData.transplanting.holeWidth}cm larghezza`);
+    
+    if (finalPlanting?.groundPlanting?.spacing) {
+      subTasks.push(`   Spaziatura: ${finalPlanting.groundPlanting.spacing}`);
+    } else {
+      subTasks.push(`   Spaziatura: ${masterData.transplanting.spacing}`);
+    }
+    
+    // Suggerimento humus se disponibile
+    const humusSuggestion = suggestHumusAddition(garden, 6); // Assume compost maturo (6+ mesi)
+    if (humusSuggestion?.shouldAdd) {
+      subTasks.push(`   🌱 ${humusSuggestion.suggestion} - ${humusSuggestion.benefit}`);
+    }
+  }
+  
+  // Opzioni per cassone rialzato
+  if (gardenType === 'RaisedBed' || garden.isRaisedBed) {
+    subTasks.push('\n📦 Trapianto in CASSONE RIALZATO:');
+    
+    if (finalPlanting?.raisedBed?.bedHeight) {
+      subTasks.push(`   Altezza cassone: ${finalPlanting.raisedBed.bedHeight}cm`);
+    }
+    
+    if (finalPlanting?.raisedBed?.soilMix) {
+      subTasks.push(`   Terriccio: ${finalPlanting.raisedBed.soilMix}`);
+    } else {
+      subTasks.push('   Terriccio: mix di terra, compost e perlite');
+    }
+    
+    if (finalPlanting?.raisedBed?.spacing) {
+      subTasks.push(`   Spaziatura: ${finalPlanting.raisedBed.spacing}`);
+    } else {
+      subTasks.push(`   Spaziatura: ${masterData.transplanting.spacing}`);
+    }
+    
+    subTasks.push(`   Buche: ${masterData.transplanting.holeDepth}cm profondità`);
+  }
+  
+  // Installazione supporto
+  if (masterData.supportRequirements?.needsSupport) {
+    subTasks.push('\n🪴 Installazione Supporto:');
+    
+    const supportTiming = finalPlanting?.supportInstallation?.when || masterData.supportRequirements.supportTiming;
+    
+    if (supportTiming === 'AtTransplant') {
+      subTasks.push('   ⚠️ INSTALLA IL SUPPORTO SUBITO durante il trapianto');
+      if (finalPlanting?.supportInstallation?.instructions) {
+        subTasks.push(`   ${finalPlanting.supportInstallation.instructions}`);
+      } else {
+        subTasks.push(`   Tipo: ${masterData.supportRequirements.supportType || 'Paletto'}`);
+        if (masterData.supportRequirements.supportHeight) {
+          subTasks.push(`   Altezza: ${masterData.supportRequirements.supportHeight}cm`);
+        }
+      }
+    } else if (supportTiming === 'BeforeFlowering') {
+      subTasks.push('   Installa il supporto prima della fioritura');
+    } else {
+      subTasks.push('   Installa il supporto quando necessario');
+    }
+  }
+  
+  // Concimazione fase-specifica
+  subTasks.push('\n💚 Concimazione:');
+  if (finalPlanting?.finalFertilization) {
+    const fert = finalPlanting.finalFertilization;
+    subTasks.push(`   Tipo: ${fert.type === 'Vegetative' ? 'Vegetativa (ricca di azoto)' : fert.type === 'Flowering' ? 'Fioritura (ricca di fosforo e potassio)' : 'Bilanciata'}`);
+    
+    if (fert.product) {
+      subTasks.push(`   Prodotto: ${fert.product}`);
+    }
+    
+    if (fert.timing) {
+      subTasks.push(`   Quando: ${fert.timing}`);
+    }
+  } else if (nutrients.shouldFertilize) {
+    subTasks.push(`   Concimazione di fondo: ${nutrients.adviceTitle} - ${nutrients.adviceBody}`);
+  } else {
+    subTasks.push(`   ${masterData.transplanting.soilRequirements}`);
   }
 
   // Istruzioni specifiche
+  subTasks.push('\n🌱 Procedura trapianto:');
   if (masterData.transplanting.buryStem) {
-    subTasks.push(`Interra il gambo: ${masterData.transplanting.buryStemInstructions}`);
+    subTasks.push(`   ⚠️ Interra il gambo: ${masterData.transplanting.buryStemInstructions || 'Interra fino alle prime foglie vere'}`);
   }
+  
+  subTasks.push('   1. Inumidisci il terreno della buca');
+  subTasks.push('   2. Rimuovi delicatamente la piantina dal contenitore');
+  subTasks.push('   3. Posiziona nella buca');
+  subTasks.push('   4. Riempi gli spazi vuoti con terriccio');
+  subTasks.push('   5. Compatta leggermente intorno alla base');
+  subTasks.push('   6. Innaffia abbondantemente dopo il trapianto');
 
   if (masterData.transplanting.protectionNeeded) {
-    subTasks.push(`Protezione: ${masterData.transplanting.protectionInstructions}`);
+    subTasks.push(`\n🛡️ Protezione: ${masterData.transplanting.protectionInstructions || 'Proteggi dal sole diretto per i primi giorni'}`);
   }
 
   // Aggiungi suggerimenti salute
   if (health) {
-    subTasks.push(`Protezione preventiva: ${health.productToUse} - ${health.reason}`);
+    subTasks.push(`\n🛡️ Protezione preventiva: ${health.productToUse} - ${health.reason}`);
   }
 
   return {
@@ -559,6 +1111,9 @@ export const checkLifecycleStatus = async (
 
     case 'Nursing':
       return generateNursingAdvice(daysAlive, task, masterData, garden, nutrients, health);
+
+    case 'IntermediateRepotting':
+      return generateIntermediateRepottingAdvice(daysAlive, task, masterData, nutrients, health);
 
     case 'Hardening':
       return generateHardeningAdvice(task, masterData);

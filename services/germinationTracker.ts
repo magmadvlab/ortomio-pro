@@ -29,7 +29,7 @@ export function checkGerminationStatus(
   currentDate: Date = new Date()
 ): GerminationCheck {
   const sowingDate = new Date(task.date);
-  const daysSinceSowing = calculateDaysActive(task, currentDate);
+  const daysSinceSowing = calculateDaysActive(task);
   
   // Calcola finestra di germinazione attesa
   const avgGerminationDays = (masterData.germination.emergenceDays.min + masterData.germination.emergenceDays.max) / 2;
@@ -123,8 +123,7 @@ export function confirmGermination(task: GardenTask): GardenTask {
     ...task,
     userResponses: {
       ...task.userResponses,
-      germinationConfirmed: true,
-      germinationConfirmedDate: new Date().toISOString()
+      germinationConfirmed: true
     },
     lifecycleState: 'Nursing'
   };

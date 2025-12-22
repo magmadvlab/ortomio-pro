@@ -110,9 +110,9 @@ export async function aggregateTaskData(
   }
   
   // Analisi suolo (se zona disponibile)
-  if (task.zoneId) {
+  if (task.bedId) {
     try {
-      const soilAnalysis = await getLatestSoilAnalysis(supabase, task.zoneId, garden.id);
+      const soilAnalysis = await getLatestSoilAnalysis(supabase, task.bedId, garden.id);
       if (soilAnalysis) {
         integrated.soilAnalysis = {
           ph: soilAnalysis.ph,
@@ -134,7 +134,11 @@ export async function aggregateTaskData(
         garden.coordinates.longitude
       );
       if (forecast && forecast.length > 0) {
-        const avgTemp = forecast.reduce((sum, f) => sum + (f.tempMax || f.temp || 0 + f.tempMin || 0) / 2, 0) / forecast.length;
+        const avgTemp = forecast.reduce((sum, f) => {
+          const tempMax = f.tempMax ?? f.temp ?? 0;
+          const tempMin = f.tempMin ?? f.temp ?? 0;
+          return sum + (tempMax + tempMin) / 2;
+        }, 0) / forecast.length;
         const totalPrecipitation = forecast.reduce((sum, f) => sum + (f.rainForecastMm || 0), 0);
         
         integrated.weatherData = {

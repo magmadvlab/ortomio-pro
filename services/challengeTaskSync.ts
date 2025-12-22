@@ -35,7 +35,7 @@ export async function syncTaskCompletionToChallenge(
     // Recupera la challenge completion esistente
     const { data: completion, error: fetchError } = await supabase
       .from('challenge_completions')
-      .select('actions_completed')
+      .select('actions_completed, points_awarded, badge_earned, photo_url')
       .eq('user_id', task.user_id)
       .eq('challenge_id', task.challenge_id)
       .single();
@@ -105,7 +105,7 @@ export async function syncTaskUncompletionFromChallenge(
     // Recupera la challenge completion esistente
     const { data: completion, error: fetchError } = await supabase
       .from('challenge_completions')
-      .select('actions_completed')
+      .select('actions_completed, points_awarded, badge_earned, photo_url')
       .eq('user_id', task.user_id)
       .eq('challenge_id', task.challenge_id)
       .single();
@@ -116,7 +116,7 @@ export async function syncTaskUncompletionFromChallenge(
 
     // Rimuovi l'azione dall'array
     const updatedActions = completion.actions_completed.filter(
-      idx => idx !== task.challenge_action_index
+      (idx: number) => idx !== task.challenge_action_index
     );
 
     // Se non ci sono più azioni completate, elimina la completion

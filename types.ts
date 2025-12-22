@@ -597,7 +597,7 @@ export interface GardenTask {
   taskType: 'Sowing' | 'Transplant' | 'Fertilize' | 'Prune' | 'Harvest' | 'Treatment' | 'Plowing' | 'Subsoiling' | 'Harrowing' | 'Tilling' | 'Rolling' | 'Hoeing' | 'EarthingUp' | 'Mulching' | 'PostSowingRolling' | 'Clearing' | 'Stumping' | 'StoneRemoval' | 'Leveling' | 'DeepSubsoiling' | 'Digging' | 'DeepHarrowing' | 'Crumbling' | 'Scraping' | 'SurfaceLeveling' | 'MinimumTillage' | 'StripTillage' | 'NoTill' | 'FormativePruning' | 'MaintenancePruning' | 'RejuvenationPruning' | 'SummerPruning' | 'WinterPruning' | 'Thinning' | 'Suckering' | 'Defoliation' | 'Tying' | 'OliveShredding' | 'RunnerManagement' | 'StrawberryMulching' | 'StrawberryCleaning' | 'CaneRemoval' | 'TipPruning' | 'RaspberryTying' | 'SuckerThinning' | 'FruitBagging' | 'ExoticThinning' | 'Shredding' | 'Topping' | 'Pruning' | 'TreePruning';
   durationMinutes?: number; // Durata task (es. irrigazione in minuti)
   stage?: 'Germination' | 'Vegetative' | 'ReadyToTransplant' | 'Flowering' | 'Fruiting' | 'Harvested';
-  lifecycleState?: 'Sowing' | 'Germination' | 'Nursing' | 'Hardening' | 'Transplanting' | 'Production'; // Fase del ciclo vitale
+  lifecycleState?: 'Sowing' | 'Germination' | 'Nursing' | 'IntermediateRepotting' | 'Hardening' | 'Transplanting' | 'Production'; // Fase del ciclo vitale
   season?: 'Summer' | 'Winter'; // Season classification
   date: string; // ISO date string
   expectedTransplantDate?: string; // If started from seed
@@ -845,10 +845,17 @@ export interface PlantMasterSheet {
     minTemp: number; // Temperatura minima per germinare (es. 12)
     optimalTemp?: number; // Temperatura ottimale per germinare (es. 22)
     maxTemp?: number; // Temperatura massima per germinare (es. 30)
+    optimalTempRange?: { min: number; max: number }; // Range temperatura ottimale preciso
+    heatingMatTemp?: number; // Temperatura specifica tappetino riscaldante (°C)
+    humidityLevel?: 'High' | 'Medium' | 'Low'; // Livello umidità richiesto
     lightRequirement: 'Dark' | 'Light' | 'Either'; // Buio o luce per germinare
     emergenceDays: { min: number; max: number }; // Range giorni per emergenza (es. { min: 7, max: 14 })
     coveringNeeded: boolean; // Pellicola trasparente?
+    coveringType?: 'PlasticLid' | 'PlasticWrap' | 'None'; // Tipo copertura
     coveringInstructions?: string; // Quando togliere la copertura
+    coveringRemoveWhen?: string; // Istruzioni precise quando togliere (es. "appena emergono i cotiledoni")
+    soilMoistureCheck?: string; // Come verificare umidità terreno (es. "tocca con dito - deve essere umido ma non bagnato")
+    ventilationNeeded?: boolean; // Se serve ventilazione durante germinazione
   };
   
   // FASE 2: Gestione Piantina (Nursing)
@@ -856,12 +863,57 @@ export interface PlantMasterSheet {
     transplantWhen: string; // "alla seconda coppia di foglie vere"
     lightNeeds: string; // "Tanta luce diretta o lampade LED"
     lightHours?: number; // Ore di luce necessarie
-    watering: string; // "Solo quando il terriccio è quasi asciutto"
-    warning?: string; // "Altrimenti la pianta fila"
+    lightDetails?: {
+      type?: 'LED' | 'Fluorescent' | 'Natural' | 'Mixed'; // Tipo luce
+      distance?: number; // Distanza dalla pianta in cm
+      hours: number; // Ore di luce necessarie
+      intensity?: 'Low' | 'Medium' | 'High'; // Intensità luce
+      spectrum?: 'Full' | 'Blue' | 'Red' | 'Mixed'; // Spettro luce
+    };
     temperature: string; // Temperatura durante nursing
+    temperatureRange?: { min: number; max: number }; // Range temperatura preciso
+    watering: string; // "Solo quando il terriccio è quasi asciutto"
+    wateringMethod?: 'Top' | 'Bottom' | 'Spray'; // Metodo irrigazione preferito
+    bottomWateringDepth?: number; // cm acqua per bottom watering
+    bottomWateringDuration?: number; // minuti immersione per bottom watering
+    ventilation?: {
+      needed: boolean; // Serve ventilazione?
+      method?: string; // Metodo (es. "ventilatore leggero", "finestra aperta")
+      duration?: string; // Durata (es. "2-3 ore al giorno")
+    };
+    firstFertilization?: {
+      when: string; // Quando fertilizzare (es. "dopo 2 settimane", "alla seconda coppia di foglie")
+      type: string; // Tipo fertilizzante (es. "concime liquido bilanciato")
+      dilution?: string; // Diluizione (es. "1/4 della dose consigliata")
+    };
+    warning?: string; // "Altrimenti la pianta fila"
   };
   
-  // FASE 3: Trapianto (Messa a dimora)
+  // FASE 2.5: Rinvaso Intermedio (opzionale, tra Nursing e Hardening)
+  intermediateRepotting?: {
+    needed: boolean; // Serve rinvaso intermedio?
+    when?: string; // Quando fare il rinvaso (es. "25-30 giorni dopo la semina", "quando le radici escono dai fori") - richiesto se needed: true
+    trigger?: string; // Trigger per rinvaso (es. "radici visibili dai fori di drenaggio", "pianta troppo grande per il contenitore")
+    containerSize?: string; // Dimensione contenitore (es. "vaso 10cm", "vaso 12cm")
+    soilMix?: string; // Mix terreno per rinvaso (es. "terriccio universale + 30% perlite")
+    buryStem?: boolean; // Interrare parte del gambo nel rinvaso?
+    buryStemInstructions?: string; // Istruzioni seppellimento gambo
+    aftercare?: string; // Cura dopo rinvaso (es. "mantieni umido per 2-3 giorni, poi normale")
+  };
+
+  // FASE 3: Hardening (Preparazione al trapianto finale)
+  hardening?: {
+    duration: number; // Durata hardening in giorni (tipicamente 7-10)
+    procedure: {
+      days1to3: string; // Istruzioni giorni 1-3
+      days4to6: string; // Istruzioni giorni 4-6
+      days7to10: string; // Istruzioni giorni 7-10
+      finalCheck?: string; // Controllo finale prima del trapianto
+    };
+    temperatureMin: number; // Temperatura minima notturna durante hardening
+  };
+
+  // FASE 4: Trapianto (Messa a dimora finale)
   transplanting: {
     when: string; // "Quando le notturne superano i 10°C stabilmente"
     minTemp: number; // Temperatura minima notturna per trapianto (es. 12)
@@ -873,6 +925,32 @@ export interface PlantMasterSheet {
     buryStemInstructions?: string; // "Interra fino alle prime foglie vere"
     protectionNeeded?: boolean; // Protezione dal sole?
     protectionInstructions?: string;
+    // Opzioni dettagliate per messa a dimora
+    finalPlanting?: {
+      containerOptions?: {
+        minSize?: string; // Dimensione minima vaso (es. "vaso 30cm")
+        soilMix?: string; // Mix terreno per vaso
+        drainage?: string; // Requisiti drenaggio
+      };
+      groundPlanting?: {
+        soilPrep?: string; // Preparazione terreno (es. "vanga profonda 40cm, aggiungi compost")
+        spacing?: string; // Spaziatura specifica per terra
+      };
+      raisedBed?: {
+        bedHeight?: number; // Altezza cassone in cm
+        soilMix?: string; // Mix terreno per cassone
+        spacing?: string; // Spaziatura specifica per cassone
+      };
+      supportInstallation?: {
+        when: 'AtTransplant' | 'BeforeFlowering' | 'AsNeeded'; // Quando installare supporto
+        instructions?: string; // Istruzioni installazione
+      };
+      finalFertilization?: {
+        type: 'Vegetative' | 'Flowering' | 'Balanced'; // Tipo concimazione fase-specifica
+        product?: string; // Prodotto consigliato
+        timing?: string; // Quando applicare
+      };
+    };
   };
   
   // Supporto e accessori necessari
@@ -899,6 +977,24 @@ export interface PlantMasterSheet {
     introduction: string; // 2-3 frasi
     commonMistakes: string[]; // 4 errori comuni
     harvestGuide: string; // 3-4 frasi
+  };
+  
+  // Note comparative e specifiche per famiglia botanica
+  familySpecificNotes?: {
+    growthSpeed?: 'Slow' | 'Medium' | 'Fast' | 'Explosive'; // Velocità crescita
+    sowingTimingAdvice?: string; // Es. "Semina 30-40 giorni dopo i peperoncini"
+    containerSizeAdvice?: string; // Es. "Usa vasetti grandi subito, non vaschette piccole"
+    transplantSensitivity?: 'Low' | 'Medium' | 'High'; // Sensibilità ai trapianti
+    specialCareInstructions?: string[]; // Istruzioni specifiche per questa specie
+    comparisonWithSimilar?: string; // Confronto con specie simili
+  };
+  
+  // Note sulla pulizia e disinfezione attrezzature
+  equipmentCleaning?: {
+    seedTrayCleaning?: string; // Istruzioni specifiche per pulizia vaschette
+    heatingMatCleaning?: string; // Istruzioni per pulizia tappetino riscaldante
+    soilReuse?: 'Never' | 'CompostOnly' | 'Allowed'; // Riutilizzo terriccio
+    sterilizationRequired?: boolean; // Se richiede sterilizzazione
   };
   
   // Finestra di raccolta (opzionale)

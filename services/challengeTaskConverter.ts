@@ -42,7 +42,6 @@ export async function convertChallengeActionsToTasks(
     'raccogliere': 'raccolta',
     'potatura': 'potatura',
     'potare': 'potatura',
-    'potare': 'potatura',
     'irrigazione': 'irrigazione',
     'acqua': 'irrigazione',
     'innaffia': 'irrigazione',

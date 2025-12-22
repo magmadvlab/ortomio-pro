@@ -69,9 +69,14 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
           gardenId
         });
       } else {
+        // Assicurati che analysisDate sia sempre definito
+        if (!formData.analysisDate) {
+          formData.analysisDate = new Date().toISOString().split('T')[0];
+        }
         const newAnalysis = await createSoilAnalysis(supabase, {
           ...formData,
-          gardenId
+          gardenId,
+          analysisDate: formData.analysisDate
         });
         if (onAnalysisCreated) {
           onAnalysisCreated(newAnalysis);

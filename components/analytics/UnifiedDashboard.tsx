@@ -145,7 +145,7 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
       <PredictiveDashboard task={task} garden={garden} />
 
       {/* Vegetation Indices Chart */}
-      <VegetationIndicesChart taskId={task.id} zoneId={task.zoneId} />
+      <VegetationIndicesChart taskId={task.id} />
     </div>
   );
 };

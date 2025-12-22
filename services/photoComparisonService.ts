@@ -99,7 +99,7 @@ export async function comparePhotos(
 
   // Genera raccomandazioni
   const recommendations: string[] = [];
-  const needsAttention = false;
+  let needsAttention = false;
 
   if (growthRateChange === 'declined' || currentGrowthRate === 'slow') {
     recommendations.push('Crescita rallentata rilevata. Considera micro-fertilizzazione.');

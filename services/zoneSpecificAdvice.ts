@@ -5,7 +5,7 @@
 
 import { GardenZone } from './zoneMappingService';
 import { GardenTask, PlantMasterSheet } from '../types';
-import { calculateWaterNeeds } from './waterRequirementEngine';
+import { calculateWaterNeeds } from '../logic/waterRequirementEngine';
 import { calculateNutrientNeeds } from '../logic/nutrientEngine';
 import { getMasterSheetSync } from './plantMasterService';
 
@@ -45,7 +45,7 @@ export function calculateZoneIrrigationAdvice(
   garden: any // Garden type
 ): ZoneSpecificAdvice['irrigationAdvice'] {
   // Filtra task per questa zona
-  const zoneTasks = tasks.filter(t => t.zoneId === zone.id);
+  const zoneTasks = tasks.filter(t => t.bedId === zone.id);
 
   if (zoneTasks.length === 0) {
     return {
@@ -127,7 +127,7 @@ export function calculateZoneFertilizationAdvice(
   masterDataMap: Map<string, PlantMasterSheet>,
   daysActive: number
 ): ZoneSpecificAdvice['fertilizationAdvice'] {
-  const zoneTasks = tasks.filter(t => t.zoneId === zone.id);
+  const zoneTasks = tasks.filter(t => t.bedId === zone.id);
 
   if (zoneTasks.length === 0) {
     return {
