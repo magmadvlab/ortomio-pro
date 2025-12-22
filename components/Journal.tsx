@@ -1318,7 +1318,9 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                     <p className="text-sm text-yellow-800">
                       🌰 Non hai ancora aggiunto semi alla banca. 
                       <button 
-                        onClick={() => {/* Naviga a SeedBank o apri modal */}
+                        onClick={() => {
+                          // TODO: Naviga a SeedBank o apri modal
+                        }}
                         className="text-yellow-900 underline font-bold ml-1"
                       >
                         Aggiungi semi ora
@@ -1389,7 +1391,9 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                     <p className="text-sm text-yellow-800">
                       🌱 Non hai ancora aggiunto piantine. 
                       <button 
-                        onClick={() => {/* Naviga a SeedlingManager o apri modal */}
+                        onClick={() => {
+                          // TODO: Naviga a SeedlingManager o apri modal
+                        }}
                         className="text-yellow-900 underline font-bold ml-1"
                       >
                         Aggiungi piantine ora
@@ -1463,7 +1467,9 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                     <p className="text-sm text-yellow-800">
                       🌳 Non hai ancora aggiunto alberelli. 
                       <button 
-                        onClick={() => {/* Naviga a SaplingManager o apri modal */}
+                        onClick={() => {
+                          // TODO: Naviga a SaplingManager o apri modal
+                        }}
                         className="text-yellow-900 underline font-bold ml-1"
                       >
                         Aggiungi alberelli ora
