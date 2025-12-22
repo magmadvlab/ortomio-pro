@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ExoticFruitCrop, FeasibilityResult } from '@/types/exoticFruit';
+import { translateUsdaZone, getUsdaZoneBadge } from '@/services/usdaZoneTranslator';
 import { CheckCircle, AlertTriangle, XCircle, Info, ChevronDown, ChevronUp, MapPin, Shield, Thermometer } from 'lucide-react';
 
 interface GeographicFeasibilityCardProps {
@@ -97,11 +98,29 @@ const GeographicFeasibilityCard: React.FC<GeographicFeasibilityCardProps> = ({
             <div className="flex items-center gap-2 mb-1">
               <h3 className="font-bold text-gray-800">Fattibilità Geografica</h3>
               {userLocation && (
-                <span className="text-xs text-gray-600 flex items-center gap-1">
-                  <MapPin size={12} />
-                  {userLocation.city || userLocation.region || 'La tua zona'}
-                  {userLocation.usdaZone && ` (${userLocation.usdaZone})`}
-                </span>
+                <div className="text-xs text-gray-600 flex items-center gap-2 flex-wrap">
+                  <span className="flex items-center gap-1">
+                    <MapPin size={12} />
+                    {userLocation.city || userLocation.region || 'La tua zona'}
+                  </span>
+                  {userLocation.usdaZone && (
+                    <div className="group relative">
+                      <span className={getUsdaZoneBadge(userLocation.usdaZone).className}>
+                        {translateUsdaZone(userLocation.usdaZone).emoji} {translateUsdaZone(userLocation.usdaZone).climateName}
+                        <Info size={10} className="ml-1 opacity-60" />
+                      </span>
+                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-10 w-64 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
+                        <div className="font-semibold mb-1">{translateUsdaZone(userLocation.usdaZone).climateName}</div>
+                        <div className="text-gray-300 mb-1">{translateUsdaZone(userLocation.usdaZone).description}</div>
+                        <div className="text-gray-400 text-xs">
+                          <div>Temperatura minima: {translateUsdaZone(userLocation.usdaZone).minTemp}</div>
+                          <div>Riferimento: {translateUsdaZone(userLocation.usdaZone).geographicReference}</div>
+                          <div className="mt-1 pt-1 border-t border-gray-700">Zona tecnica: {translateUsdaZone(userLocation.usdaZone).technicalZone}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             <div className="flex items-center gap-3">
@@ -220,6 +239,7 @@ const GeographicFeasibilityCard: React.FC<GeographicFeasibilityCardProps> = ({
 };
 
 export default GeographicFeasibilityCard;
+
 
 
 

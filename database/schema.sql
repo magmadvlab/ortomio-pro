@@ -26,6 +26,7 @@ CREATE TABLE gardens (
   daily_sun_hours INTEGER CHECK (daily_sun_hours >= 0 AND daily_sun_hours <= 24),
   aspect_direction TEXT CHECK (aspect_direction IN ('North', 'South', 'East', 'West', 'Flat')),
   wind_protection TEXT CHECK (wind_protection IN ('High', 'Medium', 'Low')),
+  photo_north_offset DECIMAL(5, 2) CHECK (photo_north_offset >= 0 AND photo_north_offset <= 360), -- Offset in gradi tra Nord reale e Nord nella foto 360°
   
   -- INFRASTRUTTURA
   has_compost_bin BOOLEAN DEFAULT false,
@@ -48,6 +49,10 @@ CREATE TABLE gardens (
   
   -- VACATION MODE (JSONB per flessibilità)
   vacation_mode JSONB,
+  
+  -- PRECISION AGRICULTURE
+  has_zones BOOLEAN DEFAULT false,
+  precision_mode_enabled BOOLEAN DEFAULT false,
   
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -173,6 +178,9 @@ CREATE TABLE garden_tasks (
   images JSONB, -- Array di stringhe (base64 o URLs)
   last_photo_date DATE,
   
+  -- PRECISION AGRICULTURE
+  zone_id UUID, -- Riferimento a garden_zones (FK aggiunto in migrazione)
+  
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   completed_at TIMESTAMP WITH TIME ZONE
@@ -185,6 +193,7 @@ CREATE INDEX idx_garden_tasks_completed ON garden_tasks(completed);
 CREATE INDEX idx_garden_tasks_plant_name ON garden_tasks(plant_name);
 CREATE INDEX idx_garden_tasks_suggested ON garden_tasks(is_suggested) WHERE is_suggested = true;
 CREATE INDEX idx_garden_tasks_suggested_date ON garden_tasks(suggested_date) WHERE suggested_date IS NOT NULL;
+CREATE INDEX idx_garden_tasks_zone_id ON garden_tasks(zone_id) WHERE zone_id IS NOT NULL;
 
 -- ============================================
 -- HARVEST LOGS
@@ -233,6 +242,8 @@ CREATE TABLE photo_logs (
   days_from_planting INTEGER NOT NULL,
   analysis_result JSONB, -- { isHealthy, growthRate, issues, phase, leafCount }
   notes TEXT,
+  -- PRECISION AGRICULTURE
+  vegetation_indices_id UUID, -- Riferimento a vegetation_indices (FK aggiunto in migrazione)
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

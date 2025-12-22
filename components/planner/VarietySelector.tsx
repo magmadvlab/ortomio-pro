@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ExoticFruitVariety } from '@/types/exoticFruit';
+import { translateUsdaZone } from '@/services/usdaZoneTranslator';
 import { CheckCircle, Snowflake, Flame, Container, Ruler, Calendar, Info } from 'lucide-react';
 
 interface VarietySelectorProps {
@@ -199,20 +200,29 @@ const VarietySelector: React.FC<VarietySelectorProps> = ({
                 {/* USDA Zones */}
                 {variety.bestUsdaZones.length > 0 && (
                   <div className="mt-2 pt-2 border-t border-gray-200">
-                    <div className="text-xs text-gray-500 mb-1">Zone USDA ideali:</div>
+                    <div className="text-xs text-gray-500 mb-1">Climi ideali:</div>
                     <div className="flex flex-wrap gap-1">
-                      {variety.bestUsdaZones.map((zone, idx) => (
-                        <span
-                          key={idx}
-                          className={`text-xs px-2 py-0.5 rounded ${
-                            userUsdaZone && Math.abs(parseFloat(userUsdaZone.replace(/[a-z]/i, '')) - zone) <= 1
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-600'
-                          }`}
-                        >
-                          {zone}
-                        </span>
-                      ))}
+                      {variety.bestUsdaZones.map((zone, idx) => {
+                        // Converti numero zona in formato stringa (es. 9 -> '9a', 10 -> '10a')
+                        const zoneStr = zone.toString();
+                        const zoneKey = zoneStr.includes('a') || zoneStr.includes('b') ? zoneStr : `${zoneStr}a`;
+                        const translated = translateUsdaZone(zoneKey);
+                        const isCompatible = userUsdaZone && Math.abs(parseFloat(userUsdaZone.replace(/[a-z]/i, '')) - zone) <= 1;
+                        
+                        return (
+                          <span
+                            key={idx}
+                            className={`text-xs px-2 py-0.5 rounded ${
+                              isCompatible
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}
+                            title={`${translated.climateName} (${translated.minTemp})`}
+                          >
+                            {translated.emoji} {translated.climateName.split(' ')[0]}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -246,6 +256,8 @@ const VarietySelector: React.FC<VarietySelectorProps> = ({
 };
 
 export default VarietySelector;
+
+
 
 
 

@@ -7,6 +7,10 @@ import { PlantPhotoLog } from '../types';
 import { getSupabaseClient } from '../config/supabase';
 import { analyzePlantHealth } from './photoAnalysisService';
 import { fileToBase64 } from './photoAnalysisService';
+import { comparePhotos } from './photoComparisonService';
+import { analyzeFertilizationNeed } from './fertilizationAdvisor';
+import { createWeeklyReminder, updateLastPhotoDate } from './weeklyPhotoReminder';
+import { calculateVegetationIndices, saveVegetationIndices } from './vegetationIndexService';
 
 const STORAGE_KEY = 'ortoPhotoLogs';
 
@@ -130,7 +134,45 @@ export class PhotoLogService {
         return this.createPhotoLogLocal(newLog);
       }
       
-      return this.mapFromDB(data);
+      const createdLog = this.mapFromDB(data);
+      
+      // Calcola automaticamente indici vegetativi dopo il salvataggio
+      try {
+        // Usa zoneId passato come parametro o recuperalo dal task
+        let finalZoneId = zoneId;
+        if (!finalZoneId) {
+          const { data: taskData } = await supabase
+            .from('garden_tasks')
+            .select('zone_id')
+            .eq('id', taskId)
+            .single();
+          finalZoneId = taskData?.zone_id;
+        }
+        
+        const photoUrlForIndices = photoUrl || createdLog.photoUrl;
+        if (photoUrlForIndices && photoUrlForIndices.startsWith('http')) {
+          // Solo per URL HTTP (non base64)
+          const indices = await calculateVegetationIndices(
+            photoUrlForIndices,
+            createdLog.id,
+            taskId,
+            finalZoneId
+          );
+          
+          const savedIndices = await saveVegetationIndices(supabase, indices);
+          
+          // Aggiorna photo_log con riferimento agli indici
+          await supabase
+            .from('photo_logs')
+            .update({ vegetation_indices_id: savedIndices.id })
+            .eq('id', createdLog.id);
+        }
+      } catch (indicesError) {
+        // Non bloccare il flusso se il calcolo degli indici fallisce
+        console.warn('Error calculating vegetation indices:', indicesError);
+      }
+      
+      return createdLog;
     }
     
     // Fallback to localStorage
@@ -184,6 +226,10 @@ export class PhotoLogService {
       analysisResult: db.analysis_result,
       notes: db.notes,
       createdAt: db.created_at,
+      // Estensioni per agricoltura di precisione (se presenti nel DB)
+      ...(db.previous_photo_id && { previousPhotoId: db.previous_photo_id }),
+      ...(db.growth_comparison && { growthComparison: db.growth_comparison }),
+      ...(db.fertilization_suggestion && { fertilizationSuggestion: db.fertilization_suggestion }),
     };
   }
 

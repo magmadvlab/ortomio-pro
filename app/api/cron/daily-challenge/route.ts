@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSupabase } from '../../../../lib/supabase-server';
 import { getChallengeForDate } from '../../../../data/giornateSpeciali';
+import { sendBatchNotifications, createChallengeNotification, NotificationData } from '../../../../services/notificationService';
 
 // Verifica CRON_SECRET per sicurezza
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -58,11 +59,14 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    // Per ogni utente, verifica se ha già completato la challenge
-    const notifications: Array<{ userId: string; type: 'challenge' | 'streak' }> = [];
+    // Per ogni utente, verifica se ha già completato la challenge e prepara notifiche
+    const emailNotifications: NotificationData[] = [];
+    const challengeId = `${challenge.giorno}-${challenge.mese}`;
     
     for (const user of activeUsers) {
-      const challengeId = `${challenge.giorno}-${challenge.mese}`;
+      // Ottieni email utente
+      const { data: authUser } = await supabase.auth.admin.getUserById(user.id);
+      if (!authUser?.user?.email) continue;
       
       // Verifica se challenge già completata
       const { data: completion } = await supabase
@@ -74,7 +78,17 @@ export async function GET(request: NextRequest) {
       
       if (!completion) {
         // Challenge non completata, aggiungi notifica
-        notifications.push({ userId: user.id, type: 'challenge' });
+        emailNotifications.push(
+          createChallengeNotification(
+            user.id,
+            authUser.user.email,
+            {
+              id: challengeId,
+              titolo: challenge.challenge.titolo,
+              punti: challenge.challenge.punti,
+            }
+          )
+        );
       }
       
       // Streak reminder (se streak > 0 e ultima completion > 1 giorno fa)
@@ -86,15 +100,36 @@ export async function GET(request: NextRequest) {
           );
           
           if (daysSinceLast >= 1) {
-            notifications.push({ userId: user.id, type: 'streak' });
+            emailNotifications.push({
+              userId: user.id,
+              userEmail: authUser.user.email,
+              type: 'streak_reminder',
+              subject: '🔥 Mantieni la tua Streak!',
+              templateData: {
+                streakCurrent: user.streak_current,
+                daysSinceLast: daysSinceLast,
+              },
+            });
           }
         }
       }
     }
     
-    // TODO: Invia notifiche push (implementare con servizio notifiche)
-    // Per ora, logga le notifiche da inviare
-    console.log(`Daily challenge notifications: ${notifications.length} users to notify`);
+    // Invia notifiche email in batch
+    let sentCount = 0;
+    let failedCount = 0;
+    
+    if (emailNotifications.length > 0) {
+      const result = await sendBatchNotifications(emailNotifications, supabase);
+      sentCount = result.sent;
+      failedCount = result.failed;
+      
+      if (result.errors.length > 0) {
+        console.error('Some notifications failed:', result.errors.slice(0, 5));
+      }
+    }
+    
+    console.log(`Daily challenge notifications: ${sentCount} sent, ${failedCount} failed out of ${emailNotifications.length} total`);
     
     return NextResponse.json({
       success: true,
@@ -104,8 +139,10 @@ export async function GET(request: NextRequest) {
         titolo: challenge.challenge.titolo,
         punti: challenge.challenge.punti
       },
-      notifications_count: notifications.length,
-      notifications: notifications.slice(0, 10) // Mostra primi 10 per debug
+      notifications_count: emailNotifications.length,
+      sent_count: sentCount,
+      failed_count: failedCount,
+      notifications: emailNotifications.slice(0, 10).map(n => ({ userId: n.userId, type: n.type })) // Mostra primi 10 per debug
     });
   } catch (error) {
     console.error('Error in daily challenge cron:', error);

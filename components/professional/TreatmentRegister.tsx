@@ -80,3 +80,5 @@ export function TreatmentRegister({ limit = 10 }: TreatmentRegisterProps) {
 
 
 
+
+

@@ -120,12 +120,32 @@ export async function PATCH(request: NextRequest) {
     
     const body = await request.json();
     
+    // Recupera il task esistente per verificare se proviene da challenge
+    const { data: existingTask } = await supabase
+      .from('calendar_tasks')
+      .select('challenge_id, challenge_action_index, user_id, completed')
+      .eq('id', taskId)
+      .single();
+    
+    // Aggiorna il task
+    const updateData: any = {
+      ...body,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Se viene marcato come completato, aggiungi completed_at
+    if (body.completed === true && !body.completed_at) {
+      updateData.completed_at = new Date().toISOString();
+    }
+    
+    // Se viene marcato come non completato, rimuovi completed_at
+    if (body.completed === false) {
+      updateData.completed_at = null;
+    }
+    
     const { data, error } = await supabase
       .from('calendar_tasks')
-      .update({
-        ...body,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', taskId)
       .select()
       .single();
@@ -133,6 +153,36 @@ export async function PATCH(request: NextRequest) {
     if (error) {
       console.error('Error updating calendar task:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    
+    // Sincronizza con challenge se il task proviene da una challenge
+    if (existingTask?.challenge_id && existingTask?.challenge_action_index !== undefined && existingTask?.challenge_id) {
+      try {
+        const { syncTaskCompletionToChallenge, syncTaskUncompletionFromChallenge } = await import('../../../../services/challengeTaskSync');
+        
+        if (data.completed) {
+          await syncTaskCompletionToChallenge(supabase, {
+            id: data.id,
+            user_id: data.user_id,
+            challenge_id: data.challenge_id,
+            challenge_action_index: data.challenge_action_index,
+            completed: data.completed,
+            completed_at: data.completed_at
+          });
+        } else if (existingTask.completed && !data.completed) {
+          // Task è stato marcato come non completato
+          await syncTaskUncompletionFromChallenge(supabase, {
+            id: data.id,
+            user_id: data.user_id,
+            challenge_id: data.challenge_id,
+            challenge_action_index: data.challenge_action_index,
+            completed: data.completed
+          });
+        }
+      } catch (syncError) {
+        console.error('Error syncing task completion to challenge:', syncError);
+        // Non bloccare l'aggiornamento del task se la sincronizzazione fallisce
+      }
     }
     
     return NextResponse.json({ task: data });

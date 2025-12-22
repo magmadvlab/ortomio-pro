@@ -14,14 +14,17 @@ import { suggestPlantPlacement, isAreaSuitableForPlant } from '../logic/spatialP
 import { calculateSunIncidence, SunIncidenceCell } from '../logic/sunIncidenceCalculator';
 import { 
   ZoomIn, ZoomOut, Grid, RotateCcw, Save, X, AlertTriangle, 
-  CheckCircle, Move, MapPin, Sun, Package, Droplets, Home
+  CheckCircle, Move, MapPin, Sun, Package, Droplets, Home, Mountain, Building, Trees
 } from 'lucide-react';
+import { ZoneMappingTool, ZoneOverlay } from './planner/ZoneMappingTool';
+import { GardenZone, getZonesByGarden } from '@/services/zoneMappingService';
 import { useTier } from '../packages/core/hooks/useTier';
 import UpgradePrompt from './UpgradePrompt';
 import GardenPointScoreCard from './sunExposure/GardenPointScoreCard';
 import { calculateGardenPointScores, GardenPoint } from '../services/gardenPointScorer';
 import { calculateSeasonalWindows } from '../services/seasonalSunWindows';
 import { getAllHistoricalWeather } from '../services/historicalWeatherService';
+import { getSupabaseClient } from '../config/supabase';
 
 interface VisualGardenPlannerProps {
   garden: Garden;
@@ -43,12 +46,15 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
   const [showSunHeatmap, setShowSunHeatmap] = useState(false);
   const [showStructures, setShowStructures] = useState(true);
   const [showAccessories, setShowAccessories] = useState(true);
+  const [showObstacles, setShowObstacles] = useState(true);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [placementAdvice, setPlacementAdvice] = useState<string | null>(null);
   const [accessories, setAccessories] = useState<GardenAccessory[]>([]);
   const [beds, setBeds] = useState<GardenBed[]>([]);
   const [showBeds, setShowBeds] = useState(true);
+  const [showZoneMapping, setShowZoneMapping] = useState(false);
+  const [zones, setZones] = useState<GardenZone[]>([]);
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Load accessories
@@ -76,6 +82,22 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
     };
     loadBeds();
   }, [garden.id, storageProvider]);
+
+  // Load zones
+  useEffect(() => {
+    const loadZones = async () => {
+      try {
+        const supabase = getSupabaseClient();
+        if (supabase) {
+          const loadedZones = await getZonesByGarden(supabase, garden.id);
+          setZones(loadedZones);
+        }
+      } catch (error) {
+        console.error('Error loading zones:', error);
+      }
+    };
+    loadZones();
+  }, [garden.id]);
 
   // Protezione Pro: Visual Planner è feature Pro
   if (!can('visualGardenPlanner')) {
@@ -127,7 +149,9 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
     return Math.max(100, Math.sqrt(gardenSizeSqMeters * 10000)); // Minimo 100cm
   }, [gardenSizeSqMeters]);
   
-  const viewBoxSize = gardenSizeCm;
+  const viewBoxSize = typeof gardenSizeCm === 'object' 
+    ? Math.max(gardenSizeCm.width, gardenSizeCm.height)
+    : gardenSizeCm;
   
   // Filtra solo task con posizione o task di semina/trapianto attivi
   const activeTasks = React.useMemo(() => {
@@ -307,6 +331,13 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
             >
               <Grid size={18} />
             </button>
+            <button
+              onClick={() => setShowZoneMapping(!showZoneMapping)}
+              className={`p-2 rounded-lg ${showZoneMapping ? 'bg-purple-100 text-purple-700' : 'bg-gray-100'}`}
+              title="Toggle Zone Mapping"
+            >
+              <MapPin size={18} />
+            </button>
             {garden.dailySunHours !== undefined && (
               <button
                 onClick={() => setShowSunHeatmap(!showSunHeatmap)}
@@ -344,6 +375,16 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
                 title="Mostra/Nascondi Letti/Cassoni/Vasi"
               >
                 <Grid size={18} />
+              </button>
+            )}
+            {/* Toggle for Obstacles */}
+            {garden.obstacles && garden.obstacles.length > 0 && (
+              <button
+                onClick={() => setShowObstacles(!showObstacles)}
+                className={`p-2 rounded-lg ${showObstacles ? 'bg-red-100 text-red-700' : 'bg-gray-100'}`}
+                title="Mostra/Nascondi Ostacoli"
+              >
+                <Mountain size={18} />
               </button>
             )}
             {onClose && (
@@ -397,7 +438,71 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
                 </pattern>
               </defs>
             )}
-            {showGrid && <rect width="100%" height="100%" fill="url(#grid)" />}
+            
+            {/* Terreno Base - Sempre visibile */}
+            <rect
+              x="0"
+              y="0"
+              width={gardenSizeCm}
+              height={gardenSizeCm}
+              fill="#8B4513"
+              fillOpacity="0.3"
+              stroke="#654321"
+              strokeWidth="2"
+            />
+            
+            {/* Pattern texture terreno */}
+            <defs>
+              <pattern id="soil-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                <circle cx="5" cy="5" r="1" fill="#654321" opacity="0.2" />
+                <circle cx="15" cy="10" r="1" fill="#654321" opacity="0.2" />
+                <circle cx="10" cy="15" r="1" fill="#654321" opacity="0.2" />
+              </pattern>
+            </defs>
+            <rect
+              x="0"
+              y="0"
+              width={gardenSizeCm}
+              height={gardenSizeCm}
+              fill="url(#soil-pattern)"
+            />
+            
+            {showGrid && <rect width="100%" height="100%" fill="url(#grid)" opacity="0.5" />}
+            
+            {/* Zone Overlay */}
+            {showZoneMapping && zones.length > 0 && (
+              <ZoneOverlay 
+                zones={zones} 
+                gardenSizeCm={gardenSizeCm}
+                onZoneClick={(zone) => {
+                  console.log('Zone clicked:', zone);
+                }}
+              />
+            )}
+            
+            {/* Indicatore Scala */}
+            <g>
+              <rect
+                x={gardenSizeCm - 120}
+                y={gardenSizeCm - 30}
+                width="110"
+                height="25"
+                fill="rgba(255, 255, 255, 0.9)"
+                stroke="#6b7280"
+                strokeWidth="1"
+                rx="4"
+              />
+              <text
+                x={gardenSizeCm - 65}
+                y={gardenSizeCm - 12}
+                textAnchor="middle"
+                fontSize="10"
+                fill="#374151"
+                fontWeight="bold"
+              >
+                Scala: 1cm = {Math.round(gardenSizeCm / 100)}cm
+              </text>
+            </g>
             
             {/* Greenhouse/Tunnel Structures */}
             {showStructures && (garden.gardenType === 'Greenhouse' || garden.gardenType === 'Tunnel') && garden.greenhouseConfig && (
@@ -839,6 +944,139 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
               </>
             )}
             
+            {/* Indicatore Nord */}
+            <g>
+              {/* Freccia Nord in alto */}
+              <line
+                x1={gardenSizeCm / 2}
+                y1="10"
+                x2={gardenSizeCm / 2}
+                y2="30"
+                stroke="#ef4444"
+                strokeWidth="3"
+                strokeLinecap="round"
+                markerEnd="url(#arrowhead-north)"
+              />
+              <text
+                x={gardenSizeCm / 2}
+                y="8"
+                textAnchor="middle"
+                fontSize="14"
+                fontWeight="bold"
+                fill="#ef4444"
+              >
+                N
+              </text>
+              {/* Marker per freccia */}
+              <defs>
+                <marker
+                  id="arrowhead-north"
+                  markerWidth="10"
+                  markerHeight="10"
+                  refX="5"
+                  refY="3"
+                  orient="auto"
+                >
+                  <polygon
+                    points="0 0, 10 3, 0 6"
+                    fill="#ef4444"
+                  />
+                </marker>
+              </defs>
+            </g>
+            
+            {/* Ostacoli - Rendering semplificato (cerchi con lettere) */}
+            {showObstacles && garden.obstacles && garden.obstacles.length > 0 && (
+              <g>
+                {garden.obstacles.map((obstacle, idx) => {
+                  // Calcola posizione ostacolo intorno all'orto
+                  // L'orto è al centro, gli ostacoli sono fuori
+                  const centerX = gardenSizeCm / 2;
+                  const centerY = gardenSizeCm / 2;
+                  
+                  // Raggio basato su distanza (normalizzato per visualizzazione)
+                  // Distanza tipica: 10-100m, scala per visualizzazione: 1m = 8cm (più compatto)
+                  const radius = Math.min(gardenSizeCm * 0.5, obstacle.distance * 0.08);
+                  
+                  // Angolo in radianti (azimuth: 0 = Nord, 90 = Est, 180 = Sud, 270 = Ovest)
+                  // In SVG, 0° è verso destra, quindi ruotiamo di -90° per allineare Nord in alto
+                  const angleRad = ((obstacle.azimuth - 90) * Math.PI) / 180;
+                  
+                  // Posizione ostacolo sulla circonferenza
+                  const obstacleX = centerX + radius * Math.cos(angleRad);
+                  const obstacleY = centerY + radius * Math.sin(angleRad);
+                  
+                  // Colore basato su tipo
+                  const getObstacleColor = () => {
+                    switch (obstacle.type) {
+                      case 'Building': return '#3b82f6'; // Blu
+                      case 'Tree': return '#22c55e'; // Verde
+                      case 'Mountain': return '#6b7280'; // Grigio
+                      default: return '#8b5cf6'; // Viola
+                    }
+                  };
+                  
+                  const color = getObstacleColor();
+                  
+                  // Lettera tipo ostacolo
+                  const getObstacleLetter = () => {
+                    switch (obstacle.type) {
+                      case 'Building': return 'B';
+                      case 'Tree': return 'T';
+                      case 'Mountain': return 'M';
+                      default: return 'O';
+                    }
+                  };
+                  
+                  return (
+                    <g key={`obstacle-${idx}`}>
+                      {/* Linea semplice verso centro (direzione ostacolo) */}
+                      <line
+                        x1={centerX}
+                        y1={centerY}
+                        x2={obstacleX}
+                        y2={obstacleY}
+                        stroke={color}
+                        strokeWidth="1.5"
+                        opacity="0.4"
+                      />
+                      
+                      {/* Cerchio colorato con lettera tipo */}
+                      <circle
+                        cx={obstacleX}
+                        cy={obstacleY}
+                        r="14"
+                        fill={color}
+                        fillOpacity="0.7"
+                        stroke={color}
+                        strokeWidth="2"
+                      />
+                      <text
+                        x={obstacleX}
+                        y={obstacleY}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontSize="12"
+                        fontWeight="bold"
+                        fill="white"
+                      >
+                        {getObstacleLetter()}
+                      </text>
+                      
+                      {/* Tooltip con dettagli */}
+                      <title>
+                        {obstacle.type === 'Building' ? 'Edificio' :
+                         obstacle.type === 'Tree' ? 'Albero' :
+                         obstacle.type === 'Mountain' ? 'Montagna' : 'Ostacolo'} 
+                        {' '}a {Math.round(obstacle.azimuth)}°
+                        {' '}({obstacle.height}m alto, {obstacle.distance}m distanza)
+                      </title>
+                    </g>
+                  );
+                })}
+              </g>
+            )}
+            
             {/* Garden Border */}
             <rect
               x="0"
@@ -1080,6 +1318,20 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
           </div>
         )}
       </div>
+
+      {/* Zone Mapping Tool */}
+      {showZoneMapping && (
+        <div className="mt-4">
+          <ZoneMappingTool
+            garden={garden}
+            gardenSizeCm={gardenSizeCm}
+            onZonesUpdated={(updatedZones) => {
+              setZones(updatedZones);
+            }}
+            onClose={() => setShowZoneMapping(false)}
+          />
+        </div>
+      )}
     </div>
   );
 };

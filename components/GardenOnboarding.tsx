@@ -15,6 +15,9 @@ import { GreenhouseConfig } from '../types/greenhouse';
 import { HydroponicSystemConfig, AquaponicSystemConfig, AeroponicSystemConfig, IndoorGrowingConfig } from '../types/indoorGrowing';
 import { useTier } from '../packages/core/hooks/useTier';
 import { ProFeatureGate } from './shared/ProFeatureGate';
+import { getDeviceHeadingOnce } from '../hooks/useDeviceOrientation';
+import { readEXIF, calculateNorthOffsetFromEXIF } from '../services/exifReader';
+import { CompassCalibrator } from './sunExposure/CompassCalibrator';
 
 interface GardenOnboardingProps {
   onComplete: (garden: Garden) => void;
@@ -111,6 +114,8 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
   const [panoramicPhotoPreview, setPanoramicPhotoPreview] = useState<string | null>(null);
   const [analyzingPhotos, setAnalyzingPhotos] = useState(false);
   const [photoAnalysisError, setPhotoAnalysisError] = useState<string | null>(null);
+  const [photoNorthOffset, setPhotoNorthOffset] = useState<number | undefined>(existingGarden?.photoNorthOffset);
+  const [showCompassCalibrator, setShowCompassCalibrator] = useState(false);
 
   useEffect(() => {
     // Auto-riempi coordinate se esiste già un giardino
@@ -385,22 +390,64 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
     };
     reader.readAsDataURL(file);
 
-    // Analyze panoramic photo (comprehensive analysis)
-    // La foto 360° permette analisi completa esposizione da tutte le direzioni,
-    // non solo un momento della giornata come la foto mezzogiorno
+    // Tentativo 1: Cattura orientamento dispositivo durante selezione file
+    let deviceHeading: number | null = null;
+    try {
+      deviceHeading = await getDeviceHeadingOnce();
+      if (deviceHeading !== null) {
+        // Se abbiamo heading dispositivo, quello è il Nord nella foto
+        // Offset = 0 - heading (perché vogliamo sapere quanto ruotare la foto)
+        // Ma in realtà, se il dispositivo punta a Nord (0°), la foto è già orientata correttamente
+        // Quindi offset = 0 se heading = 0
+        setPhotoNorthOffset(0); // Assumiamo che la foto sia stata scattata con dispositivo orientato correttamente
+        console.log('Device heading captured:', deviceHeading);
+      }
+    } catch (error) {
+      console.warn('Could not capture device orientation:', error);
+    }
+
+    // Tentativo 2: Leggi EXIF dalla foto
+    let exifOffset: number | null = null;
+    if (deviceHeading === null) {
+      try {
+        const exifData = await readEXIF(file);
+        if (exifData) {
+          exifOffset = calculateNorthOffsetFromEXIF(exifData);
+          if (exifOffset !== null) {
+            setPhotoNorthOffset(exifOffset);
+            console.log('EXIF offset calculated:', exifOffset);
+          }
+        }
+      } catch (error) {
+        console.warn('Could not read EXIF data:', error);
+      }
+    }
+
+    // Tentativo 3: Se entrambi falliscono, mostra calibratore manuale
+    if (deviceHeading === null && exifOffset === null) {
+      setShowCompassCalibrator(true);
+      return; // Non analizzare ancora, aspetta calibrazione
+    }
+
+    // Analizza foto con offset determinato
+    await analyzePanoramicPhotoWithOffset(file, photoNorthOffset || 0);
+  };
+
+  /**
+   * Analizza foto panoramica con offset Nord già determinato
+   */
+  const analyzePanoramicPhotoWithOffset = async (file: File, offset: number) => {
     try {
       setAnalyzingPhotos(true);
       const base64 = await fileToBase64(file);
       const analysis = await analyzePanoramic360(base64);
       
       // Popola tutti i campi dall'analisi panoramica
-      // Questi valori vengono usati dall'orchestrator per calcoli precisi
       setDailySunHours(analysis.dailySunHours.toString());
       setSunExposure(analysis.sunExposure);
       setAspectDirection(analysis.aspectDirection);
       
       // Mostra info ostacoli se presenti
-      // Gli ostacoli identificati aiutano a capire perché alcune zone hanno meno sole
       if (analysis.obstacles.length > 0) {
         const obstaclesInfo = analysis.obstacles.map(o => 
           `${o.direction}: ${o.type} (${o.height})`
@@ -415,9 +462,23 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
     }
   };
 
+  /**
+   * Gestisce conferma calibrazione manuale
+   */
+  const handleCompassCalibrationConfirm = async (offset: number) => {
+    setPhotoNorthOffset(offset);
+    setShowCompassCalibrator(false);
+    
+    // Ora analizza la foto con offset determinato
+    if (panoramicPhoto) {
+      await analyzePanoramicPhotoWithOffset(panoramicPhoto, offset);
+    }
+  };
+
   const removePanoramicPhoto = () => {
     setPanoramicPhoto(null);
     setPanoramicPhotoPreview(null);
+    setPhotoNorthOffset(undefined);
   };
 
   const handleComplete = () => {
@@ -447,6 +508,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
       aspectDirection: aspectDirection || undefined,
       windProtection: windProtection || undefined,
       hasCompostBin: hasCompostBin,
+      photoNorthOffset: photoNorthOffset,
       // isRaisedBed deprecato - gestito tramite garden_beds con bedType: 'RaisedBed'
       obstacles: obstacles.length > 0 ? obstacles : undefined,
       structureConfig: structureConfig,
@@ -457,8 +519,21 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <>
+      {showCompassCalibrator && panoramicPhotoPreview && (
+        <CompassCalibrator
+          photoUrl={panoramicPhotoPreview}
+          onConfirm={handleCompassCalibrationConfirm}
+          onCancel={() => {
+            setShowCompassCalibrator(false);
+            // Se l'utente annulla, rimuovi la foto
+            removePanoramicPhoto();
+          }}
+          initialOffset={photoNorthOffset || 0}
+        />
+      )}
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -1352,7 +1427,8 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

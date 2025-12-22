@@ -211,14 +211,26 @@ otp_length = 6
 otp_expiry = 3600
 
 # Use a production-ready SMTP server
+[auth.email.smtp]
+enabled = true
+host = "smtp.sendgrid.net"
+port = 587
+user = "apikey"
+pass = "env(SENDGRID_API_KEY)"
+admin_email = "noreply@ortomio.it"
+sender_name = "OrtoMio"
+
+# Alternative: MailHog for local testing (uncomment to use instead of SendGrid)
 # [auth.email.smtp]
 # enabled = true
-# host = "smtp.sendgrid.net"
-# port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+# host = "localhost"
+# port = 1025
+# user = ""
+# pass = ""
+# admin_email = "noreply@ortomio.it"
+# sender_name = "OrtoMio"
+# Note: MailHog UI available at http://localhost:8025
+# Install: brew install mailhog (macOS) or download from https://github.com/mailhog/MailHog
 
 # Uncomment to customize email template
 # [auth.email.template.invite]

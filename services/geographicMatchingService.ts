@@ -5,6 +5,7 @@
 
 import { ExoticFruitCrop, FeasibilityResult, ExoticFruitVariety } from '../types/exoticFruit';
 import { getCurrentPositionWithRetry, getDefaultCoordinates } from './geolocationService';
+import { formatClimateWarning } from './usdaZoneTranslator';
 
 export interface UserLocation {
   lat: number;
@@ -175,10 +176,10 @@ export const calculateFeasibility = (
     
     if (!compatibleZones.includes(userZoneNum)) {
       score -= 40;
-      warnings.push(`La tua zona USDA (${userLocation.usdaZone}) non è compatibile con questa pianta`);
+      warnings.push(formatClimateWarning(userLocation.usdaZone, compatibleZones, false));
     } else if (!optimalZones.includes(userZoneNum)) {
       score -= 20;
-      warnings.push(`La tua zona USDA (${userLocation.usdaZone}) è al limite della compatibilità`);
+      warnings.push(formatClimateWarning(userLocation.usdaZone, optimalZones, true));
     }
   }
   

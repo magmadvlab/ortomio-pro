@@ -12,6 +12,8 @@ import { calculateAltitudeDelay, calculateAltitudePlantingDelay, adjustPlantingD
 import { scheduleNextTreatment } from './healthEngine';
 import { getSoilCompatibility } from '../utils/soilTemperatureUtils';
 import { determineWasteDisposal, suggestHumusAddition } from './compostEngine';
+import { createWeeklyReminder, updateReminderFrequency } from '../services/weeklyPhotoReminder';
+import { getSupabaseClient } from '../config/supabase';
 
 export type LifecyclePhase = 'Sowing' | 'Germination' | 'Nursing' | 'Hardening' | 'Transplanting' | 'Production';
 
@@ -571,6 +573,40 @@ export const checkLifecycleStatus = async (
       return null;
   }
 };
+
+/**
+ * Gestisce reminder foto settimanali quando cambia la fase del ciclo vitale
+ * Chiamato quando un task cambia fase (es. da Germination a Nursing)
+ */
+export async function handleLifecyclePhaseChange(
+  task: GardenTask,
+  newPhase: LifecyclePhase,
+  userId?: string
+): Promise<void> {
+  if (!userId || task.taskType !== 'Sowing') {
+    return; // Solo per task di semina
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return;
+  }
+
+  try {
+    // Quando entra in Germination o Nursing, crea reminder settimanale
+    if (newPhase === 'Germination' || newPhase === 'Nursing' || newPhase === 'Hardening') {
+      const frequencyDays = 7; // Settimanale
+      await createWeeklyReminder(supabase, task.id, userId, task.gardenId, frequencyDays);
+    } 
+    // Quando entra in Production, aggiorna frequenza a ogni 2 settimane
+    else if (newPhase === 'Production') {
+      await updateReminderFrequency(supabase, task.id, 'Production');
+    }
+  } catch (error) {
+    console.error('Error handling lifecycle phase change for reminders:', error);
+    // Non bloccare il flusso se il reminder fallisce
+  }
+}
 
 /**
  * Genera automaticamente il prossimo task di trattamento quando uno è completato

@@ -10,6 +10,7 @@ import React, { useState, useEffect } from 'react';
 import { getChallengeForDate } from '../../data/giornateSpeciali';
 import { Trophy, Share2, Camera, CheckSquare, Loader2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { ChallengeToCalendarButton } from './ChallengeToCalendarButton';
 
 interface ChallengeWidgetProps {
   date?: Date; // Data da mostrare (default: oggi)
@@ -287,6 +288,20 @@ const ChallengeWidget: React.FC<ChallengeWidgetProps> = ({
               />
             ))}
           </div>
+          
+          {/* Add to Calendar Button */}
+          {!isCompleted && userId && (
+            <div className="pt-2">
+              <ChallengeToCalendarButton
+                challenge={challenge}
+                userId={userId}
+                onTasksCreated={(taskIds) => {
+                  console.log('Tasks created from challenge:', taskIds);
+                  // Opzionale: mostra notifica o aggiorna UI
+                }}
+              />
+            </div>
+          )}
           
           {/* Impact Boxes */}
           {challenge.challenge.motivazione && (

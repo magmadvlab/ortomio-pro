@@ -153,6 +153,145 @@ Tabelle principali:
 
 - **Code splitting**: Possibile con dynamic imports
 
+## Precision Agriculture Architecture
+
+Il sistema di agricoltura di precisione estende l'architettura base con:
+
+### Zone Mapping System
+
+**Servizi**:
+- `services/zoneMappingService.ts` - Gestione zone orto
+- `services/zoneSpecificAdvice.ts` - Suggerimenti per zona
+
+**Componenti**:
+- `components/planner/ZoneMappingTool.tsx` - UI mappatura zone
+- `components/VisualGardenPlanner.tsx` - Integrazione zone overlay
+
+**Database**:
+- `garden_zones` - Tabelle zone con caratteristiche
+- `garden_tasks.zone_id` - Riferimento task a zona
+
+### Soil Analysis System
+
+**Servizi**:
+- `services/soilAnalysisService.ts` - Gestione analisi suolo
+- `services/fertilizationCalculator.ts` - Calcolo dosaggi precisi
+
+**Componenti**:
+- `components/soilAnalysis/SoilAnalysisForm.tsx` - Form inserimento analisi
+
+**Database**:
+- `soil_analysis` - Analisi complete macro/micro-nutrienti
+- Calcolo automatico raccomandazioni fertilizzazione
+
+### Vegetation Indices System
+
+**Servizi**:
+- `services/vegetationIndexService.ts` - Calcolo NDVI/EVI/LAI da foto RGB
+- `services/photoLogService.ts` - Integrazione calcolo automatico
+
+**Componenti**:
+- `components/plantTracking/VegetationIndicesChart.tsx` - Visualizzazione trend
+
+**Database**:
+- `vegetation_indices` - Storico indici calcolati
+- `photo_logs.vegetation_indices_id` - Riferimento foto-indici
+
+**Flusso**:
+1. Utente carica foto pianta
+2. AI analizza salute pianta
+3. Sistema calcola automaticamente indici vegetativi
+4. Indicatori salvati nel database
+5. Grafici temporali mostrano trend
+
+### Predictive Analytics System
+
+**Servizi**:
+- `services/predictiveAnalyticsService.ts` - Previsioni resa/raccolto/malattie/idrico
+- `services/yieldModelService.ts` - Modelli predittivi resa e ROI
+
+**Componenti**:
+- `components/analytics/PredictiveDashboard.tsx` - Dashboard previsioni
+- `components/analytics/YieldOptimizer.tsx` - Ottimizzazione ROI
+
+**Database**:
+- `yield_predictions` - Storico previsioni resa
+- Confronto previsioni vs resa reale
+
+**Flusso Dati**:
+```
+Task → Master Data → Weather Forecast → Historical Harvests
+  ↓
+Predictive Analytics Service
+  ↓
+Harvest Date Prediction
+Yield Prediction
+Disease Risk
+Water Requirement
+```
+
+### Data Integration System
+
+**Servizi**:
+- `services/dataIntegrationService.ts` - Aggregazione dati multi-sorgente
+
+**Componenti**:
+- `components/analytics/UnifiedDashboard.tsx` - Dashboard unificata
+
+**Sorgenti Dati**:
+- Sensori IoT (simulati)
+- Previsioni meteo
+- Analisi foto
+- Storico raccolti
+- Analisi suolo
+- Task history
+
+**Correlazioni**:
+- Crescita vs Irrigazione
+- Resa vs Fertilizzazione
+- Malattie vs Condizioni Meteo
+
+### Database Extensions
+
+**Nuove Tabelle**:
+- `garden_zones` - Zonazione orto
+- `soil_analysis` - Analisi suolo avanzate
+- `vegetation_indices` - Indicatori vegetativi
+- `yield_predictions` - Previsioni resa
+- `irrigation_zones` - Zone irrigazione
+- `sensor_readings` - Storico sensori
+
+**Modifiche Tabelle Esistenti**:
+- `gardens.has_zones`, `gardens.precision_mode_enabled`
+- `garden_tasks.zone_id`
+- `photo_logs.vegetation_indices_id`
+
+### Flusso Precision Agriculture
+
+```mermaid
+flowchart TD
+    A[Garden] --> B[Zone Mapping]
+    B --> C[Soil Analysis]
+    C --> D[Fertilization Calculator]
+    D --> E[Task Assignment]
+    
+    F[Photo Upload] --> G[AI Analysis]
+    G --> H[Vegetation Indices]
+    H --> I[Growth Tracking]
+    
+    E --> J[Predictive Analytics]
+    I --> J
+    K[Weather Data] --> J
+    L[Harvest History] --> J
+    
+    J --> M[Yield Prediction]
+    J --> N[Disease Risk]
+    J --> O[Water Requirement]
+    
+    M --> P[ROI Optimization]
+    P --> Q[Recommendations]
+```
+
 ## Estendibilità
 
 L'architettura è progettata per essere facilmente estendibile:
@@ -162,4 +301,6 @@ L'architettura è progettata per essere facilmente estendibile:
 - Nuove features Pro: aggiungere in tier config
 
 - Nuovi storage providers: implementare `IStorageProvider`
+
+- Precision Agriculture: Estendere con nuovi servizi in `services/` e componenti in `components/analytics/`
 

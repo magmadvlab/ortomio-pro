@@ -1,5 +1,6 @@
 import React from 'react';
 import { ExoticFruitCrop } from '@/types/exoticFruit';
+import { translateUsdaZone } from '@/services/usdaZoneTranslator';
 import { CheckCircle, AlertTriangle, Info, Home, Container, Sprout, Shield, Thermometer, Ruler } from 'lucide-react';
 
 interface CultivationSystemSelectorProps {
@@ -74,9 +75,14 @@ const CultivationSystemSelector: React.FC<CultivationSystemSelectorProps> = ({
       if (userUsdaZone && openField.requires?.minUsdaZone) {
         const userZoneNum = parseFloat(userUsdaZone.replace(/[a-z]/i, ''));
         if (userZoneNum < openField.requires.minUsdaZone) {
+          const userZoneDesc = translateUsdaZone(userUsdaZone);
+          const requiredZoneStr = openField.requires.minUsdaZone.toString();
+          const requiredZoneKey = requiredZoneStr.includes('a') || requiredZoneStr.includes('b') ? requiredZoneStr : `${requiredZoneStr}a`;
+          const requiredZoneDesc = translateUsdaZone(requiredZoneKey);
+          
           return {
             feasible: false,
-            reason: `Richiede zona USDA ${openField.requires.minUsdaZone} o superiore`,
+            reason: `Il tuo clima (${userZoneDesc.climateName}, ${userZoneDesc.minTemp}) è troppo freddo. Richiede clima più caldo (${requiredZoneDesc.climateName}, ${requiredZoneDesc.minTemp})`,
           };
         }
       }
@@ -186,15 +192,23 @@ const CultivationSystemSelector: React.FC<CultivationSystemSelectorProps> = ({
                         </div>
                       </div>
                     )}
-                    {openFieldData.requires?.minUsdaZone && (
-                      <div className="flex items-start gap-2 text-gray-700">
-                        <Thermometer size={16} className="text-blue-500 shrink-0 mt-0.5" />
-                        <div>
-                          <div className="font-medium">Zona USDA minima:</div>
-                          <div className="text-xs text-gray-600">{openFieldData.requires.minUsdaZone}</div>
+                    {openFieldData.requires?.minUsdaZone && (() => {
+                      const requiredZoneStr = openFieldData.requires.minUsdaZone.toString();
+                      const requiredZoneKey = requiredZoneStr.includes('a') || requiredZoneStr.includes('b') ? requiredZoneStr : `${requiredZoneStr}a`;
+                      const requiredZoneDesc = translateUsdaZone(requiredZoneKey);
+                      
+                      return (
+                        <div className="flex items-start gap-2 text-gray-700">
+                          <Thermometer size={16} className="text-blue-500 shrink-0 mt-0.5" />
+                          <div>
+                            <div className="font-medium">Clima minimo richiesto:</div>
+                            <div className="text-xs text-gray-600">
+                              {requiredZoneDesc.emoji} {requiredZoneDesc.climateName} ({requiredZoneDesc.minTemp})
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </>
                 )}
 

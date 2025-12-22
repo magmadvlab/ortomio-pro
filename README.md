@@ -43,6 +43,13 @@ OrtoMio AI è un assistente agronomico completo per giardinieri italiani che com
 - ✅ Meteo avanzato
 - ✅ Colture specializzate (fragole, frutti, erbe, olivi, viti)
 - ✅ Matching geografico e fattibilità piante esotiche
+- ✅ **Agricoltura di Precisione**:
+  - 🗺️ Zonazione orto con caratteristiche specifiche
+  - 🧪 Analisi suolo avanzata (macro/micro-nutrienti)
+  - 📊 Indicatori vegetativi (NDVI, EVI, LAI) da foto
+  - 🔮 Previsioni resa, raccolto, malattie, fabbisogno idrico
+  - 💰 Ottimizzazione ROI fertilizzazione
+  - 📈 Dashboard unificata dati multi-sorgente
 
 ## 🚀 Quick Start
 
@@ -154,6 +161,8 @@ Vedi [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) per dettagli completi.
 
 - **[Quick Start Guide](docs/QUICK_START.md)** - Setup in 5 minuti
 - **[Architettura del Sistema](docs/ARCHITECTURE.md)** - Panoramica tecnica completa
+- **[Agricoltura di Precisione](docs/PRECISION_AGRICULTURE.md)** - Guida completa funzionalità precision agriculture
+- **[Database Schema](docs/DATABASE_SCHEMA.md)** - Documentazione schema database
 - **[Guida Deployment](docs/DEPLOYMENT.md)** - Setup Supabase e deploy
 - **[Deploy Vercel](docs/VERCEL_DEPLOYMENT.md)** - Guida dettagliata Vercel
 - **[Guida Migrazione](docs/MIGRATION_GUIDE.md)** - Migrazione dati Free → Pro
@@ -174,6 +183,16 @@ ortomio-main/
 │   ├── Dashboard.tsx
 │   ├── Planner.tsx
 │   ├── Journal.tsx
+│   ├── planner/
+│   │   └── ZoneMappingTool.tsx   # Tool mappatura zone
+│   ├── soilAnalysis/
+│   │   └── SoilAnalysisForm.tsx   # Form analisi suolo
+│   ├── plantTracking/
+│   │   └── VegetationIndicesChart.tsx # Grafici indici vegetativi
+│   ├── analytics/
+│   │   ├── PredictiveDashboard.tsx   # Dashboard previsioni
+│   │   ├── YieldOptimizer.tsx         # Ottimizzazione ROI
+│   │   └── UnifiedDashboard.tsx       # Dashboard unificata
 │   └── ...
 ├── logic/              # Motori logici agronomici
 │   ├── director.ts          # Orchestratore centrale
@@ -182,8 +201,14 @@ ortomio-main/
 │   ├── lifecycleEngine.ts  # Gestione fasi crescita
 │   └── ...
 ├── services/           # Servizi (API, storage, etc.)
-│   ├── geminiService.ts     # Integrazione Gemini AI
-│   ├── weatherService.ts    # Previsioni meteo
+│   ├── geminiService.ts           # Integrazione Gemini AI
+│   ├── weatherService.ts          # Previsioni meteo
+│   ├── zoneMappingService.ts      # Gestione zone precision agriculture
+│   ├── soilAnalysisService.ts     # Analisi suolo avanzata
+│   ├── vegetationIndexService.ts  # Calcolo indici NDVI/EVI/LAI
+│   ├── predictiveAnalyticsService.ts # Previsioni resa/raccolto/malattie
+│   ├── yieldModelService.ts       # Modelli predittivi resa
+│   ├── dataIntegrationService.ts  # Aggregazione dati multi-sorgente
 │   └── ...
 ├── packages/           # Core packages
 │   ├── core/               # Storage abstraction, tier system

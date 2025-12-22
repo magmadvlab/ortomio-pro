@@ -66,3 +66,5 @@ Poi aggiorna `.env` con le credenziali da `supabase status`.
 
 
 
+
+

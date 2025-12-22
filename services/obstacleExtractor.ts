@@ -92,12 +92,14 @@ function estimateObstacleDistance(
  * @param photo360Base64 Foto 360° codificata in base64
  * @param lat Latitudine (per calcoli futuri più precisi)
  * @param lng Longitudine (per calcoli futuri più precisi)
- * @returns Array di ostacoli 3D identificati
+ * @param photoNorthOffset Offset in gradi (0-360) tra Nord reale e Nord nella foto. Default: 0
+ * @returns Array di ostacoli 3D identificati con azimuth corretti
  */
 export async function extractObstaclesFrom360(
   photo360Base64: string,
   lat: number,
-  lng: number
+  lng: number,
+  photoNorthOffset: number = 0
 ): Promise<Obstacle3D[]> {
   try {
     // Usa analisi AI esistente per identificare ostacoli
@@ -105,7 +107,14 @@ export async function extractObstaclesFrom360(
     
     // Converti ostacoli identificati dall'AI in ostacoli 3D
     const obstacles: Obstacle3D[] = analysis.obstacles.map(obs => {
-      const azimuth = directionToAzimuth(obs.direction);
+      // Azimuth dall'AI è relativo al Nord nella foto
+      const aiAzimuth = directionToAzimuth(obs.direction);
+      
+      // Applica offset per correggere al Nord reale
+      // Se la foto è ruotata di X gradi, tutti gli azimuth devono essere corretti di X gradi
+      let correctedAzimuth = (aiAzimuth + photoNorthOffset) % 360;
+      if (correctedAzimuth < 0) correctedAzimuth += 360;
+      
       const height = estimateObstacleHeight(obs.type, obs.height);
       const distance = estimateObstacleDistance(height, obs.height, obs.type);
       
@@ -121,7 +130,7 @@ export async function extractObstaclesFrom360(
       }
       
       return {
-        azimuth,
+        azimuth: correctedAzimuth, // Usa azimuth corretto
         height,
         distance,
         widthDegrees,

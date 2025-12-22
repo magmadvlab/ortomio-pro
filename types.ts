@@ -283,6 +283,7 @@ export interface Garden {
     widthDegrees: number;  // gradi
     type?: 'Building' | 'Tree' | 'Mountain' | 'Other';
   }>;
+  photoNorthOffset?: number; // Offset in gradi (0-360) tra Nord reale e Nord nella foto 360°
   
   // INFRASTRUTTURA
   hasCompostBin?: boolean;
@@ -1181,6 +1182,36 @@ export interface PlantPhotoLog {
   };
   notes?: string;
   createdAt: string; // ISO date
+  // Estensioni per agricoltura di precisione
+  previousPhotoId?: string; // ID foto precedente per confronto
+  growthComparison?: {
+    leafCountDelta?: number;
+    growthRateChange: 'improved' | 'stable' | 'declined';
+    daysBetween: number;
+    healthChange: 'improved' | 'stable' | 'worsened';
+    recommendations: string[];
+  };
+  fertilizationSuggestion?: {
+    needed: boolean;
+    priority: 'high' | 'medium' | 'low';
+    reason: string;
+    recommendedNutrients: {
+      nitrogen?: boolean;
+      phosphorus?: boolean;
+      potassium?: boolean;
+      micro?: boolean;
+    };
+    dosage: {
+      amount: number;
+      frequency: string;
+      method: 'foliar' | 'soil' | 'fertigation';
+    };
+    timing: {
+      bestTime: string;
+      urgency: 'immediate' | 'soon' | 'planned';
+    };
+    notes: string[];
+  };
 }
 
 // ============================================

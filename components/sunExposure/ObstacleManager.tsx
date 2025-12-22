@@ -96,10 +96,13 @@ export function ObstacleManager({ garden, obstacles, onObstaclesChange, classNam
     setUploadingPhoto(true)
     try {
       const base64 = await fileToBase64(file)
+      // Usa photoNorthOffset dal garden se disponibile, altrimenti 0
+      const northOffset = garden.photoNorthOffset || 0
       const extracted = await extractObstaclesFrom360(
         base64,
         garden.coordinates.latitude,
-        garden.coordinates.longitude
+        garden.coordinates.longitude,
+        northOffset
       )
       
       // Aggiungi ostacoli estratti (evita duplicati)
@@ -109,7 +112,8 @@ export function ObstacleManager({ garden, obstacles, onObstaclesChange, classNam
       )
       
       onObstaclesChange([...obstacles, ...newObstacles])
-      alert(`Estratti ${newObstacles.length} ostacolo${newObstacles.length !== 1 ? 'i' : ''} dalla foto 360°`)
+      const message = `Estratti ${newObstacles.length} ostacolo${newObstacles.length !== 1 ? 'i' : ''} dalla foto 360°${northOffset !== 0 ? ` (offset Nord: ${northOffset.toFixed(1)}°)` : ''}`
+      alert(message)
     } catch (error) {
       console.error('Error extracting obstacles:', error)
       alert('Errore durante l\'estrazione degli ostacoli dalla foto')

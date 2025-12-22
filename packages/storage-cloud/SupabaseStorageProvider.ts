@@ -16,6 +16,7 @@ import { getSupabaseClient } from '@/config/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { CropArchetype, CropProfile, CropAlias, ArchetypeId, OfficialCrop } from '@/types/archetypes';
 import { IrrigationSystem, IrrigationZone, IrrigationComponent, WateringLog } from '@/types/irrigation';
+import { sendNotification, createTaskCompletedNotification, createTaskReminderNotification } from '@/services/notificationService';
 
 export class SupabaseStorageProvider implements IStorageProvider {
   private client: SupabaseClient | null;
@@ -221,11 +222,55 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .single();
     
     if (error) throw error;
-    return this.mapTaskFromDB(data);
+    const createdTask = this.mapTaskFromDB(data);
+    
+    // Invia notifica solo per task manuali (non suggeriti)
+    if (!task.isSuggested) {
+      try {
+        const { data: { user } } = await client.auth.getUser();
+        if (user?.email) {
+          const { data: garden } = await client
+            .from('gardens')
+            .select('user_id')
+            .eq('id', createdTask.gardenId)
+            .single();
+          
+          if (garden) {
+            await sendNotification({
+              userId: garden.user_id,
+              userEmail: user.email,
+              type: 'task_created',
+              subject: `📝 Nuovo task creato: ${createdTask.plantName}`,
+              templateData: {
+                taskId: createdTask.id,
+                plantName: createdTask.plantName,
+                taskType: createdTask.taskType,
+                date: createdTask.date,
+              },
+            }, client).catch(err => {
+              console.error('Error sending task created notification:', err);
+            });
+          }
+        }
+      } catch (err) {
+        // Non bloccare operazione se notifica fallisce
+        console.error('Error sending notification:', err);
+      }
+    }
+    
+    return createdTask;
   }
 
   async updateTask(id: string, updates: Partial<GardenTask>): Promise<GardenTask> {
     const client = this.ensureClient();
+    
+    // Ottieni task corrente per verificare se viene completato
+    const { data: currentTask } = await client
+      .from('garden_tasks')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
     const dbUpdates = this.mapTaskToDB(updates as GardenTask);
     const { data, error } = await client
       .from('garden_tasks')
@@ -235,7 +280,42 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .single();
     
     if (error) throw error;
-    return this.mapTaskFromDB(data);
+    const updatedTask = this.mapTaskFromDB(data);
+    
+    // Invia notifica se task è stato completato
+    if (updates.completed === true && currentTask && !currentTask.completed) {
+      try {
+        const { data: { user } } = await client.auth.getUser();
+        if (user?.email) {
+          const { data: garden } = await client
+            .from('gardens')
+            .select('user_id')
+            .eq('id', updatedTask.gardenId)
+            .single();
+          
+          if (garden) {
+            const notification = createTaskCompletedNotification(
+              garden.user_id,
+              user.email,
+              {
+                id: updatedTask.id,
+                plant_name: updatedTask.plantName,
+                task_type: updatedTask.taskType,
+                date: updatedTask.date,
+              }
+            );
+            await sendNotification(notification, client).catch(err => {
+              console.error('Error sending task completed notification:', err);
+            });
+          }
+        }
+      } catch (err) {
+        // Non bloccare operazione se notifica fallisce
+        console.error('Error sending notification:', err);
+      }
+    }
+    
+    return updatedTask;
   }
 
   async deleteTask(id: string): Promise<void> {
@@ -393,7 +473,42 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .single();
     
     if (error) throw error;
-    return this.mapHarvestLogFromDB(data);
+    const createdLog = this.mapHarvestLogFromDB(data);
+    
+    // Invia notifica per raccolto registrato
+    try {
+      const { data: { user } } = await client.auth.getUser();
+      if (user?.email) {
+        const { data: garden } = await client
+          .from('gardens')
+          .select('user_id')
+          .eq('id', createdLog.gardenId)
+          .single();
+        
+        if (garden) {
+          await sendNotification({
+            userId: garden.user_id,
+            userEmail: user.email,
+            type: 'harvest_logged',
+            subject: `🌾 Raccolto registrato: ${createdLog.plantName}`,
+            templateData: {
+              harvestId: createdLog.id,
+              plantName: createdLog.plantName,
+              quantity: createdLog.quantity,
+              unit: createdLog.unit,
+              harvestDate: createdLog.date,
+            },
+          }, client).catch(err => {
+            console.error('Error sending harvest notification:', err);
+          });
+        }
+      }
+    } catch (err) {
+      // Non bloccare operazione se notifica fallisce
+      console.error('Error sending notification:', err);
+    }
+    
+    return createdLog;
   }
 
   async updateHarvestLog(id: string, updates: Partial<HarvestLogData>): Promise<HarvestLogData> {

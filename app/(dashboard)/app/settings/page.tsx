@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { Settings, User, Bell, Palette, Shield, CreditCard, LogOut, Crown, Cloud } from 'lucide-react'
 import Link from 'next/link'
@@ -9,6 +9,198 @@ import { useGarden } from '@/packages/core/hooks/useGarden'
 import { CloudSyncStatus } from '@/components/settings/CloudSyncStatus'
 import { AutoSyncSettings } from '@/components/settings/AutoSyncSettings'
 import BackupSettings from '@/components/BackupSettings'
+import { getSupabaseClient } from '@/config/supabase'
+
+// Componente per gestione preferenze notifiche
+function NotificationPreferencesSection() {
+  const [preferences, setPreferences] = useState({
+    email_enabled: true,
+    task_reminders: true,
+    weather_alerts: true,
+    challenge_notifications: true,
+    harvest_notifications: true,
+    seed_notifications: true,
+  })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  React.useEffect(() => {
+    loadPreferences()
+  }, [])
+
+  const loadPreferences = async () => {
+    try {
+      const supabase = getSupabaseClient()
+      if (!supabase) {
+        setLoading(false)
+        return
+      }
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setLoading(false)
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading preferences:', error)
+      }
+
+      if (data) {
+        setPreferences({
+          email_enabled: data.email_enabled ?? true,
+          task_reminders: data.task_reminders ?? true,
+          weather_alerts: data.weather_alerts ?? true,
+          challenge_notifications: data.challenge_notifications ?? true,
+          harvest_notifications: data.harvest_notifications ?? true,
+          seed_notifications: data.seed_notifications ?? true,
+        })
+      }
+    } catch (error) {
+      console.error('Error loading notification preferences:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const savePreferences = async (key: string, value: boolean) => {
+    try {
+      setSaving(true)
+      const supabase = getSupabaseClient()
+      if (!supabase) return
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const updatedPrefs = { ...preferences, [key]: value }
+      setPreferences(updatedPrefs)
+
+      const { error } = await supabase
+        .from('notification_preferences')
+        .upsert({
+          user_id: user.id,
+          ...updatedPrefs,
+        }, {
+          onConflict: 'user_id'
+        })
+
+      if (error) {
+        console.error('Error saving preferences:', error)
+        // Revert on error
+        setPreferences(preferences)
+      }
+    } catch (error) {
+      console.error('Error saving notification preferences:', error)
+      setPreferences(preferences)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-xl font-bold text-gray-900">Notifiche</h2>
+        <p className="text-gray-600">Caricamento preferenze...</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold text-gray-900">Notifiche</h2>
+      <div className="space-y-4">
+        <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer">
+          <div>
+            <p className="font-medium text-gray-900">Notifiche Email</p>
+            <p className="text-sm text-gray-600">Ricevi aggiornamenti via email</p>
+          </div>
+          <input
+            type="checkbox"
+            className="w-5 h-5 text-green-600 rounded"
+            checked={preferences.email_enabled}
+            onChange={(e) => savePreferences('email_enabled', e.target.checked)}
+            disabled={saving}
+          />
+        </label>
+        <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer">
+          <div>
+            <p className="font-medium text-gray-900">Promemoria Task</p>
+            <p className="text-sm text-gray-600">Notifiche per task in scadenza e completati</p>
+          </div>
+          <input
+            type="checkbox"
+            className="w-5 h-5 text-green-600 rounded"
+            checked={preferences.task_reminders}
+            onChange={(e) => savePreferences('task_reminders', e.target.checked)}
+            disabled={saving || !preferences.email_enabled}
+          />
+        </label>
+        <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer">
+          <div>
+            <p className="font-medium text-gray-900">Alert Meteo</p>
+            <p className="text-sm text-gray-600">Avvisi per condizioni meteo critiche</p>
+          </div>
+          <input
+            type="checkbox"
+            className="w-5 h-5 text-green-600 rounded"
+            checked={preferences.weather_alerts}
+            onChange={(e) => savePreferences('weather_alerts', e.target.checked)}
+            disabled={saving || !preferences.email_enabled}
+          />
+        </label>
+        <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer">
+          <div>
+            <p className="font-medium text-gray-900">Challenge e Streak</p>
+            <p className="text-sm text-gray-600">Notifiche per challenge giornaliere e reminder streak</p>
+          </div>
+          <input
+            type="checkbox"
+            className="w-5 h-5 text-green-600 rounded"
+            checked={preferences.challenge_notifications}
+            onChange={(e) => savePreferences('challenge_notifications', e.target.checked)}
+            disabled={saving || !preferences.email_enabled}
+          />
+        </label>
+        <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer">
+          <div>
+            <p className="font-medium text-gray-900">Raccolti</p>
+            <p className="text-sm text-gray-600">Notifiche quando registri un raccolto</p>
+          </div>
+          <input
+            type="checkbox"
+            className="w-5 h-5 text-green-600 rounded"
+            checked={preferences.harvest_notifications}
+            onChange={(e) => savePreferences('harvest_notifications', e.target.checked)}
+            disabled={saving || !preferences.email_enabled}
+          />
+        </label>
+        <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer">
+          <div>
+            <p className="font-medium text-gray-900">Semi</p>
+            <p className="text-sm text-gray-600">Notifiche per semi in scadenza o scorte basse</p>
+          </div>
+          <input
+            type="checkbox"
+            className="w-5 h-5 text-green-600 rounded"
+            checked={preferences.seed_notifications}
+            onChange={(e) => savePreferences('seed_notifications', e.target.checked)}
+            disabled={saving || !preferences.email_enabled}
+          />
+        </label>
+      </div>
+      {saving && (
+        <p className="text-sm text-gray-500">Salvataggio in corso...</p>
+      )}
+    </div>
+  )
+}
 
 export default function SettingsPage() {
   const { tier, isFree, isPro, setTier } = useTier()
@@ -113,32 +305,7 @@ export default function SettingsPage() {
             )}
 
             {activeSection === 'notifications' && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-gray-900">Notifiche</h2>
-                <div className="space-y-4">
-                  <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer">
-                    <div>
-                      <p className="font-medium text-gray-900">Notifiche Email</p>
-                      <p className="text-sm text-gray-600">Ricevi aggiornamenti via email</p>
-                    </div>
-                    <input type="checkbox" className="w-5 h-5 text-green-600 rounded" defaultChecked />
-                  </label>
-                  <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer">
-                    <div>
-                      <p className="font-medium text-gray-900">Promemoria Task</p>
-                      <p className="text-sm text-gray-600">Notifiche per task in scadenza</p>
-                    </div>
-                    <input type="checkbox" className="w-5 h-5 text-green-600 rounded" defaultChecked />
-                  </label>
-                  <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer">
-                    <div>
-                      <p className="font-medium text-gray-900">Alert Meteo</p>
-                      <p className="text-sm text-gray-600">Avvisi per condizioni meteo critiche</p>
-                    </div>
-                    <input type="checkbox" className="w-5 h-5 text-green-600 rounded" defaultChecked />
-                  </label>
-                </div>
-              </div>
+              <NotificationPreferencesSection />
             )}
 
             {activeSection === 'preferences' && (
