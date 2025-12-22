@@ -3,12 +3,13 @@ import { PlantSuggestion, TreatmentAdvice, SpecificPlantInfo } from "../types";
 import { findSpecies, findVariety, getVarietyInfo, suggestVarieties } from "./plantDatabaseService";
 import { generateCompleteGuide, getVarietyInfo as getMasterVarietyInfo, findSpeciesFromVariety, generateCompleteGuideSync, getVarietyInfoSync, convertMasterSheetToSpecificInfo } from "./plantMasterService";
 import { getSeasonForDate } from "../utils/seasonalAdjustment";
+import { getAIProvider as getCustomAIProvider, isAIProviderAvailable } from "./aiProviderAdapter";
 
 // Per Next.js: usa process.env.NEXT_PUBLIC_*
 // Crea un file .env nella root del progetto con: NEXT_PUBLIC_GEMINI_API_KEY=la_tua_chiave
 const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
-// Validazione API Key
+// Validazione API Key (legacy - per retrocompatibilità)
 export const isApiKeyConfigured = (): boolean => {
   return !!apiKey && apiKey.trim().length > 0;
 };
@@ -16,16 +17,42 @@ export const isApiKeyConfigured = (): boolean => {
 if (!isApiKeyConfigured()) {
   console.warn("⚠️ NEXT_PUBLIC_GEMINI_API_KEY non configurata! Le funzionalità AI non saranno disponibili.");
   console.warn("Crea un file .env nella root del progetto con: NEXT_PUBLIC_GEMINI_API_KEY=la_tua_chiave");
+  console.warn("Oppure configura una API key personalizzata nelle Impostazioni > API Keys");
 }
 
 const ai = apiKey ? new GoogleGenAI({ apiKey: apiKey }) : null;
 
-// Helper per verificare se l'API è disponibile
+// Helper per verificare se l'API è disponibile (usa configurazione personalizzata se disponibile)
 const checkApiAvailable = (): boolean => {
+  // Per retrocompatibilità, verifica solo configurazione default
+  // Le funzioni async useranno checkApiAvailableAsync() quando possibile
   if (!isApiKeyConfigured()) {
     return false;
   }
   return ai !== null;
+};
+
+// Versione async che verifica anche configurazioni personalizzate
+const checkApiAvailableAsync = async (): Promise<boolean> => {
+  // Prova prima configurazione personalizzata
+  const hasCustom = await isAIProviderAvailable('ai_gemini');
+  if (hasCustom) {
+    return true;
+  }
+  
+  // Fallback a configurazione default
+  return checkApiAvailable();
+};
+
+// Helper per ottenere provider AI (personalizzato o default)
+const getActiveAIProvider = async () => {
+  const customProvider = await getCustomAIProvider('ai_gemini');
+  if (customProvider) {
+    return customProvider;
+  }
+  
+  // Fallback a provider legacy
+  return ai;
 };
 
 // Schema for Plant Suggestions

@@ -11,6 +11,7 @@ import { getAllMasterSheets } from '../services/plantMasterService';
 import { calculateAltitudeDelay, calculateAltitudePlantingDelay, adjustPlantingDates } from '../utils/altitudeUtils';
 import { scheduleNextTreatment } from './healthEngine';
 import { getSoilCompatibility } from '../utils/soilTemperatureUtils';
+import { getEffectiveTemperature, getEffectiveMinTemperature } from '../services/sensorDataService';
 import { determineWasteDisposal, suggestHumusAddition } from './compostEngine';
 import { createWeeklyReminder, updateReminderFrequency } from '../services/weeklyPhotoReminder';
 import { getSupabaseClient } from '../config/supabase';
@@ -366,14 +367,14 @@ const generateGerminationAdvice = (
 /**
  * Genera suggerimenti per la fase di Nursing
  */
-const generateNursingAdvice = (
+const generateNursingAdvice = async (
   daysAlive: number,
   task: GardenTask,
   masterData: PlantMasterSheet,
   garden: Garden,
   nutrients: NutrientAdvice,
   health: HealthAdvice | null
-): LifecycleAdvice | null => {
+): Promise<LifecycleAdvice | null> => {
   const subTasks: string[] = [];
   const care = masterData.seedlingCare;
 
@@ -410,11 +411,37 @@ const generateNursingAdvice = (
     subTasks.push(`💡 Luce: ${care.lightNeeds}`);
   }
 
-  // Temperatura
+  // Temperatura - verifica temperatura attuale se disponibile
+  let currentTempInfo = '';
+  try {
+    const tempResult = await getEffectiveTemperature(garden, undefined);
+    const currentTemp = tempResult.temperature;
+    const sourceInfo = tempResult.source === 'sensor' 
+      ? ` (sensore ${tempResult.sensorType})`
+      : tempResult.source === 'weather_api'
+      ? ' (previsioni meteo)'
+      : '';
+    currentTempInfo = ` Temperatura attuale: ${currentTemp.toFixed(1)}°C${sourceInfo}`;
+    
+    // Verifica se temperatura è nel range ottimale
+    if (care.temperatureRange) {
+      const { min, max } = care.temperatureRange;
+      if (currentTemp < min) {
+        currentTempInfo += ` ⚠️ TROPPO FREDDO (min richiesta: ${min}°C)`;
+      } else if (currentTemp > max) {
+        currentTempInfo += ` ⚠️ TROPPO CALDO (max richiesta: ${max}°C)`;
+      } else {
+        currentTempInfo += ` ✅ OK`;
+      }
+    }
+  } catch (error) {
+    // Ignora errori, continua con consigli generici
+  }
+
   if (care.temperatureRange) {
-    subTasks.push(`🌡️ Temperatura: Mantieni tra ${care.temperatureRange.min}-${care.temperatureRange.max}°C`);
+    subTasks.push(`🌡️ Temperatura: Mantieni tra ${care.temperatureRange.min}-${care.temperatureRange.max}°C${currentTempInfo}`);
   } else {
-    subTasks.push(`🌡️ Temperatura: ${care.temperature}`);
+    subTasks.push(`🌡️ Temperatura: ${care.temperature}${currentTempInfo}`);
   }
 
   // Bottom watering dettagliato
@@ -629,10 +656,11 @@ const generateIntermediateRepottingAdvice = (
 /**
  * Genera suggerimenti per la fase di Hardening
  */
-const generateHardeningAdvice = (
+const generateHardeningAdvice = async (
   task: GardenTask,
-  masterData: PlantMasterSheet
-): LifecycleAdvice | null => {
+  masterData: PlantMasterSheet,
+  garden?: Garden
+): Promise<LifecycleAdvice | null> => {
   const hardening = masterData.hardening;
   const subTasks: string[] = [];
   
@@ -646,7 +674,32 @@ const generateHardeningAdvice = (
     
     if (tempMin) {
       subTasks.push(`🌡️ Temperatura minima notturna: ${tempMin}°C`);
-      subTasks.push(`   ⚠️ NON esporre se le temperature notturne scendono sotto ${tempMin}°C`);
+      
+      // Verifica temperatura attuale se disponibile
+      if (garden) {
+        try {
+          const tempResult = await getEffectiveMinTemperature(garden, undefined);
+          const currentMinTemp = tempResult.temperature;
+          const sourceInfo = tempResult.source === 'sensor' 
+            ? ` (da sensore)`
+            : tempResult.source === 'weather_api'
+            ? ' (da previsioni meteo)'
+            : '';
+          
+          if (currentMinTemp < tempMin) {
+            subTasks.push(`   ⚠️ ATTENZIONE: Temperatura minima attuale ${currentMinTemp.toFixed(1)}°C${sourceInfo} è sotto la soglia richiesta (${tempMin}°C)`);
+            subTasks.push(`   ⚠️ NON esporre ancora le piantine all'aperto`);
+          } else {
+            subTasks.push(`   ✅ Temperatura minima attuale: ${currentMinTemp.toFixed(1)}°C${sourceInfo} - Condizioni adatte`);
+            subTasks.push(`   ⚠️ NON esporre se le temperature notturne scendono sotto ${tempMin}°C`);
+          }
+        } catch (error) {
+          // Ignora errori, continua con consigli generici
+          subTasks.push(`   ⚠️ NON esporre se le temperature notturne scendono sotto ${tempMin}°C`);
+        }
+      } else {
+        subTasks.push(`   ⚠️ NON esporre se le temperature notturne scendono sotto ${tempMin}°C`);
+      }
     }
     
     subTasks.push('\n📋 Procedura giorno per giorno:');
@@ -1110,13 +1163,13 @@ export const checkLifecycleStatus = async (
       return generateGerminationAdvice(daysAlive, task, masterData);
 
     case 'Nursing':
-      return generateNursingAdvice(daysAlive, task, masterData, garden, nutrients, health);
+      return await generateNursingAdvice(daysAlive, task, masterData, garden, nutrients, health);
 
     case 'IntermediateRepotting':
       return generateIntermediateRepottingAdvice(daysAlive, task, masterData, nutrients, health);
 
     case 'Hardening':
-      return generateHardeningAdvice(task, masterData);
+      return await generateHardeningAdvice(task, masterData, garden);
 
     case 'Transplanting':
       return await generateTransplantingAdvice(daysAlive, task, masterData, garden, nutrients, health);

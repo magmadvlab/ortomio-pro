@@ -1,3 +1,7 @@
+import { Garden } from '../types';
+import { getEffectiveTemperature, getEffectiveMinTemperature } from './sensorDataService';
+import { getWeatherForecastWithProvider } from './weatherProviderAdapter';
+
 export interface WeatherForecast {
   temp: number; // Temperatura corrente
   tempMin?: number; // Temperatura minima prevista
@@ -56,11 +60,23 @@ export const getWeatherForecast = async (
 
 /**
  * Recupera previsioni meteo per 7 giorni
+ * Usa provider configurato personalizzato se disponibile, altrimenti Open-Meteo (default)
  */
 export const getWeatherForecast7Days = async (
   lat: number,
   lng: number
 ): Promise<WeatherForecast[]> => {
+  try {
+    // Prova prima provider personalizzato
+    const customForecast = await getWeatherForecastWithProvider(lat, lng, 7);
+    if (customForecast && customForecast.length > 0) {
+      return customForecast;
+    }
+  } catch (error) {
+    console.warn('Errore recupero forecast da provider personalizzato, uso default:', error);
+  }
+
+  // Fallback a Open-Meteo (default)
   try {
     const response = await fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,weathercode&timezone=auto&forecast_days=7`
@@ -176,6 +192,7 @@ export const generateWeatherAlerts = (
 /**
  * Verifica se le condizioni meteo sono adatte per il trapianto
  * Controlla che la temperatura minima notturna sia sopra la soglia richiesta
+ * Versione legacy: usa solo lat/lng (per retrocompatibilità)
  */
 export const checkTransplantConditions = async (
   lat: number,
@@ -210,6 +227,60 @@ export const checkTransplantConditions = async (
     currentMinTemp,
     requiredMinTemp: minTemp,
   };
+};
+
+/**
+ * Verifica se le condizioni sono adatte per il trapianto usando sensori + meteo
+ * Versione avanzata: usa sensori IoT se disponibili, altrimenti API meteo
+ */
+export const checkTransplantConditionsWithSensors = async (
+  garden: Garden,
+  minTemp: number,
+  zoneId?: string
+): Promise<TransplantConditions> => {
+  try {
+    // Usa temperatura effettiva da sensori o API
+    const tempResult = await getEffectiveMinTemperature(garden, zoneId);
+    const currentMinTemp = tempResult.temperature;
+    
+    const sourceInfo = tempResult.source === 'sensor' 
+      ? `sensore ${tempResult.sensorType} (${tempResult.confidence * 100}% confidenza)`
+      : tempResult.source === 'weather_api'
+      ? 'previsioni meteo'
+      : 'stima';
+
+    if (currentMinTemp < minTemp) {
+      return {
+        isSuitable: false,
+        reason: `La temperatura minima attuale (${currentMinTemp.toFixed(1)}°C da ${sourceInfo}) è inferiore a quella richiesta (${minTemp}°C). Aspetta che le notti si riscaldino.`,
+        currentMinTemp,
+        requiredMinTemp: minTemp,
+      };
+    }
+    
+    return {
+      isSuitable: true,
+      reason: `Le condizioni sono adatte: temperatura minima attuale ${currentMinTemp.toFixed(1)}°C da ${sourceInfo} (richiesta: ${minTemp}°C).`,
+      currentMinTemp,
+      requiredMinTemp: minTemp,
+    };
+  } catch (error) {
+    console.error('Errore verifica condizioni trapianto:', error);
+    // Fallback a versione legacy
+    if (garden.coordinates) {
+      return checkTransplantConditions(
+        garden.coordinates.latitude,
+        garden.coordinates.longitude,
+        minTemp
+      );
+    }
+    
+    return {
+      isSuitable: false,
+      reason: "Impossibile verificare le condizioni meteo. Verifica la connessione.",
+      requiredMinTemp: minTemp,
+    };
+  }
 };
 
 export interface CriticalWeatherAlert {

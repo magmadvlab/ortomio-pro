@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react'
 import { useTier } from '@/packages/core/hooks/useTier'
-import { Settings, User, Bell, Palette, Shield, CreditCard, LogOut, Crown, Cloud } from 'lucide-react'
+import { Settings, User, Bell, Palette, Shield, CreditCard, LogOut, Crown, Cloud, Key } from 'lucide-react'
 import Link from 'next/link'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useGarden } from '@/packages/core/hooks/useGarden'
 import { CloudSyncStatus } from '@/components/settings/CloudSyncStatus'
 import { AutoSyncSettings } from '@/components/settings/AutoSyncSettings'
 import BackupSettings from '@/components/BackupSettings'
+import APIConfigurationForm from '@/components/settings/APIConfigurationForm'
 import { getSupabaseClient } from '@/config/supabase'
 
 // Componente per gestione preferenze notifiche
@@ -212,6 +213,7 @@ export default function SettingsPage() {
     { id: 'profile', label: 'Profilo', icon: User },
     { id: 'notifications', label: 'Notifiche', icon: Bell },
     { id: 'preferences', label: 'Preferenze', icon: Palette },
+    { id: 'api-config', label: 'API Keys', icon: Key },
     { id: 'cloud-sync', label: 'Cloud Sync', icon: Cloud },
     { id: 'account', label: 'Account', icon: Shield },
   ]
@@ -342,6 +344,10 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {activeSection === 'api-config' && (
+              <APIConfigurationForm />
             )}
 
             {activeSection === 'cloud-sync' && (

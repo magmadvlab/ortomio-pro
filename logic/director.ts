@@ -64,6 +64,7 @@ import {
   calculateAltitudePlantingDelay,
   adjustPlantingDates,
 } from '../utils/altitudeUtils';
+import { getEffectiveTemperature } from '../services/sensorDataService';
 // Memory Service
 import {
   getZoneMemory,
@@ -505,28 +506,32 @@ export const getDailyGardenPlan = async (
           const adjustedWindowStart = applySoilAndAltitudeAdjustments(garden, windowStart, plantType);
           const adjustedWindowEnd = applySoilAndAltitudeAdjustments(garden, windowEnd, plantType);
 
-          // Verifica se terreno è pronto (se abbiamo temperatura aria disponibile)
-          if (garden.coordinates && masterData.transplanting?.minTemp) {
+          // Verifica se terreno è pronto (usa sensori se disponibili, altrimenti API meteo)
+          if (masterData.transplanting?.minTemp) {
             try {
-              const forecast = await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude);
-              if (forecast && forecast.tempMin !== undefined) {
-                const effectiveTemp = garden.altitudeMeters 
-                  ? calculateEffectiveTemperature(garden.altitudeMeters, forecast.tempMin)
-                  : forecast.tempMin;
-                const soilTemp = calculateSoilHeatingRate(garden.soilType, effectiveTemp);
-                const isReady = isSoilReadyForPlanting(
-                  garden.soilType,
-                  effectiveTemp,
-                  masterData.transplanting.minTemp
-                );
+              const tempResult = await getEffectiveTemperature(garden, undefined, currentDate);
+              const effectiveTemp = tempResult.temperature;
+              
+              // Per temperatura suolo, applica modificatore tipo terreno
+              const soilTemp = calculateSoilHeatingRate(garden.soilType, effectiveTemp);
+              const isReady = isSoilReadyForPlanting(
+                garden.soilType,
+                effectiveTemp,
+                masterData.transplanting.minTemp
+              );
 
-                if (!isReady) {
-                  lifecycleMessage += ` ⚠️ Terreno non ancora pronto (temp. suolo: ${soilTemp.toFixed(1)}°C, richiesta: ${masterData.transplanting.minTemp}°C)`;
-                  lifecycleAction = `${lifecycleAction || ''} Aspetta che il terreno si scaldi. Data suggerita: ${adjustedWindowStart.toLocaleDateString('it-IT')}`.trim();
-                }
+              if (!isReady) {
+                const sourceInfo = tempResult.source === 'sensor' 
+                  ? `da sensore ${tempResult.sensorType}`
+                  : tempResult.source === 'weather_api'
+                  ? 'da previsioni meteo'
+                  : 'stimata';
+                lifecycleMessage += ` ⚠️ Terreno non ancora pronto (temp. suolo: ${soilTemp.toFixed(1)}°C ${sourceInfo}, richiesta: ${masterData.transplanting.minTemp}°C)`;
+                lifecycleAction = `${lifecycleAction || ''} Aspetta che il terreno si scaldi. Data suggerita: ${adjustedWindowStart.toLocaleDateString('it-IT')}`.trim();
               }
             } catch (error) {
               // Ignora errori meteo, continua con logica normale
+              console.warn('Errore verifica temperatura terreno:', error);
             }
           }
 
