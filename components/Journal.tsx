@@ -20,6 +20,7 @@ import { getSeedPackets, findSeedsForPlant, useSeedForPlanting } from '../servic
 import { SeedPacket } from '../types';
 import { SeedlingBatch } from '../services/seedlingService';
 import { getAllReadyBatches } from '../services/seedlingBatchHelper';
+import { SaplingBatch, useSaplingForPlanting } from '../services/saplingService';
 import { determineWasteDisposal } from '../logic/compostEngine';
 
 interface JournalProps {
@@ -112,6 +113,10 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
   const [availableBatches, setAvailableBatches] = useState<SeedlingBatch[]>([]);
   const [matchingBatches, setMatchingBatches] = useState<SeedlingBatch[]>([]);
   
+  // Carica batch di alberelli disponibili
+  const [availableSaplings, setAvailableSaplings] = useState<SaplingBatch[]>([]);
+  const [matchingSaplings, setMatchingSaplings] = useState<SaplingBatch[]>([]);
+  
   useEffect(() => {
     if (garden) {
       const seeds = getSeedPackets(garden.id);
@@ -128,6 +133,22 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
         }
       };
       loadBatches();
+      
+      // Carica batch di alberelli
+      const loadSaplings = async () => {
+        try {
+          const allSaplings = await storageProvider.getSaplingBatches(garden.id);
+          // Filtra solo quelli disponibili (non ancora piantati o in fase Purchased)
+          const available = allSaplings.filter(s => 
+            (s.currentQuantity || 0) > 0 && 
+            (!s.plantingDate || s.phase === 'Purchased')
+          );
+          setAvailableSaplings(available);
+        } catch (error) {
+          console.error('Error loading saplings:', error);
+        }
+      };
+      loadSaplings();
     }
   }, [garden, storageProvider]);
 
@@ -162,6 +183,24 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
       setMatchingBatches([]);
     }
   }, [newTask.plantName, newTask.variety, newTask.plantingMethod, garden, availableBatches]);
+
+  // Trova alberelli corrispondenti quando cambia il nome della pianta e plantingMethod è Sapling
+  useEffect(() => {
+    if (newTask.plantName && garden && newTask.plantingMethod === 'Sapling') {
+      const matches = availableSaplings.filter(s => 
+        s.plantName.toUpperCase() === newTask.plantName.toUpperCase() &&
+        (!newTask.variety || !s.variety || s.variety.toUpperCase() === newTask.variety.toUpperCase()) &&
+        (s.currentQuantity || 0) > 0
+      );
+      setMatchingSaplings(matches);
+      // Se c'è un solo match, selezionalo automaticamente
+      if (matches.length === 1 && !newTask.selectedBatchId) {
+        setNewTask({ ...newTask, selectedBatchId: matches[0].id });
+      }
+    } else {
+      setMatchingSaplings([]);
+    }
+  }, [newTask.plantName, newTask.variety, newTask.plantingMethod, garden, availableSaplings]);
 
   // Auto-detect season based on date
   const detectSeason = (dateStr: string): 'Summer' | 'Winter' => {
@@ -266,6 +305,36 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
       }
     }
 
+    // Se è stato selezionato un alberello, usa il batch e aggiorna la quantità
+    let selectedSapling: SaplingBatch | null = null;
+    if (newTask.selectedBatchId && garden && newTask.plantingMethod === 'Sapling') {
+      try {
+        selectedSapling = await storageProvider.getSaplingBatch(newTask.selectedBatchId);
+        if (!selectedSapling) {
+          alert('Batch di alberelli non trovato.');
+          return;
+        }
+        
+        const used = await useSaplingForPlanting(storageProvider, newTask.selectedBatchId, newTask.quantity);
+        if (!used) {
+          alert('Gli alberelli selezionati sono esauriti. Seleziona un altro batch o aggiungi nuovi alberelli.');
+          return;
+        }
+        
+        // Ricarica alberelli disponibili
+        const allSaplings = await storageProvider.getSaplingBatches(garden.id);
+        const available = allSaplings.filter(s => 
+          (s.currentQuantity || 0) > 0 && 
+          (!s.plantingDate || s.phase === 'Purchased')
+        );
+        setAvailableSaplings(available);
+      } catch (error) {
+        console.error('Error getting sapling batch:', error);
+        alert('Errore nel recupero del batch di alberelli.');
+        return;
+      }
+    }
+
     // Se è stata selezionata una banca dei semi, usa i semi e aggiorna la quantità
     if (newTask.selectedSeedPacketId && garden && newTask.plantingMethod === 'Seed') {
       const used = useSeedForPlanting(garden.id, newTask.selectedSeedPacketId, newTask.quantity);
@@ -285,11 +354,16 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
 
     if (result.exactMatch) {
 
-      // Prepara immagini dal batch se disponibili
+      // Prepara immagini dal batch se disponibili (piantine o alberelli)
       let batchImages: string[] = [];
       if (selectedBatch && selectedBatch.photoLog && selectedBatch.photoLog.length > 0) {
         // Prendi le ultime 3 foto del batch per documentazione
         batchImages = selectedBatch.photoLog
+          .slice(-3)
+          .map(photo => photo.image);
+      } else if (selectedSapling && selectedSapling.photoLog && selectedSapling.photoLog.length > 0) {
+        // Prendi le ultime 3 foto del batch di alberelli per documentazione
+        batchImages = selectedSapling.photoLog
           .slice(-3)
           .map(photo => photo.image);
       }
@@ -312,8 +386,9 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
         currentQuantity: newTask.quantity,
         locationType: newTask.locationType,
         archetypeId: result.exactMatch.archetypeId,
-        seedPacketId: newTask.selectedSeedPacketId, // Traccia origine semi
-        seedlingBatchId: newTask.selectedBatchId, // Traccia origine piantine
+        seedPacketId: newTask.plantingMethod === 'Seed' ? newTask.selectedSeedPacketId : undefined, // Traccia origine semi
+        seedlingBatchId: newTask.plantingMethod === 'Seedling' ? newTask.selectedBatchId : undefined, // Traccia origine piantine
+        saplingBatchId: newTask.plantingMethod === 'Sapling' ? newTask.selectedBatchId : undefined, // Traccia origine alberelli
         images: batchImages.length > 0 ? batchImages : undefined // Include foto dal batch
       });
       setIsAdding(false);
@@ -334,6 +409,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
       setFuzzySuggestions([]);
       setMatchingSeeds([]);
       setMatchingBatches([]);
+      setMatchingSaplings([]);
     } else if (result.fuzzyMatches.length > 0) {
       // Mostra suggerimenti fuzzy
       setFuzzySuggestions(result.fuzzyMatches);
@@ -368,6 +444,36 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
       }
     }
 
+    // Se è stato selezionato un alberello, usa il batch e aggiorna la quantità
+    let selectedSapling: SaplingBatch | null = null;
+    if (newTask.selectedBatchId && garden && newTask.plantingMethod === 'Sapling') {
+      try {
+        selectedSapling = await storageProvider.getSaplingBatch(newTask.selectedBatchId);
+        if (!selectedSapling) {
+          alert('Batch di alberelli non trovato.');
+          return;
+        }
+        
+        const used = await useSaplingForPlanting(storageProvider, newTask.selectedBatchId, newTask.quantity);
+        if (!used) {
+          alert('Gli alberelli selezionati sono esauriti.');
+          return;
+        }
+        
+        // Ricarica alberelli disponibili
+        const allSaplings = await storageProvider.getSaplingBatches(garden.id);
+        const available = allSaplings.filter(s => 
+          (s.currentQuantity || 0) > 0 && 
+          (!s.plantingDate || s.phase === 'Purchased')
+        );
+        setAvailableSaplings(available);
+      } catch (error) {
+        console.error('Error getting sapling batch:', error);
+        alert('Errore nel recupero del batch di alberelli.');
+        return;
+      }
+    }
+
     // Se è stata selezionata una banca dei semi, usa i semi e aggiorna la quantità
     if (newTask.selectedSeedPacketId && garden && newTask.plantingMethod === 'Seed') {
       const used = useSeedForPlanting(garden.id, newTask.selectedSeedPacketId, newTask.quantity);
@@ -377,11 +483,16 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
       }
     }
 
-    // Prepara immagini dal batch se disponibili
+    // Prepara immagini dal batch se disponibili (piantine o alberelli)
     let batchImages: string[] = [];
     if (selectedBatch && selectedBatch.photoLog && selectedBatch.photoLog.length > 0) {
       // Prendi le ultime 3 foto del batch per documentazione
       batchImages = selectedBatch.photoLog
+        .slice(-3)
+        .map(photo => photo.image);
+    } else if (selectedSapling && selectedSapling.photoLog && selectedSapling.photoLog.length > 0) {
+      // Prendi le ultime 3 foto del batch di alberelli per documentazione
+      batchImages = selectedSapling.photoLog
         .slice(-3)
         .map(photo => photo.image);
     }
@@ -404,8 +515,9 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
       currentQuantity: newTask.quantity,
       locationType: newTask.locationType,
       archetypeId: suggestion.archetypeId,
-      seedPacketId: newTask.selectedSeedPacketId, // Traccia origine semi
-      seedlingBatchId: newTask.selectedBatchId, // Traccia origine piantine
+      seedPacketId: newTask.plantingMethod === 'Seed' ? newTask.selectedSeedPacketId : undefined, // Traccia origine semi
+      seedlingBatchId: newTask.plantingMethod === 'Seedling' ? newTask.selectedBatchId : undefined, // Traccia origine piantine
+      saplingBatchId: newTask.plantingMethod === 'Sapling' ? newTask.selectedBatchId : undefined, // Traccia origine alberelli
       images: batchImages.length > 0 ? batchImages : undefined // Include foto dal batch
     });
     setIsAdding(false);
@@ -1146,18 +1258,21 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                   )}
                 </div>
 
-                {/* Selettore Banca dei Semi - solo se "Dal Seme" */}
-                {newTask.plantingMethod === 'Seed' && matchingSeeds.length > 0 && (
+                {/* Selettore Banca dei Semi - sempre visibile quando ci sono semi disponibili */}
+                {newTask.plantingMethod === 'Seed' && availableSeeds.length > 0 && (
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
                       Seleziona dalla Banca dei Semi
+                      {matchingSeeds.length > 0 && (
+                        <span className="ml-2 text-green-600">✓ {matchingSeeds.length} match trovato/i</span>
+                      )}
                     </label>
                     <select 
                       className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none"
                       value={newTask.selectedSeedPacketId || ''}
                       onChange={e => {
                         const packetId = e.target.value;
-                        const packet = matchingSeeds.find(s => s.id === packetId);
+                        const packet = availableSeeds.find(s => s.id === packetId);
                         if (packet) {
                           setNewTask({
                             ...newTask, 
@@ -1165,36 +1280,68 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                             plantName: packet.speciesName,
                             variety: packet.varietyName
                           });
+                        } else {
+                          setNewTask({...newTask, selectedSeedPacketId: undefined});
                         }
                       }}
                     >
                       <option value="">-- Seleziona pacchetto di semi --</option>
-                      {matchingSeeds.map(packet => (
-                        <option key={packet.id} value={packet.id}>
-                          {packet.varietyName} ({packet.speciesName}) - {packet.quantityRemaining === 'Empty' ? 'Esaurito' : `Disponibile: ${packet.quantityRemaining}`}
-                        </option>
-                      ))}
+                      {availableSeeds.map(packet => {
+                        const isMatch = matchingSeeds.some(m => m.id === packet.id);
+                        const isExhausted = packet.quantityRemaining === 'Empty';
+                        return (
+                          <option 
+                            key={packet.id} 
+                            value={packet.id}
+                            className={isMatch ? 'font-bold' : ''}
+                          >
+                            {isMatch && '✓ '}
+                            {packet.varietyName} ({packet.speciesName}) - {isExhausted ? 'Esaurito' : `Disponibile: ${packet.quantityRemaining}`}
+                          </option>
+                        );
+                      })}
                     </select>
                     {newTask.selectedSeedPacketId && (
                       <p className="text-xs text-green-600 mt-1">
                         ✓ Semi selezionati dalla banca. La quantità verrà aggiornata automaticamente dopo il salvataggio.
                       </p>
                     )}
+                    {availableSeeds.length > 0 && matchingSeeds.length === 0 && newTask.plantName && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        💡 Nessun match trovato per "{newTask.plantName}", ma hai {availableSeeds.length} pacchetto/i di semi disponibile/i.
+                      </p>
+                    )}
+                  </div>
+                )}
+                {newTask.plantingMethod === 'Seed' && availableSeeds.length === 0 && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      🌰 Non hai ancora aggiunto semi alla banca. 
+                      <button 
+                        onClick={() => {/* Naviga a SeedBank o apri modal */}
+                        className="text-yellow-900 underline font-bold ml-1"
+                      >
+                        Aggiungi semi ora
+                      </button>
+                    </p>
                   </div>
                 )}
 
-                {/* Selettore Batch Piantine - solo se "Da Piantina" */}
-                {newTask.plantingMethod === 'Seedling' && matchingBatches.length > 0 && (
+                {/* Selettore Batch Piantine - sempre visibile quando ci sono piantine disponibili */}
+                {newTask.plantingMethod === 'Seedling' && availableBatches.length > 0 && (
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
                       Seleziona dalle Piantine Pronte
+                      {matchingBatches.length > 0 && (
+                        <span className="ml-2 text-green-600">✓ {matchingBatches.length} match trovato/i</span>
+                      )}
                     </label>
                     <select 
                       className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none"
                       value={newTask.selectedBatchId || ''}
                       onChange={e => {
                         const batchId = e.target.value;
-                        const batch = matchingBatches.find(b => b.id === batchId);
+                        const batch = availableBatches.find(b => b.id === batchId);
                         if (batch) {
                           setNewTask({
                             ...newTask, 
@@ -1208,40 +1355,119 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                       }}
                     >
                       <option value="">-- Seleziona batch di piantine --</option>
-                      {matchingBatches.map(batch => (
-                        <option key={batch.id} value={batch.id}>
-                          {batch.variety || batch.plantName} ({batch.plantName}) - 
-                          Disponibili: {batch.currentQuantity || 0}/{batch.quantity}
-                          {batch.source === 'nursery' && batch.nurseryName && ` - ${batch.nurseryName}`}
-                          {batch.source === 'home' || !batch.source ? ' - Seminate in casa' : ''}
-                        </option>
-                      ))}
+                      {availableBatches.map(batch => {
+                        const isMatch = matchingBatches.some(m => m.id === batch.id);
+                        return (
+                          <option 
+                            key={batch.id} 
+                            value={batch.id}
+                            className={isMatch ? 'font-bold' : ''}
+                          >
+                            {isMatch && '✓ '}
+                            {batch.variety || batch.plantName} ({batch.plantName}) - 
+                            Disponibili: {batch.currentQuantity || 0}/{batch.quantity}
+                            {batch.source === 'nursery' && batch.nurseryName && ` - ${batch.nurseryName}`}
+                            {batch.source === 'home' || !batch.source ? ' - Seminate in casa' : ''}
+                          </option>
+                        );
+                      })}
                     </select>
                     {newTask.selectedBatchId && (
                       <p className="text-xs text-green-600 mt-1">
                         ✓ Piantine selezionate dalle Piantine Pronte. La quantità verrà aggiornata automaticamente dopo il salvataggio.
                       </p>
                     )}
+                    {availableBatches.length > 0 && matchingBatches.length === 0 && newTask.plantName && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        💡 Nessun match trovato per "{newTask.plantName}", ma hai {availableBatches.length} batch di piantine disponibile/i.
+                      </p>
+                    )}
+                  </div>
+                )}
+                {newTask.plantingMethod === 'Seedling' && availableBatches.length === 0 && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      🌱 Non hai ancora aggiunto piantine. 
+                      <button 
+                        onClick={() => {/* Naviga a SeedlingManager o apri modal */}
+                        className="text-yellow-900 underline font-bold ml-1"
+                      >
+                        Aggiungi piantine ora
+                      </button>
+                    </p>
                   </div>
                 )}
 
-                {/* Selettore Alberelli - solo se "Da Alberello" */}
-                {newTask.plantingMethod === 'Sapling' && (
+                {/* Selettore Alberelli - sempre visibile quando ci sono alberelli disponibili */}
+                {newTask.plantingMethod === 'Sapling' && availableSaplings.length > 0 && (
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                      Alberelli Disponibili
+                      Seleziona dagli Alberelli Disponibili
+                      {matchingSaplings.length > 0 && (
+                        <span className="ml-2 text-green-600">✓ {matchingSaplings.length} match trovato/i</span>
+                      )}
                     </label>
                     <select 
                       className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none"
                       value={newTask.selectedBatchId || ''}
-                      onChange={e => setNewTask({...newTask, selectedBatchId: e.target.value || undefined})}
+                      onChange={e => {
+                        const batchId = e.target.value;
+                        const batch = availableSaplings.find(b => b.id === batchId);
+                        if (batch) {
+                          setNewTask({
+                            ...newTask, 
+                            selectedBatchId: batchId,
+                            plantName: batch.plantName,
+                            variety: batch.variety || ''
+                          });
+                        } else {
+                          setNewTask({...newTask, selectedBatchId: undefined});
+                        }
+                      }}
                     >
-                      <option value="">-- Seleziona alberello (opzionale) --</option>
-                      {/* TODO: Integrare con sistema alberelli quando disponibile */}
-                      <option value="manual">Inserimento manuale</option>
+                      <option value="">-- Seleziona batch di alberelli --</option>
+                      {availableSaplings.map(batch => {
+                        const isMatch = matchingSaplings.some(m => m.id === batch.id);
+                        const typeLabel = batch.saplingType === 'FruitTree' ? 'Albero da Frutto' : 
+                                         batch.saplingType === 'Olive' ? 'Olivo' : 
+                                         batch.saplingType === 'Vine' ? 'Vite' : batch.saplingType;
+                        return (
+                          <option 
+                            key={batch.id} 
+                            value={batch.id}
+                            className={isMatch ? 'font-bold' : ''}
+                          >
+                            {isMatch && '✓ '}
+                            {batch.variety || batch.plantName} ({batch.plantName}) - 
+                            Disponibili: {batch.currentQuantity || 0}/{batch.quantity}
+                            {` - ${typeLabel}`}
+                            {batch.location && ` - ${batch.location}`}
+                          </option>
+                        );
+                      })}
                     </select>
-                    <p className="text-xs text-blue-600 mt-1">
-                      💡 Sistema alberelli in arrivo. Per ora inserisci manualmente. Ideale per frutteti, uliveti, vigneti.
+                    {newTask.selectedBatchId && (
+                      <p className="text-xs text-green-600 mt-1">
+                        ✓ Alberello selezionato. La quantità verrà aggiornata automaticamente dopo il salvataggio.
+                      </p>
+                    )}
+                    {availableSaplings.length > 0 && matchingSaplings.length === 0 && newTask.plantName && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        💡 Nessun match trovato per "{newTask.plantName}", ma hai {availableSaplings.length} alberello/i disponibile/i.
+                      </p>
+                    )}
+                  </div>
+                )}
+                {newTask.plantingMethod === 'Sapling' && availableSaplings.length === 0 && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      🌳 Non hai ancora aggiunto alberelli. 
+                      <button 
+                        onClick={() => {/* Naviga a SaplingManager o apri modal */}
+                        className="text-yellow-900 underline font-bold ml-1"
+                      >
+                        Aggiungi alberelli ora
+                      </button>
                     </p>
                   </div>
                 )}

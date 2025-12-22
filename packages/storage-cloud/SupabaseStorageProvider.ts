@@ -12,6 +12,7 @@ import { GardenAccessory } from '@/types/accessories';
 import { HydroponicReading, AquaponicReading } from '@/types/indoorGrowing';
 import { GardenBed } from '@/types/gardenBed';
 import { SeedlingBatch } from '@/services/seedlingService';
+import { SaplingBatch } from '@/services/saplingService';
 import { getSupabaseClient } from '@/config/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { CropArchetype, CropProfile, CropAlias, ArchetypeId, OfficialCrop } from '@/types/archetypes';
@@ -1648,6 +1649,115 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     const { error } = await client
       .from('seedling_batches')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+
+  // Sapling Batches
+  private mapSaplingBatchFromDB(db: any): SaplingBatch {
+    return {
+      id: db.id,
+      plantName: db.plant_name,
+      variety: db.variety,
+      saplingType: db.sapling_type,
+      purchaseDate: db.purchase_date,
+      plantingDate: db.planting_date,
+      quantity: db.quantity,
+      location: db.location,
+      phase: db.phase,
+      currentQuantity: db.current_quantity,
+      expectedEstablishmentDate: db.expected_establishment_date,
+      rootstock: db.rootstock,
+      spacing: db.spacing,
+      notes: db.notes,
+      photoLog: db.photo_log || [],
+      gardenId: db.garden_id,
+      specializedCropId: db.specialized_crop_id,
+    };
+  }
+
+  private mapSaplingBatchToDB(batch: Partial<SaplingBatch>): any {
+    const db: any = {};
+    if (batch.plantName !== undefined) db.plant_name = batch.plantName;
+    if (batch.variety !== undefined) db.variety = batch.variety;
+    if (batch.saplingType !== undefined) db.sapling_type = batch.saplingType;
+    if (batch.purchaseDate !== undefined) db.purchase_date = batch.purchaseDate;
+    if (batch.plantingDate !== undefined) db.planting_date = batch.plantingDate;
+    if (batch.quantity !== undefined) db.quantity = batch.quantity;
+    if (batch.location !== undefined) db.location = batch.location;
+    if (batch.phase !== undefined) db.phase = batch.phase;
+    if (batch.currentQuantity !== undefined) db.current_quantity = batch.currentQuantity;
+    if (batch.expectedEstablishmentDate !== undefined) db.expected_establishment_date = batch.expectedEstablishmentDate;
+    if (batch.rootstock !== undefined) db.rootstock = batch.rootstock;
+    if (batch.spacing !== undefined) db.spacing = batch.spacing;
+    if (batch.notes !== undefined) db.notes = batch.notes;
+    if (batch.photoLog !== undefined) db.photo_log = batch.photoLog;
+    if (batch.gardenId !== undefined) db.garden_id = batch.gardenId;
+    if (batch.specializedCropId !== undefined) db.specialized_crop_id = batch.specializedCropId;
+    return db;
+  }
+
+  async getSaplingBatches(gardenId?: string): Promise<SaplingBatch[]> {
+    const client = this.ensureClient();
+    let query = client.from('sapling_batches').select('*');
+    
+    if (gardenId) {
+      query = query.eq('garden_id', gardenId);
+    }
+    
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(db => this.mapSaplingBatchFromDB(db));
+  }
+
+  async getSaplingBatch(id: string): Promise<SaplingBatch | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('sapling_batches')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Not found
+      throw error;
+    }
+    return this.mapSaplingBatchFromDB(data);
+  }
+
+  async createSaplingBatch(batch: Omit<SaplingBatch, 'id'>): Promise<SaplingBatch> {
+    const client = this.ensureClient();
+    const dbBatch = this.mapSaplingBatchToDB(batch);
+    const { data, error } = await client
+      .from('sapling_batches')
+      .insert(dbBatch)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapSaplingBatchFromDB(data);
+  }
+
+  async updateSaplingBatch(id: string, updates: Partial<SaplingBatch>): Promise<SaplingBatch> {
+    const client = this.ensureClient();
+    const dbUpdates = this.mapSaplingBatchToDB(updates);
+    const { data, error } = await client
+      .from('sapling_batches')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return this.mapSaplingBatchFromDB(data);
+  }
+
+  async deleteSaplingBatch(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client
+      .from('sapling_batches')
       .delete()
       .eq('id', id);
     

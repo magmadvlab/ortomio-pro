@@ -590,8 +590,9 @@ export interface GardenTask {
   plantingMethod?: 'Seed' | 'Seedling' | 'Sapling'; // Started from seed, seedling, or sapling
   
   // Tracking origine pianta
-  seedPacketId?: string; // ID del pacchetto di semi usato (se plantingMethod === 'Seed')
-  seedlingBatchId?: string; // ID del batch di piantine usato (se plantingMethod === 'Seedling')
+    seedPacketId?: string; // ID del pacchetto di semi usato (se plantingMethod === 'Seed')
+    seedlingBatchId?: string; // ID del batch di piantine usato (se plantingMethod === 'Seedling')
+    saplingBatchId?: string; // ID del batch di alberelli usato (se plantingMethod === 'Sapling')
   
   // Statistics Tracking
   locationType?: GrowingLocation; // Where is it growing?

@@ -7,6 +7,7 @@ import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhoto
 import { CustomPlan } from '../../../types/customPlan';
 import { Agronomist, AgronomistConsultation, AgronomistAdvice } from '../../../types/agronomist';
 import { SeedlingBatch } from '../../../services/seedlingService';
+import { SaplingBatch } from '../../../services/saplingService';
 import { GardenAccessory } from '../../../types/accessories';
 import { HydroponicReading, AquaponicReading } from '../../../types/indoorGrowing';
 import { GardenBed } from '../../../types/gardenBed';
@@ -55,6 +56,13 @@ export interface IStorageProvider {
   createSeedlingBatch(batch: Omit<SeedlingBatch, 'id'>): Promise<SeedlingBatch>;
   updateSeedlingBatch(id: string, updates: Partial<SeedlingBatch>): Promise<SeedlingBatch>;
   deleteSeedlingBatch(id: string): Promise<void>;
+  
+  // Sapling Batches
+  getSaplingBatches(gardenId?: string): Promise<SaplingBatch[]>;
+  getSaplingBatch(id: string): Promise<SaplingBatch | null>;
+  createSaplingBatch(batch: Omit<SaplingBatch, 'id'>): Promise<SaplingBatch>;
+  updateSaplingBatch(id: string, updates: Partial<SaplingBatch>): Promise<SaplingBatch>;
+  deleteSaplingBatch(id: string): Promise<void>;
   
   // Pro Features (optional - may not be available in Free tier)
   uploadPhoto?(file: File, taskId: string, gardenId: string): Promise<string>; // Returns photo URL

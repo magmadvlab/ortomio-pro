@@ -308,6 +308,39 @@ export const linkToSpecializedCrop = (
 };
 
 /**
+ * Usa alberelli per una piantagione (riduce la quantità disponibile)
+ * Questa funzione viene chiamata quando si crea un task di trapianto con alberelli
+ * 
+ * @param storageProvider - Storage provider per accedere ai batch
+ * @param batchId - ID del batch di alberelli
+ * @param quantity - Quantità di alberelli da usare
+ * @returns true se l'operazione è riuscita, false altrimenti
+ */
+export const useSaplingForPlanting = async (
+  storageProvider: any, // IStorageProvider
+  batchId: string,
+  quantity: number
+): Promise<boolean> => {
+  try {
+    const batch = await storageProvider.getSaplingBatch(batchId);
+    if (!batch || (batch.currentQuantity || 0) < quantity) {
+      return false;
+    }
+    
+    const newQuantity = Math.max(0, (batch.currentQuantity || 0) - quantity);
+    await storageProvider.updateSaplingBatch(batchId, {
+      ...batch,
+      currentQuantity: newQuantity
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error using sapling batch for planting:', error);
+    return false;
+  }
+};
+
+/**
  * Crea un nuovo impianto specializzato da un batch di alberelli
  * Questa funzione viene chiamata quando un alberello è pronto per essere trasformato in un impianto permanente
  * 

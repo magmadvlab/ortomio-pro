@@ -11,6 +11,7 @@ import { Agronomist, AgronomistConsultation, AgronomistAdvice } from '@/types/ag
 import { StorageService } from '@/services/storageService';
 import { saveAutoBackup } from '@/services/autoBackupService';
 import { SeedlingBatch } from '@/services/seedlingService';
+import { SaplingBatch } from '@/services/saplingService';
 import { GardenAccessory } from '@/types/accessories';
 import { HydroponicReading, AquaponicReading } from '@/types/indoorGrowing';
 import { GardenBed } from '@/types/gardenBed';
@@ -30,6 +31,7 @@ export class LocalStorageProvider implements IStorageProvider {
     CONSULTATIONS: 'ortoConsultations',
     ADVICE: 'ortoAgronomistAdvice',
     SEEDLING_BATCHES: 'ortSeedlingBatches',
+    SAPLING_BATCHES: 'ortSaplingBatches',
     ACCESSORIES: 'ortoAccessories',
     HYDROPONIC_READINGS: 'ortoHydroponicReadings',
     AQUAPONIC_READINGS: 'ortoAquaponicReadings',
@@ -371,6 +373,67 @@ export class LocalStorageProvider implements IStorageProvider {
     const batches = await this.getSeedlingBatches();
     const filtered = batches.filter(b => b.id !== id);
     localStorage.setItem(this.STORAGE_KEYS.SEEDLING_BATCHES, JSON.stringify(filtered));
+  }
+
+  // Sapling Batches
+  async getSaplingBatches(gardenId?: string): Promise<SaplingBatch[]> {
+    const saved = localStorage.getItem(this.STORAGE_KEYS.SAPLING_BATCHES);
+    if (!saved) return [];
+    try {
+      const batches = JSON.parse(saved) as SaplingBatch[];
+      if (gardenId) {
+        return batches.filter(b => b.gardenId === gardenId);
+      }
+      return batches;
+    } catch {
+      return [];
+    }
+  }
+
+  async getSaplingBatch(id: string): Promise<SaplingBatch | null> {
+    const batches = await this.getSaplingBatches();
+    return batches.find(b => b.id === id) || null;
+  }
+
+  async createSaplingBatch(batch: Omit<SaplingBatch, 'id'>): Promise<SaplingBatch> {
+    const newBatch: SaplingBatch = {
+      ...batch,
+      id: crypto.randomUUID(),
+    };
+    const batches = await this.getSaplingBatches();
+    batches.push(newBatch);
+    localStorage.setItem(this.STORAGE_KEYS.SAPLING_BATCHES, JSON.stringify(batches));
+    
+    // Trigger backup automatico (non bloccare se fallisce)
+    saveAutoBackup(this, batch.gardenId).catch(err => 
+      console.error('Error saving auto backup after createSaplingBatch:', err)
+    );
+    
+    return newBatch;
+  }
+
+  async updateSaplingBatch(id: string, updates: Partial<SaplingBatch>): Promise<SaplingBatch> {
+    const batches = await this.getSaplingBatches();
+    const index = batches.findIndex(b => b.id === id);
+    if (index === -1) {
+      throw new Error(`Sapling batch with id ${id} not found`);
+    }
+    const batch = batches[index];
+    batches[index] = { ...batch, ...updates };
+    localStorage.setItem(this.STORAGE_KEYS.SAPLING_BATCHES, JSON.stringify(batches));
+    
+    // Trigger backup automatico (non bloccare se fallisce)
+    saveAutoBackup(this, batch.gardenId).catch(err => 
+      console.error('Error saving auto backup after updateSaplingBatch:', err)
+    );
+    
+    return batches[index];
+  }
+
+  async deleteSaplingBatch(id: string): Promise<void> {
+    const batches = await this.getSaplingBatches();
+    const filtered = batches.filter(b => b.id !== id);
+    localStorage.setItem(this.STORAGE_KEYS.SAPLING_BATCHES, JSON.stringify(filtered));
   }
 
   // Custom Plans

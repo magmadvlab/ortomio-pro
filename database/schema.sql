@@ -181,6 +181,11 @@ CREATE TABLE IF NOT EXISTS garden_tasks (
   -- PRECISION AGRICULTURE
   zone_id UUID, -- Riferimento a garden_zones (FK aggiunto in migrazione)
   
+  -- Tracking origine pianta
+  seed_packet_id UUID REFERENCES seed_inventory(id) ON DELETE SET NULL,
+  seedling_batch_id UUID REFERENCES seedling_batches(id) ON DELETE SET NULL,
+  sapling_batch_id UUID REFERENCES sapling_batches(id) ON DELETE SET NULL,
+  
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   completed_at TIMESTAMP WITH TIME ZONE
@@ -194,6 +199,9 @@ CREATE INDEX IF NOT EXISTS idx_garden_tasks_plant_name ON garden_tasks(plant_nam
 CREATE INDEX IF NOT EXISTS idx_garden_tasks_suggested ON garden_tasks(is_suggested) WHERE is_suggested = true;
 CREATE INDEX IF NOT EXISTS idx_garden_tasks_suggested_date ON garden_tasks(suggested_date) WHERE suggested_date IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_garden_tasks_zone_id ON garden_tasks(zone_id) WHERE zone_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_seed_packet_id ON garden_tasks(seed_packet_id) WHERE seed_packet_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_seedling_batch_id ON garden_tasks(seedling_batch_id) WHERE seedling_batch_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_sapling_batch_id ON garden_tasks(sapling_batch_id) WHERE sapling_batch_id IS NOT NULL;
 
 -- ============================================
 -- HARVEST LOGS
@@ -332,6 +340,69 @@ BEGIN
 END $$;
 
 -- ============================================
+-- SAPLING BATCHES (Alberelli per frutteti, uliveti, vigneti)
+-- ============================================
+CREATE TABLE IF NOT EXISTS sapling_batches (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
+  plant_name TEXT NOT NULL,
+  variety TEXT,
+  sapling_type TEXT CHECK (sapling_type IN ('FruitTree', 'Olive', 'Vine')) NOT NULL,
+  purchase_date DATE NOT NULL,
+  planting_date DATE,
+  quantity INTEGER NOT NULL,
+  location TEXT NOT NULL,
+  phase TEXT CHECK (phase IN ('Purchased', 'Planted', 'Establishing', 'Growing', 'ReadyToOrchard')) DEFAULT 'Purchased',
+  current_quantity INTEGER,
+  expected_establishment_date DATE,
+  rootstock TEXT,
+  spacing TEXT,
+  notes TEXT,
+  photo_log JSONB DEFAULT '[]'::jsonb,
+  specialized_crop_id UUID,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_sapling_batches_garden_id ON sapling_batches(garden_id);
+CREATE INDEX IF NOT EXISTS idx_sapling_batches_purchase_date ON sapling_batches(purchase_date);
+CREATE INDEX IF NOT EXISTS idx_sapling_batches_phase ON sapling_batches(phase);
+CREATE INDEX IF NOT EXISTS idx_sapling_batches_sapling_type ON sapling_batches(sapling_type);
+
+-- RLS Policies for sapling_batches
+ALTER TABLE sapling_batches ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'sapling_batches' 
+    AND policyname = 'Users can access sapling batches in their gardens'
+  ) THEN
+    CREATE POLICY "Users can access sapling batches in their gardens"
+      ON sapling_batches FOR ALL
+      USING (
+        EXISTS (
+          SELECT 1 FROM gardens
+          WHERE gardens.id = sapling_batches.garden_id
+          AND gardens.user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger 
+    WHERE tgname = 'update_sapling_batches_updated_at'
+  ) THEN
+    CREATE TRIGGER update_sapling_batches_updated_at BEFORE UPDATE ON sapling_batches
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END $$;
+
+-- ============================================
 -- WEATHER CACHE
 -- ============================================
 CREATE TABLE IF NOT EXISTS weather_cache (
@@ -359,6 +430,7 @@ ALTER TABLE harvest_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE photo_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE seed_inventory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE seedling_batches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sapling_batches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE weather_cache ENABLE ROW LEVEL SECURITY;
 
 -- Gardens: Users can only access their own gardens
