@@ -111,6 +111,25 @@ export function translateUsdaZone(zone: string): USDAZoneDescription {
       description: 'Clima caldo tutto l\'anno. Ideale solo per piante tropicali.',
       technicalZone: '11',
       emoji: '🌴'
+    },
+    // Alias per zona 11 (non ha sottovarianti nel sistema USDA, ma gestiamo per compatibilità)
+    '11a': {
+      climateName: 'Clima Tropicale',
+      minTemp: 'Sopra 4°C',
+      geographicReference: 'Zone molto calde (raro in Italia)',
+      coldLevel: 'Mite',
+      description: 'Clima caldo tutto l\'anno. Ideale solo per piante tropicali.',
+      technicalZone: '11',
+      emoji: '🌴'
+    },
+    '11b': {
+      climateName: 'Clima Tropicale',
+      minTemp: 'Sopra 4°C',
+      geographicReference: 'Zone molto calde (raro in Italia)',
+      coldLevel: 'Mite',
+      description: 'Clima caldo tutto l\'anno. Ideale solo per piante tropicali.',
+      technicalZone: '11',
+      emoji: '🌴'
     }
   };
 

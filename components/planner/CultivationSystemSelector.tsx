@@ -76,8 +76,14 @@ const CultivationSystemSelector: React.FC<CultivationSystemSelectorProps> = ({
         const userZoneNum = parseFloat(userUsdaZone.replace(/[a-z]/i, ''));
         if (userZoneNum < openField.requires.minUsdaZone) {
           const userZoneDesc = translateUsdaZone(userUsdaZone);
-          const requiredZoneStr = openField.requires.minUsdaZone.toString();
-          const requiredZoneKey = requiredZoneStr.includes('a') || requiredZoneStr.includes('b') ? requiredZoneStr : `${requiredZoneStr}a`;
+          const requiredZoneNum = openField.requires.minUsdaZone;
+          // Le zone 11+ non hanno sottovarianti a/b, usiamo il numero direttamente
+          // Le zone 7-10 hanno sottovarianti, quindi aggiungiamo 'a' se non specificato
+          const requiredZoneKey = requiredZoneNum >= 11 
+            ? requiredZoneNum.toString() 
+            : (requiredZoneNum.toString().includes('a') || requiredZoneNum.toString().includes('b') 
+                ? requiredZoneNum.toString() 
+                : `${requiredZoneNum}a`);
           const requiredZoneDesc = translateUsdaZone(requiredZoneKey);
           
           return {
