@@ -655,7 +655,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
   }
 
   private mapTaskFromDB(db: any): GardenTask {
-    return {
+    const task: Partial<GardenTask> = {
       id: db.id,
       gardenId: db.garden_id,
       plantName: db.plant_name,
@@ -713,6 +713,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       aquaponicData: db.aquaponic_data,
       aeroponicData: db.aeroponic_data,
     };
+    return task as GardenTask;
   }
 
   private mapTaskToDB(task: Partial<GardenTask>): any {

@@ -584,6 +584,7 @@ export interface GardenTask {
   id: string;
   gardenId: string; // Link to specific garden
   bedId?: string; // ID della zona/letto di coltivazione (opzionale)
+  zoneId?: string; // ID della zona precision agriculture (opzionale)
   quantity?: number; // Quantità di piante (opzionale, default: 1)
   plantName: string;
   variety?: string; // e.g., "Datterino"
