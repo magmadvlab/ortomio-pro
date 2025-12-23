@@ -2301,6 +2301,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
     
     let { data, error } = await queryBuilder.order('confidence', { ascending: false }).limit(1);
     
+    // PGRST205 = table not found (migration not applied)
+    if (error && error.code === 'PGRST205') {
+      console.warn('Table crop_aliases not found - migration 03_plant_taxonomy.sql may not be applied');
+      return null;
+    }
     if (error) throw error;
     if (data && data.length > 0) {
       return this.mapAliasFromDB(data[0]);
@@ -2321,6 +2326,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
     
     ({ data, error } = await queryBuilder.order('confidence', { ascending: false }).limit(1));
     
+    // PGRST205 = table not found (migration not applied)
+    if (error && error.code === 'PGRST205') {
+      console.warn('Table crop_aliases not found - migration 03_plant_taxonomy.sql may not be applied');
+      return null;
+    }
     if (error) throw error;
     if (!data || data.length === 0) return null;
     
@@ -2350,6 +2360,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select()
       .single();
     
+    // PGRST205 = table not found (migration not applied)
+    if (error && error.code === 'PGRST205') {
+      console.warn('Table crop_aliases not found - migration 03_plant_taxonomy.sql may not be applied');
+      throw new Error('Table crop_aliases not found. Please apply migration 03_plant_taxonomy.sql');
+    }
     if (error) throw error;
     return this.mapAliasFromDB(data);
   }
@@ -2361,6 +2376,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .update({ confidence: Math.max(0, Math.min(1, confidence)) })
       .eq('id', aliasId);
     
+    // PGRST205 = table not found (migration not applied)
+    if (error && error.code === 'PGRST205') {
+      console.warn('Table crop_aliases not found - migration 03_plant_taxonomy.sql may not be applied');
+      throw new Error('Table crop_aliases not found. Please apply migration 03_plant_taxonomy.sql');
+    }
     if (error) throw error;
   }
 
@@ -2372,6 +2392,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .eq('id', aliasId)
       .single();
     
+    // PGRST205 = table not found (migration not applied)
+    if (error && error.code === 'PGRST205') {
+      console.warn('Table crop_aliases not found - migration 03_plant_taxonomy.sql may not be applied');
+      return null;
+    }
     if (error) {
       if (error.code === 'PGRST116') return null;
       throw error;
@@ -2403,6 +2428,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select()
       .single();
     
+    // PGRST205 = table not found (migration not applied)
+    if (error && error.code === 'PGRST205') {
+      console.warn('Table crop_aliases not found - migration 03_plant_taxonomy.sql may not be applied');
+      throw new Error('Table crop_aliases not found. Please apply migration 03_plant_taxonomy.sql');
+    }
     if (error) throw error;
     return this.mapAliasFromDB(data);
   }
@@ -2415,6 +2445,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .eq('archetype_id', archetypeId)
       .order('usage_count', { ascending: false });
     
+    // PGRST205 = table not found (migration not applied)
+    if (error && error.code === 'PGRST205') {
+      console.warn('Table crop_aliases not found - migration 03_plant_taxonomy.sql may not be applied');
+      return [];
+    }
     if (error) throw error;
     return (data || []).map(db => this.mapAliasFromDB(db));
   }
@@ -2426,6 +2461,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .order('usage_count', { ascending: false });
     
+    // PGRST205 = table not found (migration not applied)
+    if (error && error.code === 'PGRST205') {
+      console.warn('Table crop_aliases not found - migration 03_plant_taxonomy.sql may not be applied');
+      return [];
+    }
     if (error) throw error;
     return (data || []).map(db => this.mapAliasFromDB(db));
   }
@@ -2442,6 +2482,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .limit(1)
       .single();
     
+    // PGRST205 = table not found (migration not applied)
+    if (error && error.code === 'PGRST205') {
+      console.warn('Table official_crops not found - migration 03_plant_taxonomy.sql may not be applied');
+      return null;
+    }
     if (error && error.code !== 'PGRST116') {
       throw error;
     }
@@ -2461,6 +2506,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .limit(1)
       .single());
     
+    // PGRST205 = table not found (migration not applied)
+    if (error && error.code === 'PGRST205') {
+      console.warn('Table official_crops not found - migration 03_plant_taxonomy.sql may not be applied');
+      return null;
+    }
     if (error) {
       if (error.code === 'PGRST116') return null;
       throw error;
@@ -2480,6 +2530,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
         .order('name', { ascending: true })
         .limit(200);
       
+      // PGRST205 = table not found (migration not applied)
+      if (error && error.code === 'PGRST205') {
+        console.warn('Table official_crops not found - migration 03_plant_taxonomy.sql may not be applied');
+        return [];
+      }
       if (error) throw error;
       return (data || []).map(db => this.mapOfficialCropFromDB(db));
     }
@@ -2494,6 +2549,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .or(`name.ilike.%${query}%,normalized_name.eq.${normalizedQuery}`)
       .limit(50);
     
+    // PGRST205 = table not found (migration not applied)
+    if (error && error.code === 'PGRST205') {
+      console.warn('Table official_crops not found - migration 03_plant_taxonomy.sql may not be applied');
+      return [];
+    }
     if (error) throw error;
     return (data || []).map(db => this.mapOfficialCropFromDB(db));
   }
