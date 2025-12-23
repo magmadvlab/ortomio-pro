@@ -4,7 +4,7 @@ Questa guida spiega come applicare le migrazioni database su Supabase online in 
 
 ## Panoramica
 
-Le migrazioni sono organizzate in **11 gruppi logici** che devono essere applicati in ordine:
+Le migrazioni sono organizzate in **16 gruppi logici** che devono essere applicati in ordine:
 
 1. **01_core_schema.sql** - Schema base (DEVE essere eseguito per primo)
 2. **02_user_profiles.sql** - Sistema profili utente e tier
@@ -133,6 +133,22 @@ Le migrazioni sono organizzate in **11 gruppi logici** che devono essere applica
    - Imposta `SET search_path = ''` su tutte le funzioni per sicurezza
    - ⚠️ **Eseguire DOPO tutte le altre migrazioni che creano funzioni**
    - ⚠️ **Risolve i warning "Function Search Path Mutable"**
+
+### Fase 14: Fix RLS Performance
+
+15. **14_fix_rls_performance.sql**
+   - Corregge tutte le policy RLS che usano auth.uid() direttamente
+   - Sostituisce auth.uid() con (select auth.uid()) per evitare ri-valutazione per ogni riga
+   - Risolve i warning "Auth RLS Initialization Plan" del Security Advisor
+   - ⚠️ **Eseguire DOPO tutte le altre migrazioni che creano policy RLS**
+
+### Fase 15: Add Missing Foreign Key Indexes
+
+16. **15_add_missing_foreign_key_indexes.sql**
+   - Aggiunge indici mancanti su foreign key per migliorare le performance
+   - Risolve i warning "Unindexed Foreign Keys" del Security Advisor
+   - Crea indici su: agronomist_consultations.garden_id, crop_learning_events.garden_id, garden_beds.covering_structure_id, garden_beds.structure_id
+   - ⚠️ **Eseguire DOPO tutte le altre migrazioni che creano tabelle e foreign key**
 
 ## Istruzioni per Supabase SQL Editor
 
