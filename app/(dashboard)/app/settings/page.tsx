@@ -49,8 +49,11 @@ function NotificationPreferencesSection() {
         .eq('user_id', user.id)
         .single()
 
+      // PGRST116 = "not found" - è normale se l'utente non ha ancora preferenze
+      // Non loggare errori per questo caso
       if (error && error.code !== 'PGRST116') {
-        console.error('Error loading preferences:', error)
+        // Solo loggare errori reali, non "not found"
+        console.warn('Error loading notification preferences:', error.code, error.message)
       }
 
       if (data) {

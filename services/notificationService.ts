@@ -162,10 +162,11 @@ export async function sendNotification(
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !serviceRoleKey) {
-      console.error('Supabase credentials not configured for notifications');
+      // Non loggare come errore - è normale se le notifiche email non sono configurate
+      // Silently fail invece di loggare errori che confondono gli utenti
       return {
         success: false,
-        error: 'Supabase not configured',
+        error: 'Notifications not configured',
       };
     }
 

@@ -18,7 +18,14 @@ export async function GET(
 
     const result = await verifyTier(request, ['FREE', 'PRO']);
     
+    // Se non autenticato, restituisci null invece di errore 401
+    // Questo permette al client di gestire graziosamente utenti non autenticati
     if ('error' in result) {
+      if (result.status === 401) {
+        // Utente non autenticato: restituisci null
+        return NextResponse.json({ configuration: null });
+      }
+      // Altri errori: restituisci errore
       return NextResponse.json({ error: result.error }, { status: result.status });
     }
     
