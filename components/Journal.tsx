@@ -1024,6 +1024,91 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
     return labels[phase || ''] || phase || '—';
   };
 
+  const getTaskTypeLabel = (taskType: string): string => {
+    const labels: Record<string, string> = {
+      'Sowing': 'Semina',
+      'Transplant': 'Trapianto',
+      'Fertilize': 'Concimazione',
+      'Fertilization': 'Concimazione',
+      'Treatment': 'Trattamento',
+      'Prune': 'Potatura',
+      'Pruning': 'Potatura',
+      'Harvest': 'Raccolto',
+      'Irrigation': 'Irrigazione',
+      'PestControl': 'Controllo Parassiti',
+      'Maintenance': 'Manutenzione',
+      'Plowing': 'Aratura',
+      'Subsoiling': 'Sottosuolo',
+      'Harrowing': 'Erpicatura',
+      'Tilling': 'Lavorazione',
+      'Rolling': 'Rullatura',
+      'Hoeing': 'Zappatura',
+      'EarthingUp': 'Rincalzatura',
+      'Mulching': 'Pacciamatura',
+      'Weeding': 'Diserbo',
+      'Clearing': 'Pulizia',
+      'Stumping': 'Estirpazione',
+      'StoneRemoval': 'Rimozione Pietre',
+      'Leveling': 'Livellamento',
+      'DirectSowing': 'Semina Diretta',
+      'Drilling': 'Semina a File',
+      'Broadcasting': 'Semina a Spaglio',
+      'Dibbling': 'Semina a Postarelle',
+      'BasalFertilization': 'Concimazione di Base',
+      'TopDressing': 'Concimazione di Copertura',
+      'FoliarFertilization': 'Concimazione Fogliare',
+      'SprinklerIrrigation': 'Irrigazione a Pioggia',
+      'DripIrrigation': 'Irrigazione a Goccia',
+      'FloodIrrigation': 'Irrigazione per Sommersione',
+      'HandWeeding': 'Diserbo Manuale',
+      'ChemicalWeeding': 'Diserbo Chimico',
+      'MechanicalWeeding': 'Diserbo Meccanico',
+      'Spraying': 'Trattamento Fitosanitario',
+      'FormativePruning': 'Potatura di Formazione',
+      'MaintenancePruning': 'Potatura di Manutenzione',
+      'RejuvenationPruning': 'Potatura di Ringiovanimento',
+      'SummerPruning': 'Potatura Estiva',
+      'WinterPruning': 'Potatura Invernale',
+      'Thinning': 'Diradamento',
+      'Suckering': 'Scacchiatura',
+      'Defoliation': 'Defogliazione',
+      'Tying': 'Legatura',
+      'OliveShredding': 'Frantoio Olive',
+      'RunnerManagement': 'Gestione Stoloni',
+      'StrawberryMulching': 'Pacciamatura Fragole',
+      'StrawberryCleaning': 'Pulizia Fragole',
+      'CaneRemoval': 'Rimozione Canne',
+      'TipPruning': 'Cimatura',
+      'RaspberryTying': 'Legatura Lamponi',
+      'SuckerThinning': 'Diradamento Polloni',
+      'FruitBagging': 'Involucro Frutti',
+      'ExoticThinning': 'Diradamento Esotici',
+      'Shredding': 'Triturazione',
+      'Topping': 'Cimatura',
+      'TreePruning': 'Potatura Alberi',
+      'PostSowingRolling': 'Rullatura Post-Semina',
+      'DeepSubsoiling': 'Sottosuolo Profondo',
+      'Digging': 'Scavo',
+      'DeepHarrowing': 'Erpicatura Profonda',
+      'Crumbling': 'Frantumazione',
+      'Scraping': 'Raschiamento',
+      'SurfaceLeveling': 'Livellamento Superficiale',
+      'MinimumTillage': 'Lavorazione Minima',
+      'StripTillage': 'Lavorazione a Strisce',
+      'NoTill': 'Non Lavorazione'
+    };
+    return labels[taskType] || taskType;
+  };
+
+  const getPriorityLabel = (priority: string): string => {
+    const labels: Record<string, string> = {
+      'High': 'Alta',
+      'Medium': 'Media',
+      'Low': 'Bassa'
+    };
+    return labels[priority] || priority;
+  };
+
   const isPhotoNeeded = (task: GardenTask) => {
     if (task.completed || task.taskType !== 'Sowing') return false;
     const last = task.lastPhotoDate ? new Date(task.lastPhotoDate) : new Date(task.date);
@@ -1296,16 +1381,29 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                             className={isMatch ? 'font-bold' : ''}
                           >
                             {isMatch && '✓ '}
-                            {packet.varietyName} ({packet.speciesName}) - {isExhausted ? 'Esaurito' : `Disponibile: ${packet.quantityRemaining}`}
+                            {packet.varietyName} ({packet.speciesName}) - {
+                              isExhausted 
+                                ? 'Esaurito' 
+                                : packet.currentQuantity !== undefined && packet.currentQuantity !== null
+                                  ? `Disponibili: ${packet.currentQuantity} ${packet.currentQuantity === 1 ? 'seme' : 'semi'}`
+                                  : `Disponibile: ${packet.quantityRemaining === 'High' ? 'Alta' : packet.quantityRemaining === 'Medium' ? 'Media' : packet.quantityRemaining === 'Low' ? 'Bassa' : 'Vuoto'}`
+                            }
                           </option>
                         );
                       })}
                     </select>
-                    {newTask.selectedSeedPacketId && (
-                      <p className="text-xs text-green-600 mt-1">
-                        ✓ Semi selezionati dalla banca. La quantità verrà aggiornata automaticamente dopo il salvataggio.
-                      </p>
-                    )}
+                    {newTask.selectedSeedPacketId && (() => {
+                      const selectedPacket = availableSeeds.find(s => s.id === newTask.selectedSeedPacketId);
+                      return (
+                        <p className="text-xs text-green-600 mt-1">
+                          ✓ Semi selezionati dalla banca.
+                          {selectedPacket && selectedPacket.currentQuantity !== undefined && selectedPacket.currentQuantity !== null && (
+                            <span className="font-semibold"> Disponibili: {selectedPacket.currentQuantity} {selectedPacket.currentQuantity === 1 ? 'seme' : 'semi'}</span>
+                          )}
+                          {' '}La quantità verrà aggiornata automaticamente dopo il salvataggio.
+                        </p>
+                      );
+                    })()}
                     {availableSeeds.length > 0 && matchingSeeds.length === 0 && newTask.plantName && (
                       <p className="text-xs text-blue-600 mt-1">
                         💡 Nessun match trovato per "{newTask.plantName}", ma hai {availableSeeds.length} pacchetto/i di semi disponibile/i.
@@ -1367,18 +1465,27 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                           >
                             {isMatch && '✓ '}
                             {batch.variety || batch.plantName} ({batch.plantName}) - 
-                            Disponibili: {batch.currentQuantity || 0}/{batch.quantity}
+                            Disponibili: {batch.currentQuantity !== undefined && batch.currentQuantity !== null ? batch.currentQuantity : batch.quantity}
+                            {batch.initialQuantity && batch.initialQuantity > 0 && ` / ${batch.initialQuantity}`}
+                            {batch.currentQuantity !== undefined && batch.currentQuantity !== null && ` ${batch.currentQuantity === 1 ? 'piantina' : 'piantine'}`}
                             {batch.source === 'nursery' && batch.nurseryName && ` - ${batch.nurseryName}`}
                             {batch.source === 'home' || !batch.source ? ' - Seminate in casa' : ''}
                           </option>
                         );
                       })}
                     </select>
-                    {newTask.selectedBatchId && (
-                      <p className="text-xs text-green-600 mt-1">
-                        ✓ Piantine selezionate dalle Piantine Pronte. La quantità verrà aggiornata automaticamente dopo il salvataggio.
-                      </p>
-                    )}
+                    {newTask.selectedBatchId && (() => {
+                      const selectedBatch = availableBatches.find(b => b.id === newTask.selectedBatchId);
+                      return (
+                        <p className="text-xs text-green-600 mt-1">
+                          ✓ Piantine selezionate dalle Piantine Pronte.
+                          {selectedBatch && selectedBatch.currentQuantity !== undefined && selectedBatch.currentQuantity !== null && (
+                            <span className="font-semibold"> Disponibili: {selectedBatch.currentQuantity} {selectedBatch.currentQuantity === 1 ? 'piantina' : 'piantine'}</span>
+                          )}
+                          {' '}La quantità verrà aggiornata automaticamente dopo il salvataggio.
+                        </p>
+                      );
+                    })()}
                     {availableBatches.length > 0 && matchingBatches.length === 0 && newTask.plantName && (
                       <p className="text-xs text-blue-600 mt-1">
                         💡 Nessun match trovato per "{newTask.plantName}", ma hai {availableBatches.length} batch di piantine disponibile/i.
@@ -1443,18 +1550,27 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                           >
                             {isMatch && '✓ '}
                             {batch.variety || batch.plantName} ({batch.plantName}) - 
-                            Disponibili: {batch.currentQuantity || 0}/{batch.quantity}
+                            Disponibili: {batch.currentQuantity !== undefined && batch.currentQuantity !== null ? batch.currentQuantity : batch.quantity}
+                            {batch.initialQuantity && batch.initialQuantity > 0 && ` / ${batch.initialQuantity}`}
+                            {batch.currentQuantity !== undefined && batch.currentQuantity !== null && ` ${batch.currentQuantity === 1 ? 'alberello' : 'alberelli'}`}
                             {` - ${typeLabel}`}
                             {batch.location && ` - ${batch.location}`}
                           </option>
                         );
                       })}
                     </select>
-                    {newTask.selectedBatchId && (
-                      <p className="text-xs text-green-600 mt-1">
-                        ✓ Alberello selezionato. La quantità verrà aggiornata automaticamente dopo il salvataggio.
-                      </p>
-                    )}
+                    {newTask.selectedBatchId && (() => {
+                      const selectedSapling = availableSaplings.find(s => s.id === newTask.selectedBatchId);
+                      return (
+                        <p className="text-xs text-green-600 mt-1">
+                          ✓ Alberelli selezionati.
+                          {selectedSapling && selectedSapling.currentQuantity !== undefined && selectedSapling.currentQuantity !== null && (
+                            <span className="font-semibold"> Disponibili: {selectedSapling.currentQuantity} {selectedSapling.currentQuantity === 1 ? 'alberello' : 'alberelli'}</span>
+                          )}
+                          {' '}La quantità verrà aggiornata automaticamente dopo il salvataggio.
+                        </p>
+                      );
+                    })()}
                     {availableSaplings.length > 0 && matchingSaplings.length === 0 && newTask.plantName && (
                       <p className="text-xs text-blue-600 mt-1">
                         💡 Nessun match trovato per "{newTask.plantName}", ma hai {availableSaplings.length} alberello/i disponibile/i.
@@ -1632,7 +1748,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                         ${task.taskType === 'Treatment' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}
                       `}>
                         {getIcon(task.taskType)}
-                        {task.taskType}
+                        {getTaskTypeLabel(task.taskType)}
                       </span>
                     </div>
                     
@@ -1863,7 +1979,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                                     {actionLabels[healthAdvice.actionType]}
                                   </span>
                                   <span className={`text-xs font-bold px-2 py-0.5 rounded ${colors.badge}`}>
-                                    {healthAdvice.priority} Priority
+                                    Priorità {getPriorityLabel(healthAdvice.priority)}
                                   </span>
                                   {healthAdvice.season && (
                                     <span className="text-[10px] text-gray-500 uppercase">
@@ -1957,7 +2073,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                             disabled={checkingBrixId === task.id}
                             className="text-xs bg-yellow-600 text-white px-3 py-1.5 rounded font-bold hover:bg-yellow-700"
                           >
-                            {checkingBrixId === task.id ? <Loader2 size={12} className="animate-spin"/> : 'Check'}
+                            {checkingBrixId === task.id ? <Loader2 size={12} className="animate-spin"/> : 'Verifica'}
                           </button>
                         </div>
                         {task.harvestReadyAnalysis && (

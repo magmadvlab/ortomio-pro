@@ -299,10 +299,47 @@ export async function getUserAPIConfigurations(): Promise<APIConfiguration[]> {
 
 /**
  * Recupera configurazione API attiva per un tipo servizio
+ * Usa API endpoint quando disponibile (client-side), altrimenti Supabase diretto (server-side)
  */
 export async function getActiveAPIConfiguration(
   serviceType: ServiceType
 ): Promise<APIConfiguration | null> {
+  // Se siamo lato client, usa API endpoint specifico per evitare errori 406
+  if (typeof window !== 'undefined') {
+    try {
+      // Usa endpoint specifico per serviceType che restituisce anche api_key
+      const response = await fetch(`/api/api-configurations/${serviceType}`);
+      if (!response.ok) {
+        // Se l'API fallisce, ritorna null (fallback a default)
+        return null;
+      }
+      const { configuration } = await response.json();
+      
+      if (!configuration) {
+        return null;
+      }
+      
+      return {
+        id: configuration.id,
+        user_id: configuration.user_id,
+        service_type: configuration.service_type as ServiceType,
+        provider_name: configuration.provider_name,
+        api_key: configuration.api_key || '', // API key decriptata dall'endpoint
+        config: configuration.config,
+        is_active: configuration.is_active,
+        is_default: configuration.is_default,
+        last_used_at: configuration.last_used_at,
+        last_error: configuration.last_error,
+        usage_count: configuration.usage_count,
+      };
+    } catch (error) {
+      // In caso di errore, ritorna null (fallback a default)
+      console.warn('Errore recupero configurazione API attiva:', error);
+      return null;
+    }
+  }
+
+  // Server-side: usa Supabase diretto
   const supabase = getSupabaseClient();
 
   if (!supabase) {

@@ -6,6 +6,9 @@ import { getPlantTaxonomy, getPlantArchetype } from './plantTaxonomyService';
 import { ArchetypeId } from '../types/archetypes';
 import { normalizeToCanonical } from '../data/plantAliases';
 
+// Cache semplice per getMasterSheetSync per evitare chiamate ripetute durante il rendering
+const masterSheetCache = new Map<string, PlantMasterSheet | null>();
+
 /**
  * Trova la scheda master per una specie (include anche colture specializzate)
  * Arricchita con archetypeId dalla taxonomy se disponibile
@@ -126,26 +129,38 @@ export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null
     .replace(/["']/g, '')
     .trim();
   
-  // Debug: mostra valore dopo pulizia
-  if (normalized !== String(speciesName || '').toLowerCase().trim()) {
-    console.log('[getMasterSheetSync] Pulizia:', JSON.stringify(speciesName), '->', normalized);
+  // Debug: mostra valore dopo pulizia (solo in sviluppo)
+  if (process.env.NODE_ENV === 'development' && normalized !== String(speciesName || '').toLowerCase().trim()) {
+    console.debug('[getMasterSheetSync] Pulizia:', JSON.stringify(speciesName), '->', normalized);
   }
   
   // STEP 1: Normalizza sinonimi PRIMA di cercare
   const canonical = normalizeToCanonical(normalized);
   if (canonical !== normalized) {
-    console.error('[getMasterSheetSync] [NORMALIZE]', normalized, '->', canonical);
+    // Log informativo solo in sviluppo e solo per match esatti (non per varietà)
+    // Evita log durante digitazione autocompletamento
+    if (process.env.NODE_ENV === 'development' && normalized.split(/\s+/).length === 1) {
+      console.debug('[getMasterSheetSync] [NORMALIZE]', normalized, '->', canonical);
+    }
     normalized = canonical;
+  }
+  
+  // Verifica cache prima di cercare
+  if (masterSheetCache.has(normalized)) {
+    return masterSheetCache.get(normalized) || null;
   }
   
   // DEBUG: Verifica che plantMasterSheets sia caricato (sempre visibile)
   if (!plantMasterSheets || plantMasterSheets.length === 0) {
     console.error('[getMasterSheetSync] ❌ plantMasterSheets è vuoto o non caricato!');
+    masterSheetCache.set(normalized, null);
     return null;
   }
   
-  // Log per debug - mostra il valore normalizzato (senza JSON.stringify per evitare virgolette aggiuntive)
-  console.log('[getMasterSheetSync] Searching for:', normalized, '| Total sheets:', plantMasterSheets.length);
+  // Log per debug solo in sviluppo e solo per prime chiamate (non dalla cache)
+  if (process.env.NODE_ENV === 'development') {
+    console.debug('[getMasterSheetSync] Searching for:', normalized);
+  }
   
   // Cerca prima nelle piante base
   const baseMatch = plantMasterSheets.find(sheet => 
@@ -157,7 +172,10 @@ export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null
   );
   
   if (baseMatch) {
-    console.log('[getMasterSheetSync] ✅ Found in base sheets:', baseMatch.commonName);
+    masterSheetCache.set(normalized, baseMatch);
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('[getMasterSheetSync] ✅ Found:', baseMatch.commonName);
+    }
     return baseMatch;
   }
   
@@ -172,11 +190,18 @@ export const getMasterSheetSync = (speciesName: string): PlantMasterSheet | null
   );
   
   if (specializedMatch) {
-    console.log('[getMasterSheetSync] ✅ Found in specialized sheets:', specializedMatch.commonName);
+    masterSheetCache.set(normalized, specializedMatch);
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('[getMasterSheetSync] ✅ Found specialized:', specializedMatch.commonName);
+    }
     return specializedMatch;
   }
   
-  console.warn('[getMasterSheetSync] ❌ Not found for:', JSON.stringify(normalized));
+  // Salva null nella cache per evitare ricerche ripetute
+  masterSheetCache.set(normalized, null);
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[getMasterSheetSync] ❌ Not found for:', normalized);
+  }
   return null;
 };
 
