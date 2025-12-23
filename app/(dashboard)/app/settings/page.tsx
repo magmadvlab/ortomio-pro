@@ -47,7 +47,7 @@ function NotificationPreferencesSection() {
         .from('notification_preferences')
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
       // PGRST116 = "not found" - è normale se l'utente non ha ancora preferenze
       // Non loggare errori per questo caso
