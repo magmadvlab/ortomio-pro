@@ -861,6 +861,13 @@ export interface PlantMasterSheet {
     coveringRemoveWhen?: string; // Istruzioni precise quando togliere (es. "appena emergono i cotiledoni")
     soilMoistureCheck?: string; // Come verificare umidità terreno (es. "tocca con dito - deve essere umido ma non bagnato")
     ventilationNeeded?: boolean; // Se serve ventilazione durante germinazione
+    alternativeMethod?: { // Metodo alternativo di germinazione (es. scottex)
+      name: string;
+      description: string;
+      instructions: string[];
+      advantages?: string[];
+    };
+    moldPrevention?: string; // Istruzioni per prevenire muffa sui semi
   };
   
   // FASE 2: Gestione Piantina (Nursing)
@@ -892,6 +899,16 @@ export interface PlantMasterSheet {
       dilution?: string; // Diluizione (es. "1/4 della dose consigliata")
     };
     warning?: string; // "Altrimenti la pianta fila"
+    wateringTiming?: string; // Quando innaffiare (es. "fine giornata per evitare effetto lente")
+    soilCare?: string; // Cura del terreno (es. "smuovi con forchetta quando secco")
+    commonIssues?: { // Problemi comuni durante la crescita
+      trappedCotyledons?: {
+        problem: string;
+        solution: string;
+        prevention?: string;
+      };
+      [key: string]: any; // Permette altri problemi comuni
+    };
   };
   
   // FASE 2.5: Rinvaso Intermedio (opzionale, tra Nursing e Hardening)
@@ -982,6 +999,14 @@ export interface PlantMasterSheet {
     introduction: string; // 2-3 frasi
     commonMistakes: string[]; // 4 errori comuni
     harvestGuide: string; // 3-4 frasi
+    growthNotes?: string[]; // Note sulla crescita (es. forma a Y, potatura)
+    seedExtraction?: { // Istruzioni per estrazione e conservazione semi
+      instructions: string[];
+      drying?: {
+        method: string;
+        steps: string[];
+      };
+    };
   };
   
   // Note comparative e specifiche per famiglia botanica

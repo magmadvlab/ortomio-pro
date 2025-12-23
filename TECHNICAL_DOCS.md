@@ -764,10 +764,40 @@ interface PlantMasterSheet {
   scientificName: string;
   family: string;
   nutrientCategory: 'LEAFY' | 'FRUITING' | 'ROOT' | 'LEGUME' | 'GENERIC';
-  germination: { /* ... */ };
-  seedling: { /* ... */ };
+  germination: {
+    // ... campi standard
+    alternativeMethod?: { // Metodo alternativo (es. Scottex per Solanacee)
+      name: string;
+      description: string;
+      instructions: string[];
+      advantages?: string[];
+    };
+    moldPrevention?: string; // Istruzioni prevenzione muffa
+  };
+  seedlingCare: {
+    // ... campi standard
+    wateringTiming?: string; // Quando innaffiare (es. "fine giornata per evitare effetto lente")
+    soilCare?: string; // Cura terreno (es. "smuovi con forchetta quando secco")
+    commonIssues?: {
+      trappedCotyledons?: { // Cotiledoni imprigionati
+        problem: string;
+        solution: string;
+        prevention?: string;
+      };
+    };
+  };
   transplanting: { /* ... */ };
-  baseInstructions: { /* ... */ };
+  baseInstructions: {
+    // ... campi standard
+    growthNotes?: string[]; // Note crescita (es. forma a Y, potatura)
+    seedExtraction?: { // Estrazione semi
+      instructions: string[];
+      drying?: {
+        method: string;
+        steps: string[];
+      };
+    };
+  };
   susceptibility: { /* ... */ };
   irrigationDetails?: IrrigationDetails;
   
@@ -792,6 +822,8 @@ interface PlantMasterSheet {
   // ... altri campi
 }
 ```
+
+**Note**: I nuovi campi opzionali (`alternativeMethod`, `moldPrevention`, `wateringTiming`, `soilCare`, `commonIssues`, `growthNotes`, `seedExtraction`) sono stati aggiunti per supportare guide di coltivazione dettagliate replicate tra famiglie botaniche simili (es. Solanacee). Vedi [Replicabilità Informazioni Piante](docs/REPLICABILITA_INFORMAZIONI_PIANTE.md) per dettagli.
 
 ### ExoticFruitCrop (extends PlantMasterSheet)
 ```typescript
@@ -1228,6 +1260,27 @@ Il flusso completo:
   id: 'nuova-pianta',
   commonName: 'NOME',
   scientificName: 'Nome scientifico',
+  // ... campi obbligatori
+  
+  // Campi opzionali per guide dettagliate (vedi REPLICABILITA_INFORMAZIONI_PIANTE.md):
+  germination: {
+    // ... campi standard
+    alternativeMethod?: { /* Metodo alternativo (es. Scottex) */ },
+    moldPrevention?: string, // Istruzioni prevenzione muffa
+  },
+  seedlingCare: {
+    // ... campi standard
+    wateringTiming?: string, // Quando innaffiare (es. "fine giornata")
+    soilCare?: string, // Cura terreno (es. "smuovi con forchetta")
+    commonIssues?: {
+      trappedCotyledons?: { /* Problema cotiledoni imprigionati */ },
+    },
+  },
+  baseInstructions: {
+    // ... campi standard
+    growthNotes?: string[], // Note crescita
+    seedExtraction?: { /* Estrazione semi */ },
+  },
   family: 'Famiglia',
   nutrientCategory: 'LEAFY' | 'FRUITING' | 'ROOT' | 'LEGUME',
   // ... altri campi

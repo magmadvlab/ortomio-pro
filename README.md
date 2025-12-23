@@ -166,6 +166,7 @@ Vedi [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) per dettagli completi.
 - **[Guida Deployment](docs/DEPLOYMENT.md)** - Setup Supabase e deploy
 - **[Deploy Vercel](docs/VERCEL_DEPLOYMENT.md)** - Guida dettagliata Vercel
 - **[Guida Migrazione](docs/MIGRATION_GUIDE.md)** - Migrazione dati Free → Pro
+- **[Replicabilità Informazioni Piante](docs/REPLICABILITA_INFORMAZIONI_PIANTE.md)** - Guide coltivazione replicate tra famiglie botaniche
 
 ## 🛠️ Scripts Disponibili
 

@@ -97,8 +97,28 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       coveringType: 'PlasticWrap',
       coveringInstructions: 'Togli la pellicola non appena vedi il primo archietto verde',
       coveringRemoveWhen: 'Togli IMMEDIATAMENTE la pellicola appena vedi il primo cotiledone verde emergere',
-      soilMoistureCheck: 'Tocca con il dito - deve essere umido ma non bagnato',
-      ventilationNeeded: false
+      soilMoistureCheck: 'Tocca con il dito - deve essere umido ma non bagnato. Se esce acqua quando premi, è troppo bagnato',
+      ventilationNeeded: false,
+      // Metodo alternativo: scottex (consigliato per principianti)
+      alternativeMethod: {
+        name: 'Metodo Scottex',
+        description: 'Germinazione su scottex in bicchieri di plastica - metodo più sicuro per principianti',
+        instructions: [
+          'Prepara bicchieri di plastica grandi da tavola con scottex umido sul fondo',
+          'Metti i semi sullo scottex e copri con altro scottex umido per mantenere umidità',
+          'L\'acqua evapora lentamente evitando che i semi rimangano a mollo',
+          'Il secondo giorno pulisci i semi delicatamente rimuovendo eventuali residui (le impurità a bagno si ammorbidiscono)',
+          'Non lasciare i semi all\'aria - coprili sempre con scottex per mantenere umidità',
+          'Quando vedi la radichetta (2-3mm), trapianta immediatamente in terriccio'
+        ],
+        advantages: [
+          'Riduce rischio di muffa sui semi',
+          'Controllo visivo diretto della germinazione',
+          'Evita problemi di eccessiva umidità nel terriccio'
+        ]
+      },
+      // Gestione muffa
+      moldPrevention: 'Se compaiono muffe sui semi, puliscili delicatamente il secondo giorno (le impurità a bagno si ammorbidiscono). Acquista sempre più semi del necessario per compensare eventuali perdite.'
     },
     
     seedlingCare: {
@@ -114,10 +134,12 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       },
       temperature: '18-22°C',
       temperatureRange: { min: 18, max: 22 },
-      watering: 'Solo quando il terriccio è quasi asciutto',
+      watering: 'Solo quando il terriccio è quasi asciutto. Innaffia a fine giornata quando i raggi del sole si indeboliscono per evitare l\'effetto lente prodotto dall\'acqua sopra le foglie che le brucia',
       wateringMethod: 'Bottom',
       bottomWateringDepth: 2,
       bottomWateringDuration: 20,
+      wateringTiming: 'Fine giornata (quando i raggi del sole si indeboliscono) per evitare effetto lente che brucia le foglie',
+      soilCare: 'Se la temperatura è molto alta e il terriccio tende a seccarsi, smuovilo ogni tanto con una forchetta prima di annaffiare',
       ventilation: {
         needed: true,
         method: 'ventilatore leggero o finestra leggermente aperta',
@@ -128,7 +150,15 @@ export const plantMasterSheets: PlantMasterSheet[] = [
         type: 'concime liquido bilanciato (NPK 20-20-20)',
         dilution: '1/4 della dose consigliata'
       },
-      warning: 'Altrimenti la pianta fila (diventa alta e sottile)'
+      warning: 'Altrimenti la pianta fila (diventa alta e sottile)',
+      // Problema comune: cotiledoni imprigionati
+      commonIssues: {
+        trappedCotyledons: {
+          problem: 'Cotiledoni imprigionati nel tegumento del seme',
+          solution: 'Aiuta delicatamente i cotiledoni a liberarsi bagnando il tegumento con acqua tiepida e rimuovendolo con delicatezza usando pinzette o dita',
+          prevention: 'Mantieni umidità costante durante la germinazione'
+        }
+      }
     },
     
     intermediateRepotting: {
@@ -206,8 +236,14 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       commonMistakes: [
         'Evita di innaffiare troppo perché le radici marciscono. Invece, innaffia solo quando il terreno è asciutto a 2cm di profondità.',
         'Evita di piantare troppo presto all\'aperto perché il freddo uccide le piantine. Invece, aspetta che le temperature notturne siano sopra i 12°C.',
+        'Evita di innaffiare durante le ore calde - l\'acqua sulle foglie crea un effetto lente che le brucia. Innaffia a fine giornata.',
         'Evita di bagnare le foglie durante l\'irrigazione perché favorisce l\'oidio. Invece, innaffia sempre alla base della pianta.',
         'Evita di non legare il fusto perché la pianta si piega e si spezza. Invece, installa un tutore fin dall\'inizio.'
+      ],
+      growthNotes: [
+        'Per varietà determinate: la pianta assumerà una forma a cespuglio. Puoi eliminare i rametti secchi alla base, ma lascia sempre un cm del ramo.',
+        'Per varietà indeterminate: cresce continuamente in altezza. Rimuovi i getti ascellari (femminelle) ogni 7-10 giorni per concentrare l\'energia sui frutti principali.',
+        'Se il terriccio si compatta troppo, smuovilo delicatamente con una forchetta prima di annaffiare per migliorare l\'aerazione.'
       ],
       harvestGuide: 'Raccogli quando i pomodori hanno raggiunto il colore caratteristico della varietà (rosso intenso per i rossi, giallo per i gialli) e risultano leggermente morbidi al tatto ma ancora sodi. Taglia il picciolo con una forbice affilata, lasciando 1cm di stelo attaccato al frutto. Il momento migliore è la mattina presto quando i frutti sono più freschi. Conserva a temperatura ambiente (non in frigorifero) per mantenere il sapore, e consuma entro 3-5 giorni.'
     },
@@ -307,7 +343,27 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       coveringInstructions: 'Togli la pellicola quando compaiono i primi germogli',
       coveringRemoveWhen: 'Togli IMMEDIATAMENTE la pellicola appena vedi il primo cotiledone verde emergere',
       soilMoistureCheck: 'Tocca con il dito - deve essere umido ma non bagnato. Se esce acqua quando premi, è troppo bagnato',
-      ventilationNeeded: false
+      ventilationNeeded: false,
+      // Metodo alternativo: scottex (consigliato per principianti)
+      alternativeMethod: {
+        name: 'Metodo Scottex',
+        description: 'Germinazione su scottex in bicchieri di plastica - metodo più sicuro per principianti',
+        instructions: [
+          'Prepara bicchieri di plastica grandi da tavola con scottex umido sul fondo',
+          'Metti i semi sullo scottex e copri con altro scottex umido per mantenere umidità',
+          'L\'acqua evapora lentamente evitando che i semi rimangano a mollo',
+          'Il secondo giorno pulisci i semi delicatamente rimuovendo eventuali residui di peperoncino (le impurità a bagno si ammorbidiscono)',
+          'Non lasciare i semi all\'aria - coprili sempre con scottex per mantenere umidità',
+          'Quando vedi la radichetta (2-3mm), trapianta immediatamente in terriccio'
+        ],
+        advantages: [
+          'Riduce rischio di muffa sui semi',
+          'Controllo visivo diretto della germinazione',
+          'Evita problemi di eccessiva umidità nel terriccio'
+        ]
+      },
+      // Gestione muffa
+      moldPrevention: 'Se compaiono muffe sui semi, puliscili delicatamente il secondo giorno (le impurità a bagno si ammorbidiscono). Acquista sempre più semi del necessario per compensare eventuali perdite.'
     },
     
     seedlingCare: {
@@ -323,10 +379,12 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       },
       temperature: '20-25°C',
       temperatureRange: { min: 20, max: 25 },
-      watering: 'Solo quando il terriccio è quasi asciutto',
+      watering: 'Solo quando il terriccio è quasi asciutto. Innaffia a fine giornata quando i raggi del sole si indeboliscono per evitare l\'effetto lente prodotto dall\'acqua sopra le foglie che le brucia',
       wateringMethod: 'Bottom',
       bottomWateringDepth: 2,
       bottomWateringDuration: 20,
+      wateringTiming: 'Fine giornata (quando i raggi del sole si indeboliscono) per evitare effetto lente che brucia le foglie',
+      soilCare: 'Se la temperatura è molto alta e il terriccio tende a seccarsi, smuovilo ogni tanto con una forchetta prima di annaffiare',
       ventilation: {
         needed: true,
         method: 'ventilatore leggero o finestra leggermente aperta',
@@ -337,7 +395,15 @@ export const plantMasterSheets: PlantMasterSheet[] = [
         type: 'concime liquido bilanciato (NPK 20-20-20)',
         dilution: '1/4 della dose consigliata'
       },
-      warning: 'Mantieni temperatura costante - i peperoncini sono sensibili agli sbalzi'
+      warning: 'Mantieni temperatura costante - i peperoncini sono sensibili agli sbalzi',
+      // Problema comune: cotiledoni imprigionati
+      commonIssues: {
+        trappedCotyledons: {
+          problem: 'Cotiledoni imprigionati nel tegumento del seme',
+          solution: 'Aiuta delicatamente i cotiledoni a liberarsi bagnando il tegumento con acqua tiepida e rimuovendolo con delicatezza usando pinzette o dita',
+          prevention: 'Mantieni umidità costante durante la germinazione'
+        }
+      }
     },
     
     intermediateRepotting: {
@@ -413,10 +479,33 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       commonMistakes: [
         'Evita di piantare troppo presto - i peperoncini amano il caldo e non tollerano il freddo sotto i 15°C.',
         'Evita di innaffiare troppo - preferiscono terreno leggermente asciutto tra un\'irrigazione e l\'altra.',
+        'Evita di innaffiare durante le ore calde - l\'acqua sulle foglie crea un effetto lente che le brucia. Innaffia a fine giornata.',
         'Evita di concimare troppo con azoto - favorisce foglie a discapito dei frutti. Usa concimi ricchi di potassio.',
         'Evita di raccogliere troppo presto - lascia maturare i frutti per il massimo sapore e piccantezza.'
       ],
-      harvestGuide: 'Raccogli i peperoncini quando hanno raggiunto il colore caratteristico della varietà (verde, giallo, arancione, rosso). Taglia il picciolo con una forbice, lasciando un pezzetto di stelo. I frutti maturi sono più piccanti. Conserva in un luogo fresco e asciutto, oppure essicca per conservarli a lungo.'
+      growthNotes: [
+        'Crescendo, la piantina assumerà una forma a Y',
+        'Puoi eliminare i rametti superflui che crescono alla base della piantina, o levare solo quelli secchi, ma lascia sempre un cm del ramo',
+        'La pianta crescerà molto velocemente - legala a un tutore quando raggiunge 30-40cm di altezza'
+      ],
+      harvestGuide: 'Raccogli i peperoncini quando hanno raggiunto il colore caratteristico della varietà (verde, giallo, arancione, rosso). Taglia il picciolo con una forbice, lasciando un pezzetto di stelo. I frutti maturi sono più piccanti. Conserva in un luogo fresco e asciutto, oppure essicca per conservarli a lungo.',
+      seedExtraction: {
+        instructions: [
+          'IMPORTANTE: Usa sempre guanti in lattice quando maneggi peperoncini piccanti',
+          'Apri il peperoncino con un coltello (con guanti)',
+          'Estrai i semi delicatamente',
+          'Lascia essiccare i semi in luogo buio e asciutto',
+          'Conserva i semi in contenitori sigillati in luogo fresco e buio'
+        ],
+        drying: {
+          method: 'Essiccazione peperoncini interi',
+          steps: [
+            'Metti i peperoncini in forno a 70°C per 40 minuti per far evaporare l\'umidità',
+            'Dopo i 40 minuti, esponili al sole per qualche giorno',
+            'Quando sono completamente secchi, conservali in contenitori sigillati'
+          ]
+        }
+      }
     },
     
     familySpecificNotes: {
@@ -656,8 +745,29 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       coveringType: 'PlasticWrap',
       coveringInstructions: 'Togli la pellicola quando compaiono i primi germogli',
       coveringRemoveWhen: 'Togli IMMEDIATAMENTE la pellicola appena vedi il primo cotiledone verde emergere',
-      soilMoistureCheck: 'Tocca con il dito - deve essere umido ma non bagnato',
-      ventilationNeeded: false
+      soilMoistureCheck: 'Tocca con il dito - deve essere umido ma non bagnato. Se esce acqua quando premi, è troppo bagnato',
+      ventilationNeeded: false,
+      // Metodo alternativo: scottex (consigliato per principianti)
+      alternativeMethod: {
+        name: 'Metodo Scottex',
+        description: 'Germinazione su scottex in bicchieri di plastica - metodo più sicuro per principianti',
+        instructions: [
+          'Prepara bicchieri di plastica grandi da tavola con scottex umido sul fondo',
+          'Metti i semi sullo scottex e copri con altro scottex umido per mantenere umidità',
+          'L\'acqua evapora lentamente evitando che i semi rimangano a mollo',
+          'Il secondo giorno pulisci i semi delicatamente rimuovendo eventuali residui (le impurità a bagno si ammorbidiscono)',
+          'Non lasciare i semi all\'aria - coprili sempre con scottex per mantenere umidità',
+          'Quando vedi la radichetta (2-3mm), trapianta immediatamente in terriccio'
+        ],
+        advantages: [
+          'Riduce rischio di muffa sui semi',
+          'Controllo visivo diretto della germinazione',
+          'Evita problemi di eccessiva umidità nel terriccio',
+          'Particolarmente utile per melanzane che richiedono alta temperatura'
+        ]
+      },
+      // Gestione muffa
+      moldPrevention: 'Se compaiono muffe sui semi, puliscili delicatamente il secondo giorno (le impurità a bagno si ammorbidiscono). Acquista sempre più semi del necessario per compensare eventuali perdite.'
     },
     
     seedlingCare: {
@@ -673,10 +783,12 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       },
       temperature: '20-25°C',
       temperatureRange: { min: 20, max: 25 },
-      watering: 'Solo quando il terriccio è quasi asciutto',
+      watering: 'Solo quando il terriccio è quasi asciutto. Innaffia a fine giornata quando i raggi del sole si indeboliscono per evitare l\'effetto lente prodotto dall\'acqua sopra le foglie che le brucia',
       wateringMethod: 'Bottom',
       bottomWateringDepth: 2,
       bottomWateringDuration: 20,
+      wateringTiming: 'Fine giornata (quando i raggi del sole si indeboliscono) per evitare effetto lente che brucia le foglie',
+      soilCare: 'Se la temperatura è molto alta e il terriccio tende a seccarsi, smuovilo ogni tanto con una forchetta prima di annaffiare',
       ventilation: {
         needed: true,
         method: 'ventilatore leggero o finestra leggermente aperta',
@@ -687,7 +799,15 @@ export const plantMasterSheets: PlantMasterSheet[] = [
         type: 'concime liquido bilanciato (NPK 20-20-20)',
         dilution: '1/4 della dose consigliata'
       },
-      warning: 'Le melanzane amano il caldo - mantieni temperatura costante'
+      warning: 'Le melanzane amano il caldo - mantieni temperatura costante',
+      // Problema comune: cotiledoni imprigionati
+      commonIssues: {
+        trappedCotyledons: {
+          problem: 'Cotiledoni imprigionati nel tegumento del seme',
+          solution: 'Aiuta delicatamente i cotiledoni a liberarsi bagnando il tegumento con acqua tiepida e rimuovendolo con delicatezza usando pinzette o dita',
+          prevention: 'Mantieni umidità costante durante la germinazione'
+        }
+      }
     },
     
     intermediateRepotting: {
@@ -755,8 +875,13 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       commonMistakes: [
         'Evita di piantare troppo presto - le melanzane sono molto sensibili al freddo.',
         'Evita di innaffiare troppo - preferiscono terreno leggermente asciutto.',
+        'Evita di innaffiare durante le ore calde - l\'acqua sulle foglie crea un effetto lente che le brucia. Innaffia a fine giornata.',
         'Evita di non supportare la pianta - alcuni frutti possono essere pesanti.',
         'Evita di raccogliere troppo tardi - i frutti maturi diventano amari e con molti semi.'
+      ],
+      growthNotes: [
+        'Se il terriccio si compatta troppo, smuovilo delicatamente con una forchetta prima di annaffiare per migliorare l\'aerazione.',
+        'Le foglie grandi possono ombreggiare le piante vicine - trapianta prima se necessario.'
       ],
       harvestGuide: 'Raccogli le melanzane quando la buccia è lucida e il frutto cede leggermente alla pressione ma è ancora sodo. Taglia il picciolo con un coltello affilato. Raccogli regolarmente per stimolare la produzione. I frutti troppo maturi hanno molti semi e sapore amaro.'
     },
@@ -2595,19 +2720,79 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       sowingDepth: 0.5,
       idealTemp: '20-25°C',
       minTemp: 18,
+      optimalTemp: 22,
+      optimalTempRange: { min: 20, max: 25 },
+      maxTemp: 28,
+      heatingMatTemp: 22, // Opzionale ma consigliato
+      humidityLevel: 'High',
       lightRequirement: 'Dark',
       emergenceDays: parseDaysRange('10-21 giorni'),
       coveringNeeded: true,
-      coveringInstructions: 'Togli la pellicola quando compaiono i primi germogli'
+      coveringType: 'PlasticWrap',
+      coveringInstructions: 'Togli la pellicola quando compaiono i primi germogli',
+      coveringRemoveWhen: 'Togli IMMEDIATAMENTE la pellicola appena vedi il primo cotiledone verde emergere',
+      soilMoistureCheck: 'Tocca con il dito - deve essere umido ma non bagnato. Se esce acqua quando premi, è troppo bagnato',
+      ventilationNeeded: false,
+      // Metodo alternativo: scottex (consigliato per principianti)
+      alternativeMethod: {
+        name: 'Metodo Scottex',
+        description: 'Germinazione su scottex in bicchieri di plastica - metodo più sicuro per principianti',
+        instructions: [
+          'Prepara bicchieri di plastica grandi da tavola con scottex umido sul fondo',
+          'Metti i semi sullo scottex e copri con altro scottex umido per mantenere umidità',
+          'L\'acqua evapora lentamente evitando che i semi rimangano a mollo',
+          'Il secondo giorno pulisci i semi delicatamente rimuovendo eventuali residui (le impurità a bagno si ammorbidiscono)',
+          'Non lasciare i semi all\'aria - coprili sempre con scottex per mantenere umidità',
+          'Quando vedi la radichetta (2-3mm), trapianta immediatamente in terriccio'
+        ],
+        advantages: [
+          'Riduce rischio di muffa sui semi',
+          'Controllo visivo diretto della germinazione',
+          'Evita problemi di eccessiva umidità nel terriccio'
+        ]
+      },
+      // Gestione muffa
+      moldPrevention: 'Se compaiono muffe sui semi, puliscili delicatamente il secondo giorno (le impurità a bagno si ammorbidiscono). Acquista sempre più semi del necessario per compensare eventuali perdite.'
     },
     
     seedlingCare: {
       transplantWhen: 'alla seconda coppia di foglie vere',
       lightNeeds: 'Tanta luce diretta o lampade LED',
       lightHours: 14,
-      watering: 'Solo quando il terriccio è quasi asciutto',
+      lightDetails: {
+        type: 'LED',
+        distance: 15,
+        hours: 14,
+        intensity: 'High',
+        spectrum: 'Full'
+      },
+      temperature: '20-25°C',
+      temperatureRange: { min: 20, max: 25 },
+      watering: 'Solo quando il terriccio è quasi asciutto. Innaffia a fine giornata quando i raggi del sole si indeboliscono per evitare l\'effetto lente prodotto dall\'acqua sopra le foglie che le brucia',
+      wateringMethod: 'Bottom',
+      bottomWateringDepth: 2,
+      bottomWateringDuration: 20,
+      wateringTiming: 'Fine giornata (quando i raggi del sole si indeboliscono) per evitare effetto lente che brucia le foglie',
+      soilCare: 'Se la temperatura è molto alta e il terriccio tende a seccarsi, smuovilo ogni tanto con una forchetta prima di annaffiare',
+      ventilation: {
+        needed: true,
+        method: 'ventilatore leggero o finestra leggermente aperta',
+        duration: '2-3 ore al giorno'
+      },
+      firstFertilization: {
+        when: 'alla seconda coppia di foglie vere',
+        type: 'concime liquido bilanciato (NPK 20-20-20)',
+        dilution: '1/4 della dose consigliata'
+      },
       warning: 'I peperoni amano il caldo - mantieni temperatura costante',
-      temperature: '20-25°C'
+      // Problema comune: cotiledoni imprigionati
+      commonIssues: {
+        trappedCotyledons: {
+          problem: 'Cotiledoni imprigionati nel tegumento del seme',
+          solution: 'Aiuta delicatamente i cotiledoni a liberarsi bagnando il tegumento con acqua tiepida e rimuovendolo con delicatezza usando pinzette o dita',
+          prevention: 'Mantieni umidità costante durante la germinazione'
+        }
+      }
     },
     
     transplanting: {
@@ -2637,8 +2822,14 @@ export const plantMasterSheets: PlantMasterSheet[] = [
       commonMistakes: [
         'Evita di piantare troppo presto - i peperoni sono sensibili al freddo.',
         'Evita di innaffiare troppo - preferiscono terreno leggermente asciutto tra un\'irrigazione e l\'altra.',
+        'Evita di innaffiare durante le ore calde - l\'acqua sulle foglie crea un effetto lente che le brucia. Innaffia a fine giornata.',
         'Evita di concimare troppo con azoto - favorisce foglie a discapito dei frutti.',
         'Evita di raccogliere troppo presto - lascia maturare i frutti per il massimo sapore.'
+      ],
+      growthNotes: [
+        'Crescendo, la piantina assumerà una forma a Y',
+        'Puoi eliminare i rametti superflui che crescono alla base della piantina, o levare solo quelli secchi, ma lascia sempre un cm del ramo',
+        'La pianta crescerà molto velocemente - legala a un tutore quando raggiunge 30-40cm di altezza'
       ],
       harvestGuide: 'Raccogli i peperoni quando hanno raggiunto la dimensione e il colore desiderati. I peperoni verdi possono essere raccolti prima, mentre quelli colorati (gialli, rossi, arancioni) sono più dolci. Taglia il picciolo con un coltello affilato, lasciando un pezzetto di stelo.'
     },
