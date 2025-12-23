@@ -693,6 +693,25 @@ export class SupabaseStorageProvider implements IStorageProvider {
       archetypeId: db.archetype_id,
       rootZoneDepthCm: db.root_zone_depth_cm,
       irrigationSetup: db.irrigation_setup,
+      // Tracking origine pianta
+      seedPacketId: db.seed_packet_id,
+      seedlingBatchId: db.seedling_batch_id,
+      saplingBatchId: db.sapling_batch_id,
+      bedId: db.bed_id,
+      // Precision Agriculture
+      zoneId: db.zone_id,
+      // Tracking suggerimenti
+      suggestedDate: db.suggested_date,
+      actualCompletedDate: db.actual_completed_date,
+      isSuggested: db.is_suggested,
+      suggestedBy: db.suggested_by,
+      // Specialized Crop Data (mancanti)
+      exoticFruitData: db.exotic_fruit_data,
+      mechanicalWorkData: db.mechanical_work_data,
+      treePruningData: db.tree_pruning_data,
+      hydroponicData: db.hydroponic_data,
+      aquaponicData: db.aquaponic_data,
+      aeroponicData: db.aeroponic_data,
     };
   }
 
@@ -734,6 +753,25 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (task.archetypeId !== undefined) db.archetype_id = task.archetypeId;
     if (task.rootZoneDepthCm !== undefined) db.root_zone_depth_cm = task.rootZoneDepthCm;
     if (task.irrigationSetup !== undefined) db.irrigation_setup = task.irrigationSetup;
+    // Tracking origine pianta
+    if (task.seedPacketId !== undefined) db.seed_packet_id = task.seedPacketId;
+    if (task.seedlingBatchId !== undefined) db.seedling_batch_id = task.seedlingBatchId;
+    if (task.saplingBatchId !== undefined) db.sapling_batch_id = task.saplingBatchId;
+    if (task.bedId !== undefined) db.bed_id = task.bedId;
+    // Precision Agriculture
+    if (task.zoneId !== undefined) db.zone_id = task.zoneId;
+    // Tracking suggerimenti
+    if (task.suggestedDate !== undefined) db.suggested_date = task.suggestedDate;
+    if (task.actualCompletedDate !== undefined) db.actual_completed_date = task.actualCompletedDate;
+    if (task.isSuggested !== undefined) db.is_suggested = task.isSuggested;
+    if (task.suggestedBy !== undefined) db.suggested_by = task.suggestedBy;
+    // Specialized Crop Data
+    if (task.exoticFruitData !== undefined) db.exotic_fruit_data = task.exoticFruitData;
+    if (task.mechanicalWorkData !== undefined) db.mechanical_work_data = task.mechanicalWorkData;
+    if (task.treePruningData !== undefined) db.tree_pruning_data = task.treePruningData;
+    if (task.hydroponicData !== undefined) db.hydroponic_data = task.hydroponicData;
+    if (task.aquaponicData !== undefined) db.aquaponic_data = task.aquaponicData;
+    if (task.aeroponicData !== undefined) db.aeroponic_data = task.aeroponicData;
     return db;
   }
 
