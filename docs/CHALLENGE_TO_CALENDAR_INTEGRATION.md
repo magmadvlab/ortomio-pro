@@ -132,11 +132,12 @@ Il trigger SQL `notify_calendar_task_created()` invia automaticamente:
 ### Notifiche Reminder
 
 I task creati da challenge ricevono anche le notifiche standard:
-- **Task in scadenza oggi o domani**: Invio automatico dal cron job `task-reminders`
-  - **Schedule**: Ogni giorno alle 7:00 AM (configurato in `vercel.json`)
-  - **Endpoint**: `/api/cron/task-reminders`
+- **Task in scadenza oggi o domani**: Invio automatico dal cron job `daily-challenge` (combinato)
+  - **Schedule**: Ogni giorno alle 8:00 AM (configurato in `vercel.json`)
+  - **Endpoint**: `/api/cron/daily-challenge` (esegue sia challenge che task reminders)
   - **Funzionalità**: Cerca task non completati con `date` uguale a oggi o domani e invia email di promemoria
   - **Rispetta preferenze utente**: Le notifiche vengono inviate solo se l'utente ha abilitato `task_reminders` nelle preferenze
+  - **Nota**: Combinato con daily-challenge per rispettare il limite di 2 cron jobs su Vercel
 
 ## Mappatura Tipi Task
 
