@@ -58,6 +58,8 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
       expiryYear: newPacket.expiryYear || new Date().getFullYear() + 2,
       isOpen: newPacket.isOpen || false,
       quantityRemaining: newPacket.quantityRemaining || 'High',
+      initialQuantity: newPacket.initialQuantity,
+      currentQuantity: newPacket.currentQuantity !== undefined ? newPacket.currentQuantity : newPacket.initialQuantity,
       notes: newPacket.notes,
       gardenId: garden.id
     };
@@ -72,6 +74,8 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
       expiryYear: new Date().getFullYear() + 2,
       isOpen: false,
       quantityRemaining: 'High',
+      initialQuantity: undefined,
+      currentQuantity: undefined,
       gardenId: garden.id
     });
   };
@@ -283,30 +287,65 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Quantità</label>
-                <select
-                  value={newPacket.quantityRemaining}
-                  onChange={(e) => setNewPacket({ ...newPacket, quantityRemaining: e.target.value as SeedPacket['quantityRemaining'] })}
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
-                >
-                  <option value="High">Alta</option>
-                  <option value="Medium">Media</option>
-                  <option value="Low">Bassa</option>
-                  <option value="Empty">Vuoto</option>
-                </select>
-              </div>
-              <div className="flex items-end">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={newPacket.isOpen}
-                    onChange={(e) => setNewPacket({ ...newPacket, isOpen: e.target.checked })}
-                    className="w-5 h-5"
-                  />
-                  <span className="text-sm text-gray-700">Busta aperta</span>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                  Quantità Iniziale (opzionale)
                 </label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Es. 100"
+                  value={newPacket.initialQuantity || ''}
+                  onChange={(e) => {
+                    const qty = e.target.value ? parseInt(e.target.value) : undefined;
+                    setNewPacket({ 
+                      ...newPacket, 
+                      initialQuantity: qty,
+                      currentQuantity: qty, // Imposta anche currentQuantity
+                      quantityRemaining: qty 
+                        ? (qty >= 50 ? 'High' : qty >= 20 ? 'Medium' : qty >= 1 ? 'Low' : 'Empty')
+                        : newPacket.quantityRemaining || 'High'
+                    });
+                  }}
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Inserisci il numero esatto di semi (es. 100). Se lasciato vuoto, usa solo categoria.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                    Categoria Scorta {newPacket.initialQuantity ? '(calcolata automaticamente)' : ''}
+                  </label>
+                  <select
+                    value={newPacket.quantityRemaining}
+                    onChange={(e) => {
+                      if (!newPacket.initialQuantity) {
+                        setNewPacket({ ...newPacket, quantityRemaining: e.target.value as SeedPacket['quantityRemaining'] });
+                      }
+                    }}
+                    disabled={!!newPacket.initialQuantity}
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="High">Alta</option>
+                    <option value="Medium">Media</option>
+                    <option value="Low">Bassa</option>
+                    <option value="Empty">Vuoto</option>
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newPacket.isOpen}
+                      onChange={(e) => setNewPacket({ ...newPacket, isOpen: e.target.checked })}
+                      className="w-5 h-5"
+                    />
+                    <span className="text-sm text-gray-700">Busta aperta</span>
+                  </label>
+                </div>
               </div>
             </div>
             <div className="flex gap-2">
@@ -349,23 +388,35 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
                       onChange={(e) => handleUpdate(packet.id, { varietyName: e.target.value })}
                       className="w-full p-2 border border-gray-300 rounded-lg"
                     />
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2">
                       <input
                         type="number"
+                        placeholder="Anno scadenza"
                         value={packet.expiryYear}
                         onChange={(e) => handleUpdate(packet.id, { expiryYear: parseInt(e.target.value) || currentYear })}
                         className="w-full p-2 border border-gray-300 rounded-lg"
                       />
-                      <select
-                        value={packet.quantityRemaining}
-                        onChange={(e) => handleUpdate(packet.id, { quantityRemaining: e.target.value as SeedPacket['quantityRemaining'] })}
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Quantità corrente (opzionale)"
+                        value={packet.currentQuantity || ''}
+                        onChange={(e) => {
+                          const qty = e.target.value ? parseInt(e.target.value) : undefined;
+                          handleUpdate(packet.id, { 
+                            currentQuantity: qty,
+                            quantityRemaining: qty 
+                              ? (qty >= 50 ? 'High' : qty >= 20 ? 'Medium' : qty >= 1 ? 'Low' : 'Empty')
+                              : packet.quantityRemaining
+                          });
+                        }}
                         className="w-full p-2 border border-gray-300 rounded-lg"
-                      >
-                        <option value="High">Alta</option>
-                        <option value="Medium">Media</option>
-                        <option value="Low">Bassa</option>
-                        <option value="Empty">Vuoto</option>
-                      </select>
+                      />
+                      {packet.initialQuantity && (
+                        <p className="text-xs text-gray-500">
+                          Quantità iniziale: {packet.initialQuantity}
+                        </p>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -404,6 +455,14 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
                          packet.quantityRemaining === 'Medium' ? 'Media' :
                          packet.quantityRemaining === 'Low' ? 'Bassa' : 'Vuoto'}
                       </span>
+                      {packet.currentQuantity !== undefined && packet.currentQuantity !== null && (
+                        <span className="text-xs font-semibold px-2 py-1 rounded bg-gray-100 text-gray-700">
+                          {packet.currentQuantity} {packet.currentQuantity === 1 ? 'seme' : 'semi'}
+                          {packet.initialQuantity && packet.initialQuantity > 0 && (
+                            <span className="text-gray-500"> / {packet.initialQuantity}</span>
+                          )}
+                        </span>
+                      )}
                       {packet.isOpen && (
                         <span className="text-xs font-bold px-2 py-1 rounded bg-blue-100 text-blue-700">
                           Aperto

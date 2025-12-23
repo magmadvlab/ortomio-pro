@@ -751,6 +751,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
       expiryYear: db.expiry_year,
       isOpen: db.is_open,
       quantityRemaining: db.quantity_remaining,
+      initialQuantity: db.initial_quantity !== null && db.initial_quantity !== undefined ? db.initial_quantity : undefined,
+      currentQuantity: db.current_quantity !== null && db.current_quantity !== undefined ? db.current_quantity : undefined,
       notes: db.notes,
       gardenId: db.garden_id,
     };
@@ -765,6 +767,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (packet.expiryYear !== undefined) db.expiry_year = packet.expiryYear;
     if (packet.isOpen !== undefined) db.is_open = packet.isOpen;
     if (packet.quantityRemaining !== undefined) db.quantity_remaining = packet.quantityRemaining;
+    if (packet.initialQuantity !== undefined) db.initial_quantity = packet.initialQuantity;
+    if (packet.currentQuantity !== undefined) db.current_quantity = packet.currentQuantity;
     if (packet.notes !== undefined) db.notes = packet.notes;
     if (packet.gardenId !== undefined) db.garden_id = packet.gardenId;
     return db;
@@ -1602,7 +1606,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
-    return (data || []) as SeedlingBatch[];
+    return (data || []).map(db => this.mapSeedlingBatchFromDB(db));
   }
 
   async getSeedlingBatch(id: string): Promise<SeedlingBatch | null> {
@@ -1617,32 +1621,75 @@ export class SupabaseStorageProvider implements IStorageProvider {
       if (error.code === 'PGRST116') return null; // Not found
       throw error;
     }
-    return data as SeedlingBatch;
+    return this.mapSeedlingBatchFromDB(data);
+  }
+
+  private mapSeedlingBatchFromDB(db: any): SeedlingBatch {
+    return {
+      id: db.id,
+      plantName: db.plant_name,
+      variety: db.variety,
+      sowingDate: db.sowing_date,
+      quantity: db.quantity,
+      initialQuantity: db.initial_quantity !== null && db.initial_quantity !== undefined ? db.initial_quantity : undefined,
+      location: db.location,
+      phase: db.phase,
+      currentQuantity: db.current_quantity !== null && db.current_quantity !== undefined ? db.current_quantity : undefined,
+      expectedTransplantDate: db.expected_transplant_date,
+      notes: db.notes,
+      photoLog: db.photo_log || [],
+      gardenId: db.garden_id,
+      source: db.source,
+      purchaseDate: db.purchase_date,
+      nurseryName: db.nursery_name,
+    };
+  }
+
+  private mapSeedlingBatchToDB(batch: Partial<SeedlingBatch>): any {
+    const db: any = {};
+    if (batch.plantName !== undefined) db.plant_name = batch.plantName;
+    if (batch.variety !== undefined) db.variety = batch.variety;
+    if (batch.sowingDate !== undefined) db.sowing_date = batch.sowingDate;
+    if (batch.quantity !== undefined) db.quantity = batch.quantity;
+    if (batch.initialQuantity !== undefined) db.initial_quantity = batch.initialQuantity;
+    if (batch.location !== undefined) db.location = batch.location;
+    if (batch.phase !== undefined) db.phase = batch.phase;
+    if (batch.currentQuantity !== undefined) db.current_quantity = batch.currentQuantity;
+    if (batch.expectedTransplantDate !== undefined) db.expected_transplant_date = batch.expectedTransplantDate;
+    if (batch.notes !== undefined) db.notes = batch.notes;
+    if (batch.photoLog !== undefined) db.photo_log = batch.photoLog;
+    if (batch.gardenId !== undefined) db.garden_id = batch.gardenId;
+    if (batch.source !== undefined) db.source = batch.source;
+    if (batch.purchaseDate !== undefined) db.purchase_date = batch.purchaseDate;
+    if (batch.nurseryName !== undefined) db.nursery_name = batch.nurseryName;
+    return db;
   }
 
   async createSeedlingBatch(batch: Omit<SeedlingBatch, 'id'>): Promise<SeedlingBatch> {
     const client = this.ensureClient();
+    const dbBatch = this.mapSeedlingBatchToDB(batch);
     const { data, error } = await client
       .from('seedling_batches')
-      .insert(batch)
+      .insert(dbBatch)
       .select()
       .single();
     
     if (error) throw error;
-    return data as SeedlingBatch;
+    return this.mapSeedlingBatchFromDB(data);
   }
 
   async updateSeedlingBatch(id: string, updates: Partial<SeedlingBatch>): Promise<SeedlingBatch> {
     const client = this.ensureClient();
+    const dbUpdates = this.mapSeedlingBatchToDB(updates);
     const { data, error } = await client
       .from('seedling_batches')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', id)
       .select()
       .single();
     
     if (error) throw error;
-    return data as SeedlingBatch;
+    return this.mapSeedlingBatchFromDB(data);
   }
 
   async deleteSeedlingBatch(id: string): Promise<void> {
@@ -1665,9 +1712,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
       purchaseDate: db.purchase_date,
       plantingDate: db.planting_date,
       quantity: db.quantity,
+      initialQuantity: db.initial_quantity !== null && db.initial_quantity !== undefined ? db.initial_quantity : undefined,
       location: db.location,
       phase: db.phase,
-      currentQuantity: db.current_quantity,
+      currentQuantity: db.current_quantity !== null && db.current_quantity !== undefined ? db.current_quantity : undefined,
       expectedEstablishmentDate: db.expected_establishment_date,
       rootstock: db.rootstock,
       spacing: db.spacing,
@@ -1686,6 +1734,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (batch.purchaseDate !== undefined) db.purchase_date = batch.purchaseDate;
     if (batch.plantingDate !== undefined) db.planting_date = batch.plantingDate;
     if (batch.quantity !== undefined) db.quantity = batch.quantity;
+    if (batch.initialQuantity !== undefined) db.initial_quantity = batch.initialQuantity;
     if (batch.location !== undefined) db.location = batch.location;
     if (batch.phase !== undefined) db.phase = batch.phase;
     if (batch.currentQuantity !== undefined) db.current_quantity = batch.currentQuantity;

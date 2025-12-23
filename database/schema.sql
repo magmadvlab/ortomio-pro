@@ -273,6 +273,8 @@ CREATE TABLE IF NOT EXISTS seed_inventory (
   expiry_year INTEGER NOT NULL,
   is_open BOOLEAN DEFAULT false,
   quantity_remaining TEXT CHECK (quantity_remaining IN ('High', 'Medium', 'Low', 'Empty')) DEFAULT 'High',
+  initial_quantity INTEGER, -- Quantità iniziale di semi nel pacchetto (es. 100)
+  current_quantity INTEGER, -- Quantità corrente rimanente (es. 90 dopo aver usato 10)
   notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -281,6 +283,17 @@ CREATE TABLE IF NOT EXISTS seed_inventory (
 CREATE INDEX IF NOT EXISTS idx_seed_inventory_user_id ON seed_inventory(user_id);
 CREATE INDEX IF NOT EXISTS idx_seed_inventory_garden_id ON seed_inventory(garden_id);
 CREATE INDEX IF NOT EXISTS idx_seed_inventory_expiry_year ON seed_inventory(expiry_year);
+
+-- Commenti per colonne seed_inventory
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_description WHERE objoid = 'seed_inventory'::regclass AND objsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'seed_inventory'::regclass AND attname = 'initial_quantity')) THEN
+    COMMENT ON COLUMN seed_inventory.initial_quantity IS 'Quantità iniziale di semi nel pacchetto (es. 100)';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_description WHERE objoid = 'seed_inventory'::regclass AND objsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'seed_inventory'::regclass AND attname = 'current_quantity')) THEN
+    COMMENT ON COLUMN seed_inventory.current_quantity IS 'Quantità corrente rimanente (es. 90 dopo aver usato 10)';
+  END IF;
+END $$;
 
 -- ============================================
 -- SEEDLING BATCHES (Batch Semenzai)
@@ -292,6 +305,7 @@ CREATE TABLE IF NOT EXISTS seedling_batches (
   variety TEXT,
   sowing_date DATE NOT NULL,
   quantity INTEGER NOT NULL,
+  initial_quantity INTEGER, -- Quantità iniziale di piantine nel batch (es. 20)
   location TEXT CHECK (location IN ('Indoor', 'Greenhouse', 'ColdFrame')) NOT NULL,
   phase TEXT CHECK (phase IN ('Sowing', 'Germination', 'Nursing', 'Hardening', 'ReadyToTransplant')) DEFAULT 'Sowing',
   current_quantity INTEGER,
@@ -351,6 +365,7 @@ CREATE TABLE IF NOT EXISTS sapling_batches (
   purchase_date DATE NOT NULL,
   planting_date DATE,
   quantity INTEGER NOT NULL,
+  initial_quantity INTEGER, -- Quantità iniziale di alberelli nel batch (es. 10)
   location TEXT NOT NULL,
   phase TEXT CHECK (phase IN ('Purchased', 'Planted', 'Establishing', 'Growing', 'ReadyToOrchard')) DEFAULT 'Purchased',
   current_quantity INTEGER,

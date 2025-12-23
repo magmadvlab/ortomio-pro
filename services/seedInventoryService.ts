@@ -33,7 +33,23 @@ const loadFromStorage = (gardenId: string): SeedPacket[] => {
  */
 export const addSeedPacket = (packet: SeedPacket): void => {
   const packets = loadFromStorage(packet.gardenId);
-  packets.push(packet);
+  
+  // Se initialQuantity è specificato ma currentQuantity no, imposta currentQuantity = initialQuantity
+  const finalPacket: SeedPacket = {
+    ...packet,
+    currentQuantity: packet.currentQuantity !== undefined 
+      ? packet.currentQuantity 
+      : packet.initialQuantity,
+    // Calcola quantityRemaining se abbiamo quantità numerica
+    quantityRemaining: packet.initialQuantity !== undefined || packet.currentQuantity !== undefined
+      ? calculateQuantityRemaining(
+          packet.currentQuantity !== undefined ? packet.currentQuantity : packet.initialQuantity,
+          packet.initialQuantity
+        )
+      : packet.quantityRemaining || 'High'
+  };
+  
+  packets.push(finalPacket);
   saveToStorage(packet.gardenId, packets);
 };
 
@@ -51,7 +67,17 @@ export const updateSeedPacket = (gardenId: string, id: string, updates: Partial<
   const packets = loadFromStorage(gardenId);
   const index = packets.findIndex(p => p.id === id);
   if (index !== -1) {
-    packets[index] = { ...packets[index], ...updates };
+    const updated = { ...packets[index], ...updates };
+    
+    // Se currentQuantity o initialQuantity sono stati aggiornati, ricalcola quantityRemaining
+    if (updates.currentQuantity !== undefined || updates.initialQuantity !== undefined) {
+      updated.quantityRemaining = calculateQuantityRemaining(
+        updated.currentQuantity,
+        updated.initialQuantity
+      );
+    }
+    
+    packets[index] = updated;
     saveToStorage(gardenId, packets);
   }
 };
@@ -77,6 +103,35 @@ export const getExpiringSeeds = (gardenId: string, currentYear: number): SeedPac
 };
 
 /**
+ * Calcola quantityRemaining basato su currentQuantity
+ */
+const calculateQuantityRemaining = (
+  currentQuantity?: number, 
+  initialQuantity?: number
+): SeedPacket['quantityRemaining'] => {
+  if (currentQuantity === undefined || currentQuantity === null) {
+    return 'High'; // Default se non specificato
+  }
+  
+  if (currentQuantity === 0) return 'Empty';
+  
+  // Se abbiamo initialQuantity, calcola percentuale
+  if (initialQuantity && initialQuantity > 0) {
+    const percentage = (currentQuantity / initialQuantity) * 100;
+    if (percentage >= 75) return 'High';
+    if (percentage >= 50) return 'Medium';
+    if (percentage >= 25) return 'Low';
+    return 'Empty';
+  }
+  
+  // Fallback su valori assoluti
+  if (currentQuantity >= 50) return 'High';
+  if (currentQuantity >= 20) return 'Medium';
+  if (currentQuantity >= 1) return 'Low';
+  return 'Empty';
+};
+
+/**
  * Ottiene i semi con quantità bassa
  */
 export const getLowStockSeeds = (gardenId: string): SeedPacket[] => {
@@ -87,17 +142,33 @@ export const getLowStockSeeds = (gardenId: string): SeedPacket[] => {
 };
 
 /**
- * Usa semi per una semina (riduce la quantità)
+ * Usa semi per una semina (riduce la quantità numerica precisa)
  */
 export const useSeedForPlanting = (gardenId: string, packetId: string, quantity: number = 1): boolean => {
   const packets = loadFromStorage(gardenId);
   const packet = packets.find(p => p.id === packetId);
   
-  if (!packet || packet.quantityRemaining === 'Empty') {
+  if (!packet) {
     return false;
   }
   
-  // Logica di riduzione quantità
+  // Se abbiamo quantità numerica, usala per calcolo preciso
+  if (packet.currentQuantity !== undefined && packet.currentQuantity !== null) {
+    const newQuantity = Math.max(0, packet.currentQuantity - quantity);
+    const newQuantityRemaining = calculateQuantityRemaining(newQuantity, packet.initialQuantity);
+    
+    updateSeedPacket(gardenId, packetId, {
+      currentQuantity: newQuantity,
+      quantityRemaining: newQuantityRemaining
+    });
+    return newQuantity >= 0;
+  }
+  
+  // Fallback su logica vecchia (per retrocompatibilità con pacchetti senza quantità numerica)
+  if (packet.quantityRemaining === 'Empty') {
+    return false;
+  }
+  
   const quantityMap: Record<string, number> = {
     'High': 3,
     'Medium': 2,

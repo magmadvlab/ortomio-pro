@@ -1093,7 +1093,9 @@ export interface SeedPacket {
   purchaseDate: string; // Data acquisto (ISO string)
   expiryYear: number; // Anno di scadenza (es. 2026)
   isOpen: boolean; // Busta aperta?
-  quantityRemaining: 'High' | 'Medium' | 'Low' | 'Empty';
+  quantityRemaining: 'High' | 'Medium' | 'Low' | 'Empty'; // Mantenuto per retrocompatibilità
+  initialQuantity?: number; // Quantità iniziale di semi nel pacchetto (es. 100)
+  currentQuantity?: number; // Quantità corrente rimanente (es. 90 dopo aver usato 10)
   notes?: string;
   gardenId: string; // A quale orto appartiene
 }

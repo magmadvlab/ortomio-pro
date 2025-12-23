@@ -506,16 +506,44 @@ export const plantAliases: PlantAlias[] = [
 export const normalizeToCanonical = (query: string): string => {
   const normalizedQuery = query.toLowerCase().trim();
   
+  // Se la query contiene più di una parola, potrebbe essere una varietà (es. "peperoncino habanero")
+  // In questo caso, prova prima a normalizzare solo la prima parola
+  const words = normalizedQuery.split(/\s+/);
+  const firstWord = words[0];
+  const hasVariety = words.length > 1;
+  
   // Cerca un alias che corrisponda
   for (const aliasGroup of plantAliases) {
     if (aliasGroup.aliases.some(alias => {
       const aliasNorm = alias.toLowerCase().trim();
-      // Match esatto
+      
+      // Match esatto (sempre valido)
       if (aliasNorm === normalizedQuery) return true;
-      // Match con includes (per gestire "banana nano" -> "banana")
-      if (normalizedQuery.includes(aliasNorm) || aliasNorm.includes(normalizedQuery)) return true;
+      
+      // Se c'è una varietà, normalizza solo se il match è esatto sulla prima parola
+      if (hasVariety) {
+        // Match esatto sulla prima parola (es. "peperoncino habanero" -> "peperoncino")
+        if (aliasNorm === firstWord) return true;
+        // Match esatto dell'alias con la prima parola (es. "peperoncini" -> "peperoncino")
+        if (firstWord === aliasNorm || aliasNorm === firstWord) return true;
+        // Non normalizzare se l'alias è più lungo della prima parola e contiene spazi
+        // (evita di normalizzare "peperoncino habanero" quando cerca "peperoncino")
+        return false;
+      }
+      
+      // Match con includes solo se non c'è varietà (per gestire "banana nano" -> "banana")
+      // Ma solo se l'alias è una parola singola o se la query inizia con l'alias
+      if (normalizedQuery.startsWith(aliasNorm + ' ') || normalizedQuery === aliasNorm) {
+        return true;
+      }
+      
       return false;
     })) {
+      // Se c'è una varietà, mantieni la varietà dopo la normalizzazione
+      if (hasVariety && words.length > 1) {
+        const restOfQuery = words.slice(1).join(' ');
+        return `${aliasGroup.canonical} ${restOfQuery}`;
+      }
       return aliasGroup.canonical;
     }
   }

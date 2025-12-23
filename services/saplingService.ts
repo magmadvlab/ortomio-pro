@@ -21,10 +21,11 @@ export interface SaplingBatch {
   saplingType: SaplingType;
   purchaseDate: string; // ISO date string
   plantingDate?: string; // ISO date string - quando messo a dimora
-  quantity: number;
+  quantity: number; // Mantenuto per retrocompatibilità
+  initialQuantity?: number; // Quantità iniziale di alberelli (es. 10)
+  currentQuantity?: number; // Quantità corrente disponibile (es. 9 dopo averne usato 1)
   location: string; // Nome area/letto dove piantare
   phase: 'Purchased' | 'Planted' | 'Establishing' | 'Growing' | 'ReadyToOrchard';
-  currentQuantity?: number; // Sopravvissuti
   expectedEstablishmentDate?: string; // ISO date string - quando dovrebbe attecchire
   rootstock?: string; // Portinnesto (per frutteti)
   spacing?: string; // Distanza tra piante
@@ -86,6 +87,7 @@ export const createSaplingBatch = (
     saplingType,
     purchaseDate,
     quantity,
+    initialQuantity: quantity, // Imposta initialQuantity = quantity per nuovi batch
     location,
     phase: 'Purchased',
     currentQuantity: quantity,

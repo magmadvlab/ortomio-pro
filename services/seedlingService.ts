@@ -11,10 +11,11 @@ export interface SeedlingBatch {
   plantName: string;
   variety?: string;
   sowingDate: string; // ISO date string (per semine) o purchaseDate (per acquisti)
-  quantity: number;
+  quantity: number; // Mantenuto per retrocompatibilità
+  initialQuantity?: number; // Quantità iniziale di piantine (es. 20)
+  currentQuantity?: number; // Quantità corrente disponibile (es. 18 dopo averne usate 2)
   location: 'Indoor' | 'Greenhouse' | 'ColdFrame';
   phase: 'Sowing' | 'Germination' | 'Nursing' | 'Hardening' | 'ReadyToTransplant';
-  currentQuantity?: number; // Sopravvissute o disponibili
   expectedTransplantDate?: string; // ISO date string
   notes?: string;
   photoLog?: { date: string; image: string; notes?: string }[];
@@ -58,9 +59,10 @@ export const createSeedlingBatch = (
     variety,
     sowingDate,
     quantity,
+    initialQuantity: quantity, // Imposta initialQuantity = quantity per nuovi batch
+    currentQuantity: quantity,
     location,
     phase: 'Sowing',
-    currentQuantity: quantity,
     expectedTransplantDate: expectedTransplant.toISOString().split('T')[0],
     gardenId,
     photoLog: []
@@ -297,6 +299,7 @@ export const createPurchasedSeedlingBatch = (
     sowingDate: purchaseDate, // Usa purchaseDate come sowingDate per compatibilità
     purchaseDate,
     quantity,
+    initialQuantity: quantity, // Imposta initialQuantity = quantity per piantine acquistate
     location: 'Indoor', // Default, può essere modificato dopo
     phase: 'ReadyToTransplant', // Piantine acquistate sono già pronte
     currentQuantity: quantity, // Tutte disponibili inizialmente

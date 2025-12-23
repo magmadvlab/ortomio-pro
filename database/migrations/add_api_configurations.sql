@@ -92,25 +92,61 @@ $$ LANGUAGE plpgsql;
 ALTER TABLE api_configurations ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Utenti possono vedere solo le proprie configurazioni
-CREATE POLICY api_configurations_user_select ON api_configurations
-  FOR SELECT
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'api_configurations' 
+    AND policyname = 'api_configurations_user_select'
+  ) THEN
+    CREATE POLICY api_configurations_user_select ON api_configurations
+      FOR SELECT
+      USING ((SELECT auth.uid()) = user_id);
+  END IF;
+END $$;
 
 -- Policy: Utenti possono inserire solo le proprie configurazioni
-CREATE POLICY api_configurations_user_insert ON api_configurations
-  FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'api_configurations' 
+    AND policyname = 'api_configurations_user_insert'
+  ) THEN
+    CREATE POLICY api_configurations_user_insert ON api_configurations
+      FOR INSERT
+      WITH CHECK ((SELECT auth.uid()) = user_id);
+  END IF;
+END $$;
 
 -- Policy: Utenti possono aggiornare solo le proprie configurazioni
-CREATE POLICY api_configurations_user_update ON api_configurations
-  FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'api_configurations' 
+    AND policyname = 'api_configurations_user_update'
+  ) THEN
+    CREATE POLICY api_configurations_user_update ON api_configurations
+      FOR UPDATE
+      USING ((SELECT auth.uid()) = user_id)
+      WITH CHECK ((SELECT auth.uid()) = user_id);
+  END IF;
+END $$;
 
 -- Policy: Utenti possono eliminare solo le proprie configurazioni
-CREATE POLICY api_configurations_user_delete ON api_configurations
-  FOR DELETE
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'api_configurations' 
+    AND policyname = 'api_configurations_user_delete'
+  ) THEN
+    CREATE POLICY api_configurations_user_delete ON api_configurations
+      FOR DELETE
+      USING ((SELECT auth.uid()) = user_id);
+  END IF;
+END $$;
 
 -- Funzione helper per ottenere API key attiva per un servizio
 CREATE OR REPLACE FUNCTION get_active_api_key(
