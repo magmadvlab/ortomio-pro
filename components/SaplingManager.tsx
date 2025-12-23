@@ -347,7 +347,7 @@ const SaplingManager: React.FC<SaplingManagerProps> = ({
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">Quantità:</span>
-                        <span>{batch.currentQuantity || batch.quantity}/{batch.quantity}</span>
+                        <span>{String(batch.currentQuantity || batch.quantity)}/{String(batch.quantity)}</span>
                       </div>
                     </div>
                   </div>

@@ -55,7 +55,41 @@ export async function GET(request: NextRequest) {
     // Verify user authentication
     const result = await verifyTier(request, [])
     
+    // Se non autenticato, restituisci suggerimenti mock invece di errore 401
+    // Questo permette al client di mostrare suggerimenti anche senza autenticazione
     if ('error' in result) {
+      if (result.status === 401) {
+        // Utente non autenticato: restituisci suggerimenti mock basati su coordinate di default
+        const mockObstacles: Obstacle3D[] = []
+        const mockLat = 41.9028 // Roma
+        const mockLng = 12.4964
+        
+        const windows = calculateSeasonalWindows(mockLat, mockLng, mockObstacles, targetYear)
+        const classification = classifyGardenType(windows)
+        const suggestions = suggestPlantsForGardenType(
+          classification,
+          windows,
+          mockLat,
+          mockLng,
+          mockObstacles,
+          targetYear
+        )
+        
+        // Serializza le date per la risposta JSON
+        const serializedSuggestions = suggestions.map(s => ({
+          ...s,
+          plantingWindow: {
+            start: s.plantingWindow.start.toISOString(),
+            end: s.plantingWindow.end.toISOString(),
+          },
+        }))
+        
+        return NextResponse.json({
+          suggestions: serializedSuggestions,
+          classification,
+        })
+      }
+      // Altri errori: restituisci errore
       return NextResponse.json(
         { error: result.error },
         { status: result.status }

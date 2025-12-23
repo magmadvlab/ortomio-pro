@@ -424,7 +424,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
                           onBatchUpdate(updated);
                         }}
                       />
-                      <span className="text-gray-500">/ {batch.quantity}</span>
+                      <span className="text-gray-500">/ {String(batch.quantity)}</span>
                     </div>
                   </div>
                 </div>

@@ -203,8 +203,10 @@ const specificPlantSchema: Schema = {
 };
 
 export const getSeasonalSuggestions = async (lat: number, lng: number): Promise<PlantSuggestion[]> => {
-  if (!checkApiAvailable()) {
-    throw new Error("API Key non configurata. Configura NEXT_PUBLIC_GEMINI_API_KEY nel file .env");
+  // Verifica API disponibile (incluso configurazioni personalizzate)
+  const apiAvailable = await checkApiAvailableAsync();
+  if (!apiAvailable) {
+    throw new Error("API Key non configurata. Configura NEXT_PUBLIC_GEMINI_API_KEY nel file .env o nelle Impostazioni > API Keys");
   }
 
   const model = "gemini-2.5-flash";
@@ -220,15 +222,33 @@ export const getSeasonalSuggestions = async (lat: number, lng: number): Promise<
   `;
 
   try {
-    const response = await ai!.models.generateContent({
-      model,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: plantSuggestionSchema,
-        systemInstruction: "You are an expert agronomist specialized in Italian vegetable gardens (orto). be concise.",
-      },
-    });
+    // Usa provider attivo (personalizzato o default)
+    const customProvider = await getCustomAIProvider('ai_gemini');
+    let response: any;
+    
+    if (customProvider && customProvider.generateContentWithSchema) {
+      // Usa provider personalizzato con schema
+      response = await customProvider.generateContentWithSchema(
+        prompt,
+        plantSuggestionSchema,
+        {
+          systemInstruction: "You are an expert agronomist specialized in Italian vegetable gardens (orto). be concise.",
+        }
+      );
+    } else if (ai) {
+      // Usa provider legacy
+      response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: plantSuggestionSchema,
+          systemInstruction: "You are an expert agronomist specialized in Italian vegetable gardens (orto). be concise.",
+        },
+      });
+    } else {
+      throw new Error("API Key non configurata");
+    }
 
     const text = response.text;
     if (!text) return [];
@@ -237,7 +257,7 @@ export const getSeasonalSuggestions = async (lat: number, lng: number): Promise<
     console.error("Gemini Suggestion Error:", error);
     const errorMessage = error?.message || "Errore sconosciuto";
     if (errorMessage.includes("API_KEY") || errorMessage.includes("401") || errorMessage.includes("403")) {
-      throw new Error("Chiave API non valida o scaduta. Verifica la configurazione in .env");
+      throw new Error("Chiave API non valida o scaduta. Verifica la configurazione in .env o nelle Impostazioni > API Keys");
     }
     throw new Error(`Errore nel recupero dei suggerimenti: ${errorMessage}`);
   }

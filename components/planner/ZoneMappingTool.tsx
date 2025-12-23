@@ -55,8 +55,25 @@ export const ZoneMappingTool: React.FC<ZoneMappingToolProps> = ({
       if (onZonesUpdated) {
         onZonesUpdated(loadedZones);
       }
-    } catch (error) {
-      console.error('Error loading zones:', error);
+    } catch (error: any) {
+      // Gestisci silenziosamente errori di tabella non trovata (locale senza migrazioni)
+      const errorMessage = error?.message || '';
+      if (errorMessage.includes('Could not find the table') || 
+          (errorMessage.includes('relation') && errorMessage.includes('does not exist'))) {
+        // Tabella non esiste - normale in locale senza migrazioni precision agriculture
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('Garden zones table not available (local mode without migrations)');
+        }
+        setZones([]); // Imposta array vuoto invece di loggare errore
+        if (onZonesUpdated) {
+          onZonesUpdated([]);
+        }
+      } else {
+        // Altri errori: logga solo in sviluppo
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error loading zones:', error);
+        }
+      }
     }
   };
 

@@ -414,7 +414,7 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
                       />
                       {packet.initialQuantity && (
                         <p className="text-xs text-gray-500">
-                          Quantità iniziale: {packet.initialQuantity}
+                          Quantità iniziale: {String(packet.initialQuantity)}
                         </p>
                       )}
                     </div>
@@ -457,9 +457,9 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
                       </span>
                       {packet.currentQuantity !== undefined && packet.currentQuantity !== null && (
                         <span className="text-xs font-semibold px-2 py-1 rounded bg-gray-100 text-gray-700">
-                          {packet.currentQuantity} {packet.currentQuantity === 1 ? 'seme' : 'semi'}
+                          {String(packet.currentQuantity)} {packet.currentQuantity === 1 ? 'seme' : 'semi'}
                           {packet.initialQuantity && packet.initialQuantity > 0 && (
-                            <span className="text-gray-500"> / {packet.initialQuantity}</span>
+                            <span className="text-gray-500"> / {String(packet.initialQuantity)}</span>
                           )}
                         </span>
                       )}

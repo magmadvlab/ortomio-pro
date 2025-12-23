@@ -355,7 +355,10 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
   }, [garden, tasks]);
 
   const loadSeasonalPlantSuggestions = async () => {
-    if (!garden.coordinates) return
+    if (!garden.coordinates) {
+      console.warn('Garden coordinates not available for plant suggestions')
+      return
+    }
 
     setLoadingSeasonalSuggestions(true)
     try {
@@ -375,9 +378,21 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
         }))
         setSeasonalPlantSuggestions(suggestions)
         setGardenClassification(data.classification || null)
+      } else {
+        // Gestisci errori HTTP
+        const errorData = await response.json().catch(() => ({ error: 'unknown_error' }))
+        console.error('Error loading seasonal plant suggestions:', response.status, errorData)
+        
+        // Se è un errore 404 (garden not found) o 400 (missing coordinates), 
+        // non loggare come errore critico
+        if (response.status === 404 || response.status === 400) {
+          console.warn('Garden data incomplete for suggestions:', errorData.error)
+          setSeasonalPlantSuggestions([])
+        }
       }
     } catch (error) {
       console.error('Error loading seasonal plant suggestions:', error)
+      setSeasonalPlantSuggestions([])
     } finally {
       setLoadingSeasonalSuggestions(false)
     }

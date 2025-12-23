@@ -684,9 +684,9 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                         📏 Distanze Consigliate:
                       </p>
                       <p className="text-sm text-blue-800">
-                        • Sulla fila: <strong>{spacingInfo.row} cm</strong>
+                        • Sulla fila: <strong>{String(spacingInfo.row || 0)} cm</strong>
                         <br />
-                        • Tra le file: <strong>{spacingInfo.between} cm</strong>
+                        • Tra le file: <strong>{String(spacingInfo.between || 0)} cm</strong>
                       </p>
                     </div>
                   )}
@@ -710,7 +710,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                       />
                       {calculatedPlants !== null && calculatedPlants > 0 && spacingInfo && areaSqm && parseFloat(areaSqm) > 0 && (
                         <p className="text-xs text-green-600 mt-1">
-                          💡 Con {areaSqm} m² puoi piantare fino a <strong>{calculatedPlants} piante</strong>
+                          💡 Con {String(areaSqm)} m² puoi piantare fino a <strong>{String(calculatedPlants)} piante</strong>
                         </p>
                       )}
                     </div>
@@ -731,7 +731,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                       />
                       {calculatedArea !== null && calculatedArea > 0 && spacingInfo && plantCount && parseInt(plantCount) > 0 && (
                         <p className="text-xs text-green-600 mt-1">
-                          💡 Per {plantCount} piante servono circa <strong>{calculatedArea.toFixed(2)} m²</strong>
+                          💡 Per {String(plantCount)} piante servono circa <strong>{String(calculatedArea.toFixed(2))} m²</strong>
                         </p>
                       )}
                     </div>
@@ -748,7 +748,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                       </p>
                       {spacingInfo && typeof spacingInfo.row === 'number' && typeof spacingInfo.between === 'number' && (
                         <p className="text-xs text-green-700 mt-2">
-                          Spazio per pianta: {(spacingInfo.row * spacingInfo.between / 10000).toFixed(2)} m²
+                          Spazio per pianta: {String(((spacingInfo.row || 0) * (spacingInfo.between || 0) / 10000).toFixed(2))} m²
                         </p>
                       )}
                     </div>
