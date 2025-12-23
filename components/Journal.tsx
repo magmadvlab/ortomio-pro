@@ -98,6 +98,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
     selectedBatchId?: string; // ID del batch di piantine selezionato
     isScheduled?: boolean; // Toggle per pianificazione futura
     scheduledDate?: string; // Data pianificata (se isScheduled = true)
+    schedulingType?: 'Immediate' | 'Scheduled' | 'Recurring'; // Tipo di schedulizzazione
   }>({
     plantName: '',
     variety: '',
@@ -112,7 +113,8 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
     selectedSeedPacketId: undefined,
     selectedBatchId: undefined,
     isScheduled: false,
-    scheduledDate: undefined
+    scheduledDate: undefined,
+    schedulingType: 'Immediate'
   });
 
   // Carica semi disponibili dalla banca
@@ -417,7 +419,10 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
         season: detectSeason(new Date().toISOString().split('T')[0]),
         locationType: 'Ground',
         selectedSeedPacketId: undefined,
-        selectedBatchId: undefined
+        selectedBatchId: undefined,
+        isScheduled: false,
+        scheduledDate: undefined,
+        schedulingType: 'Immediate'
       });
       setFuzzySuggestions([]);
       setMatchingSeeds([]);
@@ -548,10 +553,13 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
       quantity: 1,
       season: detectSeason(new Date().toISOString().split('T')[0]),
       locationType: 'Ground',
-        selectedSeedPacketId: undefined,
-        selectedBatchId: undefined
-      });
-      setFuzzySuggestions([]);
+      selectedSeedPacketId: undefined,
+      selectedBatchId: undefined,
+      isScheduled: false,
+      scheduledDate: undefined,
+      schedulingType: 'Immediate'
+    });
+    setFuzzySuggestions([]);
       setMatchingSeeds([]);
       setMatchingBatches([]);
 

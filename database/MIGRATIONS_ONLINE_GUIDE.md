@@ -4,7 +4,7 @@ Questa guida spiega come applicare le migrazioni database su Supabase online in 
 
 ## Panoramica
 
-Le migrazioni sono organizzate in **19 gruppi logici** che devono essere applicati in ordine:
+Le migrazioni sono organizzate in **20 gruppi logici** che devono essere applicati in ordine:
 
 1. **01_core_schema.sql** - Schema base (DEVE essere eseguito per primo)
 2. **02_user_profiles.sql** - Sistema profili utente e tier
@@ -25,6 +25,7 @@ Le migrazioni sono organizzate in **19 gruppi logici** che devono essere applica
 17. **16_improve_seed_inventory_quantity.sql** - Migliora banca dei semi con supporto quantità flessibili (range, numeri grandi)
 18. **17_add_sowing_details_to_tasks.sql** - Aggiunge tracking dettagliato semina/germinazione (vassoi, piantine attese, area)
 19. **18_add_task_scheduling_fields.sql** - Aggiunge schedulizzazione task (pianificazione date future, ricorrenze)
+20. **19_enable_rls_crop_tables.sql** - Abilita RLS su tabelle crop pubbliche (crop_archetypes, crop_profiles, plant_rules, crop_aliases, official_crops)
 
 ## Prerequisiti
 
@@ -152,6 +153,42 @@ Le migrazioni sono organizzate in **19 gruppi logici** che devono essere applica
    - Risolve i warning "Unindexed Foreign Keys" del Security Advisor
    - Crea indici su: agronomist_consultations.garden_id, crop_learning_events.garden_id, garden_beds.covering_structure_id, garden_beds.structure_id
    - ⚠️ **Eseguire DOPO tutte le altre migrazioni che creano tabelle e foreign key**
+
+### Fase 16: Improve Seed Inventory Quantity
+
+17. **16_improve_seed_inventory_quantity.sql**
+   - Aggiunge colonne per quantità flessibili nella banca dei semi
+   - Permette range (es. "10-1000"), numeri grandi (es. "1000000"), approssimazioni (es. "~50"), valori testuali (es. "Molti")
+   - Aggiunge colonne: `quantity_display`, `quantity_min`, `quantity_max`, `quantity_exact`
+   - Migra automaticamente dati esistenti da `initial_quantity` a nuovi campi
+   - ⚠️ **Eseguire DOPO 01_core_schema.sql e 02_user_profiles.sql**
+
+### Fase 17: Add Sowing Details to Tasks
+
+18. **17_add_sowing_details_to_tasks.sql**
+   - Aggiunge colonna `sowing_details` JSONB a `garden_tasks` per tracking dettagliato semina/germinazione
+   - Permette di tracciare: tipo contenitore (vassoio, vaso, diretto), dimensione vassoio, semi per cella, tasso germinazione atteso, piantine attese, area occupata
+   - Crea indice GIN per query efficienti su JSONB
+   - ⚠️ **Eseguire DOPO 01_core_schema.sql**
+
+### Fase 18: Add Task Scheduling Fields
+
+19. **18_add_task_scheduling_fields.sql**
+   - Aggiunge campi per schedulizzazione task futuri e ricorrenti
+   - Aggiunge colonne: `scheduled_date`, `scheduling_type`, `recurrence_pattern`
+   - Permette di distinguere tra task immediati, pianificati e ricorrenti
+   - Crea indici per query su scheduled_date e scheduling_type
+   - ⚠️ **Eseguire DOPO 01_core_schema.sql**
+
+### Fase 19: Enable RLS on Crop Tables
+
+20. **19_enable_rls_crop_tables.sql**
+   - Abilita Row Level Security (RLS) su tabelle crop pubbliche
+   - Tabelle interessate: `crop_archetypes`, `crop_profiles`, `plant_rules`, `crop_aliases`, `official_crops`
+   - Policy SELECT pubblico (tutti possono leggere)
+   - Policy INSERT/UPDATE/DELETE solo per service role (tranne crop_aliases che permette INSERT per utenti autenticati)
+   - Risolve gli errori "RLS Disabled in Public" del Security Advisor
+   - ⚠️ **Eseguire DOPO 03_plant_taxonomy.sql**
 
 ## Istruzioni per Supabase SQL Editor
 

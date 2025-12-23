@@ -100,6 +100,8 @@ COMMENT ON COLUMN public.seed_inventory.quantity_exact IS
 -- Se ci sono già dati con initial_quantity, migrarli a quantity_exact e quantity_display
 
 DO $$
+DECLARE
+  rcount INTEGER;
 BEGIN
   UPDATE public.seed_inventory
   SET 
@@ -108,6 +110,7 @@ BEGIN
   WHERE initial_quantity IS NOT NULL
     AND quantity_display IS NULL;
   
-  RAISE NOTICE 'Migrati % record esistenti con initial_quantity', SQL%ROWCOUNT;
+  GET DIAGNOSTICS rcount = ROW_COUNT;
+  RAISE NOTICE 'Migrati % record esistenti con initial_quantity', rcount;
 END $$;
 
