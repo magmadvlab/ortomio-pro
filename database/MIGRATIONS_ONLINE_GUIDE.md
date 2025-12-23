@@ -21,6 +21,7 @@ Le migrazioni sono organizzate in **11 gruppi logici** che devono essere applica
 13. **12_add_notification_preferences.sql** - Tabella preferenze notifiche utente
 14. **13_fix_function_search_path_security.sql** - Corregge search_path mutabile su funzioni per sicurezza
 15. **14_fix_rls_performance.sql** - Corregge performance RLS policies sostituendo auth.uid() con (select auth.uid())
+16. **15_add_missing_foreign_key_indexes.sql** - Aggiunge indici mancanti su foreign key per performance
 
 ## Prerequisiti
 
