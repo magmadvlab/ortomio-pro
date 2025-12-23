@@ -1775,37 +1775,55 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                         
                         // Se completato, mostra anche la data di completamento
                         if (task.completed && task.actualCompletedDate) {
-                          const completedDate = new Date(task.actualCompletedDate);
-                          const completedWeekday = weekdays[completedDate.getDay()];
-                          const completedDay = completedDate.getDate();
-                          const completedMonth = monthNames[completedDate.getMonth()];
-                          const completedDateStr = `${completedWeekday} ${completedDay} ${completedMonth}`;
-                          
-                          // Se la data di completamento è diversa dalla data originale, mostra entrambe
-                          if (completedDateStr !== dateStr) {
-                            return (
-                              <>
-                                <span className="line-through text-gray-400">{dateStr}</span>
-                                <span className="text-green-600 font-semibold">→ Completato: {completedDateStr}</span>
-                              </>
-                            );
-                          } else {
+                          try {
+                            const completedDate = new Date(task.actualCompletedDate);
+                            // Verifica che la data sia valida
+                            if (isNaN(completedDate.getTime())) {
+                              return <span className="text-green-600 font-semibold">Completato: {dateStr}</span>;
+                            }
+                            const completedWeekday = weekdays[completedDate.getDay()];
+                            const completedDay = completedDate.getDate();
+                            const completedMonth = monthNames[completedDate.getMonth()];
+                            const completedDateStr = `${completedWeekday} ${completedDay} ${completedMonth}`;
+                            
+                            // Se la data di completamento è diversa dalla data originale, mostra entrambe
+                            if (completedDateStr !== dateStr) {
+                              return (
+                                <>
+                                  <span className="line-through text-gray-400">{dateStr}</span>
+                                  <span className="text-green-600 font-semibold">→ Completato: {completedDateStr}</span>
+                                </>
+                              );
+                            } else {
+                              return <span className="text-green-600 font-semibold">Completato: {dateStr}</span>;
+                            }
+                          } catch (e) {
+                            // Se c'è un errore nel parsing della data, mostra solo la data originale
                             return <span className="text-green-600 font-semibold">Completato: {dateStr}</span>;
                           }
                         }
                         
                         // Se è un task suggerito non completato, mostra la data suggerita
                         if (task.isSuggested && task.suggestedDate && !task.completed) {
-                          const suggestedDate = new Date(task.suggestedDate);
-                          const suggestedWeekday = weekdays[suggestedDate.getDay()];
-                          const suggestedDay = suggestedDate.getDate();
-                          const suggestedMonth = monthNames[suggestedDate.getMonth()];
-                          return (
-                            <>
-                              <span>{dateStr}</span>
-                              <span className="text-blue-600">(Suggerito: {suggestedWeekday} {suggestedDay} {suggestedMonth})</span>
-                            </>
-                          );
+                          try {
+                            const suggestedDate = new Date(task.suggestedDate);
+                            // Verifica che la data sia valida
+                            if (isNaN(suggestedDate.getTime())) {
+                              return <span>{dateStr}</span>;
+                            }
+                            const suggestedWeekday = weekdays[suggestedDate.getDay()];
+                            const suggestedDay = suggestedDate.getDate();
+                            const suggestedMonth = monthNames[suggestedDate.getMonth()];
+                            return (
+                              <>
+                                <span>{dateStr}</span>
+                                <span className="text-blue-600">(Suggerito: {suggestedWeekday} {suggestedDay} {suggestedMonth})</span>
+                              </>
+                            );
+                          } catch (e) {
+                            // Se c'è un errore nel parsing della data, mostra solo la data originale
+                            return <span>{dateStr}</span>;
+                          }
                         }
                         
                         return dateStr;

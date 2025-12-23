@@ -18,6 +18,7 @@ Le migrazioni sono organizzate in **11 gruppi logici** che devono essere applica
 10. **09_tier_system.sql** - Sistema tier e migrazione
 11. **10_add_zone_id_to_garden_tasks.sql** - Aggiunge supporto precision agriculture zones ai task
 12. **11_add_completion_date_index.sql** - Indice per ottimizzare query su date completamento
+13. **12_add_notification_preferences.sql** - Tabella preferenze notifiche utente
 
 ## Prerequisiti
 
@@ -112,6 +113,14 @@ Le migrazioni sono organizzate in **11 gruppi logici** che devono essere applica
    - Aggiunge indice parziale su `actual_completed_date` per ottimizzare query su task completati
    - Indice solo per task con `actual_completed_date IS NOT NULL`
    - ⚠️ **Eseguire DOPO 01_core_schema.sql**
+
+### Fase 12: Notification Preferences
+
+13. **12_add_notification_preferences.sql**
+   - Crea tabella `notification_preferences` per gestire preferenze notifiche utente
+   - Crea trigger per creare preferenze di default quando viene creato un nuovo utente
+   - Configura RLS policies per sicurezza
+   - ⚠️ **Eseguire DOPO 01_core_schema.sql e 02_user_profiles.sql**
 
 ## Istruzioni per Supabase SQL Editor
 
