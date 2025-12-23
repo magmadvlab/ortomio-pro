@@ -10,6 +10,8 @@ import { extractMainPlantName, suggestArchetypeFromKeywords } from '../../servic
 import { searchArchetypesByExample } from '../../services/archetypeService';
 import { X, ArrowRight, ArrowLeft, Search, Loader2, Info } from 'lucide-react';
 import { InfoTooltip } from '../shared/InfoTooltip';
+import { getMasterSheetSync } from '../../services/plantMasterService';
+import { parseSpacing, getCropType, calculateOrchardLayout, calculateVineyardLayout, calculateOliveLayout, calculateMaxPlants, suggestOptimalLayout, getMasterSheetForPlant, Spacing } from '../../logic/gardenLayoutEngine';
 
 interface AddCropWizardProps {
   garden: Garden;
@@ -61,6 +63,12 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
   const [detectedWoodyArchetype, setDetectedWoodyArchetype] = useState<ArchetypeId | null>(null);
   const [detectedVarietyType, setDetectedVarietyType] = useState<'Wine' | 'Table' | 'Oil' | 'Dual-purpose' | undefined>(undefined);
   
+  // Stati per calcoli automatici spacing/layout
+  const [spacingInfo, setSpacingInfo] = useState<Spacing | null>(null);
+  const [layoutSuggestion, setLayoutSuggestion] = useState<string>('');
+  const [calculatedPlants, setCalculatedPlants] = useState<number | null>(null);
+  const [calculatedArea, setCalculatedArea] = useState<number | null>(null);
+  
   // Cerca nome quando cambia
   useEffect(() => {
     if (plantName.trim().length >= 2) {
@@ -69,6 +77,99 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
       setFoundArchetype(null);
     }
   }, [plantName]);
+  
+  // Calcola automaticamente spacing e layout quando cambiano pianta/varietà/area/piante
+  useEffect(() => {
+    if (!selectedArchetype || !plantName.trim()) {
+      setSpacingInfo(null);
+      setLayoutSuggestion('');
+      setCalculatedPlants(null);
+      setCalculatedArea(null);
+      return;
+    }
+    
+    // Ottieni master sheet (considerando varietà se presente)
+    const masterData = getMasterSheetForPlant(plantName.trim(), extractedVariety || undefined, getMasterSheetSync);
+    if (!masterData || !masterData.transplanting?.spacing) {
+      setSpacingInfo(null);
+      setLayoutSuggestion('');
+      setCalculatedPlants(null);
+      setCalculatedArea(null);
+      return;
+    }
+    
+    // Parsa le distanze
+    const spacing = parseSpacing(masterData.transplanting.spacing);
+    if (!spacing) {
+      setSpacingInfo(null);
+      setLayoutSuggestion('');
+      setCalculatedPlants(null);
+      setCalculatedArea(null);
+      return;
+    }
+    
+    setSpacingInfo(spacing);
+    
+    // Determina tipo di coltura
+    const cropType = getCropType(masterData);
+    
+    // Calcola suggerimenti basati su area o numero piante
+    if (areaSqm && parseFloat(areaSqm) > 0) {
+      const area = parseFloat(areaSqm);
+      let layoutResult;
+      
+      if (cropType === 'orchard' || cropType === 'olive') {
+        layoutResult = calculateOrchardLayout(spacing, area);
+      } else if (cropType === 'vineyard') {
+        layoutResult = calculateVineyardLayout(spacing, area);
+      } else {
+        const maxPlantsResult = calculateMaxPlants(masterData, area);
+        const sideCm = Math.sqrt(area * 10000);
+        const layout = suggestOptimalLayout(masterData, sideCm, sideCm);
+        layoutResult = {
+          maxPlants: maxPlantsResult.maxPlants,
+          plantsPerRow: Math.floor(sideCm / spacing.row),
+          numRows: Math.floor(sideCm / spacing.between),
+          layout: layout || `Layout consigliato: ${Math.floor(sideCm / spacing.row)} piante per fila × ${Math.floor(sideCm / spacing.between)} file`
+        };
+      }
+      
+      setCalculatedPlants(layoutResult.maxPlants);
+      setCalculatedArea(null);
+      setLayoutSuggestion(layoutResult.layout || '');
+    } else if (plantCount && parseInt(plantCount) > 0) {
+      const numPlants = parseInt(plantCount);
+      let layoutResult;
+      
+      if (cropType === 'orchard' || cropType === 'olive') {
+        layoutResult = calculateOrchardLayout(spacing, 0, numPlants);
+      } else if (cropType === 'vineyard') {
+        layoutResult = calculateVineyardLayout(spacing, 0, numPlants);
+      } else {
+        const areaPerPlant = (spacing.row * spacing.between) / 10000;
+        const totalArea = numPlants * areaPerPlant;
+        const sideCm = Math.sqrt(totalArea * 10000);
+        const plantsPerRow = Math.floor(sideCm / spacing.row);
+        const numRows = Math.ceil(numPlants / plantsPerRow);
+        const layout = suggestOptimalLayout(masterData, sideCm, sideCm);
+        layoutResult = {
+          maxPlants: numPlants,
+          plantsPerRow,
+          numRows,
+          layout: layout || `Layout consigliato: ${plantsPerRow} piante per fila × ${numRows} file = ${numPlants} piante totali`,
+          areaNeeded: totalArea
+        };
+      }
+      
+      setCalculatedArea(layoutResult.areaNeeded || 0);
+      setCalculatedPlants(null);
+      setLayoutSuggestion(layoutResult.layout || '');
+    } else {
+      setCalculatedPlants(null);
+      setCalculatedArea(null);
+      setLayoutSuggestion('');
+    }
+  }, [selectedArchetype, plantName, extractedVariety, areaSqm, plantCount]);
   
   const handleSearch = async () => {
     if (!plantName.trim()) {
@@ -570,34 +671,87 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                 </div>
                 
                 {/* Area o numero piante */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Area (m²)
-                    </label>
-                    <input
-                      type="number"
-                      value={areaSqm}
-                      onChange={(e) => setAreaSqm(e.target.value)}
-                      placeholder="Es. 10"
-                      min="0"
-                      step="0.1"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                    />
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Area o Numero Piante *
+                  </label>
+                  
+                  {/* Mostra sempre le distanze consigliate */}
+                  {spacingInfo && (
+                    <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm font-semibold text-blue-900 mb-1">
+                        📏 Distanze Consigliate:
+                      </p>
+                      <p className="text-sm text-blue-800">
+                        • Sulla fila: <strong>{spacingInfo.row} cm</strong>
+                        <br />
+                        • Tra le file: <strong>{spacingInfo.between} cm</strong>
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Area (m²)
+                      </label>
+                      <input
+                        type="number"
+                        value={areaSqm}
+                        onChange={(e) => {
+                          setAreaSqm(e.target.value);
+                          setPlantCount(''); // Reset numero piante quando cambia area
+                        }}
+                        placeholder="Es. 10"
+                        min="0"
+                        step="0.1"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                      />
+                      {calculatedPlants !== null && spacingInfo && areaSqm && (
+                        <p className="text-xs text-green-600 mt-1">
+                          💡 Con {areaSqm} m² puoi piantare fino a <strong>{calculatedPlants} piante</strong>
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Numero piante
+                      </label>
+                      <input
+                        type="number"
+                        value={plantCount}
+                        onChange={(e) => {
+                          setPlantCount(e.target.value);
+                          setAreaSqm(''); // Reset area quando cambia numero piante
+                        }}
+                        placeholder="Es. 20"
+                        min="1"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                      />
+                      {calculatedArea !== null && calculatedArea > 0 && spacingInfo && plantCount && (
+                        <p className="text-xs text-green-600 mt-1">
+                          💡 Per {plantCount} piante servono circa <strong>{calculatedArea.toFixed(2)} m²</strong>
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Numero piante
-                    </label>
-                    <input
-                      type="number"
-                      value={plantCount}
-                      onChange={(e) => setPlantCount(e.target.value)}
-                      placeholder="Es. 20"
-                      min="1"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                    />
-                  </div>
+                  
+                  {/* Mostra layout suggerito */}
+                  {layoutSuggestion && typeof layoutSuggestion === 'string' && (
+                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-sm font-semibold text-green-900 mb-1">
+                        🌱 Layout Suggerito:
+                      </p>
+                      <p className="text-sm text-green-800">
+                        {layoutSuggestion}
+                      </p>
+                      {spacingInfo && (
+                        <p className="text-xs text-green-700 mt-2">
+                          Spazio per pianta: {(spacingInfo.row * spacingInfo.between / 10000).toFixed(2)} m²
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 {/* Metodo irrigazione */}

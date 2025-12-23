@@ -60,15 +60,19 @@ function calculatePlantArea(
   
   const spacing = parseSpacing(spacingString);
   
+  // Se spacing non parsabile, usa valori di default
+  const defaultSpacing = { row: 30, between: 30 };
+  const finalSpacing = spacing || defaultSpacing;
+  
   // Calcola area per pianta in m²
   // Area = row (cm) * between (cm) / 10000
-  const areaPerPlant = (spacing.row * spacing.between) / 10000;
+  const areaPerPlant = (finalSpacing.row * finalSpacing.between) / 10000;
   
   return {
     areaPerPlant,
     spacing: {
-      row: spacing.row,
-      between: spacing.between,
+      row: finalSpacing.row,
+      between: finalSpacing.between,
     },
   };
 }
