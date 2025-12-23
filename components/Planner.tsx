@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { getSeasonalSuggestions, getSpecificPlantDetails, isApiKeyConfigured } from '../services/geminiService';
+import { getSeasonalSuggestions, getSpecificPlantDetails, isApiKeyConfigured, checkApiAvailableAsync } from '../services/geminiService';
 import { PlantSuggestion, GeoLocation, SpecificPlantInfo, Garden, GrowingLocation } from '../types';
 import { MapPin, Loader2, PlusCircle, Search, Leaf, ArrowRight, Droplets, FlaskConical, Scale, Edit3, Sun, Thermometer, Layers, Clock, Info, CalendarPlus, Settings, Gauge, Sprout, AlertTriangle, CheckCircle, Calendar, Sparkles, Box, LayoutGrid, Flower2, Package, Map as MapIcon } from 'lucide-react';
 import { getCurrentPositionWithRetry, getDefaultCoordinates } from '../services/geolocationService';
@@ -398,6 +398,63 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
     }
   }
 
+  // Funzione helper per convertire PlantSuggestionForWindow in PlantSuggestion
+  const convertToPlantSuggestion = (suggestion: PlantSuggestionForWindow): PlantSuggestion => {
+    const startMonth = suggestion.plantingWindow.start.toLocaleDateString('it-IT', { month: 'long' });
+    const endMonth = suggestion.plantingWindow.end.toLocaleDateString('it-IT', { month: 'long' });
+    const plantingWindowStr = `${startMonth} - ${endMonth}`;
+    
+    return {
+      name: suggestion.plantName,
+      description: suggestion.reason,
+      plantingWindow: plantingWindowStr,
+      harvestTime: 'Variabile',
+      difficulty: 'Medium' as const,
+      waterNeeds: 'Medium' as const,
+    };
+  };
+
+  // Funzione helper per caricare suggerimenti solari e convertirli
+  const loadSolarSuggestions = async (): Promise<void> => {
+    if (!garden.coordinates) {
+      throw new Error('Coordinate giardino non disponibili');
+    }
+
+    setLoadingSeasonalSuggestions(true);
+    try {
+      const response = await fetch(
+        `/api/garden/sun-exposure/plant-suggestions?gardenId=${garden.id}`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        // Converti date da string a Date
+        const solarSuggestions = (data.suggestions || []).map((s: any) => ({
+          ...s,
+          plantingWindow: {
+            start: new Date(s.plantingWindow.start),
+            end: new Date(s.plantingWindow.end),
+          },
+        }));
+        
+        setSeasonalPlantSuggestions(solarSuggestions);
+        setGardenClassification(data.classification || null);
+        
+        // Converti anche in formato PlantSuggestion per la sezione "Suggeriti per Oggi"
+        const convertedSuggestions = solarSuggestions.map(convertToPlantSuggestion);
+        setSuggestions(convertedSuggestions);
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'unknown_error' }));
+        throw new Error(errorData.error || 'Errore nel caricamento suggerimenti solari');
+      }
+    } catch (error) {
+      console.error('Error loading solar suggestions:', error);
+      throw error;
+    } finally {
+      setLoadingSeasonalSuggestions(false);
+    }
+  };
+
   const handleGetSuggestions = async () => {
       // Use garden location if available, otherwise browser location
       setLoading(true);
@@ -407,6 +464,18 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
       const fetchSugg = async (l: number, ln: number) => {
            try {
+              // Prima verifica se Gemini è disponibile
+              const apiAvailable = await checkApiAvailableAsync();
+              
+              if (!apiAvailable) {
+                // Fallback: usa suggerimenti basati su esposizione solare (non richiede Gemini)
+                console.log('Gemini API non disponibile, uso suggerimenti basati su esposizione solare');
+                await loadSolarSuggestions();
+                setLoading(false);
+                return;
+              }
+              
+              // Se Gemini è disponibile, usa quello
               const results = await getSeasonalSuggestions(l, ln);
               if (results && results.length > 0) {
                 setSuggestions(results);
@@ -415,12 +484,31 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
               }
             } catch (err: any) {
               const errorMsg = err?.message || "Errore sconosciuto";
-              if (errorMsg.includes("API Key")) {
-                setError("Chiave API non configurata. Configura VITE_GEMINI_API_KEY nel file .env per utilizzare questa funzionalità.");
+              
+              // Se errore è per API Key non configurata, fallback a suggerimenti solari
+              if (errorMsg.includes("API Key") || errorMsg.includes("API Key non configurata")) {
+                console.log('Gemini API non configurata, uso suggerimenti basati su esposizione solare');
+                try {
+                  await loadSolarSuggestions();
+                } catch (fallbackError: any) {
+                  setError("Chiave API non configurata. Configura NEXT_PUBLIC_GEMINI_API_KEY nel file .env o nelle Impostazioni > API Keys");
+                }
               } else if (errorMsg.includes("401") || errorMsg.includes("403")) {
-                setError("Chiave API non valida. Verifica la configurazione in .env");
+                // Per errori di autenticazione, prova fallback
+                console.log('Errore autenticazione Gemini, provo fallback a suggerimenti solari');
+                try {
+                  await loadSolarSuggestions();
+                } catch (fallbackError: any) {
+                  setError("Chiave API non valida. Verifica la configurazione in .env");
+                }
               } else {
-                setError(`Errore durante il recupero dei suggerimenti: ${errorMsg}`);
+                // Per altri errori, prova fallback a suggerimenti solari
+                console.log('Errore Gemini, provo fallback a suggerimenti solari:', errorMsg);
+                try {
+                  await loadSolarSuggestions();
+                } catch (fallbackError: any) {
+                  setError(`Errore durante il recupero dei suggerimenti: ${errorMsg}`);
+                }
               }
             } finally {
               setLoading(false);

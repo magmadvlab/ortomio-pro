@@ -33,7 +33,7 @@ const checkApiAvailable = (): boolean => {
 };
 
 // Versione async che verifica anche configurazioni personalizzate
-const checkApiAvailableAsync = async (): Promise<boolean> => {
+export const checkApiAvailableAsync = async (): Promise<boolean> => {
   // Prova prima configurazione personalizzata
   const hasCustom = await isAIProviderAvailable('ai_gemini');
   if (hasCustom) {
