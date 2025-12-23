@@ -4,7 +4,7 @@ Questa guida spiega come applicare le migrazioni database su Supabase online in 
 
 ## Panoramica
 
-Le migrazioni sono organizzate in **9 gruppi logici** che devono essere applicati in ordine:
+Le migrazioni sono organizzate in **11 gruppi logici** che devono essere applicati in ordine:
 
 1. **01_core_schema.sql** - Schema base (DEVE essere eseguito per primo)
 2. **02_user_profiles.sql** - Sistema profili utente e tier
@@ -16,6 +16,8 @@ Le migrazioni sono organizzate in **9 gruppi logici** che devono essere applicat
 8. **07_advanced_features.sql** - Feature avanzate PRO
 9. **08_performance_fixes.sql** - Fix performance e ottimizzazioni
 10. **09_tier_system.sql** - Sistema tier e migrazione
+11. **10_add_zone_id_to_garden_tasks.sql** - Aggiunge supporto precision agriculture zones ai task
+12. **11_add_completion_date_index.sql** - Indice per ottimizzare query su date completamento
 
 ## Prerequisiti
 
@@ -91,9 +93,25 @@ Le migrazioni sono organizzate in **9 gruppi logici** che devono essere applicat
 ### Fase 9: Tier System
 
 10. **09_tier_system.sql**
-    - Migra da 4-tier a 3-tier system (FREE, PLUS, PRO)
-    - Aggiorna constraint su `profiles.tier`
-    - ⚠️ **Eseguire DOPO 02_user_profiles.sql**
+   - Migra da 4-tier a 3-tier system (FREE, PLUS, PRO)
+   - Aggiorna constraint su `profiles.tier`
+   - ⚠️ **Eseguire DOPO 02_user_profiles.sql**
+
+### Fase 10: Precision Agriculture Zones
+
+11. **10_add_zone_id_to_garden_tasks.sql**
+   - Aggiunge colonna `zone_id` a `garden_tasks` per supporto precision agriculture
+   - Gestisce il caso in cui `garden_zones` non esiste ancora (aggiunge solo colonna senza FK)
+   - Crea indice `idx_garden_tasks_zone_id` per ottimizzare query
+   - ⚠️ **Eseguire DOPO 01_core_schema.sql e 04_garden_features.sql**
+   - ⚠️ **Se `garden_zones` viene aggiunta successivamente, aggiungere manualmente la FK**
+
+### Fase 11: Ottimizzazioni Performance
+
+12. **11_add_completion_date_index.sql**
+   - Aggiunge indice parziale su `actual_completed_date` per ottimizzare query su task completati
+   - Indice solo per task con `actual_completed_date IS NOT NULL`
+   - ⚠️ **Eseguire DOPO 01_core_schema.sql**
 
 ## Istruzioni per Supabase SQL Editor
 

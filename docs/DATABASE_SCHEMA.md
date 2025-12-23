@@ -157,11 +157,44 @@ Storico letture sensori simulati o reali.
 
 Task operativi per piante.
 
+**Campi chiave**:
+- `id`: UUID primario
+- `garden_id`: Riferimento orto
+- `plant_name`: Nome pianta
+- `task_type`: Tipo operazione (Sowing, Transplant, Fertilize, Prune, Harvest, Treatment, etc.)
+- `date`: Data pianificata/suggerita (DATE)
+- `completed`: Flag completamento (BOOLEAN)
+- `completed_at`: Timestamp completamento (TIMESTAMP WITH TIME ZONE)
+- `actual_completed_date`: Data effettiva completamento (TIMESTAMP WITH TIME ZONE)
+- `suggested_date`: Data suggerita dall'orchestrator (DATE)
+- `is_suggested`: Flag task suggerito automaticamente (BOOLEAN)
+- `suggested_by`: ID sistema che ha suggerito il task (TEXT)
+
+**Tracking Completamento**:
+- `date`: Data originale del task (pianificata o suggerita)
+- `suggested_date`: Se `is_suggested = true`, contiene la data suggerita dall'orchestrator
+- `actual_completed_date`: Data/ora effettiva in cui il task è stato completato (popolata quando `completed = true`)
+- `completed_at`: Timestamp di quando il campo `completed` è stato impostato a `true`
+
+**Differenza tra `actual_completed_date` e `completed_at`**:
+- `actual_completed_date`: Usato per tracciare quando il lavoro è stato effettivamente fatto (può essere diverso da `date` se completato in anticipo o ritardo)
+- `completed_at`: Timestamp tecnico di quando il record è stato aggiornato nel database
+
 **Modifiche per Precision Agriculture**:
 - `zone_id`: Riferimento zona (opzionale)
 
 **Relazioni**:
+- `garden_id` → `gardens.id`
 - `zone_id` → `garden_zones.id`
+- `bed_id` → `garden_beds.id`
+
+**Indici**:
+- `idx_garden_tasks_garden_id`: Per query per orto
+- `idx_garden_tasks_date`: Per query per data pianificata
+- `idx_garden_tasks_completed`: Per filtrare task completati/non completati
+- `idx_garden_tasks_suggested`: Per query task suggeriti (parziale)
+- `idx_garden_tasks_suggested_date`: Per query per data suggerita (parziale)
+- `idx_garden_tasks_actual_completed_date`: Per query per data completamento effettiva (parziale)
 
 ### Photo Logs
 

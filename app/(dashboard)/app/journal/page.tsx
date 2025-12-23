@@ -25,7 +25,18 @@ export default function JournalPage() {
   const handleToggleTask = async (id: string) => {
     const task = tasks.find(t => t.id === id)
     if (task) {
-      await storageProvider.updateTask(id, { completed: !task.completed })
+      const newCompletedStatus = !task.completed
+      const updates: any = { completed: newCompletedStatus }
+      
+      // Se viene completato, salva la data di completamento
+      if (newCompletedStatus) {
+        updates.actualCompletedDate = new Date().toISOString()
+      } else {
+        // Se viene ripristinato a non completato, rimuovi la data di completamento
+        updates.actualCompletedDate = null
+      }
+      
+      await storageProvider.updateTask(id, updates)
       const updatedTasks = await storageProvider.getTasks(garden?.id)
       setTasks(updatedTasks)
     }

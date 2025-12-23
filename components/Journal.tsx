@@ -1771,7 +1771,44 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                         const weekday = weekdays[date.getDay()];
                         const day = date.getDate();
                         const month = monthNames[date.getMonth()];
-                        return `${weekday} ${day} ${month}`;
+                        const dateStr = `${weekday} ${day} ${month}`;
+                        
+                        // Se completato, mostra anche la data di completamento
+                        if (task.completed && task.actualCompletedDate) {
+                          const completedDate = new Date(task.actualCompletedDate);
+                          const completedWeekday = weekdays[completedDate.getDay()];
+                          const completedDay = completedDate.getDate();
+                          const completedMonth = monthNames[completedDate.getMonth()];
+                          const completedDateStr = `${completedWeekday} ${completedDay} ${completedMonth}`;
+                          
+                          // Se la data di completamento è diversa dalla data originale, mostra entrambe
+                          if (completedDateStr !== dateStr) {
+                            return (
+                              <>
+                                <span className="line-through text-gray-400">{dateStr}</span>
+                                <span className="text-green-600 font-semibold">→ Completato: {completedDateStr}</span>
+                              </>
+                            );
+                          } else {
+                            return <span className="text-green-600 font-semibold">Completato: {dateStr}</span>;
+                          }
+                        }
+                        
+                        // Se è un task suggerito non completato, mostra la data suggerita
+                        if (task.isSuggested && task.suggestedDate && !task.completed) {
+                          const suggestedDate = new Date(task.suggestedDate);
+                          const suggestedWeekday = weekdays[suggestedDate.getDay()];
+                          const suggestedDay = suggestedDate.getDate();
+                          const suggestedMonth = monthNames[suggestedDate.getMonth()];
+                          return (
+                            <>
+                              <span>{dateStr}</span>
+                              <span className="text-blue-600">(Suggerito: {suggestedWeekday} {suggestedDay} {suggestedMonth})</span>
+                            </>
+                          );
+                        }
+                        
+                        return dateStr;
                       })()}
                       {task.season && (
                         <span className={`flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded ${task.season === 'Summer' ? 'bg-yellow-50 text-yellow-700' : 'bg-blue-50 text-blue-700'}`}>
@@ -1840,6 +1877,35 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                       </div>
                     )}
 
+                    {/* Completion Status Badge */}
+                    {task.completed && task.actualCompletedDate && (
+                      <div className="mt-3 flex items-center gap-2 text-xs bg-green-50 text-green-700 px-3 py-2 rounded-lg border border-green-200">
+                        <CheckCircle2 size={14} className="text-green-600" />
+                        <span className="font-semibold">Completato</span>
+                        {(() => {
+                          const completedDate = new Date(task.actualCompletedDate);
+                          const weekdays = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
+                          const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 
+                                            'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+                          const weekday = weekdays[completedDate.getDay()];
+                          const day = completedDate.getDate();
+                          const month = monthNames[completedDate.getMonth()];
+                          const year = completedDate.getFullYear();
+                          const today = new Date();
+                          const isToday = completedDate.toDateString() === today.toDateString();
+                          const isYesterday = completedDate.toDateString() === new Date(today.getTime() - 86400000).toDateString();
+                          
+                          if (isToday) {
+                            return <span>oggi</span>;
+                          } else if (isYesterday) {
+                            return <span>ieri</span>;
+                          } else {
+                            return <span>il {weekday} {day} {month} {year}</span>;
+                          }
+                        })()}
+                      </div>
+                    )}
+                    
                     {task.notes && (
                       <div className="mt-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap border border-gray-100">
                         {task.notes}
