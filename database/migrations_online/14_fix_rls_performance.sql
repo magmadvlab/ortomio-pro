@@ -20,10 +20,9 @@
 DO $do$
 DECLARE
   policy_rec RECORD;
-  policy_def TEXT;
   new_qual TEXT;
   new_with_check TEXT;
-  cmd TEXT;
+  sql_cmd TEXT;
 BEGIN
   -- Trova tutte le policy che usano auth.uid() direttamente (non già corrette)
   FOR policy_rec IN
@@ -38,7 +37,7 @@ BEGIN
     WHERE schemaname = 'public'
       AND (
         (qual LIKE '%auth.uid()%' AND qual NOT LIKE '%(select auth.uid())%')
-        OR (with_check LIKE '%auth.uid()%' AND (with_check IS NULL OR with_check NOT LIKE '%(select auth.uid())%'))
+        OR (with_check IS NOT NULL AND with_check LIKE '%auth.uid()%' AND with_check NOT LIKE '%(select auth.uid())%')
       )
     ORDER BY tablename, policyname
   LOOP
@@ -59,32 +58,32 @@ BEGIN
     BEGIN
       -- Determina il tipo di comando dalla policy esistente
       -- Per semplicità, ricreiamo la policy per tutti i comandi supportati
-      cmd := 'DROP POLICY IF EXISTS ' || quote_ident(policy_rec.policyname) || 
-             ' ON ' || quote_ident(policy_rec.schemaname) || '.' || quote_ident(policy_rec.tablename) || ';';
-      EXECUTE cmd;
+      sql_cmd := 'DROP POLICY IF EXISTS ' || quote_ident(policy_rec.policyname) || 
+                 ' ON ' || quote_ident(policy_rec.schemaname) || '.' || quote_ident(policy_rec.tablename) || ';';
+      EXECUTE sql_cmd;
       
       -- Ricrea la policy con la nuova definizione
       -- Usiamo FOR ALL per coprire tutti i tipi di comando
-      cmd := 'CREATE POLICY ' || quote_ident(policy_rec.policyname) || 
-             ' ON ' || quote_ident(policy_rec.schemaname) || '.' || quote_ident(policy_rec.tablename);
+      sql_cmd := 'CREATE POLICY ' || quote_ident(policy_rec.policyname) || 
+                 ' ON ' || quote_ident(policy_rec.schemaname) || '.' || quote_ident(policy_rec.tablename);
       
       -- Aggiungi USING se presente
       IF new_qual IS NOT NULL THEN
-        cmd := cmd || ' USING (' || new_qual || ')';
+        sql_cmd := sql_cmd || ' USING (' || new_qual || ')';
       END IF;
       
       -- Aggiungi WITH CHECK se presente
       IF new_with_check IS NOT NULL THEN
         IF new_qual IS NOT NULL THEN
-          cmd := cmd || ' WITH CHECK (' || new_with_check || ')';
+          sql_cmd := sql_cmd || ' WITH CHECK (' || new_with_check || ')';
         ELSE
-          cmd := cmd || ' WITH CHECK (' || new_with_check || ')';
+          sql_cmd := sql_cmd || ' WITH CHECK (' || new_with_check || ')';
         END IF;
       END IF;
       
-      cmd := cmd || ';';
+      sql_cmd := sql_cmd || ';';
       
-      EXECUTE cmd;
+      EXECUTE sql_cmd;
       
       RAISE NOTICE 'Policy % su %.% corretta', 
         policy_rec.policyname, 
@@ -98,7 +97,7 @@ BEGIN
           policy_rec.schemaname, 
           policy_rec.tablename,
           SQLERRM;
-        RAISE WARNING 'Comando fallito: %', cmd;
+        RAISE WARNING 'Comando fallito: %', sql_cmd;
     END;
   END LOOP;
   
@@ -119,7 +118,7 @@ BEGIN
   WHERE schemaname = 'public'
     AND (
       (qual LIKE '%auth.uid()%' AND qual NOT LIKE '%(select auth.uid())%')
-      OR (with_check LIKE '%auth.uid()%' AND (with_check IS NULL OR with_check NOT LIKE '%(select auth.uid())%'))
+      OR (with_check IS NOT NULL AND with_check LIKE '%auth.uid()%' AND with_check NOT LIKE '%(select auth.uid())%')
     );
   
   SELECT COUNT(*) INTO count_new
