@@ -4,7 +4,7 @@ Questa guida spiega come applicare le migrazioni database su Supabase online in 
 
 ## Panoramica
 
-Le migrazioni sono organizzate in **16 gruppi logici** che devono essere applicati in ordine:
+Le migrazioni sono organizzate in **19 gruppi logici** che devono essere applicati in ordine:
 
 1. **01_core_schema.sql** - Schema base (DEVE essere eseguito per primo)
 2. **02_user_profiles.sql** - Sistema profili utente e tier
@@ -22,6 +22,9 @@ Le migrazioni sono organizzate in **16 gruppi logici** che devono essere applica
 14. **13_fix_function_search_path_security.sql** - Corregge search_path mutabile su funzioni per sicurezza
 15. **14_fix_rls_performance.sql** - Corregge performance RLS policies sostituendo auth.uid() con (select auth.uid())
 16. **15_add_missing_foreign_key_indexes.sql** - Aggiunge indici mancanti su foreign key per performance
+17. **16_improve_seed_inventory_quantity.sql** - Migliora banca dei semi con supporto quantità flessibili (range, numeri grandi)
+18. **17_add_sowing_details_to_tasks.sql** - Aggiunge tracking dettagliato semina/germinazione (vassoi, piantine attese, area)
+19. **18_add_task_scheduling_fields.sql** - Aggiunge schedulizzazione task (pianificazione date future, ricorrenze)
 
 ## Prerequisiti
 

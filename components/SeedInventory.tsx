@@ -11,6 +11,7 @@ import {
   shouldShowJanuaryAlert
 } from '../services/seedInventoryService';
 import { varietyMappings } from '../data/varietyMappings';
+import { parseQuantity, formatQuantity, getEstimatedQuantity } from '../utils/quantityParser';
 import { 
   Package, Plus, X, Edit2, Trash2, AlertTriangle, CheckCircle, 
   Filter, Search, Calendar, TrendingDown, Box
@@ -49,6 +50,21 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
   const handleAdd = () => {
     if (!newPacket.varietyName || !newPacket.speciesName) return;
     
+    // Parse quantità se presente
+    let parsedQty = null;
+    if (newPacket.quantityDisplay) {
+      parsedQty = parseQuantity(newPacket.quantityDisplay);
+    }
+    
+    // Calcola quantityRemaining basato su quantità stimata
+    const estimatedQty = parsedQty ? getEstimatedQuantity(parsedQty) : undefined;
+    let qtyRemaining: 'High' | 'Medium' | 'Low' | 'Empty' = 'High';
+    if (estimatedQty !== undefined) {
+      qtyRemaining = estimatedQty >= 50 ? 'High' : estimatedQty >= 20 ? 'Medium' : estimatedQty >= 1 ? 'Low' : 'Empty';
+    } else if (newPacket.quantityRemaining) {
+      qtyRemaining = newPacket.quantityRemaining;
+    }
+    
     const packet: SeedPacket = {
       id: crypto.randomUUID(),
       varietyId: newPacket.varietyName.toLowerCase(),
@@ -57,9 +73,15 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
       purchaseDate: newPacket.purchaseDate || new Date().toISOString().split('T')[0],
       expiryYear: newPacket.expiryYear || new Date().getFullYear() + 2,
       isOpen: newPacket.isOpen || false,
-      quantityRemaining: newPacket.quantityRemaining || 'High',
-      initialQuantity: newPacket.initialQuantity,
-      currentQuantity: newPacket.currentQuantity !== undefined ? newPacket.currentQuantity : newPacket.initialQuantity,
+      quantityRemaining: qtyRemaining,
+      // Mantenere retrocompatibilità
+      initialQuantity: parsedQty?.exact || parsedQty?.min || newPacket.initialQuantity,
+      currentQuantity: parsedQty?.exact || parsedQty?.min || newPacket.currentQuantity,
+      // Nuovi campi flessibili
+      quantityDisplay: parsedQty?.display,
+      quantityMin: parsedQty?.min,
+      quantityMax: parsedQty?.max,
+      quantityExact: parsedQty?.exact,
       notes: newPacket.notes,
       gardenId: garden.id
     };
@@ -74,8 +96,7 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
       expiryYear: new Date().getFullYear() + 2,
       isOpen: false,
       quantityRemaining: 'High',
-      initialQuantity: undefined,
-      currentQuantity: undefined,
+      quantityDisplay: undefined,
       gardenId: garden.id
     });
   };
@@ -290,43 +311,38 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                  Quantità Iniziale (opzionale)
+                  Quantità (opzionale)
                 </label>
                 <input
-                  type="number"
-                  min="0"
-                  placeholder="Es. 100"
-                  value={newPacket.initialQuantity || ''}
+                  type="text"
+                  placeholder="Es: 100, 10-1000, 1000000, ~50, Molti"
+                  value={newPacket.quantityDisplay || ''}
                   onChange={(e) => {
-                    const qty = e.target.value ? parseInt(e.target.value) : undefined;
+                    const value = e.target.value;
                     setNewPacket({ 
                       ...newPacket, 
-                      initialQuantity: qty,
-                      currentQuantity: qty, // Imposta anche currentQuantity
-                      quantityRemaining: qty 
-                        ? (qty >= 50 ? 'High' : qty >= 20 ? 'Medium' : qty >= 1 ? 'Low' : 'Empty')
-                        : newPacket.quantityRemaining || 'High'
+                      quantityDisplay: value || undefined
                     });
                   }}
                   className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Inserisci il numero esatto di semi (es. 100). Se lasciato vuoto, usa solo categoria.
+                  Inserisci quantità: numero esatto (100), range (10-1000), approssimato (~50), o testo (Molti)
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                    Categoria Scorta {newPacket.initialQuantity ? '(calcolata automaticamente)' : ''}
+                    Categoria Scorta {newPacket.quantityDisplay ? '(calcolata automaticamente)' : ''}
                   </label>
                   <select
                     value={newPacket.quantityRemaining}
                     onChange={(e) => {
-                      if (!newPacket.initialQuantity) {
+                      if (!newPacket.quantityDisplay) {
                         setNewPacket({ ...newPacket, quantityRemaining: e.target.value as SeedPacket['quantityRemaining'] });
                       }
                     }}
-                    disabled={!!newPacket.initialQuantity}
+                    disabled={!!newPacket.quantityDisplay}
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="High">Alta</option>
@@ -397,24 +413,37 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
                         className="w-full p-2 border border-gray-300 rounded-lg"
                       />
                       <input
-                        type="number"
-                        min="0"
-                        placeholder="Quantità corrente (opzionale)"
-                        value={packet.currentQuantity || ''}
+                        type="text"
+                        placeholder="Quantità: 100, 10-1000, ~50, Molti"
+                        value={packet.quantityDisplay || ''}
                         onChange={(e) => {
-                          const qty = e.target.value ? parseInt(e.target.value) : undefined;
+                          const value = e.target.value;
+                          const parsed = value ? parseQuantity(value) : null;
+                          const estimated = parsed ? getEstimatedQuantity(parsed) : undefined;
                           handleUpdate(packet.id, { 
-                            currentQuantity: qty,
-                            quantityRemaining: qty 
-                              ? (qty >= 50 ? 'High' : qty >= 20 ? 'Medium' : qty >= 1 ? 'Low' : 'Empty')
+                            quantityDisplay: value || undefined,
+                            quantityMin: parsed?.min,
+                            quantityMax: parsed?.max,
+                            quantityExact: parsed?.exact,
+                            currentQuantity: estimated,
+                            initialQuantity: estimated,
+                            quantityRemaining: estimated 
+                              ? (estimated >= 50 ? 'High' : estimated >= 20 ? 'Medium' : estimated >= 1 ? 'Low' : 'Empty')
                               : packet.quantityRemaining
                           });
                         }}
                         className="w-full p-2 border border-gray-300 rounded-lg"
                       />
-                      {packet.initialQuantity && (
+                      {(packet.initialQuantity || packet.quantityDisplay) && (
                         <p className="text-xs text-gray-500">
-                          Quantità iniziale: {String(packet.initialQuantity)}
+                          {packet.quantityDisplay 
+                            ? `Quantità: ${formatQuantity({
+                                display: packet.quantityDisplay,
+                                min: packet.quantityMin,
+                                max: packet.quantityMax,
+                                exact: packet.quantityExact
+                              })}`
+                            : `Quantità iniziale: ${String(packet.initialQuantity)}`}
                         </p>
                       )}
                     </div>
@@ -455,10 +484,19 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
                          packet.quantityRemaining === 'Medium' ? 'Media' :
                          packet.quantityRemaining === 'Low' ? 'Bassa' : 'Vuoto'}
                       </span>
-                      {packet.currentQuantity !== undefined && packet.currentQuantity !== null && (
+                      {(packet.quantityDisplay || packet.currentQuantity !== undefined) && (
                         <span className="text-xs font-semibold px-2 py-1 rounded bg-gray-100 text-gray-700">
-                          {String(packet.currentQuantity)} {packet.currentQuantity === 1 ? 'seme' : 'semi'}
-                          {packet.initialQuantity && packet.initialQuantity > 0 && (
+                          {packet.quantityDisplay 
+                            ? formatQuantity({
+                                display: packet.quantityDisplay,
+                                min: packet.quantityMin,
+                                max: packet.quantityMax,
+                                exact: packet.quantityExact
+                              })
+                            : packet.currentQuantity !== undefined && packet.currentQuantity !== null
+                              ? String(packet.currentQuantity)
+                              : ''} {packet.quantityDisplay ? 'semi' : packet.currentQuantity === 1 ? 'seme' : 'semi'}
+                          {packet.initialQuantity && packet.initialQuantity > 0 && !packet.quantityDisplay && (
                             <span className="text-gray-500"> / {String(packet.initialQuantity)}</span>
                           )}
                         </span>

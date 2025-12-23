@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { GardenTask, HarvestLogData, GrowingLocation, Garden } from '../types';
 import { analyzePlantImage, checkHarvestReadiness } from '../services/geminiService';
+import LifecycleFlowGuide from './LifecycleFlowGuide';
 import { calculateNutrientNeeds, NutrientAdvice } from '../logic/nutrientEngine';
 import { calculateHealthStrategy } from '../logic/healthEngine';
 import { getMasterSheetSync, getMasterSheet } from '../services/plantMasterService';
@@ -95,6 +96,8 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
     locationType: GrowingLocation;
     selectedSeedPacketId?: string; // ID del pacchetto di semi selezionato dalla banca
     selectedBatchId?: string; // ID del batch di piantine selezionato
+    isScheduled?: boolean; // Toggle per pianificazione futura
+    scheduledDate?: string; // Data pianificata (se isScheduled = true)
   }>({
     plantName: '',
     variety: '',
@@ -107,7 +110,9 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
     quantity: 1,
     locationType: 'Ground',
     selectedSeedPacketId: undefined,
-    selectedBatchId: undefined
+    selectedBatchId: undefined,
+    isScheduled: false,
+    scheduledDate: undefined
   });
 
   // Carica semi disponibili dalla banca
@@ -394,7 +399,10 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
         seedPacketId: newTask.plantingMethod === 'Seed' ? newTask.selectedSeedPacketId : undefined, // Traccia origine semi
         seedlingBatchId: newTask.plantingMethod === 'Seedling' ? newTask.selectedBatchId : undefined, // Traccia origine piantine
         saplingBatchId: newTask.plantingMethod === 'Sapling' ? newTask.selectedBatchId : undefined, // Traccia origine alberelli
-        images: batchImages.length > 0 ? batchImages : undefined // Include foto dal batch
+        images: batchImages.length > 0 ? batchImages : undefined, // Include foto dal batch
+        // Scheduling fields
+        scheduledDate: newTask.isScheduled && newTask.scheduledDate ? newTask.scheduledDate : undefined,
+        schedulingType: newTask.isScheduled ? 'Scheduled' : 'Immediate'
       });
       setIsAdding(false);
       setNewTask({ 
@@ -523,7 +531,10 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
       seedPacketId: newTask.plantingMethod === 'Seed' ? newTask.selectedSeedPacketId : undefined, // Traccia origine semi
       seedlingBatchId: newTask.plantingMethod === 'Seedling' ? newTask.selectedBatchId : undefined, // Traccia origine piantine
       saplingBatchId: newTask.plantingMethod === 'Sapling' ? newTask.selectedBatchId : undefined, // Traccia origine alberelli
-      images: batchImages.length > 0 ? batchImages : undefined // Include foto dal batch
+      images: batchImages.length > 0 ? batchImages : undefined, // Include foto dal batch
+      // Scheduling fields
+      scheduledDate: newTask.isScheduled && newTask.scheduledDate ? newTask.scheduledDate : undefined,
+      schedulingType: newTask.isScheduled ? 'Scheduled' : 'Immediate'
     });
     setIsAdding(false);
     setNewTask({ 
@@ -1290,6 +1301,52 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                   value={newTask.date} onChange={e => setNewTask({...newTask, date: e.target.value})} />
               </div>
             </div>
+            
+            {/* Toggle Pianifica per dopo */}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="isScheduled"
+                checked={newTask.isScheduled || false}
+                onChange={(e) => {
+                  setNewTask({
+                    ...newTask,
+                    isScheduled: e.target.checked,
+                    scheduledDate: e.target.checked ? newTask.date : undefined,
+                    schedulingType: e.target.checked ? 'Scheduled' : 'Immediate'
+                  });
+                }}
+                className="w-5 h-5"
+              />
+              <label htmlFor="isScheduled" className="text-sm font-semibold text-gray-700 cursor-pointer">
+                Pianifica per dopo
+              </label>
+            </div>
+            
+            {/* Campo data pianificata (se isScheduled = true) */}
+            {newTask.isScheduled && (
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                  Data Pianificata
+                </label>
+                <input
+                  type="date"
+                  className="w-full p-3 bg-white border border-blue-200 rounded-xl outline-none"
+                  value={newTask.scheduledDate || newTask.date}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => {
+                    setNewTask({
+                      ...newTask,
+                      scheduledDate: e.target.value,
+                      date: e.target.value // Aggiorna anche date quando si cambia scheduledDate
+                    });
+                  }}
+                />
+                <p className="text-xs text-blue-600 mt-1">
+                  Questo task apparirà nel calendario come "Pianificato" fino alla data indicata.
+                </p>
+              </div>
+            )}
 
             {(newTask.taskType === 'Sowing' || newTask.taskType === 'Transplant') && (
               <>
@@ -1921,6 +1978,18 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                             return <span>il {weekday} {day} {month} {year}</span>;
                           }
                         })()}
+                      </div>
+                    )}
+                    
+                    {/* Lifecycle Flow Guide - Solo per task di semina/trapianto */}
+                    {(task.taskType === 'Sowing' || task.taskType === 'Transplant') && !task.completed && (
+                      <div className="mt-4">
+                        <LifecycleFlowGuide
+                          task={task}
+                          onAdvancePhase={(newPhase) => {
+                            onUpdateTask(task.id, { lifecycleState: newPhase as GardenTask['lifecycleState'] });
+                          }}
+                        />
                       </div>
                     )}
                     

@@ -616,6 +616,17 @@ export interface GardenTask {
   suggestedBy?: string; // ID del task/sistema che ha suggerito questo task
   notes?: string;
   nextDueDate?: string; // For recurring tasks or follow-ups
+  // Scheduling fields - Pianificazione task futuri e ricorrenti
+  scheduledDate?: string; // Data pianificata (ISO string, diversa da date che è quando fatto)
+  schedulingType?: 'Immediate' | 'Scheduled' | 'Recurring'; // Tipo di schedulizzazione
+  recurrencePattern?: { // Pattern di ricorrenza
+    frequency: 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+    interval?: number; // Ogni N giorni/settimane/mesi/anni
+    endDate?: string; // Data fine ricorrenza (ISO string, opzionale)
+    daysOfWeek?: number[]; // Per Weekly: giorni della settimana (0=domenica, 6=sabato)
+    dayOfMonth?: number; // Per Monthly: giorno del mese
+    monthOfYear?: number; // Per Yearly: mese dell'anno (1-12)
+  };
   treatmentProductId?: string; // ID prodotto trattamento (se taskType è 'Treatment')
   images?: string[]; // Base64 encoded images
   lastPhotoDate?: string; // To track weekly updates
@@ -630,6 +641,18 @@ export interface GardenTask {
     germinationConfirmed?: boolean; // Utente ha confermato la germinazione
     transplantReady?: boolean; // Utente ha confermato che è pronto per trapianto
     [key: string]: boolean | undefined; // Estendibile per altre risposte
+  };
+  // Sowing Details - Tracking dettagliato semina/germinazione
+  sowingDetails?: {
+    containerType?: 'GerminationTray' | 'Pot' | 'Direct' | 'Hydroponic';
+    traySize?: string; // "50 celle", "128 celle", ecc.
+    seedsPerCell?: number;
+    expectedGerminationRate?: number; // 0-1 (es. 0.8 = 80%)
+    expectedSeedlings?: number; // Calcolato: initialQuantity * germinationRate
+    germinationAreaSqm?: number; // Area occupata durante germinazione
+    finalPlantingAreaSqm?: number; // Area occupata dopo trapianto
+    germinationLocation?: 'Indoor' | 'Greenhouse' | 'ColdFrame' | 'Outdoor';
+    temperature?: number; // Temperatura germinazione
   };
   // Harvest Specifics for Planner/Journal tracking
   recordedBrix?: number;
@@ -1120,8 +1143,13 @@ export interface SeedPacket {
   expiryYear: number; // Anno di scadenza (es. 2026)
   isOpen: boolean; // Busta aperta?
   quantityRemaining: 'High' | 'Medium' | 'Low' | 'Empty'; // Mantenuto per retrocompatibilità
-  initialQuantity?: number; // Quantità iniziale di semi nel pacchetto (es. 100)
-  currentQuantity?: number; // Quantità corrente rimanente (es. 90 dopo aver usato 10)
+  initialQuantity?: number; // Quantità iniziale di semi nel pacchetto (es. 100) - mantenuto per retrocompatibilità
+  currentQuantity?: number; // Quantità corrente rimanente (es. 90 dopo aver usato 10) - mantenuto per retrocompatibilità
+  // Nuovi campi per quantità flessibili
+  quantityDisplay?: string; // Display originale ("10", "10-1000", "1000000", "~50", "Molti")
+  quantityMin?: number; // Minimo del range (NULL se esatto)
+  quantityMax?: number; // Massimo del range (NULL se esatto)
+  quantityExact?: number; // Valore esatto (NULL se range)
   notes?: string;
   gardenId: string; // A quale orto appartiene
 }

@@ -678,6 +678,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       gridPosition: db.grid_position,
       gridRotation: db.grid_rotation,
       userResponses: db.user_responses,
+      sowingDetails: db.sowing_details,
       recordedBrix: db.recorded_brix ? Number(db.recorded_brix) : undefined,
       harvestReadyAnalysis: db.harvest_ready_analysis,
       harvestHistory: db.harvest_history,
@@ -705,6 +706,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
       actualCompletedDate: db.actual_completed_date,
       isSuggested: db.is_suggested,
       suggestedBy: db.suggested_by,
+      // Scheduling fields
+      scheduledDate: db.scheduled_date,
+      schedulingType: db.scheduling_type,
+      recurrencePattern: db.recurrence_pattern,
       // Specialized Crop Data (mancanti)
       exoticFruitData: db.exotic_fruit_data,
       mechanicalWorkData: db.mechanical_work_data,
@@ -739,6 +744,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (task.gridPosition !== undefined) db.grid_position = task.gridPosition;
     if (task.gridRotation !== undefined) db.grid_rotation = task.gridRotation;
     if (task.userResponses !== undefined) db.user_responses = task.userResponses;
+    if (task.sowingDetails !== undefined) db.sowing_details = task.sowingDetails;
     if (task.recordedBrix !== undefined) db.recorded_brix = task.recordedBrix;
     if (task.harvestReadyAnalysis !== undefined) db.harvest_ready_analysis = task.harvestReadyAnalysis;
     if (task.harvestHistory !== undefined) db.harvest_history = task.harvestHistory;
@@ -766,6 +772,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (task.actualCompletedDate !== undefined) db.actual_completed_date = task.actualCompletedDate;
     if (task.isSuggested !== undefined) db.is_suggested = task.isSuggested;
     if (task.suggestedBy !== undefined) db.suggested_by = task.suggestedBy;
+    // Scheduling fields
+    if (task.scheduledDate !== undefined) db.scheduled_date = task.scheduledDate;
+    if (task.schedulingType !== undefined) db.scheduling_type = task.schedulingType;
+    if (task.recurrencePattern !== undefined) db.recurrence_pattern = task.recurrencePattern;
     // Specialized Crop Data
     if (task.exoticFruitData !== undefined) db.exotic_fruit_data = task.exoticFruitData;
     if (task.mechanicalWorkData !== undefined) db.mechanical_work_data = task.mechanicalWorkData;
@@ -792,6 +802,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
       quantityRemaining: db.quantity_remaining,
       initialQuantity: db.initial_quantity !== null && db.initial_quantity !== undefined ? db.initial_quantity : undefined,
       currentQuantity: db.current_quantity !== null && db.current_quantity !== undefined ? db.current_quantity : undefined,
+      // Nuovi campi per quantità flessibili
+      quantityDisplay: db.quantity_display || undefined,
+      quantityMin: db.quantity_min !== null && db.quantity_min !== undefined ? db.quantity_min : undefined,
+      quantityMax: db.quantity_max !== null && db.quantity_max !== undefined ? db.quantity_max : undefined,
+      quantityExact: db.quantity_exact !== null && db.quantity_exact !== undefined ? db.quantity_exact : undefined,
       notes: db.notes,
       gardenId: db.garden_id,
     };
@@ -808,6 +823,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (packet.quantityRemaining !== undefined) db.quantity_remaining = packet.quantityRemaining;
     if (packet.initialQuantity !== undefined) db.initial_quantity = packet.initialQuantity;
     if (packet.currentQuantity !== undefined) db.current_quantity = packet.currentQuantity;
+    // Nuovi campi per quantità flessibili
+    if (packet.quantityDisplay !== undefined) db.quantity_display = packet.quantityDisplay;
+    if (packet.quantityMin !== undefined) db.quantity_min = packet.quantityMin;
+    if (packet.quantityMax !== undefined) db.quantity_max = packet.quantityMax;
+    if (packet.quantityExact !== undefined) db.quantity_exact = packet.quantityExact;
     if (packet.notes !== undefined) db.notes = packet.notes;
     if (packet.gardenId !== undefined) db.garden_id = packet.gardenId;
     return db;
