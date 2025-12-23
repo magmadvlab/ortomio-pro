@@ -34,6 +34,11 @@ interface JournalProps {
 
 const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTask, onDeleteTask, onUpdateTask }) => {
   const { storageProvider } = useStorage();
+
+  // Helper function per ottenere currentQuantity in modo type-safe
+  const getCurrentQuantity = (packet: SeedPacket): number | null => {
+    return (packet as SeedPacket & { currentQuantity?: number }).currentQuantity ?? null;
+  };
   const [isAdding, setIsAdding] = useState(false);
   const [showCropWizard, setShowCropWizard] = useState(false);
   const [wizardPlantName, setWizardPlantName] = useState('');
@@ -1384,9 +1389,12 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                             {packet.varietyName} ({packet.speciesName}) - {
                               isExhausted 
                                 ? 'Esaurito' 
-                                : packet.currentQuantity !== undefined && packet.currentQuantity !== null
-                                  ? `Disponibili: ${packet.currentQuantity} ${packet.currentQuantity === 1 ? 'seme' : 'semi'}`
-                                  : `Disponibile: ${packet.quantityRemaining === 'High' ? 'Alta' : packet.quantityRemaining === 'Medium' ? 'Media' : packet.quantityRemaining === 'Low' ? 'Bassa' : 'Vuoto'}`
+                                : (() => {
+                                    const qty = getCurrentQuantity(packet);
+                                    return qty !== null && qty !== undefined
+                                      ? `Disponibili: ${qty} ${qty === 1 ? 'seme' : 'semi'}`
+                                      : `Disponibile: ${packet.quantityRemaining === 'High' ? 'Alta' : packet.quantityRemaining === 'Medium' ? 'Media' : packet.quantityRemaining === 'Low' ? 'Bassa' : 'Vuoto'}`;
+                                  })()
                             }
                           </option>
                         );
