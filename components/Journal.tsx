@@ -1995,7 +1995,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                         <LifecycleFlowGuide
                           task={task}
                           onAdvancePhase={(newPhase) => {
-                            onUpdateTask(task.id, { lifecycleState: newPhase as GardenTask['lifecycleState'] });
+                            onUpdateTask({ ...task, lifecycleState: newPhase as GardenTask['lifecycleState'] });
                           }}
                         />
                       </div>
