@@ -38,21 +38,21 @@ CREATE INDEX IF NOT EXISTS idx_notification_preferences_user_id
 -- ============================================
 
 -- Verifica se la funzione esiste già (creata in 01_core_schema.sql)
-DO $$ 
+DO $do$ 
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_proc 
     WHERE proname = 'update_updated_at_column'
   ) THEN
     CREATE OR REPLACE FUNCTION update_updated_at_column()
-    RETURNS TRIGGER AS $$
+    RETURNS TRIGGER AS $func$
     BEGIN
       NEW.updated_at = NOW();
       RETURN NEW;
     END;
-    $$ LANGUAGE plpgsql;
+    $func$ LANGUAGE plpgsql;
   END IF;
-END $$;
+END $do$;
 
 CREATE TRIGGER update_notification_preferences_updated_at
   BEFORE UPDATE ON notification_preferences
