@@ -134,9 +134,9 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
         };
       }
       
-      setCalculatedPlants(layoutResult.maxPlants);
+      setCalculatedPlants(layoutResult.maxPlants > 0 ? layoutResult.maxPlants : null);
       setCalculatedArea(null);
-      setLayoutSuggestion(layoutResult.layout || '');
+      setLayoutSuggestion(String(layoutResult.layout || ''));
     } else if (plantCount && parseInt(plantCount) > 0) {
       const numPlants = parseInt(plantCount);
       let layoutResult;
@@ -161,9 +161,10 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
         };
       }
       
-      setCalculatedArea(layoutResult.areaNeeded || 0);
+      const areaNeeded = layoutResult.areaNeeded && layoutResult.areaNeeded > 0 ? layoutResult.areaNeeded : null;
+      setCalculatedArea(areaNeeded);
       setCalculatedPlants(null);
-      setLayoutSuggestion(layoutResult.layout || '');
+      setLayoutSuggestion(String(layoutResult.layout || ''));
     } else {
       setCalculatedPlants(null);
       setCalculatedArea(null);
@@ -677,7 +678,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                   </label>
                   
                   {/* Mostra sempre le distanze consigliate */}
-                  {spacingInfo && (
+                  {spacingInfo && typeof spacingInfo.row === 'number' && typeof spacingInfo.between === 'number' && (
                     <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                       <p className="text-sm font-semibold text-blue-900 mb-1">
                         📏 Distanze Consigliate:
@@ -707,7 +708,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                         step="0.1"
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                       />
-                      {calculatedPlants !== null && spacingInfo && areaSqm && (
+                      {calculatedPlants !== null && calculatedPlants > 0 && spacingInfo && areaSqm && parseFloat(areaSqm) > 0 && (
                         <p className="text-xs text-green-600 mt-1">
                           💡 Con {areaSqm} m² puoi piantare fino a <strong>{calculatedPlants} piante</strong>
                         </p>
@@ -728,7 +729,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                         min="1"
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                       />
-                      {calculatedArea !== null && calculatedArea > 0 && spacingInfo && plantCount && (
+                      {calculatedArea !== null && calculatedArea > 0 && spacingInfo && plantCount && parseInt(plantCount) > 0 && (
                         <p className="text-xs text-green-600 mt-1">
                           💡 Per {plantCount} piante servono circa <strong>{calculatedArea.toFixed(2)} m²</strong>
                         </p>
@@ -745,7 +746,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                       <p className="text-sm text-green-800">
                         {layoutSuggestion}
                       </p>
-                      {spacingInfo && (
+                      {spacingInfo && typeof spacingInfo.row === 'number' && typeof spacingInfo.between === 'number' && (
                         <p className="text-xs text-green-700 mt-2">
                           Spazio per pianta: {(spacingInfo.row * spacingInfo.between / 10000).toFixed(2)} m²
                         </p>
