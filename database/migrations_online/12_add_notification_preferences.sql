@@ -94,40 +94,48 @@ CREATE POLICY "Users can delete their own notification preferences"
 -- ============================================
 
 CREATE OR REPLACE FUNCTION get_or_create_notification_preferences(p_user_id UUID)
-RETURNS notification_preferences AS $$
+RETURNS notification_preferences 
+LANGUAGE plpgsql 
+SECURITY DEFINER 
+SET search_path = ''
+AS $$
 DECLARE
   v_prefs notification_preferences;
 BEGIN
   -- Cerca preferenze esistenti
   SELECT * INTO v_prefs
-  FROM notification_preferences
+  FROM public.notification_preferences
   WHERE user_id = p_user_id;
 
   -- Se non esistono, crea default
   IF NOT FOUND THEN
-    INSERT INTO notification_preferences (user_id)
+    INSERT INTO public.notification_preferences (user_id)
     VALUES (p_user_id)
     RETURNING * INTO v_prefs;
   END IF;
 
   RETURN v_prefs;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- ============================================
 -- TRIGGER: Create default preferences on user creation
 -- ============================================
 
 CREATE OR REPLACE FUNCTION create_default_notification_preferences()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+LANGUAGE plpgsql 
+SECURITY DEFINER 
+SET search_path = ''
+AS $$
 BEGIN
-  INSERT INTO notification_preferences (user_id)
+  INSERT INTO public.notification_preferences (user_id)
   VALUES (NEW.id)
   ON CONFLICT (user_id) DO NOTHING;
   
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- Trigger quando viene creato un nuovo utente
 DROP TRIGGER IF EXISTS on_user_created_notification_prefs ON auth.users;
