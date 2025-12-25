@@ -50,6 +50,7 @@ import { GardenSelectorCard } from './GardenSelectorCard'
 import { TaskCard } from './TaskCard'
 import { GardenCard } from './GardenCard'
 import { ProgressCard } from './ProgressCard'
+import { WeatherTaskWidget } from './WeatherTaskAlert'
 import { isToday, isSameDay, addDays, parseISO, format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { Heart, ArrowRight, Sparkles } from 'lucide-react'
@@ -513,7 +514,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
             const taskDate = t.nextDueDate ? parseISO(t.nextDueDate) : parseISO(t.date)
             return isSameDay(taskDate, today)
           })
-          
+
           return (
             <div className="bg-white rounded-xl border-2 border-gray-200 p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
@@ -531,7 +532,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                   </Link>
                 )}
           </div>
-              
+
               {todayTasks.length === 0 ? (
                 <div className="text-center py-8">
                   <CheckCircle size={48} className="mx-auto text-green-500 mb-3" />
@@ -593,6 +594,19 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
             </div>
           )
         })()}
+
+        {/* METEO-INTELLIGENTE: Alert task riprogrammati per meteo sfavorevole */}
+        {activeGarden && activeGarden.coordinates && (
+          <WeatherTaskWidget
+            garden={activeGarden}
+            tasks={gardenTasks}
+            onTaskUpdate={async (task) => {
+              await storageProvider.updateTask(task.id, task)
+              const updatedTasks = await storageProvider.getTasks(activeGarden.id)
+              setGardenTasks(updatedTasks || [])
+            }}
+          />
+        )}
 
         {/* DIRECTOR - BASELINE STAGIONALE (prompt strutturati) */}
         {dailyPlan && dailyPlan.baselinePrompts && dailyPlan.baselinePrompts.length > 0 && (

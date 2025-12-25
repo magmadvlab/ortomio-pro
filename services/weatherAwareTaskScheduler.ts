@@ -40,6 +40,116 @@ export interface TaskWeatherRequirements {
 }
 
 /**
+ * Requisiti meteo specifici per pianta (override task type)
+ * Usato per customizzare in base alla coltura specifica
+ */
+export const PLANT_SPECIFIC_REQUIREMENTS: Record<string, Partial<TaskWeatherRequirements>> = {
+  // ORTAGGI DELICATI (Lattuga, Spinaci, Rucola)
+  'Lattuga': {
+    maxTemp: 28, // Soffrono il caldo
+    reason: 'Lattuga e ortaggi da foglia soffrono con temperature >28°C (montano a seme)'
+  },
+  'Spinaci': {
+    maxTemp: 25,
+    reason: 'Spinaci preferiscono clima fresco, >25°C causano montatura a seme'
+  },
+  'Rucola': {
+    maxTemp: 30,
+    reason: 'Rucola diventa amara con caldo eccessivo'
+  },
+
+  // POMODORI (sensibili umidità)
+  'Pomodoro': {
+    maxRain: 15, // Pioggia moderata OK ma no eccessi
+    reason: 'Pomodori sensibili a peronospora con pioggia eccessiva e umidità alta'
+  },
+
+  // ZUCCHINE/CUCURBITACEE (sensibili oidio)
+  'Zucchina': {
+    maxRain: 10,
+    dryDaysAfter: 1,
+    reason: 'Zucchine sensibili a oidio, meglio evitare bagnatura fogliare prolungata'
+  },
+  'Cetriolo': {
+    maxRain: 10,
+    dryDaysAfter: 1,
+    reason: 'Cetrioli sensibili a oidio e peronospora con umidità eccessiva'
+  },
+  'Melone': {
+    maxRain: 5,
+    dryDaysAfter: 2,
+    reason: 'Meloni richiedono clima asciutto durante maturazione per concentrare zuccheri'
+  },
+
+  // LEGUMI (sensibili ristagno)
+  'Fagiolo': {
+    maxRain: 15,
+    dryDaysBefore: 1,
+    reason: 'Fagioli soffrono ristagno idrico, terreno deve essere ben drenato'
+  },
+  'Pisello': {
+    maxRain: 20,
+    minTemp: 5,
+    reason: 'Piselli tollerano freddo ma soffrono ristagno'
+  },
+
+  // BRASSICACEE (cavoli, broccoli)
+  'Cavolo': {
+    maxTemp: 30,
+    minTemp: -5,
+    reason: 'Cavoli tollerano freddo ma soffrono caldo eccessivo'
+  },
+  'Broccolo': {
+    maxTemp: 28,
+    minTemp: -3,
+    reason: 'Broccoli preferiscono clima fresco, caldo causa fioriture precoci'
+  },
+
+  // PEPERONI (sensibili freddo)
+  'Peperone': {
+    minTemp: 12,
+    maxTemp: 35,
+    reason: 'Peperoni molto sensibili a freddo (<12°C bloccano crescita) e caldo estremo'
+  },
+  'Peperoncino': {
+    minTemp: 15,
+    maxTemp: 38,
+    reason: 'Peperoncini ancora più sensibili al freddo, richiedono caldo'
+  },
+
+  // MELANZANE
+  'Melanzana': {
+    minTemp: 15,
+    maxTemp: 35,
+    reason: 'Melanzane richiedono caldo costante, freddo rallenta produzione'
+  },
+
+  // CAROTE/RADICI (sensibili terreno compatto)
+  'Carota': {
+    maxRain: 20,
+    dryDaysBefore: 2,
+    reason: 'Carote richiedono terreno friabile per sviluppo radice, no fango'
+  },
+  'Ravanello': {
+    maxRain: 15,
+    dryDaysBefore: 1,
+    reason: 'Ravanelli crescono meglio con terreno umido ma non fangoso'
+  },
+
+  // AGLIO/CIPOLLA
+  'Aglio': {
+    maxRain: 5,
+    dryDaysAfter: 2,
+    reason: 'Aglio richiede clima asciutto durante bulbificazione per qualità'
+  },
+  'Cipolla': {
+    maxRain: 10,
+    dryDaysAfter: 1,
+    reason: 'Cipolle richiedono clima asciutto durante maturazione bulbi'
+  }
+}
+
+/**
  * Requisiti meteo per ogni tipo di task
  */
 const TASK_WEATHER_REQUIREMENTS: Record<string, TaskWeatherRequirements> = {
@@ -89,8 +199,8 @@ const TASK_WEATHER_REQUIREMENTS: Record<string, TaskWeatherRequirements> = {
   },
 
   // Irrigazione
-  Watering: {
-    taskType: 'Watering',
+  Irrigation: {
+    taskType: 'Irrigation',
     maxRain: 10, // Se piove >10mm, salta irrigazione
     noRainRequired: false, // Pioggia cancella il bisogno
     reason: 'Irrigazione non necessaria se pioggia sufficiente prevista'
@@ -127,7 +237,20 @@ export function analyzeTaskWeatherSuitability(
   forecast: WeatherForecast[],
   requirements?: TaskWeatherRequirements
 ): WeatherTaskAnalysis {
-  const taskReqs = requirements || TASK_WEATHER_REQUIREMENTS[task.taskType]
+  // 1. Start con requisiti base per task type
+  let taskReqs = requirements || TASK_WEATHER_REQUIREMENTS[task.taskType]
+
+  // 2. MERGE con requisiti specifici della pianta (se esistono)
+  const plantName = task.plantName
+  if (plantName && PLANT_SPECIFIC_REQUIREMENTS[plantName]) {
+    const plantReqs = PLANT_SPECIFIC_REQUIREMENTS[plantName]
+    taskReqs = {
+      ...taskReqs,
+      ...plantReqs,
+      // Merge reason (combina entrambi)
+      reason: plantReqs.reason || taskReqs?.reason || 'Requisiti meteo specifici'
+    } as TaskWeatherRequirements
+  }
 
   if (!taskReqs) {
     // Task type senza requisiti meteo specifici
@@ -421,13 +544,14 @@ export function getTasksForDate(tasks: GardenTask[], date: Date): GardenTask[] {
 }
 
 /**
- * Helper: Cancella task Watering se pioggia sufficiente prevista
+ * Helper: Cancella task Irrigation se pioggia sufficiente prevista
  */
 export async function cancelIrrigationIfRain(
   garden: Garden,
-  wateringTasks: GardenTask[],
+  irrigationTasks: GardenTask[],
   rainThreshold: number = 10 // mm
 ): Promise<GardenTask[]> {
+  const wateringTasks = irrigationTasks // Alias for backward compatibility
   if (!garden.coordinates || wateringTasks.length === 0) {
     return []
   }
