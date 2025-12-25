@@ -2,7 +2,7 @@
 
 'use client'
 
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Card } from '@/components/ui/Card'
@@ -18,7 +18,7 @@ import { IrrigationSystemModal } from '@/components/irrigation/IrrigationSystemM
 import { IrrigationZoneEditModal } from '@/components/irrigation/IrrigationZoneEditModal'
 import { Droplets, Plus, FileText, Settings } from 'lucide-react'
 
-export default function IrrigationPage() {
+function IrrigationContent() {
   const { storageProvider } = useStorage()
   const searchParams = useSearchParams()
 
@@ -536,5 +536,13 @@ export default function IrrigationPage() {
         </button>
       )}
     </div>
+  )
+}
+
+export default function IrrigationPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Caricamento...</div>}>
+      <IrrigationContent />
+    </Suspense>
   )
 }
