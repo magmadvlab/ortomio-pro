@@ -342,69 +342,6 @@ export class LocalStorageProvider implements IStorageProvider {
     localStorage.setItem(this.STORAGE_KEYS.HARVESTS, JSON.stringify(filtered));
   }
 
-  // Fertilization Tracking
-  async getFertilizerApplicationLogs(
-    gardenId: string,
-    options?: { taskId?: string; bedId?: string; from?: string; to?: string }
-  ): Promise<FertilizerApplicationLogDB[]> {
-    const saved = localStorage.getItem(this.STORAGE_KEYS.FERTILIZER_APPLICATION_LOGS);
-    if (!saved) return [];
-    try {
-      let logs = JSON.parse(saved) as FertilizerApplicationLogDB[];
-
-      // Filter by gardenId
-      logs = logs.filter(log => log.gardenId === gardenId);
-
-      // Apply optional filters
-      if (options?.taskId) {
-        logs = logs.filter(log => log.taskId === options.taskId);
-      }
-      if (options?.bedId) {
-        logs = logs.filter(log => log.bedId === options.bedId);
-      }
-      if (options?.from) {
-        logs = logs.filter(log => log.applicationDate >= options.from!);
-      }
-      if (options?.to) {
-        logs = logs.filter(log => log.applicationDate <= options.to!);
-      }
-
-      // Sort by date descending
-      return logs.sort((a, b) =>
-        new Date(b.applicationDate).getTime() - new Date(a.applicationDate).getTime()
-      );
-    } catch (error) {
-      console.error('Error parsing fertilizer application logs:', error);
-      return [];
-    }
-  }
-
-  async createFertilizerApplicationLog(
-    log: Omit<FertilizerApplicationLogDB, 'id' | 'createdAt'>
-  ): Promise<FertilizerApplicationLogDB> {
-    const newLog: FertilizerApplicationLogDB = {
-      ...log,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-    };
-
-    const logs = await this.getFertilizerApplicationLogs(log.gardenId);
-    logs.push(newLog);
-
-    // Save all logs for all gardens
-    const saved = localStorage.getItem(this.STORAGE_KEYS.FERTILIZER_APPLICATION_LOGS);
-    const allLogs = saved ? JSON.parse(saved) as FertilizerApplicationLogDB[] : [];
-    allLogs.push(newLog);
-    localStorage.setItem(this.STORAGE_KEYS.FERTILIZER_APPLICATION_LOGS, JSON.stringify(allLogs));
-
-    // Trigger backup automatico
-    saveAutoBackup(this).catch(err =>
-      console.error('Error saving auto backup after createFertilizerApplicationLog:', err)
-    );
-
-    return newLog;
-  }
-
   // Seedling Batches
   async getSeedlingBatches(gardenId?: string): Promise<SeedlingBatch[]> {
     const saved = localStorage.getItem(this.STORAGE_KEYS.SEEDLING_BATCHES);
@@ -1217,12 +1154,12 @@ export class LocalStorageProvider implements IStorageProvider {
     gardenId: string,
     options?: { taskId?: string; bedId?: string; from?: string; to?: string }
   ): Promise<FertilizerApplicationLogDB[]> {
-    let logs = this.getAllFertilizerApplicationLogs().filter((l) => l.garden_id === gardenId);
-    if (options?.taskId) logs = logs.filter((l) => l.task_id === options.taskId);
-    if (options?.bedId) logs = logs.filter((l) => l.bed_id === options.bedId);
-    if (options?.from) logs = logs.filter((l) => new Date(l.application_date) >= new Date(options.from!));
-    if (options?.to) logs = logs.filter((l) => new Date(l.application_date) <= new Date(options.to!));
-    return logs.sort((a, b) => new Date(b.application_date).getTime() - new Date(a.application_date).getTime());
+    let logs = this.getAllFertilizerApplicationLogs().filter((l) => l.gardenId === gardenId);
+    if (options?.taskId) logs = logs.filter((l) => l.taskId === options.taskId);
+    if (options?.bedId) logs = logs.filter((l) => l.bedId === options.bedId);
+    if (options?.from) logs = logs.filter((l) => new Date(l.applicationDate) >= new Date(options.from!));
+    if (options?.to) logs = logs.filter((l) => new Date(l.applicationDate) <= new Date(options.to!));
+    return logs.sort((a, b) => new Date(b.applicationDate).getTime() - new Date(a.applicationDate).getTime());
   }
 
   async getFertilizerApplicationLog(id: string): Promise<FertilizerApplicationLogDB | null> {
@@ -1230,17 +1167,17 @@ export class LocalStorageProvider implements IStorageProvider {
   }
 
   async createFertilizerApplicationLog(
-    log: Omit<FertilizerApplicationLogDB, 'id' | 'created_at'>
+    log: Omit<FertilizerApplicationLogDB, 'id' | 'createdAt'>
   ): Promise<FertilizerApplicationLogDB> {
     const all = this.getAllFertilizerApplicationLogs();
     const created: FertilizerApplicationLogDB = {
       ...log,
       id: crypto.randomUUID(),
-      created_at: new Date().toISOString(),
-    };
+      createdAt: new Date().toISOString(),
+    } as any;
     all.push(created);
     this.saveAllFertilizerApplicationLogs(all);
-    saveAutoBackup(this, log.garden_id).catch(() => {});
+    saveAutoBackup(this, (log as any).garden_id || log.gardenId).catch(() => {});
     return created;
   }
 
@@ -1249,7 +1186,7 @@ export class LocalStorageProvider implements IStorageProvider {
     const log = all.find((l) => l.id === id);
     const filtered = all.filter((l) => l.id !== id);
     this.saveAllFertilizerApplicationLogs(filtered);
-    if (log) saveAutoBackup(this, log.garden_id).catch(() => {});
+    if (log) saveAutoBackup(this, log.gardenId).catch(() => {});
   }
 
   // Treatments

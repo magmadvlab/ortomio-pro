@@ -601,47 +601,6 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (error) throw error;
   }
 
-  // Fertilization Tracking
-  async getFertilizerApplicationLogs(
-    gardenId: string,
-    options?: { taskId?: string; bedId?: string; from?: string; to?: string }
-  ): Promise<FertilizerApplicationLogDB[]> {
-    const client = this.ensureClient();
-    let query = client.from('fertilizer_application_logs').select('*').eq('garden_id', gardenId);
-
-    if (options?.taskId) {
-      query = query.eq('task_id', options.taskId);
-    }
-    if (options?.bedId) {
-      query = query.eq('bed_id', options.bedId);
-    }
-    if (options?.from) {
-      query = query.gte('application_date', options.from);
-    }
-    if (options?.to) {
-      query = query.lte('application_date', options.to);
-    }
-
-    const { data, error } = await query.order('application_date', { ascending: false });
-    if (error) throw error;
-    return this.mapFertilizerApplicationLogsFromDB(data || []);
-  }
-
-  async createFertilizerApplicationLog(
-    log: Omit<FertilizerApplicationLogDB, 'id' | 'createdAt'>
-  ): Promise<FertilizerApplicationLogDB> {
-    const client = this.ensureClient();
-    const dbLog = this.mapFertilizerApplicationLogToDB(log);
-    const { data, error } = await client
-      .from('fertilizer_application_logs')
-      .insert(dbLog)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return this.mapFertilizerApplicationLogFromDB(data);
-  }
-
   // Pro Features
   async uploadPhoto(file: File, taskId: string, gardenId: string): Promise<string> {
     const client = this.ensureClient();
@@ -2310,7 +2269,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
     const { data, error } = await query.order('application_date', { ascending: false });
     if (error) throw error;
-    return (data || []) as any;
+    return this.mapFertilizerApplicationLogsFromDB(data || []);
   }
 
   async getFertilizerApplicationLog(id: string): Promise<FertilizerApplicationLogDB | null> {
@@ -2321,20 +2280,21 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .eq('id', id)
       .maybeSingle();
     if (error) throw error;
-    return (data || null) as any;
+    return data ? this.mapFertilizerApplicationLogFromDB(data) : null;
   }
 
   async createFertilizerApplicationLog(
-    log: Omit<FertilizerApplicationLogDB, 'id' | 'created_at'>
+    log: Omit<FertilizerApplicationLogDB, 'id' | 'createdAt'>
   ): Promise<FertilizerApplicationLogDB> {
     const client = this.ensureClient();
+    const dbLog = this.mapFertilizerApplicationLogToDB(log);
     const { data, error } = await client
       .from('fertilizer_application_logs')
-      .insert(log as any)
+      .insert(dbLog)
       .select()
       .single();
     if (error) throw error;
-    return data as any;
+    return this.mapFertilizerApplicationLogFromDB(data);
   }
 
   async deleteFertilizerApplicationLog(id: string): Promise<void> {
