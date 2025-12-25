@@ -163,6 +163,7 @@ export interface IStorageProvider {
   getFertilizerApplicationLogs(gardenId: string, options?: { taskId?: string; bedId?: string; from?: string; to?: string }): Promise<FertilizerApplicationLogDB[]>;
   getFertilizerApplicationLog(id: string): Promise<FertilizerApplicationLogDB | null>;
   createFertilizerApplicationLog(log: Omit<FertilizerApplicationLogDB, 'id' | 'createdAt'>): Promise<FertilizerApplicationLogDB>;
+  updateFertilizerApplicationLog(id: string, updates: Partial<FertilizerApplicationLogDB>): Promise<FertilizerApplicationLogDB>;
   deleteFertilizerApplicationLog(id: string): Promise<void>;
   
   // Treatments (Pro Feature)

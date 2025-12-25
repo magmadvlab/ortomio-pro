@@ -2380,6 +2380,22 @@ export class SupabaseStorageProvider implements IStorageProvider {
     return this.mapFertilizerApplicationLogFromDB(data);
   }
 
+  async updateFertilizerApplicationLog(
+    id: string,
+    updates: Partial<FertilizerApplicationLogDB>
+  ): Promise<FertilizerApplicationLogDB> {
+    const client = this.ensureClient();
+    const dbUpdates = this.mapFertilizerApplicationLogToDB(updates);
+    const { data, error } = await client
+      .from('fertilizer_application_logs')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return this.mapFertilizerApplicationLogFromDB(data);
+  }
+
   async deleteFertilizerApplicationLog(id: string): Promise<void> {
     const client = this.ensureClient();
     const { error } = await client.from('fertilizer_application_logs').delete().eq('id', id);

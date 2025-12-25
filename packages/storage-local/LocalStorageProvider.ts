@@ -1257,6 +1257,27 @@ export class LocalStorageProvider implements IStorageProvider {
     return created;
   }
 
+  async updateFertilizerApplicationLog(
+    id: string,
+    updates: Partial<FertilizerApplicationLogDB>
+  ): Promise<FertilizerApplicationLogDB> {
+    const all = this.getAllFertilizerApplicationLogs();
+    const idx = all.findIndex((l) => l.id === id);
+    if (idx === -1) throw new Error(`Fertilizer application log with id ${id} not found`);
+
+    const updated: FertilizerApplicationLogDB = {
+      ...all[idx],
+      ...updates,
+      id: all[idx].id,
+      createdAt: all[idx].createdAt,
+    } as any;
+
+    all[idx] = updated;
+    this.saveAllFertilizerApplicationLogs(all);
+    saveAutoBackup(this, updated.gardenId).catch(() => {});
+    return updated;
+  }
+
   async deleteFertilizerApplicationLog(id: string): Promise<void> {
     const all = this.getAllFertilizerApplicationLogs();
     const log = all.find((l) => l.id === id);

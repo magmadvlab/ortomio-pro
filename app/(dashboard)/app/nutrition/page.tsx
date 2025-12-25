@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { ProFeatureGate } from '@/components/shared/ProFeatureGate'
-import { FlaskConical, Plus, Calendar, Package, Droplet, FileText, X } from 'lucide-react'
+import { FlaskConical, Plus, Calendar, Package, Droplet, FileText, X, Edit2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getMasterSheet } from '@/services/plantMasterService'
@@ -79,8 +79,12 @@ export default function NutritionPage() {
   const [selectedBedId, setSelectedBedId] = useState<string>('')
   const [selectedRowId, setSelectedRowId] = useState<string>('')
 
+  const [bedNameById, setBedNameById] = useState<Record<string, string>>({})
+  const [rowNameById, setRowNameById] = useState<Record<string, string>>({})
+
   const [showTreatmentForm, setShowTreatmentForm] = useState(false)
   const [showFertilizationForm, setShowFertilizationForm] = useState(false)
+  const [editingFertilizationLog, setEditingFertilizationLog] = useState<FertilizerApplicationLogDB | null>(null)
 
   const [treatmentForm, setTreatmentForm] = useState<TreatmentFormState>({
     crop_name: '',
@@ -160,6 +164,44 @@ export default function NutritionPage() {
     }
     void loadBeds()
   }, [selectedGardenId, storageProvider])
+
+  useEffect(() => {
+    const mapBeds = async () => {
+      const map: Record<string, string> = {}
+      beds.forEach((b) => {
+        map[b.id] = b.name
+      })
+      setBedNameById(map)
+
+      const bedIdsInHistory = new Set<string>()
+      fertilizerLogs.forEach((l) => {
+        if (l.bedId) bedIdsInHistory.add(l.bedId)
+      })
+      treatments.forEach((t) => {
+        if ((t as any).bed_id) bedIdsInHistory.add((t as any).bed_id)
+      })
+
+      const rowsMap: Record<string, string> = {}
+      try {
+        await Promise.all(
+          Array.from(bedIdsInHistory).map(async (bedId) => {
+            try {
+              const rows = await storageProvider.getGardenRows(bedId)
+              ;(rows || []).forEach((r) => {
+                rowsMap[r.id] = r.name
+              })
+            } catch {
+              // ignore
+            }
+          })
+        )
+      } finally {
+        setRowNameById(rowsMap)
+      }
+    }
+
+    void mapBeds()
+  }, [beds, fertilizerLogs, treatments, storageProvider])
 
   useEffect(() => {
     const loadRows = async () => {
@@ -475,24 +517,47 @@ export default function NutritionPage() {
       : autoNote
 
     try {
-      const created = await storageProvider.createFertilizerApplicationLog({
-        gardenId: selectedGardenId,
-        taskId: null,
-        bedId: selectedBedId || null,
-        rowId: selectedRowId || null,
-        fertilizerProductId: 'manual',
-        fertilizerProductName: fertilizationForm.product_name,
-        dosageAmount: Number(totalDosage.toFixed(4)),
-        dosageUnit: fertilizationForm.dosage_unit || 'g',
-        applicationDate: fertilizationForm.application_date,
-        method: fertilizationForm.method || 'foliar',
-        areaSqm: Number(effectiveAreaSqm.toFixed(4)),
-        notes: mergedNotes,
-        nextApplicationDate: fertilizationForm.next_application_date || null,
-      })
+      if (editingFertilizationLog) {
+        if (!storageProvider.updateFertilizerApplicationLog) {
+          alert('Aggiornamento fertilizzazioni non disponibile su questo provider.')
+          return
+        }
 
-      setFertilizerLogs([created, ...fertilizerLogs])
+        const updated = await storageProvider.updateFertilizerApplicationLog(editingFertilizationLog.id, {
+          bedId: selectedBedId || null,
+          rowId: selectedRowId || null,
+          fertilizerProductName: fertilizationForm.product_name,
+          applicationDate: fertilizationForm.application_date,
+          areaSqm: Number(effectiveAreaSqm.toFixed(4)),
+          dosageAmount: Number(totalDosage.toFixed(4)),
+          dosageUnit: fertilizationForm.dosage_unit || 'g',
+          method: fertilizationForm.method || 'foliar',
+          notes: mergedNotes,
+          nextApplicationDate: fertilizationForm.next_application_date || null,
+        })
+
+        setFertilizerLogs((prev) => prev.map((l) => (l.id === updated.id ? updated : l)))
+      } else {
+        const created = await storageProvider.createFertilizerApplicationLog({
+          gardenId: selectedGardenId,
+          taskId: null,
+          bedId: selectedBedId || null,
+          rowId: selectedRowId || null,
+          fertilizerProductId: 'manual',
+          fertilizerProductName: fertilizationForm.product_name,
+          dosageAmount: Number(totalDosage.toFixed(4)),
+          dosageUnit: fertilizationForm.dosage_unit || 'g',
+          applicationDate: fertilizationForm.application_date,
+          method: fertilizationForm.method || 'foliar',
+          areaSqm: Number(effectiveAreaSqm.toFixed(4)),
+          notes: mergedNotes,
+          nextApplicationDate: fertilizationForm.next_application_date || null,
+        })
+
+        setFertilizerLogs([created, ...fertilizerLogs])
+      }
       setShowFertilizationForm(false)
+      setEditingFertilizationLog(null)
       setSelectedBedId('')
       setSelectedRowId('')
       setFertilizationForm({
@@ -545,7 +610,12 @@ export default function NutritionPage() {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowFertilizationForm(true)}
+              onClick={() => {
+                setEditingFertilizationLog(null)
+                setSelectedBedId('')
+                setSelectedRowId('')
+                setShowFertilizationForm(true)
+              }}
               className="inline-flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <Plus size={16} />
@@ -668,18 +738,51 @@ export default function NutritionPage() {
                   {fertilizerLogs.slice(0, 50).map((l) => (
                     <div key={l.id} className="border border-gray-200 rounded-lg p-3">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="font-semibold text-gray-900">{(l as any).product_name || '—'}</div>
-                        <div className="text-xs text-gray-500">
-                          {(l as any).application_date ? format(new Date((l as any).application_date), 'd MMM yyyy', { locale: it }) : '—'}
+                        <div className="font-semibold text-gray-900">{l.fertilizerProductName || '—'}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs text-gray-500">
+                            {l.applicationDate ? format(new Date(l.applicationDate), 'd MMM yyyy', { locale: it }) : '—'}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingFertilizationLog(l)
+                              setSelectedBedId(l.bedId || '')
+                              setSelectedRowId(l.rowId || '')
+                              setFertilizationForm((p) => ({
+                                ...p,
+                                application_date: l.applicationDate || format(new Date(), 'yyyy-MM-dd'),
+                                product_name: l.fertilizerProductName || '',
+                                dosage_amount: typeof l.areaSqm === 'number' && l.areaSqm > 0 ? l.dosageAmount / l.areaSqm : undefined,
+                                dosage_unit: (l.dosageUnit as any) || 'g',
+                                area_sqm: l.areaSqm || undefined,
+                                method: (l.method as any) || 'surface',
+                                notes: l.notes || '',
+                                next_application_date: l.nextApplicationDate || '',
+                                area_mode: 'area',
+                              }))
+                              setShowFertilizationForm(true)
+                            }}
+                            className="p-1 rounded hover:bg-gray-100 text-gray-600"
+                            title="Modifica"
+                          >
+                            <Edit2 size={14} />
+                          </button>
                         </div>
                       </div>
                       <div className="text-sm text-gray-700 mt-1">
-                        {(l as any).dosage_amount ? `${(l as any).dosage_amount} ${(l as any).dosage_unit || ''}` : 'Dose: —'}
-                        {(l as any).area_sqm ? ` · Area: ${(l as any).area_sqm} m²` : ''}
+                        {typeof l.dosageAmount === 'number' ? `${l.dosageAmount} ${l.dosageUnit || ''}` : 'Dose: —'}
+                        {typeof l.areaSqm === 'number' ? ` · Area: ${l.areaSqm} m²` : ''}
                       </div>
-                      {(l as any).next_application_date ? (
+                      {l.bedId || l.rowId ? (
                         <div className="text-xs text-gray-600 mt-1">
-                          Prossima: {format(new Date((l as any).next_application_date), 'd MMM yyyy', { locale: it })}
+                          {l.bedId ? `Letto: ${bedNameById[l.bedId] || l.bedId}` : ''}
+                          {l.rowId ? ` · Filare: ${rowNameById[l.rowId] || l.rowId}` : ''}
+                        </div>
+                      ) : null}
+                      {l.nextApplicationDate ? (
+                        <div className="text-xs text-gray-600 mt-1">
+                          Prossima: {format(new Date(l.nextApplicationDate), 'd MMM yyyy', { locale: it })}
                         </div>
                       ) : null}
                       {l.notes ? <div className="text-xs text-gray-600 mt-2 whitespace-pre-line">{l.notes}</div> : null}
@@ -711,6 +814,12 @@ export default function NutritionPage() {
                         {t.crop_name ? `Coltura: ${t.crop_name}` : ''}
                         {t.reason ? ` · Motivo: ${t.reason}` : ''}
                       </div>
+                      {(t as any).bed_id || (t as any).row_id ? (
+                        <div className="text-xs text-gray-600 mt-1">
+                          {(t as any).bed_id ? `Letto: ${bedNameById[(t as any).bed_id] || (t as any).bed_id}` : ''}
+                          {(t as any).row_id ? ` · Filare: ${rowNameById[(t as any).row_id] || (t as any).row_id}` : ''}
+                        </div>
+                      ) : null}
                       {t.dosage ? (
                         <div className="text-xs text-gray-600 mt-1">
                           Dose: {t.dosage} {t.dosage_unit || ''}
@@ -945,9 +1054,15 @@ export default function NutritionPage() {
               <div className="flex items-center justify-between p-4 border-b border-gray-200">
                 <div className="flex items-center gap-2">
                   <FileText size={18} className="text-green-700" />
-                  <h3 className="font-bold text-gray-900">Nuova fertilizzazione</h3>
+                  <h3 className="font-bold text-gray-900">{editingFertilizationLog ? 'Modifica fertilizzazione' : 'Nuova fertilizzazione'}</h3>
                 </div>
-                <button onClick={() => setShowFertilizationForm(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <button
+                  onClick={() => {
+                    setShowFertilizationForm(false)
+                    setEditingFertilizationLog(null)
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                >
                   <X size={18} />
                 </button>
               </div>

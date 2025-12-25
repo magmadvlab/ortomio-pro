@@ -1,16 +1,22 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Card } from '@/components/ui/Card'
 import { Calendar, Droplets, Clock, Cloud, Thermometer } from 'lucide-react'
 import { WateringLog } from '@/types/irrigation'
+import { useStorage } from '@/packages/core/hooks/useStorage'
+import type { GardenBed } from '@/types/gardenBed'
+import type { GardenRow } from '@/types'
 
 interface WateringHistoryProps {
   logs: WateringLog[]
 }
 
 export function WateringHistory({ logs }: WateringHistoryProps) {
+  const { storageProvider } = useStorage()
   const [limit, setLimit] = useState(10)
+  const [bedNameById, setBedNameById] = useState<Record<string, string>>({})
+  const [rowNameById, setRowNameById] = useState<Record<string, string>>({})
 
   const getLogDateTime = (log: WateringLog) => {
     return log.wateredAt || log.date
@@ -21,6 +27,45 @@ export function WateringHistory({ logs }: WateringHistoryProps) {
       .sort((a, b) => new Date(getLogDateTime(b)).getTime() - new Date(getLogDateTime(a)).getTime())
       .slice(0, limit)
   }, [logs, limit])
+
+  useEffect(() => {
+    const loadNames = async () => {
+      const bedIds = Array.from(new Set(logs.map((l) => l.bedId).filter((id): id is string => Boolean(id))))
+      const rowIds = Array.from(new Set(logs.map((l) => l.rowId).filter((id): id is string => Boolean(id))))
+
+      try {
+        if (bedIds.length > 0) {
+          const beds = await Promise.all(bedIds.map((id) => storageProvider.getGardenBed(id)))
+          const map: Record<string, string> = {}
+          beds.filter((b): b is GardenBed => Boolean(b)).forEach((b) => {
+            map[b.id] = b.name
+          })
+          setBedNameById(map)
+        } else {
+          setBedNameById({})
+        }
+      } catch {
+        setBedNameById({})
+      }
+
+      try {
+        if (rowIds.length > 0) {
+          const rows = await Promise.all(rowIds.map((id) => storageProvider.getGardenRow(id)))
+          const map: Record<string, string> = {}
+          rows.filter((r): r is GardenRow => Boolean(r)).forEach((r) => {
+            map[r.id] = r.name
+          })
+          setRowNameById(map)
+        } else {
+          setRowNameById({})
+        }
+      } catch {
+        setRowNameById({})
+      }
+    }
+
+    void loadNames()
+  }, [logs, storageProvider])
 
   const totalStats = useMemo(() => {
     const total = logs.reduce((sum, log) => sum + (log.litersApplied || 0), 0)
@@ -126,8 +171,8 @@ export function WateringHistory({ logs }: WateringHistoryProps) {
                 <td className="px-6 py-4 whitespace-nowrap">
                   {log.bedId || log.rowId ? (
                     <div className="text-xs text-gray-700">
-                      {log.bedId ? <div>Bed: {log.bedId}</div> : null}
-                      {log.rowId ? <div>Filare: {log.rowId}</div> : null}
+                      {log.bedId ? <div>Bed: {bedNameById[log.bedId] || log.bedId}</div> : null}
+                      {log.rowId ? <div>Filare: {rowNameById[log.rowId] || log.rowId}</div> : null}
                     </div>
                   ) : (
                     <span className="text-xs text-gray-400">-</span>
