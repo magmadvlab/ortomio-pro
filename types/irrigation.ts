@@ -28,6 +28,12 @@ export interface IrrigationSystem {
   id: string;
   gardenId: string;
   name: string; // "Orto Casa", "Vigneto Nord"
+  type?: 'Manual' | 'Drip' | 'Sprinkler' | 'Micro' | 'Soaker';
+  waterSource?: 'Municipal' | 'Well' | 'Rainwater' | 'River' | 'Pond' | 'Consortium';
+  pressureBar?: number;
+  hasTimer?: boolean;
+  hasValve?: boolean;
+  notes?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -35,12 +41,22 @@ export interface IrrigationSystem {
 export interface IrrigationZone {
   id: string;
   systemId: string;
+  gardenId?: string;
   name: string; // "Aiuola 1", "Serretta", "Filare 2"
+  areaSqm?: number;
   method: WateringMethod;
   flowRateLph: number; // Portata totale zona (L/h) - CAMPO CHIAVE
   valveId?: string; // ID SmartDevice se presente
   bedIds: string[]; // Aiuole/letti collegati
   plantTaskIds: string[]; // Task piante collegati (per calcolo fabbisogno)
+  plantTypes?: string[];
+  isAutomated?: boolean;
+  schedule?: {
+    days?: number[];
+    time?: string;
+    duration?: number;
+  };
+  lastWateredAt?: string;
   notes?: string;
   // Livello 2 (Pro): calcolo da componenti
   calculatedFromComponents?: boolean;
@@ -107,10 +123,16 @@ export interface IrrigationTemplate {
 export interface WateringLog {
   id: string;
   zoneId: string;
+  gardenId?: string;
+  wateredAt?: string; // ISO datetime
   date: string; // ISO date
   durationMinutes: number;
   litersApplied: number; // Calcolato: (flowRateLph / 60) * durationMinutes
   method: 'Manual' | 'Automatic' | 'Timer';
+  weatherCondition?: string;
+  soilMoistureBefore?: number;
+  soilMoistureAfter?: number;
+  airTemperatureC?: number;
   notes?: string;
   valveId?: string; // Se automatico
   completed: boolean;

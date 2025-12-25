@@ -198,6 +198,176 @@ export const daysUntilPhase = (targetPhase: MoonPhase, fromDate: Date = new Date
 };
 
 /**
+ * Finestra temporale lunare con date specifiche
+ */
+export interface LunarWindow {
+  startDate: Date;
+  endDate: Date;
+  phase: 'waxing' | 'waning';
+  phaseName: string;
+  idealFor: string[];
+  daysFromNow: number;
+  isActive: boolean;
+}
+
+/**
+ * Calcola le prossime N finestre lunari ideali per un tipo di operazione
+ * Esempio: getNextLunarWindows('sowing', 'FRUITING', new Date(), 3)
+ * Restituisce le prossime 3 finestre Luna Crescente per semina pomodori
+ */
+export const getNextLunarWindows = (
+  operation: 'sowing' | 'transplant' | 'harvest' | 'pruning',
+  plantCategory: 'LEAFY' | 'FRUITING' | 'ROOT' | 'LEGUME' | 'GENERIC',
+  fromDate: Date = new Date(),
+  count: number = 3
+): LunarWindow[] => {
+  const windows: LunarWindow[] = [];
+  const synodicMonth = 29.53058867;
+
+  // Determina fase ideale basata su operazione e categoria pianta
+  let idealPhase: 'waxing' | 'waning';
+
+  if (operation === 'sowing') {
+    // Radici: Luna Calante | Foglie/Frutti: Luna Crescente
+    idealPhase = plantCategory === 'ROOT' ? 'waning' : 'waxing';
+  } else if (operation === 'transplant') {
+    // Trapianto: sempre Luna Crescente
+    idealPhase = 'waxing';
+  } else if (operation === 'harvest') {
+    // Raccolta: Foglie in Calante (più saporite) | Frutti in Crescente (più succosi)
+    idealPhase = plantCategory === 'LEAFY' ? 'waning' : 'waxing';
+  } else if (operation === 'pruning') {
+    // Potatura: sempre Luna Calante (meno stress)
+    idealPhase = 'waning';
+  } else {
+    idealPhase = 'waxing'; // Default
+  }
+
+  let checkDate = new Date(fromDate);
+  let foundWindows = 0;
+  let iterations = 0;
+  const maxIterations = 120; // Max 4 mesi di ricerca
+
+  while (foundWindows < count && iterations < maxIterations) {
+    const moonInfo = calculateMoonPhase(checkDate);
+
+    // Controlla se siamo nella fase giusta
+    const inCorrectPhase =
+      (idealPhase === 'waxing' && (moonInfo.isWaxing || moonInfo.phase === 'New')) ||
+      (idealPhase === 'waning' && moonInfo.isWaning);
+
+    if (inCorrectPhase) {
+      // Calcola inizio e fine della finestra
+      const startDate = new Date(checkDate);
+      const endDate = new Date(checkDate);
+
+      if (idealPhase === 'waxing') {
+        // Luna Crescente: da New/WaxingCrescent a Full (~14 giorni)
+        const daysUntilFull = daysUntilPhase('Full', checkDate);
+        endDate.setDate(endDate.getDate() + daysUntilFull);
+      } else {
+        // Luna Calante: da Full/WaningGibbous a New (~14 giorni)
+        const daysUntilNew = daysUntilPhase('New', checkDate);
+        endDate.setDate(endDate.getDate() + daysUntilNew);
+      }
+
+      const daysFromNow = Math.floor(
+        (startDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      const isActive = daysFromNow <= 0 && endDate >= fromDate;
+
+      windows.push({
+        startDate,
+        endDate,
+        phase: idealPhase,
+        phaseName: idealPhase === 'waxing' ? 'Luna Crescente' : 'Luna Calante',
+        idealFor: getIdealOperations(idealPhase, plantCategory),
+        daysFromNow: Math.max(0, daysFromNow),
+        isActive
+      });
+
+      foundWindows++;
+
+      // Salta alla prossima finestra (circa metà ciclo lunare)
+      checkDate.setDate(checkDate.getDate() + 14);
+    } else {
+      // Avanza di 1 giorno
+      checkDate.setDate(checkDate.getDate() + 1);
+    }
+
+    iterations++;
+  }
+
+  return windows;
+};
+
+/**
+ * Helper: Determina operazioni ideali per una fase lunare e categoria pianta
+ */
+const getIdealOperations = (
+  phase: 'waxing' | 'waning',
+  plantCategory: 'LEAFY' | 'FRUITING' | 'ROOT' | 'LEGUME' | 'GENERIC'
+): string[] => {
+  if (phase === 'waxing') {
+    const operations = ['Trapianto', 'Innesti'];
+
+    if (plantCategory === 'FRUITING') {
+      operations.unshift('Semina frutti', 'Raccolta frutti (più succosi)');
+    } else if (plantCategory === 'LEAFY') {
+      operations.unshift('Semina foglie');
+    } else if (plantCategory === 'LEGUME') {
+      operations.unshift('Semina legumi');
+    } else {
+      operations.unshift('Semina foglie/frutti');
+    }
+
+    return operations;
+  } else {
+    // Waning
+    const operations = ['Potatura', 'Concimazione di fondo'];
+
+    if (plantCategory === 'ROOT') {
+      operations.unshift('Semina radici/bulbi');
+    } else if (plantCategory === 'LEAFY') {
+      operations.unshift('Raccolta foglie (più saporite)');
+    }
+
+    return operations;
+  }
+};
+
+/**
+ * Ottiene la prossima data ideale per un'operazione specifica
+ * Restituisce la data più vicina nella fase lunare corretta
+ */
+export const getNextIdealDate = (
+  operation: 'sowing' | 'transplant' | 'harvest' | 'pruning',
+  plantCategory: 'LEAFY' | 'FRUITING' | 'ROOT' | 'LEGUME' | 'GENERIC',
+  fromDate: Date = new Date()
+): { date: Date; reason: string; daysFromNow: number } => {
+  const windows = getNextLunarWindows(operation, plantCategory, fromDate, 1);
+
+  if (windows.length === 0) {
+    return {
+      date: fromDate,
+      reason: 'Nessuna finestra lunare trovata',
+      daysFromNow: 0
+    };
+  }
+
+  const nextWindow = windows[0];
+
+  return {
+    date: nextWindow.isActive ? fromDate : nextWindow.startDate,
+    reason: nextWindow.isActive
+      ? `${nextWindow.phaseName} in corso (fino al ${nextWindow.endDate.toLocaleDateString('it-IT')})`
+      : `Prossima ${nextWindow.phaseName} dal ${nextWindow.startDate.toLocaleDateString('it-IT')}`,
+    daysFromNow: nextWindow.daysFromNow
+  };
+};
+
+/**
  * Verifica se una fase lunare è ideale per una specifica operazione
  */
 export const isIdealPhaseFor = (

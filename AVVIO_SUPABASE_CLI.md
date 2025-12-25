@@ -133,9 +133,29 @@ supabase logs
 ### "Container not found"
 - Riavvia: `supabase stop && supabase start`
 
+### "Could not find column in schema cache" (Errore PGRST204)
+- **Problema**: Supabase PostgREST non ha aggiornato la cache dello schema dopo le migrazioni
+- **Sintomi**: Console warning tipo `"Could not find the 'has_timer' column of 'irrigation_systems' in the schema cache"`
+- **Soluzione**: Ricarica schema cache:
+  ```bash
+  # Opzione 1: Riavvia Supabase (più veloce)
+  supabase restart
+
+  # Opzione 2: NOTIFY PostgREST (alternativa)
+  psql postgresql://postgres:postgres@localhost:54322/postgres -c "NOTIFY pgrst, 'reload schema'"
+
+  # Opzione 3: Re-applica migration
+  cd /Users/magma/Downloads/ortomio-main
+  cat database/migrations/add_irrigation_system.sql | psql postgresql://postgres:postgres@localhost:54322/postgres
+  ```
+- **Nota**: Questo è un problema noto di Supabase local development. L'app continua a funzionare normalmente, solo alcune funzionalità avanzate (es. draft automatici in Director) potrebbero fallire silenziosamente.
+
 ---
 
 **Quando Supabase è pronto, segui gli step sopra!** 🎯
+
+
+
 
 
 

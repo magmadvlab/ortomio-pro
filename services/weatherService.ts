@@ -331,6 +331,86 @@ export const checkCriticalWeatherAlerts = (
   return alerts;
 };
 
+/**
+ * Controlla rischi sanitari basati su meteo
+ * Converte alert meteo in formato HealthAlert per HealthDashboard
+ */
+export async function checkWeatherHealthRisks(garden: Garden): Promise<Array<{
+  type: 'weather' | 'disease' | 'pest' | 'nutrient'
+  severity: 'critical' | 'high' | 'medium' | 'low'
+  message: string
+  affectedPlants?: string[]
+  action?: string
+}>> {
+  const alerts: Array<{
+    type: 'weather' | 'disease' | 'pest' | 'nutrient'
+    severity: 'critical' | 'high' | 'medium' | 'low'
+    message: string
+    affectedPlants?: string[]
+    action?: string
+  }> = []
+  
+  if (!garden.coordinates) {
+    return alerts
+  }
+  
+  try {
+    const forecast = await getWeatherForecast(
+      garden.coordinates.latitude,
+      garden.coordinates.longitude
+    )
+    
+    if (!forecast) {
+      return alerts
+    }
+    
+    // Alert pioggia eccessiva → rischio peronospora
+    if (forecast.rainForecastMm > 10) {
+      alerts.push({
+        type: 'disease',
+        severity: forecast.rainForecastMm > 20 ? 'high' : 'medium',
+        message: `Pioggia prevista domani (${forecast.rainForecastMm.toFixed(1)}mm). Rischio peronospora per pomodori e zucchine.`,
+        affectedPlants: ['Pomodoro', 'Zucchina', 'Patata'],
+        action: 'Proteggi con coperture o anticipa trattamenti preventivi'
+      })
+    }
+    
+    // Alert gelata
+    if (forecast.tempMin !== undefined && forecast.tempMin < 2) {
+      alerts.push({
+        type: 'weather',
+        severity: 'critical',
+        message: `Gelata prevista stanotte (${forecast.tempMin.toFixed(1)}°C). Proteggi le piante sensibili!`,
+        action: 'Copri con teli TNT o sposta al riparo se in vaso'
+      })
+    }
+    
+    // Alert caldo estremo
+    if (forecast.tempMax !== undefined && forecast.tempMax > 35) {
+      alerts.push({
+        type: 'nutrient',
+        severity: 'high',
+        message: `Caldo estremo previsto (${forecast.tempMax.toFixed(1)}°C). Aumenta irrigazione e ombreggia.`,
+        action: 'Irriga al mattino presto e installa teli ombreggianti'
+      })
+    }
+    
+    // Alert siccità
+    if (forecast.rainForecastMm === 0 && forecast.tempMax !== undefined && forecast.tempMax > 25) {
+      alerts.push({
+        type: 'nutrient',
+        severity: 'medium',
+        message: 'Nessuna pioggia prevista con temperature elevate. Aumenta frequenza irrigazione.',
+        action: 'Verifica pacciamatura e aumenta irrigazione per terreni sabbiosi'
+      })
+    }
+  } catch (error) {
+    console.error('Error checking weather health risks:', error)
+  }
+  
+  return alerts
+}
+
 
 
 

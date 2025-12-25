@@ -274,3 +274,6 @@ export const PhotoAnalysisResults: React.FC<PhotoAnalysisResultsProps> = ({
 
 export default PhotoAnalysisResults;
 
+
+
+

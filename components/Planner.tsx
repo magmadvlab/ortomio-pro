@@ -22,6 +22,12 @@ import { GardenClassification } from '../services/seasonalSunWindows';
 import { PlantingWindow, adjustForPlantingMethod } from '../services/plantingWindowOptimizer';
 import { getDailyGardenPlan } from '../logic/director';
 import { DailyPlan } from '../types';
+import { PlantLifecycleTimeline, parseMonthsFromText as parseMonthsFromTextNew } from './planner/PlantLifecycleTimeline'
+import { CompanionPlants } from './planner/CompanionPlants'
+import { DailyTip } from './planner/DailyTip'
+import { PlantExpectations } from './planner/PlantExpectations'
+import { PopularPlantsTags } from './planner/PopularPlantsTags'
+import { SimplifiedPlantingForm } from './planner/SimplifiedPlantingForm'
 import { AccessoriesSuggestionsSection } from './planner/AccessoriesSuggestionsSection';
 import { getMasterSheet } from '../services/plantMasterService';
 import GeographicFeasibilityCard from './planner/GeographicFeasibilityCard';
@@ -171,6 +177,12 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
   const [searchQuery, setSearchQuery] = useState('');
   const [specificResult, setSpecificResult] = useState<SpecificPlantInfo | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedPopularPlant, setSelectedPopularPlant] = useState<string | null>(null);
+  
+  // Planting method state - simplified
+  const [plantingMethod, setPlantingMethod] = useState<'now' | 'transplant' | 'later'>('now');
+  const [plantingDate, setPlantingDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [quantity, setQuantity] = useState<number>(12);
   
   // Specialized crops state
   const [selectedCropCategory, setSelectedCropCategory] = useState<'all' | SpecializedCropType>('all');
@@ -770,22 +782,24 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
   const fertRecommendation = getFertilizerRecommendation();
 
   return (
-    <div className="p-4 pb-24 max-w-2xl mx-auto space-y-6">
-      <header className="flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl font-bold text-green-800">Cosa vuoi coltivare?</h1>
-          <p className="text-green-600">Pianifica per: <b>{garden.name}</b></p>
-        </div>
-        {onUpdateTask && (
-          <button
-            onClick={() => setShowVisualPlanner(true)}
-            className="bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
-          >
-            <MapIcon size={18} />
-            Mappa Orto
+    <div className="p-4 sm:p-8 pb-24 max-w-7xl mx-auto">
+      {/* Header */}
+      <header className="mb-8">
+        <div className="flex items-center gap-4 mb-2">
+          <button className="w-11 h-11 rounded-xl bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors">
+            ←
           </button>
-        )}
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Pianifica Coltivazione</h1>
+            <p className="text-sm text-gray-600 mt-1">Dashboard → Planner</p>
+          </div>
+        </div>
       </header>
+
+      {/* Main Layout - Two Columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8">
+        {/* Left Column */}
+        <div className="space-y-6">
 
       {/* Visual Planner Modal */}
       {/* 
@@ -816,8 +830,8 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
         />
       )}
 
-      {/* SEARCH SECTION - PRIMARY */}
-      <div className="bg-white p-6 rounded-2xl shadow-lg border border-green-200">
+          {/* SEARCH SECTION - PRIMARY */}
+          <div className="bg-white p-6 rounded-2xl shadow-lg border border-green-200">
         <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
             <Search size={20} className="text-green-600"/>
             Cerca Specie o Varietà
@@ -877,33 +891,66 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
           </button>
         </div>
         
-        {/* TODO: Integrare PlantFuzzySearch per supportare ricerca con sinonimi dialettali (barattiere, pummador, ecc.) */}
+        {/* Search Box */}
         <form onSubmit={handleSpecificSearch} className="relative">
-            <input 
-                type="text" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={selectedVisualCategory === 'all' ? "Cosa posso piantare adesso?" : `Cerca in ${selectedVisualCategory}...`}
-                className="w-full p-4 pr-12 rounded-xl border-2 border-green-100 focus:border-green-500 focus:ring-0 outline-none text-lg transition-all"
-            />
-            <button 
-                type="submit"
-                disabled={searchLoading}
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-green-600 p-2.5 rounded-lg text-white hover:bg-green-700 shadow-md transition-all"
-            >
-                {searchLoading ? <Loader2 size={24} className="animate-spin" /> : <ArrowRight size={24} />}
-            </button>
+            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-ortomio-green-500 focus-within:bg-white transition-all">
+                <span className="text-xl">🔍</span>
+                <input 
+                    type="text" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={selectedVisualCategory === 'all' ? "Cerca una pianta da coltivare..." : `Cerca in ${selectedVisualCategory}...`}
+                    className="flex-1 bg-transparent border-none outline-none text-base"
+                />
+                <button 
+                    type="submit"
+                    disabled={searchLoading}
+                    className="bg-ortomio-green-500 p-2 rounded-lg text-white hover:bg-ortomio-green-600 shadow-md transition-all disabled:opacity-50"
+                >
+                    {searchLoading ? <Loader2 size={20} className="animate-spin" /> : <ArrowRight size={20} />}
+                </button>
+            </div>
         </form>
 
-        {error && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
-                <p className="text-sm text-red-800 font-medium flex items-center gap-2">
-                    <AlertTriangle size={16} className="text-red-600"/>
-                    {error}
-                </p>
-            </div>
-        )}
-      </div>
+        {/* Popular Plants Tags */}
+        <PopularPlantsTags
+          plants={seasonalPlantSuggestions.slice(0, 5).map(s => ({
+            name: s.plantName,
+            emoji: s.plantName === 'Pomodoro' ? '🍅' :
+                   s.plantName === 'Peperone' ? '🫑' :
+                   s.plantName === 'Zucchina' ? '🥒' :
+                   s.plantName === 'Melanzana' ? '🍆' :
+                   s.plantName === 'Peperoncino' ? '🌶️' : '🌱',
+            id: s.plantId
+          }))}
+          selectedPlant={selectedPopularPlant || specificResult?.name}
+          onSelect={async (plantName) => {
+            setSelectedPopularPlant(plantName)
+            setSearchQuery(plantName)
+            // Trigger search automatically
+            const coords = garden.coordinates || getDefaultCoordinates();
+            try {
+              setSearchLoading(true)
+              setError(null)
+              const result = await getSpecificPlantDetails(plantName, coords.latitude, coords.longitude)
+              setSpecificResult(result)
+            } catch (err) {
+              setError(err instanceof Error ? err.message : 'Errore nella ricerca')
+            } finally {
+              setSearchLoading(false)
+            }
+          }}
+        />
+
+          {error && (
+              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+                  <p className="text-sm text-red-800 font-medium flex items-center gap-2">
+                      <AlertTriangle size={16} className="text-red-600"/>
+                      {error}
+                  </p>
+              </div>
+          )}
+          </div>
 
       {/* SPECIALIZED CROPS SECTION */}
       {isPro && (
@@ -1017,12 +1064,37 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
              </p>
         )}
 
-        {specificResult && (
-            <div className="mt-6 animate-in fade-in slide-in-from-bottom-4">
-                <div className="bg-green-50/50 p-4 rounded-xl border border-green-100 mb-4">
-                    <h3 className="font-bold text-xl text-green-900">{specificResult.name}</h3>
-                    <p className="text-green-700 font-medium italic">Varietà: {specificResult.variety}</p>
-                    <p className="text-sm text-gray-600 mt-2 bg-white p-3 rounded-lg border border-green-50">{specificResult.notes}</p>
+          {specificResult && (
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+              {/* Plant Header with Gradient */}
+              <div className="bg-gradient-to-br from-ortomio-green-500 to-ortomio-green-600 p-6 text-white">
+                <div className="flex items-center gap-5">
+                  <div className="text-6xl bg-white/20 rounded-xl w-24 h-24 flex items-center justify-center">
+                    {specificResult.name === 'Pomodoro' ? '🍅' : 
+                     specificResult.name === 'Peperone' ? '🫑' :
+                     specificResult.name === 'Zucchina' ? '🥒' :
+                     specificResult.name === 'Melanzana' ? '🍆' :
+                     specificResult.name === 'Peperoncino' ? '🌶️' : '🌱'}
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-3xl font-bold mb-1">{specificResult.name}</h2>
+                    <p className="text-white/90 text-sm mb-3">{specificResult.variety || 'Solanaceae'}</p>
+                    <div className="flex gap-2 flex-wrap">
+                      <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold">☀️ Pieno sole</span>
+                      <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold">💧 Media</span>
+                      <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold">⏱️ 80-100 giorni</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-6 space-y-6">
+                {/* Plant Info */}
+                {specificResult.notes && (
+                  <div className="bg-green-50/50 p-4 rounded-xl border border-green-100">
+                    <p className="text-sm text-gray-700">{specificResult.notes}</p>
+                  </div>
+                )}
                     
                     {/* Geographic Feasibility Card - For Exotic Fruits */}
                     {feasibilityResult && (() => {
@@ -1119,12 +1191,22 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                     })()}
                 </div>
 
-                {/* VISUAL CALENDAR */}
-                <PlantCalendar 
-                    sowing={specificResult.seedSowingWindow} 
-                    transplant={specificResult.transplantWindow} 
-                    harvest={specificResult.harvestWindow} 
-                />
+                {/* VISUAL CALENDAR - Usa il nuovo componente migliorato */}
+                {specificResult.seedSowingWindow && specificResult.transplantWindow && specificResult.harvestWindow ? (
+                  <PlantLifecycleTimeline
+                    sowingMonths={parseMonthsFromTextNew(specificResult.seedSowingWindow)}
+                    transplantMonths={parseMonthsFromTextNew(specificResult.transplantWindow)}
+                    harvestMonths={parseMonthsFromTextNew(specificResult.harvestWindow)}
+                    plantName={specificResult.name}
+                    variety={specificResult.variety}
+                  />
+                ) : (
+                  <PlantCalendar 
+                    sowing={specificResult.seedSowingWindow || ''} 
+                    transplant={specificResult.transplantWindow || ''} 
+                    harvest={specificResult.harvestWindow || ''} 
+                  />
+                )}
                 
                 {/* ADVANCED SOIL ANALYSIS */}
                 {soilAnalysis && (soilAnalysis.hasData || specificResult.soil) && (
@@ -1279,11 +1361,67 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                     </div>
                 </div>
                 
-                {/* Advanced Settings: Succession & Reminders */}
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6">
-                     <h4 className="font-bold text-gray-700 mb-3 text-sm uppercase flex items-center gap-2">
+                {/* Simplified Planting Form */}
+                <SimplifiedPlantingForm
+                  plantName={specificResult.name}
+                  variety={specificResult.variety}
+                  plantingMethod={plantingMethod}
+                  onPlantingMethodChange={setPlantingMethod}
+                  plantingDate={plantingDate}
+                  onPlantingDateChange={setPlantingDate}
+                  quantity={quantity}
+                  onQuantityChange={setQuantity}
+                  onSubmit={() => {
+                    // Determine method based on plantingMethod state
+                    const method: 'Seed' | 'Seedling' = plantingMethod === 'transplant' ? 'Seedling' : 'Seed';
+                    const dateToUse = plantingMethod === 'later' ? plantingDate : new Date().toISOString().split('T')[0];
+                    
+                    // Update plantingQuantity and trigger handlePlanPlanting
+                    setPlantingQuantity(quantity);
+                    
+                    // If plantingMethod is 'later', we need to handle it differently
+                    if (plantingMethod === 'later') {
+                      // Create a task for future date
+                      const soilAnalysis = getSoilAnalysis();
+                      const soilNote = soilAnalysis?.hasData ? `\n🌍 Suolo: ${soilAnalysis.phMsg}. ${soilAnalysis.typeMsg}` : '';
+                      const notes = `Metodo: ${method === 'Seed' ? 'Seme' : 'Trapianto'}.\nIrrigazione: ${customIrrigationFreq || 'Da definire'}.\nConcime Base: ${specificResult.fertilizer.organicType} (${specificResult.fertilizer.organicDosageGm2}g/mq).${soilNote}`;
+                      
+                      const plantingStats = {
+                        initialQuantity: quantity,
+                        currentQuantity: quantity,
+                        locationType: locationType,
+                        bedId: selectedBedId
+                      };
+                      
+                      onAddToJournal(
+                        specificResult.name,
+                        notes,
+                        specificResult.variety,
+                        method,
+                        dateToUse,
+                        method === 'Seed' ? 'Sowing' : 'Transplant',
+                        plantingStats
+                      );
+                    } else {
+                      // Use existing handlePlanPlanting for 'now' and 'transplant'
+                      handlePlanPlanting(method);
+                    }
+                    
+                    // Reset form
+                    setSpecificResult(null);
+                    setSearchQuery('');
+                    setSelectedPopularPlant(null);
+                    setPlantingMethod('now');
+                    setQuantity(12);
+                  }}
+                  isLoading={false}
+                />
+
+                {/* Advanced Settings: Succession & Reminders - Hidden by default, show in collapsible section */}
+                <details className="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6">
+                     <summary className="font-bold text-gray-700 mb-3 text-sm uppercase flex items-center gap-2 cursor-pointer">
                         <Settings size={16}/> Opzioni Avanzate
-                     </h4>
+                     </summary>
 
                      {/* Quantity and Location (New) */}
                      <div className="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-gray-200">
@@ -1516,7 +1654,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                              </div>
                         </div>
                      </div>
-                </div>
+                </details>
 
                 <div className="flex gap-2 mb-4 bg-orange-50 p-2 rounded text-xs text-orange-800 border border-orange-100">
                     <Gauge size={16} />
@@ -2099,6 +2237,29 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
           }}
         />
       )}
+        </div>
+
+        {/* Right Sidebar */}
+        <div className="hidden lg:block space-y-5">
+        {/* Daily Tip */}
+        <DailyTip 
+          tip={`Nella tua zona${garden.coordinates ? ` (${garden.name})` : ''}, il periodo ideale per seminare ${specificResult?.name || 'pomodori'} è tra Febbraio e Marzo in semenzaio protetto.`}
+          location={garden.name}
+        />
+
+        {/* Companion Plants */}
+        {specificResult && (
+          <CompanionPlants />
+        )}
+
+        {/* Plant Expectations */}
+        {specificResult && (
+          <PlantExpectations 
+            harvestDays={specificResult.harvestWindow || '80-100 giorni'}
+          />
+        )}
+        </div>
+      </div>
     </div>
   );
 };

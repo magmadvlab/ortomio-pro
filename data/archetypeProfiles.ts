@@ -6,6 +6,26 @@
 import { CropProfile, ArchetypeId } from '../types/archetypes';
 
 export const archetypeProfiles: Record<ArchetypeId, CropProfile> = {
+  'MIX': {
+    id: 'mix-profile',
+    archetypeId: 'MIX',
+    rootZoneDepthCmDefault: 35,
+    rootZoneDepthCmMin: 20,
+    rootZoneDepthCmMax: 60,
+    kcStages: {
+      initial: 0.5,
+      development: 0.7,
+      mid: 0.9,
+      late: 0.8
+    },
+    stressDepletionPDefault: 0.5,
+    nutrientPlan: {
+      germination: { N: 20, P: 10, K: 15 },
+      vegetative: { N: 30, P: 15, K: 25 },
+      production: { N: 25, P: 20, K: 30 }
+    },
+    irrigationNotes: 'Profilo generico per orto misto. Affinare per colture specifiche quando disponibili.'
+  },
   'A1': {
     id: 'a1-profile',
     archetypeId: 'A1',

@@ -75,7 +75,7 @@ const GlobalSearch: React.FC = () => {
         router.push(`/app/journal`);
         break;
       case 'harvest':
-        router.push(`/app/harvest`);
+        router.push(`/app/progress?tab=harvests`);
         break;
       case 'seed':
         router.push(`/app/seeds`);
@@ -244,6 +244,7 @@ const GlobalSearch: React.FC = () => {
 };
 
 export default GlobalSearch;
+
 
 
 

@@ -85,7 +85,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
   return (
     <div className="p-4 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-gray-800">📅 Calendario</h1>
         <div className="flex items-center gap-2">
           <button
@@ -104,6 +104,16 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
             aria-label="Mese successivo"
           >
             →
+          </button>
+          <button
+            onClick={() => {
+              const today = new Date()
+              setCurrentMonth(today)
+              setSelectedDate(today)
+            }}
+            className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+          >
+            Oggi
           </button>
         </div>
       </div>
@@ -151,19 +161,35 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
                 className={`
                   min-h-[100px] p-2 rounded-lg border-2 transition-all cursor-pointer
                   hover:border-green-500 hover:shadow-md
-                  ${isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'}
-                  ${isDayToday ? 'ring-2 ring-green-400' : ''}
+                  ${isSelected ? 'border-green-600 bg-green-50 shadow-md' : 'border-gray-200 bg-white'}
+                  ${isDayToday && !isSelected ? 'ring-2 ring-green-500 border-green-400' : ''}
                   ${!isCurrentMonth ? 'opacity-40' : ''}
                 `}
               >
                 {/* Numero giorno */}
                 <div className="flex items-start justify-between mb-1">
+                  <div className="flex items-center gap-1">
                   <span className={`
                     text-lg font-semibold
-                    ${isDayToday ? 'text-green-600' : 'text-gray-900'}
+                      ${isDayToday ? 'text-green-600 font-bold' : 'text-gray-900'}
                   `}>
                     {format(day, 'd')}
                   </span>
+                    {/* Badge Task Count */}
+                    {dayTasks.length > 0 && (
+                      <span className={`
+                        text-xs font-bold px-1.5 py-0.5 rounded-full
+                        ${isDayToday 
+                          ? 'bg-green-600 text-white' 
+                          : dayTasks.some(t => !t.completed)
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-300 text-gray-700'
+                        }
+                      `}>
+                        {dayTasks.filter(t => !t.completed).length || dayTasks.length}
+                      </span>
+                    )}
+                  </div>
                   
                   {/* Icone eventi */}
                   <div className="flex items-center gap-1">
@@ -233,9 +259,16 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
       
       {/* Pannello Dettagli Giorno Selezionato */}
       <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
-        <h3 className="text-xl font-bold text-gray-800">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-bold text-gray-800 capitalize">
           {format(selectedDate, 'EEEE d MMMM yyyy', { locale: it })}
         </h3>
+          {isToday(selectedDate) && (
+            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">
+              Oggi
+            </span>
+          )}
+        </div>
         
         {/* Fase Lunare */}
         {faseLunare && (
@@ -310,11 +343,22 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
           const completedTasks = dayTasks.filter(t => t.completed);
           const manualTasks = dayTasks.filter(t => !t.isSuggested && !t.completed);
           
-          if (dayTasks.length === 0) return null;
+          if (dayTasks.length === 0) {
+            return (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                <p className="text-gray-500">Nessun task per questo giorno</p>
+              </div>
+            )
+          }
           
           return (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
-              <h4 className="font-semibold text-green-900 mb-3">📋 Task del Giorno</h4>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-semibold text-green-900">📋 Task del Giorno</h4>
+                <span className="px-2 py-1 bg-green-600 text-white rounded-full text-xs font-bold">
+                  {dayTasks.length} totali
+                </span>
+              </div>
               
               {/* Task suggeriti */}
               {suggestedTasks.length > 0 && (

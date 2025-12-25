@@ -297,3 +297,6 @@ CREATE TRIGGER on_seed_low_quantity
 -- Oppure usare Supabase Secrets per maggiore sicurezza
 
 
+
+
+

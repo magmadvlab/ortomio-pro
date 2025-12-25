@@ -104,6 +104,14 @@ import { ArchetypeId } from './types/archetypes';
 // Re-export ArchetypeId for convenience
 export type { ArchetypeId };
 
+export interface PrimaryCrop {
+  archetypeId: ArchetypeId;
+  label: string;
+  canonicalPlantName?: string;
+  cropType?: string;
+  createdFrom?: 'user' | 'suggested';
+}
+
 export interface SolarClassificationData {
   windows: SeasonalSunWindow[];
   classification: GardenClassification;
@@ -119,6 +127,7 @@ export interface DailyPlan {
   nutrientTasks: NutrientTask[];
   healthTasks: HealthTask[];
   climateWarnings: ClimateWarning[];
+  baselinePrompts?: DirectorPrompt[];
   lunarAdvice?: LunarAdvice;
   priority: 'Critical' | 'High' | 'Medium' | 'Low';
   // Nuovi task per lavorazioni meccaniche e potatura alberi
@@ -127,6 +136,24 @@ export interface DailyPlan {
   pendingSuggestions?: GardenTask[]; // Task suggeriti non ancora completati
   solarClassification?: SolarClassificationData; // Classificazione solare stagionale
   irrigationTasks?: import('./types/irrigation').IrrigationTask[]; // Task irrigazione per zone
+}
+
+export interface DirectorPrompt {
+  id: string;
+  category: 'seasonal_baseline';
+  priority: 'High' | 'Medium' | 'Low';
+  title: string;
+  body: string;
+  options: DirectorPromptOption[];
+}
+
+export interface DirectorPromptOption {
+  id: string;
+  label: string;
+  actionType: 'create_task' | 'dismiss' | 'open_wizard';
+  createTask?: Omit<GardenTask, 'id'>;
+  createTasks?: Array<Omit<GardenTask, 'id'>>;
+  href?: string;
 }
 
 // Work types for mechanical operations
@@ -261,10 +288,14 @@ export interface Garden {
   coordinates?: GeoLocation;
   sizeSqMeters: number; // Sempre in m² per calcoli interni
   sizeUnit?: 'sqm' | 'are' | 'hectare'; // Unità di misura per display (default: 'sqm')
+  dimensions?: { length: number; width: number }; // Dimensioni in metri
   soilType?: 'Clay' | 'Sandy' | 'Loamy' | 'Peaty' | 'Chalky' | 'Silty';
   soilPh?: number;
   createdAt: string;
   vacationMode?: VacationPlan; // Piano di vacanza attivo
+
+  // Coltura principale del garden (garden = gruppo colturale)
+  primaryCrop?: PrimaryCrop;
   
   // GEO-CLIMA
   altitudeMeters?: number;
@@ -553,6 +584,9 @@ export interface HarvestLogData {
     };
 }
 
+// Type alias for compatibility
+export type HarvestLog = HarvestLogData
+
 export type GrowingLocation = 
   | 'Pot' 
   | 'Ground' 
@@ -600,7 +634,7 @@ export interface GardenTask {
   initialQuantity?: number; // How many seeds/plants started
   currentQuantity?: number; // How many survived/are active
   
-  taskType: 'Sowing' | 'Transplant' | 'Fertilize' | 'Prune' | 'Harvest' | 'Treatment' | 'Plowing' | 'Subsoiling' | 'Harrowing' | 'Tilling' | 'Rolling' | 'Hoeing' | 'EarthingUp' | 'Mulching' | 'PostSowingRolling' | 'Clearing' | 'Stumping' | 'StoneRemoval' | 'Leveling' | 'DeepSubsoiling' | 'Digging' | 'DeepHarrowing' | 'Crumbling' | 'Scraping' | 'SurfaceLeveling' | 'MinimumTillage' | 'StripTillage' | 'NoTill' | 'FormativePruning' | 'MaintenancePruning' | 'RejuvenationPruning' | 'SummerPruning' | 'WinterPruning' | 'Thinning' | 'Suckering' | 'Defoliation' | 'Tying' | 'OliveShredding' | 'RunnerManagement' | 'StrawberryMulching' | 'StrawberryCleaning' | 'CaneRemoval' | 'TipPruning' | 'RaspberryTying' | 'SuckerThinning' | 'FruitBagging' | 'ExoticThinning' | 'Shredding' | 'Topping' | 'Pruning' | 'TreePruning';
+  taskType: 'Sowing' | 'Transplant' | 'Fertilize' | 'Prune' | 'Harvest' | 'Treatment' | 'Irrigation' | 'Photo' | 'Plowing' | 'Subsoiling' | 'Harrowing' | 'Tilling' | 'Rolling' | 'Hoeing' | 'EarthingUp' | 'Mulching' | 'PostSowingRolling' | 'Clearing' | 'Stumping' | 'StoneRemoval' | 'Leveling' | 'DeepSubsoiling' | 'Digging' | 'DeepHarrowing' | 'Crumbling' | 'Scraping' | 'SurfaceLeveling' | 'MinimumTillage' | 'StripTillage' | 'NoTill' | 'FormativePruning' | 'MaintenancePruning' | 'RejuvenationPruning' | 'SummerPruning' | 'WinterPruning' | 'Thinning' | 'Suckering' | 'Defoliation' | 'Tying' | 'OliveShredding' | 'RunnerManagement' | 'StrawberryMulching' | 'StrawberryCleaning' | 'CaneRemoval' | 'TipPruning' | 'RaspberryTying' | 'SuckerThinning' | 'FruitBagging' | 'ExoticThinning' | 'Shredding' | 'Topping' | 'Pruning' | 'TreePruning';
   durationMinutes?: number; // Durata task (es. irrigazione in minuti)
   stage?: 'Germination' | 'Vegetative' | 'ReadyToTransplant' | 'Flowering' | 'Fruiting' | 'Harvested';
   lifecycleState?: 'Sowing' | 'Germination' | 'Nursing' | 'IntermediateRepotting' | 'Hardening' | 'Transplanting' | 'Production' | 'Disposal'; // Fase del ciclo vitale
@@ -611,6 +645,7 @@ export interface GardenTask {
   completed: boolean;
   // Tracking suggerimenti vs completamenti reali
   suggestedDate?: string; // Data suggerita dall'orchestrator (ISO string)
+  suggestedTime?: string; // Orario suggerito (HH:mm, opzionale)
   actualCompletedDate?: string; // Data effettiva di completamento (ISO string, diversa da date se completato in data diversa)
   isSuggested?: boolean; // true se generato automaticamente dall'orchestrator
   suggestedBy?: string; // ID del task/sistema che ha suggerito questo task
@@ -657,11 +692,18 @@ export interface GardenTask {
   // Harvest Specifics for Planner/Journal tracking
   recordedBrix?: number;
   harvestReadyAnalysis?: string; // AI response on readiness
+  harvestLogId?: string; // Link to harvest log when harvest is registered
   // Harvest History (Partial harvests)
   harvestHistory?: HarvestLogData[];
   // Final Harvest Data (Legacy/Summary)
   finalHarvest?: HarvestLogData;
-  
+
+  // Fertilization History (Same pattern as harvest)
+  fertilizationHistory?: FertilizerApplicationLogDB[];
+
+  // Treatment History (Same pattern as harvest)
+  treatmentHistory?: TreatmentRecordDB[];
+
   // Specialized Crop Data (Pro Features)
   strawberryData?: {
     varietyType: 'June-bearing' | 'Ever-bearing' | 'Day-neutral';
@@ -855,6 +897,11 @@ export interface PlantMasterSheet {
   family: string; // "Solanaceae", "Cucurbitaceae", etc.
   cropType?: CropType; // Tipo di coltura (opzionale, per estensioni Pro)
   season?: 'Spring' | 'Summer' | 'Autumn' | 'Winter'; // Stagione preferita per trapianto
+  daysToMaturity?: number; // Giorni stimati alla maturazione
+  expectedYield?: {
+    min: number; // kg per pianta
+    max?: number;
+  };
   
   // FASE 0: Strumenti necessari
   requiredTools: {
@@ -1031,6 +1078,14 @@ export interface PlantMasterSheet {
         steps: string[];
       };
     };
+  };
+
+  // Preferenze fasi lunari per operazioni
+  lunarPreference?: {
+    sowing?: 'waxing' | 'waning' | 'either'; // Luna Crescente, Calante o indifferente
+    transplant?: 'waxing' | 'waning' | 'either';
+    harvest?: 'waxing' | 'waning' | 'either';
+    pruning?: 'waxing' | 'waning' | 'either';
   };
   
   // Note comparative e specifiche per famiglia botanica
@@ -1457,6 +1512,7 @@ export interface WinterPreparationTask {
 
 // Re-export from data/fertilizers.ts for convenience
 export type { FertilizerProduct, CoverCrop } from './data/fertilizers';
+export type { HealthAlert, AlertType, AlertSeverity, AlertSource, AlertCheckContext, WeatherData, SensorReading } from './types/healthAlert';
 
 // ============================================
 // PHYTO ENGINE TYPES
@@ -1544,6 +1600,97 @@ export interface TreatmentRecordDB {
   operator_name?: string
   notes?: string
   created_at: string
+}
+
+export interface FertilizerInventoryItemDB {
+  id: string
+  garden_id: string
+  product_id?: string | null
+  product_name: string
+  product_type: 'organic' | 'mineral' | 'corrective' | 'microelement'
+  category: string
+  npk?: { n?: number; p?: number; k?: number } | null
+  quantity: number
+  unit: 'kg' | 'L' | 'bags'
+  expiry_date?: string | null
+  cost_per_unit?: number | null
+  supplier?: string | null
+  notes?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PhytoInventoryItemDB {
+  id: string
+  garden_id: string
+  product_id?: string | null
+  product_name: string
+  product_type: 'bio' | 'conventional'
+  category: string
+  active_ingredient?: string | null
+  quantity: number
+  unit: 'L' | 'kg' | 'units'
+  expiry_date?: string | null
+  safety_interval_days?: number | null
+  requires_license?: boolean | null
+  allowed_in_organic?: boolean | null
+  cost_per_unit?: number | null
+  supplier?: string | null
+  notes?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CompostLogDB {
+  id: string
+  garden_id: string
+  compost_type: 'compost' | 'worm_compost' | 'bokashi'
+  start_date: string
+  materials: any
+  cn_ratio?: number | null
+  maturity_date?: string | null
+  quantity_produced?: number | null
+  unit: 'kg' | 'L'
+  notes?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface FertilizerApplicationLogDB {
+  id: string
+  gardenId: string
+  taskId?: string | null
+  bedId?: string | null
+
+  // Prodotto
+  fertilizerProductId: string
+  fertilizerProductName: string
+  fertilizerType?: 'organic' | 'mineral' | 'corrective' | 'microelement' | null
+
+  // NPK
+  npk?: { n: number; p: number; k: number } | null
+
+  // Applicazione
+  applicationDate: string // ISO date
+  areaSqm?: number | null
+  dosageAmount: number
+  dosageUnit: string // 'g', 'kg', 'ml', 'L'
+  method: 'incorporated' | 'surface' | 'fertigation' | 'foliar'
+
+  // Fase pianta
+  growthPhase?: 'Germination' | 'Vegetative' | 'Flowering' | 'Fruiting' | null
+
+  // Meteo
+  weatherConditions?: any
+
+  // ⭐ Scheduling automatico
+  nextApplicationDate?: string | null // ISO date - KEY!
+  frequencyDays?: number | null // Ogni quanti giorni ripetere
+
+  // Note
+  notes?: string | null
+
+  createdAt: string
 }
 
 // ============================================

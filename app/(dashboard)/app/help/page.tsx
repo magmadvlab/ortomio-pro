@@ -370,11 +370,11 @@ export default function HelpPage() {
               <span className="text-gray-700">Dashboard</span>
             </Link>
             <Link
-              href="/app/planner"
+              href="/app/garden?tab=timeline"
               className="flex items-center gap-3 p-3 bg-white rounded-lg hover:shadow-md transition-shadow"
             >
               <Calendar className="text-blue-600" size={20} />
-              <span className="text-gray-700">Planner</span>
+              <span className="text-gray-700">Il Mio Orto</span>
             </Link>
           </div>
         </section>

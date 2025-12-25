@@ -124,6 +124,11 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
       setLongitude(existingGarden.coordinates.longitude.toString());
     }
     
+    // Geolocalizzazione automatica al mount se non esistente e necessario
+    if (!existingGarden && !latitude && !longitude && needsLocation && step >= 3) {
+      handleGetLocation(false); // Auto-detect senza forzare refresh
+    }
+    
     // Se initialGardenType è presente, salta lo step 2 (tipo giardino)
     if (initialGardenType && !existingGarden && step === 1) {
       // Il tipo è già impostato, dopo step 1 vai direttamente allo step 3 (posizione) o 4 (dimensioni)

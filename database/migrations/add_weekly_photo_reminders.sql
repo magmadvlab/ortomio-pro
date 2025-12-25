@@ -62,3 +62,6 @@ COMMENT ON TABLE weekly_photo_reminders IS 'Reminder settimanali per foto di tra
 COMMENT ON COLUMN weekly_photo_reminders.frequency_days IS 'Giorni tra un reminder e l''altro (default 7 = settimanale, può essere 14 per fase Production)';
 COMMENT ON COLUMN weekly_photo_reminders.reminder_count IS 'Numero di reminder inviati finora per questo task';
 
+
+
+

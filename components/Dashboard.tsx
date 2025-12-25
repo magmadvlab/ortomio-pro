@@ -1,5 +1,8 @@
 
+'use client';
+
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { GardenTask, Garden } from '../types';
 import { Sun, CloudRain, CalendarCheck, AlertTriangle, AlertCircle, Settings, Save, Cloud, CloudLightning, Snowflake, CloudFog, Loader2, MapPin, Droplets, ThermometerSun, FlaskConical, Shovel, ChevronDown, Plus, Trash2, Home, Sparkles, CheckCircle, XCircle, Moon, Package, Plane, BarChart3, Grid, Clock } from 'lucide-react';
 import { DeleteGardenConfirm } from './shared/DeleteGardenConfirm';
@@ -44,6 +47,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     tasks, onNavigateToJournal, gardens, activeGardenId, 
     onSelectGarden, onAddGarden, onUpdateGarden, onDeleteGarden, onUpdateTask
 }) => {
+  const router = useRouter();
   const { tier, isPro, checkLimit, limit } = useTier();
   const activeGarden = gardens.find(g => g.id === activeGardenId);
   const [isEditingSettings, setIsEditingSettings] = useState(false);
@@ -93,6 +97,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   // Irrigation Log State
   const [showWateringLogForm, setShowWateringLogForm] = useState(false);
   const [selectedZoneForLog, setSelectedZoneForLog] = useState<IrrigationZone | null>(null);
+  const [irrigationZones, setIrrigationZones] = useState<IrrigationZone[]>([]);
   
   // Client-side only date to avoid hydration errors
   const [mounted, setMounted] = useState(false);
@@ -785,6 +790,16 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <div className="flex-1">
                       <p className="font-bold text-red-900">{alert.message}</p>
                       <p className="text-sm text-red-700 mt-1">{alert.action}</p>
+                      {alert.type === 'Planning' && alert.message.toLowerCase().includes('progetta impianto irrigazione') && (
+                        <div className="mt-3">
+                          <button
+                            onClick={() => router.push(`/app/irrigation?gardenId=${activeGardenId}&wizard=design`)}
+                            className="px-3 py-2 rounded-lg bg-white text-red-700 border border-red-200 text-sm font-semibold hover:bg-red-50 transition"
+                          >
+                            Apri wizard “Progetta impianto”
+                          </button>
+                        </div>
+                      )}
                       {alert.blockOperations && (
                         <p className="text-xs text-red-600 mt-2 font-semibold">⚠️ Operazioni delicate bloccate</p>
                       )}
@@ -1042,6 +1057,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                               const systems = await storageProvider.getIrrigationSystems(activeGarden?.id || '');
                               if (systems.length > 0) {
                                 const zones = await storageProvider.getIrrigationZones(systems[0].id);
+                                setIrrigationZones(zones);
                                 const zone = zones.find(z => z.id === task.zoneId);
                                 if (zone) {
                                   setSelectedZoneForLog(zone);
@@ -1066,6 +1082,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                               const systems = await storageProvider.getIrrigationSystems(activeGarden?.id || '');
                               if (systems.length > 0) {
                                 const zones = await storageProvider.getIrrigationZones(systems[0].id);
+                                setIrrigationZones(zones);
                                 const zone = zones.find(z => z.id === task.zoneId);
                                 if (zone) {
                                   setSelectedZoneForLog(zone);
@@ -1222,14 +1239,16 @@ const Dashboard: React.FC<DashboardProps> = ({
       {/* Watering Log Form */}
       {showWateringLogForm && selectedZoneForLog && (
         <WateringLogForm
-          zone={selectedZoneForLog}
-          onComplete={async (log) => {
+          zones={irrigationZones}
+          preselectedZone={selectedZoneForLog}
+          onSubmit={async (log) => {
             // Salva log
             const { getDefaultStorageProvider } = await import('../packages/core/storage/factory');
             const storageProvider = getDefaultStorageProvider();
             await storageProvider.logWatering(log);
             setShowWateringLogForm(false);
             setSelectedZoneForLog(null);
+            setIrrigationZones([]);
             // Ricarica daily plan
             if (activeGarden) {
               const plan = await getDailyGardenPlan(activeGarden, tasks);
@@ -1239,6 +1258,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           onCancel={() => {
             setShowWateringLogForm(false);
             setSelectedZoneForLog(null);
+            setIrrigationZones([]);
           }}
         />
       )}

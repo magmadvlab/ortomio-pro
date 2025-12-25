@@ -7,6 +7,7 @@ import { ProFeatureGate } from '@/components/shared/ProFeatureGate'
 import { Database, FileText, Download, Calendar, MapPin, Loader2 } from 'lucide-react'
 import { format, subDays } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { getSupabaseClient } from '@/config/supabase'
 
 export default function ExportPage() {
   const { storageProvider } = useStorage()
@@ -43,7 +44,27 @@ export default function ExportPage() {
           params.append('garden_id', selectedGardenId)
         }
 
-        const response = await fetch(`/api/export/${fileFormat}?${params.toString()}`)
+        const headers: Record<string, string> = {}
+        let tokenSent = ''
+        try {
+          const supabase = getSupabaseClient()
+          if (supabase) {
+            const { data } = await supabase.auth.getSession()
+            const token = data.session?.access_token
+            if (token) {
+              headers['Authorization'] = `Bearer ${token}`
+              tokenSent = token.slice(0, 10) + '...'
+            }
+          }
+        } catch {
+          // ignore
+        }
+        console.log('[Export] Token sent?', !!tokenSent, tokenSent)
+        console.log('[Export] Headers sent:', Object.keys(headers))
+
+        const response = await fetch(`/api/export/${fileFormat}?${params.toString()}`, {
+          headers,
+        })
         
         if (response.ok) {
           const blob = await response.blob()

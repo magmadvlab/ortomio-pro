@@ -3,7 +3,7 @@
  * Abstract interface for storage operations (localStorage or Supabase)
  */
 
-import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB } from '../../../types';
+import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB } from '../../../types';
 import { CustomPlan } from '../../../types/customPlan';
 import { Agronomist, AgronomistConsultation, AgronomistAdvice } from '../../../types/agronomist';
 import { SeedlingBatch } from '../../../services/seedlingService';
@@ -14,6 +14,7 @@ import { GardenBed } from '../../../types/gardenBed';
 import { CustomCrop, CropLearningEvent } from '../../../types/customCrop';
 import { CropArchetype, CropProfile, CropAlias, ArchetypeId, OfficialCrop } from '../../../types/archetypes';
 import { IrrigationSystem, IrrigationZone, IrrigationComponent, WateringLog } from '../../../types/irrigation';
+import { HealthAlert } from '../../../types/healthAlert';
 
 export interface IStorageProvider {
   // Gardens
@@ -29,6 +30,9 @@ export interface IStorageProvider {
   createTask(task: Omit<GardenTask, 'id'>): Promise<GardenTask>;
   updateTask(id: string, updates: Partial<GardenTask>): Promise<GardenTask>;
   deleteTask(id: string): Promise<void>;
+
+  // Challenge completions (optional)
+  getChallengeCompletions?(userId: string): Promise<Array<{ challenge_id: string }>>;
   
   // Smart Devices
   getDevices(gardenId?: string): Promise<SmartDevice[]>;
@@ -71,6 +75,10 @@ export interface IStorageProvider {
   
   // Sync (for cloud providers)
   sync?(): Promise<void>;
+
+  // User Preferences / Small KV Storage (optional)
+  getUserPreference?<T = any>(key: string): Promise<T | null>;
+  setUserPreference?<T = any>(key: string, value: T): Promise<void>;
   
   // Custom Plans (Pro Feature)
   createCustomPlan(plan: Omit<CustomPlan, 'id' | 'createdAt' | 'updatedAt'>): Promise<CustomPlan>;
@@ -122,6 +130,33 @@ export interface IStorageProvider {
   createMechanicalWork(work: Omit<MechanicalWorkRecord, 'id' | 'user_id' | 'created_at'>): Promise<MechanicalWorkRecord>;
   updateMechanicalWork(id: string, updates: Partial<MechanicalWorkRecord>): Promise<MechanicalWorkRecord>;
   deleteMechanicalWork(id: string): Promise<void>;
+
+  // Fertilizer Inventory
+  getFertilizerInventory(gardenId: string): Promise<FertilizerInventoryItemDB[]>;
+  getFertilizerInventoryItem(id: string): Promise<FertilizerInventoryItemDB | null>;
+  createFertilizerInventoryItem(item: Omit<FertilizerInventoryItemDB, 'id' | 'created_at' | 'updated_at'>): Promise<FertilizerInventoryItemDB>;
+  updateFertilizerInventoryItem(id: string, updates: Partial<FertilizerInventoryItemDB>): Promise<FertilizerInventoryItemDB>;
+  deleteFertilizerInventoryItem(id: string): Promise<void>;
+
+  // Phyto Inventory
+  getPhytoInventory(gardenId: string): Promise<PhytoInventoryItemDB[]>;
+  getPhytoInventoryItem(id: string): Promise<PhytoInventoryItemDB | null>;
+  createPhytoInventoryItem(item: Omit<PhytoInventoryItemDB, 'id' | 'created_at' | 'updated_at'>): Promise<PhytoInventoryItemDB>;
+  updatePhytoInventoryItem(id: string, updates: Partial<PhytoInventoryItemDB>): Promise<PhytoInventoryItemDB>;
+  deletePhytoInventoryItem(id: string): Promise<void>;
+
+  // Compost Logs
+  getCompostLogs(gardenId: string): Promise<CompostLogDB[]>;
+  getCompostLog(id: string): Promise<CompostLogDB | null>;
+  createCompostLog(log: Omit<CompostLogDB, 'id' | 'created_at' | 'updated_at'>): Promise<CompostLogDB>;
+  updateCompostLog(id: string, updates: Partial<CompostLogDB>): Promise<CompostLogDB>;
+  deleteCompostLog(id: string): Promise<void>;
+
+  // Fertilizer Application Logs
+  getFertilizerApplicationLogs(gardenId: string, options?: { taskId?: string; bedId?: string; from?: string; to?: string }): Promise<FertilizerApplicationLogDB[]>;
+  getFertilizerApplicationLog(id: string): Promise<FertilizerApplicationLogDB | null>;
+  createFertilizerApplicationLog(log: Omit<FertilizerApplicationLogDB, 'id' | 'created_at'>): Promise<FertilizerApplicationLogDB>;
+  deleteFertilizerApplicationLog(id: string): Promise<void>;
   
   // Treatments (Pro Feature)
   getTreatments(gardenId?: string): Promise<TreatmentRecordDB[]>;
@@ -168,6 +203,7 @@ export interface IStorageProvider {
   
   // Irrigation Zones
   getIrrigationZones(systemId: string): Promise<IrrigationZone[]>;
+  getIrrigationZones(systemId?: string, gardenId?: string): Promise<IrrigationZone[]>;
   getIrrigationZone(id: string): Promise<IrrigationZone | null>;
   createIrrigationZone(zone: Omit<IrrigationZone, 'id' | 'createdAt' | 'updatedAt'>): Promise<IrrigationZone>;
   updateIrrigationZone(id: string, updates: Partial<IrrigationZone>): Promise<IrrigationZone>;
@@ -182,12 +218,20 @@ export interface IStorageProvider {
   
   // Watering Logs
   getWateringLogs(zoneId: string, startDate?: string, endDate?: string): Promise<WateringLog[]>;
+  getWateringLogs(zoneId?: string, gardenId?: string, dateRange?: { from: string; to: string }): Promise<WateringLog[]>;
   getWateringLog(id: string): Promise<WateringLog | null>;
   logWatering(log: Omit<WateringLog, 'id' | 'createdAt'>): Promise<WateringLog>;
+  createWateringLog(log: Omit<WateringLog, 'id' | 'createdAt'>): Promise<WateringLog>;
   updateWateringLog(id: string, updates: Partial<WateringLog>): Promise<WateringLog>;
   deleteWateringLog(id: string): Promise<void>;
-  
+
+  // Health Alerts (Salute Proattiva)
+  getHealthAlerts(gardenId?: string): Promise<HealthAlert[]>;
+  getHealthAlert(id: string): Promise<HealthAlert | null>;
+  createHealthAlert(alert: Omit<HealthAlert, 'id' | 'createdAt' | 'updatedAt'>): Promise<HealthAlert>;
+  updateHealthAlert(id: string, updates: Partial<HealthAlert>): Promise<HealthAlert>;
+  deleteHealthAlert(id: string): Promise<void>;
+
   // Check if provider is available
   isAvailable(): boolean;
 }
-

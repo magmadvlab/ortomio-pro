@@ -145,3 +145,6 @@ export const GerminationNotification: React.FC<GerminationNotificationProps> = (
 
 export default GerminationNotification;
 
+
+
+

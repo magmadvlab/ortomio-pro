@@ -66,3 +66,6 @@ CREATE TRIGGER on_calendar_task_created
 -- Commento
 COMMENT ON FUNCTION notify_calendar_task_created() IS 'Invia notifica email quando viene creato un calendar task da una challenge';
 
+
+
+

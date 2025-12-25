@@ -23,11 +23,24 @@ export function useGarden(): UseGardenReturn {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const normalizeGarden = (garden: Garden): Garden => {
+    if (garden.primaryCrop) return garden
+    return {
+      ...garden,
+      primaryCrop: {
+        archetypeId: 'MIX',
+        label: 'Orto misto',
+        canonicalPlantName: 'orto',
+        createdFrom: 'suggested',
+      },
+    }
+  }
+
   const loadGardens = async () => {
     try {
       setLoading(true)
       setError(null)
-      const loadedGardens = await storageProvider.getGardens()
+      const loadedGardens = (await storageProvider.getGardens()).map(normalizeGarden)
       setGardens(loadedGardens)
       
       // Seleziona il primo giardino come attivo se non c'è già uno selezionato
@@ -70,6 +83,9 @@ export function useGarden(): UseGardenReturn {
     setActiveGarden,
   }
 }
+
+
+
 
 
 

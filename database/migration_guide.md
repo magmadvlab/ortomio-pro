@@ -314,3 +314,6 @@ Per problemi o domande:
 - Vedi [Precision Agriculture Guide](../docs/PRECISION_AGRICULTURE.md)
 - Controlla log Supabase per errori dettagliati
 
+
+
+

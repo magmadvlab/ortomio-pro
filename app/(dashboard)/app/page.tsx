@@ -9,6 +9,8 @@ import { ProfessionalDashboard } from '@/components/professional/Dashboard'
 import { FreeDashboard } from '@/components/shared/FreeDashboard'
 import { HomeDashboard } from '@/components/shared/HomeDashboard'
 import GardenOnboarding from '@/components/GardenOnboarding'
+import { UserOnboardingWizard } from '@/components/onboarding/UserOnboardingWizard'
+import type { OnboardingData } from '@/components/onboarding/UserOnboardingWizard'
 import { Garden, GardenTask } from '@/types'
 import { useRouter } from 'next/navigation'
 import { attemptAutoRestore, AutoRestoreResult } from '@/services/autoRestoreService'
@@ -25,6 +27,7 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState<GardenTask[]>([])
   const [loading, setLoading] = useState(true)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showUserOnboarding, setShowUserOnboarding] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [restoreResult, setRestoreResult] = useState<AutoRestoreResult | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
@@ -181,10 +184,15 @@ export default function DashboardPage() {
           setTasks(gardenTasks || [])
         }
         
-        // Mostra onboarding solo se ci sono giardini (non mostrare se utente non autenticato)
-        if (loadedGardens.length === 0 && isAuthenticated !== false) {
-          setShowOnboarding(true)
+        // Check if user has completed onboarding
+        const hasCompletedUserOnboarding = localStorage.getItem('ortomio_user_onboarding_completed') === 'true'
+        
+        // Mostra dashboard anche senza giardino - wizard inline invece di modal
+        // User onboarding solo se primo accesso
+        if (loadedGardens.length === 0 && isAuthenticated !== false && !hasCompletedUserOnboarding) {
+          setShowUserOnboarding(true)
         }
+        // Non mostrare più garden onboarding come modal - sarà inline nella dashboard
       } catch (error) {
         console.error('Error initializing app:', error)
       } finally {
@@ -266,6 +274,47 @@ export default function DashboardPage() {
     setShowOnboarding(false)
   }
 
+  const handleUserOnboardingComplete = async (data: OnboardingData) => {
+    try {
+      // Save user name
+      if (data.userName) {
+        localStorage.setItem('ortomio_user_name', data.userName)
+      }
+      
+      // Mark onboarding as completed
+      localStorage.setItem('ortomio_user_onboarding_completed', 'true')
+      
+      // If garden was created in step 6, reload gardens
+      if (data.garden) {
+        const updatedGardens = await storageProvider.getGardens()
+        setGardens(updatedGardens)
+        if (updatedGardens.length > 0) {
+          const gardenTasks = await storageProvider.getTasks(updatedGardens[0].id)
+          setTasks(gardenTasks || [])
+        }
+      }
+      
+      setShowUserOnboarding(false)
+      
+      // If no garden was created, show garden onboarding
+      if (!data.garden) {
+        setShowOnboarding(true)
+      }
+    } catch (error) {
+      console.error('Error completing user onboarding:', error)
+      alert('Errore nel completamento dell\'onboarding. Riprova.')
+    }
+  }
+
+  const handleUserOnboardingCancel = () => {
+    // Allow user to skip onboarding
+    localStorage.setItem('ortomio_user_onboarding_completed', 'true')
+    setShowUserOnboarding(false)
+    if (gardens.length === 0) {
+      setShowOnboarding(true)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -295,8 +344,20 @@ export default function DashboardPage() {
     )
   }
 
-  // Mostra onboarding se non ci sono giardini (e utente autenticato o ha scelto di continuare)
-  if (showOnboarding || (gardens.length === 0 && isAuthenticated !== false && !loading)) {
+  // Mostra user onboarding se primo accesso
+  if (showUserOnboarding) {
+    return (
+      <div className="min-h-screen">
+        <UserOnboardingWizard
+          onComplete={handleUserOnboardingComplete}
+          onCancel={handleUserOnboardingCancel}
+        />
+      </div>
+    )
+  }
+
+  // Mostra garden onboarding se non ci sono giardini (e utente autenticato o ha scelto di continuare)
+  if (showOnboarding || (gardens.length === 0 && isAuthenticated !== false && !loading && !showUserOnboarding)) {
     return (
       <div className="min-h-screen">
         <GardenOnboarding

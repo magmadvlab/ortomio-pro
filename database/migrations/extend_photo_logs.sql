@@ -16,3 +16,6 @@ COMMENT ON COLUMN photo_logs.fertilization_suggestion IS 'Suggerimenti fertilizz
 COMMENT ON COLUMN photo_logs.growth_comparison IS 'Confronto con foto precedente (JSONB)';
 COMMENT ON COLUMN photo_logs.previous_photo_id IS 'Riferimento alla foto precedente dello stesso task per confronto';
 
+
+
+

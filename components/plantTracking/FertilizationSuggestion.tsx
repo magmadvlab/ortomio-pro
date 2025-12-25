@@ -121,3 +121,6 @@ export const FertilizationSuggestion: React.FC<FertilizationSuggestionProps> = (
 
 export default FertilizationSuggestion;
 
+
+
+

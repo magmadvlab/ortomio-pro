@@ -102,7 +102,7 @@ const GeographicMatchingWidget: React.FC<GeographicMatchingWidgetProps> = ({ gar
           <h3 className="text-lg font-bold text-gray-800">Matching Geografico</h3>
         </div>
         <Link
-          href="/app/planner"
+          href="/app/garden?tab=timeline"
           className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
         >
           Vedi tutte

@@ -15,6 +15,7 @@ import { MobileMenu } from '@/components/shared/MobileMenu'
 import GlobalSearch from '@/components/shared/GlobalSearch'
 import AuthStatus from '@/components/shared/AuthStatus'
 import InstallPrompt from '@/components/shared/InstallPrompt'
+import { GlobalQuickActions } from '@/components/shared/GlobalQuickActions'
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const { tier, isPro, isPlus } = useTier()
@@ -63,6 +64,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         
         {/* Bottom Nav - solo mobile */}
         <MobileBottomNav onMenuClick={() => setIsMobileMenuOpen(true)} />
+        
+        {/* Global Quick Actions FAB */}
+        <GlobalQuickActions />
         
         <InstallPrompt />
       </div>

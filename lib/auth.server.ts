@@ -7,6 +7,7 @@
 import 'server-only'
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { isBypassActive, getMockUser } from './auth-bypass'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -24,6 +25,9 @@ export function isSupabaseAvailable(): boolean {
  */
 export function getSupabaseClient() {
   if (!isSupabaseAvailable()) {
+    if (isBypassActive()) {
+      throw new Error('BYPASS_MODE')
+    }
     throw new Error('Supabase is not configured')
   }
   return createClient(supabaseUrl!, supabaseServiceKey!, {
@@ -38,11 +42,86 @@ export function getSupabaseClient() {
  * Get user from request (using cookies)
  */
 export async function getUserFromRequest(request: NextRequest) {
+  // Se bypass attivo, ritorna mock user senza controllo token
+  if (isBypassActive()) {
+    return getMockUser()
+  }
+
   // Get access token from Authorization header or cookie
   const authHeader = request.headers.get('authorization')
-  const accessToken = authHeader?.replace('Bearer ', '') || 
-                      request.cookies.get('sb-access-token')?.value ||
-                      request.cookies.get('sb-auth-token')?.value
+  const bearer = authHeader?.startsWith('Bearer ') ? authHeader.replace('Bearer ', '') : undefined
+
+  const directCookieToken =
+    request.cookies.get('sb-access-token')?.value ||
+    request.cookies.get('sb-auth-token')?.value
+
+  // Support Supabase project-scoped cookies (e.g. sb-<project-ref>-auth-token)
+  // They often contain a JSON payload with access_token/refresh_token.
+  let projectScopedToken: string | undefined
+  try {
+    const allCookies = request.cookies.getAll()
+    const projectScopedChunks = allCookies
+      .filter((c) => c.name.startsWith('sb-') && (c.name.endsWith('-auth-token') || c.name.includes('-auth-token.')))
+      .sort((a, b) => {
+        const aIdx = Number((a.name.match(/\.([0-9]+)$/) || [])[1] || 0)
+        const bIdx = Number((b.name.match(/\.([0-9]+)$/) || [])[1] || 0)
+        return aIdx - bIdx
+      })
+
+    const authCookie = projectScopedChunks.find((c) => c.name.endsWith('-auth-token'))
+    const raw = authCookie?.value || (projectScopedChunks.length > 0 ? projectScopedChunks.map((c) => c.value).join('') : undefined)
+
+    if (raw) {
+      const decoded = (() => {
+        try {
+          return decodeURIComponent(raw)
+        } catch {
+          return raw
+        }
+      })()
+
+      const tryParseSession = (value: string) => {
+        try {
+          return JSON.parse(value)
+        } catch {
+          return null
+        }
+      }
+
+      let parsed = tryParseSession(decoded)
+
+      // Fallback: cookie may be base64 encoded JSON
+      if (!parsed) {
+        try {
+          const b64 = decoded
+            .replace(/^base64-/, '')
+            .replace(/-/g, '+')
+            .replace(/_/g, '/')
+          const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4)
+          const asJson = Buffer.from(padded, 'base64').toString('utf8')
+          parsed = tryParseSession(asJson)
+        } catch {
+          // ignore
+        }
+      }
+
+      // Fallback: if it looks like a JWT, use it directly
+      if (!parsed) {
+        const jwtLike = decoded.split('.')
+        if (jwtLike.length === 3 && decoded.length > 40) {
+          projectScopedToken = decoded
+        }
+      }
+
+      if (parsed && typeof parsed === 'object' && typeof (parsed as any).access_token === 'string') {
+        projectScopedToken = (parsed as any).access_token
+      }
+    }
+  } catch {
+    // ignore cookie parsing issues
+  }
+
+  const accessToken = bearer || directCookieToken || projectScopedToken
   
   if (!accessToken) {
     return null
@@ -62,6 +141,15 @@ export async function getUserFromRequest(request: NextRequest) {
  * Get user profile with tier
  */
 export async function getUserProfile(userId: string) {
+  // Se bypass attivo, ritorna mock profile con tier PRO
+  if (isBypassActive()) {
+    return {
+      id: userId,
+      tier: 'PRO',
+      created_at: new Date().toISOString(),
+    }
+  }
+
   const supabase = getSupabaseClient()
   const { data: profile, error } = await supabase
     .from('profiles')

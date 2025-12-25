@@ -16,6 +16,9 @@ CREATE TABLE IF NOT EXISTS gardens (
   size_unit TEXT CHECK (size_unit IN ('sqm', 'are', 'hectare')) DEFAULT 'sqm',
   soil_type TEXT CHECK (soil_type IN ('Clay', 'Sandy', 'Loamy', 'Peaty', 'Chalky', 'Silty')),
   soil_ph DECIMAL(3, 1) CHECK (soil_ph >= 0 AND soil_ph <= 14),
+
+  -- CROP GROUPING (garden = gruppo colturale)
+  primary_crop JSONB,
   
   -- GEO-CLIMA
   altitude_meters INTEGER,
@@ -46,6 +49,9 @@ CREATE TABLE IF NOT EXISTS gardens (
   hydroponic_config JSONB,
   aquaponic_config JSONB,
   aeroponic_config JSONB,
+
+  -- STRUTTURE (vasi, letti, serre multiple, ecc.)
+  structure_config JSONB,
   
   -- VACATION MODE (JSONB per flessibilità)
   vacation_mode JSONB,

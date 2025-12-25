@@ -13,7 +13,7 @@ import { checkLifecycleStatus, LifecycleAdvice } from '../logic/lifecycleEngine'
 import { calculateMoonPhase, getMoonPhaseName, getMoonPhaseNameFromPhase, getMoonPhaseEmoji } from '../logic/lunarCalendar';
 import { CheckCircle2, Circle, Calendar, Droplets, Shovel, Scissors, FlaskConical, Camera, Sparkles, Loader2, Sprout, X, PlusCircle, AlertCircle, Clock, Gauge, Scale, Star, ShoppingBasket, Snowflake, Sun, Box, Flower2, LayoutGrid, Users, History, Leaf, Shield, CheckCircle, XCircle, Moon } from 'lucide-react';
 import { shouldFertigateNow } from '../logic/fertigationEngine';
-import { AddCropWizard } from './crops/AddCropWizard';
+import { AddCropWizard } from '@/components/crops/AddCropWizard';
 import { useStorage } from '../packages/core/hooks/useStorage';
 import { createAlias } from '../services/aliasService';
 import { searchCropWithFuzzy, SearchResult } from '../services/fuzzySearchService';

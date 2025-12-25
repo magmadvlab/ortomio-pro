@@ -11,6 +11,12 @@ CREATE TABLE IF NOT EXISTS irrigation_systems (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
+  type TEXT DEFAULT 'Drip' CHECK (type IN ('Manual', 'Drip', 'Sprinkler', 'Micro', 'Soaker')),
+  water_source TEXT CHECK (water_source IN ('Municipal', 'Well', 'Rainwater', 'River', 'Pond')),
+  pressure_bar DECIMAL(4,2),
+  has_timer BOOLEAN DEFAULT FALSE,
+  has_valve BOOLEAN DEFAULT FALSE,
+  notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -23,10 +29,20 @@ CREATE INDEX IF NOT EXISTS idx_irrigation_systems_garden ON irrigation_systems(g
 CREATE TABLE IF NOT EXISTS irrigation_zones (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   system_id UUID REFERENCES irrigation_systems(id) ON DELETE CASCADE NOT NULL,
+  garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
+  area_sqm DECIMAL(8,2) NOT NULL,
   method TEXT NOT NULL CHECK (method IN ('Manual', 'Hose', 'Dripline', 'Drippers', 'MicroSprinkler', 'Sprinkler', 'Mixed')),
   flow_rate_lph DECIMAL(10, 2) NOT NULL,
+  dripper_spacing_cm INTEGER,
+  dripper_flow_rate_lph DECIMAL(4,2),
+  dripline_spacing_cm INTEGER,
+  num_drippers INTEGER,
+  plant_types JSONB,
+  is_automated BOOLEAN DEFAULT FALSE,
   valve_id UUID, -- Riferimento opzionale a smart_devices se presente
+  schedule JSONB,
+  last_watered_at TIMESTAMP WITH TIME ZONE,
   bed_ids UUID[] DEFAULT '{}',
   plant_task_ids UUID[] DEFAULT '{}',
   notes TEXT,
@@ -36,6 +52,7 @@ CREATE TABLE IF NOT EXISTS irrigation_zones (
 );
 
 CREATE INDEX IF NOT EXISTS idx_irrigation_zones_system ON irrigation_zones(system_id);
+CREATE INDEX IF NOT EXISTS idx_irrigation_zones_garden ON irrigation_zones(garden_id);
 CREATE INDEX IF NOT EXISTS idx_irrigation_zones_valve ON irrigation_zones(valve_id) WHERE valve_id IS NOT NULL;
 
 -- ============================================
@@ -65,10 +82,16 @@ CREATE INDEX IF NOT EXISTS idx_irrigation_components_zone ON irrigation_componen
 CREATE TABLE IF NOT EXISTS watering_logs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   zone_id UUID REFERENCES irrigation_zones(id) ON DELETE CASCADE NOT NULL,
+  garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
+  watered_at TIMESTAMP WITH TIME ZONE NOT NULL,
   date DATE NOT NULL,
   duration_minutes INTEGER NOT NULL,
   liters_applied DECIMAL(10, 2) NOT NULL,
   method TEXT NOT NULL CHECK (method IN ('Manual', 'Automatic', 'Timer')),
+  weather_condition TEXT,
+  soil_moisture_before INTEGER,
+  soil_moisture_after INTEGER,
+  air_temperature_c DECIMAL(4,2),
   notes TEXT,
   valve_id UUID, -- Riferimento opzionale a smart_devices se presente
   completed BOOLEAN DEFAULT true,
@@ -76,8 +99,10 @@ CREATE TABLE IF NOT EXISTS watering_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_watering_logs_zone ON watering_logs(zone_id);
+CREATE INDEX IF NOT EXISTS idx_watering_logs_garden ON watering_logs(garden_id);
 CREATE INDEX IF NOT EXISTS idx_watering_logs_zone_date ON watering_logs(zone_id, date);
 CREATE INDEX IF NOT EXISTS idx_watering_logs_date ON watering_logs(date);
+CREATE INDEX IF NOT EXISTS idx_watering_logs_watered_at ON watering_logs(watered_at DESC);
 
 -- ============================================
 -- TRIGGERS per updated_at
@@ -152,4 +177,25 @@ CREATE POLICY "Users can only access watering logs in their zones"
       AND gardens.user_id = auth.uid()
     )
   );
+
+-- ============================================
+-- TRIGGER AUTO-UPDATE last_watered_at
+-- ============================================
+-- Quando viene creato un watering_log, aggiorna automaticamente
+-- il campo last_watered_at della zona corrispondente
+CREATE OR REPLACE FUNCTION update_zone_last_watered()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE irrigation_zones
+  SET last_watered_at = NEW.watered_at
+  WHERE id = NEW.zone_id;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_update_zone_last_watered ON watering_logs;
+CREATE TRIGGER trigger_update_zone_last_watered
+  AFTER INSERT ON watering_logs
+  FOR EACH ROW EXECUTE FUNCTION update_zone_last_watered();
 

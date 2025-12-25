@@ -8,6 +8,14 @@ import { CropArchetype, ArchetypeId } from '../types/archetypes';
 export const archetypes: CropArchetype[] = [
   // Archetipi principali (A1-A12)
   {
+    id: 'MIX',
+    label: 'Orto misto',
+    icon: '🥗',
+    botanicalFamily: 'Mixed',
+    defaultProfileId: 'mix-profile',
+    examples: ['orto', 'misto', 'rotazioni']
+  },
+  {
     id: 'A1',
     label: 'Solanacee da frutto',
     icon: '🍅',

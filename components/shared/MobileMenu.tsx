@@ -1,12 +1,14 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { X, LayoutDashboard, Calendar, CalendarDays, BookOpen, ShoppingBasket, Sparkles, Trophy, BarChart3, FlaskConical, Tractor, TreePine, CircleDot, Grape, ChefHat, Database, Wifi, HelpCircle, Settings, Crown, Book } from 'lucide-react'
+import { X, LayoutDashboard, Heart, BarChart3, FlaskConical, Tractor, TreePine, CircleDot, Grape, ChefHat, Database, Wifi, HelpCircle, Settings, Crown, Book, Sprout, ChevronDown, Home } from 'lucide-react'
 import { useTier } from '@/packages/core/hooks/useTier'
+import { useStorage } from '@/packages/core/hooks/useStorage'
 import { AppTier } from '@/packages/core/config/tiers'
 import type { LucideIcon } from 'lucide-react'
+import { Garden, GardenTask } from '@/types'
 
 interface MenuItem {
   icon: LucideIcon
@@ -33,7 +35,36 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { tier, isPro, isPlus } = useTier()
-  const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set())
+  const { storageProvider } = useStorage()
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+  const [gardens, setGardens] = useState<Garden[]>([])
+  const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
+  const [tasks, setTasks] = useState<GardenTask[]>([])
+  const [isGardenSelectorOpen, setIsGardenSelectorOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  // Carica gardens e tasks
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const loadedGardens = await storageProvider.getGardens()
+        setGardens(loadedGardens)
+        if (loadedGardens.length > 0) {
+          const firstGarden = loadedGardens[0]
+          setActiveGarden(firstGarden)
+          const gardenTasks = await storageProvider.getTasks(firstGarden.id)
+          setTasks(gardenTasks || [])
+        }
+      } catch (error) {
+        console.error('Error loading garden data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    if (isOpen) {
+      loadData()
+    }
+  }, [storageProvider, isOpen])
 
   // Prevenire scroll body quando menu aperto
   useEffect(() => {
@@ -46,6 +77,14 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       document.body.style.overflow = ''
     }
   }, [isOpen])
+
+  const activePlantsCount = tasks.filter(t => !t.completed && t.taskType === 'Sowing').length
+  const todayTasksCount = tasks.filter(t => {
+    if (t.completed || !t.nextDueDate) return false
+    const today = new Date()
+    const dueDate = new Date(t.nextDueDate)
+    return dueDate.toDateString() === today.toDateString()
+  }).length
 
   // Chiusura automatica dopo navigazione
   const handleLinkClick = (path: string) => {
@@ -98,30 +137,32 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       title: 'PRINCIPALE',
       items: [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
-        { icon: Calendar, label: 'Planner', path: '/app/planner', tier: 'all' },
-        { icon: CalendarDays, label: 'Calendario', path: '/app/calendar', tier: 'all' },
-        { icon: BookOpen, label: 'Diario', path: '/app/journal', tier: 'all' },
-        { icon: ShoppingBasket, label: 'Raccolto', path: '/app/harvest', tier: 'all' },
-        { icon: Sparkles, label: 'Cura', path: '/app/advice', tier: 'all' },
-        { icon: Trophy, label: 'Challenge', path: '/app/challenges', tier: 'all' },
+        { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
+        { icon: Heart, label: 'Salute', path: '/app/advice', tier: 'all' },
+        { icon: BarChart3, label: 'Progressi', path: '/app/progress', tier: 'all' },
       ],
       tier: 'all'
     },
     {
-      title: 'COLTURE SPECIALIZZATE',
+      title: 'PROFESSIONAL',
+      tier: 'PRO',
+      collapsible: true,
       items: [
         { icon: TreePine, label: 'Frutteto', path: '/app/orchard', tier: 'PRO', badge: 'PRO' },
-        { icon: CircleDot, label: 'Olivi', path: '/app/olives', tier: 'PRO', badge: 'PRO' },
-        { icon: Grape, label: 'Vite', path: '/app/vineyard', tier: 'PRO', badge: 'PRO' },
-      ],
-      tier: 'PRO',
-      collapsible: true
+        { icon: CircleDot, label: 'Oliveto', path: '/app/olives', tier: 'PRO', badge: 'PRO' },
+        { icon: Grape, label: 'Vigneto', path: '/app/vineyard', tier: 'PRO', badge: 'PRO' },
+        { icon: FlaskConical, label: 'Nutrizione & Trattamenti', path: '/app/nutrition', tier: 'PRO', badge: 'PRO' },
+        { icon: Tractor, label: 'Lavorazioni', path: '/app/mechanical-work', tier: 'PRO', badge: 'PRO' },
+        { icon: BarChart3, label: 'Analytics', path: '/app/analytics', tier: 'PRO', badge: 'PRO' },
+        { icon: Wifi, label: 'Smart Hub', path: '/app/smart', tier: 'all' },
+        { icon: Database, label: 'Export', path: '/app/export', tier: 'PRO', badge: 'PRO' },
+      ]
     },
     {
       title: 'GESTIONE AVANZATA',
       items: [
         { icon: BarChart3, label: 'Analytics', path: '/app/analytics', tier: 'PRO', badge: 'PRO' },
-        { icon: FlaskConical, label: 'Trattamenti', path: '/app/treatments', tier: 'PRO', badge: 'PRO' },
+        { icon: FlaskConical, label: 'Nutrizione & Trattamenti', path: '/app/nutrition', tier: 'PRO', badge: 'PRO' },
         { icon: Tractor, label: 'Lavorazioni', path: '/app/mechanical-work', tier: 'PRO', badge: 'PRO' },
         { icon: Database, label: 'Export', path: '/app/export', tier: 'PRO', badge: 'PRO' },
       ],
@@ -131,9 +172,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
     {
       title: 'IMPOSTAZIONI',
       items: [
-        { icon: Wifi, label: 'Smart Hub', path: '/app/smart', tier: 'all' },
-        { icon: ChefHat, label: 'Ricette', path: '/app/recipes', tier: 'PRO', badge: 'PRO' },
-        { icon: Settings, label: 'Settings', path: '/app/settings', tier: 'all' },
+        { icon: Settings, label: 'Impostazioni', path: '/app/settings', tier: 'all' },
         { icon: HelpCircle, label: 'Aiuto', path: '/app/help', tier: 'all' },
         { icon: Crown, label: 'Admin', path: '/app/admin', tier: 'PRO' },
       ],
@@ -147,27 +186,25 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       title: 'PRINCIPALE',
       items: [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
-        { icon: Calendar, label: 'Planner', path: '/app/planner', tier: 'all' },
-        { icon: CalendarDays, label: 'Calendario', path: '/app/calendar', tier: 'all' },
-        { icon: BookOpen, label: 'Diario', path: '/app/journal', tier: 'all' },
-        { icon: ShoppingBasket, label: 'Raccolto', path: '/app/harvest', tier: 'all' },
-        { icon: Sparkles, label: 'Cura', path: '/app/advice', tier: 'all' },
-        { icon: Trophy, label: 'Challenge', path: '/app/challenges', tier: 'all' },
+        { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
+        { icon: Heart, label: 'Salute', path: '/app/advice', tier: 'all' },
+        { icon: BarChart3, label: 'Progressi', path: '/app/progress', tier: 'all' },
       ],
       tier: 'all'
     },
     {
-      title: 'EXTRA',
+      title: 'PRO',
       items: [
         { icon: ChefHat, label: 'Ricette', path: '/app/recipes', tier: 'PRO', badge: 'PRO' },
-        { icon: Book, label: 'Guide', path: '/app/guides', tier: 'PRO', badge: 'PRO' },
+        { icon: Book, label: 'Guide Premium', path: '/app/guides', tier: 'PRO', badge: 'PRO' },
       ],
-      tier: 'PRO'
+      tier: 'PRO',
+      collapsible: true
     },
     {
       title: 'IMPOSTAZIONI',
       items: [
-        { icon: Settings, label: 'Settings', path: '/app/settings', tier: 'all' },
+        { icon: Settings, label: 'Impostazioni', path: '/app/settings', tier: 'all' },
         { icon: HelpCircle, label: 'Aiuto', path: '/app/help', tier: 'all' },
       ],
       tier: 'all'
@@ -180,12 +217,9 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       title: 'PRINCIPALE',
       items: [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
-        { icon: Calendar, label: 'Planner', path: '/app/planner', tier: 'all' },
-        { icon: CalendarDays, label: 'Calendario', path: '/app/calendar', tier: 'all' },
-        { icon: BookOpen, label: 'Diario', path: '/app/journal', tier: 'all' },
-        { icon: ShoppingBasket, label: 'Raccolto', path: '/app/harvest', tier: 'all' },
-        { icon: Sparkles, label: 'Cura', path: '/app/advice', tier: 'all' },
-        { icon: Trophy, label: 'Challenge', path: '/app/challenges', tier: 'all' },
+        { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
+        { icon: Heart, label: 'Salute', path: '/app/advice', tier: 'all' },
+        { icon: BarChart3, label: 'Progressi', path: '/app/progress', tier: 'all' },
       ],
       tier: 'all'
     },
@@ -193,7 +227,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       title: 'IMPOSTAZIONI',
       items: [
         { icon: HelpCircle, label: 'Aiuto', path: '/app/help', tier: 'all' },
-        { icon: Settings, label: 'Settings', path: '/app/settings', tier: 'all' },
+        { icon: Settings, label: 'Impostazioni', path: '/app/settings', tier: 'all' },
       ],
       tier: 'all'
     }
@@ -241,6 +275,56 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
           </button>
         </div>
 
+        {/* Garden Selector Prominente */}
+        {!loading && activeGarden && (
+          <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
+            <button
+              onClick={() => setIsGardenSelectorOpen(!isGardenSelectorOpen)}
+              className="w-full text-left"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Home size={18} className="text-green-600" />
+                    <h3 className="font-bold text-gray-900">{activeGarden.name}</h3>
+                    <ChevronDown 
+                      size={16} 
+                      className={`text-gray-500 transition-transform ${isGardenSelectorOpen ? 'rotate-180' : ''}`}
+                    />
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-gray-600">
+                    <span>🌱 {activePlantsCount} piante</span>
+                    <span>📋 {todayTasksCount} task oggi</span>
+                  </div>
+                </div>
+              </div>
+            </button>
+            
+            {isGardenSelectorOpen && gardens.length > 1 && (
+              <div className="mt-3 space-y-1 animate-in slide-in-from-top-2">
+                {gardens.map((garden) => (
+                  <button
+                    key={garden.id}
+                    onClick={() => {
+                      setActiveGarden(garden)
+                      setIsGardenSelectorOpen(false)
+                      handleLinkClick('/app')
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm ${
+                      garden.id === activeGarden.id
+                        ? 'bg-green-100 text-green-900 font-medium'
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Home size={14} className="inline mr-2" />
+                    {garden.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Menu Content - Scrollable */}
         <div className="overflow-y-auto h-[calc(100vh-80px)] pb-20">
           <nav className="p-4 space-y-6">
@@ -257,15 +341,16 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                   {/* Group Header */}
                   <button
                     onClick={() => group.collapsible && toggleGroup(group.title)}
-                    className={`w-full flex items-center justify-between px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider ${
+                    className={`w-full flex items-center justify-between px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider transition-colors ${
                       group.collapsible ? 'cursor-pointer hover:text-gray-700' : ''
                     }`}
                   >
                     <span>{group.title}</span>
                     {group.collapsible && (
-                      <span className="text-gray-400">
-                        {isCollapsed ? '▼' : '▲'}
-                      </span>
+                      <ChevronDown 
+                        size={16} 
+                        className={`text-gray-400 transition-transform ${isCollapsed ? '' : 'rotate-180'}`}
+                      />
                     )}
                   </button>
 
@@ -307,4 +392,3 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
     </>
   )
 }
-

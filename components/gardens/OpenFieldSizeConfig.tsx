@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AreaUnit, convertToSqMeters, convertFromSqMeters } from '@/utils/areaConverter';
 
 interface OpenFieldSizeConfigProps {
@@ -20,19 +20,25 @@ export const OpenFieldSizeConfig: React.FC<OpenFieldSizeConfigProps> = ({
   });
   const [unit, setUnit] = useState<AreaUnit>(initialUnit);
 
+  // Use ref to avoid infinite loop
+  const onConfigChangeRef = useRef(onConfigChange);
+  useEffect(() => {
+    onConfigChangeRef.current = onConfigChange;
+  }, [onConfigChange]);
+
   useEffect(() => {
     if (sizeValue) {
       const numValue = parseFloat(sizeValue);
       if (!isNaN(numValue) && numValue > 0) {
         const sqM = convertToSqMeters(numValue, unit);
-        onConfigChange(sqM, unit);
+        onConfigChangeRef.current(sqM, unit);
       } else {
-        onConfigChange(0, unit);
+        onConfigChangeRef.current(0, unit);
       }
     } else {
-      onConfigChange(0, unit);
+      onConfigChangeRef.current(0, unit);
     }
-  }, [sizeValue, unit, onConfigChange]);
+  }, [sizeValue, unit]);
 
   const getUnitLabel = (u: AreaUnit): string => {
     switch (u) {
@@ -99,6 +105,9 @@ export const OpenFieldSizeConfig: React.FC<OpenFieldSizeConfigProps> = ({
     </div>
   );
 };
+
+
+
 
 
 

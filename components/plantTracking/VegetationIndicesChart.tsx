@@ -285,3 +285,6 @@ export const VegetationIndicesChart: React.FC<VegetationIndicesChartProps> = ({
 
 export default VegetationIndicesChart;
 
+
+
+

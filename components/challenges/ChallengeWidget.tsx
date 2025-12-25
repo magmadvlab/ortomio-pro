@@ -69,7 +69,7 @@ const ChallengeWidget: React.FC<ChallengeWidgetProps> = ({
           Nessuna challenge oggi. Goditi il tuo orto!
         </p>
         <Link
-          href="/app/challenges"
+          href="/app/progress?tab=achievements"
           className="mt-3 inline-block px-4 py-2 text-sm text-gray-700 hover:text-gray-900 underline flex items-center justify-center gap-1"
         >
           Vedi tutte le challenge

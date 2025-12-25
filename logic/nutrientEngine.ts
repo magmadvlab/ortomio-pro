@@ -7,7 +7,7 @@
  * per ottenere functionalCategory da taxonomy (LEAF, FRUIT, ROOT, AROMATIC, LEGUME)
  */
 
-import { PlantMasterSheet, Garden } from '../types';
+import { PlantMasterSheet, Garden, GardenTask } from '../types';
 
 export interface NutrientAdvice {
   shouldFertilize: boolean;
@@ -28,7 +28,7 @@ export const calculateNutrientNeeds = (
   plant: PlantMasterSheet,
   daysActive: number, // Giorni trascorsi dalla data del task
   soilType: Garden['soilType'] = 'Loamy', // Default
-  taskType?: 'Sowing' | 'Transplant' | 'Fertilize' | 'Prune' | 'Harvest' | 'Treatment' | 'Plowing' | 'Subsoiling' | 'Harrowing' | 'Tilling' | 'Rolling' | 'Hoeing' | 'EarthingUp' | 'Mulching' | 'PostSowingRolling' | 'Clearing' | 'Stumping' | 'StoneRemoval' | 'Leveling' | 'DeepSubsoiling' | 'Digging' | 'DeepHarrowing' | 'Crumbling' | 'Scraping' | 'SurfaceLeveling' | 'MinimumTillage' | 'StripTillage' | 'NoTill' | 'FormativePruning' | 'MaintenancePruning' | 'RejuvenationPruning' | 'SummerPruning' | 'WinterPruning' | 'Thinning' | 'Suckering' | 'Defoliation' | 'Tying' | 'OliveShredding' | 'RunnerManagement' | 'StrawberryMulching' | 'StrawberryCleaning' | 'CaneRemoval' | 'TipPruning' | 'RaspberryTying' | 'SuckerThinning' | 'FruitBagging' | 'ExoticThinning' | 'Shredding' | 'Topping' | 'Pruning' | 'TreePruning' // Aggiungere parametro opzionale
+  taskType?: GardenTask['taskType']
 ): NutrientAdvice => {
 
   // Se è giorno 0 e taskType è Sowing, non mostrare consigli nutrizionali
@@ -145,7 +145,6 @@ export const calculateNutrientNeeds = (
     phase
   };
 };
-
 
 
 

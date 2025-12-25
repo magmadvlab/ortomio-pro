@@ -1,71 +1,84 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
-  Calendar,
-  BookOpen,
-  ShoppingBasket,
   ChefHat,
   Book,
   Settings,
-  Sparkles,
-  CalendarDays,
-  Trophy,
+  Heart,
   HelpCircle,
+  ChevronDown,
+  ChevronRight,
+  Sprout,
+  BarChart3,
 } from 'lucide-react'
 import { useTier } from '@/packages/core/hooks/useTier'
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
-  { icon: Calendar, label: 'Planner', path: '/app/planner', tier: 'all' },
-  { icon: CalendarDays, label: 'Calendario', path: '/app/calendar', tier: 'all' },
-  { icon: BookOpen, label: 'Diario', path: '/app/journal', tier: 'all' },
-  { icon: ShoppingBasket, label: 'Raccolto', path: '/app/harvest', tier: 'all' },
-  { icon: Sparkles, label: 'Cura', path: '/app/advice', tier: 'all' },
-  { icon: Trophy, label: 'Challenge', path: '/app/challenges', tier: 'all' },
+  { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
+  { icon: Heart, label: 'Salute', path: '/app/advice', tier: 'all' },
+  { icon: BarChart3, label: 'Progressi', path: '/app/progress', tier: 'all' },
   { icon: ChefHat, label: 'Ricette', path: '/app/recipes', tier: 'PRO_CONSUMER', badge: 'PRO' },
-  { icon: Book, label: 'Guide', path: '/app/guides', tier: 'PRO_CONSUMER', badge: 'PRO' },
+  { icon: Book, label: 'Guide Premium', path: '/app/guides', tier: 'PRO_CONSUMER', badge: 'PRO' },
   { icon: HelpCircle, label: 'Aiuto', path: '/app/help', tier: 'all' },
-  { icon: Settings, label: 'Settings', path: '/app/settings', tier: 'all' },
+  { icon: Settings, label: 'Impostazioni', path: '/app/settings', tier: 'all' },
 ]
 
 interface MenuGroup {
   title: string
   items: typeof menuItems
   tier?: 'all' | 'PRO' | 'PLUS'
+  collapsible?: boolean
 }
 
 export function ConsumerSidebar() {
   const pathname = usePathname()
   const { tier, can } = useTier()
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   
   // Raggruppamento menu per categorie
   const menuGroups: MenuGroup[] = [
     {
       title: 'PRINCIPALE',
       items: menuItems.filter(item => 
-        ['Dashboard', 'Planner', 'Calendario', 'Diario', 'Raccolto', 'Cura', 'Challenge'].includes(item.label)
+        ['Dashboard', 'Il Mio Orto', 'Salute', 'Progressi'].includes(item.label)
       ),
-      tier: 'all'
+      tier: 'all',
+      collapsible: false
     },
     {
-      title: 'EXTRA',
+      title: 'PRO',
       items: menuItems.filter(item => 
-        ['Ricette', 'Guide'].includes(item.label)
+        ['Ricette', 'Guide Premium'].includes(item.label)
       ),
-      tier: 'PRO'
+      tier: 'PRO',
+      collapsible: true
     },
     {
       title: 'IMPOSTAZIONI',
       items: menuItems.filter(item => 
-        ['Settings', 'Aiuto'].includes(item.label)
+        ['Impostazioni', 'Aiuto'].includes(item.label)
       ),
-      tier: 'all'
+      tier: 'all',
+      collapsible: false
     }
   ]
+  
+  const toggleGroup = (title: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(title)) {
+        next.delete(title)
+      } else {
+        next.add(title)
+      }
+      return next
+    })
+  }
   
   return (
     <aside className="hidden lg:block w-64 bg-white border-r border-gray-200 min-h-screen p-4">
@@ -92,37 +105,55 @@ export function ConsumerSidebar() {
           
           if (availableItems.length === 0) return null
           
+          const isCollapsed = collapsedGroups.has(group.title)
+          
           return (
             <div key={group.title} className="space-y-2">
-              <h3 className="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                {group.title}
-              </h3>
-              <div className="space-y-1">
-                {availableItems.map((item) => {
-                  const Icon = item.icon
-                  const isActive = pathname === item.path
-                  
-                  return (
-                    <Link
-                      key={item.path}
-                      href={item.path}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                        isActive
-                          ? 'bg-green-100 text-green-900 font-semibold'
-                          : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      <Icon size={20} />
-                      <span>{item.label || ''}</span>
-                      {item.badge && typeof item.badge === 'string' && (
-                        <span className="ml-auto text-xs bg-green-600 text-white px-2 py-0.5 rounded">
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  )
-                })}
-              </div>
+              {group.collapsible ? (
+                <button
+                  onClick={() => toggleGroup(group.title)}
+                  className="w-full flex items-center justify-between px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-700 transition-colors"
+                >
+                  <span>{group.title}</span>
+                  {isCollapsed ? (
+                    <ChevronRight size={16} />
+                  ) : (
+                    <ChevronDown size={16} />
+                  )}
+                </button>
+              ) : (
+                <h3 className="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  {group.title}
+                </h3>
+              )}
+              {(!group.collapsible || !isCollapsed) && (
+                <div className="space-y-1">
+                  {availableItems.map((item) => {
+                    const Icon = item.icon
+                    const isActive = pathname === item.path
+                    
+                    return (
+                      <Link
+                        key={item.path}
+                        href={item.path}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                          isActive
+                            ? 'bg-green-100 text-green-900 font-semibold'
+                            : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Icon size={20} />
+                        <span>{item.label || ''}</span>
+                        {item.badge && typeof item.badge === 'string' && (
+                          <span className="ml-auto text-xs bg-green-600 text-white px-2 py-0.5 rounded">
+                            {item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )
         })}

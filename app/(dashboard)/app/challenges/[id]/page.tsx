@@ -59,11 +59,11 @@ export default function ChallengeDetailPage() {
             La challenge per il {format(challengeDate, 'd MMMM', { locale: it })} non è disponibile.
           </p>
           <Link
-            href="/app/challenges"
+            href="/app/progress?tab=achievements"
             className="inline-block px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium"
           >
             <ArrowLeft size={18} className="inline mr-2" />
-            Torna alle Challenge
+            Torna ai Traguardi
           </Link>
         </div>
       </div>
@@ -160,11 +160,11 @@ export default function ChallengeDetailPage() {
       <div className="min-h-screen p-4 sm:p-6 max-w-4xl mx-auto">
         {/* Back Button */}
         <Link
-          href="/app/challenges"
+          href="/app/progress?tab=achievements"
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
         >
           <ArrowLeft size={18} />
-          Torna alle Challenge
+          Torna ai Traguardi
         </Link>
         
         {/* Main Challenge Card */}
@@ -397,7 +397,7 @@ export default function ChallengeDetailPage() {
             <button
               onClick={() => {
                 setShowCelebration(false);
-                router.push('/app/challenges');
+                router.push('/app/progress?tab=achievements');
               }}
               className="px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg"
             >

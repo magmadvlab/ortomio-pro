@@ -4,7 +4,7 @@
  */
 
 import { IStorageProvider } from '../core/storage/interface';
-import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB } from '@/types';
+import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB } from '@/types';
 import { CustomCrop, CropLearningEvent } from '@/types/customCrop';
 import { CustomPlan } from '@/types/customPlan';
 import { Agronomist, AgronomistConsultation, AgronomistAdvice } from '@/types/agronomist';
@@ -17,6 +17,7 @@ import { getSupabaseClient } from '@/config/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { CropArchetype, CropProfile, CropAlias, ArchetypeId, OfficialCrop } from '@/types/archetypes';
 import { IrrigationSystem, IrrigationZone, IrrigationComponent, WateringLog } from '@/types/irrigation';
+import { HealthAlert } from '@/types/healthAlert';
 import { sendNotification, createTaskCompletedNotification, createTaskReminderNotification } from '@/services/notificationService';
 
 export class SupabaseStorageProvider implements IStorageProvider {
@@ -35,6 +36,70 @@ export class SupabaseStorageProvider implements IStorageProvider {
       throw new Error('Supabase client not available. Check configuration.');
     }
     return this.client;
+  }
+
+  async getUserPreference<T = any>(key: string): Promise<T | null> {
+    const client = this.ensureClient();
+    try {
+      const {
+        data: { user },
+      } = await client.auth.getUser();
+
+      if (!user) return null;
+
+      const { data, error } = await client
+        .from('profiles')
+        .select('preferences')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        return null;
+      }
+
+      const prefs = (data as any)?.preferences;
+      if (!prefs || typeof prefs !== 'object') return null;
+      return (prefs as any)[key] ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  async setUserPreference<T = any>(key: string, value: T): Promise<void> {
+    const client = this.ensureClient();
+    try {
+      const {
+        data: { user },
+      } = await client.auth.getUser();
+
+      if (!user) return;
+
+      const { data: existing } = await client
+        .from('profiles')
+        .select('preferences')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const currentPrefs = ((existing as any)?.preferences ?? {}) as Record<string, any>;
+      const nextPrefs = {
+        ...currentPrefs,
+        [key]: value,
+      };
+
+      await client
+        .from('profiles')
+        .upsert(
+          {
+            id: user.id,
+            preferences: nextPrefs,
+          } as any,
+          {
+            onConflict: 'id',
+          }
+        );
+    } catch {
+      // ignore (e.g. column doesn't exist yet)
+    }
   }
 
   // Gardens
@@ -536,6 +601,47 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (error) throw error;
   }
 
+  // Fertilization Tracking
+  async getFertilizerApplicationLogs(
+    gardenId: string,
+    options?: { taskId?: string; bedId?: string; from?: string; to?: string }
+  ): Promise<FertilizerApplicationLogDB[]> {
+    const client = this.ensureClient();
+    let query = client.from('fertilizer_application_logs').select('*').eq('garden_id', gardenId);
+
+    if (options?.taskId) {
+      query = query.eq('task_id', options.taskId);
+    }
+    if (options?.bedId) {
+      query = query.eq('bed_id', options.bedId);
+    }
+    if (options?.from) {
+      query = query.gte('application_date', options.from);
+    }
+    if (options?.to) {
+      query = query.lte('application_date', options.to);
+    }
+
+    const { data, error } = await query.order('application_date', { ascending: false });
+    if (error) throw error;
+    return this.mapFertilizerApplicationLogsFromDB(data || []);
+  }
+
+  async createFertilizerApplicationLog(
+    log: Omit<FertilizerApplicationLogDB, 'id' | 'createdAt'>
+  ): Promise<FertilizerApplicationLogDB> {
+    const client = this.ensureClient();
+    const dbLog = this.mapFertilizerApplicationLogToDB(log);
+    const { data, error } = await client
+      .from('fertilizer_application_logs')
+      .insert(dbLog)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapFertilizerApplicationLogFromDB(data);
+  }
+
   // Pro Features
   async uploadPhoto(file: File, taskId: string, gardenId: string): Promise<string> {
     const client = this.ensureClient();
@@ -593,6 +699,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       sizeUnit: db.size_unit,
       soilType: db.soil_type,
       soilPh: db.soil_ph ? Number(db.soil_ph) : undefined,
+      primaryCrop: db.primary_crop || undefined,
       altitudeMeters: db.altitude_meters,
       delayFactorDays: db.delay_factor_days,
       sunExposure: db.sun_exposure,
@@ -626,6 +733,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (garden.sizeUnit !== undefined) db.size_unit = garden.sizeUnit;
     if (garden.soilType !== undefined) db.soil_type = garden.soilType;
     if (garden.soilPh !== undefined) db.soil_ph = garden.soilPh;
+    if (garden.primaryCrop !== undefined) db.primary_crop = garden.primaryCrop;
     if (garden.altitudeMeters !== undefined) db.altitude_meters = garden.altitudeMeters;
     if (garden.delayFactorDays !== undefined) db.delay_factor_days = garden.delayFactorDays;
     if (garden.sunExposure !== undefined) db.sun_exposure = garden.sunExposure;
@@ -882,6 +990,56 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
   private mapHarvestLogsFromDB(dbArray: any[]): HarvestLogData[] {
     return dbArray.map(db => this.mapHarvestLogFromDB(db));
+  }
+
+  private mapFertilizerApplicationLogFromDB(db: any): FertilizerApplicationLogDB {
+    return {
+      id: db.id,
+      gardenId: db.garden_id,
+      taskId: db.task_id || null,
+      bedId: db.bed_id || null,
+      fertilizerProductId: db.fertilizer_product_id,
+      fertilizerProductName: db.fertilizer_product_name,
+      fertilizerType: db.fertilizer_type || null,
+      npk: db.npk || null,
+      applicationDate: db.application_date,
+      areaSqm: db.area_sqm ? Number(db.area_sqm) : null,
+      dosageAmount: Number(db.dosage_amount),
+      dosageUnit: db.dosage_unit,
+      method: db.method,
+      growthPhase: db.growth_phase || null,
+      weatherConditions: db.weather_conditions || null,
+      nextApplicationDate: db.next_application_date || null,
+      frequencyDays: db.frequency_days ? Number(db.frequency_days) : null,
+      notes: db.notes || null,
+      createdAt: db.created_at
+    };
+  }
+
+  private mapFertilizerApplicationLogToDB(log: Partial<FertilizerApplicationLogDB>): any {
+    const db: any = {};
+    if (log.gardenId !== undefined) db.garden_id = log.gardenId;
+    if (log.taskId !== undefined) db.task_id = log.taskId;
+    if (log.bedId !== undefined) db.bed_id = log.bedId;
+    if (log.fertilizerProductId !== undefined) db.fertilizer_product_id = log.fertilizerProductId;
+    if (log.fertilizerProductName !== undefined) db.fertilizer_product_name = log.fertilizerProductName;
+    if (log.fertilizerType !== undefined) db.fertilizer_type = log.fertilizerType;
+    if (log.npk !== undefined) db.npk = log.npk;
+    if (log.applicationDate !== undefined) db.application_date = log.applicationDate;
+    if (log.areaSqm !== undefined) db.area_sqm = log.areaSqm;
+    if (log.dosageAmount !== undefined) db.dosage_amount = log.dosageAmount;
+    if (log.dosageUnit !== undefined) db.dosage_unit = log.dosageUnit;
+    if (log.method !== undefined) db.method = log.method;
+    if (log.growthPhase !== undefined) db.growth_phase = log.growthPhase;
+    if (log.weatherConditions !== undefined) db.weather_conditions = log.weatherConditions;
+    if (log.nextApplicationDate !== undefined) db.next_application_date = log.nextApplicationDate;
+    if (log.frequencyDays !== undefined) db.frequency_days = log.frequencyDays;
+    if (log.notes !== undefined) db.notes = log.notes;
+    return db;
+  }
+
+  private mapFertilizerApplicationLogsFromDB(dbArray: any[]): FertilizerApplicationLogDB[] {
+    return dbArray.map(db => this.mapFertilizerApplicationLogFromDB(db));
   }
 
   private mapPhotoLogFromDB(db: any): PlantPhotoLog {
@@ -1969,6 +2127,222 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (error) throw error;
   }
 
+  // Fertilizer Inventory
+  async getFertilizerInventory(gardenId: string): Promise<FertilizerInventoryItemDB[]> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('fertilizer_inventory')
+      .select('*')
+      .eq('garden_id', gardenId)
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return (data || []) as any;
+  }
+
+  async getFertilizerInventoryItem(id: string): Promise<FertilizerInventoryItemDB | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('fertilizer_inventory')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return (data || null) as any;
+  }
+
+  async createFertilizerInventoryItem(
+    item: Omit<FertilizerInventoryItemDB, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<FertilizerInventoryItemDB> {
+    const client = this.ensureClient();
+    const payload: any = { ...item };
+    const { data, error } = await client
+      .from('fertilizer_inventory')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as any;
+  }
+
+  async updateFertilizerInventoryItem(
+    id: string,
+    updates: Partial<FertilizerInventoryItemDB>
+  ): Promise<FertilizerInventoryItemDB> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('fertilizer_inventory')
+      .update(updates as any)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as any;
+  }
+
+  async deleteFertilizerInventoryItem(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client.from('fertilizer_inventory').delete().eq('id', id);
+    if (error) throw error;
+  }
+
+  // Phyto Inventory
+  async getPhytoInventory(gardenId: string): Promise<PhytoInventoryItemDB[]> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('phyto_inventory')
+      .select('*')
+      .eq('garden_id', gardenId)
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return (data || []) as any;
+  }
+
+  async getPhytoInventoryItem(id: string): Promise<PhytoInventoryItemDB | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('phyto_inventory')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return (data || null) as any;
+  }
+
+  async createPhytoInventoryItem(
+    item: Omit<PhytoInventoryItemDB, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<PhytoInventoryItemDB> {
+    const client = this.ensureClient();
+    const payload: any = { ...item };
+    const { data, error } = await client
+      .from('phyto_inventory')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as any;
+  }
+
+  async updatePhytoInventoryItem(id: string, updates: Partial<PhytoInventoryItemDB>): Promise<PhytoInventoryItemDB> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('phyto_inventory')
+      .update(updates as any)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as any;
+  }
+
+  async deletePhytoInventoryItem(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client.from('phyto_inventory').delete().eq('id', id);
+    if (error) throw error;
+  }
+
+  // Compost Logs
+  async getCompostLogs(gardenId: string): Promise<CompostLogDB[]> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('compost_logs')
+      .select('*')
+      .eq('garden_id', gardenId)
+      .order('start_date', { ascending: false });
+    if (error) throw error;
+    return (data || []) as any;
+  }
+
+  async getCompostLog(id: string): Promise<CompostLogDB | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('compost_logs')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return (data || null) as any;
+  }
+
+  async createCompostLog(log: Omit<CompostLogDB, 'id' | 'created_at' | 'updated_at'>): Promise<CompostLogDB> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('compost_logs')
+      .insert(log as any)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as any;
+  }
+
+  async updateCompostLog(id: string, updates: Partial<CompostLogDB>): Promise<CompostLogDB> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('compost_logs')
+      .update(updates as any)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as any;
+  }
+
+  async deleteCompostLog(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client.from('compost_logs').delete().eq('id', id);
+    if (error) throw error;
+  }
+
+  // Fertilizer Application Logs
+  async getFertilizerApplicationLogs(
+    gardenId: string,
+    options?: { taskId?: string; bedId?: string; from?: string; to?: string }
+  ): Promise<FertilizerApplicationLogDB[]> {
+    const client = this.ensureClient();
+    let query = client
+      .from('fertilizer_application_logs')
+      .select('*')
+      .eq('garden_id', gardenId);
+
+    if (options?.taskId) query = query.eq('task_id', options.taskId);
+    if (options?.bedId) query = query.eq('bed_id', options.bedId);
+    if (options?.from) query = query.gte('application_date', options.from);
+    if (options?.to) query = query.lte('application_date', options.to);
+
+    const { data, error } = await query.order('application_date', { ascending: false });
+    if (error) throw error;
+    return (data || []) as any;
+  }
+
+  async getFertilizerApplicationLog(id: string): Promise<FertilizerApplicationLogDB | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('fertilizer_application_logs')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return (data || null) as any;
+  }
+
+  async createFertilizerApplicationLog(
+    log: Omit<FertilizerApplicationLogDB, 'id' | 'created_at'>
+  ): Promise<FertilizerApplicationLogDB> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('fertilizer_application_logs')
+      .insert(log as any)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as any;
+  }
+
+  async deleteFertilizerApplicationLog(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client.from('fertilizer_application_logs').delete().eq('id', id);
+    if (error) throw error;
+  }
+
   private mapMechanicalWorkFromDB(db: any): MechanicalWorkRecord {
     return {
       id: db.id,
@@ -2637,7 +3011,13 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('irrigation_systems')
       .insert({
         garden_id: system.gardenId,
-        name: system.name
+        name: system.name,
+        type: system.type || 'Drip',
+        water_source: system.waterSource || null,
+        pressure_bar: system.pressureBar ?? null,
+        has_timer: system.hasTimer ?? false,
+        has_valve: system.hasValve ?? false,
+        notes: system.notes || null
       })
       .select()
       .single();
@@ -2650,6 +3030,12 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     const dbUpdates: any = {};
     if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.type !== undefined) dbUpdates.type = updates.type;
+    if (updates.waterSource !== undefined) dbUpdates.water_source = updates.waterSource || null;
+    if (updates.pressureBar !== undefined) dbUpdates.pressure_bar = updates.pressureBar ?? null;
+    if (updates.hasTimer !== undefined) dbUpdates.has_timer = updates.hasTimer;
+    if (updates.hasValve !== undefined) dbUpdates.has_valve = updates.hasValve;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes || null;
     
     const { data, error } = await client
       .from('irrigation_systems')
@@ -2673,16 +3059,29 @@ export class SupabaseStorageProvider implements IStorageProvider {
   }
 
   // Irrigation Zones
-  async getIrrigationZones(systemId: string): Promise<IrrigationZone[]> {
+  async getIrrigationZones(systemId: string): Promise<IrrigationZone[]>;
+  async getIrrigationZones(systemId?: string, gardenId?: string): Promise<IrrigationZone[]>;
+  async getIrrigationZones(systemId?: string, gardenId?: string): Promise<IrrigationZone[]> {
     const client = this.ensureClient();
-    const { data, error } = await client
+
+    let query = client
       .from('irrigation_zones')
-      .select('*')
-      .eq('system_id', systemId)
-      .order('created_at', { ascending: false });
-    
+      .select('*');
+
+    if (systemId) {
+      query = query.eq('system_id', systemId);
+    }
+    if (gardenId) {
+      query = query.eq('garden_id', gardenId);
+    }
+
+    if (!systemId && !gardenId) {
+      throw new Error('getIrrigationZones requires systemId or gardenId');
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
-    return (data || []).map(db => this.mapIrrigationZoneFromDB(db));
+    return (data || []).map((db: any) => this.mapIrrigationZoneFromDB(db));
   }
 
   async getIrrigationZone(id: string): Promise<IrrigationZone | null> {
@@ -2702,13 +3101,34 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
   async createIrrigationZone(zone: Omit<IrrigationZone, 'id' | 'createdAt' | 'updatedAt'>): Promise<IrrigationZone> {
     const client = this.ensureClient();
+
+    let gardenId = zone.gardenId;
+    if (!gardenId) {
+      const { data: systemRow, error: systemError } = await client
+        .from('irrigation_systems')
+        .select('garden_id')
+        .eq('id', zone.systemId)
+        .single();
+      if (systemError) throw systemError;
+      gardenId = systemRow?.garden_id;
+    }
+    if (!gardenId) {
+      throw new Error('Unable to resolve gardenId for irrigation zone');
+    }
+
     const { data, error } = await client
       .from('irrigation_zones')
       .insert({
         system_id: zone.systemId,
+        garden_id: gardenId,
         name: zone.name,
+        area_sqm: zone.areaSqm ?? null,
         method: zone.method,
         flow_rate_lph: zone.flowRateLph,
+        plant_types: zone.plantTypes || null,
+        is_automated: zone.isAutomated ?? false,
+        schedule: zone.schedule || null,
+        last_watered_at: zone.lastWateredAt || null,
         valve_id: zone.valveId || null,
         bed_ids: zone.bedIds || [],
         plant_task_ids: zone.plantTaskIds || [],
@@ -2726,8 +3146,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     const dbUpdates: any = {};
     if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.gardenId !== undefined) dbUpdates.garden_id = updates.gardenId || null;
+    if (updates.areaSqm !== undefined) dbUpdates.area_sqm = updates.areaSqm ?? null;
     if (updates.method !== undefined) dbUpdates.method = updates.method;
     if (updates.flowRateLph !== undefined) dbUpdates.flow_rate_lph = updates.flowRateLph;
+    if (updates.plantTypes !== undefined) dbUpdates.plant_types = updates.plantTypes || null;
+    if (updates.isAutomated !== undefined) dbUpdates.is_automated = updates.isAutomated;
+    if (updates.schedule !== undefined) dbUpdates.schedule = updates.schedule || null;
+    if (updates.lastWateredAt !== undefined) dbUpdates.last_watered_at = updates.lastWateredAt || null;
     if (updates.valveId !== undefined) dbUpdates.valve_id = updates.valveId || null;
     if (updates.bedIds !== undefined) dbUpdates.bed_ids = updates.bedIds;
     if (updates.plantTaskIds !== undefined) dbUpdates.plant_task_ids = updates.plantTaskIds;
@@ -2843,24 +3269,46 @@ export class SupabaseStorageProvider implements IStorageProvider {
   }
 
   // Watering Logs
-  async getWateringLogs(zoneId: string, startDate?: string, endDate?: string): Promise<WateringLog[]> {
+  async getWateringLogs(zoneId: string, startDate?: string, endDate?: string): Promise<WateringLog[]>;
+  async getWateringLogs(zoneId?: string, gardenId?: string, dateRange?: { from: string; to: string }): Promise<WateringLog[]>;
+  async getWateringLogs(
+    zoneId?: string,
+    arg2?: string,
+    arg3?: string | { from: string; to: string }
+  ): Promise<WateringLog[]> {
     const client = this.ensureClient();
+
     let query = client
       .from('watering_logs')
-      .select('*')
-      .eq('zone_id', zoneId);
-    
-    if (startDate) {
-      query = query.gte('date', startDate);
+      .select('*');
+
+    // Signature A: (zoneId, startDate?, endDate?)
+    if (zoneId && (typeof arg3 === 'string' || arg3 === undefined)) {
+      const startDate = arg2;
+      const endDate = arg3;
+      query = query.eq('zone_id', zoneId);
+
+      if (startDate) query = query.gte('date', startDate);
+      if (endDate) query = query.lte('date', endDate);
+    } else {
+      // Signature B: (zoneId?, gardenId?, dateRange?)
+      const gardenId = arg2;
+      const dateRange = typeof arg3 === 'object' ? arg3 : undefined;
+
+      if (zoneId) query = query.eq('zone_id', zoneId);
+      if (gardenId) query = query.eq('garden_id', gardenId);
+
+      if (!zoneId && !gardenId) {
+        throw new Error('getWateringLogs requires zoneId or gardenId');
+      }
+
+      if (dateRange?.from) query = query.gte('date', dateRange.from);
+      if (dateRange?.to) query = query.lte('date', dateRange.to);
     }
-    if (endDate) {
-      query = query.lte('date', endDate);
-    }
-    
+
     const { data, error } = await query.order('date', { ascending: false });
-    
     if (error) throw error;
-    return (data || []).map(db => this.mapWateringLogFromDB(db));
+    return (data || []).map((db: any) => this.mapWateringLogFromDB(db));
   }
 
   async getWateringLog(id: string): Promise<WateringLog | null> {
@@ -2880,14 +3328,37 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
   async logWatering(log: Omit<WateringLog, 'id' | 'createdAt'>): Promise<WateringLog> {
     const client = this.ensureClient();
+
+    let gardenId = log.gardenId;
+    if (!gardenId) {
+      const { data: zoneRow, error: zoneError } = await client
+        .from('irrigation_zones')
+        .select('garden_id')
+        .eq('id', log.zoneId)
+        .single();
+      if (zoneError) throw zoneError;
+      gardenId = zoneRow?.garden_id;
+    }
+    if (!gardenId) {
+      throw new Error('Unable to resolve gardenId for watering log');
+    }
+
+    const wateredAt = log.wateredAt || new Date().toISOString();
+
     const { data, error } = await client
       .from('watering_logs')
       .insert({
         zone_id: log.zoneId,
+        garden_id: gardenId,
+        watered_at: wateredAt,
         date: log.date,
         duration_minutes: log.durationMinutes,
         liters_applied: log.litersApplied,
         method: log.method,
+        weather_condition: log.weatherCondition || null,
+        soil_moisture_before: log.soilMoistureBefore ?? null,
+        soil_moisture_after: log.soilMoistureAfter ?? null,
+        air_temperature_c: log.airTemperatureC ?? null,
         notes: log.notes || null,
         valve_id: log.valveId || null,
         completed: log.completed
@@ -2897,6 +3368,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
     
     if (error) throw error;
     return this.mapWateringLogFromDB(data);
+  }
+
+  async createWateringLog(log: Omit<WateringLog, 'id' | 'createdAt'>): Promise<WateringLog> {
+    return this.logWatering(log);
   }
 
   async updateWateringLog(id: string, updates: Partial<WateringLog>): Promise<WateringLog> {
@@ -2937,6 +3412,12 @@ export class SupabaseStorageProvider implements IStorageProvider {
       id: db.id,
       gardenId: db.garden_id,
       name: db.name,
+      type: db.type || undefined,
+      waterSource: db.water_source || undefined,
+      pressureBar: db.pressure_bar !== null && db.pressure_bar !== undefined ? Number(db.pressure_bar) : undefined,
+      hasTimer: db.has_timer ?? undefined,
+      hasValve: db.has_valve ?? undefined,
+      notes: db.notes || undefined,
       createdAt: db.created_at,
       updatedAt: db.updated_at
     };
@@ -2946,12 +3427,18 @@ export class SupabaseStorageProvider implements IStorageProvider {
     return {
       id: db.id,
       systemId: db.system_id,
+      gardenId: db.garden_id || undefined,
       name: db.name,
+      areaSqm: db.area_sqm !== null && db.area_sqm !== undefined ? Number(db.area_sqm) : undefined,
       method: db.method,
       flowRateLph: Number(db.flow_rate_lph),
       valveId: db.valve_id || undefined,
       bedIds: db.bed_ids || [],
       plantTaskIds: db.plant_task_ids || [],
+      plantTypes: db.plant_types || undefined,
+      isAutomated: db.is_automated ?? undefined,
+      schedule: db.schedule || undefined,
+      lastWateredAt: db.last_watered_at || undefined,
       notes: db.notes || undefined,
       calculatedFromComponents: db.calculated_from_components || false,
       createdAt: db.created_at,
@@ -2981,14 +3468,138 @@ export class SupabaseStorageProvider implements IStorageProvider {
     return {
       id: db.id,
       zoneId: db.zone_id,
+      gardenId: db.garden_id || undefined,
+      wateredAt: db.watered_at || undefined,
       date: db.date,
       durationMinutes: db.duration_minutes,
       litersApplied: Number(db.liters_applied),
       method: db.method,
+      weatherCondition: db.weather_condition || undefined,
+      soilMoistureBefore: db.soil_moisture_before ?? undefined,
+      soilMoistureAfter: db.soil_moisture_after ?? undefined,
+      airTemperatureC: db.air_temperature_c !== null && db.air_temperature_c !== undefined ? Number(db.air_temperature_c) : undefined,
       notes: db.notes || undefined,
       valveId: db.valve_id || undefined,
       completed: db.completed,
       createdAt: db.created_at
+    };
+  }
+
+  // Health Alerts (Salute Proattiva)
+  async getHealthAlerts(gardenId?: string): Promise<HealthAlert[]> {
+    const client = this.ensureClient();
+    let query = client
+      .from('health_alerts')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (gardenId) {
+      query = query.eq('garden_id', gardenId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return (data || []).map(this.mapHealthAlertFromDB);
+  }
+
+  async getHealthAlert(id: string): Promise<HealthAlert | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('health_alerts')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Not found
+      throw error;
+    }
+    return this.mapHealthAlertFromDB(data);
+  }
+
+  async createHealthAlert(alert: Omit<HealthAlert, 'id' | 'createdAt' | 'updatedAt'>): Promise<HealthAlert> {
+    const client = this.ensureClient();
+    const dbAlert = this.mapHealthAlertToDB(alert);
+
+    const { data, error } = await client
+      .from('health_alerts')
+      .insert(dbAlert)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapHealthAlertFromDB(data);
+  }
+
+  async updateHealthAlert(id: string, updates: Partial<HealthAlert>): Promise<HealthAlert> {
+    const client = this.ensureClient();
+    const dbUpdates: any = {};
+
+    if (updates.alertType !== undefined) dbUpdates.alert_type = updates.alertType;
+    if (updates.severity !== undefined) dbUpdates.severity = updates.severity;
+    if (updates.source !== undefined) dbUpdates.source = updates.source;
+    if (updates.title !== undefined) dbUpdates.title = updates.title;
+    if (updates.message !== undefined) dbUpdates.message = updates.message;
+    if (updates.recommendation !== undefined) dbUpdates.recommendation = updates.recommendation || null;
+    if (updates.resolved !== undefined) dbUpdates.resolved = updates.resolved;
+    if (updates.resolvedAt !== undefined) dbUpdates.resolved_at = updates.resolvedAt || null;
+    if (updates.metadata !== undefined) dbUpdates.metadata = updates.metadata || null;
+
+    const { data, error } = await client
+      .from('health_alerts')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapHealthAlertFromDB(data);
+  }
+
+  async deleteHealthAlert(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client
+      .from('health_alerts')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  // Health Alert Mappers
+  private mapHealthAlertFromDB(db: any): HealthAlert {
+    return {
+      id: db.id,
+      gardenId: db.garden_id,
+      plantId: db.plant_id || undefined,
+      alertType: db.alert_type,
+      severity: db.severity,
+      source: db.source,
+      title: db.title,
+      message: db.message,
+      recommendation: db.recommendation || undefined,
+      resolved: db.resolved,
+      resolvedAt: db.resolved_at || undefined,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at,
+      metadata: db.metadata || undefined
+    };
+  }
+
+  private mapHealthAlertToDB(alert: Omit<HealthAlert, 'id' | 'createdAt' | 'updatedAt'>): any {
+    return {
+      garden_id: alert.gardenId,
+      plant_id: alert.plantId || null,
+      alert_type: alert.alertType,
+      severity: alert.severity,
+      source: alert.source,
+      title: alert.title,
+      message: alert.message,
+      recommendation: alert.recommendation || null,
+      resolved: alert.resolved,
+      resolved_at: alert.resolvedAt || null,
+      metadata: alert.metadata || null
     };
   }
 }

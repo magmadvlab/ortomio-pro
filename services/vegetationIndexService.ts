@@ -300,3 +300,6 @@ function mapIndicesFromDB(db: any): VegetationIndices {
   };
 }
 
+
+
+

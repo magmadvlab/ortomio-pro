@@ -18,16 +18,45 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type') || 'analytics' // 'analytics' | 'treatments'
     
-    const supabase = getSupabaseClient()
+    // Check if we're in bypass mode (no Supabase available)
+    const isBypassMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY
     
     if (type === 'analytics') {
-      const { data: analytics, error } = await supabase
-        .from('professional_analytics')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('year', { ascending: false })
+      let analytics: any[] | null = null
       
-      if (error) throw error
+      if (isBypassMode) {
+        console.log('[CSV API] Using mock analytics data (bypass mode)')
+        analytics = [
+          {
+            crop_name: 'Pomodoro',
+            season: 'Estate',
+            year: 2024,
+            total_kg: 150,
+            total_revenue: 450,
+            total_costs: 120,
+            yield_per_sqm: 3.0
+          },
+          {
+            crop_name: 'Insalata',
+            season: 'Primavera',
+            year: 2024,
+            total_kg: 80,
+            total_revenue: 240,
+            total_costs: 60,
+            yield_per_sqm: 2.5
+          }
+        ]
+      } else {
+        const supabase = getSupabaseClient()
+        const { data: analyticsData, error } = await supabase
+          .from('professional_analytics')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('year', { ascending: false })
+        
+        if (error) throw error
+        analytics = analyticsData
+      }
       
       // Generate CSV
       const headers = 'Coltura,Stagione,Anno,Kg,Revenue,Costi,ROI%,Resa/m²\n'
@@ -49,13 +78,48 @@ export async function GET(request: NextRequest) {
     }
     
     if (type === 'treatments') {
-      const { data: treatments, error } = await supabase
-        .from('treatment_register')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('treatment_date', { ascending: false })
+      let treatments: any[] | null = null
       
-      if (error) throw error
+      if (isBypassMode) {
+        console.log('[CSV API] Using mock treatments data (bypass mode)')
+        treatments = [
+          {
+            treatment_date: '2024-12-20',
+            crop_name: 'Pomodoro',
+            product_name: 'Cuproxa',
+            active_ingredient: 'Rame',
+            dosage: '2',
+            dosage_unit: 'kg/ha',
+            area_treated: '500',
+            method: 'Spruzzo',
+            reason: 'Prevenzione peronospora',
+            operator_name: 'Mario',
+            notes: 'Applicato in condizioni di tempo asciutto'
+          },
+          {
+            treatment_date: '2024-12-15',
+            crop_name: 'Insalata',
+            product_name: 'Bacillus thuringiensis',
+            active_ingredient: 'Bt',
+            dosage: '1',
+            dosage_unit: 'L/ha',
+            area_treated: '300',
+            method: 'Spruzzo',
+            reason: 'Controllo larve',
+            operator_name: 'Giulia'
+          }
+        ]
+      } else {
+        const supabase = getSupabaseClient()
+        const { data: treatmentsData, error } = await supabase
+          .from('treatment_register')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('treatment_date', { ascending: false })
+        
+        if (error) throw error
+        treatments = treatmentsData
+      }
       
       // Generate CSV
       const headers = 'Data,Coltura,Prodotto,Ingrediente Attivo,Dosaggio,Unità,Area (m²),Metodo,Motivo,Operatore,Note\n'

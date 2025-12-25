@@ -115,7 +115,7 @@ const SearchContent: React.FC = () => {
         router.push(`/app/journal`);
         break;
       case 'harvest':
-        router.push(`/app/harvest`);
+        router.push(`/app/progress?tab=harvests`);
         break;
       case 'seed':
         router.push(`/app/seeds`);

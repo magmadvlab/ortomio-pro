@@ -42,7 +42,17 @@ import { getDailyGardenPlan } from '@/logic/director'
 import { DailyPlan } from '@/types'
 import { SeedlingBatch } from '@/services/seedlingService'
 import { getMasterSheetSync } from '@/services/plantMasterService'
+import { SeedPacket } from '@/types'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { QuickActions } from './QuickActions'
+import { GardenSelectorCard } from './GardenSelectorCard'
+import { TaskCard } from './TaskCard'
+import { GardenCard } from './GardenCard'
+import { ProgressCard } from './ProgressCard'
+import { isToday, isSameDay, addDays, parseISO, format } from 'date-fns'
+import { it } from 'date-fns/locale'
+import { Heart, ArrowRight, Sparkles } from 'lucide-react'
 
 interface HomeDashboardProps {
   garden?: Garden
@@ -53,7 +63,14 @@ interface HomeDashboardProps {
 
 export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask }: HomeDashboardProps) {
   const { storageProvider } = useStorage()
-  const { tier } = useTier()
+  const { tier, isPro } = useTier()
+  const router = useRouter()
+
+  const getBaselineDismissKey = (gardenId: string) => `ortomio_baseline_dismissed_${gardenId}`
+  const getBaselineShowAllKey = (gardenId: string) => `ortomio_baseline_show_all_${gardenId}`
+  const getBaselineDismissPrefKey = (gardenId: string) => `baseline_dismissed_${gardenId}`
+  const getBaselineShowAllPrefKey = (gardenId: string) => `baseline_show_all_${gardenId}`
+  const [dismissedBaselinePrompts, setDismissedBaselinePrompts] = useState<Record<string, string>>({})
   
   // Auto-sync listener
   useEffect(() => {
@@ -92,6 +109,10 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
   const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(null)
   const [loadingPlan, setLoadingPlan] = useState(false)
   const [seedlingBatches, setSeedlingBatches] = useState<SeedlingBatch[]>([])
+  const [seedPackets, setSeedPackets] = useState<SeedPacket[]>([])
+  const [showAllBaselinePrompts, setShowAllBaselinePrompts] = useState(false)
+  const [baselineSearch, setBaselineSearch] = useState('')
+  const [baselinePriorityFilter, setBaselinePriorityFilter] = useState<'All' | 'High' | 'Medium' | 'Low'>('All')
   // NEW STATES FOR ADVANCED SYSTEM WIDGETS
   const [showHydroponicReadingForm, setShowHydroponicReadingForm] = useState(false)
   const [showAquaponicReadingForm, setShowAquaponicReadingForm] = useState(false)
@@ -123,6 +144,20 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
       }
     }
     loadSeedlingBatches()
+  }, [storageProvider, activeGarden])
+
+  useEffect(() => {
+    const loadSeedPackets = async () => {
+      if (!activeGarden) return
+      try {
+        const packets = await storageProvider.getSeedPackets(activeGarden.id)
+        setSeedPackets(packets || [])
+      } catch (error) {
+        console.error('Error loading seed packets:', error)
+        setSeedPackets([])
+      }
+    }
+    loadSeedPackets()
   }, [storageProvider, activeGarden])
 
   useEffect(() => {
@@ -158,6 +193,65 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
     loadTasksForGarden()
   }, [activeGarden, storageProvider])
 
+  useEffect(() => {
+    if (!activeGarden) return
+
+    const loadDismissed = async () => {
+      try {
+        if (storageProvider.getUserPreference) {
+          const fromCloud = await storageProvider.getUserPreference<Record<string, string>>(
+            getBaselineDismissPrefKey(activeGarden.id)
+          )
+          if (fromCloud && typeof fromCloud === 'object') {
+            setDismissedBaselinePrompts(fromCloud)
+            return
+          }
+        }
+      } catch (e) {
+        // fallback below
+      }
+
+      try {
+        const raw = localStorage.getItem(getBaselineDismissKey(activeGarden.id))
+        const parsed = raw ? (JSON.parse(raw) as Record<string, string>) : {}
+        setDismissedBaselinePrompts(parsed || {})
+      } catch (e) {
+        setDismissedBaselinePrompts({})
+      }
+    }
+
+    loadDismissed()
+  }, [activeGarden?.id, storageProvider])
+
+  useEffect(() => {
+    if (!activeGarden) return
+
+    const loadShowAll = async () => {
+      try {
+        if (storageProvider.getUserPreference) {
+          const fromCloud = await storageProvider.getUserPreference<boolean>(
+            getBaselineShowAllPrefKey(activeGarden.id)
+          )
+          if (typeof fromCloud === 'boolean') {
+            setShowAllBaselinePrompts(fromCloud)
+            return
+          }
+        }
+      } catch (e) {
+        // fallback below
+      }
+
+      try {
+        const raw = localStorage.getItem(getBaselineShowAllKey(activeGarden.id))
+        setShowAllBaselinePrompts(raw === '1')
+      } catch (e) {
+        setShowAllBaselinePrompts(false)
+      }
+    }
+
+    loadShowAll()
+  }, [activeGarden?.id, storageProvider])
+
   // Inizializza gardenType solo quando cambia activeGarden
   useEffect(() => {
     if (activeGarden) {
@@ -185,7 +279,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
     if (!activeGarden || !gardenTasks) return
     setLoadingPlan(true)
     try {
-      const plan = await getDailyGardenPlan(activeGarden, gardenTasks, new Date(), undefined, undefined, seedlingBatches, storageProvider)
+      const plan = await getDailyGardenPlan(activeGarden, gardenTasks, new Date(), undefined, undefined, seedlingBatches, storageProvider, seedPackets)
       setDailyPlan(plan)
     } catch (error) {
       // Gestisci silenziosamente l'errore (es. tabella irrigation_systems non esiste)
@@ -199,6 +293,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         nutrientTasks: [],
         healthTasks: [],
         climateWarnings: [],
+        baselinePrompts: [],
         lunarAdvice: undefined,
         priority: 'Low',
         irrigationTasks: []
@@ -206,7 +301,52 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
     } finally {
       setLoadingPlan(false)
     }
-  }, [activeGarden, gardenTasks, seedlingBatches, storageProvider])
+  }, [activeGarden, gardenTasks, seedlingBatches, storageProvider, seedPackets])
+
+  const handleBaselineOption = async (promptId: string, option: any) => {
+    if (!activeGarden) return
+    if (!option) return
+
+    if (option.actionType === 'open_wizard') {
+      if (option.href) {
+        router.push(option.href)
+      }
+      return
+    }
+
+    if (option.actionType === 'dismiss') {
+      try {
+        const updated = {
+          ...dismissedBaselinePrompts,
+          [promptId]: new Date().toISOString(),
+        }
+        localStorage.setItem(getBaselineDismissKey(activeGarden.id), JSON.stringify(updated))
+        setDismissedBaselinePrompts(updated)
+
+        if (storageProvider.setUserPreference) {
+          await storageProvider.setUserPreference(getBaselineDismissPrefKey(activeGarden.id), updated)
+        }
+      } catch (error) {
+        console.error('Error persisting dismissed baseline prompt:', error)
+      }
+      return
+    }
+
+    if (option.actionType !== 'create_task') return
+    const tasksToCreate = option.createTasks || (option.createTask ? [option.createTask] : [])
+    if (tasksToCreate.length === 0) return
+
+    try {
+      for (const t of tasksToCreate) {
+        await storageProvider.createTask(t)
+      }
+      const updatedTasks = await storageProvider.getTasks(activeGarden.id)
+      setGardenTasks(updatedTasks || [])
+    } catch (error) {
+      console.error('Error applying baseline prompt option:', error)
+      alert('Errore nella creazione del task. Riprova.')
+    }
+  }
 
   useEffect(() => {
     if (activeGarden && gardenTasks) {
@@ -292,111 +432,387 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 pb-20">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-10">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex-1">
-            <button
-              onClick={() => setIsGardenSelectorOpen(!isGardenSelectorOpen)}
-              className="flex items-center gap-2 text-left"
-            >
-              <h1 className="text-xl font-bold text-gray-900">{activeGarden.name}</h1>
-              <ChevronDown size={20} className="text-gray-500" />
-            </button>
-            <p className="text-xs text-gray-500 mt-0.5">Localizzato</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowGardenTypeWizard(true)}
-              className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              title="Aggiungi Nuovo"
-            >
-              <Plus size={20} />
-            </button>
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-          </div>
-        </div>
-        
-        {/* Garden Selector Dropdown */}
-        {isGardenSelectorOpen && (
-          <div className="absolute left-4 right-4 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-            {gardens.map(g => (
-              <button
-                key={g.id}
-                onClick={() => {
-                  setActiveGarden(g)
-                  setIsGardenSelectorOpen(false)
-                  if (onUpdateGarden) onUpdateGarden(g)
-                }}
-                className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-              >
-                <p className="font-semibold text-gray-900">{g.name}</p>
-                <p className="text-xs text-gray-500">{g.sizeSqMeters} m²</p>
-              </button>
-            ))}
-            <div className="border-t border-gray-200">
-              <button
-                onClick={() => {
-                  setIsGardenSelectorOpen(false)
-                  setShowGardenTypeWizard(true)
-                }}
-                className="w-full text-left px-4 py-3 hover:bg-green-50 text-green-600 font-semibold flex items-center gap-2"
-              >
-                <Plus size={16} />
-                Aggiungi Nuovo
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Garden Parameters */}
-        <div className="flex flex-wrap gap-2 mt-2">
-          <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-            {activeGarden.sizeSqMeters} m²
-          </span>
-          {activeGarden.soilType && (
-            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-              {getSoilLabel(activeGarden.soilType)} {activeGarden.soilType === 'Loamy' ? '(Ideale)' : ''}
-            </span>
-          )}
-          <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-            4h sole (Ombra parziale)
-          </span>
-        </div>
+      {/* Header con Garden Selector Card - Solo mobile */}
+      <header className="px-4 py-3 sticky top-0 z-10 bg-transparent lg:hidden">
+        <GardenSelectorCard
+          gardens={gardens}
+          activeGarden={activeGarden}
+          tasks={tasks}
+          onGardenChange={(garden) => {
+            setActiveGarden(garden)
+            if (onUpdateGarden) onUpdateGarden(garden)
+          }}
+          onAddGarden={() => setShowGardenTypeWizard(true)}
+        />
       </header>
 
-      <main className="p-4 space-y-4">
-        {/* Weather Widget */}
-        <div className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl p-5 text-white shadow-lg">
-          <h2 className="text-sm font-medium opacity-90 mb-2">Meteo: {activeGarden.name}</h2>
+      <main className="p-4 lg:p-6 space-y-6 max-w-7xl mx-auto">
+        {/* Top Row: Garden Card + Weather Card */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Garden Card */}
+          {activeGarden && (
+            <GardenCard garden={activeGarden} tasks={gardenTasks} />
+          )}
+          
+          {/* Weather Card */}
+          <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-xl p-5 lg:p-6 text-white shadow-xl">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h2 className="text-sm font-medium opacity-90 mb-1">Meteo: {activeGarden.name}</h2>
+              {activeGarden.coordinates && (
+                <p className="text-xs opacity-75">
+                  {format(new Date(), 'EEEE d MMMM', { locale: it })}
+                </p>
+              )}
+            </div>
+            {weather && (
+              <div className="text-right">
+                <div className="text-4xl font-bold">{weather.temp.toFixed(0)}°</div>
+                <p className="text-xs opacity-90">{getWeatherLabel(weather.code)}</p>
+              </div>
+            )}
+          </div>
+          
           {weatherLoading ? (
             <div className="flex items-center gap-2">
               <Loader2 size={20} className="animate-spin" />
-              <span className="text-sm">Caricamento...</span>
+              <span className="text-sm">Caricamento meteo...</span>
             </div>
           ) : weather ? (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Cloud size={32} className="text-yellow-200" />
-                <div>
-                  <p className="text-sm opacity-90">{getWeatherLabel(weather.code)}</p>
-                  <p className="text-3xl font-bold">{weather.temp.toFixed(1)}°C</p>
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-4">
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-2 sm:p-3 text-center">
+                <CloudRain size={18} className="mx-auto mb-1 sm:size-5" />
+                <p className="text-xs opacity-90">Pioggia</p>
+                <p className="text-base sm:text-lg font-bold">{weather.rainForecastMm.toFixed(0)}mm</p>
                 </div>
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-2 sm:p-3 text-center">
+                <ThermometerSun size={18} className="mx-auto mb-1 sm:size-5" />
+                <p className="text-xs opacity-90">Temperatura</p>
+                <p className="text-base sm:text-lg font-bold">{weather.temp.toFixed(0)}°C</p>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-2 sm:p-3 text-center">
+                <Cloud size={18} className="mx-auto mb-1 sm:size-5" />
+                <p className="text-xs opacity-90">Condizioni</p>
+                <p className="text-xs sm:text-sm font-semibold">{getWeatherLabel(weather.code)}</p>
               </div>
             </div>
           ) : (
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
             <p className="text-sm opacity-80">Posizione non disponibile</p>
+              <p className="text-xs opacity-60 mt-1">Aggiungi coordinate per vedere il meteo</p>
+            </div>
           )}
         </div>
+      </div>
 
-        {/* Irrigation Status */}
-        <div className={`${irrigationStatus.color} border rounded-xl p-4 flex items-center gap-3`}>
-          <Droplets size={24} className="text-blue-600" />
-          <div>
-            <h3 className="font-bold text-gray-900 text-sm">{irrigationStatus.status}</h3>
-            <p className="text-xs text-gray-600">{irrigationStatus.detail}</p>
+        {/* COSA FARE OGGI */}
+        {(() => {
+          const today = new Date()
+          const todayTasks = gardenTasks.filter(t => {
+            if (t.completed) return false
+            const taskDate = t.nextDueDate ? parseISO(t.nextDueDate) : parseISO(t.date)
+            return isSameDay(taskDate, today)
+          })
+          
+          return (
+            <div className="bg-white rounded-xl border-2 border-gray-200 p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Calendar size={20} className="text-green-600 lg:size-6" />
+                  COSA FARE OGGI
+                </h2>
+                {todayTasks.length > 0 && (
+                  <Link
+                    href="/app/garden?tab=list"
+                    className="text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1"
+                  >
+                    Vedi tutti
+                    <ArrowRight size={16} />
+                  </Link>
+                )}
           </div>
+              
+              {todayTasks.length === 0 ? (
+                <div className="text-center py-8">
+                  <CheckCircle size={48} className="mx-auto text-green-500 mb-3" />
+                  <p className="text-gray-600 font-medium">Nessun task per oggi!</p>
+                  <p className="text-sm text-gray-500 mt-1">Goditi il tuo orto 🌱</p>
         </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {todayTasks.slice(0, 6).map(task => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      compact={true}
+                      onComplete={async (id) => {
+                        const updatedTask = { ...task, completed: true }
+                        if (onUpdateTask) {
+                          await onUpdateTask(updatedTask)
+                        }
+                        // Ricarica tasks
+                        if (activeGarden) {
+                          const updatedTasks = await storageProvider.getTasks(activeGarden.id)
+                          setGardenTasks(updatedTasks || [])
+                        }
+                      }}
+                      onReschedule={async (id) => {
+                        const newDate = addDays(new Date(), 1)
+                        const updatedTask = { ...task, nextDueDate: format(newDate, 'yyyy-MM-dd') }
+                        if (onUpdateTask) {
+                          await onUpdateTask(updatedTask)
+                        }
+                      }}
+                      onEdit={onUpdateTask}
+                      onDelete={async (id) => {
+                        await storageProvider.deleteTask(id)
+                        if (activeGarden) {
+                          const updatedTasks = await storageProvider.getTasks(activeGarden.id)
+                          setGardenTasks(updatedTasks || [])
+                        }
+                      }}
+                      onHarvest={async (harvestData) => {
+                        await storageProvider.createHarvestLog({
+                          ...harvestData,
+                          gardenId: activeGarden!.id
+                        } as any)
+                      }}
+                      showSuggestions={true}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })()}
+
+        {/* DIRECTOR - BASELINE STAGIONALE (prompt strutturati) */}
+        {dailyPlan && dailyPlan.baselinePrompts && dailyPlan.baselinePrompts.length > 0 && (
+          <div className="bg-white rounded-xl border-2 border-green-200 p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Sparkles size={20} className="text-green-600 lg:size-6" />
+                Checklist Stagionale
+              </h2>
+              <span className="text-xs font-semibold text-gray-500">Proposta dal Director</span>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-2 mb-4">
+              <div className="flex-1">
+                <input
+                  value={baselineSearch}
+                  onChange={(e) => setBaselineSearch(e.target.value)}
+                  placeholder="Cerca..."
+                  className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-800"
+                />
+              </div>
+              <div>
+                <select
+                  value={baselinePriorityFilter}
+                  onChange={(e) => setBaselinePriorityFilter(e.target.value as any)}
+                  className="text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-800"
+                >
+                  <option value="All">Tutte le priorità</option>
+                  <option value="High">Alta</option>
+                  <option value="Medium">Media</option>
+                  <option value="Low">Bassa</option>
+                </select>
+              </div>
+            </div>
+
+            {(() => {
+              const q = baselineSearch.trim().toLowerCase()
+              const visiblePrompts = dailyPlan.baselinePrompts
+                .filter((p) => !dismissedBaselinePrompts[p.id])
+                .filter((p) => (baselinePriorityFilter === 'All' ? true : p.priority === baselinePriorityFilter))
+                .filter((p) => {
+                  if (!q) return true
+                  return `${p.title} ${p.body}`.toLowerCase().includes(q)
+                })
+
+              const hasMore = visiblePrompts.length > 6
+              const promptsToShow = showAllBaselinePrompts ? visiblePrompts : visiblePrompts.slice(0, 6)
+
+              return (
+                <>
+                  <div className="space-y-3">
+                    {promptsToShow.map((p) => (
+                      <div key={p.id} className="border border-gray-200 rounded-xl p-4 bg-green-50/40">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-gray-900">{p.title}</p>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                Stagionale
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                p.priority === 'High' ? 'bg-red-100 text-red-700' :
+                                p.priority === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-blue-100 text-blue-700'
+                              }`}
+                              >
+                                {p.priority === 'High' ? 'Alta' : p.priority === 'Medium' ? 'Media' : 'Bassa'}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700 mt-1">{p.body}</p>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {p.options.map((opt) => (
+                            <button
+                              key={opt.id}
+                              onClick={() => handleBaselineOption(p.id, opt)}
+                              className={`text-sm font-semibold px-3 py-2 rounded-lg border transition ${
+                                opt.actionType === 'create_task'
+                                  ? 'bg-white border-green-200 text-green-700 hover:bg-green-50'
+                                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {hasMore && (
+                    <div className="mt-4 flex justify-center">
+                      <button
+                        onClick={() =>
+                          setShowAllBaselinePrompts((v) => {
+                            const next = !v
+                            if (activeGarden) {
+                              try {
+                                localStorage.setItem(getBaselineShowAllKey(activeGarden.id), next ? '1' : '0')
+                              } catch (e) {}
+
+                              if (storageProvider.setUserPreference) {
+                                storageProvider
+                                  .setUserPreference(getBaselineShowAllPrefKey(activeGarden.id), next)
+                                  .catch(() => {})
+                              }
+                            }
+                            return next
+                          })
+                        }
+                        className="text-sm font-semibold px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                      >
+                        {showAllBaselinePrompts ? 'Mostra meno' : `Mostra altri (${visiblePrompts.length - 6})`}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )
+            })()}
+          </div>
+        )}
+
+        {/* Bottom Row: Health + Upcoming */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Widget Stato Salute */}
+          {(() => {
+            const activePlants = gardenTasks.filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant'))
+            const healthStatus = activePlants.length > 0 ? 'good' : 'none'
+            
+            return (
+              <Link href="/app/advice" className="block">
+                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow h-full">
+                  <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Heart size={18} className="text-green-600" />
+                    Stato Salute
+                  </h3>
+                  
+                  {healthStatus === 'none' ? (
+                    <p className="text-sm text-gray-600">Aggiungi piante per monitorare la loro salute</p>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-2xl flex-shrink-0">
+                          😊
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-green-600 font-semibold mb-0.5">Buono</h4>
+                          <p className="text-xs text-gray-500">{activePlants.length} piante monitorate</p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-sm text-green-600">
+                          ✅ {activePlants.length} piante in salute
+                        </div>
+                        <div className="flex items-center gap-2 p-2 bg-amber-100 rounded-lg text-sm text-amber-600">
+                          ⚠️ 0 richiedono attenzione
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </Link>
+            )
+          })()}
+
+          {/* Prossimi Giorni */}
+          {(() => {
+            const nextDays = [1, 2, 3, 4, 5, 6, 7].map(days => {
+              const date = addDays(new Date(), days)
+              const dayTasks = gardenTasks.filter(t => {
+                if (t.completed) return false
+                const taskDate = t.nextDueDate ? parseISO(t.nextDueDate) : parseISO(t.date)
+                return isSameDay(taskDate, date)
+              })
+              return { date, tasks: dayTasks, dayName: format(date, 'EEEE', { locale: it }) }
+            })
+            
+            const hasUpcomingTasks = nextDays.some(d => d.tasks.length > 0)
+            
+            return (
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm h-full">
+                <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Calendar size={18} className="text-gray-600" />
+                  Prossimi Giorni
+                </h3>
+                
+                {!hasUpcomingTasks ? (
+                  <p className="text-sm text-gray-600 text-center py-4">
+                    Nessun task programmato per i prossimi 7 giorni
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {nextDays.filter(d => d.tasks.length > 0).slice(0, 5).map((day, idx) => (
+                      <Link
+                        key={idx}
+                        href={`/app/garden?tab=calendar&date=${format(day.date, 'yyyy-MM-dd')}`}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="bg-white px-2.5 py-1 rounded-lg text-xs font-semibold text-gray-600 border border-gray-200">
+                            {format(day.date, 'dd', { locale: it })}
+                          </span>
+                          <span className="text-sm text-gray-900 capitalize">{day.dayName}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded font-medium">
+                            {day.tasks.length} task
+                          </span>
+                          <ArrowRight size={14} className="text-gray-400" />
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+        </div>
+
+        {/* Progress Card */}
+        {activeGarden && (
+          <ProgressCard tasks={gardenTasks} gardenId={activeGarden.id} />
+        )}
+
+        {/* Irrigation Status - Spostato dopo Prossimi Giorni */}
 
         {/* Preparatory Works */}
         {prepTasks.length > 0 && (
@@ -1015,9 +1431,10 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
               </button>
             </div>
             <div className="p-4">
+              {/* TODO: Caricare zone da storage */}
               <IrrigationZoneManager
                 garden={activeGarden}
-                zones={[]} // TODO: Caricare zone da storage
+                zones={[]}
                 onZoneUpdate={async (zone) => {
                   // TODO: Implementare update
                 }}
@@ -1091,7 +1508,9 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
           onCancel={() => setShowGardenTypeWizard(false)}
         />
       )}
+
+      {/* Quick Actions FAB */}
+      <QuickActions />
     </div>
   )
 }
-

@@ -4,7 +4,7 @@
  */
 
 import { IStorageProvider } from '../core/storage/interface';
-import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB } from '@/types';
+import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB } from '@/types';
 import { CustomCrop, CropLearningEvent } from '@/types/customCrop';
 import { CustomPlan } from '@/types/customPlan';
 import { Agronomist, AgronomistConsultation, AgronomistAdvice } from '@/types/agronomist';
@@ -17,6 +17,7 @@ import { HydroponicReading, AquaponicReading } from '@/types/indoorGrowing';
 import { GardenBed } from '@/types/gardenBed';
 import { CropArchetype, CropProfile, CropAlias, ArchetypeId, OfficialCrop } from '@/types/archetypes';
 import { IrrigationSystem, IrrigationZone, IrrigationComponent, WateringLog } from '@/types/irrigation';
+import { HealthAlert } from '@/types/healthAlert';
 
 export class LocalStorageProvider implements IStorageProvider {
   private readonly STORAGE_KEYS = {
@@ -40,7 +41,16 @@ export class LocalStorageProvider implements IStorageProvider {
     IRRIGATION_ZONES: 'ortoIrrigationZones',
     IRRIGATION_COMPONENTS: 'ortoIrrigationComponents',
     WATERING_LOGS: 'ortoWateringLogs',
+    HEALTH_ALERTS: 'ortoHealthAlerts',
+    FERTILIZER_INVENTORY: 'ortoFertilizerInventory',
+    PHYTO_INVENTORY: 'ortoPhytoInventory',
+    COMPOST_LOGS: 'ortoCompostLogs',
+    FERTILIZER_APPLICATION_LOGS: 'ortoFertilizerApplicationLogs',
   } as const;
+
+  private getUserPreferenceKey(key: string): string {
+    return `ortomio_user_pref_${key}`;
+  }
 
   isAvailable(): boolean {
     try {
@@ -50,6 +60,24 @@ export class LocalStorageProvider implements IStorageProvider {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  async getUserPreference<T = any>(key: string): Promise<T | null> {
+    try {
+      const raw = localStorage.getItem(this.getUserPreferenceKey(key));
+      if (!raw) return null;
+      return JSON.parse(raw) as T;
+    } catch {
+      return null;
+    }
+  }
+
+  async setUserPreference<T = any>(key: string, value: T): Promise<void> {
+    try {
+      localStorage.setItem(this.getUserPreferenceKey(key), JSON.stringify(value));
+    } catch {
+      // ignore
     }
   }
 
@@ -312,6 +340,69 @@ export class LocalStorageProvider implements IStorageProvider {
     const logs = await this.getHarvestLogs();
     const filtered = logs.filter(l => l.id !== id);
     localStorage.setItem(this.STORAGE_KEYS.HARVESTS, JSON.stringify(filtered));
+  }
+
+  // Fertilization Tracking
+  async getFertilizerApplicationLogs(
+    gardenId: string,
+    options?: { taskId?: string; bedId?: string; from?: string; to?: string }
+  ): Promise<FertilizerApplicationLogDB[]> {
+    const saved = localStorage.getItem(this.STORAGE_KEYS.FERTILIZER_APPLICATION_LOGS);
+    if (!saved) return [];
+    try {
+      let logs = JSON.parse(saved) as FertilizerApplicationLogDB[];
+
+      // Filter by gardenId
+      logs = logs.filter(log => log.gardenId === gardenId);
+
+      // Apply optional filters
+      if (options?.taskId) {
+        logs = logs.filter(log => log.taskId === options.taskId);
+      }
+      if (options?.bedId) {
+        logs = logs.filter(log => log.bedId === options.bedId);
+      }
+      if (options?.from) {
+        logs = logs.filter(log => log.applicationDate >= options.from!);
+      }
+      if (options?.to) {
+        logs = logs.filter(log => log.applicationDate <= options.to!);
+      }
+
+      // Sort by date descending
+      return logs.sort((a, b) =>
+        new Date(b.applicationDate).getTime() - new Date(a.applicationDate).getTime()
+      );
+    } catch (error) {
+      console.error('Error parsing fertilizer application logs:', error);
+      return [];
+    }
+  }
+
+  async createFertilizerApplicationLog(
+    log: Omit<FertilizerApplicationLogDB, 'id' | 'createdAt'>
+  ): Promise<FertilizerApplicationLogDB> {
+    const newLog: FertilizerApplicationLogDB = {
+      ...log,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+
+    const logs = await this.getFertilizerApplicationLogs(log.gardenId);
+    logs.push(newLog);
+
+    // Save all logs for all gardens
+    const saved = localStorage.getItem(this.STORAGE_KEYS.FERTILIZER_APPLICATION_LOGS);
+    const allLogs = saved ? JSON.parse(saved) as FertilizerApplicationLogDB[] : [];
+    allLogs.push(newLog);
+    localStorage.setItem(this.STORAGE_KEYS.FERTILIZER_APPLICATION_LOGS, JSON.stringify(allLogs));
+
+    // Trigger backup automatico
+    saveAutoBackup(this).catch(err =>
+      console.error('Error saving auto backup after createFertilizerApplicationLog:', err)
+    );
+
+    return newLog;
   }
 
   // Seedling Batches
@@ -911,6 +1002,256 @@ export class LocalStorageProvider implements IStorageProvider {
     localStorage.setItem(key, JSON.stringify(filtered));
   }
 
+  // Fertilizer Inventory
+  private getAllFertilizerInventoryItems(): FertilizerInventoryItemDB[] {
+    const saved = localStorage.getItem(this.STORAGE_KEYS.FERTILIZER_INVENTORY);
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? (parsed as FertilizerInventoryItemDB[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private saveAllFertilizerInventoryItems(items: FertilizerInventoryItemDB[]): void {
+    localStorage.setItem(this.STORAGE_KEYS.FERTILIZER_INVENTORY, JSON.stringify(items));
+  }
+
+  async getFertilizerInventory(gardenId: string): Promise<FertilizerInventoryItemDB[]> {
+    return this.getAllFertilizerInventoryItems().filter((i) => i.garden_id === gardenId);
+  }
+
+  async getFertilizerInventoryItem(id: string): Promise<FertilizerInventoryItemDB | null> {
+    return this.getAllFertilizerInventoryItems().find((i) => i.id === id) || null;
+  }
+
+  async createFertilizerInventoryItem(
+    item: Omit<FertilizerInventoryItemDB, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<FertilizerInventoryItemDB> {
+    const all = this.getAllFertilizerInventoryItems();
+    const now = new Date().toISOString();
+    const created: FertilizerInventoryItemDB = {
+      ...item,
+      id: crypto.randomUUID(),
+      created_at: now,
+      updated_at: now,
+    };
+    all.push(created);
+    this.saveAllFertilizerInventoryItems(all);
+    saveAutoBackup(this, item.garden_id).catch(() => {});
+    return created;
+  }
+
+  async updateFertilizerInventoryItem(
+    id: string,
+    updates: Partial<FertilizerInventoryItemDB>
+  ): Promise<FertilizerInventoryItemDB> {
+    const all = this.getAllFertilizerInventoryItems();
+    const index = all.findIndex((i) => i.id === id);
+    if (index === -1) throw new Error(`FertilizerInventoryItem with id ${id} not found`);
+    const updated: FertilizerInventoryItemDB = {
+      ...all[index],
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
+    all[index] = updated;
+    this.saveAllFertilizerInventoryItems(all);
+    saveAutoBackup(this, updated.garden_id).catch(() => {});
+    return updated;
+  }
+
+  async deleteFertilizerInventoryItem(id: string): Promise<void> {
+    const all = this.getAllFertilizerInventoryItems();
+    const item = all.find((i) => i.id === id);
+    const filtered = all.filter((i) => i.id !== id);
+    this.saveAllFertilizerInventoryItems(filtered);
+    if (item) saveAutoBackup(this, item.garden_id).catch(() => {});
+  }
+
+  // Phyto Inventory
+  private getAllPhytoInventoryItems(): PhytoInventoryItemDB[] {
+    const saved = localStorage.getItem(this.STORAGE_KEYS.PHYTO_INVENTORY);
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? (parsed as PhytoInventoryItemDB[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private saveAllPhytoInventoryItems(items: PhytoInventoryItemDB[]): void {
+    localStorage.setItem(this.STORAGE_KEYS.PHYTO_INVENTORY, JSON.stringify(items));
+  }
+
+  async getPhytoInventory(gardenId: string): Promise<PhytoInventoryItemDB[]> {
+    return this.getAllPhytoInventoryItems().filter((i) => i.garden_id === gardenId);
+  }
+
+  async getPhytoInventoryItem(id: string): Promise<PhytoInventoryItemDB | null> {
+    return this.getAllPhytoInventoryItems().find((i) => i.id === id) || null;
+  }
+
+  async createPhytoInventoryItem(
+    item: Omit<PhytoInventoryItemDB, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<PhytoInventoryItemDB> {
+    const all = this.getAllPhytoInventoryItems();
+    const now = new Date().toISOString();
+    const created: PhytoInventoryItemDB = {
+      ...item,
+      id: crypto.randomUUID(),
+      created_at: now,
+      updated_at: now,
+    };
+    all.push(created);
+    this.saveAllPhytoInventoryItems(all);
+    saveAutoBackup(this, item.garden_id).catch(() => {});
+    return created;
+  }
+
+  async updatePhytoInventoryItem(id: string, updates: Partial<PhytoInventoryItemDB>): Promise<PhytoInventoryItemDB> {
+    const all = this.getAllPhytoInventoryItems();
+    const index = all.findIndex((i) => i.id === id);
+    if (index === -1) throw new Error(`PhytoInventoryItem with id ${id} not found`);
+    const updated: PhytoInventoryItemDB = {
+      ...all[index],
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
+    all[index] = updated;
+    this.saveAllPhytoInventoryItems(all);
+    saveAutoBackup(this, updated.garden_id).catch(() => {});
+    return updated;
+  }
+
+  async deletePhytoInventoryItem(id: string): Promise<void> {
+    const all = this.getAllPhytoInventoryItems();
+    const item = all.find((i) => i.id === id);
+    const filtered = all.filter((i) => i.id !== id);
+    this.saveAllPhytoInventoryItems(filtered);
+    if (item) saveAutoBackup(this, item.garden_id).catch(() => {});
+  }
+
+  // Compost Logs
+  private getAllCompostLogs(): CompostLogDB[] {
+    const saved = localStorage.getItem(this.STORAGE_KEYS.COMPOST_LOGS);
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? (parsed as CompostLogDB[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private saveAllCompostLogs(logs: CompostLogDB[]): void {
+    localStorage.setItem(this.STORAGE_KEYS.COMPOST_LOGS, JSON.stringify(logs));
+  }
+
+  async getCompostLogs(gardenId: string): Promise<CompostLogDB[]> {
+    return this.getAllCompostLogs()
+      .filter((l) => l.garden_id === gardenId)
+      .sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
+  }
+
+  async getCompostLog(id: string): Promise<CompostLogDB | null> {
+    return this.getAllCompostLogs().find((l) => l.id === id) || null;
+  }
+
+  async createCompostLog(log: Omit<CompostLogDB, 'id' | 'created_at' | 'updated_at'>): Promise<CompostLogDB> {
+    const all = this.getAllCompostLogs();
+    const now = new Date().toISOString();
+    const created: CompostLogDB = {
+      ...log,
+      id: crypto.randomUUID(),
+      created_at: now,
+      updated_at: now,
+    };
+    all.push(created);
+    this.saveAllCompostLogs(all);
+    saveAutoBackup(this, log.garden_id).catch(() => {});
+    return created;
+  }
+
+  async updateCompostLog(id: string, updates: Partial<CompostLogDB>): Promise<CompostLogDB> {
+    const all = this.getAllCompostLogs();
+    const index = all.findIndex((l) => l.id === id);
+    if (index === -1) throw new Error(`CompostLog with id ${id} not found`);
+    const updated: CompostLogDB = {
+      ...all[index],
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
+    all[index] = updated;
+    this.saveAllCompostLogs(all);
+    saveAutoBackup(this, updated.garden_id).catch(() => {});
+    return updated;
+  }
+
+  async deleteCompostLog(id: string): Promise<void> {
+    const all = this.getAllCompostLogs();
+    const log = all.find((l) => l.id === id);
+    const filtered = all.filter((l) => l.id !== id);
+    this.saveAllCompostLogs(filtered);
+    if (log) saveAutoBackup(this, log.garden_id).catch(() => {});
+  }
+
+  // Fertilizer Application Logs
+  private getAllFertilizerApplicationLogs(): FertilizerApplicationLogDB[] {
+    const saved = localStorage.getItem(this.STORAGE_KEYS.FERTILIZER_APPLICATION_LOGS);
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? (parsed as FertilizerApplicationLogDB[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private saveAllFertilizerApplicationLogs(logs: FertilizerApplicationLogDB[]): void {
+    localStorage.setItem(this.STORAGE_KEYS.FERTILIZER_APPLICATION_LOGS, JSON.stringify(logs));
+  }
+
+  async getFertilizerApplicationLogs(
+    gardenId: string,
+    options?: { taskId?: string; bedId?: string; from?: string; to?: string }
+  ): Promise<FertilizerApplicationLogDB[]> {
+    let logs = this.getAllFertilizerApplicationLogs().filter((l) => l.garden_id === gardenId);
+    if (options?.taskId) logs = logs.filter((l) => l.task_id === options.taskId);
+    if (options?.bedId) logs = logs.filter((l) => l.bed_id === options.bedId);
+    if (options?.from) logs = logs.filter((l) => new Date(l.application_date) >= new Date(options.from!));
+    if (options?.to) logs = logs.filter((l) => new Date(l.application_date) <= new Date(options.to!));
+    return logs.sort((a, b) => new Date(b.application_date).getTime() - new Date(a.application_date).getTime());
+  }
+
+  async getFertilizerApplicationLog(id: string): Promise<FertilizerApplicationLogDB | null> {
+    return this.getAllFertilizerApplicationLogs().find((l) => l.id === id) || null;
+  }
+
+  async createFertilizerApplicationLog(
+    log: Omit<FertilizerApplicationLogDB, 'id' | 'created_at'>
+  ): Promise<FertilizerApplicationLogDB> {
+    const all = this.getAllFertilizerApplicationLogs();
+    const created: FertilizerApplicationLogDB = {
+      ...log,
+      id: crypto.randomUUID(),
+      created_at: new Date().toISOString(),
+    };
+    all.push(created);
+    this.saveAllFertilizerApplicationLogs(all);
+    saveAutoBackup(this, log.garden_id).catch(() => {});
+    return created;
+  }
+
+  async deleteFertilizerApplicationLog(id: string): Promise<void> {
+    const all = this.getAllFertilizerApplicationLogs();
+    const log = all.find((l) => l.id === id);
+    const filtered = all.filter((l) => l.id !== id);
+    this.saveAllFertilizerApplicationLogs(filtered);
+    if (log) saveAutoBackup(this, log.garden_id).catch(() => {});
+  }
+
   // Treatments
   async getTreatments(gardenId?: string): Promise<TreatmentRecordDB[]> {
     const key = 'ortomio_treatments';
@@ -1270,10 +1611,24 @@ export class LocalStorageProvider implements IStorageProvider {
   }
 
   // Irrigation Zones
-  async getIrrigationZones(systemId: string): Promise<IrrigationZone[]> {
+  async getIrrigationZones(systemId: string): Promise<IrrigationZone[]>;
+  async getIrrigationZones(systemId?: string, gardenId?: string): Promise<IrrigationZone[]>;
+  async getIrrigationZones(systemId?: string, gardenId?: string): Promise<IrrigationZone[]> {
     const key = this.STORAGE_KEYS.IRRIGATION_ZONES;
-    const zones = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationZone[];
-    return zones.filter(z => z.systemId === systemId);
+    let zones = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationZone[];
+
+    if (systemId) {
+      zones = zones.filter(z => z.systemId === systemId);
+    }
+    if (gardenId) {
+      zones = zones.filter(z => z.gardenId === gardenId);
+    }
+
+    if (!systemId && !gardenId) {
+      throw new Error('getIrrigationZones requires systemId or gardenId');
+    }
+
+    return zones;
   }
 
   async getIrrigationZone(id: string): Promise<IrrigationZone | null> {
@@ -1372,18 +1727,40 @@ export class LocalStorageProvider implements IStorageProvider {
   }
 
   // Watering Logs
-  async getWateringLogs(zoneId: string, startDate?: string, endDate?: string): Promise<WateringLog[]> {
+  async getWateringLogs(zoneId: string, startDate?: string, endDate?: string): Promise<WateringLog[]>;
+  async getWateringLogs(zoneId?: string, gardenId?: string, dateRange?: { from: string; to: string }): Promise<WateringLog[]>;
+  async getWateringLogs(
+    zoneId?: string,
+    arg2?: string,
+    arg3?: string | { from: string; to: string }
+  ): Promise<WateringLog[]> {
     const key = this.STORAGE_KEYS.WATERING_LOGS;
     let logs = JSON.parse(localStorage.getItem(key) || '[]') as WateringLog[];
-    logs = logs.filter(l => l.zoneId === zoneId);
-    
-    if (startDate) {
-      logs = logs.filter(l => l.date >= startDate);
+
+    // Signature A: (zoneId, startDate?, endDate?)
+    if (zoneId && (typeof arg3 === 'string' || arg3 === undefined)) {
+      const startDate = arg2;
+      const endDate = arg3;
+      logs = logs.filter(l => l.zoneId === zoneId);
+
+      if (startDate) logs = logs.filter(l => l.date >= startDate);
+      if (endDate) logs = logs.filter(l => l.date <= endDate);
+    } else {
+      // Signature B: (zoneId?, gardenId?, dateRange?)
+      const gardenId = arg2;
+      const dateRange = typeof arg3 === 'object' ? arg3 : undefined;
+
+      if (zoneId) logs = logs.filter(l => l.zoneId === zoneId);
+      if (gardenId) logs = logs.filter(l => l.gardenId === gardenId);
+
+      if (!zoneId && !gardenId) {
+        throw new Error('getWateringLogs requires zoneId or gardenId');
+      }
+
+      if (dateRange?.from) logs = logs.filter(l => l.date >= dateRange.from);
+      if (dateRange?.to) logs = logs.filter(l => l.date <= dateRange.to);
     }
-    if (endDate) {
-      logs = logs.filter(l => l.date <= endDate);
-    }
-    
+
     return logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }
 
@@ -1398,12 +1775,17 @@ export class LocalStorageProvider implements IStorageProvider {
     const logs = JSON.parse(localStorage.getItem(key) || '[]') as WateringLog[];
     const newLog: WateringLog = {
       ...log,
+      wateredAt: log.wateredAt || new Date().toISOString(),
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString()
     };
     logs.push(newLog);
     localStorage.setItem(key, JSON.stringify(logs));
     return newLog;
+  }
+
+  async createWateringLog(log: Omit<WateringLog, 'id' | 'createdAt'>): Promise<WateringLog> {
+    return this.logWatering(log);
   }
 
   async updateWateringLog(id: string, updates: Partial<WateringLog>): Promise<WateringLog> {
@@ -1424,6 +1806,61 @@ export class LocalStorageProvider implements IStorageProvider {
     const key = this.STORAGE_KEYS.WATERING_LOGS;
     const logs = JSON.parse(localStorage.getItem(key) || '[]') as WateringLog[];
     const filtered = logs.filter(l => l.id !== id);
+    localStorage.setItem(key, JSON.stringify(filtered));
+  }
+
+  // Health Alerts (Salute Proattiva)
+  async getHealthAlerts(gardenId?: string): Promise<HealthAlert[]> {
+    const key = this.STORAGE_KEYS.HEALTH_ALERTS;
+    let alerts = JSON.parse(localStorage.getItem(key) || '[]') as HealthAlert[];
+
+    if (gardenId) {
+      alerts = alerts.filter(a => a.gardenId === gardenId);
+    }
+
+    return alerts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async getHealthAlert(id: string): Promise<HealthAlert | null> {
+    const key = this.STORAGE_KEYS.HEALTH_ALERTS;
+    const alerts = JSON.parse(localStorage.getItem(key) || '[]') as HealthAlert[];
+    return alerts.find(a => a.id === id) || null;
+  }
+
+  async createHealthAlert(alert: Omit<HealthAlert, 'id' | 'createdAt' | 'updatedAt'>): Promise<HealthAlert> {
+    const key = this.STORAGE_KEYS.HEALTH_ALERTS;
+    const alerts = JSON.parse(localStorage.getItem(key) || '[]') as HealthAlert[];
+    const now = new Date().toISOString();
+    const newAlert: HealthAlert = {
+      ...alert,
+      id: crypto.randomUUID(),
+      createdAt: now,
+      updatedAt: now
+    };
+    alerts.push(newAlert);
+    localStorage.setItem(key, JSON.stringify(alerts));
+    return newAlert;
+  }
+
+  async updateHealthAlert(id: string, updates: Partial<HealthAlert>): Promise<HealthAlert> {
+    const key = this.STORAGE_KEYS.HEALTH_ALERTS;
+    const alerts = JSON.parse(localStorage.getItem(key) || '[]') as HealthAlert[];
+    const index = alerts.findIndex(a => a.id === id);
+    if (index === -1) throw new Error(`Health alert with id ${id} not found`);
+
+    alerts[index] = {
+      ...alerts[index],
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem(key, JSON.stringify(alerts));
+    return alerts[index];
+  }
+
+  async deleteHealthAlert(id: string): Promise<void> {
+    const key = this.STORAGE_KEYS.HEALTH_ALERTS;
+    const alerts = JSON.parse(localStorage.getItem(key) || '[]') as HealthAlert[];
+    const filtered = alerts.filter(a => a.id !== id);
     localStorage.setItem(key, JSON.stringify(filtered));
   }
 }

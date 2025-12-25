@@ -22,3 +22,6 @@ COMMENT ON COLUMN calendar_tasks.challenge_id IS 'ID challenge formato "giorno-m
 COMMENT ON COLUMN calendar_tasks.challenge_action_index IS 'Indice dell''azione nella challenge (0-based)';
 COMMENT ON COLUMN calendar_tasks.source_type IS 'Origine del task: manual (utente), challenge (da challenge), suggested (suggerito), recurring (ricorrente)';
 
+
+
+

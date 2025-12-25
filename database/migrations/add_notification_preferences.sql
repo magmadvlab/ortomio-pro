@@ -110,3 +110,6 @@ CREATE TRIGGER on_user_created_notification_prefs
   EXECUTE FUNCTION create_default_notification_preferences();
 
 
+
+
+

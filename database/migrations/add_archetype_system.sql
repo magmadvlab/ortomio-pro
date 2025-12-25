@@ -103,3 +103,11 @@ COMMENT ON COLUMN garden_tasks.archetype_id IS 'Riferimento all archetipo della 
 COMMENT ON COLUMN garden_tasks.root_zone_depth_cm IS 'Override profondità radici in cm (se diversa dal default archetipo)';
 COMMENT ON COLUMN garden_tasks.irrigation_setup IS 'Configurazione impianto irrigazione: metodo, portate, sensori';
 
+-- ============================================
+-- MODIFICHE A GARDENS (crop grouping)
+-- ============================================
+ALTER TABLE gardens
+ADD COLUMN IF NOT EXISTS primary_crop JSONB;
+
+COMMENT ON COLUMN gardens.primary_crop IS 'Coltura principale del garden (garden = gruppo colturale). Formato: { archetypeId: string, label: string, canonicalPlantName?: string, cropType?: string, createdFrom?: "user"|"suggested" }';
+

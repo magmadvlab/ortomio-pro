@@ -250,3 +250,6 @@ Identifica relazioni tra:
 - [Architettura](./ARCHITECTURE.md)
 - [Guida Migrazioni](../database/migration_guide.md)
 
+
+
+

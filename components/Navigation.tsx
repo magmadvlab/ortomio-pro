@@ -11,11 +11,9 @@ interface NavigationProps {
 const Navigation: React.FC<NavigationProps> = ({ currentTab, onTabChange }) => {
   const navItems = [
     { tab: Tab.DASHBOARD, label: 'Home', icon: Home },
-    { tab: Tab.PLANNER, label: 'Semina', icon: Sprout },
-    { tab: Tab.JOURNAL, label: 'Diario', icon: ClipboardList },
-    { tab: Tab.ADVICE, label: 'Cura', icon: Stethoscope },
+    { tab: Tab.PLANNER, label: 'Il Mio Orto', icon: Sprout }, // Unificato: Planner/Calendario/Diario
+    { tab: Tab.ADVICE, label: 'Salute', icon: Stethoscope },
     { tab: Tab.HARVEST, label: 'Raccolto', icon: ShoppingBasket },
-    { tab: Tab.CALENDAR, label: 'Calendario', icon: Calendar },
     { tab: Tab.SMART, label: 'Smart', icon: Wifi },
   ];
 

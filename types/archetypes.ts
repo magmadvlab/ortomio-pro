@@ -7,6 +7,8 @@
 export type ArchetypeId = 
   // Archetipi principali (A1-A12)
   | 'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A6' | 'A7' | 'A8' | 'A9' | 'A10' | 'A11' | 'A12'
+  // Archetipo generico (orto misto)
+  | 'MIX'
   // Sub-griglia A12 → Colture legnose (L1/L2/L3)
   | 'L1' | 'L2' | 'L3'
   // Sub-griglia L3 → Alberi da frutto specifici

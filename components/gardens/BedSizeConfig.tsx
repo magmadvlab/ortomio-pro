@@ -162,3 +162,6 @@ export const BedSizeConfig: React.FC<BedSizeConfigProps> = ({
 
 
 
+
+
+

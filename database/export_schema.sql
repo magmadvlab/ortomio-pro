@@ -345,3 +345,6 @@ BEGIN
   RAISE NOTICE '  - RLS Policies: %', policy_count;
 END $$;
 
+
+
+

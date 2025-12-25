@@ -242,3 +242,6 @@ Quando si aggiungono nuove piante al sistema:
 - Analisi replicabilità: Questo documento
 - Implementazione: `data/plantMasterSheets.ts` (sezioni `pomodoro`, `peperone-dolce`, `melanzana`)
 
+
+
+
