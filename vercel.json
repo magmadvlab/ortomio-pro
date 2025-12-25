@@ -4,20 +4,6 @@
   "devCommand": "npm run dev:next",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "crons": [
-    {
-      "path": "/api/cron/reset-credits",
-      "schedule": "0 0 1 * *"
-    },
-    {
-      "path": "/api/cron/daily-challenge",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/health-check",
-      "schedule": "0 8,20 * * *"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",
