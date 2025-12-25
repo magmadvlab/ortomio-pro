@@ -1583,6 +1583,8 @@ export interface TreatmentRecordDB {
   id: string
   user_id: string
   garden_id?: string
+  bed_id?: string
+  row_id?: string
   crop_name: string
   treatment_date: string // ISO date string
   product_name: string
@@ -1661,6 +1663,7 @@ export interface FertilizerApplicationLogDB {
   gardenId: string
   taskId?: string | null
   bedId?: string | null
+  rowId?: string | null
 
   // Prodotto
   fertilizerProductId: string
@@ -1691,6 +1694,29 @@ export interface FertilizerApplicationLogDB {
   notes?: string | null
 
   createdAt: string
+}
+
+export type IrrigationLineType = 'Dripline' | 'PipeWithDrippers' | 'MicroSprinkler'
+
+export interface IrrigationLineConfig {
+  lineType: IrrigationLineType
+  pipeDiameterMm?: number | null
+  emitterSpacingCm?: number | null
+  emitterFlowRateLph?: number | null
+  flowRatePerMeterLph?: number | null
+}
+
+export interface GardenRow {
+  id: string
+  gardenId: string
+  bedId: string
+  name: string
+  rowNumber?: number | null
+  lengthMeters: number
+  irrigationLine: IrrigationLineConfig
+  notes?: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 // ============================================

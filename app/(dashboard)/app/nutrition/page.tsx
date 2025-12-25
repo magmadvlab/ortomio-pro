@@ -14,6 +14,8 @@ import { calculateFertigationPlan } from '@/logic/fertigationEngine'
 import { calculateFertilizerDosage, suggestFertilizerProduct } from '@/logic/fertilizerEngine'
 import { allFertilizers, type FertilizerProduct } from '@/data/fertilizers'
 import type { FertilizerApplicationLogDB, GardenTask, PlantMasterSheet, TreatmentRecordDB } from '@/types'
+import type { GardenBed } from '@/types/gardenBed'
+import type { GardenRow } from '@/types'
 
 type TabKey = 'advice' | 'history' | 'inventory'
 
@@ -71,6 +73,11 @@ export default function NutritionPage() {
   const [fertilizerLogs, setFertilizerLogs] = useState<FertilizerApplicationLogDB[]>([])
   const [fertilizerInventory, setFertilizerInventory] = useState<any[]>([])
   const [phytoInventory, setPhytoInventory] = useState<any[]>([])
+
+  const [beds, setBeds] = useState<GardenBed[]>([])
+  const [rowsForSelectedBed, setRowsForSelectedBed] = useState<GardenRow[]>([])
+  const [selectedBedId, setSelectedBedId] = useState<string>('')
+  const [selectedRowId, setSelectedRowId] = useState<string>('')
 
   const [showTreatmentForm, setShowTreatmentForm] = useState(false)
   const [showFertilizationForm, setShowFertilizationForm] = useState(false)
@@ -135,6 +142,39 @@ export default function NutritionPage() {
     loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageProvider, selectedGardenId])
+
+  useEffect(() => {
+    const loadBeds = async () => {
+      if (!selectedGardenId) {
+        setBeds([])
+        setSelectedBedId('')
+        setSelectedRowId('')
+        return
+      }
+      try {
+        const b = await storageProvider.getGardenBeds(selectedGardenId)
+        setBeds(b || [])
+      } catch {
+        setBeds([])
+      }
+    }
+    void loadBeds()
+  }, [selectedGardenId, storageProvider])
+
+  useEffect(() => {
+    const loadRows = async () => {
+      setRowsForSelectedBed([])
+      setSelectedRowId('')
+      if (!selectedBedId) return
+      try {
+        const rows = await storageProvider.getGardenRows(selectedBedId)
+        setRowsForSelectedBed(rows || [])
+      } catch {
+        setRowsForSelectedBed([])
+      }
+    }
+    void loadRows()
+  }, [selectedBedId, storageProvider])
 
   const loadData = async () => {
     try {
@@ -362,6 +402,8 @@ export default function NutritionPage() {
     try {
       const created = await storageProvider.createTreatment({
         garden_id: selectedGardenId,
+        bed_id: selectedBedId || undefined,
+        row_id: selectedRowId || undefined,
         crop_name: treatmentForm.crop_name,
         treatment_date: treatmentForm.treatment_date,
         product_name: treatmentForm.product_name,
@@ -378,6 +420,8 @@ export default function NutritionPage() {
 
       setTreatments([created, ...treatments])
       setShowTreatmentForm(false)
+      setSelectedBedId('')
+      setSelectedRowId('')
       setTreatmentForm({
         crop_name: '',
         treatment_date: format(new Date(), 'yyyy-MM-dd'),
@@ -434,7 +478,8 @@ export default function NutritionPage() {
       const created = await storageProvider.createFertilizerApplicationLog({
         gardenId: selectedGardenId,
         taskId: null,
-        bedId: null,
+        bedId: selectedBedId || null,
+        rowId: selectedRowId || null,
         fertilizerProductId: 'manual',
         fertilizerProductName: fertilizationForm.product_name,
         dosageAmount: Number(totalDosage.toFixed(4)),
@@ -448,6 +493,8 @@ export default function NutritionPage() {
 
       setFertilizerLogs([created, ...fertilizerLogs])
       setShowFertilizationForm(false)
+      setSelectedBedId('')
+      setSelectedRowId('')
       setFertilizationForm({
         application_date: format(new Date(), 'yyyy-MM-dd'),
         product_name: '',
@@ -748,6 +795,40 @@ export default function NutritionPage() {
               <form onSubmit={handleSubmitTreatment} className="p-4 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
+                    <label className="text-xs font-semibold text-gray-700">Letto (opzionale)</label>
+                    <select
+                      value={selectedBedId}
+                      onChange={(e) => setSelectedBedId(e.target.value)}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                    >
+                      <option value="">—</option>
+                      {beds.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Filare (opzionale)</label>
+                    <select
+                      value={selectedRowId}
+                      onChange={(e) => setSelectedRowId(e.target.value)}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                      disabled={!selectedBedId || rowsForSelectedBed.length === 0}
+                    >
+                      <option value="">—</option>
+                      {rowsForSelectedBed.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
                     <label className="text-xs font-semibold text-gray-700">Coltura</label>
                     <input
                       value={treatmentForm.crop_name}
@@ -872,6 +953,40 @@ export default function NutritionPage() {
               </div>
 
               <form onSubmit={handleSubmitFertilization} className="p-4 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Letto (opzionale)</label>
+                    <select
+                      value={selectedBedId}
+                      onChange={(e) => setSelectedBedId(e.target.value)}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                    >
+                      <option value="">—</option>
+                      {beds.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Filare (opzionale)</label>
+                    <select
+                      value={selectedRowId}
+                      onChange={(e) => setSelectedRowId(e.target.value)}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                      disabled={!selectedBedId || rowsForSelectedBed.length === 0}
+                    >
+                      <option value="">—</option>
+                      {rowsForSelectedBed.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-semibold text-gray-700">Data</label>

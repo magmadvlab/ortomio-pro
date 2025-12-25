@@ -4,7 +4,7 @@
  */
 
 import { IStorageProvider } from '../core/storage/interface';
-import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB } from '@/types';
+import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB, GardenRow } from '@/types';
 import { CustomCrop, CropLearningEvent } from '@/types/customCrop';
 import { CustomPlan } from '@/types/customPlan';
 import { Agronomist, AgronomistConsultation, AgronomistAdvice } from '@/types/agronomist';
@@ -25,6 +25,87 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
   constructor() {
     this.client = getSupabaseClient();
+  }
+
+  // Garden Rows (Filari)
+  private mapGardenRowFromDB(db: any): GardenRow {
+    return {
+      id: db.id,
+      gardenId: db.garden_id,
+      bedId: db.bed_id,
+      name: db.name,
+      rowNumber: db.row_number ?? null,
+      lengthMeters: typeof db.length_meters === 'number' ? db.length_meters : Number(db.length_meters),
+      irrigationLine: db.irrigation_line,
+      notes: db.notes ?? null,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at,
+    };
+  }
+
+  private mapGardenRowToDB(row: Partial<GardenRow>): any {
+    const db: any = {};
+    if (row.gardenId !== undefined) db.garden_id = row.gardenId;
+    if (row.bedId !== undefined) db.bed_id = row.bedId;
+    if (row.name !== undefined) db.name = row.name;
+    if (row.rowNumber !== undefined) db.row_number = row.rowNumber;
+    if (row.lengthMeters !== undefined) db.length_meters = row.lengthMeters;
+    if (row.irrigationLine !== undefined) db.irrigation_line = row.irrigationLine;
+    if (row.notes !== undefined) db.notes = row.notes;
+    return db;
+  }
+
+  async getGardenRows(bedId: string): Promise<GardenRow[]> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('garden_rows')
+      .select('*')
+      .eq('bed_id', bedId)
+      .order('row_number', { ascending: true });
+    if (error) throw error;
+    return (data || []).map((db) => this.mapGardenRowFromDB(db));
+  }
+
+  async getGardenRow(id: string): Promise<GardenRow | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('garden_rows')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? this.mapGardenRowFromDB(data) : null;
+  }
+
+  async createGardenRow(row: Omit<GardenRow, 'id' | 'createdAt' | 'updatedAt'>): Promise<GardenRow> {
+    const client = this.ensureClient();
+    const dbRow = this.mapGardenRowToDB(row);
+    const { data, error } = await client
+      .from('garden_rows')
+      .insert(dbRow)
+      .select()
+      .single();
+    if (error) throw error;
+    return this.mapGardenRowFromDB(data);
+  }
+
+  async updateGardenRow(id: string, updates: Partial<GardenRow>): Promise<GardenRow> {
+    const client = this.ensureClient();
+    const dbUpdates = this.mapGardenRowToDB(updates);
+    const { data, error } = await client
+      .from('garden_rows')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return this.mapGardenRowFromDB(data);
+  }
+
+  async deleteGardenRow(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client.from('garden_rows').delete().eq('id', id);
+    if (error) throw error;
   }
 
   isAvailable(): boolean {
@@ -957,6 +1038,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       gardenId: db.garden_id,
       taskId: db.task_id || null,
       bedId: db.bed_id || null,
+      rowId: db.row_id || null,
       fertilizerProductId: db.fertilizer_product_id,
       fertilizerProductName: db.fertilizer_product_name,
       fertilizerType: db.fertilizer_type || null,
@@ -980,6 +1062,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (log.gardenId !== undefined) db.garden_id = log.gardenId;
     if (log.taskId !== undefined) db.task_id = log.taskId;
     if (log.bedId !== undefined) db.bed_id = log.bedId;
+    if (log.rowId !== undefined) db.row_id = log.rowId;
     if (log.fertilizerProductId !== undefined) db.fertilizer_product_id = log.fertilizerProductId;
     if (log.fertilizerProductName !== undefined) db.fertilizer_product_name = log.fertilizerProductName;
     if (log.fertilizerType !== undefined) db.fertilizer_type = log.fertilizerType;
@@ -2364,6 +2447,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .insert({
         user_id: user.id,
         garden_id: treatment.garden_id || null,
+        bed_id: (treatment as any).bed_id || null,
+        row_id: (treatment as any).row_id || null,
         crop_name: treatment.crop_name,
         treatment_date: treatment.treatment_date,
         product_name: treatment.product_name,
@@ -2389,6 +2474,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const dbData: any = {};
     
     if (updates.garden_id !== undefined) dbData.garden_id = updates.garden_id || null;
+    if ((updates as any).bed_id !== undefined) dbData.bed_id = (updates as any).bed_id || null;
+    if ((updates as any).row_id !== undefined) dbData.row_id = (updates as any).row_id || null;
     if (updates.crop_name !== undefined) dbData.crop_name = updates.crop_name;
     if (updates.treatment_date !== undefined) dbData.treatment_date = updates.treatment_date;
     if (updates.product_name !== undefined) dbData.product_name = updates.product_name;
@@ -2428,6 +2515,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
       id: db.id,
       user_id: db.user_id,
       garden_id: db.garden_id,
+      bed_id: db.bed_id || undefined,
+      row_id: db.row_id || undefined,
       crop_name: db.crop_name,
       treatment_date: db.treatment_date,
       product_name: db.product_name,

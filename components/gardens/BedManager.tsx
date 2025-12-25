@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Garden } from '@/types';
 import { GardenBed, BedType, StructureType } from '@/types/gardenBed';
+import { GardenRow } from '@/types';
 import { useStorage } from '@/packages/core/hooks/useStorage';
 import { BedForm } from './BedForm';
 import { BulkBedCreator } from './BulkBedCreator';
+import { RowManagerModal } from './RowManagerModal';
 import { calculateBedSpace } from '@/logic/spaceCalculator';
 import { getMasterSheetByName } from '@/data/plantMasterSheets';
 import { X, Plus, Edit2, Trash2, Grid, AlertTriangle, Layers } from 'lucide-react';
@@ -27,10 +29,71 @@ export const BedManager: React.FC<BedManagerProps> = ({
   const [editingBed, setEditingBed] = useState<GardenBed | null>(null);
   const [filterType, setFilterType] = useState<BedType | 'All'>('All');
   const [spaceCalculations, setSpaceCalculations] = useState<Record<string, any>>({});
+  const [rowsByBedId, setRowsByBedId] = useState<Record<string, GardenRow[]>>({});
+  const [rowsModalBed, setRowsModalBed] = useState<GardenBed | null>(null);
 
   useEffect(() => {
     loadBeds();
   }, [garden.id]);
+
+  useEffect(() => {
+    const loadRows = async () => {
+      try {
+        const entries = await Promise.all(
+          beds.map(async (b) => {
+            try {
+              const rows = await storageProvider.getGardenRows(b.id);
+              return [b.id, rows] as const;
+            } catch {
+              return [b.id, []] as const;
+            }
+          })
+        );
+        setRowsByBedId(Object.fromEntries(entries));
+      } catch {
+        setRowsByBedId({});
+      }
+    };
+
+    if (beds.length > 0) {
+      loadRows();
+    } else {
+      setRowsByBedId({});
+    }
+  }, [beds, storageProvider]);
+
+  const refreshRowsByBed = async () => {
+    try {
+      const entries = await Promise.all(
+        beds.map(async (b) => {
+          try {
+            const rows = await storageProvider.getGardenRows(b.id);
+            return [b.id, rows] as const;
+          } catch {
+            return [b.id, []] as const;
+          }
+        })
+      );
+      setRowsByBedId(Object.fromEntries(entries));
+    } catch {
+      setRowsByBedId({});
+    }
+  };
+
+  const isRowIrrigationConfigured = (row: GardenRow): boolean => {
+    const line = row.irrigationLine;
+    if (!line) return false;
+    if (typeof line.flowRatePerMeterLph === 'number' && line.flowRatePerMeterLph > 0) return true;
+    if (
+      typeof line.emitterSpacingCm === 'number' &&
+      line.emitterSpacingCm > 0 &&
+      typeof line.emitterFlowRateLph === 'number' &&
+      line.emitterFlowRateLph > 0
+    ) {
+      return true;
+    }
+    return false;
+  };
 
   useEffect(() => {
     if (beds.length > 0 && tasks.length > 0) {
@@ -314,6 +377,9 @@ export const BedManager: React.FC<BedManagerProps> = ({
             const isFull = occupancyPercentage >= 90;
             const isAlmostFull = occupancyPercentage >= 80;
 
+            const rows = rowsByBedId[bed.id] || [];
+            const configuredRowsCount = rows.filter(isRowIrrigationConfigured).length;
+
             return (
               <div
                 key={bed.id}
@@ -330,6 +396,22 @@ export const BedManager: React.FC<BedManagerProps> = ({
                       <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
                         {getBedTypeLabel(bed.bedType)}
                       </span>
+                      {rows.length > 0 && (
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded font-semibold ${
+                            configuredRowsCount === rows.length
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}
+                          title={
+                            configuredRowsCount === rows.length
+                              ? 'Tutti i filari hanno configurazione irrigua'
+                              : 'Alcuni filari non hanno configurazione irrigua'
+                          }
+                        >
+                          Filari: {configuredRowsCount}/{rows.length} configurati
+                        </span>
+                      )}
                       {bed.shape === 'Rectangle' && bed.lengthCm && bed.widthCm && (
                         <span className="text-xs text-gray-500">
                           {bed.lengthCm}×{bed.widthCm} cm
@@ -406,6 +488,13 @@ export const BedManager: React.FC<BedManagerProps> = ({
                   </div>
                   <div className="flex items-center gap-2 ml-4">
                     <button
+                      onClick={() => setRowsModalBed(bed)}
+                      className="p-2 text-gray-700 hover:bg-gray-50 rounded"
+                      title="Gestisci Filari"
+                    >
+                      <Layers size={18} />
+                    </button>
+                    <button
                       onClick={() => handleEdit(bed)}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded"
                       title="Modifica"
@@ -425,6 +514,17 @@ export const BedManager: React.FC<BedManagerProps> = ({
             );
           })}
         </div>
+      )}
+
+      {rowsModalBed && (
+        <RowManagerModal
+          bed={rowsModalBed}
+          open={true}
+          onClose={() => {
+            setRowsModalBed(null)
+            refreshRowsByBed().catch(() => {})
+          }}
+        />
       )}
     </div>
   );

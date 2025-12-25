@@ -3,7 +3,7 @@
  * Abstract interface for storage operations (localStorage or Supabase)
  */
 
-import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB } from '../../../types';
+import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB, GardenRow } from '../../../types';
 import { CustomPlan } from '../../../types/customPlan';
 import { Agronomist, AgronomistConsultation, AgronomistAdvice } from '../../../types/agronomist';
 import { SeedlingBatch } from '../../../services/seedlingService';
@@ -123,6 +123,13 @@ export interface IStorageProvider {
   createGardenBed(bed: Omit<GardenBed, 'id' | 'createdAt' | 'updatedAt'>): Promise<GardenBed>;
   updateGardenBed(id: string, updates: Partial<GardenBed>): Promise<GardenBed>;
   deleteGardenBed(id: string): Promise<void>;
+
+  // Garden Rows (Filari)
+  getGardenRows(bedId: string): Promise<GardenRow[]>;
+  getGardenRow(id: string): Promise<GardenRow | null>;
+  createGardenRow(row: Omit<GardenRow, 'id' | 'createdAt' | 'updatedAt'>): Promise<GardenRow>;
+  updateGardenRow(id: string, updates: Partial<GardenRow>): Promise<GardenRow>;
+  deleteGardenRow(id: string): Promise<void>;
   
   // Mechanical Work (Pro Feature)
   getMechanicalWorks(gardenId?: string): Promise<MechanicalWorkRecord[]>;

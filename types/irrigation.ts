@@ -124,6 +124,8 @@ export interface WateringLog {
   id: string;
   zoneId: string;
   gardenId?: string;
+  bedId?: string;
+  rowId?: string;
   wateredAt?: string; // ISO datetime
   date: string; // ISO date
   durationMinutes: number;

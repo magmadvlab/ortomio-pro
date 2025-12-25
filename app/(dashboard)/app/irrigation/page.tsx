@@ -192,6 +192,8 @@ function IrrigationContent() {
       const created = await storageProvider.logWatering({
         zoneId: log.zoneId,
         gardenId: activeGardenId || undefined,
+        bedId: log.bedId,
+        rowId: log.rowId,
         wateredAt: log.wateredAt || new Date().toISOString(),
         date: log.date,
         durationMinutes: log.durationMinutes,
@@ -224,6 +226,46 @@ function IrrigationContent() {
       void newDate
     } catch (error) {
       console.error('Error logging watering:', error)
+    }
+  }
+
+  const handleLogWateringBatch = async (batch: Array<Omit<WateringLog, 'id' | 'createdAt'>>) => {
+    if (!batch || batch.length === 0) return
+    try {
+      const createdLogs = await Promise.all(batch.map((log) => storageProvider.logWatering({
+        zoneId: log.zoneId,
+        gardenId: activeGardenId || undefined,
+        bedId: log.bedId,
+        rowId: log.rowId,
+        wateredAt: log.wateredAt || new Date().toISOString(),
+        date: log.date,
+        durationMinutes: log.durationMinutes,
+        litersApplied: log.litersApplied,
+        method: log.method,
+        weatherCondition: log.weatherCondition,
+        soilMoistureBefore: log.soilMoistureBefore,
+        soilMoistureAfter: log.soilMoistureAfter,
+        airTemperatureC: log.airTemperatureC,
+        notes: log.notes,
+        valveId: log.valveId,
+        completed: log.completed
+      })))
+
+      setLogs((prev) => [...createdLogs, ...prev])
+
+      // Aggiorna lastWateredAt sulla zona (usa la data più recente)
+      const newest = createdLogs
+        .map((l) => l.wateredAt || l.date)
+        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0]
+      if (newest) {
+        setZones((prev) => prev.map((z) => (z.id === batch[0].zoneId ? { ...z, lastWateredAt: newest } : z)))
+        await storageProvider.updateIrrigationZone(batch[0].zoneId, { lastWateredAt: newest })
+      }
+
+      setShowLogForm(false)
+      setSelectedZoneForLog(null)
+    } catch (error) {
+      console.error('Error logging watering batch:', error)
     }
   }
 
@@ -468,6 +510,7 @@ function IrrigationContent() {
             zones={selectedSystemZones}
             preselectedZone={selectedZoneForLog}
             onSubmit={handleLogWatering}
+            onSubmitBatch={handleLogWateringBatch}
             onCancel={() => {
               setShowLogForm(false)
               setSelectedZoneForLog(null)

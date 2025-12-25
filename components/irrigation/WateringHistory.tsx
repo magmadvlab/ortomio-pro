@@ -80,6 +80,9 @@ export function WateringHistory({ logs }: WateringHistoryProps) {
                 Data/Ora
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Letto/Filare
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Durata
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -118,6 +121,17 @@ export function WateringHistory({ logs }: WateringHistoryProps) {
                       </p>
                     </div>
                   </div>
+                </td>
+
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {log.bedId || log.rowId ? (
+                    <div className="text-xs text-gray-700">
+                      {log.bedId ? <div>Bed: {log.bedId}</div> : null}
+                      {log.rowId ? <div>Filare: {log.rowId}</div> : null}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400">-</span>
+                  )}
                 </td>
 
                 <td className="px-6 py-4 whitespace-nowrap">

@@ -15,6 +15,7 @@ import { SaplingBatch } from '@/services/saplingService';
 import { GardenAccessory } from '@/types/accessories';
 import { HydroponicReading, AquaponicReading } from '@/types/indoorGrowing';
 import { GardenBed } from '@/types/gardenBed';
+import { GardenRow } from '@/types';
 import { CropArchetype, CropProfile, CropAlias, ArchetypeId, OfficialCrop } from '@/types/archetypes';
 import { IrrigationSystem, IrrigationZone, IrrigationComponent, WateringLog } from '@/types/irrigation';
 import { HealthAlert } from '@/types/healthAlert';
@@ -37,6 +38,7 @@ export class LocalStorageProvider implements IStorageProvider {
     HYDROPONIC_READINGS: 'ortoHydroponicReadings',
     AQUAPONIC_READINGS: 'ortoAquaponicReadings',
     GARDEN_BEDS: 'ortoGardenBeds',
+    GARDEN_ROWS: 'ortoGardenRows',
     IRRIGATION_SYSTEMS: 'ortoIrrigationSystems',
     IRRIGATION_ZONES: 'ortoIrrigationZones',
     IRRIGATION_COMPONENTS: 'ortoIrrigationComponents',
@@ -807,6 +809,80 @@ export class LocalStorageProvider implements IStorageProvider {
     saveAutoBackup(this).catch(err => 
       console.error('Error saving auto backup after saveGardenBeds:', err)
     );
+  }
+
+  // Garden Rows (Filari)
+  private getAllGardenRows(): GardenRow[] {
+    const saved = localStorage.getItem(this.STORAGE_KEYS.GARDEN_ROWS);
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) {
+        console.warn('GardenRows data is not an array, resetting to empty array');
+        localStorage.removeItem(this.STORAGE_KEYS.GARDEN_ROWS);
+        return [];
+      }
+      return parsed as GardenRow[];
+    } catch (error) {
+      console.error('Error parsing GardenRows from localStorage:', error);
+      localStorage.removeItem(this.STORAGE_KEYS.GARDEN_ROWS);
+      return [];
+    }
+  }
+
+  private saveGardenRows(rows: GardenRow[]): void {
+    localStorage.setItem(this.STORAGE_KEYS.GARDEN_ROWS, JSON.stringify(rows));
+    saveAutoBackup(this).catch(() => {});
+  }
+
+  async getGardenRows(bedId: string): Promise<GardenRow[]> {
+    const all = this.getAllGardenRows();
+    return all
+      .filter((r) => r.bedId === bedId)
+      .sort((a, b) => {
+        const an = typeof a.rowNumber === 'number' ? a.rowNumber : Number.POSITIVE_INFINITY;
+        const bn = typeof b.rowNumber === 'number' ? b.rowNumber : Number.POSITIVE_INFINITY;
+        if (an !== bn) return an - bn;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+  }
+
+  async getGardenRow(id: string): Promise<GardenRow | null> {
+    return this.getAllGardenRows().find((r) => r.id === id) || null;
+  }
+
+  async createGardenRow(row: Omit<GardenRow, 'id' | 'createdAt' | 'updatedAt'>): Promise<GardenRow> {
+    const all = this.getAllGardenRows();
+    const created: GardenRow = {
+      ...row,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    all.push(created);
+    this.saveGardenRows(all);
+    return created;
+  }
+
+  async updateGardenRow(id: string, updates: Partial<GardenRow>): Promise<GardenRow> {
+    const all = this.getAllGardenRows();
+    const idx = all.findIndex((r) => r.id === id);
+    if (idx === -1) throw new Error(`GardenRow with id ${id} not found`);
+
+    const updated: GardenRow = {
+      ...all[idx],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    all[idx] = updated;
+    this.saveGardenRows(all);
+    return updated;
+  }
+
+  async deleteGardenRow(id: string): Promise<void> {
+    const all = this.getAllGardenRows();
+    const filtered = all.filter((r) => r.id !== id);
+    this.saveGardenRows(filtered);
   }
 
   async getGardenBeds(gardenId: string): Promise<GardenBed[]> {
