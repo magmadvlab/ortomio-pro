@@ -577,6 +577,14 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                           gardenId: activeGarden!.id
                         } as any)
                       }}
+                      onFertilize={async (fertData) => {
+                        await storageProvider.createFertilizerApplicationLog(fertData)
+                        // Ricarica tasks dopo fertilizzazione
+                        if (activeGarden) {
+                          const updatedTasks = await storageProvider.getTasks(activeGarden.id)
+                          setGardenTasks(updatedTasks || [])
+                        }
+                      }}
                       showSuggestions={true}
                     />
                   ))}
