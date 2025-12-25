@@ -435,7 +435,7 @@ export default function NutritionPage() {
         gardenId: selectedGardenId,
         taskId: null,
         bedId: null,
-        productId: 'manual',
+        product_id: 'manual',
         productName: fertilizationForm.product_name,
         dosageAmount: Number(totalDosage.toFixed(4)),
         dosageUnit: fertilizationForm.dosage_unit || 'g',
