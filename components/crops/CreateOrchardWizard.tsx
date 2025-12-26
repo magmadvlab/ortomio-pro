@@ -7,7 +7,8 @@ import React, { useState } from 'react';
 import { Garden } from '../../types';
 import { FruitTreeCategory, fruitTreeCategories, getCategoryInfo } from '../../types/orchardTypes';
 import { useStorage } from '../../packages/core/hooks/useStorage';
-import { X, ArrowRight, ArrowLeft, TreePine, CircleDot, Grape, Calendar, Info } from 'lucide-react';
+import { X, ArrowRight, ArrowLeft, TreePine, CircleDot, Grape, Calendar, Info, AlertCircle, CheckCircle, Lightbulb } from 'lucide-react';
+import { getCategoryTips, getCategoryRecommendations } from '../../data/orchardCategoryTips';
 
 interface CreateOrchardWizardProps {
   garden: Garden;
@@ -500,6 +501,62 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                   </p>
                 </div>
               </div>
+
+              {/* Tips Contestuali per Categoria Frutteto */}
+              {orchardType === 'orchard' && fruitCategory && (
+                <div className="mb-6">
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Lightbulb size={18} className="text-yellow-600" />
+                    Suggerimenti per {getCategoryInfo(fruitCategory)?.label}
+                  </h4>
+                  <div className="space-y-3">
+                    {getCategoryTips(fruitCategory).map((tip, index) => {
+                      const bgColor = tip.type === 'warning' ? 'bg-amber-50 border-amber-200' :
+                                     tip.type === 'success' ? 'bg-green-50 border-green-200' :
+                                     'bg-blue-50 border-blue-200';
+                      const iconColor = tip.type === 'warning' ? 'text-amber-600' :
+                                       tip.type === 'success' ? 'text-green-600' :
+                                       'text-blue-600';
+                      const Icon = tip.type === 'warning' ? AlertCircle :
+                                  tip.type === 'success' ? CheckCircle :
+                                  Info;
+
+                      return (
+                        <div key={index} className={`p-4 rounded-lg border ${bgColor}`}>
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 mt-0.5">
+                              <Icon className={iconColor} size={20} />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xl">{tip.icon}</span>
+                                <h5 className="font-medium text-gray-900">{tip.title}</h5>
+                              </div>
+                              <p className="text-sm text-gray-700">{tip.description}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Raccomandazioni pH specifiche per categoria */}
+                  {getCategoryRecommendations(fruitCategory) && (
+                    <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <Info className="text-purple-600 flex-shrink-0 mt-0.5" size={16} />
+                        <div className="text-sm">
+                          <span className="font-medium text-purple-900">pH Ideale:</span>{' '}
+                          <span className="text-purple-800">
+                            {getCategoryRecommendations(fruitCategory)!.soilPh.min.toFixed(1)} - {getCategoryRecommendations(fruitCategory)!.soilPh.max.toFixed(1)}
+                            {' '}(ottimale: {getCategoryRecommendations(fruitCategory)!.soilPh.ideal.toFixed(1)})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Numero Totale Piante */}
               <div className="mb-4">
