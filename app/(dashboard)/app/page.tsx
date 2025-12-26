@@ -43,11 +43,11 @@ export default function DashboardPage() {
         !hostname.includes('localhost') &&
         hostname !== ''
       
-      console.log('[Dashboard Auth] Hostname:', hostname, 'isOnline:', isOnline)
+      console.debug('[Dashboard Auth] Hostname:', hostname, 'isOnline:', isOnline)
 
       // Se siamo online, bypass disabilitato - richiedi sempre autenticazione
       if (isOnline) {
-        console.log('[Dashboard Auth] Online mode - requiring authentication')
+        console.debug('[Dashboard Auth] Online mode - requiring authentication')
         try {
           const supabase = getSupabaseClient()
           if (supabase) {
@@ -61,21 +61,21 @@ export default function DashboardPage() {
             }
             // Verifica che la sessione sia valida e non scaduta
             const now = Math.floor(Date.now() / 1000)
-            const isValidSession = session?.user && 
-              session.expires_at && 
+            const isValidSession = session?.user &&
+              session.expires_at &&
               session.expires_at > now
-            
-            console.log('[Dashboard Auth] Session exists:', !!session, 'Valid:', isValidSession, 'Expires at:', session?.expires_at, 'Now:', now)
-            
+
+            console.debug('[Dashboard Auth] Session exists:', !!session, 'Valid:', isValidSession, 'Expires at:', session?.expires_at, 'Now:', now)
+
             if (!isValidSession && session) {
               // Sessione scaduta, rimuovila
-              console.log('[Dashboard Auth] Invalid session, signing out')
+              console.debug('[Dashboard Auth] Invalid session, signing out')
               await supabase.auth.signOut()
             }
-            
+
             setIsAuthenticated(isValidSession || false)
           } else {
-            console.log('[Dashboard Auth] Supabase not configured')
+            console.debug('[Dashboard Auth] Supabase not configured')
             setIsAuthenticated(false)
           }
         } catch (error) {

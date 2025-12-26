@@ -50,7 +50,7 @@ export const GardenBedsWidget: React.FC<GardenBedsWidgetProps> = ({
         console.error('GardenBedsWidget: getGardenBeds did not return an array:', gardenBeds);
         setBeds([]);
       } else {
-        console.log('GardenBedsWidget: Loaded beds', gardenBeds.length);
+        console.debug('GardenBedsWidget: Loaded beds', gardenBeds.length);
         setBeds(gardenBeds);
       }
     } catch (error) {
