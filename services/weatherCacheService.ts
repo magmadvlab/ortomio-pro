@@ -30,21 +30,26 @@ export const getCachedForecast = async (
   const today = new Date().toISOString().split('T')[0];
 
   if (supabase) {
-    // Try Supabase cache
-    const { data, error } = await supabase
-      .from('weather_cache')
-      .select('forecast, cached_at')
-      .eq('lat_lng', cacheKey)
-      .eq('date', today)
-      .single();
+    try {
+      // Try Supabase cache
+      const { data, error } = await supabase
+        .from('weather_cache')
+        .select('forecast, cached_at')
+        .eq('lat_lng', cacheKey)
+        .eq('date', today)
+        .single();
 
-    if (!error && data) {
-      const cachedAt = new Date(data.cached_at).getTime();
-      const age = Date.now() - cachedAt;
+      if (!error && data) {
+        const cachedAt = new Date(data.cached_at).getTime();
+        const age = Date.now() - cachedAt;
 
-      if (age < CACHE_TTL_MS) {
-        return data.forecast as WeatherForecast[];
+        if (age < CACHE_TTL_MS) {
+          return data.forecast as WeatherForecast[];
+        }
       }
+    } catch (err) {
+      // Silently fall through to localStorage cache
+      // This can happen if table doesn't exist in local dev
     }
   }
 
@@ -81,24 +86,29 @@ export const cacheForecast = async (
   const today = new Date().toISOString().split('T')[0];
 
   if (supabase) {
-    // Cache in Supabase
-    const { error } = await supabase
-      .from('weather_cache')
-      .upsert({
-        lat_lng: cacheKey,
-        date: today,
-        forecast,
-        cached_at: new Date().toISOString(),
-      }, {
-        onConflict: 'lat_lng,date',
-      });
+    try {
+      // Cache in Supabase
+      const { error } = await supabase
+        .from('weather_cache')
+        .upsert({
+          lat_lng: cacheKey,
+          date: today,
+          forecast,
+          cached_at: new Date().toISOString(),
+        }, {
+          onConflict: 'lat_lng,date',
+        });
 
-    if (error) {
-      console.error('Error caching forecast in Supabase:', error);
-      // Fallback to localStorage
+      if (error) {
+        // Table might not exist in local dev - use localStorage
+        cacheForecastLocal(lat, lng, forecast);
+      }
+      return;
+    } catch (err) {
+      // Silently fall back to localStorage
       cacheForecastLocal(lat, lng, forecast);
+      return;
     }
-    return;
   }
 
   // Fallback to localStorage
