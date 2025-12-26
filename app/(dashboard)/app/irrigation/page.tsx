@@ -23,6 +23,7 @@ function IrrigationContent() {
   const searchParams = useSearchParams()
 
   const [gardensLoaded, setGardensLoaded] = useState(false)
+  const [gardens, setGardens] = useState<any[]>([]) // List of all gardens
   const [activeGardenId, setActiveGardenId] = useState<string | null>(null)
 
   const [systems, setSystems] = useState<IrrigationSystem[]>([])
@@ -51,9 +52,10 @@ function IrrigationContent() {
   useEffect(() => {
     const init = async () => {
       try {
-        const gardens = await storageProvider.getGardens()
-        if (gardens.length > 0) {
-          const nextGardenId = requestedGardenId || gardens[0].id
+        const gardensData = await storageProvider.getGardens()
+        setGardens(gardensData)
+        if (gardensData.length > 0) {
+          const nextGardenId = requestedGardenId || gardensData[0].id
           setActiveGardenId(nextGardenId)
         }
       } finally {
@@ -319,7 +321,7 @@ function IrrigationContent() {
     <div className="p-6 space-y-6 relative">
       {/* Modern Header - allineato ai mockup HTML */}
       <div className="border-b bg-white -mx-6 -mt-6 px-6 py-4 mb-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Droplets size={32} className="text-blue-600" />
             <div>
@@ -360,6 +362,26 @@ function IrrigationContent() {
             </Button>
           </div>
         </div>
+
+        {/* Garden Selector */}
+        {gardens.length > 0 && (
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Orto/Giardino
+            </label>
+            <select
+              value={activeGardenId || ''}
+              onChange={(e) => setActiveGardenId(e.target.value)}
+              className="block w-full max-w-xs rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+            >
+              {gardens.map((garden) => (
+                <option key={garden.id} value={garden.id}>
+                  {garden.name} ({garden.type || 'outdoor'})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Status Banner - stile Smart Hub */}
