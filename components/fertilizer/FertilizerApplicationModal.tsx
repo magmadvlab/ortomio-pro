@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
-import { GardenTask, FertilizerApplicationLogDB } from '@/types'
-import { X, Droplet, Calendar, AlertCircle } from 'lucide-react'
+import React, { useState, useMemo, useEffect } from 'react'
+import { GardenTask, FertilizerApplicationLogDB, GardenBed, GardenRow } from '@/types'
+import { X, Droplet, Calendar, AlertCircle, Layers } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import {
@@ -10,6 +10,7 @@ import {
   getFertilizerById,
   FertilizerProduct
 } from '@/data/fertilizers'
+import { useStorage } from '@/packages/core/hooks/useStorage'
 
 interface FertilizerApplicationModalProps {
   task: GardenTask
@@ -22,6 +23,8 @@ export function FertilizerApplicationModal({
   onApply,
   onSkip
 }: FertilizerApplicationModalProps) {
+  const { storageProvider } = useStorage()
+
   // Suggerimento prodotto basato su fase pianta
   const suggestedProduct = useMemo(() => {
     if (task.stage === 'Vegetative') {
@@ -42,6 +45,46 @@ export function FertilizerApplicationModal({
   const [shouldRepeat, setShouldRepeat] = useState(true) // Default TRUE per fertilizzazione
   const [frequencyDays, setFrequencyDays] = useState<number>(14) // Default 2 settimane
   const [notes, setNotes] = useState<string>('')
+
+  // Micro-zone tracking: beds e rows
+  const [beds, setBeds] = useState<GardenBed[]>([])
+  const [rows, setRows] = useState<GardenRow[]>([])
+  const [selectedBed, setSelectedBed] = useState<string>(task.bedId || '')
+  const [selectedRow, setSelectedRow] = useState<string>('')
+
+  // Carica beds e rows
+  useEffect(() => {
+    loadGardenStructure()
+  }, [task.gardenId])
+
+  useEffect(() => {
+    // Carica rows quando cambia bed selezionato
+    if (selectedBed) {
+      loadRows(selectedBed)
+    } else {
+      setRows([])
+      setSelectedRow('')
+    }
+  }, [selectedBed])
+
+  const loadGardenStructure = async () => {
+    try {
+      const gardenBeds = await storageProvider.getGardenBeds(task.gardenId)
+      setBeds(gardenBeds || [])
+    } catch (error) {
+      console.error('Error loading garden beds:', error)
+    }
+  }
+
+  const loadRows = async (bedId: string) => {
+    try {
+      const bedRows = await storageProvider.getGardenRows(bedId)
+      setRows(bedRows || [])
+    } catch (error) {
+      console.error('Error loading rows:', error)
+      setRows([])
+    }
+  }
 
   // Calcola dosaggio suggerito
   const suggestedDosage = useMemo(() => {
@@ -84,7 +127,8 @@ export function FertilizerApplicationModal({
     onApply({
       gardenId: task.gardenId,
       taskId: task.id,
-      bedId: task.bedId || null,
+      bedId: selectedBed || null,
+      rowId: selectedRow || null,
 
       fertilizerProductId: selectedProduct.id,
       fertilizerProductName: selectedProduct.name,
@@ -152,6 +196,52 @@ export function FertilizerApplicationModal({
                 <p className="text-xs text-blue-700 mt-1">
                   NPK: {suggestedProduct.npk.n}-{suggestedProduct.npk.p}-{suggestedProduct.npk.k}
                 </p>
+              )}
+            </div>
+          )}
+
+          {/* Micro-zone: Dove applicare */}
+          {beds.length > 0 && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Layers size={16} className="text-green-600" />
+                <h4 className="text-sm font-semibold text-gray-900">Dove applicare (opzionale)</h4>
+              </div>
+
+              {/* Bed selector */}
+              <div className="mb-2">
+                <label className="text-xs font-medium text-gray-700 mb-1 block">
+                  Aiuola/Letto
+                </label>
+                <select
+                  value={selectedBed}
+                  onChange={(e) => setSelectedBed(e.target.value)}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="">Tutto l'orto</option>
+                  {beds.map(bed => (
+                    <option key={bed.id} value={bed.id}>{bed.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Rows selector */}
+              {rows.length > 0 && selectedBed && (
+                <div>
+                  <label className="text-xs font-medium text-gray-700 mb-1 block">
+                    Fila/Filare
+                  </label>
+                  <select
+                    value={selectedRow}
+                    onChange={(e) => setSelectedRow(e.target.value)}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="">Tutta l'aiuola</option>
+                    {rows.map(row => (
+                      <option key={row.id} value={row.id}>{row.name}</option>
+                    ))}
+                  </select>
+                </div>
               )}
             </div>
           )}
