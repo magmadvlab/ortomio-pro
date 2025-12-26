@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { X, MapPin, Ruler, Info, Grid, Layers, TreeDeciduous, Sun } from 'lucide-react'
+import { X, MapPin, Ruler, Info, Grid, Layers, TreeDeciduous, Sun, Trash2 } from 'lucide-react'
 import { Garden, GardenBed, GardenRow } from '@/types'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 
@@ -29,6 +29,20 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
   // Structures state
   const [beds, setBeds] = useState<GardenBed[]>([])
   const [rows, setRows] = useState<GardenRow[]>([])
+
+  // Editable structure config
+  const [pots, setPots] = useState<Array<{ count: number; diameter: number }>>(
+    garden.structureConfig?.pots || []
+  )
+  const [containers, setContainers] = useState<Array<{ count: number; length: number; width: number; height: number }>>(
+    garden.structureConfig?.containers || []
+  )
+  const [raisedBeds, setRaisedBeds] = useState<Array<{ count: number; length: number; width: number; height: number }>>(
+    garden.structureConfig?.beds || []
+  )
+  const [tanks, setTanks] = useState<Array<{ count: number; length: number; width: number; height: number }>>(
+    garden.structureConfig?.tanks || []
+  )
 
   useEffect(() => {
     if (isOpen) {
@@ -67,7 +81,14 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
         coordinates: latitude && longitude ? {
           latitude,
           longitude
-        } : undefined
+        } : undefined,
+        structureConfig: {
+          ...garden.structureConfig,
+          pots: pots.length > 0 ? pots : undefined,
+          containers: containers.length > 0 ? containers : undefined,
+          beds: raisedBeds.length > 0 ? raisedBeds : undefined,
+          tanks: tanks.length > 0 ? tanks : undefined
+        }
       }
 
       await storageProvider.updateGarden(garden.id, updates)
@@ -234,75 +255,332 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
 
           {activeTab === 'structures' && (
             <div className="space-y-4">
+              {/* Vasi */}
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <h3 className="font-semibold text-gray-900 mb-2">Strutture Configurate</h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Gestisci le strutture del tuo orto (serre, vasi, letti rialzati, ecc.)
-                </p>
-
-                <div className="space-y-2">
-                  {garden.structureConfig?.pots && garden.structureConfig.pots.length > 0 && (
-                    <div className="flex items-center justify-between bg-white rounded-lg p-3">
-                      <span className="text-sm font-medium">🪴 Vasi</span>
-                      <span className="text-sm text-gray-600">
-                        {garden.structureConfig.pots.reduce((sum, p) => sum + p.count, 0)} vasi
-                      </span>
-                    </div>
-                  )}
-                  {garden.structureConfig?.containers && garden.structureConfig.containers.length > 0 && (
-                    <div className="flex items-center justify-between bg-white rounded-lg p-3">
-                      <span className="text-sm font-medium">📦 Contenitori</span>
-                      <span className="text-sm text-gray-600">
-                        {garden.structureConfig.containers.reduce((sum, c) => sum + c.count, 0)} contenitori
-                      </span>
-                    </div>
-                  )}
-                  {garden.structureConfig?.beds && garden.structureConfig.beds.length > 0 && (
-                    <div className="flex items-center justify-between bg-white rounded-lg p-3">
-                      <span className="text-sm font-medium">🛏️ Letti Rialzati</span>
-                      <span className="text-sm text-gray-600">
-                        {garden.structureConfig.beds.reduce((sum, b) => sum + b.count, 0)} letti
-                      </span>
-                    </div>
-                  )}
-                  {garden.structureConfig?.tanks && garden.structureConfig.tanks.length > 0 && (
-                    <div className="flex items-center justify-between bg-white rounded-lg p-3">
-                      <span className="text-sm font-medium">🚰 Vasche</span>
-                      <span className="text-sm text-gray-600">
-                        {garden.structureConfig.tanks.reduce((sum, t) => sum + t.count, 0)} vasche
-                      </span>
-                    </div>
-                  )}
-                  {beds.length > 0 && (
-                    <div className="flex items-center justify-between bg-white rounded-lg p-3">
-                      <span className="text-sm font-medium">🌱 Aiuole</span>
-                      <span className="text-sm text-gray-600">{beds.length} aiuole</span>
-                    </div>
-                  )}
-                  {rows.length > 0 && (
-                    <div className="flex items-center justify-between bg-white rounded-lg p-3">
-                      <span className="text-sm font-medium">📏 File</span>
-                      <span className="text-sm text-gray-600">{rows.length} file</span>
-                    </div>
-                  )}
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-gray-900">🪴 Vasi</h3>
+                  <button
+                    onClick={() => setPots([...pots, { count: 1, diameter: 30 }])}
+                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    + Aggiungi
+                  </button>
                 </div>
 
-                {!garden.structureConfig?.pots?.length &&
-                 !garden.structureConfig?.containers?.length &&
-                 !garden.structureConfig?.beds?.length &&
-                 !garden.structureConfig?.tanks?.length &&
-                 beds.length === 0 &&
-                 rows.length === 0 && (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    Nessuna struttura configurata
-                  </p>
+                {pots.length > 0 ? (
+                  <div className="space-y-2">
+                    {pots.map((pot, index) => (
+                      <div key={index} className="flex items-center gap-2 bg-white rounded-lg p-3">
+                        <div className="flex-1 grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">Numero vasi</label>
+                            <input
+                              type="number"
+                              value={pot.count}
+                              onChange={(e) => {
+                                const newPots = [...pots]
+                                newPots[index].count = parseInt(e.target.value) || 1
+                                setPots(newPots)
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              min="1"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">Diametro (cm)</label>
+                            <input
+                              type="number"
+                              value={pot.diameter}
+                              onChange={(e) => {
+                                const newPots = [...pots]
+                                newPots[index].diameter = parseInt(e.target.value) || 30
+                                setPots(newPots)
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              min="10"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setPots(pots.filter((_, i) => i !== index))}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                          title="Elimina"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-2">Nessun vaso configurato</p>
                 )}
               </div>
 
+              {/* Contenitori */}
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-gray-900">📦 Contenitori</h3>
+                  <button
+                    onClick={() => setContainers([...containers, { count: 1, length: 100, width: 50, height: 30 }])}
+                    className="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    + Aggiungi
+                  </button>
+                </div>
+
+                {containers.length > 0 ? (
+                  <div className="space-y-2">
+                    {containers.map((container, index) => (
+                      <div key={index} className="flex items-center gap-2 bg-white rounded-lg p-3">
+                        <div className="flex-1 grid grid-cols-4 gap-2">
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">N°</label>
+                            <input
+                              type="number"
+                              value={container.count}
+                              onChange={(e) => {
+                                const newContainers = [...containers]
+                                newContainers[index].count = parseInt(e.target.value) || 1
+                                setContainers(newContainers)
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              min="1"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">L (cm)</label>
+                            <input
+                              type="number"
+                              value={container.length}
+                              onChange={(e) => {
+                                const newContainers = [...containers]
+                                newContainers[index].length = parseInt(e.target.value) || 100
+                                setContainers(newContainers)
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              min="10"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">W (cm)</label>
+                            <input
+                              type="number"
+                              value={container.width}
+                              onChange={(e) => {
+                                const newContainers = [...containers]
+                                newContainers[index].width = parseInt(e.target.value) || 50
+                                setContainers(newContainers)
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              min="10"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">H (cm)</label>
+                            <input
+                              type="number"
+                              value={container.height}
+                              onChange={(e) => {
+                                const newContainers = [...containers]
+                                newContainers[index].height = parseInt(e.target.value) || 30
+                                setContainers(newContainers)
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              min="10"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setContainers(containers.filter((_, i) => i !== index))}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                          title="Elimina"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-2">Nessun contenitore configurato</p>
+                )}
+              </div>
+
+              {/* Letti Rialzati */}
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-                <p className="text-sm text-gray-700">
-                  💡 <strong>Prossimamente</strong>: Potrai gestire tutte le strutture (serre, filari, zone) direttamente da qui.
-                </p>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-gray-900">🛏️ Letti Rialzati</h3>
+                  <button
+                    onClick={() => setRaisedBeds([...raisedBeds, { count: 1, length: 200, width: 100, height: 40 }])}
+                    className="px-3 py-1 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors"
+                  >
+                    + Aggiungi
+                  </button>
+                </div>
+
+                {raisedBeds.length > 0 ? (
+                  <div className="space-y-2">
+                    {raisedBeds.map((bed, index) => (
+                      <div key={index} className="flex items-center gap-2 bg-white rounded-lg p-3">
+                        <div className="flex-1 grid grid-cols-4 gap-2">
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">N°</label>
+                            <input
+                              type="number"
+                              value={bed.count}
+                              onChange={(e) => {
+                                const newBeds = [...raisedBeds]
+                                newBeds[index].count = parseInt(e.target.value) || 1
+                                setRaisedBeds(newBeds)
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              min="1"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">L (cm)</label>
+                            <input
+                              type="number"
+                              value={bed.length}
+                              onChange={(e) => {
+                                const newBeds = [...raisedBeds]
+                                newBeds[index].length = parseInt(e.target.value) || 200
+                                setRaisedBeds(newBeds)
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              min="10"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">W (cm)</label>
+                            <input
+                              type="number"
+                              value={bed.width}
+                              onChange={(e) => {
+                                const newBeds = [...raisedBeds]
+                                newBeds[index].width = parseInt(e.target.value) || 100
+                                setRaisedBeds(newBeds)
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              min="10"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">H (cm)</label>
+                            <input
+                              type="number"
+                              value={bed.height}
+                              onChange={(e) => {
+                                const newBeds = [...raisedBeds]
+                                newBeds[index].height = parseInt(e.target.value) || 40
+                                setRaisedBeds(newBeds)
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              min="10"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setRaisedBeds(raisedBeds.filter((_, i) => i !== index))}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                          title="Elimina"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-2">Nessun letto rialzato configurato</p>
+                )}
+              </div>
+
+              {/* Vasche */}
+              <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-gray-900">🚰 Vasche</h3>
+                  <button
+                    onClick={() => setTanks([...tanks, { count: 1, length: 150, width: 75, height: 50 }])}
+                    className="px-3 py-1 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    + Aggiungi
+                  </button>
+                </div>
+
+                {tanks.length > 0 ? (
+                  <div className="space-y-2">
+                    {tanks.map((tank, index) => (
+                      <div key={index} className="flex items-center gap-2 bg-white rounded-lg p-3">
+                        <div className="flex-1 grid grid-cols-4 gap-2">
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">N°</label>
+                            <input
+                              type="number"
+                              value={tank.count}
+                              onChange={(e) => {
+                                const newTanks = [...tanks]
+                                newTanks[index].count = parseInt(e.target.value) || 1
+                                setTanks(newTanks)
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              min="1"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">L (cm)</label>
+                            <input
+                              type="number"
+                              value={tank.length}
+                              onChange={(e) => {
+                                const newTanks = [...tanks]
+                                newTanks[index].length = parseInt(e.target.value) || 150
+                                setTanks(newTanks)
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              min="10"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">W (cm)</label>
+                            <input
+                              type="number"
+                              value={tank.width}
+                              onChange={(e) => {
+                                const newTanks = [...tanks]
+                                newTanks[index].width = parseInt(e.target.value) || 75
+                                setTanks(newTanks)
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              min="10"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">H (cm)</label>
+                            <input
+                              type="number"
+                              value={tank.height}
+                              onChange={(e) => {
+                                const newTanks = [...tanks]
+                                newTanks[index].height = parseInt(e.target.value) || 50
+                                setTanks(newTanks)
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              min="10"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setTanks(tanks.filter((_, i) => i !== index))}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                          title="Elimina"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-2">Nessuna vasca configurata</p>
+                )}
               </div>
             </div>
           )}
