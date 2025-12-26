@@ -1897,5 +1897,68 @@ export class LocalStorageProvider implements IStorageProvider {
     const filtered = alerts.filter(a => a.id !== id);
     localStorage.setItem(key, JSON.stringify(filtered));
   }
+
+  // Garden Zones (stub implementations - features not available in local mode)
+  async getGardenZones(gardenId: string): Promise<any[]> {
+    return [];
+  }
+
+  async getGardenZone(id: string): Promise<any | null> {
+    return null;
+  }
+
+  async createGardenZone(zone: any): Promise<any> {
+    throw new Error('Garden zones not supported in local storage mode');
+  }
+
+  async updateGardenZone(id: string, updates: any): Promise<any> {
+    throw new Error('Garden zones not supported in local storage mode');
+  }
+
+  async deleteGardenZone(id: string): Promise<void> {
+    throw new Error('Garden zones not supported in local storage mode');
+  }
+
+  // Field Rows (stub implementations - features not available in local mode)
+  async getFieldRows(gardenId?: string, zoneId?: string): Promise<any[]> {
+    return [];
+  }
+
+  async getFieldRow(id: string): Promise<any | null> {
+    return null;
+  }
+
+  async createFieldRow(row: any): Promise<any> {
+    throw new Error('Field rows not supported in local storage mode');
+  }
+
+  async updateFieldRow(id: string, updates: any): Promise<any> {
+    throw new Error('Field rows not supported in local storage mode');
+  }
+
+  async deleteFieldRow(id: string): Promise<void> {
+    throw new Error('Field rows not supported in local storage mode');
+  }
+
+  // Planting Batches (stub implementations - features not available in local mode)
+  async getPlantingBatches(gardenId?: string, fieldRowId?: string): Promise<any[]> {
+    return [];
+  }
+
+  async getPlantingBatch(id: string): Promise<any | null> {
+    return null;
+  }
+
+  async createPlantingBatch(batch: any): Promise<any> {
+    throw new Error('Planting batches not supported in local storage mode');
+  }
+
+  async updatePlantingBatch(id: string, updates: any): Promise<any> {
+    throw new Error('Planting batches not supported in local storage mode');
+  }
+
+  async deletePlantingBatch(id: string): Promise<void> {
+    throw new Error('Planting batches not supported in local storage mode');
+  }
 }
 

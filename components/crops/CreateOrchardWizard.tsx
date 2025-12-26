@@ -32,7 +32,11 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
   
   // Per oliveto
   const [oliveType, setOliveType] = useState<'OIL' | 'TABLE' | 'DUAL_PURPOSE'>('OIL');
-  
+  const [plantingSystem, setPlantingSystem] = useState<'TRADITIONAL' | 'INTENSIVE' | 'SUPER_INTENSIVE'>('INTENSIVE');
+  const [surfaceHa, setSurfaceHa] = useState('');
+  const [plantSpacing, setPlantSpacing] = useState('');
+  const [rowSpacing, setRowSpacing] = useState('');
+
   // Per vigneto
   const [vineType, setVineType] = useState<'WINE' | 'TABLE'>('WINE');
   const [trainingSystem, setTrainingSystem] = useState<
@@ -69,6 +73,10 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
         config.profileId = categoryInfo?.profileId || `l3-${fruitCategory.toLowerCase()}-profile`;
       } else if (orchardType === 'oliveGrove') {
         config.type = oliveType;
+        config.plantingSystem = plantingSystem;
+        if (surfaceHa) config.surfaceHa = parseFloat(surfaceHa);
+        if (plantSpacing) config.plantSpacing = parseFloat(plantSpacing);
+        if (rowSpacing) config.rowSpacing = parseFloat(rowSpacing);
       } else if (orchardType === 'vineyard') {
         config.type = vineType;
         config.trainingSystem = trainingSystem;
@@ -165,40 +173,61 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
               )}
               
               {orchardType === 'oliveGrove' && (
-                <div className="space-y-3">
-                  <button
-                    onClick={() => setOliveType('OIL')}
-                    className={`w-full p-6 border-2 rounded-lg text-left transition-all ${
-                      oliveType === 'OIL'
-                        ? 'border-green-500 bg-green-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="font-semibold text-gray-900 mb-1">🫒 Da Olio</div>
-                    <div className="text-sm text-gray-600">Varietà per produzione olio</div>
-                  </button>
-                  <button
-                    onClick={() => setOliveType('TABLE')}
-                    className={`w-full p-6 border-2 rounded-lg text-left transition-all ${
-                      oliveType === 'TABLE'
-                        ? 'border-green-500 bg-green-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="font-semibold text-gray-900 mb-1">🫒 Da Mensa</div>
-                    <div className="text-sm text-gray-600">Varietà per consumo diretto</div>
-                  </button>
-                  <button
-                    onClick={() => setOliveType('DUAL_PURPOSE')}
-                    className={`w-full p-6 border-2 rounded-lg text-left transition-all ${
-                      oliveType === 'DUAL_PURPOSE'
-                        ? 'border-green-500 bg-green-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="font-semibold text-gray-900 mb-1">🫒 Dual-Purpose</div>
-                    <div className="text-sm text-gray-600">Varietà per olio e mensa</div>
-                  </button>
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-gray-700">Destinazione Produzione</h4>
+                    <button
+                      onClick={() => setOliveType('OIL')}
+                      className={`w-full p-6 border-2 rounded-lg text-left transition-all ${
+                        oliveType === 'OIL'
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="font-semibold text-gray-900 mb-1">🫒 Da Olio</div>
+                      <div className="text-sm text-gray-600">Varietà per produzione olio</div>
+                    </button>
+                    <button
+                      onClick={() => setOliveType('TABLE')}
+                      className={`w-full p-6 border-2 rounded-lg text-left transition-all ${
+                        oliveType === 'TABLE'
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="font-semibold text-gray-900 mb-1">🫒 Da Mensa</div>
+                      <div className="text-sm text-gray-600">Varietà per consumo diretto</div>
+                    </button>
+                    <button
+                      onClick={() => setOliveType('DUAL_PURPOSE')}
+                      className={`w-full p-6 border-2 rounded-lg text-left transition-all ${
+                        oliveType === 'DUAL_PURPOSE'
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="font-semibold text-gray-900 mb-1">🫒 Dual-Purpose</div>
+                      <div className="text-sm text-gray-600">Varietà per olio e mensa</div>
+                    </button>
+                  </div>
+
+                  <div className="mt-6">
+                    <h4 className="font-medium text-gray-700 mb-3">Sistema di Impianto</h4>
+                    <select
+                      value={plantingSystem}
+                      onChange={(e) => setPlantingSystem(e.target.value as any)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="TRADITIONAL">Tradizionale (meno di 200 piante/ha)</option>
+                      <option value="INTENSIVE">Intensivo (400-600 piante/ha)</option>
+                      <option value="SUPER_INTENSIVE">Superintensivo (1.600-2.500 piante/ha)</option>
+                    </select>
+                    <p className="mt-2 text-xs text-gray-500">
+                      {plantingSystem === 'TRADITIONAL' && 'Sistema tradizionale con maggior manodopera manuale e sesti ampi'}
+                      {plantingSystem === 'INTENSIVE' && 'Sistema con parziale meccanizzazione e produttività media'}
+                      {plantingSystem === 'SUPER_INTENSIVE' && 'Sistema ad alta densità completamente meccanizzato per massima resa'}
+                    </p>
+                  </div>
                 </div>
               )}
               
@@ -306,7 +335,66 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               </div>
-              
+
+              {/* Campi specifici per oliveto */}
+              {orchardType === 'oliveGrove' && (
+                <>
+                  {/* Superficie */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Superficie (ettari - opzionale)
+                    </label>
+                    <input
+                      type="number"
+                      value={surfaceHa}
+                      onChange={(e) => setSurfaceHa(e.target.value)}
+                      placeholder="Es. 2.5"
+                      min="0"
+                      step="0.1"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
+
+                  {/* Sesto di Impianto */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Sesto di Impianto (opzionale)
+                    </label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Distanza tra piante (m)</label>
+                        <input
+                          type="number"
+                          value={plantSpacing}
+                          onChange={(e) => setPlantSpacing(e.target.value)}
+                          placeholder="Es. 4"
+                          min="0"
+                          step="0.5"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Distanza tra file (m)</label>
+                        <input
+                          type="number"
+                          value={rowSpacing}
+                          onChange={(e) => setRowSpacing(e.target.value)}
+                          placeholder="Es. 6"
+                          min="0"
+                          step="0.5"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                    </div>
+                    {plantSpacing && rowSpacing && (
+                      <p className="mt-2 text-xs text-gray-600 bg-blue-50 p-2 rounded">
+                        Densità calcolata: ~{Math.round(10000 / (parseFloat(plantSpacing) * parseFloat(rowSpacing)))} piante/ha
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+
               {/* Numero Totale Piante */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
