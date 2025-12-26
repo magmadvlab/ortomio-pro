@@ -141,10 +141,12 @@ export function ProfessionalDashboard() {
         </div>
         
         {/* Treatment Register - ultimi trattamenti */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Ultimi Trattamenti</h2>
-          <TreatmentRegister limit={10} />
-        </div>
+        {gardens.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Ultimi Trattamenti</h2>
+            <TreatmentRegister garden={gardens[0]} limit={10} />
+          </div>
+        )}
 
         {/* Prossime Potature */}
         {upcomingPrunings.length > 0 && (
