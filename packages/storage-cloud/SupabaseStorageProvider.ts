@@ -243,11 +243,6 @@ export class SupabaseStorageProvider implements IStorageProvider {
   }
 
   async getUserPreference<T = any>(key: string): Promise<T | null> {
-    // TODO: Add 'preferences' JSONB column to profiles table
-    // For now, return null to avoid 400 errors
-    return null;
-
-    /* DISABLED UNTIL MIGRATION
     const client = this.ensureClient();
     try {
       const {
@@ -272,15 +267,9 @@ export class SupabaseStorageProvider implements IStorageProvider {
     } catch {
       return null;
     }
-    */
   }
 
   async setUserPreference<T = any>(key: string, value: T): Promise<void> {
-    // TODO: Add 'preferences' JSONB column to profiles table
-    // For now, do nothing to avoid 400 errors
-    return;
-
-    /* DISABLED UNTIL MIGRATION
     const client = this.ensureClient();
     try {
       const {
@@ -313,9 +302,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
           }
         );
     } catch {
-      // ignore (e.g. column doesn't exist yet)
+      // ignore errors (fallback to localStorage handled by caller)
     }
-    */
   }
 
   // Gardens
