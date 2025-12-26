@@ -5,10 +5,11 @@ import { Garden, GardenTask } from '@/types'
 import { TimelineView } from './TimelineView'
 import { CalendarTabView } from './CalendarTabView'
 import { ListView } from './ListView'
-import { Calendar, List, GanttChart, Plus, Sprout } from 'lucide-react'
+import { Calendar, List, GanttChart, Plus, Sprout, Settings } from 'lucide-react'
 import { PlantsView } from './PlantsView'
 import { AddItemModal } from './AddItemModal'
 import { ContextualTip } from '@/components/shared/ContextualTip'
+import Link from 'next/link'
 
 interface GardenViewProps {
   garden: Garden
@@ -46,20 +47,33 @@ export function GardenView({
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-10 relative">
         <div className="flex items-center justify-between mb-3">
-          <h1 className="text-2xl font-bold text-gray-900">🌱 Il Mio Orto</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">🌱 Il Mio Orto</h1>
+            <p className="text-sm text-gray-600">{garden.name}</p>
+          </div>
           <ContextualTip
             id="garden-intro"
             title="Benvenuto in Il Mio Orto!"
             message="Qui puoi gestire tutte le tue coltivazioni: pianifica semine, visualizza il calendario, controlla i task e monitora le tue piante."
             position="bottom"
           />
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
-          >
-            <Plus size={18} />
-            <span className="hidden sm:inline">Aggiungi</span>
-          </button>
+          <div className="flex gap-2">
+            <Link
+              href="/app/settings?section=gardens"
+              className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
+              title="Gestisci i tuoi orti"
+            >
+              <Settings size={18} />
+              <span className="hidden sm:inline">Gestisci Orti</span>
+            </Link>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
+            >
+              <Plus size={18} />
+              <span className="hidden sm:inline">Aggiungi</span>
+            </button>
+          </div>
         </div>
         
         {/* Tab Switcher */}

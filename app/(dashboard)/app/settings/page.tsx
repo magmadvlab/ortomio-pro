@@ -12,6 +12,8 @@ import BackupSettings from '@/components/BackupSettings'
 import APIConfigurationForm from '@/components/settings/APIConfigurationForm'
 import { GardenManager } from '@/components/settings/GardenManager'
 import { getSupabaseClient } from '@/config/supabase'
+import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
 // Componente per gestione preferenze notifiche
 function NotificationPreferencesSection() {
@@ -207,11 +209,22 @@ function NotificationPreferencesSection() {
   )
 }
 
-export default function SettingsPage() {
+function SettingsContent() {
   const { tier, isFree, isPro, setTier } = useTier()
   const { storageProvider } = useStorage()
   const { activeGarden } = useGarden()
-  const [activeSection, setActiveSection] = useState<string>('profile')
+  const searchParams = useSearchParams()
+
+  // Get section from URL or default to 'profile'
+  const sectionFromUrl = searchParams.get('section')
+  const [activeSection, setActiveSection] = useState<string>(sectionFromUrl || 'profile')
+
+  // Update active section when URL changes
+  useEffect(() => {
+    if (sectionFromUrl) {
+      setActiveSection(sectionFromUrl)
+    }
+  }, [sectionFromUrl])
 
   const sections = [
     { id: 'profile', label: 'Profilo', icon: User },
@@ -454,8 +467,12 @@ export default function SettingsPage() {
   )
 }
 
-
-
-
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Caricamento...</div>}>
+      <SettingsContent />
+    </Suspense>
+  )
+}
 
 

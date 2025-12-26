@@ -147,15 +147,17 @@ export function MechanicalWorkLogForm({
       </div>
 
       {/* DOVE - Zone/Aiuole/File */}
-      {(beds.length > 0 || rows.length > 0) && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Layers size={18} className="text-blue-600" />
-            <h3 className="font-semibold text-gray-900">Dove (opzionale)</h3>
-          </div>
-          <p className="text-sm text-gray-600 mb-3">
-            Seleziona le aiuole o file specifiche lavorate
-          </p>
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Layers size={18} className="text-blue-600" />
+          <h3 className="font-semibold text-gray-900">Dove (opzionale)</h3>
+        </div>
+
+        {(beds.length > 0 || rows.length > 0) ? (
+          <>
+            <p className="text-sm text-gray-600 mb-3">
+              Seleziona le aiuole o file specifiche lavorate
+            </p>
 
           {/* Aiuole */}
           {beds.length > 0 && (
@@ -218,8 +220,19 @@ export function MechanicalWorkLogForm({
               </div>
             </div>
           )}
-        </div>
-      )}
+          </>
+        ) : (
+          <div className="text-sm text-gray-600">
+            <p className="mb-2">
+              Non hai ancora configurato aiuole o file per questo orto.
+            </p>
+            <p className="text-xs text-gray-500">
+              💡 Puoi comunque registrare la lavorazione specificando l'area in m².
+              Per una tracciabilità più precisa, configura aiuole e file dalle impostazioni dell'orto.
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* ATTREZZATURA */}
       <div>
