@@ -9,7 +9,7 @@ import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 
 export function GardenManager() {
-  const storageProvider = useStorage()
+  const { storageProvider } = useStorage()
   const { activeGarden, setActiveGarden } = useGarden()
   const [gardens, setGardens] = useState<Garden[]>([])
   const [loading, setLoading] = useState(true)
@@ -168,7 +168,7 @@ export function GardenManager() {
                 </h4>
                 {garden.primaryCrop && (
                   <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
-                    {garden.primaryCrop}
+                    {garden.primaryCrop.label}
                   </span>
                 )}
               </div>
@@ -188,7 +188,7 @@ export function GardenManager() {
 
               {garden.coordinates && (
                 <div className="text-xs text-gray-500 mb-4">
-                  📍 {garden.coordinates.lat.toFixed(4)}, {garden.coordinates.lon.toFixed(4)}
+                  📍 {garden.coordinates.latitude.toFixed(4)}, {garden.coordinates.longitude.toFixed(4)}
                 </div>
               )}
 

@@ -20,7 +20,7 @@ export function MechanicalWorkLogForm({
   onCancel,
   initialData
 }: MechanicalWorkLogFormProps) {
-  const storageProvider = useStorage()
+  const { storageProvider } = useStorage()
   const [formData, setFormData] = useState<Partial<MechanicalWorkLog>>({
     gardenId: garden.id,
     workDate: new Date().toISOString().split('T')[0],
@@ -42,14 +42,14 @@ export function MechanicalWorkLogForm({
   const loadGardenStructure = async () => {
     try {
       // Carica aiuole (beds)
-      const gardenBeds = await storageProvider.getBeds(garden.id)
+      const gardenBeds = await storageProvider.getGardenBeds(garden.id)
       setBeds(gardenBeds || [])
 
       // Carica file (rows) - se ci sono aiuole, carica le loro file
       if (gardenBeds && gardenBeds.length > 0) {
         const allRows: GardenRow[] = []
         for (const bed of gardenBeds) {
-          const bedRows = await storageProvider.getRows(bed.id)
+          const bedRows = await storageProvider.getGardenRows(bed.id)
           if (bedRows) {
             allRows.push(...bedRows)
           }
