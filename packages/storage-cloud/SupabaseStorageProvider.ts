@@ -55,6 +55,45 @@ export class SupabaseStorageProvider implements IStorageProvider {
     return db;
   }
 
+  private mapGardenZoneFromDB(db: any): any {
+    return {
+      id: db.id,
+      gardenId: db.garden_id,
+      name: db.name,
+      description: db.description ?? undefined,
+      coordinates: db.coordinates || [],
+      soilType: db.soil_type ?? undefined,
+      soilPh: db.soil_ph ? Number(db.soil_ph) : undefined,
+      waterCapacity: db.water_capacity ? Number(db.water_capacity) : undefined,
+      soilDepthCm: db.soil_depth_cm ? Number(db.soil_depth_cm) : undefined,
+      sunExposure: db.sun_exposure ?? undefined,
+      dailySunHours: db.daily_sun_hours ? Number(db.daily_sun_hours) : undefined,
+      areaSqMeters: db.area_sq_meters ? Number(db.area_sq_meters) : undefined,
+      color: db.color || '#3B82F6',
+      orderIndex: db.order_index ?? 0,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at,
+    };
+  }
+
+  private mapGardenZoneToDB(zone: Partial<any>): any {
+    const db: any = {};
+    if (zone.gardenId !== undefined) db.garden_id = zone.gardenId;
+    if (zone.name !== undefined) db.name = zone.name;
+    if (zone.description !== undefined) db.description = zone.description;
+    if (zone.coordinates !== undefined) db.coordinates = zone.coordinates;
+    if (zone.soilType !== undefined) db.soil_type = zone.soilType;
+    if (zone.soilPh !== undefined) db.soil_ph = zone.soilPh;
+    if (zone.waterCapacity !== undefined) db.water_capacity = zone.waterCapacity;
+    if (zone.soilDepthCm !== undefined) db.soil_depth_cm = zone.soilDepthCm;
+    if (zone.sunExposure !== undefined) db.sun_exposure = zone.sunExposure;
+    if (zone.dailySunHours !== undefined) db.daily_sun_hours = zone.dailySunHours;
+    if (zone.areaSqMeters !== undefined) db.area_sq_meters = zone.areaSqMeters;
+    if (zone.color !== undefined) db.color = zone.color;
+    if (zone.orderIndex !== undefined) db.order_index = zone.orderIndex;
+    return db;
+  }
+
   async getGardenRows(bedId: string): Promise<GardenRow[]> {
     const client = this.ensureClient();
     const { data, error } = await client
