@@ -130,7 +130,7 @@ export default function MechanicalWorkPage() {
         if (gardenBeds && gardenBeds.length > 0) {
           const allRows: any[] = []
           for (const bed of gardenBeds) {
-            const bedRows = await storageProvider.getFieldRows(selectedGardenId, bed.id)
+            const bedRows = await storageProvider.getGardenRows(bed.id)
             if (bedRows) {
               allRows.push(...bedRows)
             }
