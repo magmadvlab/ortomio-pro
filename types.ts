@@ -1781,3 +1781,20 @@ export type {
   VerticalFarmingConfig,
   GrowBoxConfig
 } from './types/gardenSpaces';
+
+// ============================================
+// MICRO-ZONE TRACKING TYPES
+// ============================================
+
+export type {
+  MicroZoneReference,
+  FertilizationLog,
+  TreatmentRegistry,
+  WateringLog,
+  TreatmentByMicrozone,
+  FertilizationByMicrozone,
+  IrrigationByMicrozone,
+  OperationByMicrozone,
+  MicroZoneFilter,
+  MicroZoneStats
+} from './types/microzoneTracking';
