@@ -135,6 +135,49 @@ export class SupabaseStorageProvider implements IStorageProvider {
     return db;
   }
 
+  private mapPlantingBatchFromDB(db: any): any {
+    return {
+      id: db.id,
+      fieldRowId: db.field_row_id,
+      gardenId: db.garden_id,
+      batchNumber: db.batch_number ?? 0,
+      plantName: db.plant_name,
+      variety: db.variety ?? undefined,
+      plantsCount: db.plants_count ?? 0,
+      seedsUsed: db.seeds_used ?? undefined,
+      sowingDate: db.sowing_date ?? undefined,
+      transplantingDate: db.transplanting_date ?? undefined,
+      expectedHarvestDate: db.expected_harvest_date ?? undefined,
+      seedPacketId: db.seed_packet_id ?? undefined,
+      seedlingBatchId: db.seedling_batch_id ?? undefined,
+      status: db.status ?? 'Planned',
+      currentQuantity: db.current_quantity ?? 0,
+      notes: db.notes ?? undefined,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at,
+    };
+  }
+
+  private mapPlantingBatchToDB(batch: Partial<any>): any {
+    const db: any = {};
+    if (batch.fieldRowId !== undefined) db.field_row_id = batch.fieldRowId;
+    if (batch.gardenId !== undefined) db.garden_id = batch.gardenId;
+    if (batch.batchNumber !== undefined) db.batch_number = batch.batchNumber;
+    if (batch.plantName !== undefined) db.plant_name = batch.plantName;
+    if (batch.variety !== undefined) db.variety = batch.variety;
+    if (batch.plantsCount !== undefined) db.plants_count = batch.plantsCount;
+    if (batch.seedsUsed !== undefined) db.seeds_used = batch.seedsUsed;
+    if (batch.sowingDate !== undefined) db.sowing_date = batch.sowingDate;
+    if (batch.transplantingDate !== undefined) db.transplanting_date = batch.transplantingDate;
+    if (batch.expectedHarvestDate !== undefined) db.expected_harvest_date = batch.expectedHarvestDate;
+    if (batch.seedPacketId !== undefined) db.seed_packet_id = batch.seedPacketId;
+    if (batch.seedlingBatchId !== undefined) db.seedling_batch_id = batch.seedlingBatchId;
+    if (batch.status !== undefined) db.status = batch.status;
+    if (batch.currentQuantity !== undefined) db.current_quantity = batch.currentQuantity;
+    if (batch.notes !== undefined) db.notes = batch.notes;
+    return db;
+  }
+
   async getGardenRows(bedId: string): Promise<GardenRow[]> {
     const client = this.ensureClient();
     const { data, error } = await client
