@@ -455,56 +455,21 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
           {activeGarden && (
             <GardenCard garden={activeGarden} tasks={gardenTasks} />
           )}
-          
-          {/* Weather Card */}
-          <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-xl p-5 lg:p-6 text-white shadow-xl">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h2 className="text-sm font-medium opacity-90 mb-1">Meteo: {activeGarden.name}</h2>
-              {activeGarden.coordinates && (
-                <p className="text-xs opacity-75">
-                  {format(new Date(), 'EEEE d MMMM', { locale: it })}
-                </p>
-              )}
-            </div>
-            {weather && (
-              <div className="text-right">
-                <div className="text-4xl font-bold">{weather.temp.toFixed(0)}°</div>
-                <p className="text-xs opacity-90">{getWeatherLabel(weather.code)}</p>
-              </div>
-            )}
-          </div>
-          
-          {weatherLoading ? (
-            <div className="flex items-center gap-2">
-              <Loader2 size={20} className="animate-spin" />
-              <span className="text-sm">Caricamento meteo...</span>
-            </div>
-          ) : weather ? (
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-4">
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-2 sm:p-3 text-center">
-                <CloudRain size={18} className="mx-auto mb-1 sm:size-5" />
-                <p className="text-xs opacity-90">Pioggia</p>
-                <p className="text-base sm:text-lg font-bold">{weather.rainForecastMm.toFixed(0)}mm</p>
-                </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-2 sm:p-3 text-center">
-                <ThermometerSun size={18} className="mx-auto mb-1 sm:size-5" />
-                <p className="text-xs opacity-90">Temperatura</p>
-                <p className="text-base sm:text-lg font-bold">{weather.temp.toFixed(0)}°C</p>
-              </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-2 sm:p-3 text-center">
-                <Cloud size={18} className="mx-auto mb-1 sm:size-5" />
-                <p className="text-xs opacity-90">Condizioni</p>
-                <p className="text-xs sm:text-sm font-semibold">{getWeatherLabel(weather.code)}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
-            <p className="text-sm opacity-80">Posizione non disponibile</p>
-              <p className="text-xs opacity-60 mt-1">Aggiungi coordinate per vedere il meteo</p>
-            </div>
+
+          {/* Weather Widget - 7 Day Forecast */}
+          {activeGarden && activeGarden.coordinates?.latitude && activeGarden.coordinates?.longitude && (
+            <WeatherWidget
+              latitude={activeGarden.coordinates.latitude}
+              longitude={activeGarden.coordinates.longitude}
+              activePlants={gardenTasks
+                .filter(t => !t.completed && t.plantName)
+                .map(t => ({
+                  plantName: t.plantName,
+                  minTemp: undefined
+                }))
+              }
+            />
           )}
-        </div>
       </div>
 
         {/* COSA FARE OGGI */}
@@ -833,21 +798,6 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         {/* Progress Card */}
         {activeGarden && (
           <ProgressCard tasks={gardenTasks} gardenId={activeGarden.id} />
-        )}
-
-        {/* Weather Widget - 7 Day Forecast */}
-        {activeGarden && activeGarden.coordinates?.latitude && activeGarden.coordinates?.longitude && (
-          <WeatherWidget
-            latitude={activeGarden.coordinates.latitude}
-            longitude={activeGarden.coordinates.longitude}
-            activePlants={gardenTasks
-              .filter(t => !t.completed && t.plantName)
-              .map(t => ({
-                plantName: t.plantName,
-                minTemp: undefined // TODO: Extract from plant master data if available
-              }))
-            }
-          />
         )}
 
         {/* Irrigation Status - Spostato dopo Prossimi Giorni */}
