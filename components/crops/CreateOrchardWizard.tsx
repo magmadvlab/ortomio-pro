@@ -32,17 +32,22 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
   
   // Per oliveto
   const [oliveType, setOliveType] = useState<'OIL' | 'TABLE' | 'DUAL_PURPOSE'>('OIL');
-  const [plantingSystem, setPlantingSystem] = useState<'TRADITIONAL' | 'INTENSIVE' | 'SUPER_INTENSIVE'>('INTENSIVE');
-  const [surfaceHa, setSurfaceHa] = useState('');
-  const [plantSpacing, setPlantSpacing] = useState('');
-  const [rowSpacing, setRowSpacing] = useState('');
 
   // Per vigneto
   const [vineType, setVineType] = useState<'WINE' | 'TABLE'>('WINE');
   const [trainingSystem, setTrainingSystem] = useState<
     'Guyot' | 'Cordon' | 'Pergola' | 'Alberello' | 'Tendone' | 'Spalliera' | 'Sylvoz' | 'GDC' | 'Casarsa' | 'Bellussi'
   >('Guyot');
-  
+
+  // Campi condivisi tra tutte le colture arboree
+  const [plantingSystem, setPlantingSystem] = useState<'TRADITIONAL' | 'INTENSIVE' | 'SUPER_INTENSIVE'>('INTENSIVE');
+  const [surfaceHa, setSurfaceHa] = useState('');
+  const [plantSpacing, setPlantSpacing] = useState('');
+  const [rowSpacing, setRowSpacing] = useState('');
+  const [irrigationSystem, setIrrigationSystem] = useState<'DRIP' | 'SPRINKLER' | 'MICRO' | 'MANUAL'>('DRIP');
+  const [soilType, setSoilType] = useState<'SANDY' | 'CLAY' | 'LOAM' | 'ROCKY' | 'MIXED'>('LOAM');
+  const [soilPh, setSoilPh] = useState('');
+
   // Comuni
   const [establishedDate, setEstablishedDate] = useState(() => {
     const today = new Date();
@@ -59,9 +64,19 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
       let config: any = {
         establishedDate: establishedDate || new Date().toISOString().split('T')[0],
         totalTrees: totalCount ? parseInt(totalCount) : undefined,
-        varieties: varieties ? varieties.split(',').map(v => v.trim()).filter(Boolean) : undefined
+        varieties: varieties ? varieties.split(',').map(v => v.trim()).filter(Boolean) : undefined,
+        // Campi condivisi ambiente
+        plantingSystem: plantingSystem,
+        irrigationSystem: irrigationSystem,
+        soilType: soilType,
       };
-      
+
+      // Campi numerici opzionali condivisi
+      if (surfaceHa) config.surfaceHa = parseFloat(surfaceHa);
+      if (plantSpacing) config.plantSpacing = parseFloat(plantSpacing);
+      if (rowSpacing) config.rowSpacing = parseFloat(rowSpacing);
+      if (soilPh) config.soilPh = parseFloat(soilPh);
+
       if (orchardType === 'orchard') {
         if (!fruitCategory) {
           alert('Seleziona una categoria di frutteto');
@@ -73,10 +88,6 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
         config.profileId = categoryInfo?.profileId || `l3-${fruitCategory.toLowerCase()}-profile`;
       } else if (orchardType === 'oliveGrove') {
         config.type = oliveType;
-        config.plantingSystem = plantingSystem;
-        if (surfaceHa) config.surfaceHa = parseFloat(surfaceHa);
-        if (plantSpacing) config.plantSpacing = parseFloat(plantSpacing);
-        if (rowSpacing) config.rowSpacing = parseFloat(rowSpacing);
       } else if (orchardType === 'vineyard') {
         config.type = vineType;
         config.trainingSystem = trainingSystem;
@@ -146,29 +157,51 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
               <h3 className="text-lg font-semibold mb-4">Seleziona {orchardType === 'orchard' ? 'Categoria' : 'Tipo'}</h3>
               
               {orchardType === 'orchard' && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {fruitTreeCategories.map(category => (
-                    <button
-                      key={category.id}
-                      onClick={() => setFruitCategory(category.id)}
-                      className={`p-6 border-2 rounded-lg text-left transition-all ${
-                        fruitCategory === category.id
-                          ? 'border-green-500 bg-green-50 shadow-md'
-                          : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                      }`}
-                    >
-                      <div className="text-4xl mb-3">{category.icon}</div>
-                      <div className="font-semibold text-gray-900 mb-1">{category.label}</div>
-                      <div className="text-sm text-gray-600 mb-2">
-                        {category.examples.slice(0, 3).join(', ')}
-                        {category.examples.length > 3 && '...'}
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <Info size={12} />
-                        <span>{category.botanicalFamily}</span>
-                      </div>
-                    </button>
-                  ))}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {fruitTreeCategories.map(category => (
+                      <button
+                        key={category.id}
+                        onClick={() => setFruitCategory(category.id)}
+                        className={`p-6 border-2 rounded-lg text-left transition-all ${
+                          fruitCategory === category.id
+                            ? 'border-green-500 bg-green-50 shadow-md'
+                            : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        }`}
+                      >
+                        <div className="text-4xl mb-3">{category.icon}</div>
+                        <div className="font-semibold text-gray-900 mb-1">{category.label}</div>
+                        <div className="text-sm text-gray-600 mb-2">
+                          {category.examples.slice(0, 3).join(', ')}
+                          {category.examples.length > 3 && '...'}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <Info size={12} />
+                          <span>{category.botanicalFamily}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {fruitCategory && (
+                    <div className="mt-6">
+                      <h4 className="font-medium text-gray-700 mb-3">Sistema di Impianto</h4>
+                      <select
+                        value={plantingSystem}
+                        onChange={(e) => setPlantingSystem(e.target.value as any)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                      >
+                        <option value="TRADITIONAL">Tradizionale (meno di 200 piante/ha)</option>
+                        <option value="INTENSIVE">Intensivo (400-600 piante/ha)</option>
+                        <option value="SUPER_INTENSIVE">Superintensivo (1.600-2.500 piante/ha)</option>
+                      </select>
+                      <p className="mt-2 text-xs text-gray-500">
+                        {plantingSystem === 'TRADITIONAL' && 'Sistema tradizionale con sesti ampi e maggiore manodopera manuale'}
+                        {plantingSystem === 'INTENSIVE' && 'Sistema con parziale meccanizzazione e buona produttività'}
+                        {plantingSystem === 'SUPER_INTENSIVE' && 'Sistema ad alta densità completamente meccanizzato per massima resa'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
               
@@ -289,6 +322,24 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                       La scelta dipende da clima, tipo uva e livello di meccanizzazione desiderato
                     </p>
                   </div>
+
+                  <div className="mt-6">
+                    <h4 className="font-medium text-gray-700 mb-3">Sistema di Impianto</h4>
+                    <select
+                      value={plantingSystem}
+                      onChange={(e) => setPlantingSystem(e.target.value as any)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="TRADITIONAL">Tradizionale (meno di 200 piante/ha)</option>
+                      <option value="INTENSIVE">Intensivo (400-600 piante/ha)</option>
+                      <option value="SUPER_INTENSIVE">Superintensivo (1.600-2.500 piante/ha)</option>
+                    </select>
+                    <p className="mt-2 text-xs text-gray-500">
+                      {plantingSystem === 'TRADITIONAL' && 'Sesti ampi tradizionali, adatti a terreni collinari e coltivazione di qualità'}
+                      {plantingSystem === 'INTENSIVE' && 'Densità media con meccanizzazione parziale, equilibrio tra qualità e produttività'}
+                      {plantingSystem === 'SUPER_INTENSIVE' && 'Alta densità per massima produzione, richiede irrigazione e meccanizzazione completa'}
+                    </p>
+                  </div>
                 </div>
               )}
               
@@ -336,64 +387,119 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                 />
               </div>
 
-              {/* Campi specifici per oliveto */}
-              {orchardType === 'oliveGrove' && (
-                <>
-                  {/* Superficie */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Superficie (ettari - opzionale)
-                    </label>
-                    <input
-                      type="number"
-                      value={surfaceHa}
-                      onChange={(e) => setSurfaceHa(e.target.value)}
-                      placeholder="Es. 2.5"
-                      min="0"
-                      step="0.1"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                    />
-                  </div>
+              {/* Campi condivisi - Configurazione Ambiente */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-semibold text-gray-900 mb-4">Configurazione Ambiente</h4>
 
-                  {/* Sesto di Impianto */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Sesto di Impianto (opzionale)
-                    </label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">Distanza tra piante (m)</label>
-                        <input
-                          type="number"
-                          value={plantSpacing}
-                          onChange={(e) => setPlantSpacing(e.target.value)}
-                          placeholder="Es. 4"
-                          min="0"
-                          step="0.5"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">Distanza tra file (m)</label>
-                        <input
-                          type="number"
-                          value={rowSpacing}
-                          onChange={(e) => setRowSpacing(e.target.value)}
-                          placeholder="Es. 6"
-                          min="0"
-                          step="0.5"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                        />
-                      </div>
+                {/* Superficie */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Superficie (ettari - opzionale)
+                  </label>
+                  <input
+                    type="number"
+                    value={surfaceHa}
+                    onChange={(e) => setSurfaceHa(e.target.value)}
+                    placeholder="Es. 2.5"
+                    min="0"
+                    step="0.1"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+
+                {/* Sesto di Impianto */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Sesto di Impianto (opzionale)
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Distanza tra piante (m)</label>
+                      <input
+                        type="number"
+                        value={plantSpacing}
+                        onChange={(e) => setPlantSpacing(e.target.value)}
+                        placeholder="Es. 4"
+                        min="0"
+                        step="0.5"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                      />
                     </div>
-                    {plantSpacing && rowSpacing && (
-                      <p className="mt-2 text-xs text-gray-600 bg-blue-50 p-2 rounded">
-                        Densità calcolata: ~{Math.round(10000 / (parseFloat(plantSpacing) * parseFloat(rowSpacing)))} piante/ha
-                      </p>
-                    )}
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Distanza tra file (m)</label>
+                      <input
+                        type="number"
+                        value={rowSpacing}
+                        onChange={(e) => setRowSpacing(e.target.value)}
+                        placeholder="Es. 6"
+                        min="0"
+                        step="0.5"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
                   </div>
-                </>
-              )}
+                  {plantSpacing && rowSpacing && (
+                    <p className="mt-2 text-xs text-gray-600 bg-blue-50 p-2 rounded">
+                      Densità calcolata: ~{Math.round(10000 / (parseFloat(plantSpacing) * parseFloat(rowSpacing)))} piante/ha
+                    </p>
+                  )}
+                </div>
+
+                {/* Sistema di Irrigazione */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Sistema di Irrigazione
+                  </label>
+                  <select
+                    value={irrigationSystem}
+                    onChange={(e) => setIrrigationSystem(e.target.value as any)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="DRIP">Goccia (microirrigazione localizzata)</option>
+                    <option value="SPRINKLER">Aspersione (irrigatori aerei)</option>
+                    <option value="MICRO">Microirrigatori (nebulizzatori)</option>
+                    <option value="MANUAL">Manuale (con tubo/annaffiatoio)</option>
+                  </select>
+                </div>
+
+                {/* Tipo di Terreno */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo di Terreno
+                  </label>
+                  <select
+                    value={soilType}
+                    onChange={(e) => setSoilType(e.target.value as any)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="SANDY">Sabbioso (drenante, scarsa ritenzione idrica)</option>
+                    <option value="CLAY">Argilloso (compatto, buona ritenzione idrica)</option>
+                    <option value="LOAM">Franco (equilibrato, ideale per la maggior parte delle colture)</option>
+                    <option value="ROCKY">Roccioso (drenaggio eccellente, bassa fertilità)</option>
+                    <option value="MIXED">Misto (combinazione di diverse texture)</option>
+                  </select>
+                </div>
+
+                {/* pH del Suolo */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    pH del Suolo (opzionale)
+                  </label>
+                  <input
+                    type="number"
+                    value={soilPh}
+                    onChange={(e) => setSoilPh(e.target.value)}
+                    placeholder="Es. 6.5"
+                    min="0"
+                    max="14"
+                    step="0.1"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Valore ideale 6.0-7.5 (neutro/leggermente acido). Valori inferiori a 6.0 = acido, superiori a 7.5 = alcalino
+                  </p>
+                </div>
+              </div>
 
               {/* Numero Totale Piante */}
               <div className="mb-4">
