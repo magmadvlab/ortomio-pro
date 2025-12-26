@@ -35,7 +35,9 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
   
   // Per vigneto
   const [vineType, setVineType] = useState<'WINE' | 'TABLE'>('WINE');
-  const [trainingSystem, setTrainingSystem] = useState<'Guyot' | 'Cordon' | 'Pergola' | 'Alberello'>('Guyot');
+  const [trainingSystem, setTrainingSystem] = useState<
+    'Guyot' | 'Cordon' | 'Pergola' | 'Alberello' | 'Tendone' | 'Spalliera' | 'Sylvoz' | 'GDC' | 'Casarsa' | 'Bellussi'
+  >('Guyot');
   
   // Comuni
   const [establishedDate, setEstablishedDate] = useState(() => {
@@ -235,11 +237,28 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                       onChange={(e) => setTrainingSystem(e.target.value as any)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     >
-                      <option value="Guyot">Guyot</option>
-                      <option value="Cordon">Cordon</option>
-                      <option value="Pergola">Pergola</option>
-                      <option value="Alberello">Alberello</option>
+                      <optgroup label="Sistemi Verticali a Spalliera">
+                        <option value="Guyot">Guyot (capo a frutto rinnovato)</option>
+                        <option value="Cordon">Cordone Speronato (cordone permanente)</option>
+                        <option value="Spalliera">Spalliera (generico verticale)</option>
+                      </optgroup>
+                      <optgroup label="Sistemi Orizzontali">
+                        <option value="Tendone">Tendone (tetto orizzontale)</option>
+                        <option value="Pergola">Pergola (sviluppo orizzontale/inclinato)</option>
+                      </optgroup>
+                      <optgroup label="Sistemi Tradizionali">
+                        <option value="Alberello">Alberello (senza sostegni)</option>
+                      </optgroup>
+                      <optgroup label="Sistemi Avanzati">
+                        <option value="Sylvoz">Sylvoz/Cappuccina (tralcio ad arco)</option>
+                        <option value="GDC">GDC - Geneva Double Curtain (doppia cortina)</option>
+                        <option value="Casarsa">Casarsa (derivato Sylvoz, meccanizzabile)</option>
+                        <option value="Bellussi">Bellussi/Raggi (sesti ampi)</option>
+                      </optgroup>
                     </select>
+                    <p className="mt-2 text-xs text-gray-500">
+                      La scelta dipende da clima, tipo uva e livello di meccanizzazione desiderato
+                    </p>
                   </div>
                 </div>
               )}
