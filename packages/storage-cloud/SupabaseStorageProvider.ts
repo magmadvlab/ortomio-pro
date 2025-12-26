@@ -94,6 +94,47 @@ export class SupabaseStorageProvider implements IStorageProvider {
     return db;
   }
 
+  private mapFieldRowFromDB(db: any): any {
+    return {
+      id: db.id,
+      gardenId: db.garden_id,
+      zoneId: db.zone_id ?? undefined,
+      name: db.name,
+      rowNumber: db.row_number ?? 0,
+      lengthMeters: typeof db.length_meters === 'number' ? db.length_meters : Number(db.length_meters),
+      distanceFromPreviousRow: db.distance_from_previous_row ? Number(db.distance_from_previous_row) : undefined,
+      plantSpacing: db.plant_spacing ? Number(db.plant_spacing) : undefined,
+      cultivar: db.cultivar ?? undefined,
+      plantCount: db.plant_count ?? undefined,
+      orientation: db.orientation ?? undefined,
+      irrigationLine: db.irrigation_line ?? undefined,
+      plantedDate: db.planted_date ?? undefined,
+      status: db.status ?? 'Active',
+      notes: db.notes ?? undefined,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at,
+    };
+  }
+
+  private mapFieldRowToDB(row: Partial<any>): any {
+    const db: any = {};
+    if (row.gardenId !== undefined) db.garden_id = row.gardenId;
+    if (row.zoneId !== undefined) db.zone_id = row.zoneId;
+    if (row.name !== undefined) db.name = row.name;
+    if (row.rowNumber !== undefined) db.row_number = row.rowNumber;
+    if (row.lengthMeters !== undefined) db.length_meters = row.lengthMeters;
+    if (row.distanceFromPreviousRow !== undefined) db.distance_from_previous_row = row.distanceFromPreviousRow;
+    if (row.plantSpacing !== undefined) db.plant_spacing = row.plantSpacing;
+    if (row.cultivar !== undefined) db.cultivar = row.cultivar;
+    if (row.plantCount !== undefined) db.plant_count = row.plantCount;
+    if (row.orientation !== undefined) db.orientation = row.orientation;
+    if (row.irrigationLine !== undefined) db.irrigation_line = row.irrigationLine;
+    if (row.plantedDate !== undefined) db.planted_date = row.plantedDate;
+    if (row.status !== undefined) db.status = row.status;
+    if (row.notes !== undefined) db.notes = row.notes;
+    return db;
+  }
+
   async getGardenRows(bedId: string): Promise<GardenRow[]> {
     const client = this.ensureClient();
     const { data, error } = await client
