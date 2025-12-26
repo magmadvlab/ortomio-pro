@@ -103,6 +103,46 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
     }
   }
 
+  const handleCreateGreenhouseBed = async () => {
+    if (!garden.greenhouseConfig) return
+
+    try {
+      setLoading(true)
+
+      const ghConfig = garden.greenhouseConfig
+
+      // Calculate area from greenhouse dimensions
+      const lengthCm = (ghConfig.length || 0) * 100
+      const widthCm = (ghConfig.width || 0) * 100
+      const areaSqMeters = (ghConfig.length || 0) * (ghConfig.width || 0)
+
+      const newBed: Omit<GardenBed, 'id' | 'createdAt' | 'updatedAt'> = {
+        gardenId: garden.id,
+        name: `Serra ${ghConfig.structureType}`,
+        bedType: 'Greenhouse',
+        shape: 'Rectangle',
+        lengthCm: lengthCm > 0 ? lengthCm : undefined,
+        widthCm: widthCm > 0 ? widthCm : undefined,
+        areaSqMeters: areaSqMeters > 0 ? areaSqMeters : undefined,
+        structureType: 'Greenhouse',
+        structureId: garden.id, // Link back to garden's greenhouse config
+        isCovered: true,
+        notes: `Letto serra creato automaticamente da configurazione ${ghConfig.structureType}`
+      }
+
+      await storageProvider.createGardenBed(newBed)
+      alert('✅ Letto serra creato! Ora puoi aggiungere filari per tracciare le tue coltivazioni.')
+
+      // Reload beds to show the new greenhouse bed
+      await loadGardenStructures()
+    } catch (error) {
+      console.error('Error creating greenhouse bed:', error)
+      alert('❌ Errore durante la creazione del letto serra')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (!isOpen) return null
 
   const tabs = [
@@ -598,7 +638,12 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                     {beds.map(bed => (
                       <div key={bed.id} className="bg-white rounded-lg p-3">
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium text-gray-900">{bed.name}</h4>
+                          <div>
+                            <h4 className="font-medium text-gray-900">{bed.name}</h4>
+                            {bed.bedType === 'Greenhouse' && (
+                              <span className="text-xs text-purple-600">🏠 Serra</span>
+                            )}
+                          </div>
                           {bed.lengthCm && bed.widthCm && (
                             <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
                               {(bed.lengthCm / 100).toFixed(1)}m × {(bed.widthCm / 100).toFixed(1)}m
@@ -629,6 +674,23 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                   </p>
                 )}
               </div>
+
+              {/* Greenhouse Bed Creation */}
+              {garden.greenhouseConfig && !beds.some(b => b.bedType === 'Greenhouse') && (
+                <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                  <h4 className="font-semibold text-purple-900 mb-2">🏠 Serra Configurata</h4>
+                  <p className="text-sm text-purple-700 mb-3">
+                    Hai una serra configurata ({garden.greenhouseConfig.structureType}). Crea un letto in serra per tracciare irrigazione, fertilizzazioni e produzioni scalari.
+                  </p>
+                  <button
+                    onClick={handleCreateGreenhouseBed}
+                    disabled={loading}
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+                  >
+                    {loading ? 'Creazione...' : 'Crea Letto in Serra'}
+                  </button>
+                </div>
+              )}
 
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
                 <p className="text-sm text-gray-700">

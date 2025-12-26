@@ -89,10 +89,10 @@ import { PlantingWindow } from './services/plantingWindowOptimizer';
 import { PlantSuggestionForWindow } from './services/seasonalPlantSuggestions';
 
 // Advanced Growing Systems Types
-import { 
-  IndoorGrowingConfig, 
-  HydroponicSystemConfig, 
-  AquaponicSystemConfig, 
+import {
+  IndoorGrowingConfig,
+  HydroponicSystemConfig,
+  AquaponicSystemConfig,
   AeroponicSystemConfig,
   HydroponicTaskData,
   AquaponicTaskData,
@@ -100,6 +100,16 @@ import {
 } from './types/indoorGrowing';
 import { GreenhouseConfig } from './types/greenhouse';
 import { ArchetypeId } from './types/archetypes';
+
+// Hierarchical Garden Spaces Types (GardenWizardV2)
+import type {
+  OpenFieldSpace,
+  GreenhouseSpace,
+  IndoorSpace,
+  GardenSpacesInfo,
+  GrowingSystem,
+  SpaceStructures
+} from './types/gardenSpaces';
 
 // Re-export ArchetypeId for convenience
 export type { ArchetypeId };
@@ -330,7 +340,21 @@ export interface Garden {
   
   // Configurazione dettagliata strutture (vasi, cassoni, vasche, letti, campo aperto)
   structureConfig?: StructureConfig;
-  
+
+  // NUOVO: Sistema gerarchico spazi coltivabili (GardenWizardV2)
+  // Strategia organizzativa dell'orto
+  strategy?: 'unified' | 'separated'; // unified = tutto in un orto, separated = più orti indipendenti
+
+  // Flags per identificare quali spazi sono presenti
+  hasOpenField?: boolean;
+  hasGreenhouse?: boolean;
+  hasIndoor?: boolean;
+
+  // Configurazioni spazi gerarchici
+  openFieldSpace?: OpenFieldSpace;
+  greenhouseSpace?: GreenhouseSpace;
+  indoorSpace?: IndoorSpace;
+
   // SOLAR ENGINE - Punti mappati dell'orto
   points?: GardenPoint[]; // Punti mappati dell'orto con score
   
@@ -1740,3 +1764,20 @@ export type {
   FieldRowOccupancy,
   ScalarProductionCalendar
 } from './types/fieldRow';
+
+// ============================================
+// HIERARCHICAL GARDEN SPACES TYPES
+// ============================================
+
+export type {
+  OpenFieldSpace,
+  GreenhouseSpace,
+  IndoorSpace,
+  GardenSpacesInfo,
+  GrowingSystem,
+  SpaceStructures,
+  GreenhouseDimensions,
+  IndoorSystemType,
+  VerticalFarmingConfig,
+  GrowBoxConfig
+} from './types/gardenSpaces';
