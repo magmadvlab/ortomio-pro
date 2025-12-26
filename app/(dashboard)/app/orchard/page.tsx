@@ -14,6 +14,7 @@ import { getCategoryInfo } from '@/types/orchardTypes'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import Link from 'next/link'
+import { CreateOrchardWizard } from '@/components/crops/CreateOrchardWizard'
 
 export default function OrchardPage() {
   const { storageProvider } = useStorage()
@@ -408,22 +409,17 @@ export default function OrchardPage() {
           </div>
         )}
 
-        {/* TODO: Wizard aggiunta albero - da implementare */}
-        {showAddWizard && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full">
-              <h2 className="text-xl font-bold mb-4">Aggiungi Albero da Frutto</h2>
-              <p className="text-gray-600 mb-4">
-                Il wizard per aggiungere alberi da frutto sarà disponibile a breve.
-              </p>
-              <button
-                onClick={() => setShowAddWizard(false)}
-                className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-              >
-                Chiudi
-              </button>
-            </div>
-          </div>
+        {/* Wizard Aggiunta Albero */}
+        {showAddWizard && selectedGarden && (
+          <CreateOrchardWizard
+            garden={selectedGarden}
+            orchardType="orchard"
+            onComplete={async (config) => {
+              setShowAddWizard(false)
+              await loadData() // Ricarica dati per mostrare nuovo albero
+            }}
+            onCancel={() => setShowAddWizard(false)}
+          />
         )}
       </ProFeatureGate>
     </div>
