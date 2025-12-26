@@ -26,15 +26,21 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="it">
+    <html lang="it" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/favicon.ico" />
       </head>
-      <body className="min-h-screen" style={{
-        background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 25%, #a7f3d0 50%, #d1fae5 75%, #ecfdf5 100%)',
-        backgroundAttachment: 'fixed'
-      }}>{children}</body>
+      <body
+        className="min-h-screen"
+        suppressHydrationWarning
+        style={{
+          background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 25%, #a7f3d0 50%, #d1fae5 75%, #ecfdf5 100%)',
+          backgroundAttachment: 'fixed'
+        }}
+      >
+        {children}
+      </body>
     </html>
   )
 }
