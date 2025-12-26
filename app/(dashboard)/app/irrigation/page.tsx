@@ -16,7 +16,10 @@ import { IrrigationZoneWizard } from '@/components/irrigation/IrrigationZoneWiza
 import { WateringLogForm } from '@/components/irrigation/WateringLogForm'
 import { IrrigationSystemModal } from '@/components/irrigation/IrrigationSystemModal'
 import { IrrigationZoneEditModal } from '@/components/irrigation/IrrigationZoneEditModal'
+import { IrrigationZoneAnalytics } from '@/components/irrigation/IrrigationZoneAnalytics'
+import { ZoneBedRelationshipGuide } from '@/components/irrigation/ZoneBedRelationshipGuide'
 import { Droplets, Plus, FileText, Settings } from 'lucide-react'
+import { GardenBed } from '@/types/gardenBed'
 
 function IrrigationContent() {
   const { storageProvider } = useStorage()
@@ -29,6 +32,7 @@ function IrrigationContent() {
   const [systems, setSystems] = useState<IrrigationSystem[]>([])
   const [zones, setZones] = useState<IrrigationZone[]>([])
   const [logs, setLogs] = useState<WateringLog[]>([])
+  const [beds, setBeds] = useState<GardenBed[]>([]) // Beds del garden attivo
 
   const [selectedSystemId, setSelectedSystemId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -68,6 +72,10 @@ function IrrigationContent() {
   const loadIrrigationData = async (gardenId: string) => {
     setLoading(true)
     try {
+      // Carica beds del garden
+      const bedsData = await storageProvider.getGardenBeds(gardenId)
+      setBeds(bedsData || [])
+
       const systemsData = await storageProvider.getIrrigationSystems(gardenId)
       setSystems(systemsData)
 
@@ -511,6 +519,32 @@ function IrrigationContent() {
               />
 
               <WateringHistory logs={selectedSystemLogs} />
+
+              {/* Guida relazione Zone-Beds */}
+              {(selectedSystemZones.length > 0 || beds.length > 0) && (
+                <div className="mt-6">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Organizzazione Zone e Letti</h3>
+                  <ZoneBedRelationshipGuide zones={selectedSystemZones} beds={beds} />
+                </div>
+              )}
+
+              {/* Analytics per zona */}
+              {selectedSystemZones.length > 0 && (
+                <div className="space-y-6 mt-6">
+                  <h3 className="text-xl font-bold text-gray-900">Analytics per Zona</h3>
+                  {selectedSystemZones.map(zone => {
+                    const zoneLogs = logs.filter(log => log.zoneId === zone.id)
+                    return (
+                      <IrrigationZoneAnalytics
+                        key={zone.id}
+                        zone={zone}
+                        logs={zoneLogs}
+                        beds={beds}
+                      />
+                    )
+                  })}
+                </div>
+              )}
             </>
           )}
         </>
