@@ -1576,6 +1576,8 @@ export interface MechanicalWorkRecord {
   id: string
   user_id: string
   garden_id?: string
+  bed_id?: string // Micro-zone tracking
+  row_id?: string // Micro-zone tracking
   work_type: MechanicalWorkType
   work_date: string // ISO date string
   area_m2: number

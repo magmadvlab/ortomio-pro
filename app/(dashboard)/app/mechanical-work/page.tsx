@@ -80,6 +80,12 @@ export default function MechanicalWorkPage() {
   const [showForm, setShowForm] = useState(false)
   const [selectedGardenId, setSelectedGardenId] = useState<string>('')
   const [selectedCropId, setSelectedCropId] = useState<string>('')
+
+  // Micro-zone tracking
+  const [beds, setBeds] = useState<any[]>([])
+  const [rows, setRows] = useState<any[]>([])
+  const [selectedBedId, setSelectedBedId] = useState<string>('')
+  const [selectedRowId, setSelectedRowId] = useState<string>('')
   
   // Tillage Engine - Suggerimenti lavorazioni
   const [tillageRecommendation, setTillageRecommendation] = useState<TillageWork | null>(null)
@@ -103,6 +109,45 @@ export default function MechanicalWorkPage() {
   useEffect(() => {
     loadData()
   }, [storageProvider, selectedGardenId])
+
+  // Carica beds e rows quando cambia il garden
+  useEffect(() => {
+    const loadGardenStructure = async () => {
+      if (!selectedGardenId) {
+        setBeds([])
+        setRows([])
+        setSelectedBedId('')
+        setSelectedRowId('')
+        return
+      }
+
+      try {
+        // Carica aiuole
+        const gardenBeds = await storageProvider.getGardenBeds(selectedGardenId)
+        setBeds(gardenBeds || [])
+
+        // Carica file se ci sono aiuole
+        if (gardenBeds && gardenBeds.length > 0) {
+          const allRows: any[] = []
+          for (const bed of gardenBeds) {
+            const bedRows = await storageProvider.getFieldRows(selectedGardenId, bed.id)
+            if (bedRows) {
+              allRows.push(...bedRows)
+            }
+          }
+          setRows(allRows)
+        } else {
+          setRows([])
+        }
+      } catch (error) {
+        console.error('Error loading garden structure:', error)
+        setBeds([])
+        setRows([])
+      }
+    }
+
+    loadGardenStructure()
+  }, [selectedGardenId, storageProvider])
   
   // Ottieni lavorazioni suggerite per la coltura selezionata
   const suggestedWorks = useMemo(() => {
@@ -203,6 +248,8 @@ export default function MechanicalWorkPage() {
     try {
       const newWork = await storageProvider.createMechanicalWork({
         garden_id: selectedGardenId || undefined,
+        bed_id: selectedBedId || undefined,
+        row_id: selectedRowId || undefined,
         work_type: formData.work_type!,
         work_date: formData.work_date!,
         area_m2: formData.area_m2 ? parseFloat(formData.area_m2.toString()) : 0,
@@ -253,6 +300,53 @@ export default function MechanicalWorkPage() {
       work_metadata: {}
     })
     setSelectedCropId('')
+    setSelectedBedId('')
+    setSelectedRowId('')
+  }
+
+  // Filtra tipi di lavorazione in base al tipo di garden
+  const getAvailableWorkTypes = () => {
+    const selectedGarden = gardens.find(g => g.id === selectedGardenId)
+    if (!selectedGarden) return [] // Nessun garden selezionato
+
+    const gardenType = selectedGarden.type || 'outdoor'
+
+    // Lavorazioni non applicabili a sistemi indoor
+    const outdoorOnlyWorks: WorkType[] = [
+      'Plowing', 'Subsoiling', 'Harrowing', 'Tilling', 'Rolling', 'Hoeing', 'EarthingUp',
+      'PostSowingRolling', 'Clearing', 'Stumping', 'StoneRemoval', 'Leveling', 'DeepSubsoiling',
+      'Digging', 'DeepHarrowing', 'Crumbling', 'Scraping', 'SurfaceLeveling',
+      'MinimumTillage', 'StripTillage', 'NoTill'
+    ]
+
+    // Se è indoor (aeroponic, hydroponic, aquaponic), escludi lavorazioni suolo
+    if (['aeroponic', 'hydroponic', 'aquaponic'].includes(gardenType)) {
+      return [
+        // Solo lavorazioni chioma/gestione piante
+        'FormativePruning', 'MaintenancePruning', 'RejuvenationPruning', 'SummerPruning', 'WinterPruning',
+        'Thinning', 'Suckering', 'Defoliation', 'Tying', 'Mulching',
+        'OliveShredding', 'RunnerManagement', 'StrawberryMulching', 'StrawberryCleaning',
+        'CaneRemoval', 'TipPruning', 'RaspberryTying', 'SuckerThinning', 'FruitBagging',
+        'ExoticThinning', 'Shredding', 'Topping', 'Pruning'
+      ] as WorkType[]
+    }
+
+    // Per outdoor/raised-bed, tutte le lavorazioni sono disponibili
+    return [
+      // Suolo
+      'Plowing', 'Subsoiling', 'Harrowing', 'Tilling', 'Rolling', 'Hoeing', 'EarthingUp', 'Mulching', 'PostSowingRolling',
+      // Preparazione
+      'Clearing', 'Stumping', 'StoneRemoval', 'Leveling', 'DeepSubsoiling', 'Digging', 'DeepHarrowing', 'Crumbling', 'Scraping', 'SurfaceLeveling',
+      // Moderne
+      'MinimumTillage', 'StripTillage', 'NoTill',
+      // Chioma
+      'FormativePruning', 'MaintenancePruning', 'RejuvenationPruning', 'SummerPruning', 'WinterPruning',
+      'Thinning', 'Suckering', 'Defoliation', 'Tying', 'OliveShredding', 'RunnerManagement',
+      'StrawberryMulching', 'StrawberryCleaning', 'CaneRemoval', 'TipPruning', 'RaspberryTying',
+      'SuckerThinning', 'FruitBagging', 'ExoticThinning', 'Shredding',
+      // Generale
+      'Topping', 'Pruning'
+    ] as WorkType[]
   }
   
   // Quando cambia la coltura, suggerisci lavorazioni
@@ -439,6 +533,72 @@ export default function MechanicalWorkPage() {
           <div className="bg-white rounded-lg shadow-md p-6 mb-6 border-2 border-orange-200">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Nuova Lavorazione Meccanica</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Selettore Orto */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Orto/Giardino *
+                </label>
+                <select
+                  required
+                  value={selectedGardenId}
+                  onChange={(e) => setSelectedGardenId(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">Seleziona orto...</option>
+                  {gardens.map(garden => (
+                    <option key={garden.id} value={garden.id}>
+                      {garden.name} ({garden.type || 'outdoor'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Selettori Micro-Zone (se disponibili) */}
+              {selectedGardenId && beds.length > 0 && (
+                <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <MapPin size={18} className="text-blue-600" />
+                    Dove (opzionale)
+                  </h3>
+
+                  {/* Bed selector */}
+                  <div className="mb-3">
+                    <label className="text-xs font-semibold text-gray-700 mb-2 block">
+                      Aiuola/Letto
+                    </label>
+                    <select
+                      value={selectedBedId}
+                      onChange={(e) => setSelectedBedId(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Tutto l'orto</option>
+                      {beds.map(bed => (
+                        <option key={bed.id} value={bed.id}>{bed.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Row selector */}
+                  {rows.length > 0 && selectedBedId && (
+                    <div>
+                      <label className="text-xs font-semibold text-gray-700 mb-2 block">
+                        Fila/Filare
+                      </label>
+                      <select
+                        value={selectedRowId}
+                        onChange={(e) => setSelectedRowId(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Tutta l'aiuola</option>
+                        {rows.filter(row => row.bedId === selectedBedId).map(row => (
+                          <option key={row.id} value={row.id}>{row.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Campo Coltura (opzionale) */}
                 <div>
@@ -468,80 +628,92 @@ export default function MechanicalWorkPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Tipo Lavorazione *
                   </label>
-                  <select
-                    required
-                    value={formData.work_type || 'Plowing'}
-                    onChange={(e) => {
-                      const newWorkType = e.target.value as WorkType
-                      const category = getWorkCategory(newWorkType)
-                      setFormData({ 
-                        ...formData, 
-                        work_type: newWorkType,
-                        work_metadata: {
-                          ...formData.work_metadata,
-                          category,
-                          cropId: selectedCropId || undefined,
-                          cropName: selectedCropId ? cropMechanicalWorksConfig.find(c => c.cropId === selectedCropId)?.cropName : undefined
-                        }
-                      })
-                    }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  >
-                    <optgroup label="Suolo">
-                      <option value="Plowing">Aratura</option>
-                      <option value="Subsoiling">Ripuntatura / Subsolatura</option>
-                      <option value="Harrowing">Erpicatura / Frangizzolatura</option>
-                      <option value="Tilling">Fresatura</option>
-                      <option value="Rolling">Livellamento / Rullatura</option>
-                      <option value="Hoeing">Sarchiatura</option>
-                      <option value="EarthingUp">Rincalzatura</option>
-                      <option value="Mulching">Pacciamatura</option>
-                      <option value="PostSowingRolling">Rullatura Post-Semina</option>
-                    </optgroup>
-                    <optgroup label="Preparazione Terreno">
-                      <option value="Clearing">Disboscamento</option>
-                      <option value="Stumping">Estirpazione Ceppi</option>
-                      <option value="StoneRemoval">Rimozione Pietre</option>
-                      <option value="Leveling">Livellamento</option>
-                      <option value="DeepSubsoiling">Ripuntatura Profonda</option>
-                      <option value="Digging">Scavo</option>
-                      <option value="DeepHarrowing">Erpicatura Profonda</option>
-                      <option value="Crumbling">Frangizzolatura</option>
-                      <option value="Scraping">Raschiamento</option>
-                      <option value="SurfaceLeveling">Livellamento Superficie</option>
-                    </optgroup>
-                    <optgroup label="Tecniche Moderne">
-                      <option value="MinimumTillage">Lavorazione Minima</option>
-                      <option value="StripTillage">Lavorazione a Strisce</option>
-                      <option value="NoTill">No-Till</option>
-                    </optgroup>
-                    <optgroup label="Chioma">
-                      <option value="FormativePruning">Potatura di Formazione</option>
-                      <option value="MaintenancePruning">Potatura di Produzione</option>
-                      <option value="RejuvenationPruning">Potatura di Ringiovanimento</option>
-                      <option value="SummerPruning">Potatura Verde</option>
-                      <option value="WinterPruning">Potatura Secca (Guyot/Cordone)</option>
-                      <option value="Thinning">Diradamento Frutti</option>
-                      <option value="Suckering">Potatura Verde / Scacchiatura</option>
-                      <option value="Defoliation">Defogliazione</option>
-                      <option value="Tying">Legatura / Palizzamento</option>
-                      <option value="OliveShredding">Trinciatura Residui</option>
-                      <option value="RunnerManagement">Gestione Stoloni (Runners)</option>
-                      <option value="StrawberryMulching">Pacciamatura ai Filari</option>
-                      <option value="StrawberryCleaning">Pulizia Foglie e Frutti</option>
-                      <option value="CaneRemoval">Potatura Canne Vecchie</option>
-                      <option value="TipPruning">Tip-Pruning / Cimatura</option>
-                      <option value="RaspberryTying">Legatura a Fili</option>
-                      <option value="SuckerThinning">Diradamento Polloni</option>
-                      <option value="FruitBagging">Insacchettamento Frutti</option>
-                      <option value="ExoticThinning">Diradamento Frutticini</option>
-                      <option value="Shredding">Trinciatura Inerbimento</option>
-                    </optgroup>
-                    <optgroup label="Generale">
-                      <option value="Topping">Cimatura</option>
-                      <option value="Pruning">Potatura</option>
-                    </optgroup>
-                  </select>
+                  {!selectedGardenId ? (
+                    <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm">
+                      Seleziona prima un orto
+                    </div>
+                  ) : (
+                    <select
+                      required
+                      value={formData.work_type || getAvailableWorkTypes()[0]}
+                      onChange={(e) => {
+                        const newWorkType = e.target.value as WorkType
+                        const category = getWorkCategory(newWorkType)
+                        setFormData({
+                          ...formData,
+                          work_type: newWorkType,
+                          work_metadata: {
+                            ...formData.work_metadata,
+                            category,
+                            cropId: selectedCropId || undefined,
+                            cropName: selectedCropId ? cropMechanicalWorksConfig.find(c => c.cropId === selectedCropId)?.cropName : undefined
+                          }
+                        })
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    >
+                      {getAvailableWorkTypes().includes('Plowing' as WorkType) && (
+                        <optgroup label="Suolo">
+                          <option value="Plowing">Aratura</option>
+                          <option value="Subsoiling">Ripuntatura / Subsolatura</option>
+                          <option value="Harrowing">Erpicatura / Frangizzolatura</option>
+                          <option value="Tilling">Fresatura</option>
+                          <option value="Rolling">Livellamento / Rullatura</option>
+                          <option value="Hoeing">Sarchiatura</option>
+                          <option value="EarthingUp">Rincalzatura</option>
+                          <option value="Mulching">Pacciamatura</option>
+                          <option value="PostSowingRolling">Rullatura Post-Semina</option>
+                        </optgroup>
+                      )}
+                      {getAvailableWorkTypes().includes('Clearing' as WorkType) && (
+                        <optgroup label="Preparazione Terreno">
+                          <option value="Clearing">Disboscamento</option>
+                          <option value="Stumping">Estirpazione Ceppi</option>
+                          <option value="StoneRemoval">Rimozione Pietre</option>
+                          <option value="Leveling">Livellamento</option>
+                          <option value="DeepSubsoiling">Ripuntatura Profonda</option>
+                          <option value="Digging">Scavo</option>
+                          <option value="DeepHarrowing">Erpicatura Profonda</option>
+                          <option value="Crumbling">Frangizzolatura</option>
+                          <option value="Scraping">Raschiamento</option>
+                          <option value="SurfaceLeveling">Livellamento Superficie</option>
+                        </optgroup>
+                      )}
+                      {getAvailableWorkTypes().includes('MinimumTillage' as WorkType) && (
+                        <optgroup label="Tecniche Moderne">
+                          <option value="MinimumTillage">Lavorazione Minima</option>
+                          <option value="StripTillage">Lavorazione a Strisce</option>
+                          <option value="NoTill">No-Till</option>
+                        </optgroup>
+                      )}
+                      <optgroup label="Chioma">
+                        <option value="FormativePruning">Potatura di Formazione</option>
+                        <option value="MaintenancePruning">Potatura di Produzione</option>
+                        <option value="RejuvenationPruning">Potatura di Ringiovanimento</option>
+                        <option value="SummerPruning">Potatura Verde</option>
+                        <option value="WinterPruning">Potatura Secca (Guyot/Cordone)</option>
+                        <option value="Thinning">Diradamento Frutti</option>
+                        <option value="Suckering">Potatura Verde / Scacchiatura</option>
+                        <option value="Defoliation">Defogliazione</option>
+                        <option value="Tying">Legatura / Palizzamento</option>
+                        <option value="OliveShredding">Trinciatura Residui</option>
+                        <option value="RunnerManagement">Gestione Stoloni (Runners)</option>
+                        <option value="StrawberryMulching">Pacciamatura ai Filari</option>
+                        <option value="StrawberryCleaning">Pulizia Foglie e Frutti</option>
+                        <option value="CaneRemoval">Potatura Canne Vecchie</option>
+                        <option value="TipPruning">Tip-Pruning / Cimatura</option>
+                        <option value="RaspberryTying">Legatura a Fili</option>
+                        <option value="SuckerThinning">Diradamento Polloni</option>
+                        <option value="FruitBagging">Insacchettamento Frutti</option>
+                        <option value="ExoticThinning">Diradamento Frutticini</option>
+                        <option value="Shredding">Trinciatura Inerbimento</option>
+                      </optgroup>
+                      <optgroup label="Generale">
+                        <option value="Topping">Cimatura</option>
+                        <option value="Pruning">Potatura</option>
+                      </optgroup>
+                    </select>
+                  )}
                 </div>
 
                 <div>
