@@ -48,6 +48,7 @@ import { useRouter } from 'next/navigation'
 import { QuickActions } from './QuickActions'
 import { GardenSelectorCard } from './GardenSelectorCard'
 import { TaskCard } from './TaskCard'
+import WeatherWidget from '@/components/WeatherWidget'
 import { GardenCard } from './GardenCard'
 import { ProgressCard } from './ProgressCard'
 import { WeatherTaskWidget } from './WeatherTaskAlert'
@@ -832,6 +833,21 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         {/* Progress Card */}
         {activeGarden && (
           <ProgressCard tasks={gardenTasks} gardenId={activeGarden.id} />
+        )}
+
+        {/* Weather Widget - 7 Day Forecast */}
+        {activeGarden && activeGarden.coordinates?.latitude && activeGarden.coordinates?.longitude && (
+          <WeatherWidget
+            latitude={activeGarden.coordinates.latitude}
+            longitude={activeGarden.coordinates.longitude}
+            activePlants={gardenTasks
+              .filter(t => !t.completed && t.plantName)
+              .map(t => ({
+                plantName: t.plantName,
+                minTemp: undefined // TODO: Extract from plant master data if available
+              }))
+            }
+          />
         )}
 
         {/* Irrigation Status - Spostato dopo Prossimi Giorni */}
