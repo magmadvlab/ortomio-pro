@@ -5,9 +5,9 @@
 | Form | Garden Selector | Bed/Row | Filtro Indoor/Outdoor | Status |
 |------|-----------------|---------|----------------------|--------|
 | **Lavorazioni Meccaniche** | ✅ | ✅ | ✅ | **COMPLETO** |
-| **Irrigazione** | ⚠️ | ✅ | N/A | Complesso (Systems/Zones) |
-| **Fertilizzazione** | ✅ | ✅ | N/A | Via task context |
-| **Trattamenti** | ✅ | ✅ | N/A | Via garden prop |
+| **Irrigazione** | ✅ | ✅ | N/A | **COMPLETO** (già aveva bed/row in form) |
+| **Fertilizzazione** | ✅ | ✅ | N/A | **COMPLETO** (via task context) |
+| **Trattamenti** | ✅ | ✅ | N/A | **COMPLETO** (via garden prop) |
 
 ## Pattern Implementato (Lavorazioni Meccaniche)
 
