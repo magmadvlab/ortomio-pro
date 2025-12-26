@@ -4,7 +4,7 @@
  */
 
 import { IStorageProvider } from '../core/storage/interface';
-import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB, GardenRow } from '@/types';
+import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB, GardenRow, GardenZone, FieldRow, PlantingBatch } from '@/types';
 import { CustomCrop, CropLearningEvent } from '@/types/customCrop';
 import { CustomPlan } from '@/types/customPlan';
 import { Agronomist, AgronomistConsultation, AgronomistAdvice } from '@/types/agronomist';
@@ -120,6 +120,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
   }
 
   async getUserPreference<T = any>(key: string): Promise<T | null> {
+    // TODO: Add 'preferences' JSONB column to profiles table
+    // For now, return null to avoid 400 errors
+    return null;
+
+    /* DISABLED UNTIL MIGRATION
     const client = this.ensureClient();
     try {
       const {
@@ -144,9 +149,15 @@ export class SupabaseStorageProvider implements IStorageProvider {
     } catch {
       return null;
     }
+    */
   }
 
   async setUserPreference<T = any>(key: string, value: T): Promise<void> {
+    // TODO: Add 'preferences' JSONB column to profiles table
+    // For now, do nothing to avoid 400 errors
+    return;
+
+    /* DISABLED UNTIL MIGRATION
     const client = this.ensureClient();
     try {
       const {
@@ -181,6 +192,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     } catch {
       // ignore (e.g. column doesn't exist yet)
     }
+    */
   }
 
   // Gardens
@@ -3468,6 +3480,200 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .delete()
       .eq('id', id);
     
+    if (error) throw error;
+  }
+
+  // ============================================
+  // GARDEN ZONES (Advanced Multi-Zone Management)
+  // ============================================
+  async getGardenZones(gardenId: string): Promise<GardenZone[]> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('garden_zones')
+      .select('*')
+      .eq('garden_id', gardenId)
+      .order('order_index', { ascending: true });
+
+    if (error) throw error;
+    return (data || []).map((db) => this.mapGardenZoneFromDB(db));
+  }
+
+  async getGardenZone(id: string): Promise<GardenZone | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('garden_zones')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? this.mapGardenZoneFromDB(data) : null;
+  }
+
+  async createGardenZone(zone: Omit<GardenZone, 'id' | 'createdAt' | 'updatedAt'>): Promise<GardenZone> {
+    const client = this.ensureClient();
+    const dbZone = this.mapGardenZoneToDB(zone);
+    const { data, error } = await client
+      .from('garden_zones')
+      .insert(dbZone)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapGardenZoneFromDB(data);
+  }
+
+  async updateGardenZone(id: string, updates: Partial<GardenZone>): Promise<GardenZone> {
+    const client = this.ensureClient();
+    const dbUpdates = this.mapGardenZoneToDB(updates as GardenZone);
+    const { data, error } = await client
+      .from('garden_zones')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapGardenZoneFromDB(data);
+  }
+
+  async deleteGardenZone(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client
+      .from('garden_zones')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  // ============================================
+  // FIELD ROWS (Open Field Rows)
+  // ============================================
+  async getFieldRows(gardenId?: string, zoneId?: string): Promise<FieldRow[]> {
+    const client = this.ensureClient();
+    let query = client.from('field_rows').select('*');
+
+    if (gardenId) query = query.eq('garden_id', gardenId);
+    if (zoneId) query = query.eq('zone_id', zoneId);
+
+    const { data, error } = await query.order('row_number', { ascending: true });
+
+    if (error) throw error;
+    return (data || []).map((db) => this.mapFieldRowFromDB(db));
+  }
+
+  async getFieldRow(id: string): Promise<FieldRow | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('field_rows')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? this.mapFieldRowFromDB(data) : null;
+  }
+
+  async createFieldRow(row: Omit<FieldRow, 'id' | 'createdAt' | 'updatedAt'>): Promise<FieldRow> {
+    const client = this.ensureClient();
+    const dbRow = this.mapFieldRowToDB(row);
+    const { data, error } = await client
+      .from('field_rows')
+      .insert(dbRow)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapFieldRowFromDB(data);
+  }
+
+  async updateFieldRow(id: string, updates: Partial<FieldRow>): Promise<FieldRow> {
+    const client = this.ensureClient();
+    const dbUpdates = this.mapFieldRowToDB(updates as FieldRow);
+    const { data, error } = await client
+      .from('field_rows')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapFieldRowFromDB(data);
+  }
+
+  async deleteFieldRow(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client
+      .from('field_rows')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  // ============================================
+  // PLANTING BATCHES (Scalar Planting Tracking)
+  // ============================================
+  async getPlantingBatches(gardenId?: string, fieldRowId?: string): Promise<PlantingBatch[]> {
+    const client = this.ensureClient();
+    let query = client.from('planting_batches').select('*');
+
+    if (gardenId) query = query.eq('garden_id', gardenId);
+    if (fieldRowId) query = query.eq('field_row_id', fieldRowId);
+
+    const { data, error } = await query.order('batch_number', { ascending: true });
+
+    if (error) throw error;
+    return (data || []).map((db) => this.mapPlantingBatchFromDB(db));
+  }
+
+  async getPlantingBatch(id: string): Promise<PlantingBatch | null> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('planting_batches')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? this.mapPlantingBatchFromDB(data) : null;
+  }
+
+  async createPlantingBatch(batch: Omit<PlantingBatch, 'id' | 'createdAt' | 'updatedAt'>): Promise<PlantingBatch> {
+    const client = this.ensureClient();
+    const dbBatch = this.mapPlantingBatchToDB(batch);
+    const { data, error } = await client
+      .from('planting_batches')
+      .insert(dbBatch)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapPlantingBatchFromDB(data);
+  }
+
+  async updatePlantingBatch(id: string, updates: Partial<PlantingBatch>): Promise<PlantingBatch> {
+    const client = this.ensureClient();
+    const dbUpdates = this.mapPlantingBatchToDB(updates as PlantingBatch);
+    const { data, error } = await client
+      .from('planting_batches')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapPlantingBatchFromDB(data);
+  }
+
+  async deletePlantingBatch(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client
+      .from('planting_batches')
+      .delete()
+      .eq('id', id);
+
     if (error) throw error;
   }
 
