@@ -29,38 +29,55 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!can('advancedWeather')) {
+    const hasAccess = can('advancedWeather');
+
+    if (!hasAccess) {
       setLoading(false);
       return;
     }
 
     loadForecast();
-  }, [latitude, longitude, can]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latitude, longitude]); // Rimuovi 'can' dalle dipendenze per evitare loop
 
   const loadForecast = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Try cache first
-      const cached = await getCachedForecast(latitude, longitude);
-      if (cached && cached.length > 0) {
-        setForecast(cached);
-        const generatedAlerts = generateWeatherAlerts(cached, activePlants);
-        setAlerts(generatedAlerts);
+      // Timeout di sicurezza per evitare loading infinito
+      const timeoutId = setTimeout(() => {
         setLoading(false);
-        return;
-      }
+        setError('Timeout: impossibile caricare le previsioni meteo');
+      }, 10000); // 10 secondi
 
-      // Fetch from API
-      const data = await getWeatherForecast7Days(latitude, longitude);
-      if (data.length > 0) {
-        setForecast(data);
-        await cacheForecast(latitude, longitude, data);
-        const generatedAlerts = generateWeatherAlerts(data, activePlants);
-        setAlerts(generatedAlerts);
-      } else {
-        setError('Impossibile caricare le previsioni meteo');
+      try {
+        // Try cache first
+        const cached = await getCachedForecast(latitude, longitude);
+        if (cached && cached.length > 0) {
+          clearTimeout(timeoutId);
+          setForecast(cached);
+          const generatedAlerts = generateWeatherAlerts(cached, activePlants);
+          setAlerts(generatedAlerts);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch from API
+        const data = await getWeatherForecast7Days(latitude, longitude);
+        clearTimeout(timeoutId);
+
+        if (data && data.length > 0) {
+          setForecast(data);
+          await cacheForecast(latitude, longitude, data);
+          const generatedAlerts = generateWeatherAlerts(data, activePlants);
+          setAlerts(generatedAlerts);
+        } else {
+          setError('Nessun dato meteo disponibile');
+        }
+      } catch (innerErr) {
+        clearTimeout(timeoutId);
+        throw innerErr;
       }
     } catch (err) {
       console.error('Error loading weather forecast:', err);
