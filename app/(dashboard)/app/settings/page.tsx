@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useTier } from '@/packages/core/hooks/useTier'
-import { Settings, User, Bell, Palette, Shield, CreditCard, LogOut, Crown, Cloud, Key } from 'lucide-react'
+import { Settings, User, Bell, Palette, Shield, CreditCard, LogOut, Crown, Cloud, Key, Home } from 'lucide-react'
 import Link from 'next/link'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useGarden } from '@/packages/core/hooks/useGarden'
@@ -10,6 +10,7 @@ import { CloudSyncStatus } from '@/components/settings/CloudSyncStatus'
 import { AutoSyncSettings } from '@/components/settings/AutoSyncSettings'
 import BackupSettings from '@/components/BackupSettings'
 import APIConfigurationForm from '@/components/settings/APIConfigurationForm'
+import { GardenManager } from '@/components/settings/GardenManager'
 import { getSupabaseClient } from '@/config/supabase'
 
 // Componente per gestione preferenze notifiche
@@ -214,6 +215,7 @@ export default function SettingsPage() {
 
   const sections = [
     { id: 'profile', label: 'Profilo', icon: User },
+    { id: 'gardens', label: 'I Miei Orti', icon: Home },
     { id: 'notifications', label: 'Notifiche', icon: Bell },
     { id: 'preferences', label: 'Preferenze', icon: Palette },
     { id: 'api-config', label: 'API Keys', icon: Key },
@@ -306,6 +308,18 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeSection === 'gardens' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">I Miei Orti</h2>
+                  <p className="text-gray-600 mb-6">
+                    Gestisci i tuoi orti, cambia quello attivo o elimina quelli non più necessari
+                  </p>
+                </div>
+                <GardenManager />
               </div>
             )}
 
