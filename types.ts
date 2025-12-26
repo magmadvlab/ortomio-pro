@@ -1728,3 +1728,15 @@ export type { TillageWork, TillageWorkType, TillageProblem } from './logic/tilla
 
 // Re-export from data/tillageTools.ts for convenience
 export type { TillageTool } from './data/tillageTools';
+
+// ============================================
+// FIELD ROWS & SCALAR PRODUCTION TYPES
+// ============================================
+
+export type {
+  FieldRow,
+  PlantingBatch,
+  GardenZone,
+  FieldRowOccupancy,
+  ScalarProductionCalendar
+} from './types/fieldRow';
