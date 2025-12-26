@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { ProFeatureGate } from '@/components/shared/ProFeatureGate'
@@ -62,6 +62,8 @@ interface TreatmentFormState {
 export default function NutritionPage() {
   const { storageProvider } = useStorage()
   const { isPro } = useTier()
+
+  const loadedRowBedIdsRef = useRef<Set<string>>(new Set())
 
   const [activeTab, setActiveTab] = useState<TabKey>('advice')
   const [gardens, setGardens] = useState<any[]>([])
@@ -148,6 +150,12 @@ export default function NutritionPage() {
   }, [storageProvider, selectedGardenId])
 
   useEffect(() => {
+    loadedRowBedIdsRef.current = new Set()
+    setBedNameById({})
+    setRowNameById({})
+  }, [selectedGardenId])
+
+  useEffect(() => {
     const loadBeds = async () => {
       if (!selectedGardenId) {
         setBeds([])
@@ -181,22 +189,26 @@ export default function NutritionPage() {
         if ((t as any).bed_id) bedIdsInHistory.add((t as any).bed_id)
       })
 
+      const bedIdsToFetch = Array.from(bedIdsInHistory).filter((id) => !loadedRowBedIdsRef.current.has(id))
+      if (bedIdsToFetch.length === 0) return
+
       const rowsMap: Record<string, string> = {}
-      try {
-        await Promise.all(
-          Array.from(bedIdsInHistory).map(async (bedId) => {
-            try {
-              const rows = await storageProvider.getGardenRows(bedId)
-              ;(rows || []).forEach((r) => {
-                rowsMap[r.id] = r.name
-              })
-            } catch {
-              // ignore
-            }
-          })
-        )
-      } finally {
-        setRowNameById(rowsMap)
+      await Promise.all(
+        bedIdsToFetch.map(async (bedId) => {
+          try {
+            const rows = await storageProvider.getGardenRows(bedId)
+            ;(rows || []).forEach((r) => {
+              rowsMap[r.id] = r.name
+            })
+            loadedRowBedIdsRef.current.add(bedId)
+          } catch {
+            // ignore
+          }
+        })
+      )
+
+      if (Object.keys(rowsMap).length > 0) {
+        setRowNameById((prev) => ({ ...prev, ...rowsMap }))
       }
     }
 

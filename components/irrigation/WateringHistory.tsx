@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Card } from '@/components/ui/Card'
 import { Calendar, Droplets, Clock, Cloud, Thermometer } from 'lucide-react'
 import { WateringLog } from '@/types/irrigation'
@@ -18,6 +18,9 @@ export function WateringHistory({ logs }: WateringHistoryProps) {
   const [bedNameById, setBedNameById] = useState<Record<string, string>>({})
   const [rowNameById, setRowNameById] = useState<Record<string, string>>({})
 
+  const loadedBedIdsRef = useRef<Set<string>>(new Set())
+  const loadedRowBedIdsRef = useRef<Set<string>>(new Set())
+
   const getLogDateTime = (log: WateringLog) => {
     return log.wateredAt || log.date
   }
@@ -31,36 +34,61 @@ export function WateringHistory({ logs }: WateringHistoryProps) {
   useEffect(() => {
     const loadNames = async () => {
       const bedIds = Array.from(new Set(logs.map((l) => l.bedId).filter((id): id is string => Boolean(id))))
-      const rowIds = Array.from(new Set(logs.map((l) => l.rowId).filter((id): id is string => Boolean(id))))
+      const bedIdsWithRows = Array.from(
+        new Set(logs.filter((l) => Boolean(l.bedId) && Boolean(l.rowId)).map((l) => l.bedId as string))
+      )
+      const rowIdsWithoutBed = Array.from(
+        new Set(logs.filter((l) => Boolean(l.rowId) && !l.bedId).map((l) => l.rowId as string))
+      )
+
+      const bedIdsToFetch = bedIds.filter((id) => !loadedBedIdsRef.current.has(id))
+      const rowBedIdsToFetch = bedIdsWithRows.filter((id) => !loadedRowBedIdsRef.current.has(id))
 
       try {
-        if (bedIds.length > 0) {
-          const beds = await Promise.all(bedIds.map((id) => storageProvider.getGardenBed(id)))
+        if (bedIdsToFetch.length > 0) {
+          const beds = await Promise.all(bedIdsToFetch.map((id) => storageProvider.getGardenBed(id)))
           const map: Record<string, string> = {}
           beds.filter((b): b is GardenBed => Boolean(b)).forEach((b) => {
             map[b.id] = b.name
+            loadedBedIdsRef.current.add(b.id)
           })
-          setBedNameById(map)
-        } else {
-          setBedNameById({})
+          setBedNameById((prev) => ({ ...prev, ...map }))
         }
       } catch {
-        setBedNameById({})
+        // ignore
       }
 
       try {
-        if (rowIds.length > 0) {
-          const rows = await Promise.all(rowIds.map((id) => storageProvider.getGardenRow(id)))
-          const map: Record<string, string> = {}
+        const rowsMap: Record<string, string> = {}
+
+        if (rowBedIdsToFetch.length > 0) {
+          await Promise.all(
+            rowBedIdsToFetch.map(async (bedId) => {
+              try {
+                const rows = await storageProvider.getGardenRows(bedId)
+                ;(rows || []).forEach((r) => {
+                  rowsMap[r.id] = r.name
+                })
+                loadedRowBedIdsRef.current.add(bedId)
+              } catch {
+                // ignore
+              }
+            })
+          )
+        }
+
+        if (rowIdsWithoutBed.length > 0) {
+          const rows = await Promise.all(rowIdsWithoutBed.map((id) => storageProvider.getGardenRow(id)))
           rows.filter((r): r is GardenRow => Boolean(r)).forEach((r) => {
-            map[r.id] = r.name
+            rowsMap[r.id] = r.name
           })
-          setRowNameById(map)
-        } else {
-          setRowNameById({})
+        }
+
+        if (Object.keys(rowsMap).length > 0) {
+          setRowNameById((prev) => ({ ...prev, ...rowsMap }))
         }
       } catch {
-        setRowNameById({})
+        // ignore
       }
     }
 

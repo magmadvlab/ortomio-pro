@@ -7,6 +7,7 @@ import { useGarden } from '@/packages/core/hooks/useGarden'
 import { Garden } from '@/types'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { GardenEditModal } from './GardenEditModal'
 
 export function GardenManager() {
   const { storageProvider } = useStorage()
@@ -14,6 +15,7 @@ export function GardenManager() {
   const [gardens, setGardens] = useState<Garden[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [editingGarden, setEditingGarden] = useState<Garden | null>(null)
 
   useEffect(() => {
     loadGardens()
@@ -85,6 +87,19 @@ export function GardenManager() {
     } catch (error) {
       console.error('Error setting active garden:', error)
     }
+  }
+
+  const handleEdit = (garden: Garden) => {
+    setEditingGarden(garden)
+  }
+
+  const handleCloseEdit = () => {
+    setEditingGarden(null)
+  }
+
+  const handleSaveEdit = async () => {
+    await loadGardens()
+    setEditingGarden(null)
   }
 
   const formatArea = (sizeSqMeters: number, sizeUnit?: string): string => {
@@ -204,6 +219,16 @@ export function GardenManager() {
                 )}
 
                 <button
+                  onClick={() => handleEdit(garden)}
+                  disabled={isDeleting}
+                  className="px-3 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  title="Modifica orto"
+                >
+                  <Edit size={16} />
+                  Modifica
+                </button>
+
+                <button
                   onClick={() => handleDelete(garden.id, garden.name)}
                   disabled={isDeleting}
                   className="px-3 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 flex items-center gap-2"
@@ -237,6 +262,16 @@ export function GardenManager() {
           <li>• Prima di eliminare, considera di fare un backup se necessario</li>
         </ul>
       </div>
+
+      {/* Garden Edit Modal */}
+      {editingGarden && (
+        <GardenEditModal
+          garden={editingGarden}
+          isOpen={true}
+          onClose={handleCloseEdit}
+          onSave={handleSaveEdit}
+        />
+      )}
     </div>
   )
 }
