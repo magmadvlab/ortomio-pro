@@ -12,6 +12,7 @@ import { calculateVineTasks, calculateBrixProgress, isOptimalHarvestTime, estima
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import Link from 'next/link'
+import { CreateOrchardWizard } from '@/components/crops/CreateOrchardWizard'
 
 export default function VineyardPage() {
   const { storageProvider } = useStorage()
@@ -400,22 +401,17 @@ export default function VineyardPage() {
           </div>
         )}
 
-        {/* TODO: Wizard aggiunta vite - da implementare */}
-        {showAddWizard && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full">
-              <h2 className="text-xl font-bold mb-4">Aggiungi Vite</h2>
-              <p className="text-gray-600 mb-4">
-                Il wizard per aggiungere viti sarà disponibile a breve.
-              </p>
-              <button
-                onClick={() => setShowAddWizard(false)}
-                className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-              >
-                Chiudi
-              </button>
-            </div>
-          </div>
+        {/* Wizard Aggiunta Vite */}
+        {showAddWizard && selectedGarden && (
+          <CreateOrchardWizard
+            garden={selectedGarden}
+            orchardType="vineyard"
+            onComplete={async (config) => {
+              setShowAddWizard(false)
+              await loadData() // Ricarica dati per mostrare nuova vite
+            }}
+            onCancel={() => setShowAddWizard(false)}
+          />
         )}
       </ProFeatureGate>
     </div>
