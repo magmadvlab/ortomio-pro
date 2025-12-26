@@ -9,6 +9,7 @@ import { FruitTreeCategory, fruitTreeCategories, getCategoryInfo } from '../../t
 import { useStorage } from '../../packages/core/hooks/useStorage';
 import { X, ArrowRight, ArrowLeft, TreePine, CircleDot, Grape, Calendar, Info, AlertCircle, CheckCircle, Lightbulb } from 'lucide-react';
 import { getCategoryTips, getCategoryRecommendations } from '../../data/orchardCategoryTips';
+import { generateOrchardTasks, getTasksSummary } from '../../data/orchardTaskTemplates';
 
 interface CreateOrchardWizardProps {
   garden: Garden;
@@ -56,6 +57,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
   });
   const [totalCount, setTotalCount] = useState('');
   const [varieties, setVarieties] = useState('');
+  const [generateTasks, setGenerateTasks] = useState(true); // Default: genera task automaticamente
   const [isSaving, setIsSaving] = useState(false);
   
   const handleComplete = async () => {
@@ -105,7 +107,25 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
       }
       
       await storageProvider.updateGarden(garden.id, updates);
-      
+
+      // Genera task automatici se richiesto e se è un frutteto
+      if (generateTasks && orchardType === 'orchard' && fruitCategory) {
+        try {
+          const plantedDateObj = new Date(establishedDate || new Date());
+          const tasks = generateOrchardTasks(fruitCategory, plantedDateObj, garden.id, garden.name);
+
+          // Crea tutti i task
+          for (const taskData of tasks) {
+            await storageProvider.createTask(taskData);
+          }
+
+          console.debug(`Generated ${tasks.length} tasks for ${fruitCategory}`);
+        } catch (error) {
+          console.error('Error generating tasks:', error);
+          // Non blocchiamo il flusso se task generation fallisce
+        }
+      }
+
       onComplete(config);
     } catch (error) {
       console.error('Error saving orchard config:', error);
@@ -589,7 +609,29 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                   Inserisci le varietà separate da virgola. Puoi aggiungerle anche successivamente.
                 </p>
               </div>
-              
+
+              {/* Opzione Generazione Task Automatici */}
+              {orchardType === 'orchard' && fruitCategory && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={generateTasks}
+                      onChange={(e) => setGenerateTasks(e.target.checked)}
+                      className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <div className="flex-1">
+                      <span className="font-medium text-gray-900">
+                        Genera task stagionali automaticamente
+                      </span>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {getTasksSummary(fruitCategory)} verranno creati nel calendario per guidarti nelle operazioni colturali.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              )}
+
               {/* Bottoni Navigazione */}
               <div className="flex justify-between mt-6">
                 <button

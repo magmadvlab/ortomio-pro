@@ -3,7 +3,7 @@
  * Abstract interface for storage operations (localStorage or Supabase)
  */
 
-import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB, GardenRow } from '../../../types';
+import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB, GardenRow, GardenZone, FieldRow, PlantingBatch } from '../../../types';
 import { CustomPlan } from '../../../types/customPlan';
 import { Agronomist, AgronomistConsultation, AgronomistAdvice } from '../../../types/agronomist';
 import { SeedlingBatch } from '../../../services/seedlingService';
@@ -232,6 +232,27 @@ export interface IStorageProvider {
   createWateringLog(log: Omit<WateringLog, 'id' | 'createdAt'>): Promise<WateringLog>;
   updateWateringLog(id: string, updates: Partial<WateringLog>): Promise<WateringLog>;
   deleteWateringLog(id: string): Promise<void>;
+
+  // Garden Zones (Advanced Multi-Zone Management)
+  getGardenZones(gardenId: string): Promise<GardenZone[]>;
+  getGardenZone(id: string): Promise<GardenZone | null>;
+  createGardenZone(zone: Omit<GardenZone, 'id' | 'createdAt' | 'updatedAt'>): Promise<GardenZone>;
+  updateGardenZone(id: string, updates: Partial<GardenZone>): Promise<GardenZone>;
+  deleteGardenZone(id: string): Promise<void>;
+
+  // Field Rows (Open Field Rows)
+  getFieldRows(gardenId?: string, zoneId?: string): Promise<FieldRow[]>;
+  getFieldRow(id: string): Promise<FieldRow | null>;
+  createFieldRow(row: Omit<FieldRow, 'id' | 'createdAt' | 'updatedAt'>): Promise<FieldRow>;
+  updateFieldRow(id: string, updates: Partial<FieldRow>): Promise<FieldRow>;
+  deleteFieldRow(id: string): Promise<void>;
+
+  // Planting Batches (Scalar Planting Tracking)
+  getPlantingBatches(gardenId?: string, fieldRowId?: string): Promise<PlantingBatch[]>;
+  getPlantingBatch(id: string): Promise<PlantingBatch | null>;
+  createPlantingBatch(batch: Omit<PlantingBatch, 'id' | 'createdAt' | 'updatedAt'>): Promise<PlantingBatch>;
+  updatePlantingBatch(id: string, updates: Partial<PlantingBatch>): Promise<PlantingBatch>;
+  deletePlantingBatch(id: string): Promise<void>;
 
   // Health Alerts (Salute Proattiva)
   getHealthAlerts(gardenId?: string): Promise<HealthAlert[]>;
