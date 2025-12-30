@@ -115,8 +115,8 @@ CREATE TABLE gardens (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_gardens_user_id ON gardens(user_id);
-CREATE INDEX idx_gardens_created_at ON gardens(created_at);
+CREATE INDEX IF NOT EXISTS idx_gardens_user_id ON gardens(user_id);
+CREATE INDEX IF NOT EXISTS idx_gardens_created_at ON gardens(created_at);
 
 -- GARDEN BEDS
 CREATE TABLE garden_beds (
@@ -142,7 +142,7 @@ CREATE TABLE garden_beds (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_garden_beds_garden_id ON garden_beds(garden_id);
+CREATE INDEX IF NOT EXISTS idx_garden_beds_garden_id ON garden_beds(garden_id);
 
 -- BED PLANTING HISTORY
 CREATE TABLE bed_planting_history (
@@ -158,9 +158,9 @@ CREATE TABLE bed_planting_history (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_bed_history_bed_id ON bed_planting_history(bed_id);
-CREATE INDEX idx_bed_history_year_season ON bed_planting_history(year, season);
-CREATE INDEX idx_bed_history_plant_family ON bed_planting_history(plant_family);
+CREATE INDEX IF NOT EXISTS idx_bed_history_bed_id ON bed_planting_history(bed_id);
+CREATE INDEX IF NOT EXISTS idx_bed_history_year_season ON bed_planting_history(year, season);
+CREATE INDEX IF NOT EXISTS idx_bed_history_plant_family ON bed_planting_history(plant_family);
 
 -- ============================================
 -- CROP ARCHETYPES (Sistema Archetipi 3 Livelli)
@@ -176,7 +176,7 @@ CREATE TABLE IF NOT EXISTS crop_archetypes (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_archetypes_parent ON crop_archetypes(parent_archetype_id);
+CREATE INDEX IF NOT EXISTS idx_archetypes_parent ON crop_archetypes(parent_archetype_id);
 
 CREATE TABLE IF NOT EXISTS crop_profiles (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -191,7 +191,7 @@ CREATE TABLE IF NOT EXISTS crop_profiles (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_profiles_archetype ON crop_profiles(archetype_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_archetype ON crop_profiles(archetype_id);
 
 CREATE TABLE IF NOT EXISTS crop_aliases (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -207,9 +207,9 @@ CREATE TABLE IF NOT EXISTS crop_aliases (
   UNIQUE(alias_text, region, province)
 );
 
-CREATE INDEX idx_aliases_text ON crop_aliases(alias_text);
-CREATE INDEX idx_aliases_archetype ON crop_aliases(archetype_id);
-CREATE INDEX idx_aliases_region ON crop_aliases(region, province);
+CREATE INDEX IF NOT EXISTS idx_aliases_text ON crop_aliases(alias_text);
+CREATE INDEX IF NOT EXISTS idx_aliases_archetype ON crop_aliases(archetype_id);
+CREATE INDEX IF NOT EXISTS idx_aliases_region ON crop_aliases(region, province);
 
 CREATE TABLE IF NOT EXISTS official_crops (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -220,8 +220,8 @@ CREATE TABLE IF NOT EXISTS official_crops (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_official_crops_archetype ON official_crops(archetype_id);
-CREATE INDEX idx_official_crops_name ON official_crops(name);
+CREATE INDEX IF NOT EXISTS idx_official_crops_archetype ON official_crops(archetype_id);
+CREATE INDEX IF NOT EXISTS idx_official_crops_name ON official_crops(name);
 
 -- GARDEN TASKS
 CREATE TABLE garden_tasks (
@@ -234,7 +234,7 @@ CREATE TABLE garden_tasks (
   location_type TEXT CHECK (location_type IN ('Pot', 'Ground', 'RaisedBed', 'HydroponicNFT', 'HydroponicDWC', 'HydroponicEbbFlow', 'HydroponicDrip', 'HydroponicWick', 'HydroponicKratky', 'Aquaponic', 'Aeroponic', 'Indoor')),
   initial_quantity INTEGER,
   current_quantity INTEGER,
-  task_type TEXT CHECK (task_type IN ('Sowing', 'Transplant', 'Fertilize', 'Prune', 'Harvest', 'Treatment', 'Plowing', 'Tilling', 'TreePruning')) NOT NULL,
+  task_type TEXT CHECK (task_type IN ('Sowing', 'Transplant', 'Fertilize', 'Prune', 'Harvest', 'Treatment', 'Plowing', 'Tilling', 'TreePruning', 'Clearing', 'Mulching')) NOT NULL,
   stage TEXT CHECK (stage IN ('Germination', 'Vegetative', 'ReadyToTransplant', 'Flowering', 'Fruiting', 'Harvested')),
   lifecycle_state TEXT CHECK (lifecycle_state IN ('Sowing', 'Germination', 'Nursing', 'Hardening', 'Transplanting', 'Production')),
   season TEXT CHECK (season IN ('Summer', 'Winter')),
@@ -279,14 +279,14 @@ CREATE TABLE garden_tasks (
   completed_at TIMESTAMP WITH TIME ZONE
 );
 
-CREATE INDEX idx_garden_tasks_garden_id ON garden_tasks(garden_id);
-CREATE INDEX idx_garden_tasks_bed_id ON garden_tasks(bed_id);
-CREATE INDEX idx_garden_tasks_date ON garden_tasks(date);
-CREATE INDEX idx_garden_tasks_completed ON garden_tasks(completed);
-CREATE INDEX idx_garden_tasks_plant_name ON garden_tasks(plant_name);
-CREATE INDEX idx_garden_tasks_suggested ON garden_tasks(is_suggested) WHERE is_suggested = true;
-CREATE INDEX idx_garden_tasks_suggested_date ON garden_tasks(suggested_date) WHERE suggested_date IS NOT NULL;
-CREATE INDEX idx_tasks_archetype ON garden_tasks(archetype_id);
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_garden_id ON garden_tasks(garden_id);
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_bed_id ON garden_tasks(bed_id);
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_date ON garden_tasks(date);
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_completed ON garden_tasks(completed);
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_plant_name ON garden_tasks(plant_name);
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_suggested ON garden_tasks(is_suggested) WHERE is_suggested = true;
+CREATE INDEX IF NOT EXISTS idx_garden_tasks_suggested_date ON garden_tasks(suggested_date) WHERE suggested_date IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_tasks_archetype ON garden_tasks(archetype_id);
 
 -- HARVEST LOGS
 CREATE TABLE harvest_logs (
@@ -310,10 +310,10 @@ CREATE TABLE harvest_logs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_harvest_logs_garden_id ON harvest_logs(garden_id);
-CREATE INDEX idx_harvest_logs_task_id ON harvest_logs(task_id);
-CREATE INDEX idx_harvest_logs_harvest_date ON harvest_logs(harvest_date);
-CREATE INDEX idx_harvest_logs_plant_name ON harvest_logs(plant_name);
+CREATE INDEX IF NOT EXISTS idx_harvest_logs_garden_id ON harvest_logs(garden_id);
+CREATE INDEX IF NOT EXISTS idx_harvest_logs_task_id ON harvest_logs(task_id);
+CREATE INDEX IF NOT EXISTS idx_harvest_logs_harvest_date ON harvest_logs(harvest_date);
+CREATE INDEX IF NOT EXISTS idx_harvest_logs_plant_name ON harvest_logs(plant_name);
 
 -- PHOTO LOGS
 CREATE TABLE photo_logs (
@@ -328,9 +328,9 @@ CREATE TABLE photo_logs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_photo_logs_task_id ON photo_logs(task_id);
-CREATE INDEX idx_photo_logs_garden_id ON photo_logs(garden_id);
-CREATE INDEX idx_photo_logs_photo_date ON photo_logs(photo_date);
+CREATE INDEX IF NOT EXISTS idx_photo_logs_task_id ON photo_logs(task_id);
+CREATE INDEX IF NOT EXISTS idx_photo_logs_garden_id ON photo_logs(garden_id);
+CREATE INDEX IF NOT EXISTS idx_photo_logs_photo_date ON photo_logs(photo_date);
 
 -- SEED INVENTORY
 CREATE TABLE seed_inventory (
@@ -349,9 +349,9 @@ CREATE TABLE seed_inventory (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_seed_inventory_user_id ON seed_inventory(user_id);
-CREATE INDEX idx_seed_inventory_garden_id ON seed_inventory(garden_id);
-CREATE INDEX idx_seed_inventory_expiry_year ON seed_inventory(expiry_year);
+CREATE INDEX IF NOT EXISTS idx_seed_inventory_user_id ON seed_inventory(user_id);
+CREATE INDEX IF NOT EXISTS idx_seed_inventory_garden_id ON seed_inventory(garden_id);
+CREATE INDEX IF NOT EXISTS idx_seed_inventory_expiry_year ON seed_inventory(expiry_year);
 
 -- SEEDLING BATCHES
 CREATE TABLE seedling_batches (
@@ -371,9 +371,9 @@ CREATE TABLE seedling_batches (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_seedling_batches_garden_id ON seedling_batches(garden_id);
-CREATE INDEX idx_seedling_batches_sowing_date ON seedling_batches(sowing_date);
-CREATE INDEX idx_seedling_batches_phase ON seedling_batches(phase);
+CREATE INDEX IF NOT EXISTS idx_seedling_batches_garden_id ON seedling_batches(garden_id);
+CREATE INDEX IF NOT EXISTS idx_seedling_batches_sowing_date ON seedling_batches(sowing_date);
+CREATE INDEX IF NOT EXISTS idx_seedling_batches_phase ON seedling_batches(phase);
 
 -- WEATHER CACHE
 CREATE TABLE weather_cache (
@@ -385,8 +385,8 @@ CREATE TABLE weather_cache (
   UNIQUE(lat_lng, date)
 );
 
-CREATE INDEX idx_weather_cache_lat_lng_date ON weather_cache(lat_lng, date);
-CREATE INDEX idx_weather_cache_cached_at ON weather_cache(cached_at);
+CREATE INDEX IF NOT EXISTS idx_weather_cache_lat_lng_date ON weather_cache(lat_lng, date);
+CREATE INDEX IF NOT EXISTS idx_weather_cache_cached_at ON weather_cache(cached_at);
 
 -- CUSTOM PLANS
 CREATE TABLE custom_plans (
@@ -405,9 +405,9 @@ CREATE TABLE custom_plans (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_custom_plans_user_id ON custom_plans(user_id);
-CREATE INDEX idx_custom_plans_garden_id ON custom_plans(garden_id);
-CREATE INDEX idx_custom_plans_base_master_sheet ON custom_plans(base_master_sheet_id);
+CREATE INDEX IF NOT EXISTS idx_custom_plans_user_id ON custom_plans(user_id);
+CREATE INDEX IF NOT EXISTS idx_custom_plans_garden_id ON custom_plans(garden_id);
+CREATE INDEX IF NOT EXISTS idx_custom_plans_base_master_sheet ON custom_plans(base_master_sheet_id);
 
 -- AGRONOMISTS
 CREATE TABLE agronomists (
@@ -424,7 +424,7 @@ CREATE TABLE agronomists (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_agronomists_user_id ON agronomists(user_id);
+CREATE INDEX IF NOT EXISTS idx_agronomists_user_id ON agronomists(user_id);
 
 -- AGRONOMIST CONSULTATIONS
 CREATE TABLE agronomist_consultations (
@@ -442,9 +442,9 @@ CREATE TABLE agronomist_consultations (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_consultations_agronomist_id ON agronomist_consultations(agronomist_id);
-CREATE INDEX idx_consultations_user_id ON agronomist_consultations(user_id);
-CREATE INDEX idx_consultations_task_id ON agronomist_consultations(task_id);
+CREATE INDEX IF NOT EXISTS idx_consultations_agronomist_id ON agronomist_consultations(agronomist_id);
+CREATE INDEX IF NOT EXISTS idx_consultations_user_id ON agronomist_consultations(user_id);
+CREATE INDEX IF NOT EXISTS idx_consultations_task_id ON agronomist_consultations(task_id);
 
 -- AGRONOMIST ADVICE
 CREATE TABLE agronomist_advice (
@@ -462,8 +462,8 @@ CREATE TABLE agronomist_advice (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_advice_consultation_id ON agronomist_advice(consultation_id);
-CREATE INDEX idx_advice_task_id ON agronomist_advice(task_id);
+CREATE INDEX IF NOT EXISTS idx_advice_consultation_id ON agronomist_advice(consultation_id);
+CREATE INDEX IF NOT EXISTS idx_advice_task_id ON agronomist_advice(task_id);
 
 -- GARDEN OBSTACLES
 CREATE TABLE garden_obstacles (
@@ -480,8 +480,8 @@ CREATE TABLE garden_obstacles (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_garden_obstacles_garden_id ON garden_obstacles(garden_id);
-CREATE INDEX idx_garden_obstacles_azimuth ON garden_obstacles(azimuth);
+CREATE INDEX IF NOT EXISTS idx_garden_obstacles_garden_id ON garden_obstacles(garden_id);
+CREATE INDEX IF NOT EXISTS idx_garden_obstacles_azimuth ON garden_obstacles(azimuth);
 
 -- GARDEN ACCESSORIES
 CREATE TABLE garden_accessories (
@@ -509,8 +509,8 @@ CREATE TABLE garden_accessories (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_accessories_garden_id ON garden_accessories(garden_id);
-CREATE INDEX idx_accessories_category ON garden_accessories(category);
+CREATE INDEX IF NOT EXISTS idx_accessories_garden_id ON garden_accessories(garden_id);
+CREATE INDEX IF NOT EXISTS idx_accessories_category ON garden_accessories(category);
 
 -- HYDROPONIC READINGS
 CREATE TABLE hydroponic_readings (
@@ -525,7 +525,7 @@ CREATE TABLE hydroponic_readings (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_hydroponic_readings_garden_date ON hydroponic_readings(garden_id, reading_date DESC);
+CREATE INDEX IF NOT EXISTS idx_hydroponic_readings_garden_date ON hydroponic_readings(garden_id, reading_date DESC);
 
 -- AQUAPONIC READINGS
 CREATE TABLE aquaponic_readings (
@@ -542,7 +542,7 @@ CREATE TABLE aquaponic_readings (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_aquaponic_readings_garden_date ON aquaponic_readings(garden_id, reading_date DESC);
+CREATE INDEX IF NOT EXISTS idx_aquaponic_readings_garden_date ON aquaponic_readings(garden_id, reading_date DESC);
 
 -- CALENDAR TASKS
 CREATE TABLE calendar_tasks (
@@ -563,9 +563,9 @@ CREATE TABLE calendar_tasks (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_calendar_tasks_user_date ON calendar_tasks(user_id, start_date);
-CREATE INDEX idx_calendar_tasks_garden ON calendar_tasks(garden_id);
-CREATE INDEX idx_calendar_tasks_recurring ON calendar_tasks(recurring) WHERE recurring = true;
+CREATE INDEX IF NOT EXISTS idx_calendar_tasks_user_date ON calendar_tasks(user_id, start_date);
+CREATE INDEX IF NOT EXISTS idx_calendar_tasks_garden ON calendar_tasks(garden_id);
+CREATE INDEX IF NOT EXISTS idx_calendar_tasks_recurring ON calendar_tasks(recurring) WHERE recurring = true;
 
 -- CHALLENGE COMPLETIONS
 CREATE TABLE challenge_completions (
@@ -581,9 +581,9 @@ CREATE TABLE challenge_completions (
   UNIQUE(user_id, challenge_id)
 );
 
-CREATE INDEX idx_challenge_completions_user ON challenge_completions(user_id);
-CREATE INDEX idx_challenge_completions_date ON challenge_completions(completed_at);
-CREATE INDEX idx_challenge_completions_challenge ON challenge_completions(challenge_id);
+CREATE INDEX IF NOT EXISTS idx_challenge_completions_user ON challenge_completions(user_id);
+CREATE INDEX IF NOT EXISTS idx_challenge_completions_date ON challenge_completions(completed_at);
+CREATE INDEX IF NOT EXISTS idx_challenge_completions_challenge ON challenge_completions(challenge_id);
 
 -- USER BADGES
 CREATE TABLE user_badges (
@@ -597,8 +597,8 @@ CREATE TABLE user_badges (
   UNIQUE(user_id, badge_id)
 );
 
-CREATE INDEX idx_user_badges_user ON user_badges(user_id);
-CREATE INDEX idx_user_badges_earned ON user_badges(earned_at);
+CREATE INDEX IF NOT EXISTS idx_user_badges_user ON user_badges(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_badges_earned ON user_badges(earned_at);
 
 -- ============================================
 -- STEP 4: PROFILES TABLE (con tier system corretto: FREE, PLUS, PRO)
@@ -642,8 +642,8 @@ CREATE TABLE ai_credit_transactions (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_credit_transactions_user ON ai_credit_transactions(user_id);
-CREATE INDEX idx_credit_transactions_created ON ai_credit_transactions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_credit_transactions_user ON ai_credit_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_credit_transactions_created ON ai_credit_transactions(created_at DESC);
 
 -- ============================================
 -- STEP 6: PROFESSIONAL SCHEMA (con tutte le correzioni)
@@ -668,10 +668,10 @@ CREATE TABLE professional_analytics (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_professional_analytics_user ON professional_analytics(user_id);
-CREATE INDEX idx_professional_analytics_garden ON professional_analytics(garden_id);
-CREATE INDEX idx_professional_analytics_year ON professional_analytics(year);
-CREATE INDEX idx_professional_analytics_crop ON professional_analytics(crop_name);
+CREATE INDEX IF NOT EXISTS idx_professional_analytics_user ON professional_analytics(user_id);
+CREATE INDEX IF NOT EXISTS idx_professional_analytics_garden ON professional_analytics(garden_id);
+CREATE INDEX IF NOT EXISTS idx_professional_analytics_year ON professional_analytics(year);
+CREATE INDEX IF NOT EXISTS idx_professional_analytics_crop ON professional_analytics(crop_name);
 
 -- TREATMENT REGISTER
 CREATE TABLE treatment_register (
@@ -693,10 +693,10 @@ CREATE TABLE treatment_register (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_treatment_register_user ON treatment_register(user_id);
-CREATE INDEX idx_treatment_register_date ON treatment_register(treatment_date DESC);
-CREATE INDEX idx_treatment_register_garden ON treatment_register(garden_id);
-CREATE INDEX idx_treatment_register_crop ON treatment_register(crop_name);
+CREATE INDEX IF NOT EXISTS idx_treatment_register_user ON treatment_register(user_id);
+CREATE INDEX IF NOT EXISTS idx_treatment_register_date ON treatment_register(treatment_date DESC);
+CREATE INDEX IF NOT EXISTS idx_treatment_register_garden ON treatment_register(garden_id);
+CREATE INDEX IF NOT EXISTS idx_treatment_register_crop ON treatment_register(crop_name);
 
 -- MECHANICAL WORK REGISTER (con tutte le nuove lavorazioni)
 CREATE TABLE mechanical_work_register (
@@ -737,10 +737,10 @@ CREATE TABLE mechanical_work_register (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_mechanical_work_user ON mechanical_work_register(user_id);
-CREATE INDEX idx_mechanical_work_date ON mechanical_work_register(work_date DESC);
-CREATE INDEX idx_mechanical_work_garden ON mechanical_work_register(garden_id);
-CREATE INDEX idx_mechanical_work_type ON mechanical_work_register(work_type);
+CREATE INDEX IF NOT EXISTS idx_mechanical_work_user ON mechanical_work_register(user_id);
+CREATE INDEX IF NOT EXISTS idx_mechanical_work_date ON mechanical_work_register(work_date DESC);
+CREATE INDEX IF NOT EXISTS idx_mechanical_work_garden ON mechanical_work_register(garden_id);
+CREATE INDEX IF NOT EXISTS idx_mechanical_work_type ON mechanical_work_register(work_type);
 
 -- CROP MECHANICAL WORKS
 CREATE TABLE crop_mechanical_works (
@@ -757,9 +757,9 @@ CREATE TABLE crop_mechanical_works (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_crop_mechanical_works_crop_id ON crop_mechanical_works(crop_id);
-CREATE INDEX idx_crop_mechanical_works_work_type ON crop_mechanical_works(work_type);
-CREATE INDEX idx_crop_mechanical_works_priority ON crop_mechanical_works(priority DESC);
+CREATE INDEX IF NOT EXISTS idx_crop_mechanical_works_crop_id ON crop_mechanical_works(crop_id);
+CREATE INDEX IF NOT EXISTS idx_crop_mechanical_works_work_type ON crop_mechanical_works(work_type);
+CREATE INDEX IF NOT EXISTS idx_crop_mechanical_works_priority ON crop_mechanical_works(priority DESC);
 
 -- CUSTOM CROPS (Pro Feature - Learning System)
 CREATE TABLE custom_crops (
@@ -784,9 +784,9 @@ CREATE TABLE custom_crops (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_custom_crops_user_id ON custom_crops(user_id);
-CREATE INDEX idx_custom_crops_garden_id ON custom_crops(garden_id);
-CREATE INDEX idx_custom_crops_common_name ON custom_crops(common_name);
+CREATE INDEX IF NOT EXISTS idx_custom_crops_user_id ON custom_crops(user_id);
+CREATE INDEX IF NOT EXISTS idx_custom_crops_garden_id ON custom_crops(garden_id);
+CREATE INDEX IF NOT EXISTS idx_custom_crops_common_name ON custom_crops(common_name);
 
 -- CROP LEARNING EVENTS (Pro Feature - Learning System)
 CREATE TABLE crop_learning_events (
@@ -802,10 +802,10 @@ CREATE TABLE crop_learning_events (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_learning_events_crop_id ON crop_learning_events(custom_crop_id);
-CREATE INDEX idx_learning_events_user_id ON crop_learning_events(user_id);
-CREATE INDEX idx_learning_events_type ON crop_learning_events(event_type);
-CREATE INDEX idx_learning_events_created_at ON crop_learning_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_learning_events_crop_id ON crop_learning_events(custom_crop_id);
+CREATE INDEX IF NOT EXISTS idx_learning_events_user_id ON crop_learning_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_learning_events_type ON crop_learning_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_learning_events_created_at ON crop_learning_events(created_at DESC);
 
 -- GARDEN MEMORY TABLES (se non esistono già, vengono create qui)
 -- Queste tabelle supportano il sistema di memoria contestuale del giardino
@@ -1571,4 +1571,3 @@ CREATE POLICY "Users can insert their own badges"
 -- ✅ Tutte le RLS policies corrette
 -- ✅ Tutte le funzioni e trigger
 -- ============================================
-
