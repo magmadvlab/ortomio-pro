@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS garden_tasks (
   initial_quantity INTEGER,
   current_quantity INTEGER,
   
-  task_type TEXT CHECK (task_type IN ('Sowing', 'Transplant', 'Fertilize', 'Prune', 'Harvest', 'Treatment', 'Plowing', 'Tilling', 'TreePruning')) NOT NULL,
+  task_type TEXT CHECK (task_type IN ('Sowing', 'Transplant', 'Fertilize', 'Prune', 'Harvest', 'Treatment', 'Plowing', 'Tilling', 'TreePruning', 'Clearing', 'Mulching')) NOT NULL,
   stage TEXT CHECK (stage IN ('Germination', 'Vegetative', 'ReadyToTransplant', 'Flowering', 'Fruiting', 'Harvested')),
   lifecycle_state TEXT CHECK (lifecycle_state IN ('Sowing', 'Germination', 'Nursing', 'IntermediateRepotting', 'Hardening', 'Transplanting', 'Production', 'Disposal')),
   season TEXT CHECK (season IN ('Summer', 'Winter')),
@@ -1245,4 +1245,3 @@ BEGIN
       FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
   END IF;
 END $$;
-

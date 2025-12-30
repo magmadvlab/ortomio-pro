@@ -992,6 +992,15 @@ export class SupabaseStorageProvider implements IStorageProvider {
     return task as GardenTask;
   }
 
+  private normalizeTaskType(taskType: string): string {
+    const normalized = taskType.trim();
+    const map: Record<string, string> = {
+      Fertilization: 'Fertilize',
+      Pruning: 'Prune',
+    };
+    return map[normalized] || normalized;
+  }
+
   private mapTaskToDB(task: Partial<GardenTask>): any {
     const db: any = {};
     if (task.gardenId !== undefined) db.garden_id = task.gardenId;
@@ -1001,7 +1010,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (task.locationType !== undefined) db.location_type = task.locationType;
     if (task.initialQuantity !== undefined) db.initial_quantity = task.initialQuantity;
     if (task.currentQuantity !== undefined) db.current_quantity = task.currentQuantity;
-    if (task.taskType !== undefined) db.task_type = task.taskType;
+    if (task.taskType !== undefined) db.task_type = this.normalizeTaskType(task.taskType);
     if (task.stage !== undefined) db.stage = task.stage;
     if (task.lifecycleState !== undefined) db.lifecycle_state = task.lifecycleState;
     if (task.season !== undefined) db.season = task.season;
@@ -3985,4 +3994,3 @@ export class SupabaseStorageProvider implements IStorageProvider {
     };
   }
 }
-
