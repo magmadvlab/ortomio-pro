@@ -27,7 +27,7 @@ services:
     image: supabase/studio:latest
     container_name: ortomio-studio
     ports:
-      - "3000:3000"
+      - "54330:3000"
     environment:
       SUPABASE_URL: http://kong:8000
       STUDIO_PG_META_URL: http://meta:8080
@@ -81,8 +81,8 @@ services:
       GOTRUE_API_PORT: 9999
       GOTRUE_DB_DRIVER: postgres
       GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@postgres:5432/postgres
-      GOTRUE_SITE_URL: http://localhost:3000
-      GOTRUE_URI_ALLOW_LIST: http://localhost:3000,http://localhost:5173
+      GOTRUE_SITE_URL: http://localhost:3002
+      GOTRUE_URI_ALLOW_LIST: http://localhost:3002,http://localhost:54326
       GOTRUE_DISABLE_SIGNUP: "false"
       GOTRUE_JWT_SECRET: ${JWT_SECRET}
       GOTRUE_JWT_EXP: ${JWT_EXP}
