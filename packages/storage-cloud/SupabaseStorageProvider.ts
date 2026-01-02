@@ -456,13 +456,13 @@ export class SupabaseStorageProvider implements IStorageProvider {
   // Tasks
   async getTasks(gardenId?: string): Promise<GardenTask[]> {
     const client = this.ensureClient();
-    let query = client.from('calendar_tasks').select('*');
+    let query = client.from('garden_tasks').select('*');
     
     if (gardenId) {
       query = query.eq('garden_id', gardenId);
     }
     
-    const { data, error } = await query.order('start_date', { ascending: false });
+    const { data, error } = await query.order('date', { ascending: false });
     if (error) throw error;
     return this.mapTasksFromDB(data || []);
   }
@@ -470,7 +470,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
   async getTask(id: string): Promise<GardenTask | null> {
     const client = this.ensureClient();
     const { data, error } = await client
-      .from('calendar_tasks')
+      .from('garden_tasks')
       .select('*')
       .eq('id', id)
       .single();
@@ -486,7 +486,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     const dbTask = this.mapTaskToDB(task);
     const { data, error } = await client
-      .from('calendar_tasks')
+      .from('garden_tasks')
       .insert(dbTask)
       .select()
       .single();
@@ -536,14 +536,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
     // Ottieni task corrente per verificare se viene completato
     const { data: currentTask } = await client
-      .from('calendar_tasks')
+      .from('garden_tasks')
       .select('*')
       .eq('id', id)
       .single();
 
     const dbUpdates = this.mapTaskToDB(updates as GardenTask);
     const { data, error } = await client
-      .from('calendar_tasks')
+      .from('garden_tasks')
       .update(dbUpdates)
       .eq('id', id)
       .select()
@@ -591,7 +591,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
   async deleteTask(id: string): Promise<void> {
     const client = this.ensureClient();
     const { error } = await client
-      .from('calendar_tasks')
+      .from('garden_tasks')
       .delete()
       .eq('id', id);
 
@@ -2422,7 +2422,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('compost_logs')
       .select('*')
       .eq('garden_id', gardenId)
-      .order('start_date', { ascending: false });
+      .order('date', { ascending: false });
     if (error) throw error;
     return (data || []) as any;
   }
@@ -3504,7 +3504,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       if (dateRange?.to) query = query.lte('date', dateRange.to);
     }
 
-    const { data, error } = await query.order('start_date', { ascending: false });
+    const { data, error } = await query.order('date', { ascending: false });
     if (error) throw error;
     return (data || []).map((db: any) => this.mapWateringLogFromDB(db));
   }

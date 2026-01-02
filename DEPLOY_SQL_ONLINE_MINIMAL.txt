@@ -1,0 +1,143 @@
+-- ============================================
+-- DEPLOY MINIMO PER DATABASE ONLINE
+-- Esegui SOLO questo script su Supabase.com SQL Editor
+-- ============================================
+
+-- Questo script aggiunge SOLO quello che manca al tuo database online
+-- basandosi sullo schema che hai già
+
+-- ============================================
+-- 1. VERIFICA E AGGIUNGI COLONNA PREFERENCES (se manca)
+-- ============================================
+
+-- Controlla se preferences esiste già
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+    AND table_name = 'profiles'
+    AND column_name = 'preferences'
+  ) THEN
+    ALTER TABLE public.profiles
+    ADD COLUMN preferences JSONB DEFAULT '{}'::jsonb;
+
+    RAISE NOTICE 'Colonna preferences aggiunta';
+  ELSE
+    RAISE NOTICE 'Colonna preferences già presente';
+  END IF;
+END $$;
+
+-- ============================================
+-- 2. FIX FUNZIONI CON SECURITY DEFINER
+-- ============================================
+
+-- Funzione grant_credits
+CREATE OR REPLACE FUNCTION public.grant_credits(p_user_id uuid, p_amount integer)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $function$
+BEGIN
+  UPDATE public.profiles
+  SET ai_credits_total = ai_credits_total + p_amount
+  WHERE id = p_user_id;
+END;
+$function$;
+
+-- Funzione handle_new_user
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public, auth
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, tier, ai_credits_total, ai_credits_used)
+  VALUES (
+    NEW.id,
+    'PRO'::text,
+    3,
+    0
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  RETURN NEW;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE LOG 'Error in handle_new_user: %', SQLERRM;
+    RETURN NEW;
+END;
+$$;
+
+-- Funzione handle_new_user_credits
+CREATE OR REPLACE FUNCTION public.handle_new_user_credits()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $function$
+BEGIN
+  INSERT INTO public.profiles (id, tier, ai_credits_total, ai_credits_used)
+  VALUES (NEW.id, 'PRO', 3, 0)
+  ON CONFLICT (id) DO NOTHING;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.ai_credit_transactions
+    WHERE user_id = NEW.id AND type = 'bonus' AND description LIKE '%Welcome%'
+  ) THEN
+    PERFORM public.grant_credits(NEW.id, 3);
+
+    INSERT INTO public.ai_credit_transactions (user_id, amount, type, description)
+    VALUES (NEW.id, 3, 'bonus', 'Welcome bonus - 3 free AI credits');
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;
+
+-- ============================================
+-- 3. PERMESSI
+-- ============================================
+
+GRANT ALL ON public.profiles TO supabase_auth_admin;
+GRANT ALL ON public.ai_credit_transactions TO supabase_auth_admin;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO supabase_auth_admin;
+
+-- ============================================
+-- 4. VERIFICA FINALE
+-- ============================================
+
+-- Uncomment per verificare:
+/*
+SELECT
+  'Preferences column' as check_name,
+  COUNT(*) as found
+FROM information_schema.columns
+WHERE table_name = 'profiles' AND column_name = 'preferences';
+
+SELECT
+  'Functions with SECURITY DEFINER' as check_name,
+  COUNT(*) as found
+FROM pg_proc
+WHERE proname IN ('grant_credits', 'handle_new_user', 'handle_new_user_credits')
+AND prosecdef = true;
+*/
+
+-- ============================================
+-- FATTO!
+-- ============================================
+
+-- ✅ Ora crea il TRIGGER manualmente dalla Dashboard:
+--
+-- Database > Triggers > Create trigger:
+--   Name: on_auth_user_created
+--   Table: auth.users (schema auth)
+--   Events: ☑ Insert
+--   Timing: After
+--   Orientation: Row
+--   Function: public.handle_new_user
+--
+-- ✅ Poi testa registrando un nuovo utente!
