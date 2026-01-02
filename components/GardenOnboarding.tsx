@@ -200,16 +200,22 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
         setLatitude(result.latitude.toString());
         setLongitude(result.longitude.toString());
         setLocationAccuracy(result.accuracy);
-        
-        // Prova a inferire altitudine e dati geoclimatici
-        setInferringGeo(true);
-        const geoInfo = await getGeoClimateInfo(result.latitude, result.longitude, true);
-        
-        if (geoInfo) {
-          setAltitudeMeters(geoInfo.altitude.toString());
+
+        // Usa altitudine dal GPS se disponibile (più precisa)
+        if (result.altitude !== null && result.altitude !== undefined) {
+          setAltitudeMeters(Math.round(result.altitude).toString());
           setAltitudeSource('inferred');
+        } else {
+          // Altrimenti prova a inferire altitudine da servizio geoclimatico
+          setInferringGeo(true);
+          const geoInfo = await getGeoClimateInfo(result.latitude, result.longitude, true);
+
+          if (geoInfo) {
+            setAltitudeMeters(geoInfo.altitude.toString());
+            setAltitudeSource('inferred');
+          }
+          setInferringGeo(false);
         }
-        setInferringGeo(false);
       } else {
         // Fallback a coordinate default
         const defaultCoords = getDefaultCoordinates();
