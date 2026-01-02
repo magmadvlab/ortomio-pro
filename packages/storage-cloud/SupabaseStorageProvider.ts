@@ -456,13 +456,13 @@ export class SupabaseStorageProvider implements IStorageProvider {
   // Tasks
   async getTasks(gardenId?: string): Promise<GardenTask[]> {
     const client = this.ensureClient();
-    let query = client.from('garden_tasks').select('*');
+    let query = client.from('calendar_tasks').select('*');
     
     if (gardenId) {
       query = query.eq('garden_id', gardenId);
     }
     
-    const { data, error } = await query.order('date', { ascending: false });
+    const { data, error } = await query.order('start_date', { ascending: false });
     if (error) throw error;
     return this.mapTasksFromDB(data || []);
   }
@@ -470,7 +470,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
   async getTask(id: string): Promise<GardenTask | null> {
     const client = this.ensureClient();
     const { data, error } = await client
-      .from('garden_tasks')
+      .from('calendar_tasks')
       .select('*')
       .eq('id', id)
       .single();
@@ -486,7 +486,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     const dbTask = this.mapTaskToDB(task);
     const { data, error } = await client
-      .from('garden_tasks')
+      .from('calendar_tasks')
       .insert(dbTask)
       .select()
       .single();
@@ -533,17 +533,17 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
   async updateTask(id: string, updates: Partial<GardenTask>): Promise<GardenTask> {
     const client = this.ensureClient();
-    
+
     // Ottieni task corrente per verificare se viene completato
     const { data: currentTask } = await client
-      .from('garden_tasks')
+      .from('calendar_tasks')
       .select('*')
       .eq('id', id)
       .single();
-    
+
     const dbUpdates = this.mapTaskToDB(updates as GardenTask);
     const { data, error } = await client
-      .from('garden_tasks')
+      .from('calendar_tasks')
       .update(dbUpdates)
       .eq('id', id)
       .select()
@@ -591,10 +591,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
   async deleteTask(id: string): Promise<void> {
     const client = this.ensureClient();
     const { error } = await client
-      .from('garden_tasks')
+      .from('calendar_tasks')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw error;
   }
 
@@ -862,7 +862,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       sizeUnit: db.size_unit,
       soilType: db.soil_type,
       soilPh: db.soil_ph ? Number(db.soil_ph) : undefined,
-      primaryCrop: db.primary_crop || undefined,
+      primaryCrop: undefined, // primary_crop non esiste nello schema database
       altitudeMeters: db.altitude_meters,
       delayFactorDays: db.delay_factor_days,
       sunExposure: db.sun_exposure,
@@ -896,7 +896,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (garden.sizeUnit !== undefined) db.size_unit = garden.sizeUnit;
     if (garden.soilType !== undefined) db.soil_type = garden.soilType;
     if (garden.soilPh !== undefined) db.soil_ph = garden.soilPh;
-    if (garden.primaryCrop !== undefined) db.primary_crop = garden.primaryCrop;
+    // primaryCrop non esiste nello schema database
+    // if (garden.primaryCrop !== undefined) db.primary_crop = garden.primaryCrop;
     if (garden.altitudeMeters !== undefined) db.altitude_meters = garden.altitudeMeters;
     if (garden.delayFactorDays !== undefined) db.delay_factor_days = garden.delayFactorDays;
     if (garden.sunExposure !== undefined) db.sun_exposure = garden.sunExposure;
@@ -3503,7 +3504,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       if (dateRange?.to) query = query.lte('date', dateRange.to);
     }
 
-    const { data, error } = await query.order('date', { ascending: false });
+    const { data, error } = await query.order('start_date', { ascending: false });
     if (error) throw error;
     return (data || []).map((db: any) => this.mapWateringLogFromDB(db));
   }
