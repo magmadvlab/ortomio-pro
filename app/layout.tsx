@@ -1,5 +1,6 @@
 import '../index.css'
 import type { Metadata, Viewport } from 'next'
+import SessionProvider from '@/components/SessionProvider'
 
 export const metadata: Metadata = {
   title: 'OrtoMio AI',
@@ -39,7 +40,9 @@ export default function RootLayout({
           backgroundAttachment: 'fixed'
         }}
       >
-        {children}
+        <SessionProvider>
+          {children}
+        </SessionProvider>
       </body>
     </html>
   )

@@ -15,7 +15,7 @@ interface AuthContextType {
   error: string | null
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
-  register: (email: string, password: string) => Promise<void>
+  register: (email: string, password: string, additionalData?: any) => Promise<void>
   refreshUser: () => Promise<void>
 }
 
@@ -147,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const register = async (email: string, password: string) => {
+  const register = async (email: string, password: string, additionalData?: any) => {
     // Se bypass attivo, simula registrazione immediata
     if (isBypassActive()) {
       const mockUser = getMockUser() as User
@@ -161,6 +161,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null)
 
     try {
+      // Se additionalData è fornito, usa l'API endpoint
+      if (additionalData) {
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(additionalData),
+        })
+
+        const result = await response.json()
+        
+        if (!result.success) {
+          throw new Error(result.error?.message || 'Errore durante la registrazione')
+        }
+
+        setUser(result.user)
+        return
+      }
+
+      // Fallback per registrazione semplice (compatibilità)
       const supabase = getSupabaseClient()
       if (!supabase) {
         throw new Error('Supabase non configurato')

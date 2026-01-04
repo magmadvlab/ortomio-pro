@@ -87,7 +87,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (zone.waterCapacity !== undefined) db.water_capacity = zone.waterCapacity;
     if (zone.soilDepthCm !== undefined) db.soil_depth_cm = zone.soilDepthCm;
     if (zone.sunExposure !== undefined) db.sun_exposure = zone.sunExposure;
-    if (zone.dailySunHours !== undefined) db.daily_sun_hours = zone.dailySunHours;
+    if (zone.dailySunHours !== undefined) db.daily_sun_hours = Math.round(Number(zone.dailySunHours));
     if (zone.areaSqMeters !== undefined) db.area_sq_meters = zone.areaSqMeters;
     if (zone.color !== undefined) db.color = zone.color;
     if (zone.orderIndex !== undefined) db.order_index = zone.orderIndex;
@@ -986,10 +986,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (garden.soilPh !== undefined) db.soil_ph = garden.soilPh;
     // primaryCrop non esiste nello schema database
     // if (garden.primaryCrop !== undefined) db.primary_crop = garden.primaryCrop;
-    if (garden.altitudeMeters !== undefined) db.altitude_meters = garden.altitudeMeters;
-    if (garden.delayFactorDays !== undefined) db.delay_factor_days = garden.delayFactorDays;
+    if (garden.altitudeMeters !== undefined) db.altitude_meters = Math.round(Number(garden.altitudeMeters));
+    if (garden.delayFactorDays !== undefined) db.delay_factor_days = Math.round(Number(garden.delayFactorDays));
     if (garden.sunExposure !== undefined) db.sun_exposure = garden.sunExposure;
-    if (garden.dailySunHours !== undefined) db.daily_sun_hours = garden.dailySunHours;
+    if (garden.dailySunHours !== undefined) db.daily_sun_hours = Math.round(Number(garden.dailySunHours));
     if (garden.aspectDirection !== undefined) db.aspect_direction = garden.aspectDirection;
     if (garden.windProtection !== undefined) db.wind_protection = garden.windProtection;
     if (garden.hasCompostBin !== undefined) db.has_compost_bin = garden.hasCompostBin;
@@ -1960,7 +1960,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       position: bed.position,
       soil_type: bed.soilType,
       ...(bed.sunExposure !== undefined && { sun_exposure: bed.sunExposure }),
-      daily_sun_hours: bed.dailySunHours,
+      daily_sun_hours: bed.dailySunHours ? Math.round(Number(bed.dailySunHours)) : undefined,
       structure_id: bed.structureId,
       structure_type: bed.structureType,
       is_covered: bed.isCovered || false,
@@ -2009,7 +2009,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (updates.position !== undefined) dbData.position = updates.position;
     if (updates.soilType !== undefined) dbData.soil_type = updates.soilType;
     if (updates.sunExposure !== undefined) dbData.sun_exposure = updates.sunExposure;
-    if (updates.dailySunHours !== undefined) dbData.daily_sun_hours = updates.dailySunHours;
+    if (updates.dailySunHours !== undefined) dbData.daily_sun_hours = Math.round(Number(updates.dailySunHours));
     if (updates.structureId !== undefined) dbData.structure_id = updates.structureId;
     if (updates.structureType !== undefined) dbData.structure_type = updates.structureType;
     if (updates.isCovered !== undefined) dbData.is_covered = updates.isCovered;

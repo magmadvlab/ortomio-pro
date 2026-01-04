@@ -46,8 +46,27 @@ export const getSupabaseClient = (): SupabaseClient | null => {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'ortomio-web',
+        },
       },
     });
+    
+    // Clear any invalid sessions on initialization
+    if (typeof window !== 'undefined') {
+      supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          // Clear invalid session
+          supabaseClient?.auth.signOut();
+        }
+      });
+    }
+    
     return supabaseClient;
   } catch (error) {
     console.error('Error initializing Supabase client:', error);

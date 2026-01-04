@@ -1,15 +1,24 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { getSupabaseClient } from '@/config/supabase'
 
 export default function HomePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [checking, setChecking] = useState(true)
   
   useEffect(() => {
     const checkAuth = async () => {
+      // Controlla se c'è un code di autenticazione nella URL
+      const code = searchParams.get('code')
+      if (code) {
+        // Reindirizza al callback handler
+        router.replace(`/auth/callback?code=${code}`)
+        return
+      }
+
       // DISABILITATO BYPASS: Richiedi sempre autenticazione
       // In produzione/online, il bypass non deve essere attivo
       const hostname = typeof window !== 'undefined' ? window.location.hostname : ''
@@ -32,16 +41,17 @@ export default function HomePage() {
               console.error('Error checking session:', error)
               // Rimuovi eventuale sessione invalida
               await supabase.auth.signOut()
-              router.push('/login')
+              router.push('/auth')
               return
             }
             // Verifica che la sessione sia valida e non scaduta
             const now = Math.floor(Date.now() / 1000)
             const isValidSession = session?.user && 
               session.expires_at && 
-              session.expires_at > now
+              session.expires_at > now &&
+              session.user.email_confirmed_at // Email deve essere verificata
             
-            console.log('[Auth Check] Session exists:', !!session, 'Valid:', isValidSession, 'Expires at:', session?.expires_at, 'Now:', now)
+            console.log('[Auth Check] Session exists:', !!session, 'Valid:', isValidSession, 'Email confirmed:', !!session?.user?.email_confirmed_at, 'Expires at:', session?.expires_at, 'Now:', now)
             
             if (isValidSession) {
               // Utente autenticato con sessione valida, vai all'app
@@ -49,19 +59,19 @@ export default function HomePage() {
               router.push('/app')
             } else {
               // Sessione non valida o scaduta, rimuovila e vai al login
-              console.log('[Auth Check] Invalid or expired session, signing out and redirecting to /login')
+              console.log('[Auth Check] Invalid or expired session, signing out and redirecting to /auth')
               if (session) {
                 await supabase.auth.signOut()
               }
-              router.push('/login')
+              router.push('/auth')
             }
           } else {
             // Supabase non configurato, vai al login
-            router.push('/login')
+            router.push('/auth')
           }
         } catch (error) {
           console.error('Error checking auth:', error)
-          router.push('/login')
+          router.push('/auth')
         } finally {
           setChecking(false)
         }
@@ -74,16 +84,22 @@ export default function HomePage() {
         if (supabase) {
           const { data: { session } } = await supabase.auth.getSession()
           if (session?.user) {
-            router.push('/app')
+            // Controlla anche che l'email sia verificata
+            if (session.user.email_confirmed_at) {
+              router.push('/app')
+            } else {
+              // Email non verificata, vai alla pagina di verifica
+              router.push(`/verify-email?email=${encodeURIComponent(session.user.email || '')}`)
+            }
           } else {
-            router.push('/login')
+            router.push('/auth')
           }
         } else {
-          router.push('/login')
+          router.push('/auth')
         }
       } catch (error) {
         console.error('Error checking auth:', error)
-        router.push('/login')
+        router.push('/auth')
       } finally {
         setChecking(false)
       }

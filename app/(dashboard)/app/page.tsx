@@ -65,17 +65,18 @@ export default function DashboardPage() {
             const now = Math.floor(Date.now() / 1000)
             const isValidSession = session?.user &&
               session.expires_at &&
-              session.expires_at > now
+              session.expires_at > now &&
+              session.user.email_confirmed_at // Email deve essere verificata
 
-            console.debug('[Dashboard Auth] Session exists:', !!session, 'Valid:', isValidSession, 'Expires at:', session?.expires_at, 'Now:', now)
+            console.debug('[Dashboard Auth] Session exists:', !!session, 'Valid:', isValidSession, 'Email confirmed:', !!session?.user?.email_confirmed_at, 'Expires at:', session?.expires_at, 'Now:', now)
 
             if (!isValidSession && session) {
-              // Sessione scaduta, rimuovila
+              // Sessione scaduta o email non verificata, rimuovila
               console.debug('[Dashboard Auth] Invalid session, signing out')
               await supabase.auth.signOut()
             }
 
-            setIsAuthenticated(isValidSession || false)
+            setIsAuthenticated(isValidSession ? true : false)
           } else {
             console.debug('[Dashboard Auth] Supabase not configured')
             setIsAuthenticated(false)
@@ -88,17 +89,33 @@ export default function DashboardPage() {
       }
 
       // In locale, controlla bypass solo se esplicitamente configurato
-      if (isBypassActive()) {
-        setIsAuthenticated(true)
-        return
-      }
-
+      // MA la verifica email è SEMPRE richiesta
       try {
         const supabase = getSupabaseClient()
         if (supabase) {
           const { data: { session } } = await supabase.auth.getSession()
-          setIsAuthenticated(!!session?.user)
+          
+          // Se c'è sessione ma email NON verificata, reindirizza a verify-email
+          if (session?.user && !session.user.email_confirmed_at) {
+            console.debug('[Dashboard Auth] Local mode - email not verified, redirecting')
+            localStorage.setItem('ortomio_pending_verification_email', session.user.email || '')
+            router.push(`/verify-email?email=${encodeURIComponent(session.user.email || '')}`)
+            return
+          }
+          
+          // Bypass attivo E email verificata (o nessuna sessione)
+          if (isBypassActive() && (!session || session.user?.email_confirmed_at)) {
+            setIsAuthenticated(true)
+            return
+          }
+          
+          setIsAuthenticated(!!session?.user && !!session.user.email_confirmed_at)
         } else {
+          // Nessun Supabase configurato - bypass solo se attivo
+          if (isBypassActive()) {
+            setIsAuthenticated(true)
+            return
+          }
           setIsAuthenticated(false)
         }
       } catch (error) {
@@ -109,22 +126,22 @@ export default function DashboardPage() {
     
     checkAuth()
     
-    // Ascolta cambiamenti autenticazione
-    const isOnline = typeof window !== 'undefined' && 
-      window.location.hostname !== 'localhost' && 
-      window.location.hostname !== '127.0.0.1' &&
-      window.location.hostname !== '[::1]'
-
-    if (!isBypassActive() || isOnline) {
-      const supabase = getSupabaseClient()
-      if (supabase) {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          setIsAuthenticated(!!session?.user)
-        })
-        
-        return () => {
-          subscription.unsubscribe()
+    // Ascolta cambiamenti autenticazione - SEMPRE attivo per verificare email
+    const supabase = getSupabaseClient()
+    if (supabase) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        // Se utente si autentica ma email non verificata, reindirizza
+        if (session?.user && !session.user.email_confirmed_at) {
+          console.debug('[Dashboard Auth] Auth state change - email not verified')
+          localStorage.setItem('ortomio_pending_verification_email', session.user.email || '')
+          router.push(`/verify-email?email=${encodeURIComponent(session.user.email || '')}`)
+          return
         }
+        setIsAuthenticated(!!session?.user && !!session?.user?.email_confirmed_at)
+      })
+      
+      return () => {
+        subscription.unsubscribe()
       }
     }
   }, [])
@@ -141,7 +158,7 @@ export default function DashboardPage() {
     const shouldRequireAuth = isOnline || !isBypassActive()
     
     if (isAuthenticated === false && !loading && shouldRequireAuth) {
-      router.push('/login')
+      router.push('/auth')
     }
   }, [isAuthenticated, loading, router])
 
