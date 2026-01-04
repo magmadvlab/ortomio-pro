@@ -17,7 +17,7 @@ export const getSupabaseClient = (): SupabaseClient | null => {
   }
 
   // Support both Next.js and Vite environments
-  const supabaseUrl = typeof window !== 'undefined' 
+  const supabaseUrl = typeof window !== 'undefined'
     ? (process.env.NEXT_PUBLIC_SUPABASE_URL || (import.meta as any)?.env?.VITE_SUPABASE_URL)
     : process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = typeof window !== 'undefined'

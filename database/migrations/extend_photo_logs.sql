@@ -19,3 +19,6 @@ COMMENT ON COLUMN photo_logs.previous_photo_id IS 'Riferimento alla foto precede
 
 
 
+
+
+

@@ -5,6 +5,18 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================
+-- UTILITY FUNCTIONS
+-- ============================================
+-- Update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================
 -- GARDENS (Orti)
 -- ============================================
 CREATE TABLE IF NOT EXISTS gardens (
@@ -118,6 +130,158 @@ CREATE INDEX IF NOT EXISTS idx_bed_history_plant_family ON bed_planting_history(
 -- ============================================
 -- GARDEN TASKS
 -- ============================================
+CREATE TABLE IF NOT EXISTS seed_inventory (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
+  variety_id TEXT NOT NULL, -- Riferimento a PlantVariety.id o varietyName
+  variety_name TEXT NOT NULL,
+  species_name TEXT NOT NULL,
+  purchase_date DATE,
+  expiry_year INTEGER NOT NULL,
+  is_open BOOLEAN DEFAULT false,
+  quantity_remaining TEXT CHECK (quantity_remaining IN ('High', 'Medium', 'Low', 'Empty')) DEFAULT 'High',
+  initial_quantity INTEGER, -- Quantità iniziale di semi nel pacchetto (es. 100)
+  current_quantity INTEGER, -- Quantità corrente rimanente (es. 90 dopo aver usato 10)
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_seed_inventory_user_id ON seed_inventory(user_id);
+CREATE INDEX IF NOT EXISTS idx_seed_inventory_garden_id ON seed_inventory(garden_id);
+CREATE INDEX IF NOT EXISTS idx_seed_inventory_expiry_year ON seed_inventory(expiry_year);
+
+-- Commenti per colonne seed_inventory
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_description WHERE objoid = 'seed_inventory'::regclass AND objsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'seed_inventory'::regclass AND attname = 'initial_quantity')) THEN
+    COMMENT ON COLUMN seed_inventory.initial_quantity IS 'Quantità iniziale di semi nel pacchetto (es. 100)';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_description WHERE objoid = 'seed_inventory'::regclass AND objsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'seed_inventory'::regclass AND attname = 'current_quantity')) THEN
+    COMMENT ON COLUMN seed_inventory.current_quantity IS 'Quantità corrente rimanente (es. 90 dopo aver usato 10)';
+  END IF;
+END $$;
+
+
+CREATE TABLE IF NOT EXISTS seedling_batches (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
+  plant_name TEXT NOT NULL,
+  variety TEXT,
+  sowing_date DATE NOT NULL,
+  quantity INTEGER NOT NULL,
+  initial_quantity INTEGER, -- Quantità iniziale di piantine nel batch (es. 20)
+  location TEXT CHECK (location IN ('Indoor', 'Greenhouse', 'ColdFrame')) NOT NULL,
+  phase TEXT CHECK (phase IN ('Sowing', 'Germination', 'Nursing', 'Hardening', 'ReadyToTransplant')) DEFAULT 'Sowing',
+  current_quantity INTEGER,
+  expected_transplant_date DATE,
+  notes TEXT,
+  photo_log JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_seedling_batches_garden_id ON seedling_batches(garden_id);
+CREATE INDEX IF NOT EXISTS idx_seedling_batches_sowing_date ON seedling_batches(sowing_date);
+CREATE INDEX IF NOT EXISTS idx_seedling_batches_phase ON seedling_batches(phase);
+
+-- RLS Policies for seedling_batches
+ALTER TABLE seedling_batches ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'seedling_batches' 
+    AND policyname = 'Users can access seedling batches in their gardens'
+  ) THEN
+    CREATE POLICY "Users can access seedling batches in their gardens"
+      ON seedling_batches FOR ALL
+      USING (
+        EXISTS (
+          SELECT 1 FROM gardens
+          WHERE gardens.id = seedling_batches.garden_id
+          AND gardens.user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger 
+    WHERE tgname = 'update_seedling_batches_updated_at'
+  ) THEN
+    CREATE TRIGGER update_seedling_batches_updated_at BEFORE UPDATE ON seedling_batches
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END $$;
+
+
+CREATE TABLE IF NOT EXISTS sapling_batches (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
+  plant_name TEXT NOT NULL,
+  variety TEXT,
+  sapling_type TEXT CHECK (sapling_type IN ('FruitTree', 'Olive', 'Vine')) NOT NULL,
+  purchase_date DATE NOT NULL,
+  planting_date DATE,
+  quantity INTEGER NOT NULL,
+  initial_quantity INTEGER, -- Quantità iniziale di alberelli nel batch (es. 10)
+  location TEXT NOT NULL,
+  phase TEXT CHECK (phase IN ('Purchased', 'Planted', 'Establishing', 'Growing', 'ReadyToOrchard')) DEFAULT 'Purchased',
+  current_quantity INTEGER,
+  expected_establishment_date DATE,
+  rootstock TEXT,
+  spacing TEXT,
+  notes TEXT,
+  photo_log JSONB DEFAULT '[]'::jsonb,
+  specialized_crop_id UUID,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_sapling_batches_garden_id ON sapling_batches(garden_id);
+CREATE INDEX IF NOT EXISTS idx_sapling_batches_purchase_date ON sapling_batches(purchase_date);
+CREATE INDEX IF NOT EXISTS idx_sapling_batches_phase ON sapling_batches(phase);
+CREATE INDEX IF NOT EXISTS idx_sapling_batches_sapling_type ON sapling_batches(sapling_type);
+
+-- RLS Policies for sapling_batches
+ALTER TABLE sapling_batches ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'sapling_batches' 
+    AND policyname = 'Users can access sapling batches in their gardens'
+  ) THEN
+    CREATE POLICY "Users can access sapling batches in their gardens"
+      ON sapling_batches FOR ALL
+      USING (
+        EXISTS (
+          SELECT 1 FROM gardens
+          WHERE gardens.id = sapling_batches.garden_id
+          AND gardens.user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger 
+    WHERE tgname = 'update_sapling_batches_updated_at'
+  ) THEN
+    CREATE TRIGGER update_sapling_batches_updated_at BEFORE UPDATE ON sapling_batches
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END $$;
+
+
 CREATE TABLE IF NOT EXISTS garden_tasks (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
@@ -268,161 +432,12 @@ CREATE INDEX IF NOT EXISTS idx_photo_logs_photo_date ON photo_logs(photo_date);
 -- ============================================
 -- SEED INVENTORY
 -- ============================================
-CREATE TABLE IF NOT EXISTS seed_inventory (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
-  variety_id TEXT NOT NULL, -- Riferimento a PlantVariety.id o varietyName
-  variety_name TEXT NOT NULL,
-  species_name TEXT NOT NULL,
-  purchase_date DATE,
-  expiry_year INTEGER NOT NULL,
-  is_open BOOLEAN DEFAULT false,
-  quantity_remaining TEXT CHECK (quantity_remaining IN ('High', 'Medium', 'Low', 'Empty')) DEFAULT 'High',
-  initial_quantity INTEGER, -- Quantità iniziale di semi nel pacchetto (es. 100)
-  current_quantity INTEGER, -- Quantità corrente rimanente (es. 90 dopo aver usato 10)
-  notes TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_seed_inventory_user_id ON seed_inventory(user_id);
-CREATE INDEX IF NOT EXISTS idx_seed_inventory_garden_id ON seed_inventory(garden_id);
-CREATE INDEX IF NOT EXISTS idx_seed_inventory_expiry_year ON seed_inventory(expiry_year);
-
--- Commenti per colonne seed_inventory
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_description WHERE objoid = 'seed_inventory'::regclass AND objsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'seed_inventory'::regclass AND attname = 'initial_quantity')) THEN
-    COMMENT ON COLUMN seed_inventory.initial_quantity IS 'Quantità iniziale di semi nel pacchetto (es. 100)';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_description WHERE objoid = 'seed_inventory'::regclass AND objsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'seed_inventory'::regclass AND attname = 'current_quantity')) THEN
-    COMMENT ON COLUMN seed_inventory.current_quantity IS 'Quantità corrente rimanente (es. 90 dopo aver usato 10)';
-  END IF;
-END $$;
-
 -- ============================================
 -- SEEDLING BATCHES (Batch Semenzai)
 -- ============================================
-CREATE TABLE IF NOT EXISTS seedling_batches (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
-  plant_name TEXT NOT NULL,
-  variety TEXT,
-  sowing_date DATE NOT NULL,
-  quantity INTEGER NOT NULL,
-  initial_quantity INTEGER, -- Quantità iniziale di piantine nel batch (es. 20)
-  location TEXT CHECK (location IN ('Indoor', 'Greenhouse', 'ColdFrame')) NOT NULL,
-  phase TEXT CHECK (phase IN ('Sowing', 'Germination', 'Nursing', 'Hardening', 'ReadyToTransplant')) DEFAULT 'Sowing',
-  current_quantity INTEGER,
-  expected_transplant_date DATE,
-  notes TEXT,
-  photo_log JSONB DEFAULT '[]'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_seedling_batches_garden_id ON seedling_batches(garden_id);
-CREATE INDEX IF NOT EXISTS idx_seedling_batches_sowing_date ON seedling_batches(sowing_date);
-CREATE INDEX IF NOT EXISTS idx_seedling_batches_phase ON seedling_batches(phase);
-
--- RLS Policies for seedling_batches
-ALTER TABLE seedling_batches ENABLE ROW LEVEL SECURITY;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies 
-    WHERE tablename = 'seedling_batches' 
-    AND policyname = 'Users can access seedling batches in their gardens'
-  ) THEN
-    CREATE POLICY "Users can access seedling batches in their gardens"
-      ON seedling_batches FOR ALL
-      USING (
-        EXISTS (
-          SELECT 1 FROM gardens
-          WHERE gardens.id = seedling_batches.garden_id
-          AND gardens.user_id = auth.uid()
-        )
-      );
-  END IF;
-END $$;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_trigger 
-    WHERE tgname = 'update_seedling_batches_updated_at'
-  ) THEN
-    CREATE TRIGGER update_seedling_batches_updated_at BEFORE UPDATE ON seedling_batches
-      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-  END IF;
-END $$;
-
 -- ============================================
 -- SAPLING BATCHES (Alberelli per frutteti, uliveti, vigneti)
 -- ============================================
-CREATE TABLE IF NOT EXISTS sapling_batches (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  garden_id UUID REFERENCES gardens(id) ON DELETE CASCADE NOT NULL,
-  plant_name TEXT NOT NULL,
-  variety TEXT,
-  sapling_type TEXT CHECK (sapling_type IN ('FruitTree', 'Olive', 'Vine')) NOT NULL,
-  purchase_date DATE NOT NULL,
-  planting_date DATE,
-  quantity INTEGER NOT NULL,
-  initial_quantity INTEGER, -- Quantità iniziale di alberelli nel batch (es. 10)
-  location TEXT NOT NULL,
-  phase TEXT CHECK (phase IN ('Purchased', 'Planted', 'Establishing', 'Growing', 'ReadyToOrchard')) DEFAULT 'Purchased',
-  current_quantity INTEGER,
-  expected_establishment_date DATE,
-  rootstock TEXT,
-  spacing TEXT,
-  notes TEXT,
-  photo_log JSONB DEFAULT '[]'::jsonb,
-  specialized_crop_id UUID,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_sapling_batches_garden_id ON sapling_batches(garden_id);
-CREATE INDEX IF NOT EXISTS idx_sapling_batches_purchase_date ON sapling_batches(purchase_date);
-CREATE INDEX IF NOT EXISTS idx_sapling_batches_phase ON sapling_batches(phase);
-CREATE INDEX IF NOT EXISTS idx_sapling_batches_sapling_type ON sapling_batches(sapling_type);
-
--- RLS Policies for sapling_batches
-ALTER TABLE sapling_batches ENABLE ROW LEVEL SECURITY;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies 
-    WHERE tablename = 'sapling_batches' 
-    AND policyname = 'Users can access sapling batches in their gardens'
-  ) THEN
-    CREATE POLICY "Users can access sapling batches in their gardens"
-      ON sapling_batches FOR ALL
-      USING (
-        EXISTS (
-          SELECT 1 FROM gardens
-          WHERE gardens.id = sapling_batches.garden_id
-          AND gardens.user_id = auth.uid()
-        )
-      );
-  END IF;
-END $$;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_trigger 
-    WHERE tgname = 'update_sapling_batches_updated_at'
-  ) THEN
-    CREATE TRIGGER update_sapling_batches_updated_at BEFORE UPDATE ON sapling_batches
-      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-  END IF;
-END $$;
-
 -- ============================================
 -- WEATHER CACHE
 -- ============================================
@@ -432,11 +447,13 @@ CREATE TABLE IF NOT EXISTS weather_cache (
   date DATE NOT NULL,
   forecast JSONB NOT NULL, -- Array di WeatherForecast
   cached_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  expires_at TIMESTAMP WITH TIME ZONE DEFAULT (NOW() + INTERVAL '24 hours'),
   UNIQUE(lat_lng, date)
 );
 
 CREATE INDEX IF NOT EXISTS idx_weather_cache_lat_lng_date ON weather_cache(lat_lng, date);
 CREATE INDEX IF NOT EXISTS idx_weather_cache_cached_at ON weather_cache(cached_at);
+CREATE INDEX IF NOT EXISTS idx_weather_cache_expires_at ON weather_cache(expires_at);
 
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -701,15 +718,6 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ============================================
 -- TRIGGERS
 -- ============================================
-
--- Update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
 DO $$
 BEGIN

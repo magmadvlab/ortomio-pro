@@ -1,12 +1,10 @@
 'use client'
 
 import React, { useState } from 'react'
-import { ArrowRight, ArrowLeft, Loader2, CheckCircle } from 'lucide-react'
+import { ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { useStorage } from '@/packages/core/hooks/useStorage'
 import type { OnboardingData } from './UserOnboardingWizard'
-import type { Garden } from '@/types'
 
 interface OnboardingStep6FirstGardenProps {
   onboardingData: Partial<OnboardingData>
@@ -15,79 +13,32 @@ interface OnboardingStep6FirstGardenProps {
 }
 
 export function OnboardingStep6FirstGarden({ onboardingData, onNext, onBack }: OnboardingStep6FirstGardenProps) {
-  const { storageProvider } = useStorage()
   const [gardenName, setGardenName] = useState('Il Mio Orto')
-  const [creating, setCreating] = useState(false)
-  const [created, setCreated] = useState(false)
 
-  const handleCreateGarden = async () => {
-    if (!gardenName.trim()) return
-
-    setCreating(true)
-    try {
-      const garden: Garden = {
-        id: crypto.randomUUID(),
-        name: gardenName.trim(),
-        sizeSqMeters: 0,
-        sizeUnit: 'sqm',
-        coordinates: onboardingData.location,
-        altitudeMeters: onboardingData.location?.altitude,
-        primaryCrop: {
-          archetypeId: 'MIX',
-          label: 'Orto misto',
-          canonicalPlantName: 'orto',
-          createdFrom: 'suggested',
-        },
-        gardenType: onboardingData.gardenTypes?.[0] === 'orto' ? 'OpenField' : 
-                   onboardingData.gardenTypes?.[0] === 'frutteto' ? 'Orchard' :
-                   onboardingData.gardenTypes?.[0] === 'oliveto' ? 'OliveGrove' :
-                   onboardingData.gardenTypes?.[0] === 'vigneto' ? 'Vineyard' : 'OpenField',
-        soilType: 'Loamy',
-        soilPh: 6.5,
-        createdAt: new Date().toISOString()
-      }
-
-      await storageProvider.createGarden(garden)
-      setCreated(true)
-      
-      setTimeout(() => {
-        onNext({ garden })
-      }, 1000)
-    } catch (error) {
-      console.error('Error creating garden:', error)
-      alert('Errore nella creazione del giardino. Riprova.')
-      setCreating(false)
-    }
-  }
-
-  if (created) {
-    return (
-      <div className="space-y-6 text-center">
-        <CheckCircle className="mx-auto text-ortomio-green-600" size={64} />
-        <h3 className="text-2xl font-bold text-gray-900">
-          Giardino creato con successo!
-        </h3>
-        <p className="text-gray-600">
-          Stai per essere reindirizzato alla dashboard...
-        </p>
-      </div>
-    )
+  const handleContinue = () => {
+    // Non creiamo l'orto qui, passiamo solo il nome
+    // Il GardenTypeWizard si occuperà della creazione completa
+    onNext({
+      gardenName,
+      // Salviamo un flag per indicare che l'utente vuole creare un orto
+      shouldCreateGarden: true
+    })
   }
 
   return (
     <div className="space-y-6">
       <div className="text-center">
         <h3 className="text-2xl font-bold text-gray-900 mb-2">
-          Crea il tuo primo giardino
+          Prepariamoci a creare il tuo primo spazio
         </h3>
         <p className="text-gray-600">
-          Diamo un nome al tuo spazio di coltivazione
+          Come vuoi chiamare il tuo spazio di coltivazione?
         </p>
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Nome del giardino
+          Nome
         </label>
         <Input
           type="text"
@@ -95,12 +46,19 @@ export function OnboardingStep6FirstGarden({ onboardingData, onNext, onBack }: O
           onChange={(e) => setGardenName(e.target.value)}
           placeholder="Il Mio Orto"
           className="text-lg"
+          autoFocus
         />
+      </div>
+
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <p className="text-sm text-green-800">
+          🌱 <strong>Prossimo passo:</strong> Ti guideremo nella configurazione completa del tuo spazio (tipo, dimensioni, terreno, irrigazione, ecc.)
+        </p>
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-800">
-          💡 <strong>Suggerimento:</strong> Puoi creare altri giardini in seguito dalle impostazioni.
+          💡 <strong>Suggerimento:</strong> Potrai creare altri spazi in seguito dalla dashboard.
         </p>
       </div>
 
@@ -109,28 +67,18 @@ export function OnboardingStep6FirstGarden({ onboardingData, onNext, onBack }: O
           variant="outline"
           onClick={onBack}
           className="flex-1"
-          disabled={creating}
         >
           <ArrowLeft size={20} className="mr-2" />
           Indietro
         </Button>
         <Button
           variant="primary"
-          onClick={handleCreateGarden}
-          disabled={!gardenName.trim() || creating}
+          onClick={handleContinue}
+          disabled={!gardenName.trim()}
           className="flex-1"
         >
-          {creating ? (
-            <>
-              <Loader2 className="animate-spin mr-2" size={20} />
-              Creazione...
-            </>
-          ) : (
-            <>
-              Crea Giardino
-              <ArrowRight size={20} className="ml-2" />
-            </>
-          )}
+          Continua alla Configurazione
+          <ArrowRight size={20} className="ml-2" />
         </Button>
       </div>
     </div>

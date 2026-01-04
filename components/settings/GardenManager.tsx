@@ -1,13 +1,14 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Trash2, Edit, MapPin, Calendar, Plus, Home } from 'lucide-react'
+import { Trash2, Edit, MapPin, Calendar, Plus, Home, Layers } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useGarden } from '@/packages/core/hooks/useGarden'
 import { Garden } from '@/types'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { GardenEditModal } from './GardenEditModal'
+import { AddStructureModal, StructureUpdate, ExistingStructures } from '../gardens/AddStructureModal'
 
 export function GardenManager() {
   const { storageProvider } = useStorage()
@@ -16,6 +17,7 @@ export function GardenManager() {
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [editingGarden, setEditingGarden] = useState<Garden | null>(null)
+  const [addingStructuresFor, setAddingStructuresFor] = useState<Garden | null>(null)
 
   useEffect(() => {
     loadGardens()
@@ -66,6 +68,16 @@ export function GardenManager() {
           setActiveGarden(remainingGardens[0])
         } else {
           setActiveGarden(null)
+
+          // Se non ci sono più orti, resetta SOLO i dati specifici dell'orto
+          // NON rimuovere ortomio_user_onboarding_completed per evitare di rifare tutto l'onboarding
+          // L'utente ha già completato l'onboarding iniziale, deve solo creare un nuovo orto
+          localStorage.removeItem('ortomio_pending_garden_name')
+
+          // Ricarica la pagina per mostrare il wizard di creazione orto (non l'onboarding completo)
+          alert(`✅ "${gardenName}" eliminato con successo.\n\nSarai reindirizzato alla creazione di un nuovo orto.`)
+          window.location.href = '/app'
+          return // Esce subito dopo il redirect
         }
       }
 
@@ -100,6 +112,62 @@ export function GardenManager() {
   const handleSaveEdit = async () => {
     await loadGardens()
     setEditingGarden(null)
+  }
+
+  const handleAddStructures = (garden: Garden) => {
+    setAddingStructuresFor(garden)
+  }
+
+  const handleSaveStructures = async (structures: StructureUpdate) => {
+    if (!addingStructuresFor) return
+
+    try {
+      console.log('addingStructuresFor:', addingStructuresFor)
+      console.log('structures:', structures)
+
+      // Merge delle nuove strutture con i dati esistenti del garden
+      const updatedGarden: Garden = {
+        ...addingStructuresFor,
+        // Aggiungi le nuove strutture mantenendo quelle esistenti
+        hydroponicConfig: structures.hydroponicConfig || addingStructuresFor.hydroponicConfig,
+        aquaponicConfig: structures.aquaponicConfig || addingStructuresFor.aquaponicConfig,
+        aeroponicConfig: structures.aeroponicConfig || addingStructuresFor.aeroponicConfig,
+        potCount: structures.potCount !== undefined ? structures.potCount : addingStructuresFor.potCount,
+        potDiameter: structures.potDiameter !== undefined ? structures.potDiameter : addingStructuresFor.potDiameter,
+        bedCount: structures.bedCount !== undefined ? structures.bedCount : addingStructuresFor.bedCount,
+        bedLength: structures.bedLength !== undefined ? structures.bedLength : addingStructuresFor.bedLength,
+        bedWidth: structures.bedWidth !== undefined ? structures.bedWidth : addingStructuresFor.bedWidth,
+        containerCount: structures.containerCount !== undefined ? structures.containerCount : addingStructuresFor.containerCount,
+        containerLength: structures.containerLength !== undefined ? structures.containerLength : addingStructuresFor.containerLength,
+        containerWidth: structures.containerWidth !== undefined ? structures.containerWidth : addingStructuresFor.containerWidth,
+        containerHeight: structures.containerHeight !== undefined ? structures.containerHeight : addingStructuresFor.containerHeight,
+      }
+
+      await storageProvider.updateGarden(addingStructuresFor.id, updatedGarden)
+      await loadGardens()
+
+      // Se è l'orto attivo, aggiorna anche quello
+      if (activeGarden?.id === addingStructuresFor.id) {
+        setActiveGarden(updatedGarden)
+      }
+
+      setAddingStructuresFor(null)
+      alert('✅ Strutture aggiunte con successo!')
+    } catch (error) {
+      console.error('Error adding structures:', error)
+      alert('❌ Errore durante l\'aggiunta delle strutture')
+    }
+  }
+
+  const getExistingStructures = (garden: Garden): ExistingStructures => {
+    return {
+      hasHydroponic: !!garden.hydroponicConfig,
+      hasAquaponic: !!garden.aquaponicConfig,
+      hasAeroponic: !!garden.aeroponicConfig,
+      hasPots: !!garden.potCount && garden.potCount > 0,
+      hasBeds: !!garden.bedCount && garden.bedCount > 0,
+      hasContainers: !!garden.containerCount && garden.containerCount > 0
+    }
   }
 
   const formatArea = (sizeSqMeters: number, sizeUnit?: string): string => {
@@ -207,45 +275,59 @@ export function GardenManager() {
                 </div>
               )}
 
-              <div className="flex gap-2 pt-3 border-t border-gray-200">
-                {!isActive && (
-                  <button
-                    onClick={() => handleSetActive(garden)}
-                    disabled={isDeleting}
-                    className="flex-1 px-3 py-2 border border-green-600 text-green-600 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50 text-sm font-medium"
-                  >
-                    Rendi Attivo
-                  </button>
-                )}
-
+              <div className="flex flex-col gap-2 pt-3 border-t border-gray-200">
+                {/* Prima riga - Aggiungi Struttura */}
                 <button
-                  onClick={() => handleEdit(garden)}
+                  onClick={() => handleAddStructures(garden)}
                   disabled={isDeleting}
-                  className="px-3 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 flex items-center gap-2"
-                  title="Modifica orto"
+                  className="w-full px-3 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm font-medium"
+                  title="Aggiungi strutture all'orto"
                 >
-                  <Edit size={16} />
-                  Modifica
+                  <Layers size={16} />
+                  Aggiungi Struttura
                 </button>
 
-                <button
-                  onClick={() => handleDelete(garden.id, garden.name)}
-                  disabled={isDeleting}
-                  className="px-3 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 flex items-center gap-2"
-                  title="Elimina orto"
-                >
-                  {isDeleting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
-                      Eliminazione...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 size={16} />
-                      Elimina
-                    </>
+                {/* Seconda riga - Altri pulsanti */}
+                <div className="flex gap-2">
+                  {!isActive && (
+                    <button
+                      onClick={() => handleSetActive(garden)}
+                      disabled={isDeleting}
+                      className="flex-1 px-3 py-2 border border-green-600 text-green-600 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50 text-sm font-medium"
+                    >
+                      Rendi Attivo
+                    </button>
                   )}
-                </button>
+
+                  <button
+                    onClick={() => handleEdit(garden)}
+                    disabled={isDeleting}
+                    className="px-3 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    title="Modifica orto"
+                  >
+                    <Edit size={16} />
+                    Modifica
+                  </button>
+
+                  <button
+                    onClick={() => handleDelete(garden.id, garden.name)}
+                    disabled={isDeleting}
+                    className="px-3 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    title="Elimina orto"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                        Eliminazione...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 size={16} />
+                        Elimina
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           )
@@ -270,6 +352,16 @@ export function GardenManager() {
           isOpen={true}
           onClose={handleCloseEdit}
           onSave={handleSaveEdit}
+        />
+      )}
+
+      {/* Add Structure Modal */}
+      {addingStructuresFor && (
+        <AddStructureModal
+          isOpen={true}
+          onClose={() => setAddingStructuresFor(null)}
+          onSave={handleSaveStructures}
+          existingStructures={getExistingStructures(addingStructuresFor)}
         />
       )}
     </div>

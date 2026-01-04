@@ -69,3 +69,6 @@ COMMENT ON FUNCTION notify_calendar_task_created() IS 'Invia notifica email quan
 
 
 
+
+
+

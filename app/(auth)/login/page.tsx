@@ -64,7 +64,16 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       console.error('Login error:', err)
-      setError(err.message || 'Errore durante il login. Riprova.')
+      // Traduci messaggi di errore Supabase in italiano
+      let errorMessage = 'Errore durante il login. Riprova.'
+      if (err.message?.includes('Invalid login credentials')) {
+        errorMessage = 'Email o password non valide. Verifica le tue credenziali.'
+      } else if (err.message?.includes('Email not confirmed')) {
+        errorMessage = 'Email non confermata. Controlla la tua casella di posta.'
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

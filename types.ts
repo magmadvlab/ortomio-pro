@@ -265,11 +265,27 @@ export interface StructureConfig {
     size: number;
     unit: 'sqm' | 'are' | 'hectare';
   };
+  rows?: Array<{
+    id?: string; // ID univoco della fila
+    name: string;
+    length: number; // metri
+    width?: number; // larghezza fila in cm
+    distance?: number; // distanza tra file in cm
+    plantSpacing?: number; // distanza tra piante in cm
+  }>;
   pots?: Array<{
+    id?: string; // ID univoco del vaso
+    name?: string; // Nome identificativo del vaso
     count: number;
     diameter: number; // cm
+    length?: number; // cm (per vasi rettangolari)
+    width?: number; // cm (per vasi rettangolari)
+    height?: number; // cm
+    volume?: number; // litri
   }>;
   beds?: Array<{
+    id?: string; // ID univoco del letto
+    name?: string; // Nome identificativo
     count: number;
     length: number; // cm
     width: number; // cm
@@ -277,6 +293,8 @@ export interface StructureConfig {
     holes?: number; // numero buchi/piante per letto
   }>;
   containers?: Array<{
+    id?: string; // ID univoco del contenitore
+    name?: string; // Nome identificativo
     count: number;
     length: number; // cm
     width: number; // cm
@@ -284,6 +302,8 @@ export interface StructureConfig {
     holes?: number; // numero piante per cassone
   }>;
   tanks?: Array<{
+    id?: string; // ID univoco della vasca
+    name?: string; // Nome identificativo
     count: number;
     length: number; // cm
     width: number; // cm
@@ -340,6 +360,39 @@ export interface Garden {
   
   // Configurazione dettagliata strutture (vasi, cassoni, vasche, letti, campo aperto)
   structureConfig?: StructureConfig;
+  
+  // ============================================
+  // PROPRIETÀ FLAT PER RETROCOMPATIBILITÀ
+  // Usate da GardenManager.tsx e altri componenti legacy
+  // Queste proprietà sono alias per structureConfig.*
+  // ============================================
+  // Conteggi
+  potCount?: number; // Numero totale vasi (alias per structureConfig.pots[0].count)
+  bedCount?: number; // Numero totale letti rialzati (alias per structureConfig.beds[0].count)
+  containerCount?: number; // Numero totale contenitori (alias per structureConfig.containers[0].count)
+  tankCount?: number; // Numero totale vasche (alias per structureConfig.tanks[0].count)
+  
+  // Dimensioni vasi
+  potDiameter?: number; // Diametro vaso in cm (alias per structureConfig.pots[0].diameter)
+  
+  // Dimensioni letti rialzati
+  bedLength?: number; // Lunghezza letto in cm (alias per structureConfig.beds[0].length)
+  bedWidth?: number; // Larghezza letto in cm (alias per structureConfig.beds[0].width)
+  bedHeight?: number; // Altezza letto in cm (alias per structureConfig.beds[0].height)
+  
+  // Dimensioni contenitori
+  containerLength?: number; // Lunghezza contenitore in cm (alias per structureConfig.containers[0].length)
+  containerWidth?: number; // Larghezza contenitore in cm (alias per structureConfig.containers[0].width)
+  containerHeight?: number; // Altezza contenitore in cm (alias per structureConfig.containers[0].height)
+  
+  // Dimensioni vasche
+  tankLength?: number; // Lunghezza vasca in cm (alias per structureConfig.tanks[0].length)
+  tankWidth?: number; // Larghezza vasca in cm (alias per structureConfig.tanks[0].width)
+  tankHeight?: number; // Altezza vasca in cm (alias per structureConfig.tanks[0].height)
+  
+  // Campo aperto
+  openFieldSize?: number; // Dimensione campo aperto (alias per structureConfig.openField.size)
+  openFieldUnit?: 'sqm' | 'are' | 'hectare'; // Unità campo aperto (alias per structureConfig.openField.unit)
 
   // NUOVO: Sistema gerarchico spazi coltivabili (GardenWizardV2)
   // Strategia organizzativa dell'orto
@@ -360,7 +413,7 @@ export interface Garden {
   
   // NUOVO: Configurazioni colture legnose specializzate (Pro Feature)
   orchardConfig?: {
-    category: 'DRUPACEE' | 'POMACEE' | 'AGRUMI' | 'FRUTTA_GUSCIO' | 
+    category: 'DRUPACEE' | 'POMACEE' | 'AGRUMI' | 'FRUTTA_GUSCIO' |
               'MEDITERRANEA' | 'KIWI' | 'ESOTICHE';
     profileId: string; // ID CropProfile da fruitTreeProfiles
     establishedDate?: string; // Data impianto (ISO string)
@@ -667,6 +720,14 @@ export interface GardenTask {
   expectedTransplantDate?: string; // If started from seed
   moonPhase?: MoonPhase; // Fase lunare al momento della semina/trapianto
   completed: boolean;
+  
+  // ============================================
+  // PROPRIETÀ RETROCOMPATIBILITÀ PER COMPLETAMENTO
+  // Usate da taskCleanupService.ts e useTasksOptimized.ts
+  // ============================================
+  startDate?: string; // Alias per 'date' - data inizio task (ISO string)
+  completedAt?: string; // Timestamp completamento dal database (ISO string)
+  
   // Tracking suggerimenti vs completamenti reali
   suggestedDate?: string; // Data suggerita dall'orchestrator (ISO string)
   suggestedTime?: string; // Orario suggerito (HH:mm, opzionale)
@@ -1576,8 +1637,10 @@ export interface MechanicalWorkRecord {
   id: string
   user_id: string
   garden_id?: string
-  bed_id?: string // Micro-zone tracking
-  row_id?: string // Micro-zone tracking
+  bed_id?: string // Micro-zone tracking (aiuole/letti)
+  bed_row_id?: string // Micro-zone tracking (filari di aiuole/letti) - renamed from row_id
+  zone_id?: string // Garden zone reference
+  field_row_id?: string // Field row tracking (filari di campo aperto)
   work_type: MechanicalWorkType
   work_date: string // ISO date string
   area_m2: number
@@ -1610,7 +1673,9 @@ export interface TreatmentRecordDB {
   user_id: string
   garden_id?: string
   bed_id?: string
-  row_id?: string
+  bed_row_id?: string // Filari di aiuole/letti - renamed from row_id
+  zone_id?: string // Garden zone reference
+  field_row_id?: string // Filari di campo aperto
   crop_name: string
   treatment_date: string // ISO date string
   product_name: string
@@ -1689,7 +1754,9 @@ export interface FertilizerApplicationLogDB {
   gardenId: string
   taskId?: string | null
   bedId?: string | null
-  rowId?: string | null
+  bedRowId?: string | null // Filari di aiuole/letti - renamed from rowId
+  zoneId?: string | null // Garden zone reference
+  fieldRowId?: string | null // Filari di campo aperto
 
   // Prodotto
   fertilizerProductId: string

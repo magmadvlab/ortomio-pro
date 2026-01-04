@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { X, MapPin, Ruler, Info, Grid, Layers, TreeDeciduous, Sun, Trash2 } from 'lucide-react'
+import { X, MapPin, Ruler, Info, Grid, Layers, TreeDeciduous, Sun, Trash2, Plus, Edit2 } from 'lucide-react'
 import { Garden, GardenBed, GardenRow } from '@/types'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 
@@ -29,6 +29,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
   // Structures state
   const [beds, setBeds] = useState<GardenBed[]>([])
   const [rows, setRows] = useState<GardenRow[]>([])
+  const [fieldRows, setFieldRows] = useState<any[]>([]) // Filari campo aperto (field_rows)
 
   // Editable structure config
   const [pots, setPots] = useState<Array<{ count: number; diameter: number }>>(
@@ -44,6 +45,19 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
     garden.structureConfig?.tanks || []
   )
 
+  // Field row editing state
+  const [editingFieldRow, setEditingFieldRow] = useState<any | null>(null)
+  const [fieldRowForm, setFieldRowForm] = useState({
+    name: '',
+    rowNumber: 1,
+    lengthMeters: 10,
+    distanceFromPreviousRow: 100,
+    cultivar: '',
+    plantSpacing: 50, // cm - Distanza tra piante nel filare
+    plantedDate: '', // Data semina/trapianto
+    orientation: '' as '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE'
+  })
+
   useEffect(() => {
     if (isOpen) {
       loadGardenStructures()
@@ -52,9 +66,11 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
 
   const loadGardenStructures = async () => {
     try {
+      // Carica aiuole/letti
       const gardenBeds = await storageProvider.getGardenBeds(garden.id)
       setBeds(gardenBeds || [])
 
+      // Carica filari delle aiuole
       if (gardenBeds && gardenBeds.length > 0) {
         const allRows: GardenRow[] = []
         for (const bed of gardenBeds) {
@@ -65,6 +81,10 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
         }
         setRows(allRows)
       }
+
+      // Carica filari del campo aperto (field_rows)
+      const openFieldRows = await storageProvider.getFieldRows(garden.id)
+      setFieldRows(openFieldRows || [])
     } catch (error) {
       console.error('Error loading garden structures:', error)
     }
@@ -141,6 +161,103 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleStartNewFieldRow = () => {
+    setEditingFieldRow(null)
+    setFieldRowForm({
+      name: `Filare ${fieldRows.length + 1}`,
+      rowNumber: fieldRows.length + 1,
+      lengthMeters: 10,
+      distanceFromPreviousRow: 100,
+      cultivar: '',
+      plantSpacing: 50,
+      plantedDate: '',
+      orientation: ''
+    })
+  }
+
+  const handleEditFieldRow = (row: any) => {
+    setEditingFieldRow(row)
+    setFieldRowForm({
+      name: row.name || '',
+      rowNumber: row.row_number || row.rowNumber || 1,
+      lengthMeters: row.length_meters || row.lengthMeters || 10,
+      distanceFromPreviousRow: row.distance_from_previous_row || row.distanceFromPreviousRow || 100,
+      cultivar: row.cultivar || '',
+      plantSpacing: row.plant_spacing || row.plantSpacing || 50,
+      plantedDate: row.planted_date || row.plantedDate || '',
+      orientation: (row.orientation || '') as '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE'
+    })
+  }
+
+  const handleSaveFieldRow = async () => {
+    try {
+      setLoading(true)
+
+      const fieldRowData = {
+        name: fieldRowForm.name,
+        rowNumber: fieldRowForm.rowNumber,
+        lengthMeters: fieldRowForm.lengthMeters,
+        distanceFromPreviousRow: fieldRowForm.distanceFromPreviousRow || undefined,
+        cultivar: fieldRowForm.cultivar || undefined,
+        plantSpacing: fieldRowForm.plantSpacing || undefined,
+        plantedDate: fieldRowForm.plantedDate || undefined,
+        orientation: fieldRowForm.orientation || undefined
+      }
+
+      if (editingFieldRow) {
+        // Update existing field row
+        await storageProvider.updateFieldRow(editingFieldRow.id, fieldRowData)
+        alert('✅ Filare aggiornato con successo')
+      } else {
+        // Create new field row
+        await storageProvider.createFieldRow({
+          gardenId: garden.id,
+          ...fieldRowData,
+          isActive: true
+        })
+        alert('✅ Filare creato con successo')
+      }
+
+      await loadGardenStructures()
+      setEditingFieldRow(null)
+    } catch (error) {
+      console.error('Error saving field row:', error)
+      alert('❌ Errore durante il salvataggio del filare')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteFieldRow = async (rowId: string, rowName: string) => {
+    if (!confirm(`Sei sicuro di voler eliminare il filare "${rowName}"?`)) return
+
+    try {
+      setLoading(true)
+      await storageProvider.deleteFieldRow(rowId)
+      alert('✅ Filare eliminato con successo')
+      await loadGardenStructures()
+    } catch (error) {
+      console.error('Error deleting field row:', error)
+      alert('❌ Errore durante l\'eliminazione del filare')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCancelFieldRowEdit = () => {
+    setEditingFieldRow(null)
+    setFieldRowForm({
+      name: '',
+      rowNumber: 1,
+      lengthMeters: 10,
+      distanceFromPreviousRow: 100,
+      cultivar: '',
+      plantSpacing: 50,
+      plantedDate: '',
+      orientation: ''
+    })
   }
 
   if (!isOpen) return null
@@ -671,6 +788,219 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                 ) : (
                   <p className="text-sm text-gray-500 text-center py-4">
                     Nessuna aiuola configurata
+                  </p>
+                )}
+              </div>
+
+              {/* Filari Campo Aperto */}
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">🌾 Filari Campo Aperto</h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {fieldRows.length > 0 ? `Gestisci i ${fieldRows.length} filari del tuo campo` : 'Aggiungi filari al tuo campo'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleStartNewFieldRow}
+                    disabled={loading}
+                    className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+                  >
+                    <Plus size={16} />
+                    Nuovo Filare
+                  </button>
+                </div>
+
+                {/* Form di modifica/creazione */}
+                {(editingFieldRow !== null || fieldRowForm.name) && (
+                  <div className="bg-white rounded-lg p-4 mb-3 border-2 border-green-300">
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      {editingFieldRow ? 'Modifica Filare' : 'Nuovo Filare'}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Nome</label>
+                        <input
+                          type="text"
+                          value={fieldRowForm.name}
+                          onChange={(e) => setFieldRowForm({ ...fieldRowForm, name: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          placeholder="Es. Filare 1"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Numero</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={fieldRowForm.rowNumber}
+                          onChange={(e) => setFieldRowForm({ ...fieldRowForm, rowNumber: parseInt(e.target.value) || 1 })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Lunghezza (m)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.1}
+                          value={fieldRowForm.lengthMeters}
+                          onChange={(e) => setFieldRowForm({ ...fieldRowForm, lengthMeters: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Distanza dal precedente (cm)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={fieldRowForm.distanceFromPreviousRow}
+                          onChange={(e) => setFieldRowForm({ ...fieldRowForm, distanceFromPreviousRow: parseInt(e.target.value) || 0 })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          placeholder="Es. 100"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Coltura (opzionale)</label>
+                        <input
+                          type="text"
+                          value={fieldRowForm.cultivar}
+                          onChange={(e) => setFieldRowForm({ ...fieldRowForm, cultivar: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          placeholder="Es. Pomodoro Datterino"
+                        />
+                      </div>
+
+                      {/* Campi avanzati - Accordion espandibile */}
+                      <div className="md:col-span-2 mt-3 border-t pt-3">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              Spaziatura piante (cm)
+                              <span className="text-gray-400 font-normal ml-1">- Auto-calc numero piante</span>
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={fieldRowForm.plantSpacing}
+                              onChange={(e) => setFieldRowForm({ ...fieldRowForm, plantSpacing: parseInt(e.target.value) || 0 })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                              placeholder="Es. 50"
+                            />
+                            {fieldRowForm.plantSpacing > 0 && fieldRowForm.lengthMeters > 0 && (
+                              <p className="text-xs text-green-600 mt-1">
+                                ≈ {Math.floor((fieldRowForm.lengthMeters * 100) / fieldRowForm.plantSpacing)} piante
+                              </p>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Data semina/trapianto</label>
+                            <input
+                              type="date"
+                              value={fieldRowForm.plantedDate}
+                              onChange={(e) => setFieldRowForm({ ...fieldRowForm, plantedDate: e.target.value })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Orientamento filare</label>
+                            <select
+                              value={fieldRowForm.orientation}
+                              onChange={(e) => setFieldRowForm({ ...fieldRowForm, orientation: e.target.value as any })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            >
+                              <option value="">Non specificato</option>
+                              <option value="N-S">Nord-Sud (N-S)</option>
+                              <option value="E-W">Est-Ovest (E-W)</option>
+                              <option value="NE-SW">Nord-Est / Sud-Ovest</option>
+                              <option value="NW-SE">Nord-Ovest / Sud-Est</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-4">
+                      <button
+                        onClick={handleSaveFieldRow}
+                        disabled={loading || !fieldRowForm.name || fieldRowForm.lengthMeters <= 0}
+                        className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                      >
+                        {loading ? 'Salvataggio...' : 'Salva'}
+                      </button>
+                      <button
+                        onClick={handleCancelFieldRowEdit}
+                        disabled={loading}
+                        className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                      >
+                        Annulla
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Lista filari */}
+                {fieldRows.length > 0 ? (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {fieldRows.map((row, index) => (
+                      <div key={row.id} className="bg-white rounded-lg p-3 flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900">{row.name}</span>
+                            <span className="text-xs text-gray-500">#{row.row_number || index + 1}</span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-600 flex-wrap">
+                            <span>📏 {row.length_meters}m</span>
+                            {row.distance_from_previous_row && (
+                              <span>↔️ {row.distance_from_previous_row}cm</span>
+                            )}
+                            {row.plant_spacing && (
+                              <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                                🌱 {row.plant_spacing}cm → {row.plant_count || '?'} piante
+                              </span>
+                            )}
+                            {row.cultivar && (
+                              <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                {row.cultivar}
+                              </span>
+                            )}
+                            {row.orientation && (
+                              <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
+                                🧭 {row.orientation}
+                              </span>
+                            )}
+                            {row.planted_date && (
+                              <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                                📅 {new Date(row.planted_date).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleEditFieldRow(row)}
+                            disabled={loading}
+                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
+                            title="Modifica filare"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFieldRow(row.id, row.name)}
+                            disabled={loading}
+                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
+                            title="Elimina filare"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    Nessun filare configurato. Clicca "Nuovo Filare" per iniziare.
                   </p>
                 )}
               </div>

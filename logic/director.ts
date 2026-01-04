@@ -1272,7 +1272,7 @@ export const getDailyGardenPlan = async (
   // FERTILIZATION AUTO-SCHEDULING
   // ==========================================
   // Pattern identico a harvest succession
-  if (storageProvider) {
+  if (storageProvider && typeof storageProvider.getFertilizerApplicationLogs === 'function') {
     try {
       const daysAgo90 = new Date(currentDate.getTime() - 90 * 24 * 60 * 60 * 1000);
       const in3Days = new Date(currentDate.getTime() + 3 * 24 * 60 * 60 * 1000);
@@ -1303,7 +1303,10 @@ export const getDailyGardenPlan = async (
         }
       }
     } catch (error) {
-      console.error('Error in fertilization auto-scheduling:', error);
+      // Tabella non ancora creata o errore DB - non bloccante
+      if (error instanceof Error && !error.message.includes('relation') && !error.message.includes('does not exist')) {
+        console.error('Error in fertilization auto-scheduling:', error);
+      }
     }
   }
 

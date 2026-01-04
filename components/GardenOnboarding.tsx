@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Garden, GardenType, StructureConfig } from '../types';
 import { getCurrentPositionWithRetry, getCurrentPositionForceRefresh, getCurrentPositionWithAccuracy, getDefaultCoordinates } from '../services/geolocationService';
 import { getGeoClimateInfo } from '../services/geoClimateService';
@@ -116,6 +116,70 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
   const [photoAnalysisError, setPhotoAnalysisError] = useState<string | null>(null);
   const [photoNorthOffset, setPhotoNorthOffset] = useState<number | undefined>(existingGarden?.photoNorthOffset);
   const [showCompassCalibrator, setShowCompassCalibrator] = useState(false);
+
+  // Callback handlers memoized con useCallback per evitare loop infiniti
+  const handleSizeCalculated = useCallback((sizeSqMeters: number, sizeUnit: AreaUnit) => {
+    setCalculatedSizeSqMeters(sizeSqMeters);
+    setCalculatedSizeUnit(sizeUnit);
+  }, []);
+
+  const handleGreenhouseConfigChange = useCallback((config: GreenhouseConfig) => {
+    setGreenhouseConfig(config);
+  }, []);
+
+  const handleHydroponicConfigChange = useCallback((config: HydroponicSystemConfig) => {
+    setHydroponicConfig(config);
+  }, []);
+
+  const handleAquaponicConfigChange = useCallback((config: AquaponicSystemConfig) => {
+    setAquaponicConfig(config);
+  }, []);
+
+  const handleAeroponicConfigChange = useCallback((config: AeroponicSystemConfig) => {
+    setAeroponicConfig(config);
+  }, []);
+
+  const handleIndoorConfigChange = useCallback((config: IndoorGrowingConfig) => {
+    setIndoorConfig(config);
+  }, []);
+
+  const handlePotConfigChange = useCallback((count: number, diameter: number) => {
+    setPotCount(count);
+    setPotDiameter(diameter);
+  }, []);
+
+  const handleBedConfigChange = useCallback((count: number, length: number, width: number, height: number, holes: number) => {
+    setBedCount(count);
+    setBedLength(length);
+    setBedWidth(width);
+    setBedHeight(height);
+    setBedHoles(holes);
+  }, []);
+
+  const handleContainerConfigChange = useCallback((count: number, length: number, width: number, height: number, holes: number) => {
+    setContainerCount(count);
+    setContainerLength(length);
+    setContainerWidth(width);
+    setContainerHeight(height);
+    setContainerHoles(holes);
+  }, []);
+
+  const handleTankConfigChange = useCallback((count: number, length: number, width: number, height: number, holes: number) => {
+    setTankCount(count);
+    setTankLength(length);
+    setTankWidth(width);
+    setTankHeight(height);
+    setTankHoles(holes);
+  }, []);
+
+  const handleOpenFieldConfigChange = useCallback((size: string, unit: AreaUnit) => {
+    setOpenFieldSize(size);
+    setOpenFieldUnit(unit);
+  }, []);
+
+  const handleStructureConfigChange = useCallback((config: StructureConfig) => {
+    setStructureConfig(config);
+  }, []);
 
   useEffect(() => {
     // Auto-riempi coordinate se esiste già un giardino
@@ -637,7 +701,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   disabled={!!initialGardenType} // Disabilita se pre-selezionato
                 >
-                  <option value="">Campo Aperto (Default)</option>
+                  <option value="">Seleziona tipo di spazio...</option>
                   <option value="OpenField">Campo Aperto</option>
                   <option value="Greenhouse">Serra</option>
                   <option value="Tunnel">Tunnel/Polytunnel</option>
@@ -874,71 +938,44 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
           {step === 4 && (
             <SizeConfigurationStep
               gardenType={gardenType}
-              onSizeCalculated={(sizeSqMeters, sizeUnit) => {
-                setCalculatedSizeSqMeters(sizeSqMeters);
-                setCalculatedSizeUnit(sizeUnit);
-              }}
+              onSizeCalculated={handleSizeCalculated}
               initialSize={calculatedSizeSqMeters}
               initialUnit={calculatedSizeUnit}
               greenhouseConfig={greenhouseConfig}
-              onGreenhouseConfigChange={(config) => setGreenhouseConfig(config)}
+              onGreenhouseConfigChange={handleGreenhouseConfigChange}
               hydroponicConfig={hydroponicConfig}
-              onHydroponicConfigChange={(config) => setHydroponicConfig(config)}
+              onHydroponicConfigChange={handleHydroponicConfigChange}
               aquaponicConfig={aquaponicConfig}
-              onAquaponicConfigChange={(config) => setAquaponicConfig(config)}
+              onAquaponicConfigChange={handleAquaponicConfigChange}
               aeroponicConfig={aeroponicConfig}
-              onAeroponicConfigChange={(config) => setAeroponicConfig(config)}
+              onAeroponicConfigChange={handleAeroponicConfigChange}
               indoorConfig={indoorConfig}
-              onIndoorConfigChange={(config) => setIndoorConfig(config)}
+              onIndoorConfigChange={handleIndoorConfigChange}
               potCount={potCount}
               potDiameter={potDiameter}
-              onPotConfigChange={(count, diameter) => {
-                setPotCount(count);
-                setPotDiameter(diameter);
-              }}
+              onPotConfigChange={handlePotConfigChange}
               bedCount={bedCount}
               bedLength={bedLength}
               bedWidth={bedWidth}
               bedHeight={bedHeight}
               bedHoles={bedHoles}
-              onBedConfigChange={(count, length, width, height, holes) => {
-                setBedCount(count);
-                setBedLength(length);
-                setBedWidth(width);
-                setBedHeight(height);
-                setBedHoles(holes);
-              }}
+              onBedConfigChange={handleBedConfigChange}
               containerCount={containerCount}
               containerLength={containerLength}
               containerWidth={containerWidth}
               containerHeight={containerHeight}
               containerHoles={containerHoles}
-              onContainerConfigChange={(count, length, width, height, holes) => {
-                setContainerCount(count);
-                setContainerLength(length);
-                setContainerWidth(width);
-                setContainerHeight(height);
-                setContainerHoles(holes);
-              }}
+              onContainerConfigChange={handleContainerConfigChange}
               tankCount={tankCount}
               tankLength={tankLength}
               tankWidth={tankWidth}
               tankHeight={tankHeight}
               tankHoles={tankHoles}
-              onTankConfigChange={(count, length, width, height, holes) => {
-                setTankCount(count);
-                setTankLength(length);
-                setTankWidth(width);
-                setTankHeight(height);
-                setTankHoles(holes);
-              }}
+              onTankConfigChange={handleTankConfigChange}
               openFieldSize={openFieldSize}
               openFieldUnit={openFieldUnit}
-              onOpenFieldConfigChange={(size, unit) => {
-                setOpenFieldSize(size);
-                setOpenFieldUnit(unit);
-              }}
-              onStructureConfigChange={(config) => setStructureConfig(config)}
+              onOpenFieldConfigChange={handleOpenFieldConfigChange}
+              onStructureConfigChange={handleStructureConfigChange}
             />
           )}
 

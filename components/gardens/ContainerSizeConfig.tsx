@@ -34,7 +34,8 @@ export const ContainerSizeConfig: React.FC<ContainerSizeConfigProps> = ({
     } else {
       onConfigChange(0, 0, 0, 0, 0, 0);
     }
-  }, [count, length, width, height, holes, onConfigChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [count, length, width, height, holes]); // onConfigChange rimosso dalle dipendenze per evitare loop infinito
 
   const calculateArea = (): number => {
     if (count > 0 && length > 0 && width > 0) {

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { TierProvider } from '@/packages/core/context/TierContext'
 import { StorageProvider } from '@/packages/core/context/StorageContext'
 import { AuthProvider } from '@/packages/core/hooks/useAuth'
@@ -16,6 +16,16 @@ import GlobalSearch from '@/components/shared/GlobalSearch'
 import AuthStatus from '@/components/shared/AuthStatus'
 import InstallPrompt from '@/components/shared/InstallPrompt'
 import { GlobalQuickActions } from '@/components/shared/GlobalQuickActions'
+
+// Import cleanup utilities (only in development)
+if (process.env.NODE_ENV === 'development') {
+  import('@/scripts/clearLocalStorage').then(module => {
+    if (typeof window !== 'undefined') {
+      (window as any).analyzeOrtomioStorage = module.analyzeLocalStorageSize;
+      (window as any).clearOrtomioLocalStorage = module.clearAllLocalStorageData;
+    }
+  });
+}
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const { tier, isPro, isPlus } = useTier()

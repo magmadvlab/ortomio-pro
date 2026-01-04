@@ -5,7 +5,7 @@ import { useStorage } from '@/packages/core/hooks/useStorage'
 import { ROISummary } from './ROISummary'
 import { AnalyticsTable } from './AnalyticsTable'
 import { TreatmentRegister } from './TreatmentRegister'
-import GardenOnboarding from '@/components/GardenOnboarding'
+import { GardenTypeWizard } from '@/components/GardenTypeWizard'
 import { Garden } from '@/types'
 import { Plus, Home, Scissors, Link as LinkIcon } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -86,7 +86,7 @@ export function ProfessionalDashboard() {
   if (showOnboarding || gardens.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <GardenOnboarding
+        <GardenTypeWizard
           onComplete={handleOnboardingComplete}
           onCancel={handleOnboardingCancel}
         />

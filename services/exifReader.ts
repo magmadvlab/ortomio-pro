@@ -105,3 +105,6 @@ export function calculateNorthOffsetFromEXIF(exifData: EXIFData): number | null 
 
 
 
+
+
+

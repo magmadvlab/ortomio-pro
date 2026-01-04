@@ -5,11 +5,13 @@
 
 /**
  * Riferimenti micro-zone comuni
+ * IMPORTANTE: Separazione tra bed_rows (filari di aiuole) e field_rows (filari di campo aperto)
  */
 export interface MicroZoneReference {
-  bedId?: string;    // garden_beds
-  zoneId?: string;   // garden_zones
-  rowId?: string;    // field_rows
+  bedId?: string;        // garden_beds (aiuole/letti)
+  bedRowId?: string;     // garden_rows (filari di aiuole/letti) - renamed from rowId
+  zoneId?: string;       // garden_zones (zone dell'orto)
+  fieldRowId?: string;   // field_rows (filari di campo aperto) - NUOVO
 }
 
 /**
@@ -110,11 +112,13 @@ export interface TreatmentByMicrozone {
   dosage: string;
   operationType: 'treatment';
   bedId?: string;
+  bedRowId?: string;      // Filari di aiuole/letti - renamed from rowId
   zoneId?: string;
-  rowId?: string;
+  fieldRowId?: string;    // Filari di campo aperto - NUOVO
   bedName?: string;
+  bedRowName?: string;    // Nome filare aiuola - renamed from rowName
   zoneName?: string;
-  rowName?: string;
+  fieldRowName?: string;  // Nome filare campo - NUOVO
 }
 
 /**
@@ -130,11 +134,13 @@ export interface FertilizationByMicrozone {
   applicationMethod: string;
   operationType: 'fertilization';
   bedId?: string;
+  bedRowId?: string;      // Filari di aiuole/letti - renamed from rowId
   zoneId?: string;
-  rowId?: string;
+  fieldRowId?: string;    // Filari di campo aperto - NUOVO
   bedName?: string;
+  bedRowName?: string;    // Nome filare aiuola - renamed from rowName
   zoneName?: string;
-  rowName?: string;
+  fieldRowName?: string;  // Nome filare campo - NUOVO
 }
 
 /**
@@ -149,11 +155,13 @@ export interface IrrigationByMicrozone {
   method: string;
   operationType: 'irrigation';
   bedId?: string;
+  bedRowId?: string;      // Filari di aiuole/letti - renamed from rowId
   zoneId?: string;
-  rowId?: string;
+  fieldRowId?: string;    // Filari di campo aperto - NUOVO
   bedName?: string;
+  bedRowName?: string;    // Nome filare aiuola - renamed from rowName
   zoneName?: string;
-  rowName?: string;
+  fieldRowName?: string;  // Nome filare campo - NUOVO
 }
 
 /**
@@ -170,8 +178,9 @@ export type OperationByMicrozone =
 export interface MicroZoneFilter {
   gardenId: string;
   bedId?: string;
+  bedRowId?: string;      // Filari di aiuole/letti - renamed from rowId
   zoneId?: string;
-  rowId?: string;
+  fieldRowId?: string;    // Filari di campo aperto - NUOVO
   startDate?: string;
   endDate?: string;
   operationType?: 'treatment' | 'fertilization' | 'irrigation';
@@ -182,8 +191,9 @@ export interface MicroZoneFilter {
  */
 export interface MicroZoneStats {
   bedId?: string;
+  bedRowId?: string;      // Filari di aiuole/letti - renamed from rowId
   zoneId?: string;
-  rowId?: string;
+  fieldRowId?: string;    // Filari di campo aperto - NUOVO
   totalOperations: number;
   treatmentCount: number;
   fertilizationCount: number;

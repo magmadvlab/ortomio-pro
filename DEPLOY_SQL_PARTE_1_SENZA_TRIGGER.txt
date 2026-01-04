@@ -1,0 +1,135 @@
+-- ============================================
+-- ORTOMIO DATABASE - PARTE 1: FIX CRITICI (SENZA TRIGGER)
+-- Esegui questo SQL su Supabase.com SQL Editor
+-- ============================================
+
+-- NOTA: Questo script NON crea il trigger su auth.users
+-- perché il SQL Editor non ha permessi sufficienti.
+-- Usa Supabase CLI per il trigger (vedi DEPLOY_ALTERNATIVO_CLI.md)
+
+-- ============================================
+-- 1. COLONNA PREFERENCES
+-- ============================================
+
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}'::jsonb;
+
+COMMENT ON COLUMN public.profiles.preferences IS 'User preferences stored as JSON';
+
+-- ============================================
+-- 2. FUNZIONE GRANT_CREDITS (con SECURITY DEFINER)
+-- ============================================
+
+CREATE OR REPLACE FUNCTION public.grant_credits(p_user_id uuid, p_amount integer)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $function$
+BEGIN
+  UPDATE public.profiles
+  SET ai_credits_total = ai_credits_total + p_amount
+  WHERE id = p_user_id;
+END;
+$function$;
+
+COMMENT ON FUNCTION public.grant_credits IS 'Grants AI credits to a user - SECURITY DEFINER allows auth triggers to update profiles';
+
+-- ============================================
+-- 3. FUNZIONE HANDLE_NEW_USER_CREDITS (con SECURITY DEFINER)
+-- ============================================
+
+CREATE OR REPLACE FUNCTION public.handle_new_user_credits()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $function$
+BEGIN
+  -- Ensure profile exists
+  INSERT INTO public.profiles (id, tier, ai_credits_total, ai_credits_used)
+  VALUES (NEW.id, 'PRO', 3, 0)
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Grant 3 free credits if profile was just created
+  IF NOT EXISTS (
+    SELECT 1 FROM public.ai_credit_transactions
+    WHERE user_id = NEW.id AND type = 'bonus' AND description LIKE '%Welcome%'
+  ) THEN
+    PERFORM public.grant_credits(NEW.id, 3);
+
+    INSERT INTO public.ai_credit_transactions (user_id, amount, type, description)
+    VALUES (NEW.id, 3, 'bonus', 'Welcome bonus - 3 free AI credits');
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;
+
+COMMENT ON FUNCTION public.handle_new_user_credits IS 'Trigger function to grant initial and welcome credits - SECURITY DEFINER for auth context';
+
+-- ============================================
+-- 4. FUNZIONE HANDLE_NEW_USER (con SECURITY DEFINER)
+-- ============================================
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public, auth
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- Create profile for new user
+  INSERT INTO public.profiles (id, tier, ai_credits_total, ai_credits_used)
+  VALUES (
+    NEW.id,
+    'PRO'::text,
+    3,
+    0
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  RETURN NEW;
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Log error but don't fail user creation
+    RAISE LOG 'Error in handle_new_user: %', SQLERRM;
+    RETURN NEW;
+END;
+$$;
+
+COMMENT ON FUNCTION public.handle_new_user IS 'Automatically creates profile when user registers - SECURITY DEFINER for auth context';
+
+-- ============================================
+-- 5. TRIGGER CREAZIONE AUTOMATICA PROFILI
+-- ============================================
+
+-- ⚠️  SKIPPED: Creazione trigger
+-- Il SQL Editor non ha permessi per creare trigger su auth.users
+--
+-- OPZIONI:
+-- A) Usa Supabase CLI: supabase db push (RACCOMANDATO)
+-- B) Crea il trigger manualmente tramite Supabase Dashboard:
+--    Database > Triggers > Create a new trigger
+--    - Table: auth.users
+--    - Events: After INSERT
+--    - Type: For each row
+--    - Function: public.handle_new_user()
+
+-- ============================================
+-- 6. PERMESSI SUPABASE_AUTH_ADMIN
+-- ============================================
+
+-- Grant permissions to supabase_auth_admin role
+GRANT ALL ON public.profiles TO supabase_auth_admin;
+GRANT ALL ON public.ai_credit_transactions TO supabase_auth_admin;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO supabase_auth_admin;
+
+-- ============================================
+-- FINE PARTE 1 (SENZA TRIGGER)
+-- ============================================
+
+-- ✅ Script eseguito con successo!
+-- ⚠️  IMPORTANTE: Devi ancora creare il trigger (vedi opzioni sopra)
+--
+-- Vai avanti con PARTE 2 dopo aver eseguito questo script

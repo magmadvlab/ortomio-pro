@@ -5,9 +5,7 @@ import { X, CheckCircle, ArrowRight, ArrowLeft } from 'lucide-react'
 import { OnboardingStep1Welcome } from './OnboardingStep1Welcome'
 import { OnboardingStep2UserType } from './OnboardingStep2UserType'
 import { OnboardingStep3GardenType } from './OnboardingStep3GardenType'
-import { OnboardingStep4Location } from './OnboardingStep4Location'
 import { OnboardingStep5Goals } from './OnboardingStep5Goals'
-import { OnboardingStep6FirstGarden } from './OnboardingStep6FirstGarden'
 import { OnboardingStep7Tutorial } from './OnboardingStep7Tutorial'
 import { Garden } from '@/types'
 
@@ -28,13 +26,15 @@ export interface OnboardingData {
   }
   goals: ('autoconsumo' | 'vendita' | 'entrambi')[]
   garden?: Garden
+  gardenName?: string
+  shouldCreateGarden?: boolean
 }
 
 export function UserOnboardingWizard({ onComplete, onCancel, allowSkip = false }: UserOnboardingWizardProps) {
   const [currentStep, setCurrentStep] = useState(1)
   const [onboardingData, setOnboardingData] = useState<Partial<OnboardingData>>({})
 
-  const totalSteps = 7
+  const totalSteps = 5 // Rimosso Step 4 (Location) e Step 6 (FirstGarden) - specifici per spazio
 
   const updateData = (data: Partial<OnboardingData>) => {
     setOnboardingData(prev => ({ ...prev, ...data }))
@@ -107,11 +107,11 @@ export function UserOnboardingWizard({ onComplete, onCancel, allowSkip = false }
 
           {/* Progress Steps */}
           <div className="flex items-center justify-between mb-8">
-            {[1, 2, 3, 4, 5, 6, 7].map((step) => (
+            {[1, 2, 3, 4, 5].map((step) => (
               <div key={step} className="flex items-center flex-1">
                 <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors ${
-                  currentStep >= step 
-                    ? 'bg-ortomio-green-600 border-ortomio-green-600 text-white' 
+                  currentStep >= step
+                    ? 'bg-ortomio-green-600 border-ortomio-green-600 text-white'
                     : 'border-gray-300 text-gray-400'
                 }`}>
                   {currentStep > step ? <CheckCircle size={20} /> : step}
@@ -147,27 +147,13 @@ export function UserOnboardingWizard({ onComplete, onCancel, allowSkip = false }
               />
             )}
             {currentStep === 4 && (
-              <OnboardingStep4Location
-                initialValue={onboardingData.location}
-                onNext={(data) => handleStepComplete(data)}
-                onBack={handleBack}
-              />
-            )}
-            {currentStep === 5 && (
               <OnboardingStep5Goals
                 initialValue={onboardingData.goals}
                 onNext={(data) => handleStepComplete(data)}
                 onBack={handleBack}
               />
             )}
-            {currentStep === 6 && (
-              <OnboardingStep6FirstGarden
-                onboardingData={onboardingData as Partial<OnboardingData>}
-                onNext={(data) => handleStepComplete(data)}
-                onBack={handleBack}
-              />
-            )}
-            {currentStep === 7 && (
+            {currentStep === 5 && (
               <OnboardingStep7Tutorial
                 onComplete={handleComplete}
                 onBack={handleBack}

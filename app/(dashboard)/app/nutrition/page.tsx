@@ -457,7 +457,7 @@ export default function NutritionPage() {
       const created = await storageProvider.createTreatment({
         garden_id: selectedGardenId,
         bed_id: selectedBedId || undefined,
-        row_id: selectedRowId || undefined,
+        bed_row_id: selectedRowId || undefined,
         crop_name: treatmentForm.crop_name,
         treatment_date: treatmentForm.treatment_date,
         product_name: treatmentForm.product_name,
@@ -537,7 +537,7 @@ export default function NutritionPage() {
 
         const updated = await storageProvider.updateFertilizerApplicationLog(editingFertilizationLog.id, {
           bedId: selectedBedId || null,
-          rowId: selectedRowId || null,
+          bedRowId: selectedRowId || null,
           fertilizerProductName: fertilizationForm.product_name,
           applicationDate: fertilizationForm.application_date,
           areaSqm: Number(effectiveAreaSqm.toFixed(4)),
@@ -554,7 +554,7 @@ export default function NutritionPage() {
           gardenId: selectedGardenId,
           taskId: null,
           bedId: selectedBedId || null,
-          rowId: selectedRowId || null,
+          bedRowId: selectedRowId || null,
           fertilizerProductId: 'manual',
           fertilizerProductName: fertilizationForm.product_name,
           dosageAmount: Number(totalDosage.toFixed(4)),
@@ -760,7 +760,7 @@ export default function NutritionPage() {
                             onClick={() => {
                               setEditingFertilizationLog(l)
                               setSelectedBedId(l.bedId || '')
-                              setSelectedRowId(l.rowId || '')
+                              setSelectedRowId(l.bedRowId || '')
                               setFertilizationForm((p) => ({
                                 ...p,
                                 application_date: l.applicationDate || format(new Date(), 'yyyy-MM-dd'),
@@ -786,10 +786,10 @@ export default function NutritionPage() {
                         {typeof l.dosageAmount === 'number' ? `${l.dosageAmount} ${l.dosageUnit || ''}` : 'Dose: —'}
                         {typeof l.areaSqm === 'number' ? ` · Area: ${l.areaSqm} m²` : ''}
                       </div>
-                      {l.bedId || l.rowId ? (
+                      {l.bedId || l.bedRowId ? (
                         <div className="text-xs text-gray-600 mt-1">
                           {l.bedId ? `Letto: ${bedNameById[l.bedId] || l.bedId}` : ''}
-                          {l.rowId ? ` · Filare: ${rowNameById[l.rowId] || l.rowId}` : ''}
+                          {l.bedRowId ? ` · Filare: ${rowNameById[l.bedRowId] || l.bedRowId}` : ''}
                         </div>
                       ) : null}
                       {l.nextApplicationDate ? (

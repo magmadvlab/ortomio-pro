@@ -23,7 +23,8 @@ export const PotSizeConfig: React.FC<PotSizeConfigProps> = ({
     } else {
       onConfigChange(0, 0, 0);
     }
-  }, [count, diameter, onConfigChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [count, diameter]); // onConfigChange rimosso dalle dipendenze per evitare loop infinito
 
   const calculateArea = (): number => {
     if (count > 0 && diameter > 0) {
@@ -94,6 +95,9 @@ export const PotSizeConfig: React.FC<PotSizeConfigProps> = ({
     </div>
   );
 };
+
+
+
 
 
 

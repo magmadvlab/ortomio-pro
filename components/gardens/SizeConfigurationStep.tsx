@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { GardenType, StructureConfig } from '@/types';
 import { AreaUnit, convertToSqMeters, convertFromSqMeters } from '@/utils/areaConverter';
 import { GreenhouseConfig } from '@/types/greenhouse';
@@ -6,7 +6,7 @@ import { HydroponicSystemConfig, AquaponicSystemConfig, AeroponicSystemConfig, I
 import { PotSizeConfig } from './PotSizeConfig';
 import { BedSizeConfig } from './BedSizeConfig';
 import { ContainerSizeConfig } from './ContainerSizeConfig';
-import { OpenFieldSizeConfig } from './OpenFieldSizeConfig';
+import { OpenFieldSizeConfig, OpenFieldConfig } from './OpenFieldSizeConfig';
 import { GreenhouseConfigForm } from './GreenhouseConfigForm';
 import { HydroponicConfigForm } from './HydroponicConfigForm';
 import { AquaponicConfigForm } from './AquaponicConfigForm';
@@ -113,6 +113,9 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
   const [hydroponicAreaSqMeters, setHydroponicAreaSqMeters] = useState<number>(0);
   const [aquaponicAreaSqMeters, setAquaponicAreaSqMeters] = useState<number>(0);
   const [aeroponicAreaSqMeters, setAeroponicAreaSqMeters] = useState<number>(0);
+
+  // Stato per memorizzare la configurazione dei filari (rows)
+  const [currentRowConfig, setCurrentRowConfig] = useState<OpenFieldConfig['rowConfig'] | undefined>(undefined);
 
   // Inizializza gli stati dai valori esistenti al mount
   useEffect(() => {
@@ -244,91 +247,94 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
     setAeroponicAreaSqMeters(0);
   }, [aeroponicConfig]);
 
-  const handlePotChange = (count: number, diameter: number, area: number) => {
+  const handlePotChange = useCallback((count: number, diameter: number, area: number) => {
     // area è già in m², calcolata dal componente PotSizeConfig
     setPotsAreaSqMeters(area);
-    
+
     if (onPotConfigChange) {
       onPotConfigChange(count, diameter);
     }
-  };
+  }, [onPotConfigChange]);
 
-  const handleBedChange = (count: number, length: number, width: number, height: number, holes: number, area: number) => {
+  const handleBedChange = useCallback((count: number, length: number, width: number, height: number, holes: number, area: number) => {
     // area è già in m², calcolata dal componente BedSizeConfig
     setBedsAreaSqMeters(area);
-    
+
     if (onBedConfigChange) {
       onBedConfigChange(count, length, width, height, holes);
     }
-  };
+  }, [onBedConfigChange]);
 
-  const handleContainerChange = (count: number, length: number, width: number, height: number, holes: number, area: number) => {
+  const handleContainerChange = useCallback((count: number, length: number, width: number, height: number, holes: number, area: number) => {
     // area è già in m², calcolata dal componente ContainerSizeConfig
     setContainersAreaSqMeters(area);
-    
+
     if (onContainerConfigChange) {
       onContainerConfigChange(count, length, width, height, holes);
     }
-  };
+  }, [onContainerConfigChange]);
 
-  const handleTankChange = (count: number, length: number, width: number, height: number, holes: number, area: number) => {
+  const handleTankChange = useCallback((count: number, length: number, width: number, height: number, holes: number, area: number) => {
     // area è già in m², calcolata dal componente ContainerSizeConfig
     setTanksAreaSqMeters(area);
-    
+
     if (onTankConfigChange) {
       onTankConfigChange(count, length, width, height, holes);
     }
-  };
+  }, [onTankConfigChange]);
 
-  const handleOpenFieldChange = (sizeSqMeters: number, unit: AreaUnit) => {
+  const handleOpenFieldChange = useCallback((config: OpenFieldConfig) => {
     // sizeSqMeters è già in m², convertito dal componente OpenFieldSizeConfig
-    setOpenFieldAreaSqMeters(sizeSqMeters);
-    
-    if (onOpenFieldConfigChange) {
-      const displayValue = convertFromSqMeters(sizeSqMeters, unit).toFixed(2);
-      onOpenFieldConfigChange(displayValue, unit);
-    }
-  };
+    setOpenFieldAreaSqMeters(config.sizeSqMeters);
 
-  const handleGreenhouseConfigChange = (config: GreenhouseConfig) => {
+    // Salva la configurazione dei filari se presente
+    setCurrentRowConfig(config.rowConfig);
+
+    if (onOpenFieldConfigChange) {
+      const displayValue = convertFromSqMeters(config.sizeSqMeters, config.sizeUnit).toFixed(2);
+      onOpenFieldConfigChange(displayValue, config.sizeUnit);
+    }
+  }, [onOpenFieldConfigChange]);
+
+  const handleGreenhouseConfigChange = useCallback((config: GreenhouseConfig) => {
     // L'area viene calcolata nel useEffect dedicato
     if (onGreenhouseConfigChange) {
       onGreenhouseConfigChange(config);
     }
-  };
+  }, [onGreenhouseConfigChange]);
 
-  const handleIndoorConfigChange = (config: IndoorGrowingConfig) => {
+  const handleIndoorConfigChange = useCallback((config: IndoorGrowingConfig) => {
     // L'area viene calcolata nel useEffect dedicato
     if (onIndoorConfigChange) {
       onIndoorConfigChange(config);
     }
-  };
+  }, [onIndoorConfigChange]);
 
-  const handleHydroponicConfigChange = (config: HydroponicSystemConfig) => {
+  const handleHydroponicConfigChange = useCallback((config: HydroponicSystemConfig) => {
     // L'area viene calcolata nel useEffect dedicato
     if (onHydroponicConfigChange) {
       onHydroponicConfigChange(config);
     }
-  };
+  }, [onHydroponicConfigChange]);
 
-  const handleAquaponicConfigChange = (config: AquaponicSystemConfig) => {
+  const handleAquaponicConfigChange = useCallback((config: AquaponicSystemConfig) => {
     // L'area viene calcolata nel useEffect dedicato
     if (onAquaponicConfigChange) {
       onAquaponicConfigChange(config);
     }
-  };
+  }, [onAquaponicConfigChange]);
 
-  const handleAeroponicConfigChange = (config: AeroponicSystemConfig) => {
+  const handleAeroponicConfigChange = useCallback((config: AeroponicSystemConfig) => {
     // L'area viene calcolata nel useEffect dedicato
     if (onAeroponicConfigChange) {
       onAeroponicConfigChange(config);
     }
-  };
+  }, [onAeroponicConfigChange]);
 
   // Costruisce oggetto StructureConfig completo da tutti gli stati
   const buildStructureConfig = (): StructureConfig => {
     const config: StructureConfig = {};
-    
+
     // Campo aperto
     if (openFieldSize) {
       const numValue = parseFloat(openFieldSize);
@@ -339,7 +345,20 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
         };
       }
     }
-    
+
+    // Filari (rows) - AGGIUNTO per salvare la configurazione dei filari
+    if (currentRowConfig && currentRowConfig.numberOfRows > 0 && currentRowConfig.lengthMeters > 0) {
+      config.rows = [];
+      for (let i = 0; i < currentRowConfig.numberOfRows; i++) {
+        config.rows.push({
+          name: `Filare ${i + 1}`,
+          length: currentRowConfig.lengthMeters,
+          distance: currentRowConfig.defaultRowSpacingCm,
+          plantSpacing: undefined
+        });
+      }
+    }
+
     // Vasi
     if (potCount > 0 && potDiameter > 0) {
       config.pots = [{
@@ -347,7 +366,7 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
         diameter: potDiameter
       }];
     }
-    
+
     // Letti
     if (bedCount > 0 && bedLength > 0 && bedWidth > 0) {
       config.beds = [{
@@ -358,7 +377,7 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
         holes: bedHoles > 0 ? bedHoles : undefined
       }];
     }
-    
+
     // Cassoni
     if (containerCount > 0 && containerLength > 0 && containerWidth > 0) {
       config.containers = [{
@@ -369,7 +388,7 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
         holes: containerHoles > 0 ? containerHoles : undefined
       }];
     }
-    
+
     // Vasche
     if (tankCount > 0 && tankLength > 0 && tankWidth > 0) {
       config.tanks = [{
@@ -380,7 +399,7 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
         holes: tankHoles > 0 ? tankHoles : undefined
       }];
     }
-    
+
     return config;
   };
 
@@ -393,6 +412,7 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
   }, [
     openFieldSize,
     openFieldUnit,
+    currentRowConfig,
     potCount,
     potDiameter,
     bedCount,
@@ -499,8 +519,11 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
           Campo Aperto <span className="text-gray-500 font-normal">(opzionale)</span>
         </label>
         <OpenFieldSizeConfig
-          initialSize={openFieldSize ? parseFloat(openFieldSize) : initialSize}
-          initialUnit={openFieldUnit}
+          initialValue={{
+            sizeSqMeters: openFieldSize ? parseFloat(openFieldSize) : (initialSize || 0),
+            sizeUnit: openFieldUnit,
+            showAdditionalStructures: false
+          }}
           onConfigChange={handleOpenFieldChange}
         />
       </div>

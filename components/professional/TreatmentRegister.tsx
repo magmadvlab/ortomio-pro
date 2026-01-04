@@ -129,3 +129,6 @@ export function TreatmentRegister({ garden, limit = 20 }: TreatmentRegisterProps
     </div>
   )
 }
+
+
+

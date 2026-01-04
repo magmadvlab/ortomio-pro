@@ -249,7 +249,7 @@ export default function MechanicalWorkPage() {
       const newWork = await storageProvider.createMechanicalWork({
         garden_id: selectedGardenId || undefined,
         bed_id: selectedBedId || undefined,
-        row_id: selectedRowId || undefined,
+        bed_row_id: selectedRowId || undefined,
         work_type: formData.work_type!,
         work_date: formData.work_date!,
         area_m2: formData.area_m2 ? parseFloat(formData.area_m2.toString()) : 0,

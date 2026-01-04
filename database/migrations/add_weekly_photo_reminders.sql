@@ -65,3 +65,6 @@ COMMENT ON COLUMN weekly_photo_reminders.reminder_count IS 'Numero di reminder i
 
 
 
+
+
+

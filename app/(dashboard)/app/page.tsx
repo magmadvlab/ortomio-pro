@@ -11,10 +11,11 @@ import { HomeDashboard } from '@/components/shared/HomeDashboard'
 import GardenOnboarding from '@/components/GardenOnboarding'
 import { UserOnboardingWizard } from '@/components/onboarding/UserOnboardingWizard'
 import type { OnboardingData } from '@/components/onboarding/UserOnboardingWizard'
+import { GardenTypeWizard } from '@/components/GardenTypeWizard'
 import { Garden, GardenTask } from '@/types'
 import { useRouter } from 'next/navigation'
 import { attemptAutoRestore, AutoRestoreResult } from '@/services/autoRestoreService'
-import { CheckCircle, Loader2, LogIn, UserPlus } from 'lucide-react'
+import { CheckCircle, Loader2, Plus, ArrowRight, Sparkles } from 'lucide-react'
 import { getSupabaseClient } from '@/config/supabase'
 import Link from 'next/link'
 import { isBypassActive } from '@/lib/auth-bypass'
@@ -28,6 +29,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showUserOnboarding, setShowUserOnboarding] = useState(false)
+  const [showGardenConfigWizard, setShowGardenConfigWizard] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [restoreResult, setRestoreResult] = useState<AutoRestoreResult | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
@@ -177,22 +179,41 @@ export default function DashboardPage() {
         // 2. Carica giardini (dopo restore o normalmente)
         const loadedGardens = await storageProvider.getGardens()
         setGardens(loadedGardens)
-        
+
         // 3. Carica tasks per il primo giardino
         if (loadedGardens.length > 0) {
           const gardenTasks = await storageProvider.getTasks(loadedGardens[0].id)
           setTasks(gardenTasks || [])
         }
-        
-        // Check if user has completed onboarding
-        const hasCompletedUserOnboarding = localStorage.getItem('ortomio_user_onboarding_completed') === 'true'
-        
-        // Mostra dashboard anche senza giardino - wizard inline invece di modal
-        // User onboarding solo se primo accesso
-        if (loadedGardens.length === 0 && isAuthenticated !== false && !hasCompletedUserOnboarding) {
+
+        // 4. Controlla se è il primo accesso (mostra UserOnboarding)
+        // Per utenti autenticati: controlla preferences nel database
+        // Per utenti offline: controlla localStorage
+        let hasCompletedOnboarding = false
+
+        if (isAuthenticated) {
+          // Utente autenticato: controlla nel database
+          const supabase = getSupabaseClient()
+          if (supabase) {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('preferences')
+                .eq('id', user.id)
+                .single()
+
+              hasCompletedOnboarding = profile?.preferences?.onboarding_completed === true
+            }
+          }
+        } else {
+          // Utente offline: controlla localStorage
+          hasCompletedOnboarding = localStorage.getItem('ortomio_user_onboarding_completed') === 'true'
+        }
+
+        if (!hasCompletedOnboarding && loadedGardens.length === 0) {
           setShowUserOnboarding(true)
         }
-        // Non mostrare più garden onboarding come modal - sarà inline nella dashboard
       } catch (error) {
         console.error('Error initializing app:', error)
       } finally {
@@ -276,29 +297,48 @@ export default function DashboardPage() {
 
   const handleUserOnboardingComplete = async (data: OnboardingData) => {
     try {
-      // Save user name
-      if (data.userName) {
-        localStorage.setItem('ortomio_user_name', data.userName)
-      }
-      
-      // Mark onboarding as completed
-      localStorage.setItem('ortomio_user_onboarding_completed', 'true')
-      
-      // If garden was created in step 6, reload gardens
-      if (data.garden) {
-        const updatedGardens = await storageProvider.getGardens()
-        setGardens(updatedGardens)
-        if (updatedGardens.length > 0) {
-          const gardenTasks = await storageProvider.getTasks(updatedGardens[0].id)
-          setTasks(gardenTasks || [])
+      // Per utenti autenticati: salva nel database
+      // Per utenti offline: salva in localStorage
+      if (isAuthenticated) {
+        const supabase = getSupabaseClient()
+        if (supabase) {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            // Salva preferences nel database
+            await supabase
+              .from('profiles')
+              .update({
+                preferences: {
+                  onboarding_completed: true,
+                  user_name: data.userName,
+                  user_type: data.userType,
+                  garden_types: data.gardenTypes,
+                  goals: data.goals
+                }
+              })
+              .eq('id', user.id)
+          }
         }
+      } else {
+        // Utente offline: salva in localStorage
+        if (data.userName) {
+          localStorage.setItem('ortomio_user_name', data.userName)
+        }
+        localStorage.setItem('ortomio_user_onboarding_completed', 'true')
       }
-      
-      setShowUserOnboarding(false)
-      
-      // If no garden was created, show garden onboarding
-      if (!data.garden) {
-        setShowOnboarding(true)
+
+      // Save garden name for later use in GardenTypeWizard
+      if (data.gardenName) {
+        localStorage.setItem('ortomio_pending_garden_name', data.gardenName)
+      }
+
+      // Se l'utente vuole creare un orto (shouldCreateGarden = true), apri il wizard configurazione
+      if (data.shouldCreateGarden) {
+        setShowUserOnboarding(false)
+        setShowGardenConfigWizard(true)
+      } else {
+        // Altrimenti vai direttamente alla dashboard
+        setShowUserOnboarding(false)
       }
     } catch (error) {
       console.error('Error completing user onboarding:', error)
@@ -330,11 +370,13 @@ export default function DashboardPage() {
     window.location.hostname !== '[::1]'
   
   const shouldRequireAuth = isOnline || !isBypassActive()
-  
+
+  // Mostra loading durante redirect (il redirect vero è in useEffect linea 140)
   if (isAuthenticated === false && !loading && shouldRequireAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 p-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
+          <Loader2 className="animate-spin text-green-600 mx-auto mb-4" size={48} />
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Benvenuto in OrtoMio</h1>
           <p className="text-gray-600 mb-6">
             Reindirizzamento al login...
@@ -356,8 +398,33 @@ export default function DashboardPage() {
     )
   }
 
-  // Mostra garden onboarding se non ci sono giardini (e utente autenticato o ha scelto di continuare)
-  if (showOnboarding || (gardens.length === 0 && isAuthenticated !== false && !loading && !showUserOnboarding)) {
+  // Mostra wizard configurazione orto completa dopo user onboarding
+  if (showGardenConfigWizard) {
+    return (
+      <div className="min-h-screen">
+        <GardenTypeWizard
+          onComplete={async (garden) => {
+            // Garden già creato nello step 6, qui viene solo configurato
+            // Ricarica gardens per avere dati aggiornati
+            const updatedGardens = await storageProvider.getGardens()
+            setGardens(updatedGardens)
+            if (updatedGardens.length > 0) {
+              const gardenTasks = await storageProvider.getTasks(updatedGardens[0].id)
+              setTasks(gardenTasks || [])
+            }
+            setShowGardenConfigWizard(false)
+          }}
+          onCancel={() => {
+            // Permetti di saltare la configurazione avanzata
+            setShowGardenConfigWizard(false)
+          }}
+        />
+      </div>
+    )
+  }
+
+  // Mostra garden onboarding SOLO se esplicitamente richiesto (non automaticamente)
+  if (showOnboarding) {
     return (
       <div className="min-h-screen">
         <GardenOnboarding
@@ -432,6 +499,65 @@ export default function DashboardPage() {
         />
       )}
       
+      {/* Dashboard vuota - Messaggio di benvenuto per utenti che hanno già fatto onboarding */}
+      {/* Mostra questo SOLO se l'utente ha completato l'onboarding ma non ha orti */}
+      {gardens.length === 0 && !isPro && !showUserOnboarding && (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50 p-4">
+          <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8 text-center">
+            <div className="mb-6">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
+                <Sparkles className="text-green-600" size={40} />
+              </div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                Benvenuto in OrtoMio! 🌱
+              </h1>
+              <p className="text-lg text-gray-600 mb-6">
+                Il tuo assistente intelligente per la coltivazione
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 mb-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-3">
+                Inizia subito a coltivare
+              </h2>
+              <p className="text-gray-600 mb-4">
+                Crea il tuo primo spazio di coltivazione e ricevi consigli personalizzati
+                per ogni pianta, calendario delle attività e molto altro.
+              </p>
+              <ul className="text-left text-gray-700 space-y-2 mb-6">
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="text-green-600 flex-shrink-0" size={20} />
+                  <span>Pianificazione automatica delle semine</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="text-green-600 flex-shrink-0" size={20} />
+                  <span>Calendario lunare e meteo integrato</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="text-green-600 flex-shrink-0" size={20} />
+                  <span>Gestione completa di orto, frutteto e molto altro</span>
+                </li>
+              </ul>
+            </div>
+
+            <button
+              onClick={() => setShowGardenConfigWizard(true)}
+              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700
+                text-white font-semibold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl
+                transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <Plus size={24} />
+              <span className="text-lg">Crea il tuo primo spazio</span>
+              <ArrowRight size={20} />
+            </button>
+
+            <p className="text-sm text-gray-500 mt-4">
+              Potrai sempre modificare e aggiungere nuovi spazi in seguito
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Dashboard alternative per PRO (se necessario) */}
       {isPro && gardens.length === 0 && (
         <ProfessionalDashboard />

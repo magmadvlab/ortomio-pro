@@ -128,7 +128,7 @@ export function FertilizerApplicationModal({
       gardenId: task.gardenId,
       taskId: task.id,
       bedId: selectedBed || null,
-      rowId: selectedRow || null,
+      bedRowId: selectedRow || null,
 
       fertilizerProductId: selectedProduct.id,
       fertilizerProductName: selectedProduct.name,

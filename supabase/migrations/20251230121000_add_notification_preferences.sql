@@ -63,13 +63,13 @@ CREATE POLICY "Users can delete their own notification preferences"
   USING (auth.uid() = user_id);
 
 CREATE OR REPLACE FUNCTION get_or_create_notification_preferences(p_user_id UUID)
-RETURNS notification_preferences
+RETURNS public.notification_preferences
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
-  v_prefs notification_preferences;
+  v_prefs public.notification_preferences;
 BEGIN
   SELECT * INTO v_prefs
   FROM public.notification_preferences

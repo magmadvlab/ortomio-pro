@@ -37,56 +37,83 @@ CREATE INDEX IF NOT EXISTS idx_garden_zones_primary_cultivar ON garden_zones(pri
 -- ============================================
 ALTER TABLE garden_zones ENABLE ROW LEVEL SECURITY;
 
--- Policy: Users can view their own garden zones
-CREATE POLICY "Users can view their own garden zones"
-  ON garden_zones FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM gardens 
-    WHERE gardens.id = garden_zones.garden_id 
-    AND gardens.user_id = auth.uid()
-  ));
+DO $$
+BEGIN
+  -- Policy: Users can view their own garden zones
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'garden_zones'
+    AND policyname = 'Users can view their own garden zones'
+  ) THEN
+    CREATE POLICY "Users can view their own garden zones"
+      ON garden_zones FOR SELECT
+      USING (EXISTS (
+        SELECT 1 FROM gardens
+        WHERE gardens.id = garden_zones.garden_id
+        AND gardens.user_id = auth.uid()
+      ));
+  END IF;
 
--- Policy: Users can insert their own garden zones
-CREATE POLICY "Users can insert their own garden zones"
-  ON garden_zones FOR INSERT
-  WITH CHECK (EXISTS (
-    SELECT 1 FROM gardens 
-    WHERE gardens.id = garden_zones.garden_id 
-    AND gardens.user_id = auth.uid()
-  ));
+  -- Policy: Users can insert their own garden zones
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'garden_zones'
+    AND policyname = 'Users can insert their own garden zones'
+  ) THEN
+    CREATE POLICY "Users can insert their own garden zones"
+      ON garden_zones FOR INSERT
+      WITH CHECK (EXISTS (
+        SELECT 1 FROM gardens
+        WHERE gardens.id = garden_zones.garden_id
+        AND gardens.user_id = auth.uid()
+      ));
+  END IF;
 
--- Policy: Users can update their own garden zones
-CREATE POLICY "Users can update their own garden zones"
-  ON garden_zones FOR UPDATE
-  USING (EXISTS (
-    SELECT 1 FROM gardens 
-    WHERE gardens.id = garden_zones.garden_id 
-    AND gardens.user_id = auth.uid()
-  ));
+  -- Policy: Users can update their own garden zones
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'garden_zones'
+    AND policyname = 'Users can update their own garden zones'
+  ) THEN
+    CREATE POLICY "Users can update their own garden zones"
+      ON garden_zones FOR UPDATE
+      USING (EXISTS (
+        SELECT 1 FROM gardens
+        WHERE gardens.id = garden_zones.garden_id
+        AND gardens.user_id = auth.uid()
+      ));
+  END IF;
 
--- Policy: Users can delete their own garden zones
-CREATE POLICY "Users can delete their own garden zones"
-  ON garden_zones FOR DELETE
-  USING (EXISTS (
-    SELECT 1 FROM gardens 
-    WHERE gardens.id = garden_zones.garden_id 
-    AND gardens.user_id = auth.uid()
-  ));
+  -- Policy: Users can delete their own garden zones
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'garden_zones'
+    AND policyname = 'Users can delete their own garden zones'
+  ) THEN
+    CREATE POLICY "Users can delete their own garden zones"
+      ON garden_zones FOR DELETE
+      USING (EXISTS (
+        SELECT 1 FROM gardens
+        WHERE gardens.id = garden_zones.garden_id
+        AND gardens.user_id = auth.uid()
+      ));
+  END IF;
+END $$;
 
 -- ============================================
 -- 4. Trigger per updated_at (se mancante)
 -- ============================================
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
+DO $$
 BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ language 'plpgsql';
-
-CREATE TRIGGER update_garden_zones_updated_at 
-  BEFORE UPDATE ON garden_zones 
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'update_garden_zones_updated_at'
+  ) THEN
+    CREATE TRIGGER update_garden_zones_updated_at
+      BEFORE UPDATE ON garden_zones
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END $$;
 
 -- ============================================
 -- 5. Commenti per documentazione

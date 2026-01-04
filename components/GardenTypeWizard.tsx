@@ -17,6 +17,8 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
   const [selectedType, setSelectedType] = useState<SpaceType | null>(null);
   const [createdGarden, setCreatedGarden] = useState<Garden | null>(null);
 
+  console.log('[GardenTypeWizard] Rendered - selectedType:', selectedType, 'createdGarden:', createdGarden);
+
   const handleTypeSelect = (type: SpaceType) => {
     setSelectedType(type);
   };

@@ -7,7 +7,36 @@
 ALTER TABLE public.profiles
 ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}'::jsonb;
 
--- 2. Fix funzioni crediti con SECURITY DEFINER e search_path
+-- 2. Crea tabella ai_credit_transactions se non esiste
+CREATE TABLE IF NOT EXISTS public.ai_credit_transactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  amount INTEGER NOT NULL,
+  type TEXT CHECK (type IN ('purchase', 'usage', 'bonus', 'refund')) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_credit_transactions_user_id ON public.ai_credit_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_credit_transactions_type ON public.ai_credit_transactions(type);
+
+-- RLS per ai_credit_transactions
+ALTER TABLE public.ai_credit_transactions ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'ai_credit_transactions'
+    AND policyname = 'Users can view their own transactions'
+  ) THEN
+    CREATE POLICY "Users can view their own transactions"
+      ON public.ai_credit_transactions FOR SELECT
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
+
+-- 3. Fix funzioni crediti con SECURITY DEFINER e search_path
 CREATE OR REPLACE FUNCTION public.grant_credits(p_user_id uuid, p_amount integer)
 RETURNS void
 LANGUAGE plpgsql
@@ -21,7 +50,7 @@ BEGIN
 END;
 $function$;
 
--- 3. Fix handle_new_user_credits con SECURITY DEFINER
+-- 4. Fix handle_new_user_credits con SECURITY DEFINER
 CREATE OR REPLACE FUNCTION public.handle_new_user_credits()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -47,7 +76,7 @@ BEGIN
 END;
 $function$;
 
--- 4. Fix handle_new_user per creazione automatica profilo
+-- 5. Fix handle_new_user per creazione automatica profilo
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 SECURITY DEFINER
@@ -58,8 +87,8 @@ BEGIN
   INSERT INTO public.profiles (id, tier, ai_credits_total, ai_credits_used)
   VALUES (
     NEW.id,
-    'PRO'::text,
-    3,
+    'PRO_PROFESSIONAL'::text,
+    999999,  -- Crediti illimitati per PRO
     0
   )
   ON CONFLICT (id) DO NOTHING;
@@ -72,7 +101,7 @@ EXCEPTION
 END;
 $$;
 
--- 5. Crea trigger se non esiste
+-- 6. Crea trigger se non esiste
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -86,12 +115,12 @@ BEGIN
 END
 $$;
 
--- 6. Garantisci permessi necessari
+-- 7. Garantisci permessi necessari
 GRANT ALL ON public.profiles TO supabase_auth_admin;
 GRANT ALL ON public.ai_credit_transactions TO supabase_auth_admin;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO supabase_auth_admin;
 
--- 7. Notifica PostgREST di ricaricare lo schema
+-- 8. Notifica PostgREST di ricaricare lo schema
 NOTIFY pgrst, 'reload schema';
 
 -- ============================================

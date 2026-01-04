@@ -245,3 +245,6 @@ Quando si aggiungono nuove piante al sistema:
 
 
 
+
+
+

@@ -44,10 +44,17 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
       try {
         setIsInitialized(false);
         
-        // Se bypass attivo, usa sempre LocalStorageProvider
+        // Se bypass attivo, usa SupabaseStorageProvider senza check auth
         if (isBypassActive()) {
-          console.log('🔓 Auth bypass active: using LocalStorageProvider');
-          setStorageProvider(getLocalStorageProvider());
+          console.log('🔓 Auth Bypass ACTIVE - Using Supabase without authentication check');
+          const supabaseProvider = getSupabaseStorageProvider();
+          if (supabaseProvider) {
+            setStorageProvider(supabaseProvider);
+          } else {
+            // Fallback a LocalStorage se Supabase non disponibile
+            console.warn('Supabase not available, falling back to LocalStorage');
+            setStorageProvider(getLocalStorageProvider());
+          }
           setIsInitialized(true);
           setError(null);
           return;

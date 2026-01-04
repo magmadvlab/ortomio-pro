@@ -335,87 +335,105 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
   async createGarden(garden: Omit<Garden, 'id' | 'createdAt'>): Promise<Garden> {
     const client = this.ensureClient();
-    
-    // Verify user authentication with detailed logging
-    const { data: { user }, error: authError } = await client.auth.getUser();
-    if (authError) {
-      console.error('Auth error in createGarden:', authError);
-      throw new Error('Authentication error. Please log in again.');
-    }
-    
-    if (!user) {
-      console.error('No user found in createGarden');
-      throw new Error('User not authenticated. Please log in to sync your data, or the app will use local storage automatically.');
+
+    // Get user ID - either from auth or from bypass mode
+    let userId: string;
+
+    // Check if bypass auth is active
+    const isBypass = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
+
+    if (isBypass) {
+      // In bypass mode, use hardcoded dev user ID
+      // This is the first user in the local Supabase database
+      userId = '1ad30bb6-0394-49ef-8d92-660a6938e670';
+      console.log('🔓 Bypass mode: using dev user ID:', userId);
+    } else {
+      // Normal auth flow
+      const { data: { user }, error: authError } = await client.auth.getUser();
+      if (authError) {
+        console.error('Auth error in createGarden:', authError);
+        throw new Error('Authentication error. Please log in again.');
+      }
+
+      if (!user) {
+        console.error('No user found in createGarden');
+        throw new Error('User not authenticated. Please log in to sync your data, or the app will use local storage automatically.');
+      }
+
+      userId = user.id;
     }
 
-    console.log('Creating garden for user:', user.id, 'Garden name:', garden.name);
+    console.log('Creating garden for user:', userId, 'Garden name:', garden.name);
 
-    // Ensure profile exists before creating garden - use maybeSingle() to avoid 406 error
-    const { data: profile, error: profileCheckError } = await client
-      .from('profiles')
-      .select('id')
-      .eq('id', user.id)
-      .maybeSingle();
-    
-    if (profileCheckError) {
-      console.error('Error checking profile:', profileCheckError);
-      // Continue anyway - we'll try to create profile
-    }
-    
-    if (!profile) {
-      console.log('Profile not found, creating default profile for user:', user.id);
-      // Create profile if it doesn't exist
-      const { error: profileError } = await client
+    // Skip profile check in bypass mode (RLS policies would block it anyway)
+    if (!isBypass) {
+      // Ensure profile exists before creating garden - use maybeSingle() to avoid 406 error
+      const { data: profile, error: profileCheckError } = await client
         .from('profiles')
-        .insert({
-          id: user.id,
-          tier: 'FREE',
-          ai_credits_total: 3,
-          ai_credits_used: 0,
-        });
-      
-      if (profileError) {
-        // If profile was just created by another request (race condition), that's ok
-        if (profileError.code === '23505') {
-          console.log('Profile already exists (created by another request)');
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profileCheckError) {
+        console.error('Error checking profile:', profileCheckError);
+        // Continue anyway - we'll try to create profile
+      }
+
+      if (!profile) {
+        console.log('Profile not found, ensuring profile exists for user:', userId);
+        // Use upsert to handle race conditions and existing profiles
+        const { error: profileError } = await client
+          .from('profiles')
+          .upsert({
+            id: userId,
+            tier: 'FREE',
+            ai_credits_total: 3,
+            ai_credits_used: 0,
+          }, {
+            onConflict: 'id',
+            ignoreDuplicates: false
+          });
+
+        if (profileError) {
+          console.error('Error upserting profile before garden creation:', profileError);
+          throw new Error(`Failed to ensure user profile exists: ${profileError.message}`);
         } else {
-          console.error('Error creating profile before garden creation:', profileError);
-          throw new Error(`Failed to create user profile: ${profileError.message}`);
+          console.log('Profile ensured for user:', userId);
         }
       } else {
-        console.log('Profile created successfully for user:', user.id);
+        console.log('Profile exists for user:', userId);
       }
     } else {
-      console.log('Profile exists for user:', user.id);
+      console.log('🔓 Bypass mode: skipping profile check (assuming profile exists)');
     }
 
     const dbGarden = this.mapGardenToDB(garden);
-    
+
     // Ensure required fields are present
     if (!dbGarden.name) {
       throw new Error('Garden name is required');
     }
-    
+
     console.log('Inserting garden into database:', {
       name: dbGarden.name,
-      user_id: user.id,
+      user_id: userId,
       size_sq_meters: dbGarden.size_sq_meters ?? 0,
       garden_type: dbGarden.garden_type
     });
-    
+
     const { data, error } = await client
       .from('gardens')
-      .insert({ 
-        ...dbGarden, 
-        user_id: user.id,
+      .insert({
+        ...dbGarden,
+        user_id: userId,
         size_sq_meters: dbGarden.size_sq_meters ?? 0,
       })
       .select()
       .single();
-    
+
     if (error) {
       console.error('Error creating garden:', error);
-      console.error('Garden data attempted:', { ...dbGarden, user_id: user.id });
+      console.error('Garden data attempted:', { ...dbGarden, user_id: userId });
       console.error('Error details:', {
         code: error.code,
         message: error.message,
@@ -426,6 +444,76 @@ export class SupabaseStorageProvider implements IStorageProvider {
     }
     
     console.log('Garden created successfully:', data.id);
+
+    // Salva strutture (filari, cassoni, vasche) se presenti
+    if (garden.structureConfig) {
+      console.log('Saving structures for garden:', data.id);
+
+      // Salva filari
+      if (garden.structureConfig.rows && garden.structureConfig.rows.length > 0) {
+        const rowsToInsert = garden.structureConfig.rows.map((row, index) => ({
+          garden_id: data.id,
+          name: row.name || `Filare ${index + 1}`,
+          row_number: index + 1,
+          length_meters: row.length || 0,
+          distance_from_previous_row: row.distance || null,
+          plant_spacing: row.plantSpacing || null,
+          is_active: true
+        }));
+
+        const { error: rowsError } = await client
+          .from('field_rows')
+          .insert(rowsToInsert);
+
+        if (rowsError) {
+          console.error('Error saving field rows:', rowsError);
+        } else {
+          console.log(`Saved ${rowsToInsert.length} field rows`);
+        }
+      }
+
+      // Salva zone (cassoni, vasche, letti rialzati)
+      const zonesToInsert: any[] = [];
+
+      if (garden.structureConfig.beds && garden.structureConfig.beds.length > 0) {
+        garden.structureConfig.beds.forEach((bed, index) => {
+          zonesToInsert.push({
+            garden_id: data.id,
+            name: bed.name || `Cassone ${index + 1}`,
+            size_sq_meters: (bed.length || 1) * (bed.width || 1),
+            length_meters: bed.length,
+            width_meters: bed.width,
+            crop_type: 'mixed'
+          });
+        });
+      }
+
+      if (garden.structureConfig.pots && garden.structureConfig.pots.length > 0) {
+        garden.structureConfig.pots.forEach((pot, index) => {
+          zonesToInsert.push({
+            garden_id: data.id,
+            name: pot.name || `Vasca ${index + 1}`,
+            size_sq_meters: (pot.length || 1) * (pot.width || 1),
+            length_meters: pot.length,
+            width_meters: pot.width,
+            crop_type: 'aquatic'
+          });
+        });
+      }
+
+      if (zonesToInsert.length > 0) {
+        const { error: zonesError } = await client
+          .from('garden_zones')
+          .insert(zonesToInsert);
+
+        if (zonesError) {
+          console.error('Error saving garden zones:', zonesError);
+        } else {
+          console.log(`Saved ${zonesToInsert.length} garden zones`);
+        }
+      }
+    }
+
     return this.mapGardenFromDB(data);
   }
 
@@ -1171,7 +1259,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       gardenId: db.garden_id,
       taskId: db.task_id || null,
       bedId: db.bed_id || null,
-      rowId: db.row_id || null,
+      bedRowId: db.bed_row_id || null,
       fertilizerProductId: db.fertilizer_product_id,
       fertilizerProductName: db.fertilizer_product_name,
       fertilizerType: db.fertilizer_type || null,
@@ -1195,7 +1283,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (log.gardenId !== undefined) db.garden_id = log.gardenId;
     if (log.taskId !== undefined) db.task_id = log.taskId;
     if (log.bedId !== undefined) db.bed_id = log.bedId;
-    if (log.rowId !== undefined) db.row_id = log.rowId;
+    if (log.bedRowId !== undefined) db.bed_row_id = log.bedRowId;
     if (log.fertilizerProductId !== undefined) db.fertilizer_product_id = log.fertilizerProductId;
     if (log.fertilizerProductName !== undefined) db.fertilizer_product_name = log.fertilizerProductName;
     if (log.fertilizerType !== undefined) db.fertilizer_type = log.fertilizerType;
@@ -2665,7 +2753,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       user_id: db.user_id,
       garden_id: db.garden_id,
       bed_id: db.bed_id || undefined,
-      row_id: db.row_id || undefined,
+      bed_row_id: db.bed_row_id || undefined,
       crop_name: db.crop_name,
       treatment_date: db.treatment_date,
       product_name: db.product_name,

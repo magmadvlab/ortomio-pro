@@ -94,3 +94,6 @@ export function QuickDiagnosis({ garden, tasks }: QuickDiagnosisProps) {
 
 
 
+
+
+
