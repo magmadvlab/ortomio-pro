@@ -4,10 +4,19 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getAllArchetypes } from '../../services/archetypeService';
 
+interface PlantItem {
+  id: string;
+  name: string;
+  scientific_name: string;
+  difficulty: string;
+  archetypeId: string;
+  icon: string;
+}
+
 export default function PianificaPage() {
-  const [plants, setPlants] = useState([]);
-  const [selectedPlant, setSelectedPlant] = useState(null);
-  const [selectedMethod, setSelectedMethod] = useState(null);
+  const [plants, setPlants] = useState<PlantItem[]>([]);
+  const [selectedPlant, setSelectedPlant] = useState<PlantItem | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   
@@ -58,15 +67,17 @@ export default function PianificaPage() {
     plant.scientific_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handlePlantSelect = (plant) => {
+  const handlePlantSelect = (plant: PlantItem) => {
     setSelectedPlant(plant);
     setSelectedMethod(null);
   };
 
-  const handleMethodSelect = (method) => {
+  const handleMethodSelect = (method: string) => {
     setSelectedMethod(method);
     
     if (method === 'seed') {
+      if (!selectedPlant) return;
+      
       // Reindirizza al semenzaio con parametri per pre-compilazione
       const params = new URLSearchParams({
         plant: selectedPlant.name,
@@ -76,6 +87,8 @@ export default function PianificaPage() {
       });
       router.push(`/app/semenzaio?${params.toString()}`);
     } else {
+      if (!selectedPlant) return;
+      
       // Per piantina, potrebbe aprire il wizard di trapianto diretto
       alert(`Perfetto! Coltivare ${selectedPlant.name} da piantina è più veloce e garantisce risultati. Procedi con il trapianto diretto.`);
       // Qui potresti aprire un modal per trapianto diretto o reindirizzare

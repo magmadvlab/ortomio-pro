@@ -104,19 +104,30 @@ const archetypes = [
   }
 ];
 
+interface PlantItem {
+  id: string;
+  name: string;
+  scientific_name: string;
+  difficulty: string;
+  archetypeId: string;
+  archetypeCategory: string;
+  icon: string;
+  family: string;
+}
+
 export default function PianificaPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [plants, setPlants] = useState([]);
-  const [selectedPlant, setSelectedPlant] = useState(null);
-  const [availableMaterials, setAvailableMaterials] = useState(null);
-  const [selectedMaterial, setSelectedMaterial] = useState(null);
+  const [plants, setPlants] = useState<PlantItem[]>([]);
+  const [selectedPlant, setSelectedPlant] = useState<PlantItem | null>(null);
+  const [availableMaterials, setAvailableMaterials] = useState<any>(null);
+  const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
-  const [gardenId, setGardenId] = useState(null);
+  const [gardenId, setGardenId] = useState<string | null>(null);
 
   // Ottieni garden ID (in un'app reale verrebbe dal context/props)
-  const orchestrator = useCultivationOrchestrator(gardenId);
+  const orchestrator = useCultivationOrchestrator(gardenId || 'mock-garden-id');
 
   // Controlla se arriviamo dal modal "Nuova Pianta"
   const fromModal = searchParams.get('from') === 'modal';
@@ -161,7 +172,7 @@ export default function PianificaPage() {
         }
         
         // Crea lista piante uniche dagli esempi degli archetipi
-        const plantsFromArchetypes = [];
+        const plantsFromArchetypes: PlantItem[] = [];
         const seenPlants = new Set();
         
         filteredArchetypes.forEach(archetype => {
@@ -218,7 +229,7 @@ export default function PianificaPage() {
     plant.scientific_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handlePlantSelect = async (plant) => {
+  const handlePlantSelect = async (plant: PlantItem) => {
     setSelectedPlant(plant);
     setAvailableMaterials(null);
     setSelectedMaterial(null);
@@ -242,7 +253,7 @@ export default function PianificaPage() {
     }
   };
 
-  const handleMaterialSelect = (materialType, materialData = null) => {
+  const handleMaterialSelect = (materialType: string, materialData: any = null) => {
     setSelectedMaterial({
       type: materialType,
       data: materialData
@@ -283,6 +294,8 @@ export default function PianificaPage() {
 
   const handleLegacyFlow = () => {
     // Flusso esistente per compatibilità
+    if (!selectedPlant) return;
+    
     if (selectedMaterial.type === 'seed') {
       const params = new URLSearchParams({
         create: 'true',
@@ -434,7 +447,7 @@ export default function PianificaPage() {
                         </div>
                       </div>
                       <div className="grid gap-2">
-                        {availableMaterials.seeds.map((seed) => (
+                        {availableMaterials.seeds.map((seed: any) => (
                           <button
                             key={seed.id}
                             onClick={() => handleMaterialSelect('seed', seed)}
@@ -461,7 +474,7 @@ export default function PianificaPage() {
                         </div>
                       </div>
                       <div className="grid gap-2">
-                        {availableMaterials.seedlings.map((seedling) => (
+                        {availableMaterials.seedlings.map((seedling: any) => (
                           <button
                             key={seedling.id}
                             onClick={() => handleMaterialSelect('seedling', seedling)}
@@ -488,7 +501,7 @@ export default function PianificaPage() {
                         </div>
                       </div>
                       <div className="grid gap-2">
-                        {availableMaterials.saplings.map((sapling) => (
+                        {availableMaterials.saplings.map((sapling: any) => (
                           <button
                             key={sapling.id}
                             onClick={() => handleMaterialSelect('sapling', sapling)}

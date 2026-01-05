@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Garden, GrowingLocation } from '../types';
 import { X, ArrowRight, Calendar, Sprout, Sun, Snowflake } from 'lucide-react';
-import { findSeedsForPlant } from '../services/seedInventoryService';
+import { findSeedsForPlant } from '@/services/seedInventoryService';
 import { SeedPacket } from '../types';
 
 interface PlantingWizardProps {

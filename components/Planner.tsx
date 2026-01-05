@@ -4,7 +4,7 @@ import { getSeasonalSuggestions, getSpecificPlantDetails, isApiKeyConfigured, ch
 import { PlantSuggestion, GeoLocation, SpecificPlantInfo, Garden, GrowingLocation } from '../types';
 import { MapPin, Loader2, PlusCircle, Search, Leaf, ArrowRight, Droplets, FlaskConical, Scale, Edit3, Sun, Thermometer, Layers, Clock, Info, CalendarPlus, Settings, Gauge, Sprout, AlertTriangle, CheckCircle, Calendar, Sparkles, Box, LayoutGrid, Flower2, Package, Map as MapIcon } from 'lucide-react';
 import { getCurrentPositionWithRetry, getDefaultCoordinates } from '../services/geolocationService';
-import { findSeedsForPlant, getExpiringSeeds } from '../services/seedInventoryService';
+import { findSeedsForPlant, getExpiringSeeds } from '@/services/seedInventoryService';
 import { calculateMoonPhase, getMoonPhaseName, isIdealPhaseFor } from '../logic/lunarCalendar';
 import { getSuggestedBatches, calculateStaggeredPlanting } from '../logic/staggeredPlantingEngine';
 import { getAllMasterSheets, getMasterSheetSync } from '../services/plantMasterService';

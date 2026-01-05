@@ -17,7 +17,7 @@ import { AddCropWizard } from '@/components/crops/AddCropWizard';
 import { useStorage } from '../packages/core/hooks/useStorage';
 import { createAlias } from '../services/aliasService';
 import { searchCropWithFuzzy, SearchResult } from '../services/fuzzySearchService';
-import { getSeedPackets, findSeedsForPlant, useSeedForPlanting } from '../services/seedInventoryService';
+import { getSeedPackets, findSeedsForPlant, useSeedForPlanting } from '@/services/seedInventoryService';
 import { SeedPacket } from '../types';
 import { SeedlingBatch } from '../services/seedlingService';
 import { getAllReadyBatches } from '../services/seedlingBatchHelper';

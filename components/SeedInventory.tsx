@@ -9,7 +9,7 @@ import {
   getLowStockSeeds,
   getExpiredSeeds,
   shouldShowJanuaryAlert
-} from '../services/seedInventoryService';
+} from '@/services/seedInventoryService';
 import { varietyMappings } from '../data/varietyMappings';
 import { parseQuantity, formatQuantity, getEstimatedQuantity } from '../utils/quantityParser';
 import { 

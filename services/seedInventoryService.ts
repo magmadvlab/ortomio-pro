@@ -83,6 +83,15 @@ export const updateSeedPacket = (gardenId: string, id: string, updates: Partial<
 };
 
 /**
+ * Elimina un pacchetto di semi
+ */
+export const deleteSeedPacket = (gardenId: string, id: string): void => {
+  const packets = loadFromStorage(gardenId);
+  const filteredPackets = packets.filter(p => p.id !== id);
+  saveToStorage(gardenId, filteredPackets);
+};
+
+/**
  * Consuma semi dalla banca per una semina
  * Scala automaticamente la quantità e aggiorna lo stato
  */

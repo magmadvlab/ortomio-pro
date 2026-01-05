@@ -5,7 +5,7 @@
  * Coordina le diverse banche (semi, piantine, alberelli) in base al tipo di giardino
  */
 
-import { supabase } from '../lib/supabase';
+import { getSupabaseClient } from '../config/supabase';
 
 // Tipi di giardino supportati
 export type GardenType = 
@@ -104,6 +104,11 @@ export class CultivationOrchestrator {
   }> {
     
     // Ottieni tipo di giardino
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase client not available');
+    }
+    
     const { data: garden } = await supabase
       .from('gardens')
       .select('garden_type')
@@ -150,6 +155,11 @@ export class CultivationOrchestrator {
     quantity: number;
     plannedStartDate: Date;
   }): Promise<CultivationPlan> {
+    
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase client not available');
+    }
     
     const { data: garden } = await supabase
       .from('gardens')
@@ -414,6 +424,11 @@ export class CultivationOrchestrator {
    * Metodi di supporto per database
    */
   private static async getAvailableSeeds(gardenId: string, archetypeId: string) {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase client not available');
+    }
+    
     const { data } = await supabase
       .from('seed_inventory')
       .select('*')
@@ -424,6 +439,11 @@ export class CultivationOrchestrator {
   }
   
   private static async getAvailableSeedlings(gardenId: string, archetypeId: string) {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase client not available');
+    }
+    
     const { data } = await supabase
       .from('seedling_batches')
       .select('*')
@@ -434,6 +454,11 @@ export class CultivationOrchestrator {
   }
   
   private static async getAvailableSaplings(gardenId: string, archetypeId: string) {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase client not available');
+    }
+    
     const { data } = await supabase
       .from('sapling_inventory')
       .select('*')
@@ -450,6 +475,11 @@ export class CultivationOrchestrator {
   }
   
   private static async saveCultivationPlan(plan: CultivationPlan) {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase client not available');
+    }
+    
     const { data, error } = await supabase
       .from('cultivation_plans')
       .insert({
@@ -483,6 +513,11 @@ export class CultivationOrchestrator {
   }
   
   private static async getCultivationPlan(planId: string): Promise<CultivationPlan | null> {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase client not available');
+    }
+    
     const { data, error } = await supabase
       .from('cultivation_plans')
       .select('*')
@@ -519,6 +554,11 @@ export class CultivationOrchestrator {
   
   private static async createGardenRecord(plan: CultivationPlan, params: any) {
     // Crea record in custom_crops quando si trapianta
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase client not available');
+    }
+    
     const { data, error } = await supabase
       .from('custom_crops')
       .insert({
@@ -542,6 +582,11 @@ export class CultivationOrchestrator {
   
   private static async recordHarvest(plan: CultivationPlan, params: any) {
     // Registra raccolta dettagliata
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase client not available');
+    }
+    
     const { data, error } = await supabase
       .from('detailed_harvests')
       .insert({
@@ -562,6 +607,11 @@ export class CultivationOrchestrator {
   
   private static async completeCycle(plan: CultivationPlan) {
     // Chiudi piano e calcola statistiche
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase client not available');
+    }
+    
     await supabase
       .from('cultivation_plans')
       .update({ is_active: false })

@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card } from '@/components/ui/Card';
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/ortomio-adapter';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/ortomio-adapter';
 import { 
-  Seed, 
   Sprout, 
   Calendar,
   Clock,
@@ -230,7 +229,7 @@ export default function TimelineComparison({
               <div className="flex items-start gap-4">
                 {/* Icona fase */}
                 <div className={`w-12 h-12 rounded-full bg-${phase.color}-100 border-2 border-${phase.color}-500 flex items-center justify-center flex-shrink-0`}>
-                  {index === 0 && method === 'seed' && <Seed className={`w-5 h-5 text-${phase.color}-600`} />}
+                  {index === 0 && method === 'seed' && <Sprout className={`w-5 h-5 text-${phase.color}-600`} />}
                   {index === 0 && method === 'transplant' && <Sprout className={`w-5 h-5 text-${phase.color}-600`} />}
                   {index > 0 && <CheckCircle className={`w-5 h-5 text-${phase.color}-600`} />}
                 </div>
@@ -362,26 +361,41 @@ export default function TimelineComparison({
         </CardContent>
       </Card>
 
-      {/* Tabs per diverse viste */}
-      <Tabs value={activeView} onValueChange={(value) => setActiveView(value as any)}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-          <TabsTrigger value="phases">Fasi Dettagliate</TabsTrigger>
-          <TabsTrigger value="calendar">Vista Calendario</TabsTrigger>
-        </TabsList>
+      {/* Navigazione per diverse viste */}
+      <div className="flex space-x-2 mb-6">
+        <button 
+          onClick={() => setActiveView('timeline')}
+          className={`px-4 py-2 rounded ${activeView === 'timeline' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+        >
+          Timeline
+        </button>
+        <button 
+          onClick={() => setActiveView('phases')}
+          className={`px-4 py-2 rounded ${activeView === 'phases' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+        >
+          Fasi Dettagliate
+        </button>
+        <button 
+          onClick={() => setActiveView('calendar')}
+          className={`px-4 py-2 rounded ${activeView === 'calendar' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+        >
+          Vista Calendario
+        </button>
+      </div>
 
-        <TabsContent value="timeline" className="space-y-6">
+      {activeView === 'timeline' && (
+        <div className="space-y-6">
           {showBoth ? (
             <div className="grid lg:grid-cols-2 gap-6">
               {/* Timeline Dal Seme */}
               <div>
                 <div className="flex items-center gap-2 mb-4">
-                  <Seed className="w-5 h-5 text-orange-500" />
+                  <Sprout className="w-5 h-5 text-orange-500" />
                   <h3 className="font-semibold text-orange-700">Dal Seme</h3>
                   {onMethodSelect && (
                     <Button 
                       size="sm" 
-                      variant={selectedMethod === 'seed' ? 'default' : 'outline'}
+                      variant={selectedMethod === 'seed' ? 'primary' : 'outline'}
                       onClick={() => onMethodSelect('seed')}
                       className="ml-auto"
                     >
@@ -400,7 +414,7 @@ export default function TimelineComparison({
                   {onMethodSelect && (
                     <Button 
                       size="sm" 
-                      variant={selectedMethod === 'transplant' ? 'default' : 'outline'}
+                      variant={selectedMethod === 'transplant' ? 'primary' : 'outline'}
                       onClick={() => onMethodSelect('transplant')}
                       className="ml-auto"
                     >
@@ -417,9 +431,11 @@ export default function TimelineComparison({
               {selectedMethod === 'transplant' && renderTimeline(transplantPhases, 'transplant')}
             </div>
           )}
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="phases" className="space-y-4">
+      {activeView === 'phases' && (
+        <div className="space-y-4">
           {/* Confronto dettagliato delle fasi */}
           <div className="grid gap-4">
             {seedPhases.map((seedPhase, index) => {
@@ -482,12 +498,14 @@ export default function TimelineComparison({
               );
             })}
           </div>
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="calendar">
+      {activeView === 'calendar' && (
+        <div>
           {renderCalendarView()}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </div>
   );
 }

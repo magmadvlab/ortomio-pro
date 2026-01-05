@@ -95,7 +95,7 @@ export default function DashboardLayout({
   // LOCALE: Sblocca tutte le feature impostando PRO di default
   // In produzione, ripristinare AppTier.FREE
   const isLocalDev = process.env.NODE_ENV === 'development' || typeof window !== 'undefined' && window.location.hostname === 'localhost'
-  const defaultTier = isLocalDev ? AppTier.PRO : AppTier.FREE
+  const defaultTier = AppTier.PRO
   
   return (
     <AuthProvider>

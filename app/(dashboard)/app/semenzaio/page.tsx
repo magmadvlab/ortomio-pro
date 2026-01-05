@@ -2,15 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useGarden } from '@/packages/core/context/GardenContext';
+import { useGarden } from '@/packages/core/hooks/useGarden';
 import { useStorage } from '@/packages/core/context/StorageContext';
 import SeedlingDashboard from '@/components/seedling/SeedlingDashboard';
 import { getAvailableSeedsForPlant, consumeSeedsForSowing } from '@/services/seedInventoryService';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Seed, X, CheckCircle } from 'lucide-react';
+import { SeedlingBatch } from '@/services/seedlingService';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/ortomio-adapter';
+import { Input, Badge } from '@/components/ui/ortomio-adapter';
+import { Sprout, X, CheckCircle } from 'lucide-react';
 
 export default function SemenzaioPage() {
   const router = useRouter();
@@ -18,12 +19,12 @@ export default function SemenzaioPage() {
   const { activeGarden } = useGarden();
   const { storageProvider } = useStorage();
 
-  const [batches, setBatches] = useState([]);
+  const [batches, setBatches] = useState<SeedlingBatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showSeedSelector, setShowSeedSelector] = useState(false);
-  const [availableSeeds, setAvailableSeeds] = useState([]);
-  const [selectedSeed, setSelectedSeed] = useState(null);
+  const [availableSeeds, setAvailableSeeds] = useState<any[]>([]);
+  const [selectedSeed, setSelectedSeed] = useState<any>(null);
   const [seedQuantity, setSeedQuantity] = useState(25);
 
   // Parametri URL per integrazione con Pianifica
@@ -69,16 +70,7 @@ export default function SemenzaioPage() {
       // Carica batches dal database
       const loadedBatches = await storageProvider.getSeedlingBatches?.(activeGarden.id) || [];
 
-      // Converti le date da stringhe a oggetti Date
-      const formattedBatches = loadedBatches.map(batch => ({
-        ...batch,
-        startDate: new Date(batch.startDate),
-        expectedTransplantDate: new Date(batch.expectedTransplantDate),
-        actualTransplantDate: batch.actualTransplantDate ? new Date(batch.actualTransplantDate) : undefined,
-        photos: batch.photos || []
-      }));
-
-      setBatches(formattedBatches);
+      setBatches(loadedBatches);
       setLoading(false);
     } catch (error) {
       console.error('Error loading seedling batches:', error);
@@ -119,21 +111,23 @@ export default function SemenzaioPage() {
         plantName: prefilledData.plantName,
         variety: selectedSeed.varietyName,
         source: 'home' as const,
-        currentPhase: 'germination' as const,
-        startDate: new Date(),
+        phase: 'Germination' as const,
+        sowingDate: new Date().toISOString(),
         quantity: seedQuantity,
-        survivingQuantity: seedQuantity,
-        seedsPlanted: seedQuantity,
-        germinationRate: 0,
+        initialQuantity: seedQuantity,
+        currentQuantity: seedQuantity,
+        location: 'Indoor' as const,
+        gardenId: activeGarden.id,
         seedPacketId: selectedSeed.id,
         archetypeId: archetypeId || '',
         photos: [],
         notes: `Semi piantati: ${seedQuantity}. Pacchetto: ${selectedSeed.varietyName} (${selectedSeed.source})`,
-        expectedTransplantDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000) // 60 giorni
+        photoLog: [],
+        expectedTransplantDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString() // 60 giorni
       };
 
       // Salva nel database
-      await storageProvider.addSeedlingBatch?.(activeGarden.id, newBatch);
+      await storageProvider.createSeedlingBatch(newBatch);
 
       // Aggiorna UI
       setBatches(prev => [newBatch, ...prev]);
@@ -156,8 +150,8 @@ export default function SemenzaioPage() {
     }
   };
 
-  const getPhaseInfo = (phase) => {
-    const phases = {
+  const getPhaseInfo = (phase: string) => {
+    const phases: Record<string, { label: string; color: string; icon: string }> = {
       germination: { label: 'Germinazione', color: 'yellow', icon: '🌰' },
       nursing: { label: 'Crescita', color: 'blue', icon: '🌱' },
       hardening: { label: 'Indurimento', color: 'orange', icon: '🌿' },
@@ -221,7 +215,7 @@ export default function SemenzaioPage() {
               <div>
                 <p className="text-sm text-gray-600">Batch Attivi</p>
                 <p className="text-xl font-bold text-blue-600">
-                  {batches.filter(b => b.currentPhase !== 'transplanted').length}
+                  {batches.filter(b => b.phase !== 'ReadyToTransplant').length}
                 </p>
               </div>
               <span className="text-2xl">🌱</span>
@@ -233,7 +227,7 @@ export default function SemenzaioPage() {
               <div>
                 <p className="text-sm text-gray-600">Pronti</p>
                 <p className="text-xl font-bold text-green-600">
-                  {batches.filter(b => b.currentPhase === 'ready').length}
+                  {batches.filter(b => b.phase === 'ReadyToTransplant').length}
                 </p>
               </div>
               <span className="text-2xl">✅</span>
@@ -245,7 +239,7 @@ export default function SemenzaioPage() {
               <div>
                 <p className="text-sm text-gray-600">Piantine</p>
                 <p className="text-xl font-bold text-orange-600">
-                  {batches.reduce((sum, b) => sum + b.survivingQuantity, 0)}
+                  {batches.reduce((sum, b) => sum + (b.currentQuantity || b.quantity), 0)}
                 </p>
               </div>
               <span className="text-2xl">🌿</span>
@@ -258,7 +252,7 @@ export default function SemenzaioPage() {
                 <p className="text-sm text-gray-600">Sopravvivenza</p>
                 <p className="text-xl font-bold text-purple-600">
                   {batches.length > 0 
-                    ? Math.round(batches.reduce((sum, b) => sum + (b.survivingQuantity / b.quantity), 0) / batches.length * 100)
+                    ? Math.round(batches.reduce((sum, b) => sum + ((b.currentQuantity || b.quantity) / b.quantity), 0) / batches.length * 100)
                     : 0}%
                 </p>
               </div>
@@ -268,16 +262,16 @@ export default function SemenzaioPage() {
         </div>
 
         {/* Avvisi per batch pronti */}
-        {batches.filter(b => b.currentPhase === 'ready').length > 0 && (
+        {batches.filter(b => b.phase === 'ReadyToTransplant').length > 0 && (
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-orange-600">🔔</span>
               <h3 className="font-semibold text-orange-900">Piantine Pronte per Trapianto!</h3>
             </div>
             <div className="space-y-1">
-              {batches.filter(b => b.currentPhase === 'ready').map(batch => (
+              {batches.filter(b => b.phase === 'ReadyToTransplant').map(batch => (
                 <p key={batch.id} className="text-sm text-orange-800">
-                  • {batch.plantName} ({batch.variety}) - {batch.survivingQuantity} piantine
+                  • {batch.plantName} ({batch.variety}) - {batch.currentQuantity || batch.quantity} piantine
                 </p>
               ))}
             </div>
@@ -294,9 +288,9 @@ export default function SemenzaioPage() {
             {batches.length > 0 ? (
               <div className="space-y-4">
                 {batches.map((batch) => {
-                  const phaseInfo = getPhaseInfo(batch.currentPhase);
-                  const daysSinceStart = Math.floor((new Date() - batch.startDate) / (1000 * 60 * 60 * 24));
-                  const survivalRate = Math.round((batch.survivingQuantity / batch.quantity) * 100);
+                  const phaseInfo = getPhaseInfo(batch.phase);
+                  const daysSinceStart = Math.floor((new Date().getTime() - new Date(batch.sowingDate).getTime()) / (1000 * 60 * 60 * 24));
+                  const survivalRate = Math.round(((batch.currentQuantity || batch.quantity) / batch.quantity) * 100);
                   
                   return (
                     <div key={batch.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -323,7 +317,7 @@ export default function SemenzaioPage() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
                         <div>
                           <p className="text-gray-500">Piantine</p>
-                          <p className="font-medium">{batch.survivingQuantity}/{batch.quantity}</p>
+                          <p className="font-medium">{batch.currentQuantity || batch.quantity}/{batch.quantity}</p>
                         </div>
                         <div>
                           <p className="text-gray-500">Sopravvivenza</p>
@@ -336,7 +330,9 @@ export default function SemenzaioPage() {
                         <div>
                           <p className="text-gray-500">Trapianto previsto</p>
                           <p className="font-medium text-xs">
-                            {batch.expectedTransplantDate.toLocaleDateString('it-IT')}
+                            {batch.expectedTransplantDate 
+                              ? new Date(batch.expectedTransplantDate).toLocaleDateString('it-IT')
+                              : 'Non definito'}
                           </p>
                         </div>
                       </div>
@@ -364,7 +360,7 @@ export default function SemenzaioPage() {
                         </p>
                       )}
                       
-                      {batch.currentPhase === 'ready' && (
+                      {batch.phase === 'ReadyToTransplant' && (
                         <div className="mt-3 pt-3 border-t border-gray-200">
                           <button className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 transition-colors">
                             Trapianta nel Giardino
@@ -407,14 +403,8 @@ export default function SemenzaioPage() {
             
             <form onSubmit={(e) => {
               e.preventDefault();
-              const formData = new FormData(e.target);
-              handleCreateBatch({
-                plantName: formData.get('plantName'),
-                variety: formData.get('variety'),
-                quantity: parseInt(formData.get('quantity')),
-                source: formData.get('source'),
-                notes: formData.get('notes')
-              });
+              // TODO: Implementare creazione batch manuale
+              setShowCreateForm(false);
             }}>
               <div className="space-y-4">
                 <div>
@@ -467,7 +457,7 @@ export default function SemenzaioPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
                   <textarea
                     name="notes"
-                    rows="2"
+                    rows={2}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     placeholder="Note opzionali..."
                   />

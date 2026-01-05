@@ -172,28 +172,7 @@ export default function DashboardPage() {
       try {
         setLoading(true)
         
-        // 1. TENTA RIPRISTINO AUTOMATICO (se primo avvio e nessun dato locale)
-        // Solo per FREE tier (PRO usa Supabase che sincronizza automaticamente)
-        if (tier === AppTier.FREE) {
-          try {
-            const restoreAttempt = await attemptAutoRestore(storageProvider)
-            
-            if (restoreAttempt.restored) {
-              setRestoring(true)
-              setRestoreResult(restoreAttempt)
-              
-              // Nascondi banner dopo 3 secondi
-              setTimeout(() => {
-                setRestoring(false)
-              }, 3000)
-            }
-          } catch (error) {
-            console.error('Error attempting auto restore:', error)
-            // Continua comunque con caricamento normale
-          }
-        }
-        
-        // 2. Carica giardini (dopo restore o normalmente)
+        // Carica giardini
         const loadedGardens = await storageProvider.getGardens()
         setGardens(loadedGardens)
 

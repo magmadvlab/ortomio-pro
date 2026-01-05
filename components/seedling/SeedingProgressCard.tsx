@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { Card } from '@/components/ui/Card';
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/ortomio-adapter';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/ortomio-adapter';
 import { 
-  Seed, 
   Sprout, 
   Camera, 
   Calendar,
@@ -69,7 +68,7 @@ export default function SeedingProgressCard({
     {
       id: 'germination',
       name: 'Germinazione',
-      icon: <Seed className="w-4 h-4" />,
+      icon: <Sprout className="w-4 h-4" />,
       color: 'yellow',
       description: 'I semi stanno germogliando',
       expectedDays: 7,
@@ -172,7 +171,12 @@ export default function SeedingProgressCard({
               </p>
             </div>
           </div>
-          <Progress value={progressPercentage} className="mt-3" />
+          <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+            <div 
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+              style={{ width: `${progressPercentage}%` }}
+            ></div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -184,7 +188,7 @@ export default function SeedingProgressCard({
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              {batch.source === 'home' ? <Seed className="w-5 h-5" /> : <Sprout className="w-5 h-5" />}
+              {batch.source === 'home' ? <Sprout className="w-5 h-5" /> : <Sprout className="w-5 h-5" />}
               {batch.plantName}
             </CardTitle>
             <p className="text-sm text-gray-600">{batch.variety}</p>
@@ -207,7 +211,12 @@ export default function SeedingProgressCard({
             <span className="text-sm font-medium">Progresso generale</span>
             <span className="text-sm text-gray-600">{progressPercentage.toFixed(0)}%</span>
           </div>
-          <Progress value={progressPercentage} className="h-2" />
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+              style={{ width: `${progressPercentage}%` }}
+            ></div>
+          </div>
           <div className="flex justify-between text-xs text-gray-500 mt-1">
             <span>Iniziato {daysSinceStart} giorni fa</span>
             <span>Trapianto in {daysUntilTransplant} giorni</span>

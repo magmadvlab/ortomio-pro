@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Card } from '@/components/ui/Card';
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/ortomio-adapter';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/ortomio-adapter';
 import { 
-  Seed, 
   Sprout, 
   Clock, 
   TrendingUp, 
@@ -105,7 +104,7 @@ export default function CultivationMethodSelector({
   const seedMethod = {
     id: 'seed',
     title: 'Dal Seme',
-    icon: <Seed className="w-8 h-8 text-orange-500" />,
+    icon: <Sprout className="w-8 h-8 text-orange-500" />,
     color: 'orange',
     totalDays: seedToHarvestDays,
     readyForTransplantDays: seedlingReadyDays,
@@ -346,7 +345,7 @@ export default function CultivationMethodSelector({
               {/* Colonna Dal Seme */}
               <div>
                 <h4 className="font-semibold text-orange-700 mb-3 flex items-center gap-2">
-                  <Seed className="w-4 h-4" />
+                  <Sprout className="w-4 h-4" />
                   Dal Seme
                 </h4>
                 
