@@ -20,7 +20,7 @@ interface AddCropWizardProps {
   initialPlantName?: string; // Nome iniziale se già inserito
 }
 
-type WizardStep = 'name' | 'setup' | 'advanced';
+type WizardStep = 'method' | 'name' | 'setup' | 'advanced';
 
 export const AddCropWizard: React.FC<AddCropWizardProps> = ({
   garden,
@@ -29,8 +29,11 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
   initialPlantName = ''
 }) => {
   const { storageProvider } = useStorage();
-  const [step, setStep] = useState<WizardStep>('name');
+  const [step, setStep] = useState<WizardStep>('method');
   const [loading, setLoading] = useState(false);
+  
+  // Step 0: Metodo di coltivazione
+  const [cultivationMethod, setCultivationMethod] = useState<'seed' | 'seedling' | null>(null);
   
   // Step 1: Nome coltura
   const [plantName, setPlantName] = useState(initialPlantName);
@@ -366,7 +369,24 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
   };
   
   const handleNext = () => {
-    if (step === 'name') {
+    if (step === 'method') {
+      if (!cultivationMethod) {
+        alert('Seleziona un metodo di coltivazione');
+        return;
+      }
+      
+      // Se seme, reindirizza al semenzaio
+      if (cultivationMethod === 'seed') {
+        // Chiudi il wizard e apri il flusso semenzaio
+        onCancel(); // Chiude il modal corrente
+        // Reindirizza al pianifica che poi porta al semenzaio
+        window.location.href = '/app/pianifica?from=wizard';
+        return;
+      }
+      
+      // Se piantina, continua con il wizard normale
+      setStep('name');
+    } else if (step === 'name') {
       if (!plantName.trim()) {
         alert('Inserisci un nome per la coltura');
         return;
@@ -459,6 +479,140 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
         
         {/* Content */}
         <div className="p-6">
+          {/* Step 0: Metodo di coltivazione */}
+          {step === 'method' && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Come vuoi coltivare?</h3>
+                <p className="text-gray-600 text-sm">Scegli il metodo di coltivazione più adatto</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Da Seme */}
+                <button
+                  onClick={() => setCultivationMethod('seed')}
+                  className={`p-6 border-2 rounded-xl transition-all text-left ${
+                    cultivationMethod === 'seed'
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-2xl">
+                      🌰
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Da Seme</h4>
+                      <p className="text-sm text-gray-600">Semina e crescita completa</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <span>✓</span>
+                      <span>Controllo completo del processo</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-green-700">
+                      <span>✓</span>
+                      <span>Costo ridotto</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-green-700">
+                      <span>✓</span>
+                      <span>Maggiore varietà disponibile</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-orange-600">
+                      <span>⏱</span>
+                      <span>Richiede più tempo (2-8 settimane)</span>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Da Piantina */}
+                <button
+                  onClick={() => setCultivationMethod('seedling')}
+                  className={`p-6 border-2 rounded-xl transition-all text-left ${
+                    cultivationMethod === 'seedling'
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-200 hover:border-green-300 hover:bg-green-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-2xl">
+                      🌱
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Da Piantina</h4>
+                      <p className="text-sm text-gray-600">Trapianto diretto</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <span>✓</span>
+                      <span>Risultati più rapidi</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-green-700">
+                      <span>✓</span>
+                      <span>Maggiore tasso di successo</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-green-700">
+                      <span>✓</span>
+                      <span>Meno rischi di germinazione</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-orange-600">
+                      <span>💰</span>
+                      <span>Costo maggiore</span>
+                    </div>
+                  </div>
+                </button>
+              </div>
+              
+              {cultivationMethod && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="text-blue-500 mt-0.5">
+                      <Info size={16} />
+                    </div>
+                    <div className="text-sm">
+                      {cultivationMethod === 'seed' ? (
+                        <div>
+                          <p className="font-medium text-blue-900 mb-1">Flusso da Seme</p>
+                          <p className="text-blue-800">
+                            Verrai guidato attraverso: Pianificazione → Semenzaio → Germinazione → 
+                            Crescita → Indurimento → Trapianto in orto
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="font-medium text-blue-900 mb-1">Flusso da Piantina</p>
+                          <p className="text-blue-800">
+                            Procederai direttamente con: Selezione pianta → Preparazione terreno → 
+                            Trapianto → Cura e crescita
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex justify-between gap-3">
+                <button
+                  onClick={onCancel}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium"
+                >
+                  Annulla
+                </button>
+                <button
+                  onClick={handleNext}
+                  disabled={!cultivationMethod}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {cultivationMethod === 'seed' ? 'Vai al Semenzaio' : 'Avanti'}
+                  <ArrowRight size={18} />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Step 1: Nome coltura */}
           {step === 'name' && (
             <div className="space-y-4">
@@ -619,12 +773,13 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                 )}
               </div>
               
-              <div className="flex justify-end gap-3">
+              <div className="flex justify-between gap-3">
                 <button
-                  onClick={onCancel}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium"
+                  onClick={() => setStep('method')}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium flex items-center gap-2"
                 >
-                  Annulla
+                  <ArrowLeft size={18} />
+                  Indietro
                 </button>
                 <button
                   onClick={handleNext}

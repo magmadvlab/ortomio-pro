@@ -12,27 +12,17 @@ import { AddStructureModal, StructureUpdate, ExistingStructures } from '../garde
 
 export function GardenManager() {
   const { storageProvider } = useStorage()
-  const { activeGarden, setActiveGarden } = useGarden()
-  const [gardens, setGardens] = useState<Garden[]>([])
-  const [loading, setLoading] = useState(true)
+  const { activeGarden, setActiveGarden, gardens: gardensFromHook, loading: loadingFromHook, refreshGardens } = useGarden()
   const [deleting, setDeleting] = useState<string | null>(null)
   const [editingGarden, setEditingGarden] = useState<Garden | null>(null)
   const [addingStructuresFor, setAddingStructuresFor] = useState<Garden | null>(null)
 
-  useEffect(() => {
-    loadGardens()
-  }, [])
+  // Usa i dati dal hook invece di caricarli separatamente
+  const gardens = gardensFromHook
+  const loading = loadingFromHook
 
   const loadGardens = async () => {
-    try {
-      setLoading(true)
-      const allGardens = await storageProvider.getGardens()
-      setGardens(allGardens || [])
-    } catch (error) {
-      console.error('Error loading gardens:', error)
-    } finally {
-      setLoading(false)
-    }
+    await refreshGardens()
   }
 
   const handleDelete = async (gardenId: string, gardenName: string) => {

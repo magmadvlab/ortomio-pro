@@ -6,6 +6,7 @@ import { Sprout, Calendar, ShoppingBasket, X, Camera } from 'lucide-react'
 import { AddCropWizard } from '../crops/AddCropWizard'
 import { useRouter } from 'next/navigation'
 import { useTier } from '@/packages/core/hooks/useTier'
+import { getAllArchetypes } from '@/services/archetypeService'
 
 interface AddItemModalProps {
   garden: Garden
@@ -44,14 +45,21 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
     onClose()
   }
 
-  // Suggerimenti basati su zona/clima (placeholder - da integrare con logica reale)
+  // Suggerimenti basati su archetipi (stagionali)
+  const allArchetypes = getAllArchetypes();
   const suggestions = [
-    { emoji: '🥬', name: 'Fave' },
-    { emoji: '🫛', name: 'Piselli' },
-    { emoji: '🧄', name: 'Aglio' },
-    { emoji: '🧅', name: 'Cipolla' },
-    { emoji: '🥦', name: 'Broccoli' },
-  ]
+    { emoji: '🥬', name: 'Fave', archetypeId: 'A5' },
+    { emoji: '🫛', name: 'Piselli', archetypeId: 'A5' },
+    { emoji: '🧄', name: 'Aglio', archetypeId: 'A6' },
+    { emoji: '🧅', name: 'Cipolla', archetypeId: 'A6' },
+    { emoji: '🥦', name: 'Broccoli', archetypeId: 'A7' },
+  ].map(suggestion => {
+    const archetype = allArchetypes.find(a => a.id === suggestion.archetypeId);
+    return {
+      ...suggestion,
+      emoji: archetype?.icon || suggestion.emoji
+    };
+  });
 
   if (showCropWizard) {
     return (
@@ -113,8 +121,8 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
           <p className="text-[15px] text-gray-600 mb-5">Cosa vuoi aggiungere?</p>
 
           {/* Action Grid */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            {/* Nuova Pianta */}
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            {/* Prima riga: Nuova Pianta e Semenzaio */}
             <button
               onClick={() => handleOptionSelect('plant')}
               className={`flex flex-col items-center justify-center p-6 bg-gray-50 rounded-2xl border-2 transition-all ${
@@ -127,10 +135,26 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
                 🌱
               </div>
               <div className="font-semibold text-sm mb-1">Nuova Pianta</div>
-              <div className="text-xs text-gray-500 text-center">Aggiungi una coltivazione</div>
+              <div className="text-xs text-gray-500 text-center">Trapianto diretto</div>
             </button>
 
-            {/* Nuovo Task */}
+            <button
+              onClick={() => {
+                router.push('/app/pianifica?from=modal')
+                onClose()
+              }}
+              className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-2xl border-2 border-transparent hover:bg-orange-50 hover:border-orange-200 transition-all"
+            >
+              <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-3 shadow-lg text-3xl">
+                🌰
+              </div>
+              <div className="font-semibold text-sm mb-1">Semenzaio</div>
+              <div className="text-xs text-gray-500 text-center">Pianifica da seme</div>
+            </button>
+          </div>
+
+          {/* Seconda riga: Task e Raccolto */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
             <button
               onClick={() => handleOptionSelect('task')}
               className={`flex flex-col items-center justify-center p-6 bg-gray-50 rounded-2xl border-2 transition-all ${
@@ -143,10 +167,9 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
                 📋
               </div>
               <div className="font-semibold text-sm mb-1">Nuovo Task</div>
-              <div className="text-xs text-gray-500 text-center">Pianifica un'attività</div>
+              <div className="text-xs text-gray-500 text-center">Pianifica attività</div>
             </button>
 
-            {/* Nuovo Raccolto */}
             <button
               onClick={() => handleOptionSelect('harvest')}
               className={`flex flex-col items-center justify-center p-6 bg-gray-50 rounded-2xl border-2 transition-all ${
@@ -159,7 +182,7 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
                 🛒
               </div>
               <div className="font-semibold text-sm mb-1">Raccolto</div>
-              <div className="text-xs text-gray-500 text-center">Registra un raccolto</div>
+              <div className="text-xs text-gray-500 text-center">Registra raccolto</div>
             </button>
           </div>
 
@@ -173,8 +196,8 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
                 <button
                   key={suggestion.name}
                   onClick={() => {
-                    setSelectedOption('plant')
-                    setShowCropWizard(true)
+                    router.push(`/app/pianifica?plant=${encodeURIComponent(suggestion.name)}&from=suggestion`)
+                    onClose()
                   }}
                   className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-gray-200 rounded-full text-sm hover:bg-green-50 hover:border-green-300 transition-all"
                 >
@@ -182,6 +205,20 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
                   <span>{suggestion.name}</span>
                 </button>
               ))}
+            </div>
+            
+            {/* Quick Semenzaio Access */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  router.push('/app/semenzaio?action=create')
+                  onClose()
+                }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-50 border border-orange-200 rounded-xl text-sm font-medium text-orange-700 hover:bg-orange-100 transition-all"
+              >
+                <span className="text-lg">🌰</span>
+                <span>Vai al Semenzaio</span>
+              </button>
             </div>
           </div>
 

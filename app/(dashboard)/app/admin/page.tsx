@@ -285,18 +285,9 @@ export default function AdminPage() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <select
-                          value={user.tier}
-                          onChange={(e) => setUserTier(user.id, e.target.value)}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm"
-                        >
-                          <option value="FREE">FREE</option>
-                          <option value="PLUS">PLUS</option>
-                          <option value="PRO">PRO</option>
-                          {/* Legacy tiers for backward compatibility */}
-                          <option value="PRO_CONSUMER">PRO_CONSUMER (Legacy)</option>
-                          <option value="PRO_PROFESSIONAL">PRO_PROFESSIONAL (Legacy)</option>
-                        </select>
+                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm font-medium">
+                          PRO
+                        </span>
                         <button
                           onClick={() => grantCredits(user.id, 100)}
                           className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"

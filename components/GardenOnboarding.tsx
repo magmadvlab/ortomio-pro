@@ -11,6 +11,7 @@ import { InfoTooltip } from './shared/InfoTooltip';
 import VisualSunInput, { VisualSunInputData } from './sunExposure/VisualSunInput';
 import { convertVisualInputToSunHours } from '../services/visualSunInputConverter';
 import { SizeConfigurationStep } from './gardens/SizeConfigurationStep';
+import { AdvancedSunExposureWizard } from './sunExposure/AdvancedSunExposureWizard';
 import { GreenhouseConfig } from '../types/greenhouse';
 import { HydroponicSystemConfig, AquaponicSystemConfig, AeroponicSystemConfig, IndoorGrowingConfig } from '../types/indoorGrowing';
 import { useTier } from '../packages/core/hooks/useTier';
@@ -1236,89 +1237,23 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                 )}
               </div>
 
-              {/* Wizard Visivo Esposizione Solare */}
+              {/* Advanced Sun Exposure Wizard */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <Sun size={16} />
-                    Esposizione Solare
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUseVisualInput(!useVisualInput);
-                      if (!useVisualInput && visualSunInput) {
-                        // Calcola ore stimate quando si attiva
-                        const lat = parseFloat(latitude) || 0;
-                        const lng = parseFloat(longitude) || 0;
-                        const hours = convertVisualInputToSunHours(visualSunInput, lat, lng);
-                        setEstimatedHoursFromVisual(hours);
-                        setDailySunHours(hours.toFixed(1));
-                      }
-                    }}
-                    className="text-xs text-blue-600 hover:text-blue-700 underline"
-                  >
-                    {useVisualInput ? 'Usa input manuale' : 'Usa wizard visivo'}
-                  </button>
-                </div>
-
-                {useVisualInput ? (
-                  <VisualSunInput
-                    value={visualSunInput}
-                    onChange={(data) => {
-                      setVisualSunInput(data);
-                      const lat = parseFloat(latitude) || 0;
-                      const lng = parseFloat(longitude) || 0;
-                      const hours = convertVisualInputToSunHours(data, lat, lng);
-                      setEstimatedHoursFromVisual(hours);
-                      setDailySunHours(hours.toFixed(1));
-                      
-                      // Aggiorna anche sunExposure basandosi su ore
-                      if (hours >= 8) {
-                        setSunExposure('FullSun');
-                      } else if (hours >= 4) {
-                        setSunExposure('PartSun');
-                      } else {
-                        setSunExposure('Shade');
-                      }
-                    }}
-                    estimatedHours={estimatedHoursFromVisual}
-                  />
-                ) : (
-                  <>
-                    <select
-                      value={sunExposure}
-                      onChange={(e) => setSunExposure(e.target.value as Garden['sunExposure'] | '')}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    >
-                      <option value="">Seleziona...</option>
-                      <option value="FullSun">Pieno Sole (8+ ore)</option>
-                      <option value="PartSun">Mezz'Ombra (4-8 ore)</option>
-                      <option value="Shade">Ombra (meno di 4 ore)</option>
-                    </select>
-                    {dailySunHours && (
-                      <p className="text-xs text-green-600 mt-1">
-                        ✓ Analisi AI: {dailySunHours} ore/giorno
-                      </p>
-                    )}
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Ore di Sole Giornaliere (opzionale)
-                      </label>
-                      <input
-                        type="number"
-                        value={dailySunHours}
-                        onChange={(e) => setDailySunHours(e.target.value)}
-                        placeholder="Es. 6"
-                        min="0"
-                        max="12"
-                        step="0.5"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                  </>
-                )}
+                <label className="block text-sm font-medium text-gray-700 flex items-center gap-2 mb-2">
+                  <Sun size={16} />
+                  Esposizione Solare
+                </label>
+                <AdvancedSunExposureWizard
+                  latitude={parseFloat(latitude) || 0}
+                  longitude={parseFloat(longitude) || 0}
+                  onComplete={(data) => {
+                    // Aggiorna tutti gli stati con i dati del wizard
+                    setDailySunHours(data.dailySunHours.toString());
+                    setSunExposure(data.sunExposure);
+                    setAspectDirection(data.aspectDirection || '');
+                    setObstacles(data.obstacles);
+                  }}
+                />
               </div>
 
               <div>

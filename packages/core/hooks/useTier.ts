@@ -1,11 +1,11 @@
 /**
  * React Hook for Tier Management
- * Provides access to tier configuration and helper methods
+ * OrtoMio PRO - Always returns PRO tier
  */
 
 import { useContext } from 'react';
 import { TierContext } from '../context/TierContext';
-import { AppTier, TierConfig, getTierConfig } from '../config/tiers';
+import { AppTier, TierConfig, getTierConfig, PRO_TIER } from '../config/tiers';
 
 export interface UseTierReturn {
   tier: AppTier;
@@ -26,72 +26,44 @@ export interface UseTierReturn {
 export const useTier = (): UseTierReturn => {
   const context = useContext(TierContext);
   
-  if (!context) {
-    throw new Error('useTier must be used within a TierProvider');
-  }
+  // Always use PRO tier
+  const tier = AppTier.PRO;
+  const config = PRO_TIER;
 
-  const { tier, setTier, isPlus: contextIsPlus, isPro: contextIsPro } = context;
-  const config = getTierConfig(tier);
-
-  const can = (feature: keyof TierConfig['features']): boolean => {
-    // LOCALE: Bypassa controlli in sviluppo locale
-    // Usa solo process.env.NODE_ENV per evitare hydration mismatch
-    const isLocalDev = process.env.NODE_ENV === 'development';
-    if (isLocalDev) {
-      return true; // Permetti sempre accesso in locale
-    }
-    return config.features[feature] === true;
+  // All features are always enabled in PRO
+  const can = (_feature: keyof TierConfig['features']): boolean => {
+    return true;
   };
 
-  const limit = <K extends keyof TierConfig['limits']>(limitKey: K): number => {
-    return config.limits[limitKey] ?? -1;
+  // All limits are unlimited in PRO
+  const limit = <K extends keyof TierConfig['limits']>(_limitKey: K): number => {
+    return -1; // Unlimited
   };
 
+  // All limits are unlimited in PRO
   const checkLimit = <K extends keyof TierConfig['limits']>(
-    limitKey: K,
-    currentValue: number
+    _limitKey: K,
+    _currentValue: number
   ): { allowed: boolean; remaining: number } => {
-    // LOCALE: Bypassa limiti in sviluppo locale
-    // Usa solo process.env.NODE_ENV per evitare hydration mismatch
-    const isLocalDev = process.env.NODE_ENV === 'development';
-    if (isLocalDev) {
-      return { allowed: true, remaining: -1 }; // Illimitato in locale
-    }
-    
-    const maxValue = config.limits[limitKey] ?? -1;
-    
-    // -1 means unlimited
-    if (maxValue === -1) {
-      return { allowed: true, remaining: -1 };
-    }
-    
-    const remaining = maxValue - currentValue;
-    return {
-      allowed: remaining > 0,
-      remaining: Math.max(0, remaining),
-    };
+    return { allowed: true, remaining: -1 }; // Always allowed, unlimited
   };
 
-  const hasFeature = (feature: string): boolean => {
-    // LOCALE: Bypassa controlli in sviluppo locale
-    // Usa solo process.env.NODE_ENV per evitare hydration mismatch
-    const isLocalDev = process.env.NODE_ENV === 'development';
-    if (isLocalDev) {
-      return true; // Permetti sempre accesso in locale
-    }
-    // Check if feature exists in config
-    if (feature in config.features) {
-      return config.features[feature as keyof TierConfig['features']] === true;
-    }
-    return false;
+  // All features are always enabled in PRO
+  const hasFeature = (_feature: string): boolean => {
+    return true;
+  };
+
+  // setTier is a no-op since we're always PRO
+  const setTier = (_tier: AppTier): void => {
+    // No-op - always PRO
   };
 
   return {
     tier,
     config,
-    isPro: tier === AppTier.PRO || tier === AppTier.PLUS,
-    isFree: tier === AppTier.FREE,
-    isPlus: contextIsPlus(),
+    isPro: true,
+    isFree: false,
+    isPlus: true, // PRO includes all PLUS features
     can,
     limit,
     checkLimit,
@@ -99,4 +71,3 @@ export const useTier = (): UseTierReturn => {
     setTier,
   };
 };
-

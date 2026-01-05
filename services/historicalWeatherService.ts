@@ -46,11 +46,11 @@ function periodToDateRange(period: HistoricalWeatherData['period'], year: number
 
 /**
  * Recupera dati meteo storici per un periodo specifico
- * 
+ *
  * @param lat Latitudine
  * @param lng Longitudine
  * @param period Periodo stagionale
- * @param year Anno (default: anno corrente)
+ * @param year Anno (default: anno precedente se periodo futuro, altrimenti anno corrente)
  * @returns Dati meteo storici o null se errore
  */
 export async function getHistoricalWeatherForPeriod(
@@ -59,7 +59,22 @@ export async function getHistoricalWeatherForPeriod(
   period: HistoricalWeatherData['period'],
   year?: number
 ): Promise<HistoricalWeatherData | null> {
-  const targetYear = year || new Date().getFullYear();
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+
+  // Se l'anno non è specificato, usa l'anno corrente
+  let targetYear = year || currentYear;
+
+  // Se il periodo richiesto è nel futuro, usa l'anno precedente
+  // (Archive API supporta solo dati storici)
+  const { start } = periodToDateRange(period, targetYear);
+  const periodStartDate = new Date(start);
+
+  if (periodStartDate > currentDate) {
+    console.log(`Requested period ${period} ${targetYear} is in the future, using previous year data`);
+    targetYear = currentYear - 1;
+  }
+
   const cacheKey = getCacheKey(lat, lng, period, targetYear);
 
   // Controlla cache
@@ -68,21 +83,23 @@ export async function getHistoricalWeatherForPeriod(
   }
 
   try {
-    const { start, end } = periodToDateRange(period, targetYear);
+    const { start: adjustedStart, end } = periodToDateRange(period, targetYear);
 
     // Open-Meteo Historical Weather API
     // Endpoint: https://archive-api.open-meteo.com/v1/archive
+    // NOTA: Questo endpoint supporta SOLO dati storici (passato)
+    // Per previsioni future usare: https://api.open-meteo.com/v1/forecast
     const url = new URL('https://archive-api.open-meteo.com/v1/archive');
     url.searchParams.set('latitude', lat.toString());
     url.searchParams.set('longitude', lng.toString());
-    url.searchParams.set('start_date', start);
+    url.searchParams.set('start_date', adjustedStart);
     url.searchParams.set('end_date', end);
     url.searchParams.set('daily', 'temperature_2m_max,temperature_2m_min');
     url.searchParams.set('timezone', 'Europe/Rome');
 
     const response = await fetch(url.toString());
     if (!response.ok) {
-      console.warn(`Historical weather API error: ${response.status}`);
+      console.warn(`Historical weather API error: ${response.status} for period ${period} ${targetYear} (${adjustedStart} to ${end})`);
       return null;
     }
 

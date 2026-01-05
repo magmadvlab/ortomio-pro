@@ -83,12 +83,180 @@ export const updateSeedPacket = (gardenId: string, id: string, updates: Partial<
 };
 
 /**
- * Elimina un pacchetto di semi
+ * Consuma semi dalla banca per una semina
+ * Scala automaticamente la quantità e aggiorna lo stato
  */
-export const deleteSeedPacket = (gardenId: string, id: string): void => {
+export const consumeSeedsForSowing = (
+  gardenId: string, 
+  varietyName: string, 
+  seedsUsed: number
+): { success: boolean; message: string; updatedPacket?: SeedPacket } => {
   const packets = loadFromStorage(gardenId);
-  const filtered = packets.filter(p => p.id !== id);
-  saveToStorage(gardenId, filtered);
+  
+  // Trova il pacchetto corrispondente (per nome varietà)
+  const packetIndex = packets.findIndex(p => 
+    p.varietyName.toLowerCase() === varietyName.toLowerCase()
+  );
+  
+  if (packetIndex === -1) {
+    return {
+      success: false,
+      message: `Nessun pacchetto trovato per ${varietyName}. Aggiungi prima i semi alla banca.`
+    };
+  }
+  
+  const packet = packets[packetIndex];
+  
+  // Verifica disponibilità
+  if (packet.quantityRemaining === 'Empty') {
+    return {
+      success: false,
+      message: `Pacchetto ${varietyName} vuoto. Acquista nuovi semi.`
+    };
+  }
+  
+  // Se abbiamo quantità numerica, scala esattamente
+  if (packet.currentQuantity !== undefined) {
+    if (packet.currentQuantity < seedsUsed) {
+      return {
+        success: false,
+        message: `Semi insufficienti. Disponibili: ${packet.currentQuantity}, richiesti: ${seedsUsed}`
+      };
+    }
+    
+    // Scala la quantità
+    const newQuantity = packet.currentQuantity - seedsUsed;
+    const updatedPacket = {
+      ...packet,
+      currentQuantity: newQuantity,
+      quantityRemaining: calculateQuantityRemaining(newQuantity, packet.initialQuantity),
+      isOpen: true // Marca come aperto dopo primo uso
+    };
+    
+    packets[packetIndex] = updatedPacket;
+    saveToStorage(gardenId, packets);
+    
+    return {
+      success: true,
+      message: `Utilizzati ${seedsUsed} semi di ${varietyName}. Rimanenti: ${newQuantity}`,
+      updatedPacket
+    };
+  }
+  
+  // Se abbiamo solo quantità qualitativa, scala di categoria
+  let newQuantityRemaining = packet.quantityRemaining;
+  if (seedsUsed > 50) {
+    // Semina grande, scala di molto
+    newQuantityRemaining = packet.quantityRemaining === 'High' ? 'Medium' : 
+                          packet.quantityRemaining === 'Medium' ? 'Low' : 'Empty';
+  } else if (seedsUsed > 20) {
+    // Semina media
+    newQuantityRemaining = packet.quantityRemaining === 'High' ? 'High' : 
+                          packet.quantityRemaining === 'Medium' ? 'Low' : 'Empty';
+  }
+  // Semina piccola (< 20 semi) non scala la categoria
+  
+  const updatedPacket = {
+    ...packet,
+    quantityRemaining: newQuantityRemaining,
+    isOpen: true
+  };
+  
+  packets[packetIndex] = updatedPacket;
+  saveToStorage(gardenId, packets);
+  
+  return {
+    success: true,
+    message: `Utilizzati ${seedsUsed} semi di ${varietyName}. Stato: ${newQuantityRemaining}`,
+    updatedPacket
+  };
+};
+
+/**
+ * Ottiene i semi disponibili per una pianta specifica
+ */
+export const getAvailableSeedsForPlant = (gardenId: string, plantName: string): SeedPacket[] => {
+  const packets = getSeedPackets(gardenId);
+  
+  return packets.filter(p => {
+    // Match esatto per nome varietà
+    if (p.varietyName.toLowerCase().includes(plantName.toLowerCase())) {
+      return true;
+    }
+    
+    // Match per nome specie
+    if (p.speciesName.toLowerCase().includes(plantName.toLowerCase())) {
+      return true;
+    }
+    
+    return false;
+  }).filter(p => p.quantityRemaining !== 'Empty'); // Solo pacchetti non vuoti
+};
+
+/**
+ * Registra il risultato della germinazione
+ * Collega semi piantati con piantine nate
+ */
+export const recordGerminationResult = (
+  gardenId: string,
+  batchId: string,
+  seedsPlanted: number,
+  seedlingsGerminated: number,
+  varietyName: string
+): { germinationRate: number; efficiency: string } => {
+  const germinationRate = seedsPlanted > 0 ? (seedlingsGerminated / seedsPlanted) * 100 : 0;
+  
+  // Determina efficienza
+  let efficiency = 'Scarsa';
+  if (germinationRate >= 80) efficiency = 'Ottima';
+  else if (germinationRate >= 60) efficiency = 'Buona';
+  else if (germinationRate >= 40) efficiency = 'Media';
+  
+  // Salva statistiche germinazione (potrebbe essere salvato in localStorage o database)
+  const germinationStats = {
+    batchId,
+    varietyName,
+    seedsPlanted,
+    seedlingsGerminated,
+    germinationRate,
+    efficiency,
+    date: new Date().toISOString()
+  };
+  
+  // Salva in localStorage per ora (in futuro potrebbe andare in database)
+  const statsKey = `germinationStats_${gardenId}`;
+  const existingStats = JSON.parse(localStorage.getItem(statsKey) || '[]');
+  existingStats.push(germinationStats);
+  localStorage.setItem(statsKey, JSON.stringify(existingStats));
+  
+  return { germinationRate, efficiency };
+};
+
+/**
+ * Ottiene le statistiche di germinazione per una varietà
+ */
+export const getGerminationStatsForVariety = (gardenId: string, varietyName: string) => {
+  const statsKey = `germinationStats_${gardenId}`;
+  const allStats = JSON.parse(localStorage.getItem(statsKey) || '[]');
+  
+  const varietyStats = allStats.filter((stat: any) => 
+    stat.varietyName.toLowerCase() === varietyName.toLowerCase()
+  );
+  
+  if (varietyStats.length === 0) return null;
+  
+  // Calcola media
+  const totalSeeds = varietyStats.reduce((sum: number, stat: any) => sum + stat.seedsPlanted, 0);
+  const totalGerminated = varietyStats.reduce((sum: number, stat: any) => sum + stat.seedlingsGerminated, 0);
+  const averageRate = totalSeeds > 0 ? (totalGerminated / totalSeeds) * 100 : 0;
+  
+  return {
+    totalBatches: varietyStats.length,
+    totalSeeds,
+    totalGerminated,
+    averageRate,
+    lastBatch: varietyStats[varietyStats.length - 1]
+  };
 };
 
 /**

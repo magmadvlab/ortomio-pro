@@ -455,20 +455,33 @@ export class SupabaseStorageProvider implements IStorageProvider {
           garden_id: data.id,
           name: row.name || `Filare ${index + 1}`,
           row_number: index + 1,
-          length_meters: row.length || 0,
-          distance_from_previous_row: row.distance || null,
-          plant_spacing: row.plantSpacing || null,
+          length_meters: row.length ? Number(row.length) : 0,
+          distance_from_previous_row: row.distance ? Number(row.distance) : null,
+          plant_spacing: row.plantSpacing ? Number(row.plantSpacing) : null,
           is_active: true
         }));
 
-        const { error: rowsError } = await client
+        console.log('Attempting to insert field rows:', {
+          count: rowsToInsert.length,
+          gardenId: data.id,
+          sample: rowsToInsert[0]
+        });
+
+        const { data: insertedRows, error: rowsError } = await client
           .from('field_rows')
-          .insert(rowsToInsert);
+          .insert(rowsToInsert)
+          .select();
 
         if (rowsError) {
-          console.error('Error saving field rows:', rowsError);
+          console.error('Error saving field rows:', {
+            error: rowsError,
+            code: rowsError.code,
+            message: rowsError.message,
+            details: rowsError.details,
+            hint: rowsError.hint
+          });
         } else {
-          console.log(`Saved ${rowsToInsert.length} field rows`);
+          console.log(`Saved ${insertedRows?.length || 0} field rows successfully`);
         }
       }
 

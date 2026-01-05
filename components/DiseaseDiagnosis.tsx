@@ -138,30 +138,15 @@ const DiseaseDiagnosis: React.FC<DiseaseDiagnosisProps> = ({ plant, garden, weat
       <div className="mb-4">
         <label className="block text-sm font-semibold text-gray-700 mb-2">
           <Camera size={16} className="inline mr-1" />
-          Carica Foto Sintomi
+          Foto della Pianta
         </label>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch gap-3">
+          {/* Opzione 1: Scatta foto (mobile) */}
           <label className="flex-1 cursor-pointer">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center hover:border-red-400 transition-colors w-full">
-              {photo ? (
-                <div className="relative">
-                  <img src={photo} alt="Sintomi" className="max-h-32 sm:max-h-48 mx-auto rounded w-full object-contain" />
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setPhoto(null);
-                    }}
-                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <Upload size={24} className="mx-auto mb-2 text-gray-400" />
-                  <p className="text-sm text-gray-500">Clicca per caricare foto</p>
-                </div>
-              )}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-red-400 transition-colors h-full flex flex-col items-center justify-center">
+              <Camera size={24} className="mb-2 text-gray-400" />
+              <p className="text-sm text-gray-600 font-medium">Scatta Foto</p>
+              <p className="text-xs text-gray-400">Usa la fotocamera</p>
             </div>
             <input
               type="file"
@@ -171,7 +156,36 @@ const DiseaseDiagnosis: React.FC<DiseaseDiagnosisProps> = ({ plant, garden, weat
               onChange={handlePhotoUpload}
             />
           </label>
+          
+          {/* Opzione 2: Carica file (desktop) */}
+          <label className="flex-1 cursor-pointer">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-purple-400 transition-colors h-full flex flex-col items-center justify-center">
+              <Upload size={24} className="mb-2 text-gray-400" />
+              <p className="text-sm text-gray-600 font-medium">Carica Immagine</p>
+              <p className="text-xs text-gray-400">Dal computer</p>
+            </div>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
+          </label>
         </div>
+        
+        {/* Preview foto caricata */}
+        {photo && (
+          <div className="mt-3 relative">
+            <img src={photo} alt="Sintomi" className="max-h-48 mx-auto rounded-lg border-2 border-green-400" />
+            <button
+              onClick={() => setPhoto(null)}
+              className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg"
+            >
+              <X size={16} />
+            </button>
+            <p className="text-center text-sm text-green-600 mt-2 font-medium">✓ Foto caricata</p>
+          </div>
+        )}
       </div>
 
       {/* Descrizione Sintomi (Alternativa) */}

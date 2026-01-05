@@ -25,6 +25,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
   const [sizeUnit, setSizeUnit] = useState<'sqm' | 'are' | 'hectare'>(garden.sizeUnit || 'sqm')
   const [latitude, setLatitude] = useState(garden.coordinates?.latitude || 0)
   const [longitude, setLongitude] = useState(garden.coordinates?.longitude || 0)
+  const [soilPh, setSoilPh] = useState(garden.soilPh?.toString() || '')
 
   // Structures state
   const [beds, setBeds] = useState<GardenBed[]>([])
@@ -55,6 +56,19 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
     cultivar: '',
     plantSpacing: 50, // cm - Distanza tra piante nel filare
     plantedDate: '', // Data semina/trapianto
+    orientation: '' as '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE'
+  })
+
+  // Bulk creation state
+  const [showBulkForm, setShowBulkForm] = useState(false)
+  const [bulkFieldRowForm, setBulkFieldRowForm] = useState({
+    count: 4,
+    prefix: 'Filare',
+    startNumber: 1,
+    lengthMeters: 10,
+    distanceFromPreviousRow: 100,
+    cultivar: '',
+    plantSpacing: 50,
     orientation: '' as '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE'
   })
 
@@ -102,6 +116,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
           latitude,
           longitude
         } : undefined,
+        soilPh: soilPh ? parseFloat(soilPh) : undefined,
         structureConfig: {
           ...garden.structureConfig,
           pots: pots.length > 0 ? pots : undefined,
@@ -260,6 +275,43 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
     })
   }
 
+  const handleBulkCreateFieldRows = async () => {
+    try {
+      setLoading(true)
+
+      const rowsToCreate = []
+      for (let i = 0; i < bulkFieldRowForm.count; i++) {
+        const rowNumber = bulkFieldRowForm.startNumber + i
+        rowsToCreate.push({
+          gardenId: garden.id,
+          name: `${bulkFieldRowForm.prefix} ${rowNumber}`,
+          rowNumber: rowNumber,
+          lengthMeters: bulkFieldRowForm.lengthMeters,
+          distanceFromPreviousRow: bulkFieldRowForm.distanceFromPreviousRow,
+          cultivar: bulkFieldRowForm.cultivar || undefined,
+          plantSpacing: bulkFieldRowForm.plantSpacing,
+          plantedDate: undefined,
+          orientation: bulkFieldRowForm.orientation || undefined,
+          isActive: true
+        })
+      }
+
+      // Create all rows
+      for (const rowData of rowsToCreate) {
+        await storageProvider.createFieldRow(rowData)
+      }
+
+      alert(`✅ ${bulkFieldRowForm.count} filari creati con successo`)
+      await loadGardenStructures()
+      setShowBulkForm(false)
+    } catch (error) {
+      console.error('Error bulk creating field rows:', error)
+      alert('❌ Errore durante la creazione multipla dei filari')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (!isOpen) return null
 
   const tabs = [
@@ -395,12 +447,40 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                 </div>
               </div>
 
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <TreeDeciduous size={18} className="text-green-600" />
+                  <h3 className="font-semibold text-gray-900">Terreno</h3>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">
+                    pH del Terreno (opzionale)
+                  </label>
+                  <input
+                    type="number"
+                    value={soilPh}
+                    onChange={(e) => setSoilPh(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    placeholder="Es. 6.5"
+                    step="0.1"
+                    min="0"
+                    max="14"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Scala pH: 0-14 (acido &lt; 7 &lt; basico). Ortaggi: 6.0-7.0 ideale
+                  </p>
+                </div>
+              </div>
+
               <div className="bg-gray-50 rounded-xl p-4">
                 <h4 className="font-semibold text-gray-900 mb-2">Riepilogo</h4>
                 <ul className="text-sm text-gray-700 space-y-1">
                   <li>• Area: {formatArea(sizeSqMeters, sizeUnit)}</li>
                   {latitude && longitude && (
                     <li>• GPS: {latitude.toFixed(4)}, {longitude.toFixed(4)}</li>
+                  )}
+                  {soilPh && (
+                    <li>• pH Terreno: {parseFloat(soilPh).toFixed(1)}</li>
                   )}
                   {garden.primaryCrop && (
                     <li>• Coltura principale: {garden.primaryCrop.label}</li>
@@ -651,10 +731,19 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                 )}
               </div>
 
-              {/* Vasche */}
+              {/* Vasche / Bancali Grandi */}
               <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-gray-900">🚰 Vasche</h3>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      {garden.gardenType === 'Aquaponic' ? '🐟 Vasche Acquaponiche' : '🏗️ Bancali Grandi'}
+                    </h3>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {garden.gardenType === 'Aquaponic'
+                        ? 'Vasche per sistema acquaponico (pesci + piante)'
+                        : 'Grandi contenitori tipo cassoni (es. 150×75×50cm)'}
+                    </p>
+                  </div>
                   <button
                     onClick={() => setTanks([...tanks, { count: 1, length: 150, width: 75, height: 50 }])}
                     className="px-3 py-1 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
@@ -736,7 +825,9 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 text-center py-2">Nessuna vasca configurata</p>
+                  <p className="text-sm text-gray-500 text-center py-2">
+                    {garden.gardenType === 'Aquaponic' ? 'Nessuna vasca acquaponica configurata' : 'Nessun bancale grande configurato'}
+                  </p>
                 )}
               </div>
             </div>
@@ -801,14 +892,24 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                       {fieldRows.length > 0 ? `Gestisci i ${fieldRows.length} filari del tuo campo` : 'Aggiungi filari al tuo campo'}
                     </p>
                   </div>
-                  <button
-                    onClick={handleStartNewFieldRow}
-                    disabled={loading}
-                    className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1"
-                  >
-                    <Plus size={16} />
-                    Nuovo Filare
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleStartNewFieldRow}
+                      disabled={loading}
+                      className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+                    >
+                      <Plus size={16} />
+                      Nuovo
+                    </button>
+                    <button
+                      onClick={() => setShowBulkForm(!showBulkForm)}
+                      disabled={loading}
+                      className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+                    >
+                      <Layers size={16} />
+                      Crea Multipli
+                    </button>
+                  </div>
                 </div>
 
                 {/* Form di modifica/creazione */}
@@ -931,6 +1032,135 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                       </button>
                       <button
                         onClick={handleCancelFieldRowEdit}
+                        disabled={loading}
+                        className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                      >
+                        Annulla
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Form creazione multipla */}
+                {showBulkForm && (
+                  <div className="bg-blue-50 rounded-lg p-4 mb-3 border-2 border-blue-300">
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <Layers size={18} />
+                      Crea Filari Multipli
+                    </h4>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Crea più filari contemporaneamente con le stesse caratteristiche di base
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Numero filari da creare</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={50}
+                          value={bulkFieldRowForm.count}
+                          onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, count: parseInt(e.target.value) || 1 })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Prefisso nome</label>
+                        <input
+                          type="text"
+                          value={bulkFieldRowForm.prefix}
+                          onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, prefix: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          placeholder="Es. Filare"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Risultato: {bulkFieldRowForm.prefix} {bulkFieldRowForm.startNumber}, {bulkFieldRowForm.prefix} {bulkFieldRowForm.startNumber + 1}, ...
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Numero di partenza</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={bulkFieldRowForm.startNumber}
+                          onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, startNumber: parseInt(e.target.value) || 1 })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Lunghezza (m)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.1}
+                          value={bulkFieldRowForm.lengthMeters}
+                          onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, lengthMeters: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Distanza tra filari (cm)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={bulkFieldRowForm.distanceFromPreviousRow}
+                          onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, distanceFromPreviousRow: parseInt(e.target.value) || 0 })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          placeholder="Es. 100"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Spaziatura piante (cm)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={bulkFieldRowForm.plantSpacing}
+                          onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, plantSpacing: parseInt(e.target.value) || 0 })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          placeholder="Es. 50"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Coltura (opzionale)</label>
+                        <input
+                          type="text"
+                          value={bulkFieldRowForm.cultivar}
+                          onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, cultivar: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          placeholder="Es. Pomodoro Datterino"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Orientamento</label>
+                        <select
+                          value={bulkFieldRowForm.orientation}
+                          onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, orientation: e.target.value as any })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        >
+                          <option value="">Non specificato</option>
+                          <option value="N-S">Nord-Sud (N-S)</option>
+                          <option value="E-W">Est-Ovest (E-W)</option>
+                          <option value="NE-SW">Nord-Est / Sud-Ovest</option>
+                          <option value="NW-SE">Nord-Ovest / Sud-Est</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="mt-4 p-3 bg-blue-100 rounded-lg">
+                      <p className="text-sm font-semibold text-blue-900 mb-1">Anteprima</p>
+                      <p className="text-xs text-blue-800">
+                        Verranno creati <strong>{bulkFieldRowForm.count} filari</strong> da <strong>{bulkFieldRowForm.prefix} {bulkFieldRowForm.startNumber}</strong> a <strong>{bulkFieldRowForm.prefix} {bulkFieldRowForm.startNumber + bulkFieldRowForm.count - 1}</strong>,
+                        ognuno lungo <strong>{bulkFieldRowForm.lengthMeters}m</strong> con distanza di <strong>{bulkFieldRowForm.distanceFromPreviousRow}cm</strong> dal precedente.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 mt-4">
+                      <button
+                        onClick={handleBulkCreateFieldRows}
+                        disabled={loading || bulkFieldRowForm.count <= 0 || bulkFieldRowForm.lengthMeters <= 0 || !bulkFieldRowForm.prefix}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {loading ? 'Creazione...' : `Crea ${bulkFieldRowForm.count} Filari`}
+                      </button>
+                      <button
+                        onClick={() => setShowBulkForm(false)}
                         disabled={loading}
                         className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                       >
