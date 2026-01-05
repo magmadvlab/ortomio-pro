@@ -126,16 +126,16 @@ function PianificaPageContent() {
   const [loading, setLoading] = useState(true);
   const [gardenId, setGardenId] = useState<string | null>(null);
 
-  // Ottieni garden ID (in un'app reale verrebbe dal context/props)
-  const orchestrator = useCultivationOrchestrator(gardenId || 'mock-garden-id');
+  // Ottieni garden ID (usa l'ID reale dal database)
+  const orchestrator = useCultivationOrchestrator(gardenId || '9610c9ae-01db-4f50-9979-d58617fb2574');
 
   // Controlla se arriviamo dal modal "Nuova Pianta"
   const fromModal = searchParams.get('from') === 'modal';
   const preselectedPlant = searchParams.get('plant');
 
   useEffect(() => {
-    // TODO: Ottieni gardenId dal context utente
-    setGardenId('mock-garden-id');
+    // Usa l'ID del giardino reale dal database
+    setGardenId('9610c9ae-01db-4f50-9979-d58617fb2574');
     loadPlants();
   }, []);
 
