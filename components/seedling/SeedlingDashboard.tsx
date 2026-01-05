@@ -2,12 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
-import { CardContent, CardHeader, CardTitle } from '@/components/ui/ortomio-adapter';
+import { CardContent, CardHeader, CardTitle, Badge, Input } from '@/components/ui/ortomio-adapter';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/ortomio-adapter';
-import { Input } from '@/components/ui/input';
 import { 
-  Seed, 
   Sprout, 
   Plus,
   Search,
@@ -23,7 +20,7 @@ import {
   Grid3X3,
   List
 } from 'lucide-react';
-import SeedingProgressCard from './ortomio-seeding-progress-card';
+import SeedingProgressCard from './SeedingProgressCard';
 
 interface SeedlingBatch {
   id: string;
@@ -65,6 +62,7 @@ export default function SeedlingDashboard({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPhase, setFilterPhase] = useState<string>('all');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [activeTab, setActiveTab] = useState('active');
 
   // Filtri e ricerca
   const filteredBatches = batches.filter(batch => {
@@ -142,7 +140,7 @@ export default function SeedlingDashboard({
                 <p className="text-sm text-gray-600">Batch Attivi</p>
                 <p className="text-2xl font-bold text-blue-600">{stats.active}</p>
               </div>
-              <Seed className="w-8 h-8 text-blue-500" />
+              <Sprout className="w-8 h-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
@@ -224,7 +222,7 @@ export default function SeedlingDashboard({
             <Input
               placeholder="Cerca per pianta o varietà..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
           </div>
@@ -245,14 +243,14 @@ export default function SeedlingDashboard({
 
         <div className="flex gap-2">
           <Button
-            variant={viewMode === 'grid' ? 'default' : 'outline'}
+            variant={viewMode === 'grid' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setViewMode('grid')}
           >
             <Grid3X3 className="w-4 h-4" />
           </Button>
           <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
+            variant={viewMode === 'list' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setViewMode('list')}
           >
@@ -306,7 +304,7 @@ export default function SeedlingDashboard({
         ) : (
           <Card className="col-span-full">
             <CardContent className="p-8 text-center">
-              <Seed className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <Sprout className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="font-medium text-gray-900 mb-2">Nessun batch trovato</h3>
               <p className="text-gray-600 mb-4">
                 {searchTerm || filterPhase !== 'all' 
@@ -325,19 +323,36 @@ export default function SeedlingDashboard({
         )}
       </div>
 
-      {/* Tabs aggiuntive */}
-      <Tabs defaultValue="active" className="mt-8">
-        <TabsList>
-          <TabsTrigger value="active">Attivi</TabsTrigger>
-          <TabsTrigger value="completed">Completati</TabsTrigger>
-          <TabsTrigger value="analytics">Statistiche</TabsTrigger>
-        </TabsList>
+      {/* Navigazione sezioni */}
+      <div className="flex space-x-2 mt-8 mb-6">
+        <button 
+          onClick={() => setActiveTab('active')}
+          className={`px-4 py-2 rounded ${activeTab === 'active' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+        >
+          Attivi
+        </button>
+        <button 
+          onClick={() => setActiveTab('completed')}
+          className={`px-4 py-2 rounded ${activeTab === 'completed' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+        >
+          Completati
+        </button>
+        <button 
+          onClick={() => setActiveTab('analytics')}
+          className={`px-4 py-2 rounded ${activeTab === 'analytics' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+        >
+          Statistiche
+        </button>
+      </div>
 
-        <TabsContent value="active">
+      {activeTab === 'active' && (
+        <div>
           {/* Contenuto già mostrato sopra */}
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="completed">
+      {activeTab === 'completed' && (
+        <div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {batches
               .filter(b => b.currentPhase === 'transplanted')
@@ -349,9 +364,11 @@ export default function SeedlingDashboard({
                 />
               ))}
           </div>
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="analytics">
+      {activeTab === 'analytics' && (
+        <div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Grafico sopravvivenza */}
             <Card>
@@ -421,8 +438,8 @@ export default function SeedlingDashboard({
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       {/* Form creazione batch (placeholder) */}
       {showCreateForm && (

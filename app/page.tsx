@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getSupabaseClient } from '@/config/supabase'
 
-export default function HomePage() {
+function HomePageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [checking, setChecking] = useState(true)
@@ -112,6 +112,14 @@ export default function HomePage() {
     <div className="min-h-screen flex items-center justify-center">
       <p className="text-gray-600">Caricamento...</p>
     </div>
+  )
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Caricamento...</div>}>
+      <HomePageContent />
+    </Suspense>
   )
 }
 

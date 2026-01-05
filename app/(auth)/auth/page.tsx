@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getSupabaseClient } from '@/config/supabase'
 import { Mail, Lock, Loader2, AlertCircle, ArrowRight, Shield, User, Phone, Building, Calendar } from 'lucide-react'
@@ -11,7 +11,7 @@ import { RegistrationData } from '@/types/auth'
 
 type AuthMode = 'login' | 'register'
 
-export default function AuthPage() {
+function AuthPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [mode, setMode] = useState<AuthMode>('login')
@@ -684,5 +684,13 @@ export default function AuthPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="w-8 h-8 animate-spin" /></div>}>
+      <AuthPageContent />
+    </Suspense>
   )
 }

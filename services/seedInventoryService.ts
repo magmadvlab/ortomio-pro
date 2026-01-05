@@ -153,7 +153,7 @@ export const consumeSeedsForSowing = (
   }
   
   // Se abbiamo solo quantità qualitativa, scala di categoria
-  let newQuantityRemaining = packet.quantityRemaining;
+  let newQuantityRemaining: 'High' | 'Medium' | 'Low' | 'Empty' = packet.quantityRemaining;
   if (seedsUsed > 50) {
     // Semina grande, scala di molto
     newQuantityRemaining = packet.quantityRemaining === 'High' ? 'Medium' : 

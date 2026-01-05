@@ -42,7 +42,7 @@ export function ProFeatureGate({
       return tier === AppTier.PRO
     }
     if (requiredTier === 'PLUS') {
-      return tier === AppTier.PLUS || tier === AppTier.PRO
+      return tier === AppTier.PRO
     }
     
     // Legacy tier support (backward compatibility)
@@ -50,7 +50,7 @@ export function ProFeatureGate({
       return tier === AppTier.PRO
     }
     if (requiredTier === 'PRO_CONSUMER') {
-      return tier === AppTier.PLUS || tier === AppTier.PRO
+      return tier === AppTier.PRO
     }
     
     // Default: any PRO tier (PLUS or PRO)

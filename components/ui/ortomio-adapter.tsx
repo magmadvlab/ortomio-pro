@@ -6,9 +6,9 @@ import React from 'react';
 // Questo file mappa i componenti UI che abbiamo usato con quelli esistenti in OrtoMio
 
 // Import dei componenti UI esistenti di OrtoMio
-import Button from '/Users/magma/Downloads/ortomio-main/components/ui/Button';
-import Card from '/Users/magma/Downloads/ortomio-main/components/ui/Card';
-import Input from '/Users/magma/Downloads/ortomio-main/components/ui/Input';
+import { Button } from './Button';
+import { Card } from './Card';
+import { Input } from './Input';
 
 // Adapter per Badge (se non esiste in OrtoMio)
 export const Badge = ({ children, variant = 'default', className = '' }: {
@@ -68,7 +68,7 @@ export const Tabs = ({ children, defaultValue, value, onValueChange }: {
     <div className="tabs-container" data-active-tab={activeTab}>
       {React.Children.map(children, child => 
         React.isValidElement(child) 
-          ? React.cloneElement(child, { activeTab, onTabChange: handleTabChange })
+          ? React.cloneElement(child as React.ReactElement<any>, { 'data-active-tab': activeTab, 'data-on-tab-change': handleTabChange })
           : child
       )}
     </div>

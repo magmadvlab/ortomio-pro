@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getAllArchetypes } from '../../services/archetypeService';
 
@@ -13,7 +13,7 @@ interface PlantItem {
   icon: string;
 }
 
-export default function PianificaPage() {
+function PianificaPageContent() {
   const [plants, setPlants] = useState<PlantItem[]>([]);
   const [selectedPlant, setSelectedPlant] = useState<PlantItem | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<any>(null);
@@ -307,4 +307,12 @@ export default function PianificaPage() {
       </div>
     </div>
   );
+}
+
+export default function PianificaPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Caricamento...</div>}>
+      <PianificaPageContent />
+    </Suspense>
+  )
 }

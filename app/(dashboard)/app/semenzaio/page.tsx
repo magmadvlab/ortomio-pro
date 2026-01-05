@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGarden } from '@/packages/core/hooks/useGarden';
 import { useStorage } from '@/packages/core/context/StorageContext';
@@ -13,7 +13,7 @@ import { CardContent, CardHeader, CardTitle } from '@/components/ui/ortomio-adap
 import { Input, Badge } from '@/components/ui/ortomio-adapter';
 import { Sprout, X, CheckCircle } from 'lucide-react';
 
-export default function SemenzaioPage() {
+function SemenzaioPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { activeGarden } = useGarden();
@@ -485,4 +485,12 @@ export default function SemenzaioPage() {
       )}
     </div>
   );
+}
+
+export default function SemenzaioPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Caricamento...</div>}>
+      <SemenzaioPageContent />
+    </Suspense>
+  )
 }

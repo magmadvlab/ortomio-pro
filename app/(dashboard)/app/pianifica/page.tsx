@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCultivationOrchestrator } from '../../../../services/cultivationOrchestrator';
 
@@ -115,7 +115,7 @@ interface PlantItem {
   family: string;
 }
 
-export default function PianificaPage() {
+function PianificaPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [plants, setPlants] = useState<PlantItem[]>([]);
@@ -599,4 +599,12 @@ export default function PianificaPage() {
       </div>
     </div>
   );
+}
+
+export default function PianificaPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Caricamento...</div>}>
+      <PianificaPageContent />
+    </Suspense>
+  )
 }
