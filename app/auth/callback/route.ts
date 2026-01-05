@@ -14,6 +14,8 @@ export async function GET(request: NextRequest) {
   const error = requestUrl.searchParams.get('error')
   const error_description = requestUrl.searchParams.get('error_description')
 
+  console.log('Auth callback params:', { code: !!code, token_hash: !!token_hash, type, error })
+
   // Se c'è un errore, reindirizza alla pagina di errore
   if (error) {
     console.error('Auth callback error:', error, error_description)
@@ -33,7 +35,7 @@ export async function GET(request: NextRequest) {
   const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
   try {
-    // Gestione code (PKCE flow - usato per email confirmation)
+    // Gestione code (PKCE flow - usato per email confirmation e password reset)
     if (code) {
       const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
       
@@ -44,9 +46,18 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      if (data.user) {
+      if (data.user && data.session) {
         console.log('User authenticated via code:', data.user.email)
-        // Reindirizza all'app
+        
+        // Se è un reset password, reindirizza alla pagina di reset
+        if (type === 'recovery' || requestUrl.searchParams.get('next') === 'reset-password') {
+          const resetUrl = new URL('/reset-password', request.url)
+          resetUrl.searchParams.set('access_token', data.session.access_token)
+          resetUrl.searchParams.set('refresh_token', data.session.refresh_token)
+          return NextResponse.redirect(resetUrl)
+        }
+        
+        // Altrimenti reindirizza all'app
         return NextResponse.redirect(new URL('/app', request.url))
       }
     }
@@ -65,8 +76,17 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      if (data.user) {
+      if (data.user && data.session) {
         console.log('User verified via token:', data.user.email)
+        
+        // Se è un reset password, reindirizza alla pagina di reset
+        if (type === 'recovery') {
+          const resetUrl = new URL('/reset-password', request.url)
+          resetUrl.searchParams.set('access_token', data.session.access_token)
+          resetUrl.searchParams.set('refresh_token', data.session.refresh_token)
+          return NextResponse.redirect(resetUrl)
+        }
+        
         return NextResponse.redirect(new URL('/app', request.url))
       }
     }
