@@ -190,7 +190,7 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
         selectedInfo.push(`Filari: ${selectedRows.map(r => r.name).join(', ')}`)
       }
 
-      await onComplete({
+      const systemData: Omit<IrrigationSystem, 'id' | 'createdAt' | 'updatedAt'> = {
         gardenId,
         name: finalName,
         type: formData.type,
@@ -198,8 +198,6 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
         pressureBar: formData.pressureBar,
         hasTimer: formData.hasTimer,
         hasValve: formData.hasValve,
-        bedIds: formData.selectedBedIds.length > 0 ? formData.selectedBedIds : undefined,
-        rowIds: formData.selectedRowIds.length > 0 ? formData.selectedRowIds : undefined,
         cultivationType: formData.cultivationType,
         notes: [
           formData.notes,
@@ -207,8 +205,13 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
           formData.location && `Posizione: ${formData.location}`,
           formData.area && `Area: ${formData.area}`,
           ...selectedInfo
-        ].filter(Boolean).join('\n')
-      })
+        ].filter(Boolean).join('\n'),
+        // Include optional fields directly in the object
+        bedIds: formData.selectedBedIds.length > 0 ? formData.selectedBedIds : undefined,
+        rowIds: formData.selectedRowIds.length > 0 ? formData.selectedRowIds : undefined
+      }
+
+      await onComplete(systemData)
     } catch (error) {
       console.error('Error creating irrigation system:', error)
       alert('Errore durante la creazione del sistema')

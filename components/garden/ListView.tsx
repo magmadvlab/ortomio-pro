@@ -8,6 +8,8 @@ import { format, parseISO, isToday, isYesterday, isThisWeek, isSameDay, differen
 import { it } from 'date-fns/locale'
 import { AddCropWizard } from '../crops/AddCropWizard'
 import { HarvestPromptModal } from '@/components/shared/HarvestPromptModal'
+import { EditTaskModal } from '../tasks/EditTaskModal'
+import { ManualTaskModal } from './ManualTaskModal'
 import { isPlantMature } from '@/utils/plantMaturityDetector'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useChallengeNotifications } from '@/hooks/useChallengeNotifications'
@@ -31,13 +33,15 @@ export function ListView({
   onDeleteTask,
   onUpdateTask
 }: ListViewProps) {
-  const [isAdding, setIsAdding] = useState(false)
+  const [showAddMenu, setShowAddMenu] = useState(false)
   const [showCropWizard, setShowCropWizard] = useState(false)
+  const [showManualTaskModal, setShowManualTaskModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterSeason, setFilterSeason] = useState<'all' | 'Summer' | 'Winter'>('all')
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'completed' | 'scheduled'>('pending')
   const [harvestPromptTask, setHarvestPromptTask] = useState<GardenTask | null>(null)
+  const [editingTask, setEditingTask] = useState<GardenTask | null>(null)
   const { storageProvider } = useStorage()
   const { user } = useAuth()
   const { checkChallengeProgress, showChallengeNotification, hideNotification, activeNotification } = useChallengeNotifications()
@@ -213,14 +217,53 @@ export function ListView({
         </div>
       </div>
       
-      {/* Add Task Button */}
-      <button
-        onClick={() => setShowCropWizard(true)}
-        className="w-full bg-green-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-      >
-        <PlusCircle size={20} />
-        <span>Nuovo Task</span>
-      </button>
+      {/* Add Task Button with Dropdown */}
+      <div className="relative">
+        <button
+          onClick={() => setShowAddMenu(!showAddMenu)}
+          className="w-full bg-green-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+        >
+          <PlusCircle size={20} />
+          <span>Nuovo Task</span>
+        </button>
+
+        {/* Dropdown Menu */}
+        {showAddMenu && (
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-10">
+            <button
+              onClick={() => {
+                setShowCropWizard(true)
+                setShowAddMenu(false)
+              }}
+              className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🌱</span>
+                <div>
+                  <div className="font-medium text-gray-900">Semina / Trapianto</div>
+                  <div className="text-xs text-gray-500">Nuova pianta da seme o piantina</div>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                setShowManualTaskModal(true)
+                setShowAddMenu(false)
+              }}
+              className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📝</span>
+                <div>
+                  <div className="font-medium text-gray-900">Task Manuale</div>
+                  <div className="text-xs text-gray-500">Concimazione, Trattamento, Potatura, Raccolta</div>
+                </div>
+              </div>
+            </button>
+          </div>
+        )}
+      </div>
       
       {/* Tasks List */}
       <div className="space-y-6">
@@ -383,8 +426,7 @@ export function ListView({
                             </button>
                             <button
                               onClick={() => {
-                                // Modifica task - TODO: apri modale modifica
-                                console.log('Modifica task:', task.id)
+                                setEditingTask(task)
                               }}
                               className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 transition-colors"
                               title="Modifica"
@@ -467,6 +509,18 @@ export function ListView({
         />
       )}
       
+      {/* Edit Task Modal */}
+      <EditTaskModal
+        task={editingTask}
+        isOpen={!!editingTask}
+        onClose={() => setEditingTask(null)}
+        onTaskUpdated={(updatedTask) => {
+          // Aggiorna il task nella lista
+          onUpdateTask(updatedTask)
+          setEditingTask(null)
+        }}
+      />
+      
       {/* Challenge Toast */}
       {activeNotification && (
         <ChallengeToast
@@ -474,6 +528,14 @@ export function ListView({
           onClose={hideNotification}
         />
       )}
+
+      {/* Manual Task Modal */}
+      <ManualTaskModal
+        gardenId={garden.id}
+        isOpen={showManualTaskModal}
+        onClose={() => setShowManualTaskModal(false)}
+        onAddTask={onAddTask}
+      />
     </div>
   )
 }

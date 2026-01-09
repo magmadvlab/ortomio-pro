@@ -15,6 +15,11 @@ import { getChallengeForDate } from '../data/giornateSpeciali';
 import { getSeasonalEventForDate } from '../logic/seasonalEvents';
 import { calculateMoonPhase, MoonPhaseInfo } from '../logic/lunarCalendar';
 import { GardenTask } from '../types';
+import { calculateNutrientNeeds } from '../logic/nutrientEngine';
+import { calculateHealthStrategy } from '../logic/healthEngine';
+import { getMasterSheetSync } from '../services/plantMasterService';
+import { calculatePlantDaysActive } from '../services/taskCalculationService';
+import { FlaskConical, Shield } from 'lucide-react';
 
 interface CalendarAlmanacProps {
   // Props opzionali per integrazione futura
@@ -439,7 +444,126 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
             </div>
           );
         })()}
-        
+
+        {/* AI Consigli Nutrizione e Salute */}
+        {(() => {
+          const dayTasks = tasks.filter(t => {
+            const taskDate = t.suggestedDate ? parseISO(t.suggestedDate) : parseISO(t.date);
+            return isSameDay(taskDate, selectedDate);
+          });
+
+          const activeTasks = dayTasks.filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant'));
+
+          if (activeTasks.length === 0) return null;
+
+          return (
+            <div className="space-y-3">
+              {activeTasks.slice(0, 2).map(task => {
+                const masterSheet = getMasterSheetSync(task.plantName);
+                if (!masterSheet) return null;
+
+                const daysActive = calculatePlantDaysActive(dayTasks, task.plantName, task.variety);
+                if (daysActive === null) return null;
+
+                // Consigli nutrizionali
+                const nutrientAdvice = calculateNutrientNeeds(masterSheet, daysActive);
+                const healthAdvice = calculateHealthStrategy(masterSheet, daysActive);
+
+                return (
+                  <div key={task.id} className="space-y-3">
+                    {/* Nutrizione */}
+                    {nutrientAdvice && (
+                      <div className={`p-4 rounded-xl border-2 ${
+                        nutrientAdvice.elementFocus === 'N' ? 'bg-green-50 border-green-200' :
+                        nutrientAdvice.elementFocus === 'P' ? 'bg-blue-50 border-blue-200' :
+                        nutrientAdvice.elementFocus === 'K' ? 'bg-orange-50 border-orange-200' :
+                        'bg-purple-50 border-purple-200'
+                      }`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <FlaskConical size={16} className={
+                            nutrientAdvice.elementFocus === 'N' ? 'text-green-600' :
+                            nutrientAdvice.elementFocus === 'P' ? 'text-blue-600' :
+                            nutrientAdvice.elementFocus === 'K' ? 'text-orange-600' :
+                            'text-purple-600'
+                          } />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                                nutrientAdvice.elementFocus === 'N' ? 'bg-green-100 text-green-700' :
+                                nutrientAdvice.elementFocus === 'P' ? 'bg-blue-100 text-blue-700' :
+                                nutrientAdvice.elementFocus === 'K' ? 'bg-orange-100 text-orange-700' :
+                                'bg-purple-100 text-purple-700'
+                              }`}>
+                                {{N: 'Azoto', P: 'Fosforo', K: 'Potassio', Micro: 'Micronutrienti', None: 'Nessuno'}[nutrientAdvice.elementFocus]}
+                              </span>
+                              <span className="text-[10px] text-gray-500 uppercase">
+                                {task.plantName}
+                              </span>
+                            </div>
+                            <h4 className={`font-bold text-sm mt-1 ${
+                              nutrientAdvice.elementFocus === 'N' ? 'text-green-800' :
+                              nutrientAdvice.elementFocus === 'P' ? 'text-blue-800' :
+                              nutrientAdvice.elementFocus === 'K' ? 'text-orange-800' :
+                              'text-purple-800'
+                            }`}>
+                              {nutrientAdvice.adviceTitle}
+                            </h4>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-700">{nutrientAdvice.adviceBody}</p>
+                      </div>
+                    )}
+
+                    {/* Salute */}
+                    {healthAdvice && (
+                      <div className={`p-4 rounded-xl border-2 ${
+                        healthAdvice.priority === 'High' ? 'bg-red-50 border-red-200' :
+                        healthAdvice.priority === 'Medium' ? 'bg-orange-50 border-orange-200' :
+                        'bg-yellow-50 border-yellow-200'
+                      }`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Shield size={16} className={
+                            healthAdvice.priority === 'High' ? 'text-red-600' :
+                            healthAdvice.priority === 'Medium' ? 'text-orange-600' :
+                            'text-yellow-600'
+                          } />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                                healthAdvice.priority === 'High' ? 'bg-red-100 text-red-700' :
+                                healthAdvice.priority === 'Medium' ? 'bg-orange-100 text-orange-700' :
+                                'bg-yellow-100 text-yellow-700'
+                              }`}>
+                                {healthAdvice.actionType === 'Prevent' ? 'Prevenzione' : 'Monitoraggio'}
+                              </span>
+                              <span className="text-[10px] text-gray-500 uppercase">
+                                {task.plantName}
+                              </span>
+                            </div>
+                            <h4 className={`font-bold text-sm mt-1 ${
+                              healthAdvice.priority === 'High' ? 'text-red-800' :
+                              healthAdvice.priority === 'Medium' ? 'text-orange-800' :
+                              'text-yellow-800'
+                            }`}>
+                              {healthAdvice.productToUse}
+                            </h4>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-700">{healthAdvice.reason}</p>
+                        {healthAdvice.dosage && (
+                          <p className="text-xs text-gray-600 mt-2">
+                            <strong>Dosaggio:</strong> {healthAdvice.dosage}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+
         {/* Challenge del Giorno */}
         {challengeOggi && (
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">

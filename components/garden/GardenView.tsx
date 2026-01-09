@@ -8,6 +8,8 @@ import { ListView } from './ListView'
 import { Calendar, List, GanttChart, Plus, Sprout, Settings } from 'lucide-react'
 import { PlantsView } from './PlantsView'
 import { AddItemModal } from './AddItemModal'
+import { HarvestRegistrationModal } from '../harvest/HarvestRegistrationModal'
+import { PhotoCaptureModal } from '../camera/PhotoCaptureModal'
 import { ContextualTip } from '@/components/shared/ContextualTip'
 import Link from 'next/link'
 
@@ -34,6 +36,8 @@ export function GardenView({
 }: GardenViewProps) {
   const [showQuickActions, setShowQuickActions] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showHarvestModal, setShowHarvestModal] = useState(false)
+  const [showPhotoCapture, setShowPhotoCapture] = useState(false)
   
   const tabs = [
     { id: 'timeline' as const, label: 'Timeline', icon: GanttChart },
@@ -163,8 +167,8 @@ export function GardenView({
           <div className="absolute bottom-16 right-0 flex flex-col-reverse gap-3 animate-in fade-in slide-in-from-bottom-4">
             {[
               { id: 'task', label: 'Nuovo Task', icon: '📋', color: 'bg-blue-500', action: () => setShowAddModal(true) },
-              { id: 'harvest', label: 'Registra Raccolto', icon: '🛒', color: 'bg-orange-500', action: () => {/* TODO: Open Harvest Modal */} },
-              { id: 'photo', label: 'Scatta Foto', icon: '📷', color: 'bg-purple-500', action: () => {/* TODO */} },
+              { id: 'harvest', label: 'Registra Raccolto', icon: '🛒', color: 'bg-orange-500', action: () => setShowHarvestModal(true) },
+              { id: 'photo', label: 'Scatta Foto', icon: '📷', color: 'bg-purple-500', action: () => setShowPhotoCapture(true) },
               { id: 'sowing', label: 'Nuova Semina', icon: '🌱', color: 'bg-green-500', action: () => setShowAddModal(true) },
             ].map((action, idx) => (
               <div
@@ -199,6 +203,28 @@ export function GardenView({
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onAddTask={onAddTask}
+      />
+
+      {/* Harvest Modal */}
+      <HarvestRegistrationModal
+        garden={garden}
+        isOpen={showHarvestModal}
+        onClose={() => setShowHarvestModal(false)}
+        onHarvestRegistered={() => {
+          // Ricarica i task per aggiornare la vista
+          window.location.reload() // Semplice per ora
+        }}
+      />
+
+      {/* Photo Capture Modal */}
+      <PhotoCaptureModal
+        garden={garden}
+        isOpen={showPhotoCapture}
+        onClose={() => setShowPhotoCapture(false)}
+        onPhotoSaved={(photoUrl) => {
+          console.log('Photo saved:', photoUrl)
+          // Qui potresti aggiornare la vista o mostrare una notifica
+        }}
       />
     </div>
   )
