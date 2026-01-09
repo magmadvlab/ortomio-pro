@@ -1,0 +1,8 @@
+components/garden/GardenView.tsx
+components/garden/PlantsView.tsx
+components/CalendarAlmanac.tsx
+components/irrigation/IrrigationSystemWizard.tsx
+components/harvest/HarvestRegistrationModal.tsx
+components/camera/PhotoCaptureModal.tsx
+TEST_UI_IMPROVEMENTS.md
+COMMIT_MESSAGE.txt

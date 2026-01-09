@@ -11,22 +11,20 @@ interface ManualTaskModalProps {
   onAddTask: (task: Omit<GardenTask, 'id' | 'completed' | 'gardenId'>) => void
 }
 
-type TaskType = 'Fertilize' | 'Treatment' | 'Pruning' | 'Harvest' | 'Other'
+type TaskType = 'Fertilize' | 'Treatment' | 'Prune' | 'Harvest'
 
 const taskTypeLabels: Record<TaskType, string> = {
   'Fertilize': 'Concimazione',
   'Treatment': 'Trattamento',
-  'Pruning': 'Potatura',
-  'Harvest': 'Raccolta',
-  'Other': 'Altro'
+  'Prune': 'Potatura',
+  'Harvest': 'Raccolta'
 }
 
 const taskTypeIcons: Record<TaskType, string> = {
   'Fertilize': '🌱',
   'Treatment': '🛡️',
-  'Pruning': '✂️',
-  'Harvest': '🛒',
-  'Other': '📝'
+  'Prune': '✂️',
+  'Harvest': '🛒'
 }
 
 export function ManualTaskModal({ gardenId, isOpen, onClose, onAddTask }: ManualTaskModalProps) {

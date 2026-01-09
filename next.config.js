@@ -9,10 +9,8 @@ const nextConfig = {
       },
     ],
   },
-  // Turbopack è il bundler di default in Next.js 16
-  // I file di dati (plantMasterSheets.ts, varietyMappings.ts, ecc.) 
-  // vengono automaticamente inclusi nel bundle tramite import statici
-  turbopack: {},
+  // TEMPORANEAMENTE DISABILITATO TURBOPACK PER DEBUG
+  // turbopack: {},
 }
 
 // In sviluppo, esporta direttamente senza PWA

@@ -27,21 +27,25 @@ export function HealthDashboard({ garden, tasks }: HealthDashboardProps) {
   // Carica health alerts dal database
   const loadHealthAlerts = async () => {
     try {
-      // Nota: getHealthAlerts sarà aggiunto a storage interface
-      if (storageProvider && typeof (storageProvider as any).getHealthAlerts === 'function') {
-        const alerts = await (storageProvider as any).getHealthAlerts(garden.id)
+      if (storageProvider && 'getHealthAlerts' in storageProvider) {
+        const alerts = await storageProvider.getHealthAlerts(garden.id)
         setHealthAlerts(alerts.filter((a: HealthAlert) => !a.resolved))
       }
     } catch (error) {
-      console.error('Failed to load health alerts:', error)
+      // Solo logga l'errore se non è un errore di "nessun dato trovato"
+      if (error instanceof Error && !error.message.includes('not found')) {
+        console.error('Failed to load health alerts:', error)
+      }
+      // In caso di errore, imposta array vuoto
+      setHealthAlerts([])
     }
   }
 
   // Gestisci risoluzione alert
   const handleResolveAlert = async (alertId: string) => {
     try {
-      if (storageProvider && typeof (storageProvider as any).updateHealthAlert === 'function') {
-        await (storageProvider as any).updateHealthAlert(alertId, {
+      if (storageProvider && 'updateHealthAlert' in storageProvider) {
+        await storageProvider.updateHealthAlert(alertId, {
           resolved: true,
           resolvedAt: new Date().toISOString()
         })

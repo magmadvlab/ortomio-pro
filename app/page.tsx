@@ -1,99 +1,24 @@
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
-import { getSupabaseClient } from '@/config/supabase';
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
-function HomePageContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [isChecking, setIsChecking] = useState(true);
+export default function HomePage() {
+  const router = useRouter()
 
   useEffect(() => {
-    const checkAuthAndRedirect = async () => {
-      // Controlla se c'è un code di reset password o verifica email
-      const code = searchParams.get('code');
-      const type = searchParams.get('type');
-      const token_hash = searchParams.get('token_hash');
-
-      if (code || token_hash) {
-        // Reindirizza al callback handler per gestire l'autenticazione
-        const params = new URLSearchParams();
-        if (code) params.set('code', code);
-        if (type) params.set('type', type);
-        if (token_hash) params.set('token_hash', token_hash);
-        
-        router.replace(`/auth/callback?${params.toString()}`);
-        return;
-      }
-
-      // Controlla se l'utente è autenticato
-      const supabase = getSupabaseClient();
-      if (supabase) {
-        try {
-          const { data: { session }, error } = await supabase.auth.getSession();
-          
-          if (error) {
-            console.error('Error checking session:', error);
-            router.replace('/auth');
-            return;
-          }
-
-          if (session?.user) {
-            // Utente autenticato, reindirizza all'app
-            router.replace('/app');
-          } else {
-            // Utente non autenticato, reindirizza alla registrazione
-            router.replace('/auth');
-          }
-        } catch (error) {
-          console.error('Error during auth check:', error);
-          router.replace('/auth');
-        }
-      } else {
-        // Supabase non disponibile, reindirizza alla registrazione
-        router.replace('/auth');
-      }
-      
-      setIsChecking(false);
-    };
-
-    checkAuthAndRedirect();
-  }, [router, searchParams]);
-
-  if (isChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Verifica autenticazione...</p>
-        </div>
-      </div>
-    );
-  }
+    // Redirect diretto all'app
+    router.push('/app')
+  }, [router])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-        <p className="text-gray-600">Reindirizzamento in corso...</p>
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">OrtoMio AI</h1>
+        <p className="text-gray-600 mb-6">Il tuo assistente intelligente per l'orto</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+        <p className="text-sm text-gray-500 mt-4">Caricamento...</p>
       </div>
     </div>
-  );
-}
-
-export default function HomePage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Caricamento...</p>
-        </div>
-      </div>
-    }>
-      <HomePageContent />
-    </Suspense>
-  );
+  )
 }

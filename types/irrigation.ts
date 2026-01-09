@@ -34,6 +34,10 @@ export interface IrrigationSystem {
   hasTimer?: boolean;
   hasValve?: boolean;
   notes?: string;
+  // Collegamenti a strutture esistenti
+  bedIds?: string[]; // Aiuole collegate
+  rowIds?: string[]; // Filari collegati
+  cultivationType?: 'orto' | 'frutteto' | 'uliveto' | 'vigneto' | 'serra' | 'giardino';
   createdAt: string;
   updatedAt: string;
 }

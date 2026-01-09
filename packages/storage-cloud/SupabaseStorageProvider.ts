@@ -3316,7 +3316,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
         pressure_bar: system.pressureBar ?? null,
         has_timer: system.hasTimer ?? false,
         has_valve: system.hasValve ?? false,
-        notes: system.notes || null
+        notes: system.notes || null,
+        bed_ids: system.bedIds || null,
+        row_ids: system.rowIds || null,
+        cultivation_type: system.cultivationType || null
       })
       .select()
       .single();
@@ -3335,6 +3338,9 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (updates.hasTimer !== undefined) dbUpdates.has_timer = updates.hasTimer;
     if (updates.hasValve !== undefined) dbUpdates.has_valve = updates.hasValve;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes || null;
+    if (updates.bedIds !== undefined) dbUpdates.bed_ids = updates.bedIds || null;
+    if (updates.rowIds !== undefined) dbUpdates.row_ids = updates.rowIds || null;
+    if (updates.cultivationType !== undefined) dbUpdates.cultivation_type = updates.cultivationType || null;
     
     const { data, error } = await client
       .from('irrigation_systems')
@@ -3911,6 +3917,9 @@ export class SupabaseStorageProvider implements IStorageProvider {
       hasTimer: db.has_timer ?? undefined,
       hasValve: db.has_valve ?? undefined,
       notes: db.notes || undefined,
+      bedIds: db.bed_ids || undefined,
+      rowIds: db.row_ids || undefined,
+      cultivationType: db.cultivation_type || undefined,
       createdAt: db.created_at,
       updatedAt: db.updated_at
     };

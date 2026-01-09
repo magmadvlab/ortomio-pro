@@ -1,8 +1,8 @@
 export default function TestPage() {
   return (
-    <div>
-      <h1>Test Page Funziona!</h1>
-      <p>Se vedi questo, le route personalizzate funzionano in OrtoMio.</p>
+    <div style={{ padding: '20px', fontSize: '24px' }}>
+      <h1>Test Page</h1>
+      <p>Se vedi questo, Next.js funziona!</p>
     </div>
-  );
+  )
 }

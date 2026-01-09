@@ -24,20 +24,17 @@ export function SaplingReadyWidget({ garden, onOpenManager, onCreateOrchard }: S
   useEffect(() => {
     const loadBatches = async () => {
       try {
-        // TODO: Implementare getSaplingBatches nello storage provider
-        // Per ora usiamo localStorage come fallback
-        const stored = localStorage.getItem(`saplingBatches_${garden.id}`)
-        if (stored) {
-          setBatches(JSON.parse(stored))
-        }
+        const allBatches = await storageProvider.getSaplingBatches(garden.id)
+        setBatches(allBatches)
       } catch (error) {
         console.error('Error loading sapling batches:', error)
+        setBatches([])
       } finally {
         setLoading(false)
       }
     }
     loadBatches()
-  }, [garden.id])
+  }, [garden.id, storageProvider])
 
   const readyBatches = batches.filter(batch => {
     const ready = isReadyToOrchard(batch, garden)
@@ -56,23 +53,25 @@ export function SaplingReadyWidget({ garden, onOpenManager, onCreateOrchard }: S
 
   const handleBatchUpdate = async (batch: SaplingBatch) => {
     try {
-      // TODO: Implementare updateSaplingBatch nello storage provider
-      const updated = batches.map(b => b.id === batch.id ? batch : b)
-      localStorage.setItem(`saplingBatches_${garden.id}`, JSON.stringify(updated))
-      setBatches(updated)
+      await storageProvider.updateSaplingBatch(batch.id, batch)
+      // Ricarica i batch
+      const allBatches = await storageProvider.getSaplingBatches(garden.id)
+      setBatches(allBatches)
     } catch (error) {
       console.error('Error updating batch:', error)
+      alert('Errore durante l\'aggiornamento del batch')
     }
   }
 
   const handleBatchCreate = async (batch: SaplingBatch) => {
     try {
-      // TODO: Implementare createSaplingBatch nello storage provider
-      const updated = [...batches, batch]
-      localStorage.setItem(`saplingBatches_${garden.id}`, JSON.stringify(updated))
-      setBatches(updated)
+      await storageProvider.createSaplingBatch(batch)
+      // Ricarica i batch
+      const allBatches = await storageProvider.getSaplingBatches(garden.id)
+      setBatches(allBatches)
     } catch (error) {
       console.error('Error creating batch:', error)
+      alert('Errore durante la creazione del batch')
     }
   }
 
