@@ -28,7 +28,6 @@ import RaspberryManagement from '@/components/RaspberryManagement'
 import OliveHarvest from '@/components/OliveHarvest'
 import VineHarvest from '@/components/VineHarvest'
 import { AccessoriesWidget } from '@/components/shared/AccessoriesWidget'
-import WeatherFavorableIndicator from '@/components/weather/WeatherFavorableIndicator'
 import { GardenBedsWidget } from '@/components/shared/GardenBedsWidget'
 import { IrrigationZonesWidget } from '@/components/irrigation/IrrigationZonesWidget'
 import { IrrigationZoneManager } from '@/components/irrigation/IrrigationZoneManager'
@@ -497,6 +496,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
             <WeatherWidget
               latitude={activeGarden.coordinates.latitude}
               longitude={activeGarden.coordinates.longitude}
+              gardens={gardens}
               activePlants={gardenTasks
                 .filter(t => !t.completed && t.plantName)
                 .map(t => ({
@@ -507,14 +507,6 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
             />
           )}
       </div>
-
-        {/* Weather Favorable Indicator */}
-        {activeGarden && activeGarden.coordinates?.latitude && activeGarden.coordinates?.longitude && (
-          <WeatherFavorableIndicator
-            latitude={activeGarden.coordinates.latitude}
-            longitude={activeGarden.coordinates.longitude}
-          />
-        )}
 
         {/* COSA FARE OGGI */}
         {(() => {

@@ -9,24 +9,42 @@ import { WeatherForecast, WeatherAlert } from '../services/weatherService';
 import { getWeatherForecast7Days, generateWeatherAlerts } from '../services/weatherService';
 import { getCachedForecast, cacheForecast } from '../services/weatherCacheService';
 import { useTier } from '../packages/core/hooks/useTier';
-import { Cloud, CloudRain, Sun, Snowflake, ThermometerSun, Droplets, Wind, AlertTriangle, Loader2, Calendar } from 'lucide-react';
+import { Garden } from '../types';
+import { Cloud, CloudRain, Sun, Snowflake, ThermometerSun, Droplets, Wind, AlertTriangle, Loader2, Calendar, MapPin, Sprout, TreePine, Grape } from 'lucide-react';
 
 interface WeatherWidgetProps {
   latitude: number;
   longitude: number;
   activePlants?: Array<{ plantName: string; minTemp?: number }>;
+  gardens?: Garden[]; // Array di tutti i giardini con coordinate
 }
 
 const WeatherWidget: React.FC<WeatherWidgetProps> = ({
   latitude,
   longitude,
   activePlants = [],
+  gardens = [],
 }) => {
   const { can } = useTier();
   const [forecast, setForecast] = useState<WeatherForecast[]>([]);
   const [alerts, setAlerts] = useState<WeatherAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedGardenId, setSelectedGardenId] = useState<string | null>(null);
+
+  // Filtra solo i giardini che hanno coordinate
+  const gardensWithCoordinates = gardens.filter(g => g.coordinates?.latitude && g.coordinates?.longitude);
+  
+  // Trova il giardino attualmente selezionato per il meteo
+  const selectedGarden = selectedGardenId 
+    ? gardensWithCoordinates.find(g => g.id === selectedGardenId)
+    : gardensWithCoordinates.find(g => 
+        g.coordinates?.latitude === latitude && g.coordinates?.longitude === longitude
+      ) || gardensWithCoordinates[0];
+
+  // Coordinate da usare per il meteo
+  const weatherLat = selectedGarden?.coordinates?.latitude || latitude;
+  const weatherLng = selectedGarden?.coordinates?.longitude || longitude;
 
   useEffect(() => {
     const hasAccess = can('advancedWeather');
@@ -38,7 +56,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
 
     loadForecast();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [latitude, longitude]); // Rimuovi 'can' dalle dipendenze per evitare loop
+  }, [weatherLat, weatherLng]); // Usa le coordinate del giardino selezionato
 
   const loadForecast = async () => {
     try {
@@ -53,7 +71,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
 
       try {
         // Try cache first
-        const cached = await getCachedForecast(latitude, longitude);
+        const cached = await getCachedForecast(weatherLat, weatherLng);
         if (cached && cached.length > 0) {
           clearTimeout(timeoutId);
           setForecast(cached);
@@ -64,12 +82,12 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
         }
 
         // Fetch from API
-        const data = await getWeatherForecast7Days(latitude, longitude);
+        const data = await getWeatherForecast7Days(weatherLat, weatherLng);
         clearTimeout(timeoutId);
 
         if (data && data.length > 0) {
           setForecast(data);
-          await cacheForecast(latitude, longitude, data);
+          await cacheForecast(weatherLat, weatherLng, data);
           const generatedAlerts = generateWeatherAlerts(data, activePlants);
           setAlerts(generatedAlerts);
         } else {
@@ -85,6 +103,21 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const getGardenIcon = (garden: Garden) => {
+    // Determina l'icona in base al tipo di giardino
+    if (garden.primaryCrop?.includes('Fruit') || garden.name.toLowerCase().includes('frutteto')) {
+      return <TreePine size={16} className="text-green-600" />;
+    }
+    if (garden.name.toLowerCase().includes('vigna') || garden.name.toLowerCase().includes('vite')) {
+      return <Grape size={16} className="text-purple-600" />;
+    }
+    return <Sprout size={16} className="text-green-600" />;
+  };
+
+  const handleGardenSelect = (gardenId: string) => {
+    setSelectedGardenId(gardenId);
   };
 
   const getWeatherIcon = (code: number, tempMax?: number) => {
@@ -255,6 +288,59 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Garden Location Selector */}
+      {gardensWithCoordinates.length > 1 && (
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="flex items-center gap-2 mb-3">
+            <MapPin size={16} className="text-gray-500" />
+            <p className="text-sm text-gray-600 font-medium">Meteo per:</p>
+          </div>
+          
+          {/* Desktop: Bottoni */}
+          <div className="hidden md:flex gap-2 flex-wrap">
+            {gardensWithCoordinates.map(garden => (
+              <button
+                key={garden.id}
+                onClick={() => handleGardenSelect(garden.id)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedGarden?.id === garden.id
+                    ? 'bg-green-100 text-green-800 border border-green-300'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+                }`}
+              >
+                {getGardenIcon(garden)}
+                <span className="truncate max-w-24">{garden.name}</span>
+              </button>
+            ))}
+          </div>
+          
+          {/* Mobile: Dropdown */}
+          <div className="md:hidden">
+            <select
+              value={selectedGarden?.id || ''}
+              onChange={(e) => handleGardenSelect(e.target.value)}
+              className="w-full p-3 border border-gray-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            >
+              {gardensWithCoordinates.map(garden => (
+                <option key={garden.id} value={garden.id}>
+                  {garden.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {/* Coordinate info */}
+          {selectedGarden && (
+            <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+              <MapPin size={12} />
+              <span>
+                {selectedGarden.coordinates?.latitude.toFixed(3)}, {selectedGarden.coordinates?.longitude.toFixed(3)}
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>

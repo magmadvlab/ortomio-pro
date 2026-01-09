@@ -17,8 +17,10 @@
 12. [Gestione Fertilizzanti](#gestione-fertilizzanti)
 13. [Lavorazioni Terra](#lavorazioni-terra)
 14. [Gestione Fitofarmaci](#gestione-fitofarmaci)
-15. [Funzionalità Avanzate](#funzionalità-avanzate)
-16. [FAQ](#faq)
+15. [Tracciabilità per Filare](#tracciabilità-per-filare)
+16. [Gestione Multi-Giardino](#gestione-multi-giardino)
+17. [Funzionalità Avanzate](#funzionalità-avanzate)
+18. [FAQ](#faq)
 
 ---
 
@@ -1039,6 +1041,288 @@ Dopo aver completato una potatura:
 4. Salva
 
 Le potature registrate vengono considerate per i suggerimenti futuri.
+
+---
+
+## Tracciabilità per Filare
+
+OrtoMio supporta la **tracciabilità completa per filare**, permettendo di registrare ogni operazione (lavorazioni, fertilizzazioni, trattamenti, irrigazioni) associandola al filare specifico.
+
+### Vantaggi della Tracciabilità per Filare
+
+- **Precisione**: Ogni operazione è associata al filare esatto
+- **Confronto**: Analizza differenze di resa tra filari
+- **Ottimizzazione**: Identifica filari più/meno produttivi
+- **Compliance**: Registro completo per certificazioni
+- **Analisi**: Correlazioni tra trattamenti e risultati
+
+### Come Configurare i Filari
+
+1. **Vai in Impostazioni Orto** (icona ⚙️)
+2. **Clicca "Gestione Strutture"**
+3. **Crea Aiuole** se non esistono
+4. **Aggiungi Filari** per ogni aiuola:
+   - Nome filare (es. "Filare A1", "Pomodori Nord")
+   - Lunghezza in metri
+   - Configurazione irrigazione (opzionale)
+
+### Tracciabilità nelle Operazioni
+
+#### Lavorazioni Meccaniche
+
+Quando registri una lavorazione:
+
+1. **Compila i dati** (tipo, data, attrezzatura)
+2. **Sezione "Dove"**: Seleziona filari specifici
+3. **Selezione multipla**: Puoi selezionare più filari contemporaneamente
+4. **Salva**: L'operazione viene associata ai filari selezionati
+
+**Esempio**: Aratura su "Filare A1" e "Filare A2" il 15/03/2026.
+
+#### Fertilizzazioni
+
+Nel modal di fertilizzazione:
+
+1. **Seleziona prodotto** e dosaggio
+2. **Sezione "Dove applicare"**:
+   - Scegli aiuola
+   - Scegli filare specifico (opzionale)
+3. **Salva**: Fertilizzazione associata al filare
+
+**Esempio**: Concime NPK 15-15-15 su "Filare Pomodori Sud" - 50g/m².
+
+#### Trattamenti Fitosanitari
+
+Nel form trattamenti:
+
+1. **Compila prodotto** e dosaggio
+2. **Sezione "Dove"**:
+   - Seleziona aiuola
+   - Seleziona filare specifico
+3. **Condizioni meteo**: Registra temperatura, vento, pioggia
+4. **Salva**: Trattamento tracciato per filare
+
+**Esempio**: Rame su "Filare Vite Est" - 2g/L, temperatura 18°C, vento 5km/h.
+
+#### Irrigazioni
+
+Il sistema di irrigazione supporta tracciabilità avanzata:
+
+1. **Seleziona zona irrigua**
+2. **Scegli letto servito**
+3. **Seleziona filari**: Selezione multipla con checkbox
+4. **Litri per filare**: Sistema calcola durata automaticamente
+5. **Salva**: Un log per ogni filare irrigato
+
+**Calcolo Automatico**:
+- Sistema usa configurazione filare (portata L/h per metro)
+- Calcola durata necessaria per litri richiesti
+- Mostra stima: "15-20 min" se filari hanno portate diverse
+
+### Visualizzazione Tracciabilità
+
+#### Storico per Filare
+
+**Dove**: Sezioni Lavorazioni, Fertilizzazioni, Trattamenti, Irrigazioni
+
+**Cosa vedi**:
+- Lista operazioni filtrabili per filare
+- Data, tipo operazione, prodotto usato
+- Condizioni meteo al momento dell'operazione
+- Note e osservazioni
+
+#### Dashboard Filari (Futura)
+
+**Funzionalità in sviluppo**:
+- Vista riassuntiva per filare
+- Confronto rese tra filari
+- Analisi costi per filare
+- Export dati per certificazioni
+
+### Best Practices
+
+#### Nomenclatura Filari
+
+**Consigliata**:
+- `A1, A2, A3` (aiuola A, filari numerati)
+- `Pomodori_Nord, Pomodori_Sud` (per coltura e posizione)
+- `Vite_Filare_1, Vite_Filare_2` (per vigneti)
+
+#### Quando Usare la Tracciabilità
+
+**Sempre**:
+- Trattamenti fitosanitari (obbligatorio per registro)
+- Fertilizzazioni mirate
+- Irrigazioni differenziate
+
+**Opzionale**:
+- Lavorazioni su tutto l'orto (puoi non selezionare filari)
+- Operazioni generali di manutenzione
+
+#### Configurazione Irrigazione
+
+Per calcoli automatici, configura ogni filare con:
+- **Portata per metro**: L/h per metro lineare
+- **Oppure**: Passo gocciolatori + portata per gocciolatore
+
+**Esempio**:
+- Filare 50m con ala gocciolante 2 L/h per metro
+- Per 20L: sistema calcola 20min automaticamente
+
+### Vantaggi per Aziende Agricole
+
+#### Compliance e Certificazioni
+
+- **Registro completo** per ogni filare
+- **Export dati** in formato CSV
+- **Tracciabilità prodotto** dal campo al consumatore
+- **Audit trail** completo
+
+#### Analisi Economica
+
+- **Costi per filare**: Fertilizzanti, fitofarmaci, manodopera
+- **Rese per filare**: Confronto produttività
+- **ROI per zona**: Ritorno investimento per area
+
+#### Ottimizzazione Produzione
+
+- **Identifica filari problematici**: Basse rese, più trattamenti
+- **Replica successi**: Copia strategie dai filari migliori
+- **Pianificazione**: Rotazioni basate su storico filare
+
+---
+
+## Gestione Multi-Giardino
+
+OrtoMio supporta la gestione di **più giardini/orti** con posizioni geografiche diverse, ognuno con le proprie previsioni meteo specifiche.
+
+### Scenari Tipici
+
+- 🥕 **Orto domestico** + 🍎 **Frutteto in campagna** (30km di distanza)
+- 🌱 **Serra** + 🌾 **Campo aperto** (condizioni diverse)
+- 🏠 **Giardino casa** + 🏔️ **Orto montano** (altitudini diverse)
+
+### Come Funziona
+
+#### Creazione Multi-Giardino
+
+1. **Dashboard principale**: Clicca nome orto in alto
+2. **Menu dropdown**: Seleziona "Aggiungi Nuovo Orto"
+3. **Configurazione**: Nome, dimensioni, coordinate GPS diverse
+4. **Salva**: Nuovo orto disponibile nel selettore
+
+#### Cambio Giardino Attivo
+
+**Dal selettore principale**:
+- Clicca nome orto attuale
+- Scegli orto dal dropdown
+- Dashboard si aggiorna automaticamente
+
+**Cosa cambia**:
+- Task e piante dell'orto selezionato
+- Previsioni meteo per la posizione specifica
+- Strutture (aiuole, filari) dell'orto
+- Storico operazioni
+
+### Widget Meteo Multi-Posizione
+
+#### Selettore Posizione Meteo
+
+Il widget meteo include un **selettore di posizione** quando hai più orti:
+
+**Desktop**:
+- Bottoni affiancati: `🌱 Orto Milano` `🌲 Frutteto Bergamo`
+- Icone automatiche: 🌱 Orto, 🌲 Frutteto, 🍇 Vigna
+- Orto selezionato evidenziato in verde
+
+**Mobile**:
+- Dropdown compatto: "Meteo per: [Seleziona orto]"
+- Touch-friendly per cambio rapido
+
+#### Meteo Specifico per Posizione
+
+**Ogni orto ha**:
+- Previsioni 7 giorni per le sue coordinate
+- Cache separata per ogni posizione
+- Allarmi meteo specifici (gelo, caldo, pioggia)
+
+**Esempio**:
+- Orto Milano: ☀️ 15°C, sole
+- Frutteto Bergamo: 🌧️ 12°C, pioggia
+- Meteo diverso → strategie diverse
+
+#### Coordinate e Posizione
+
+**Sotto il selettore**:
+- Coordinate GPS: `45.464, 9.190`
+- Aggiornamento automatico quando cambi orto
+- Link alle previsioni dettagliate
+
+### Gestione Separata per Orto
+
+#### Task e Attività
+
+**Ogni orto ha**:
+- Task separati (semine, trapianti, raccolti)
+- Calendario specifico
+- Storico operazioni indipendente
+
+#### Strutture Indipendenti
+
+**Ogni orto può avere**:
+- Aiuole e filari diversi
+- Sistemi irrigazione separati
+- Configurazioni terreno diverse
+
+#### Inventari Separati
+
+**Per orto**:
+- Semi e piantine
+- Fertilizzanti e fitofarmaci
+- Attrezzature e accessori
+
+### Vantaggi Multi-Giardino
+
+#### Gestione Climatica Precisa
+
+- **Meteo locale**: Previsioni accurate per ogni posizione
+- **Microclimi**: Gestione differenziata per altitudine/esposizione
+- **Pianificazione**: Semine scaglionate tra orti
+
+#### Ottimizzazione Risorse
+
+- **Rotazioni**: Sposta colture tra orti per ottimizzare terreno
+- **Stagionalità**: Sfrutta stagioni diverse (pianura vs montagna)
+- **Diversificazione**: Riduci rischi climatici
+
+#### Analisi Comparativa
+
+- **Rese per orto**: Confronta produttività
+- **Costi per posizione**: Analizza convenienza
+- **Strategie**: Replica successi tra orti
+
+### Best Practices Multi-Giardino
+
+#### Nomenclatura Orti
+
+**Consigliata**:
+- `Casa Milano` / `Frutteto Varese`
+- `Serra Riscaldata` / `Campo Aperto`
+- `Orto Pianura` / `Orto Montagna 800m`
+
+#### Sincronizzazione Operazioni
+
+**Quando utile**:
+- Trattamenti preventivi simultanei
+- Semine scaglionate per raccolti continui
+- Rotazioni coordinate tra orti
+
+#### Gestione Meteo
+
+**Strategia**:
+- Controlla meteo di tutti gli orti ogni mattina
+- Pianifica operazioni in base a condizioni locali
+- Sfrutta finestre meteo favorevoli per orto
 
 ---
 
