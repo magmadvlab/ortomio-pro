@@ -31,6 +31,7 @@ import { AccessoriesWidget } from '@/components/shared/AccessoriesWidget'
 import { GardenBedsWidget } from '@/components/shared/GardenBedsWidget'
 import { IrrigationZonesWidget } from '@/components/irrigation/IrrigationZonesWidget'
 import { IrrigationZoneManager } from '@/components/irrigation/IrrigationZoneManager'
+import { IrrigationZone } from '@/types/irrigation'
 import { HydroponicMonitorWidget } from '@/components/shared/HydroponicMonitorWidget'
 import { AquaponicMonitorWidget } from '@/components/shared/AquaponicMonitorWidget'
 import { AeroponicMonitorWidget } from '@/components/shared/AeroponicMonitorWidget'
@@ -98,6 +99,8 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
   const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(garden || null)
   const [isGardenSelectorOpen, setIsGardenSelectorOpen] = useState(false)
+  const [irrigationZones, setIrrigationZones] = useState<IrrigationZone[]>([])
+  const [loadingIrrigationZones, setLoadingIrrigationZones] = useState(false)
   const [gardenType, setGardenType] = useState<'Summer' | 'Winter'>('Winter')
   const [showSeedInventory, setShowSeedInventory] = useState(false)
   const [showSeedlingManager, setShowSeedlingManager] = useState(false)
@@ -193,6 +196,38 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
       }
     }
     loadTasksForGarden()
+  }, [activeGarden, storageProvider])
+
+  // Load irrigation zones when active garden changes
+  useEffect(() => {
+    const loadIrrigationZones = async () => {
+      if (!activeGarden) {
+        setIrrigationZones([])
+        return
+      }
+      
+      setLoadingIrrigationZones(true)
+      try {
+        // Prima carica i sistemi di irrigazione per questo giardino
+        const systems = await storageProvider.getIrrigationSystems(activeGarden.id)
+        
+        // Poi carica tutte le zone per tutti i sistemi
+        const allZones: IrrigationZone[] = []
+        for (const system of systems) {
+          const zones = await storageProvider.getIrrigationZones(system.id)
+          allZones.push(...zones)
+        }
+        
+        setIrrigationZones(allZones)
+      } catch (error) {
+        console.error('Error loading irrigation zones:', error)
+        setIrrigationZones([])
+      } finally {
+        setLoadingIrrigationZones(false)
+      }
+    }
+    
+    loadIrrigationZones()
   }, [activeGarden, storageProvider])
 
   useEffect(() => {
@@ -1032,10 +1067,45 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
           <SaplingReadyWidget 
             garden={activeGarden} 
             onOpenManager={() => setShowSaplingManager(true)}
-            onCreateOrchard={(batch) => {
-              // TODO: Implementare creazione impianto specializzato
-              console.log('Create orchard from batch:', batch)
-              alert('Funzionalità in sviluppo: creazione impianto da alberello')
+            onCreateOrchard={async (batch) => {
+              try {
+                if (!activeGarden) return
+                
+                // Create a specialized crop task for the orchard
+                const orchardTask: GardenTask = {
+                  id: crypto.randomUUID(),
+                  gardenId: activeGarden.id,
+                  plantName: batch.plantName,
+                  variety: batch.variety,
+                  taskType: 'Transplant',
+                  date: new Date().toISOString().split('T')[0],
+                  notes: `Impianto specializzato creato da alberello batch: ${batch.plantName} (${batch.variety || 'varietà standard'})\nQuantità: ${batch.quantity} piante\nPortinnesto: ${batch.rootstock || 'Non specificato'}`,
+                  completed: false,
+                  season: 'Summer',
+                  locationType: 'Ground',
+                  stage: 'Vegetative'
+                }
+                
+                // Create the task
+                await storageProvider.createTask(orchardTask)
+                
+                // Update the batch to link it to the created orchard
+                const updatedBatch = {
+                  ...batch,
+                  specializedCropId: orchardTask.id,
+                  phase: 'ReadyToOrchard' as const
+                }
+                await storageProvider.updateSaplingBatch(batch.id, updatedBatch)
+                
+                // Reload tasks and batches
+                const updatedTasks = await storageProvider.getTasks(activeGarden.id)
+                setGardenTasks(updatedTasks || [])
+                
+                alert(`Impianto specializzato creato con successo!\nPianta: ${batch.plantName}\nQuantità: ${batch.quantity} piante\nControlla il Diario per gestire il nuovo impianto.`)
+              } catch (error) {
+                console.error('Error creating orchard:', error)
+                alert('Errore durante la creazione dell\'impianto: ' + (error instanceof Error ? error.message : 'Errore sconosciuto'))
+              }
             }}
           />
         )}
@@ -1207,25 +1277,64 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
             <div className="p-4">
               <SaplingManager
                 garden={activeGarden}
-                batches={[]}
+                batches={[]} // Sarà caricato internamente dal componente
                 onBatchUpdate={async (batch) => {
-                  // TODO: Implementare updateSaplingBatch nello storage provider
-                  const stored = localStorage.getItem(`saplingBatches_${activeGarden.id}`)
-                  const batches = stored ? JSON.parse(stored) : []
-                  const updated = batches.map((b: any) => b.id === batch.id ? batch : b)
-                  localStorage.setItem(`saplingBatches_${activeGarden.id}`, JSON.stringify(updated))
+                  try {
+                    await storageProvider.updateSaplingBatch(batch.id, batch)
+                    // Il componente si ricaricherà automaticamente
+                  } catch (error) {
+                    console.error('Error updating sapling batch:', error)
+                    alert('Errore durante l\'aggiornamento del batch')
+                  }
                 }}
                 onBatchCreate={async (batch) => {
-                  // TODO: Implementare createSaplingBatch nello storage provider
-                  const stored = localStorage.getItem(`saplingBatches_${activeGarden.id}`)
-                  const batches = stored ? JSON.parse(stored) : []
-                  const updated = [...batches, batch]
-                  localStorage.setItem(`saplingBatches_${activeGarden.id}`, JSON.stringify(updated))
+                  try {
+                    await storageProvider.createSaplingBatch(batch)
+                    // Il componente si ricaricherà automaticamente
+                  } catch (error) {
+                    console.error('Error creating sapling batch:', error)
+                    alert('Errore durante la creazione del batch')
+                  }
                 }}
-                onCreateOrchard={(batch) => {
-                  // TODO: Implementare creazione impianto specializzato
-                  console.log('Create orchard from batch:', batch)
-                  alert('Funzionalità in sviluppo: creazione impianto da alberello')
+                onCreateOrchard={async (batch) => {
+                  try {
+                    if (!activeGarden) return
+                    
+                    // Create a specialized crop task for the orchard
+                    const orchardTask: GardenTask = {
+                      id: crypto.randomUUID(),
+                      gardenId: activeGarden.id,
+                      plantName: batch.plantName,
+                      variety: batch.variety,
+                      taskType: 'Transplant',
+                      date: new Date().toISOString().split('T')[0],
+                      notes: `Impianto specializzato creato da alberello batch: ${batch.plantName} (${batch.variety || 'varietà standard'})\nQuantità: ${batch.quantity} piante\nPortinnesto: ${batch.rootstock || 'Non specificato'}`,
+                      completed: false,
+                      season: 'Summer',
+                      locationType: 'Ground',
+                      stage: 'Vegetative'
+                    }
+                    
+                    // Create the task
+                    await storageProvider.createTask(orchardTask)
+                    
+                    // Update the batch to link it to the created orchard
+                    const updatedBatch = {
+                      ...batch,
+                      specializedCropId: orchardTask.id,
+                      phase: 'ReadyToOrchard' as const
+                    }
+                    await storageProvider.updateSaplingBatch(batch.id, updatedBatch)
+                    
+                    // Reload tasks and batches
+                    const updatedTasks = await storageProvider.getTasks(activeGarden.id)
+                    setGardenTasks(updatedTasks || [])
+                    
+                    alert(`Impianto specializzato creato con successo!\nPianta: ${batch.plantName}\nQuantità: ${batch.quantity} piante\nControlla il Diario per gestire il nuovo impianto.`)
+                  } catch (error) {
+                    console.error('Error creating orchard:', error)
+                    alert('Errore durante la creazione dell\'impianto: ' + (error instanceof Error ? error.message : 'Errore sconosciuto'))
+                  }
                 }}
               />
             </div>
@@ -1422,15 +1531,42 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
               {/* TODO: Caricare zone da storage */}
               <IrrigationZoneManager
                 garden={activeGarden}
-                zones={[]}
+                zones={irrigationZones}
                 onZoneUpdate={async (zone) => {
-                  // TODO: Implementare update
+                  try {
+                    await storageProvider.updateIrrigationZone(zone.id, zone)
+                    // Ricarica le zone
+                    const systems = await storageProvider.getIrrigationSystems(activeGarden.id)
+                    const allZones: IrrigationZone[] = []
+                    for (const system of systems) {
+                      const zones = await storageProvider.getIrrigationZones(system.id)
+                      allZones.push(...zones)
+                    }
+                    setIrrigationZones(allZones)
+                  } catch (error) {
+                    console.error('Error updating irrigation zone:', error)
+                    alert('Errore durante l\'aggiornamento della zona')
+                  }
                 }}
                 onZoneDelete={async (zoneId) => {
-                  // TODO: Implementare delete
+                  try {
+                    await storageProvider.deleteIrrigationZone(zoneId)
+                    // Rimuovi la zona dallo stato locale
+                    setIrrigationZones(prev => prev.filter(z => z.id !== zoneId))
+                  } catch (error) {
+                    console.error('Error deleting irrigation zone:', error)
+                    alert('Errore durante l\'eliminazione della zona')
+                  }
                 }}
                 onZoneCreate={async (zone) => {
-                  // TODO: Implementare create
+                  try {
+                    const newZone = await storageProvider.createIrrigationZone(zone)
+                    // Aggiungi la nuova zona allo stato locale
+                    setIrrigationZones(prev => [...prev, newZone])
+                  } catch (error) {
+                    console.error('Error creating irrigation zone:', error)
+                    alert('Errore durante la creazione della zona')
+                  }
                 }}
               />
             </div>

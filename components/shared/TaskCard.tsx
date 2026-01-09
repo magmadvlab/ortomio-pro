@@ -124,14 +124,32 @@ export function TaskCard({
 
   const getWeatherSuggestion = () => {
     // Suggerimenti basati su tipo task e condizioni meteo
-    // Nota: Irrigation non è un taskType valido, usiamo altri tipi per suggerimenti
     if (task.taskType === 'Sowing') {
       return '🌱 Condizioni ottimali per seminare'
     }
     if (task.taskType === 'Transplant') {
       return '🌿 Buon momento per trapiantare'
     }
-    return null
+    if (task.taskType === 'Fertilize') {
+      return '🌿 Fertilizza nelle ore più fresche della giornata'
+    }
+    if (task.taskType === 'Irrigation') {
+      return '💧 Irriga al mattino presto o alla sera'
+    }
+    if (task.taskType === 'Pruning') {
+      return '✂️ Pota in giornate asciutte per evitare malattie'
+    }
+    if (task.taskType === 'Harvest') {
+      return '🛒 Raccogli nelle ore più fresche per mantenere la qualità'
+    }
+    if (task.taskType === 'Treatment') {
+      return '🌿 Applica trattamenti nelle ore più fresche'
+    }
+    if (task.taskType === 'Prune') {
+      return '✂️ Pota in giornate asciutte per evitare malattie'
+    }
+    // Fallback per task types non gestiti
+    return '🌱 Segui le condizioni meteo per questa attività'
   }
 
   if (compact) {

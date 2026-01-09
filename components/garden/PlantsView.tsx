@@ -22,6 +22,7 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
   const [zoneFilter, setZoneFilter] = useState<ZoneFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [harvestingTask, setHarvestingTask] = useState<GardenTask | null>(null)
+  const [detailsTask, setDetailsTask] = useState<GardenTask | null>(null)
   const { storageProvider } = useStorage()
 
   // Estrai piante attive dai task
@@ -209,10 +210,7 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
               key={plant.task.id}
               plant={plant}
               onHarvest={(task) => setHarvestingTask(task)}
-              onViewDetails={(task) => {
-                // TODO: Implementare dettagli pianta
-                console.log('View details for:', task.plantName)
-              }}
+              onViewDetails={(task) => setDetailsTask(task)}
             />
           ))}
         </div>
@@ -225,16 +223,16 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
           onHarvest={async (harvestData) => {
             try {
               // Crea harvest log
-              await storageProvider.createHarvestLog({
+              const harvestLog = await storageProvider.createHarvestLog({
                 ...harvestData,
                 gardenId: garden.id,
                 taskId: harvestingTask.id
               } as any)
 
-              // Aggiorna task con harvestLogId
+              // Aggiorna task con harvestLogId reale
               onUpdateTask({
                 ...harvestingTask,
-                harvestLogId: 'completed' // TODO: usare ID reale dal log
+                harvestLogId: harvestLog?.id || 'completed'
               })
 
               // Chiudi modal
@@ -245,6 +243,183 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
           }}
           onSkip={() => setHarvestingTask(null)}
         />
+      )}
+
+      {/* Plant Details Modal */}
+      {detailsTask && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <Sprout className="text-green-600" />
+                    {detailsTask.plantName}
+                  </h2>
+                  {detailsTask.variety && (
+                    <p className="text-sm text-gray-600 mt-1">Varietà: {detailsTask.variety}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setDetailsTask(null)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="space-y-4">
+                {/* Basic Info */}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-green-900 mb-3">Informazioni Base</h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-600">Tipo attività:</span>
+                      <p className="font-medium text-gray-900">{detailsTask.taskType}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Data semina:</span>
+                      <p className="font-medium text-gray-900">
+                        {new Date(detailsTask.date).toLocaleDateString('it-IT')}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Posizione:</span>
+                      <p className="font-medium text-gray-900">{detailsTask.locationType || 'Non specificato'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Quantità:</span>
+                      <p className="font-medium text-gray-900">{detailsTask.quantity || 1}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Giorni dalla semina:</span>
+                      <p className="font-medium text-gray-900">
+                        {Math.floor((new Date().getTime() - new Date(detailsTask.date).getTime()) / (1000 * 60 * 60 * 24))} giorni
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Stato:</span>
+                      <p className="font-medium text-gray-900">
+                        {detailsTask.completed ? '✅ Completato' : 
+                         detailsTask.stage === 'Harvested' ? '🛒 Raccolto' : '🌱 In crescita'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Growth Status */}
+                {detailsTask.lifecycleState && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-blue-900 mb-3">Stato Crescita</h3>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="text-gray-600">Fase del ciclo:</span>
+                        <p className="font-medium text-gray-900">{detailsTask.lifecycleState}</p>
+                      </div>
+                      {detailsTask.stage && (
+                        <div>
+                          <span className="text-gray-600">Stadio:</span>
+                          <p className="font-medium text-gray-900">{detailsTask.stage}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes */}
+                {detailsTask.notes && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-yellow-900 mb-2">Note</h3>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{detailsTask.notes}</p>
+                  </div>
+                )}
+
+                {/* Harvest Information */}
+                {detailsTask.stage === 'Harvested' && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-orange-900 mb-3">Informazioni Raccolto</h3>
+                    <div className="text-sm">
+                      <span className="text-gray-600">Stato:</span>
+                      <p className="font-medium text-gray-900">🛒 Raccolto completato</p>
+                      {detailsTask.notes && (
+                        <div className="mt-2">
+                          <span className="text-gray-600">Note:</span>
+                          <p className="text-sm text-gray-700 mt-1">{detailsTask.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Related Tasks */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3">Task Correlati</h3>
+                  <div className="space-y-2">
+                    {tasks
+                      .filter(t =>
+                        t.plantName === detailsTask.plantName &&
+                        t.id !== detailsTask.id &&
+                        t.gardenId === garden.id
+                      )
+                      .map(relatedTask => (
+                        <div
+                          key={relatedTask.id}
+                          className="flex items-center justify-between p-2 bg-white rounded border border-gray-200"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs px-2 py-0.5 rounded ${
+                              relatedTask.completed
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {relatedTask.taskType}
+                            </span>
+                            <span className="text-sm text-gray-600">
+                              {new Date(relatedTask.date).toLocaleDateString('it-IT')}
+                            </span>
+                          </div>
+                          {relatedTask.completed && (
+                            <span className="text-green-600">✓</span>
+                          )}
+                        </div>
+                      ))
+                    }
+                    {tasks.filter(t =>
+                      t.plantName === detailsTask.plantName &&
+                      t.id !== detailsTask.id &&
+                      t.gardenId === garden.id
+                    ).length === 0 && (
+                      <p className="text-sm text-gray-500 text-center py-2">
+                        Nessun task correlato
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => {
+                    setDetailsTask(null)
+                    setHarvestingTask(detailsTask)
+                  }}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                >
+                  Registra Raccolto
+                </button>
+                <button
+                  onClick={() => setDetailsTask(null)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Chiudi
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
