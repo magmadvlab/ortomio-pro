@@ -1,0 +1,36 @@
+{
+  "_note": "This file will be populated by scripts/generateAIDatabase.ts",
+  "_placeholder": {
+    "pomodoro_foglie-gialle": {
+      "plant": "pomodoro",
+      "issue": "foglie-gialle",
+      "cause": "Le foglie gialle possono indicare carenza di azoto, eccesso d'acqua o carenza di magnesio.",
+      "solution": "Concima con compost o fertilizzante azotato. Riduci irrigazione se terreno è troppo umido. Aggiungi solfato di magnesio se necessario.",
+      "prevention": "Mantieni terreno ben drenato, concima regolarmente, evita ristagni idrici.",
+      "products": ["concime-npk", "solfato-magnesio"],
+      "tags": ["foglie-gialle", "pomodoro", "carenza-azoto"]
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

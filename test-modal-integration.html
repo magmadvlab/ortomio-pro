@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Modal Integration</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>🌱 Test Integrazione Modal OrtoMio</h1>
+    
+    <h2>✅ Modifiche Implementate:</h2>
+    <ul class="success">
+        <li><strong>Modal "Aggiungi"</strong> - Aggiunta opzione "Semenzaio" 🌰</li>
+        <li><strong>AddCropWizard</strong> - Nuovo step "method" per scegliere Da Seme vs Da Piantina</li>
+        <li><strong>Flusso Da Seme</strong> - Reindirizza a /app/pianifica?from=wizard</li>
+        <li><strong>Flusso Da Piantina</strong> - Continua con wizard normale</li>
+        <li><strong>Pagina Pianifica</strong> - Gestisce parametri URL per integrazione</li>
+        <li><strong>Pagina Semenzaio</strong> - Gestisce parametri per pre-compilazione</li>
+    </ul>
+
+    <h2>🔄 Nuovo Flusso Utente:</h2>
+    <div class="info">
+        <h3>Opzione 1: Da Seme 🌰</h3>
+        <ol>
+            <li>Utente clicca "+" (FAB)</li>
+            <li>Modal "Aggiungi" → "Semenzaio" 🌰</li>
+            <li>Reindirizza a /app/pianifica?from=modal</li>
+            <li>Sceglie pianta → Metodo "Da Seme"</li>
+            <li>Reindirizza a /app/semenzaio con parametri</li>
+            <li>Crea batch semenzaio</li>
+            <li>Segue flusso: Germinazione → Nursing → Hardening → Trapianto</li>
+        </ol>
+
+        <h3>Opzione 2: Da Piantina 🌱</h3>
+        <ol>
+            <li>Utente clicca "+" (FAB)</li>
+            <li>Modal "Aggiungi" → "Nuova Pianta" 🌱</li>
+            <li>Wizard step "method" → "Da Piantina"</li>
+            <li>Continua con wizard normale</li>
+            <li>Trapianto diretto in orto</li>
+        </ol>
+    </div>
+
+    <h2>🎯 Punti di Integrazione:</h2>
+    <ul class="info">
+        <li><strong>AddItemModal.tsx</strong> - 4 opzioni: Nuova Pianta, Semenzaio, Task, Raccolto</li>
+        <li><strong>AddCropWizard.tsx</strong> - Step iniziale per metodo coltivazione</li>
+        <li><strong>Pianifica/page.tsx</strong> - Gestisce parametri from=modal, plant=nome</li>
+        <li><strong>Semenzaio/page.tsx</strong> - Gestisce parametri from=pianifica, action=create</li>
+    </ul>
+
+    <h2>🧪 Test da Eseguire:</h2>
+    <ol>
+        <li>Aprire http://localhost:3002/app/garden</li>
+        <li>Cliccare il pulsante "+" verde in basso a destra</li>
+        <li>Verificare che ci siano 4 opzioni nel modal</li>
+        <li>Testare "Semenzaio" → dovrebbe andare a /app/pianifica</li>
+        <li>Testare "Nuova Pianta" → dovrebbe aprire wizard con step method</li>
+        <li>Nel wizard, testare "Da Seme" → dovrebbe andare a semenzaio</li>
+        <li>Nel wizard, testare "Da Piantina" → dovrebbe continuare wizard</li>
+    </ol>
+
+    <p class="success"><strong>✅ Integrazione completata!</strong> Il sistema ora distingue chiaramente tra semina e trapianto diretto.</p>
+</body>
+</html>

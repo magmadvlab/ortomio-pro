@@ -1,0 +1,20 @@
+'use client'
+
+import React from 'react'
+
+export default function DashboardPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">OrtoMio AI</h1>
+        <p className="text-gray-600 mb-6">Dashboard semplificata per test</p>
+        <div className="bg-white p-6 rounded-lg shadow-lg">
+          <p className="text-green-600">✅ App funzionante!</p>
+          <p className="text-sm text-gray-500 mt-2">
+            Versione semplificata per verificare che la compilazione funzioni
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}

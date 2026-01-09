@@ -1,0 +1,284 @@
+-- ============================================
+-- ORTOMIO - TRIGGER E AUTOMAZIONI ORCHESTRATORE
+-- Aggiunge trigger automatici per gestire le relazioni
+-- ============================================
+
+-- Funzione per aggiornare updated_at automaticamente
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Trigger per aggiornare updated_at su cultivation_plans
+DROP TRIGGER IF EXISTS update_cultivation_plans_updated_at ON cultivation_plans;
+CREATE TRIGGER update_cultivation_plans_updated_at
+    BEFORE UPDATE ON cultivation_plans
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger per aggiornare updated_at su cultivation_issues
+DROP TRIGGER IF EXISTS update_cultivation_issues_updated_at ON cultivation_issues;
+CREATE TRIGGER update_cultivation_issues_updated_at
+    BEFORE UPDATE ON cultivation_issues
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger per aggiornare updated_at su sapling_inventory
+DROP TRIGGER IF EXISTS update_sapling_inventory_updated_at ON sapling_inventory;
+CREATE TRIGGER update_sapling_inventory_updated_at
+    BEFORE UPDATE ON sapling_inventory
+    FOR EACH ROW
+    EXECUTE FUNCTION update_sapling_inventory_updated_at_column();
+
+-- Funzione per gestire transizioni automatiche di fase
+CREATE OR REPLACE FUNCTION handle_phase_transition()
+RETURNS TRIGGER AS $$
+DECLARE
+    days_since_start INTEGER;
+    current_phase VARCHAR(100);
+    next_phase VARCHAR(100);
+BEGIN
+    -- Calcola giorni dall'inizio
+    IF NEW.actual_start_date IS NOT NULL THEN
+        days_since_start := CURRENT_DATE - NEW.actual_start_date;
+        
+        -- Determina fase attuale basata sui giorni
+        CASE 
+            WHEN days_since_start <= 7 THEN current_phase := 'germination';
+            WHEN days_since_start <= 21 THEN current_phase := 'seedling';
+            WHEN days_since_start <= 60 THEN current_phase := 'vegetative';
+            WHEN days_since_start <= 90 THEN current_phase := 'flowering';
+            ELSE current_phase := 'harvest';
+        END CASE;
+        
+        -- Inserisci transizione se cambiata
+        IF OLD.status IS DISTINCT FROM current_phase THEN
+            INSERT INTO phase_transitions (
+                cultivation_plan_id,
+                from_phase,
+                to_phase,
+                transition_type,
+                trigger_condition,
+                trigger_value,
+                actual_date
+            ) VALUES (
+                NEW.id,
+                COALESCE(OLD.status, 'planned'),
+                current_phase,
+                'automatic',
+                'days_since_start >= ' || days_since_start::text,
+                jsonb_build_object('days_since_start', days_since_start),
+                CURRENT_DATE
+            );
+        END IF;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger per transizioni automatiche
+DROP TRIGGER IF EXISTS cultivation_plan_phase_transition ON cultivation_plans;
+CREATE TRIGGER cultivation_plan_phase_transition
+    AFTER UPDATE ON cultivation_plans
+    FOR EACH ROW
+    EXECUTE FUNCTION handle_phase_transition();
+
+-- Funzione per calcolare statistiche automatiche
+CREATE OR REPLACE FUNCTION calculate_cultivation_statistics()
+RETURNS TRIGGER AS $$
+DECLARE
+    plan_record cultivation_plans%ROWTYPE;
+    total_harvests DECIMAL(10,2);
+    avg_quality DECIMAL(5,2);
+    harvest_count INTEGER;
+BEGIN
+    -- Ottieni il piano di coltivazione
+    SELECT * INTO plan_record FROM cultivation_plans WHERE id = NEW.cultivation_plan_id;
+    
+    -- Calcola statistiche dai raccolti
+    SELECT 
+        COALESCE(SUM(quantity_kg), 0),
+        COALESCE(AVG(CASE quality_grade 
+            WHEN 'premium' THEN 10
+            WHEN 'standard' THEN 8
+            WHEN 'seconds' THEN 6
+            ELSE 4
+        END), 0),
+        COUNT(*)
+    INTO total_harvests, avg_quality, harvest_count
+    FROM detailed_harvests 
+    WHERE cultivation_plan_id = NEW.cultivation_plan_id;
+    
+    -- Calcola efficienza del raccolto
+    INSERT INTO cultivation_statistics (
+        cultivation_plan_id,
+        actual_yield_kg,
+        yield_efficiency,
+        quality_score,
+        measurement_date
+    ) VALUES (
+        NEW.cultivation_plan_id,
+        total_harvests,
+        CASE 
+            WHEN plan_record.expected_plants_count > 0 THEN 
+                (total_harvests / NULLIF(plan_record.expected_plants_count, 0)) * 100
+            ELSE 0
+        END,
+        avg_quality,
+        CURRENT_DATE
+    )
+    ON CONFLICT (cultivation_plan_id, measurement_date) 
+    DO UPDATE SET
+        actual_yield_kg = EXCLUDED.actual_yield_kg,
+        yield_efficiency = EXCLUDED.yield_efficiency,
+        quality_score = EXCLUDED.quality_score;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger per calcolo statistiche automatiche sui raccolti
+DROP TRIGGER IF EXISTS auto_calculate_harvest_statistics ON detailed_harvests;
+CREATE TRIGGER auto_calculate_harvest_statistics
+    AFTER INSERT OR UPDATE ON detailed_harvests
+    FOR EACH ROW
+    EXECUTE FUNCTION calculate_cultivation_statistics();
+
+-- Funzione per aggiornare conteggio piante nel piano
+CREATE OR REPLACE FUNCTION update_plant_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Aggiorna il conteggio delle piante nel piano di coltivazione
+    UPDATE cultivation_plans 
+    SET actual_plants_count = (
+        SELECT COUNT(*) 
+        FROM sapling_inventory 
+        WHERE cultivation_plan_id = COALESCE(NEW.cultivation_plan_id, OLD.cultivation_plan_id)
+        AND health_status IN ('healthy', 'stressed')
+    )
+    WHERE id = COALESCE(NEW.cultivation_plan_id, OLD.cultivation_plan_id);
+    
+    RETURN COALESCE(NEW, OLD);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger per aggiornamento conteggio piante
+DROP TRIGGER IF EXISTS update_cultivation_plant_count ON sapling_inventory;
+CREATE TRIGGER update_cultivation_plant_count
+    AFTER INSERT OR UPDATE OR DELETE ON sapling_inventory
+    FOR EACH ROW
+    EXECUTE FUNCTION update_plant_count();
+
+-- Funzione per notifiche automatiche
+CREATE OR REPLACE FUNCTION send_cultivation_notifications()
+RETURNS TRIGGER AS $$
+DECLARE
+    notification_data JSONB;
+BEGIN
+    -- Notifica per problemi critici
+    IF NEW.issue_type IS NOT NULL AND NEW.severity = 'critical' THEN
+        notification_data := jsonb_build_object(
+            'type', 'critical_issue',
+            'cultivation_plan_id', NEW.cultivation_plan_id,
+            'issue_type', NEW.issue_type,
+            'title', NEW.title,
+            'created_at', NOW()
+        );
+        
+        -- Qui potresti integrare con un sistema di notifiche
+        -- Per ora salviamo nella tabella phase_transitions come log
+        INSERT INTO phase_transitions (
+            cultivation_plan_id,
+            from_phase,
+            to_phase,
+            transition_type,
+            trigger_condition,
+            notifications_sent,
+            actual_date
+        ) VALUES (
+            NEW.cultivation_plan_id,
+            'notification',
+            'critical_issue_alert',
+            'automatic',
+            'critical_issue_detected',
+            jsonb_build_array(notification_data),
+            CURRENT_DATE
+        );
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger per notifiche automatiche
+DROP TRIGGER IF EXISTS cultivation_issue_notifications ON cultivation_issues;
+CREATE TRIGGER cultivation_issue_notifications
+    AFTER INSERT ON cultivation_issues
+    FOR EACH ROW
+    EXECUTE FUNCTION send_cultivation_notifications();
+
+-- Funzione per validazione date
+CREATE OR REPLACE FUNCTION validate_cultivation_dates()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Valida che le date siano logiche
+    IF NEW.actual_start_date IS NOT NULL AND NEW.planned_start_date IS NOT NULL THEN
+        IF NEW.actual_start_date < NEW.planned_start_date - INTERVAL '30 days' THEN
+            RAISE EXCEPTION 'Actual start date cannot be more than 30 days before planned start date';
+        END IF;
+    END IF;
+    
+    IF NEW.actual_end_date IS NOT NULL AND NEW.actual_start_date IS NOT NULL THEN
+        IF NEW.actual_end_date < NEW.actual_start_date THEN
+            RAISE EXCEPTION 'End date cannot be before start date';
+        END IF;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger per validazione date
+DROP TRIGGER IF EXISTS validate_cultivation_plan_dates ON cultivation_plans;
+CREATE TRIGGER validate_cultivation_plan_dates
+    BEFORE INSERT OR UPDATE ON cultivation_plans
+    FOR EACH ROW
+    EXECUTE FUNCTION validate_cultivation_dates();
+
+-- Funzione per pulizia automatica dati vecchi
+CREATE OR REPLACE FUNCTION cleanup_old_cultivation_data()
+RETURNS void AS $$
+BEGIN
+    -- Rimuovi statistiche più vecchie di 2 anni per piani completati
+    DELETE FROM cultivation_statistics 
+    WHERE measurement_date < CURRENT_DATE - INTERVAL '2 years'
+    AND cultivation_plan_id IN (
+        SELECT id FROM cultivation_plans 
+        WHERE status = 'completed' 
+        AND actual_end_date < CURRENT_DATE - INTERVAL '1 year'
+    );
+    
+    -- Rimuovi transizioni più vecchie di 1 anno per piani completati
+    DELETE FROM phase_transitions 
+    WHERE actual_date < CURRENT_DATE - INTERVAL '1 year'
+    AND cultivation_plan_id IN (
+        SELECT id FROM cultivation_plans 
+        WHERE status = 'completed' 
+        AND actual_end_date < CURRENT_DATE - INTERVAL '6 months'
+    );
+    
+END;
+$$ LANGUAGE plpgsql;
+
+-- Funzione per aggiornare sapling_inventory updated_at
+CREATE OR REPLACE FUNCTION update_sapling_inventory_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
