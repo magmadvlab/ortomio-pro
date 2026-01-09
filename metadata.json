@@ -1,8 +1,0 @@
-{
-  "name": "OrtoMio AI",
-  "description": "Il tuo assistente intelligente per l'orto. Pianifica le semine, ricevi consigli basati sulla geolocalizzazione e tieni traccia di trattamenti e concimazioni.",
-  "requestFramePermissions": [
-    "geolocation",
-    "camera"
-  ]
-}
