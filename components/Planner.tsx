@@ -887,11 +887,16 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
             {/* Bottone principale AI Planning */}
             <button
               onClick={() => setShowAIWizard(true)}
-              className="px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg hover:from-green-700 hover:to-blue-700 transition-all duration-200 flex items-center gap-2 shadow-lg"
+              className="relative px-4 py-2 bg-gradient-to-r from-purple-600 via-blue-600 to-green-600 text-white rounded-lg hover:from-purple-700 hover:via-blue-700 hover:to-green-700 transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 animate-pulse"
             >
-              <Bot size={20} />
-              <span className="font-medium">Pianifica con AI</span>
-              <Sparkles size={16} className="opacity-80" />
+              <Bot size={20} className="animate-bounce" />
+              <span className="font-medium">🤖 Pianifica con AI</span>
+              <Sparkles size={16} className="opacity-80 animate-spin" />
+              
+              {/* Badge NEW */}
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold animate-bounce">
+                NEW
+              </span>
             </button>
           </div>
         </div>
@@ -961,6 +966,16 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
             🥬 Orto
           </button>
           <button
+            onClick={() => {
+              setSelectedVisualCategory('Orto');
+              // Filtra per piante invernali
+              setSearchQuery('cavolo spinaci rucola lattuga invernale');
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300`}
+          >
+            ❄️ Orto Invernale
+          </button>
+          <button
             onClick={() => setSelectedVisualCategory('Frutteto')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               selectedVisualCategory === 'Frutteto'
@@ -1014,34 +1029,89 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
         </form>
 
         {/* Popular Plants Tags */}
-        <PopularPlantsTags
-          plants={seasonalPlantSuggestions.slice(0, 5).map(s => ({
-            name: s.plantName,
-            emoji: s.plantName === 'Pomodoro' ? '🍅' :
-                   s.plantName === 'Peperone' ? '🫑' :
-                   s.plantName === 'Zucchina' ? '🥒' :
-                   s.plantName === 'Melanzana' ? '🍆' :
-                   s.plantName === 'Peperoncino' ? '🌶️' : '🌱',
-            id: s.plantId
-          }))}
-          selectedPlant={selectedPopularPlant || specificResult?.name}
-          onSelect={async (plantName) => {
-            setSelectedPopularPlant(plantName)
-            setSearchQuery(plantName)
-            // Trigger search automatically
-            const coords = garden.coordinates || getDefaultCoordinates();
-            try {
-              setSearchLoading(true)
-              setError(null)
-              const result = await getSpecificPlantDetails(plantName, coords.latitude, coords.longitude)
-              setSpecificResult(result)
-            } catch (err) {
-              setError(err instanceof Error ? err.message : 'Errore nella ricerca')
-            } finally {
-              setSearchLoading(false)
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Popolari in questo periodo:</h4>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => {
+                  // Mostra piante estive
+                  const summerPlants = [
+                    { name: 'Pomodoro', emoji: '🍅', id: 'pomodoro' },
+                    { name: 'Peperone', emoji: '🫑', id: 'peperone' },
+                    { name: 'Zucchina', emoji: '🥒', id: 'zucchina' },
+                    { name: 'Melanzana', emoji: '🍆', id: 'melanzana' },
+                    { name: 'Peperoncino', emoji: '🌶️', id: 'peperoncino' }
+                  ];
+                  // Aggiorna i suggerimenti
+                }}
+                className="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg text-xs font-medium hover:bg-orange-200 transition-colors"
+              >
+                ☀️ Estive
+              </button>
+              <button 
+                onClick={() => {
+                  // Mostra piante invernali
+                  const winterPlants = [
+                    { name: 'Cavolo', emoji: '🥬', id: 'cavolo' },
+                    { name: 'Spinaci', emoji: '🥬', id: 'spinaci' },
+                    { name: 'Rucola', emoji: '🥬', id: 'rucola' },
+                    { name: 'Lattuga', emoji: '🥬', id: 'lattuga' },
+                    { name: 'Ravanelli', emoji: '🔴', id: 'ravanelli' }
+                  ];
+                  // Aggiorna i suggerimenti
+                }}
+                className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 transition-colors"
+              >
+                ❄️ Invernali
+              </button>
+            </div>
+          </div>
+          
+          <PopularPlantsTags
+            plants={seasonalPlantSuggestions.length > 0 
+              ? seasonalPlantSuggestions.slice(0, 5).map(s => ({
+                  name: s.plantName,
+                  emoji: s.plantName === 'Pomodoro' ? '🍅' :
+                         s.plantName === 'Peperone' ? '🫑' :
+                         s.plantName === 'Zucchina' ? '🥒' :
+                         s.plantName === 'Melanzana' ? '🍆' :
+                         s.plantName === 'Peperoncino' ? '🌶️' :
+                         s.plantName === 'Cavolo' ? '🥬' :
+                         s.plantName === 'Spinaci' ? '🥬' :
+                         s.plantName === 'Rucola' ? '🥬' :
+                         s.plantName === 'Lattuga' ? '🥬' :
+                         s.plantName === 'Ravanelli' ? '🔴' : '🌱',
+                  id: s.plantId
+                }))
+              : // Fallback per piante invernali se non ci sono suggerimenti stagionali
+                [
+                  { name: 'Cavolo', emoji: '🥬', id: 'cavolo' },
+                  { name: 'Spinaci', emoji: '🥬', id: 'spinaci' },
+                  { name: 'Rucola', emoji: '🥬', id: 'rucola' },
+                  { name: 'Lattuga', emoji: '🥬', id: 'lattuga' },
+                  { name: 'Ravanelli', emoji: '🔴', id: 'ravanelli' }
+                ]
             }
-          }}
-        />
+            selectedPlant={selectedPopularPlant || specificResult?.name}
+            onSelect={async (plantName) => {
+              setSelectedPopularPlant(plantName)
+              setSearchQuery(plantName)
+              // Trigger search automatically
+              const coords = garden.coordinates || getDefaultCoordinates();
+              try {
+                setSearchLoading(true)
+                setError(null)
+                const result = await getSpecificPlantDetails(plantName, coords.latitude, coords.longitude)
+                setSpecificResult(result)
+              } catch (err) {
+                setError(err instanceof Error ? err.message : 'Errore nella ricerca')
+              } finally {
+                setSearchLoading(false)
+              }
+            }}
+          />
+        </div>
 
           {error && (
               <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">

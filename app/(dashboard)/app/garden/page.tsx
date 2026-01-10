@@ -16,8 +16,8 @@ function GardenContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Get active tab from URL params, default to 'list'
-  const activeTab = searchParams.get('tab') || 'list'
+  // Get active tab from URL params, default to 'timeline'
+  const activeTab = searchParams.get('tab') || 'timeline'
   
   useEffect(() => {
     const loadData = async () => {
@@ -43,7 +43,7 @@ function GardenContent() {
     loadData()
   }, [storageProvider])
   
-  const handleTabChange = (tab: 'timeline' | 'calendar' | 'list' | 'plants' | 'structure') => {
+  const handleTabChange = (tab: 'timeline' | 'calendar' | 'plants' | 'harvest' | 'structure') => {
     router.push(`/app/garden?tab=${tab}`)
   }
   
@@ -124,7 +124,7 @@ function GardenContent() {
     <GardenView
       garden={garden}
       tasks={tasks}
-      activeTab={activeTab as 'timeline' | 'calendar' | 'list' | 'plants' | 'structure'}
+      activeTab={activeTab as 'timeline' | 'calendar' | 'plants' | 'harvest' | 'structure'}
       onTabChange={handleTabChange}
       onToggleTask={handleToggleTask}
       onAddTask={handleAddTask}

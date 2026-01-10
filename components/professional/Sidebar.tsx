@@ -12,7 +12,7 @@ import {
   Trophy,
   Tractor,
   Wifi,
-  HelpCircle,
+  BookOpen,
   Crown,
   TreePine,
   CircleDot,
@@ -24,6 +24,7 @@ import {
   Droplets,
   Leaf,
   Shield,
+  Bot,
 } from 'lucide-react'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { useEffect } from 'react'
@@ -31,7 +32,7 @@ import { useEffect } from 'react'
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
   { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
-  { icon: Leaf, label: 'Vivaio', path: '/app/semenzaio', tier: 'all' },
+  { icon: Bot, label: '🤖 Planner AI', path: '/app/planner', tier: 'all', badge: 'NEW' },
   { icon: Heart, label: 'Salute', path: '/app/advice', tier: 'all' },
   { icon: BarChart3, label: 'Progressi', path: '/app/progress', tier: 'all' },
   { icon: TreePine, label: 'Frutteto', path: '/app/orchard', tier: 'PRO', badge: 'PRO' },
@@ -44,7 +45,7 @@ const menuItems = [
   { icon: BarChart3, label: 'Analytics', path: '/app/analytics', tier: 'PRO', badge: 'PRO' },
   { icon: Wifi, label: 'Smart Hub', path: '/app/smart', tier: 'all' },
   { icon: Database, label: 'Export', path: '/app/export', tier: 'PRO', badge: 'PRO' },
-  { icon: HelpCircle, label: 'Aiuto', path: '/app/help', tier: 'all' },
+  { icon: BookOpen, label: 'Manuale Utente', path: '/app/help', tier: 'all' },
   { icon: Settings, label: 'Impostazioni', path: '/app/settings', tier: 'all' },
 ]
 
@@ -66,12 +67,12 @@ export function ProfessionalSidebar() {
     { icon: Crown, label: 'Admin', path: '/app/admin', tier: 'PRO' as const }
   ]
   
-  // Raggruppamento menu per categorie - Ottimizzato secondo piano FASE 1
+  // Raggruppamento menu per categorie - Ottimizzato FINALE
   const menuGroups: MenuGroup[] = [
     {
       title: 'PRINCIPALE',
       items: allMenuItems.filter(item =>
-        ['Dashboard', 'Il Mio Orto', 'Vivaio', 'Salute', 'Progressi'].includes(item.label)
+        ['Dashboard', 'Il Mio Orto', '🤖 Planner AI', 'Salute', 'Progressi'].includes(item.label)
       ),
       tier: 'all',
       collapsible: false
@@ -85,25 +86,25 @@ export function ProfessionalSidebar() {
       )
     },
     {
-      title: 'GESTIONE AVANZATA',
+      title: 'GESTIONE PROFESSIONALE',
       tier: 'PRO',
       collapsible: true,
       items: allMenuItems.filter(item =>
-        ['Irrigazione', 'Analytics', 'Nutrizione & Trattamenti', 'Lavorazioni', 'GlobalG.A.P.', 'Export'].includes(item.label)
+        ['Irrigazione', 'Nutrizione & Trattamenti', 'Lavorazioni', 'GlobalG.A.P.'].includes(item.label)
       )
     },
     {
-      title: 'STRUMENTI',
+      title: 'ANALYTICS & SMART',
+      tier: 'PRO',
+      collapsible: true,
       items: allMenuItems.filter(item =>
-        ['Smart Hub'].includes(item.label)
-      ),
-      tier: 'all',
-      collapsible: false
+        ['Analytics', 'Smart Hub', 'Export'].includes(item.label)
+      )
     },
     {
-      title: 'IMPOSTAZIONI',
+      title: 'SUPPORTO',
       items: allMenuItems.filter(item =>
-        ['Impostazioni', 'Aiuto', 'Admin'].includes(item.label)
+        ['Impostazioni', 'Manuale Utente', 'Admin'].includes(item.label)
       ),
       tier: 'all',
       collapsible: false
@@ -201,7 +202,11 @@ export function ProfessionalSidebar() {
                         <Icon size={20} />
                         <span>{item.label || ''}</span>
                         {item.badge && typeof item.badge === 'string' && (
-                          <span className="ml-auto text-xs bg-gray-600 text-white px-2 py-0.5 rounded">
+                          <span className={`ml-auto text-xs px-2 py-0.5 rounded ${
+                            item.badge === 'NEW' 
+                              ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white animate-pulse' 
+                              : 'bg-gray-600 text-white'
+                          }`}>
                             {item.badge}
                           </span>
                         )}

@@ -1,44 +1,599 @@
-# 📖 Manuale Utente OrtoMio
+# 📖 Manuale Utente OrtoMio PRO
 
 ## Indice
 
 1. [Introduzione](#introduzione)
 2. [Primi Passi](#primi-passi)
 3. [Dashboard (Home)](#dashboard-home)
-4. [Planner (Semina)](#planner-semina)
-   - [Matching Geografico e Fattibilità](#matching-geografico-e-fattibilità)
-5. [Journal (Diario)](#journal-diario)
-6. [Advice (Cura)](#advice-cura)
-7. [Harvest (Raccolto)](#harvest-raccolto)
-8. [Calendario Intelligente](#calendario-intelligente)
-9. [Lavorazioni Meccaniche (Terreni Grandi)](#lavorazioni-meccaniche-terreni-grandi)
-10. [Potatura Alberi](#potatura-alberi)
-11. [Smart Hub](#smart-hub)
-12. [Gestione Fertilizzanti](#gestione-fertilizzanti)
-13. [Lavorazioni Terra](#lavorazioni-terra)
-14. [Gestione Fitofarmaci](#gestione-fitofarmaci)
-15. [Tracciabilità per Filare](#tracciabilità-per-filare)
-16. [Gestione Multi-Giardino](#gestione-multi-giardino)
-17. [Funzionalità Avanzate](#funzionalità-avanzate)
-18. [FAQ](#faq)
+4. [Il Mio Orto](#il-mio-orto)
+   - [Timeline e Calendario](#timeline-e-calendario)
+   - [Piante & Vivaio](#piante--vivaio)
+   - [Raccolto](#raccolto)
+   - [Struttura](#struttura)
+5. [🤖 Planner AI](#-planner-ai)
+   - [Pianificazione Intelligente](#pianificazione-intelligente)
+   - [Analisi Immagini](#analisi-immagini)
+   - [Suggerimenti Personalizzati](#suggerimenti-personalizzati)
+6. [Salute (Diagnosi e Cura)](#salute-diagnosi-e-cura)
+7. [Progressi (Analytics)](#progressi-analytics)
+8. [Colture Specializzate (PRO)](#colture-specializzate-pro)
+   - [Frutteto](#frutteto)
+   - [Oliveto](#oliveto)
+   - [Vigneto](#vigneto)
+9. [Gestione Professionale (PRO)](#gestione-professionale-pro)
+   - [Irrigazione](#irrigazione)
+   - [Nutrizione & Trattamenti](#nutrizione--trattamenti)
+   - [Lavorazioni](#lavorazioni)
+   - [GlobalG.A.P.](#globalgap)
+10. [Analytics & Smart (PRO)](#analytics--smart-pro)
+    - [Analytics](#analytics)
+    - [Smart Hub](#smart-hub)
+    - [Export](#export)
+11. [Supporto](#supporto)
+    - [Manuale Utente](#manuale-utente)
+    - [Impostazioni](#impostazioni)
+    - [Admin (PRO)](#admin-pro)
+12. [FAQ](#faq)
 
 ---
 
 ## Introduzione
 
-Benvenuto in **OrtoMio**! Questo manuale ti guiderà attraverso tutte le funzionalità dell'applicazione per aiutarti a gestire il tuo orto in modo efficace.
+Benvenuto in **OrtoMio PRO**! Questo manuale ti guiderà attraverso tutte le funzionalità dell'applicazione professionale per la gestione completa del tuo orto, frutteto e colture specializzate.
 
-### Cosa Puoi Fare con OrtoMio
+### Novità OrtoMio PRO 2026
 
-- Ricevere suggerimenti personalizzati basati sulla tua posizione
-- Calcolare automaticamente la fattibilità di piante esotiche per la tua zona climatica
-- Selezionare varietà ottimali e sistemi di coltivazione consigliati
-- Pianificare semine e trapianti con guide passo-passo
-- Monitorare la crescita delle piante con foto e analisi AI
-- Ottenere consigli per trattamenti e cure
-- Tracciare i raccolti e calcolare il valore generato
-- Gestire l'irrigazione con sensori intelligenti
-- Pianificare lavori invernali e preparazioni stagionali
+- **🤖 Intelligenza Artificiale Integrata**: Pianificazione automatica, analisi immagini, suggerimenti personalizzati
+- **🌱 Gestione Unificata**: Piante e Vivaio in un'unica sezione ottimizzata
+- **📊 Analytics Avanzate**: Statistiche professionali e analisi ROI
+- **🌍 GlobalG.A.P. Compliance**: Certificazione internazionale integrata
+- **🍎 Frutta Esotica/Tropicale**: Supporto completo per colture specializzate
+- **📱 UX Ottimizzata**: Navigazione semplificata e mobile-first
+
+### Cosa Puoi Fare con OrtoMio PRO
+
+- **Pianificazione AI**: Suggerimenti intelligenti basati su clima, terreno e obiettivi
+- **Analisi Immagini**: Riconoscimento varietà, diagnosi malattie, valutazione maturazione
+- **Gestione Professionale**: Irrigazione, fertilizzazione, trattamenti con tracciabilità completa
+- **Colture Specializzate**: Frutteto, oliveto, vigneto con guide specifiche
+- **Compliance**: GlobalG.A.P. IFA V5.2 al 100% per certificazione internazionale
+- **Analytics**: ROI, rese, costi con export professionale
+- **Multi-Orto**: Gestione di più terreni con meteo localizzato
+
+---
+
+## Primi Passi
+
+### 1. Configurazione Iniziale
+
+Al primo avvio, OrtoMio PRO ti guida nella configurazione:
+
+1. **Tipo di Coltivazione**:
+   - 🌱 Orto Domestico (< 1000 m²)
+   - 🚜 Azienda Agricola (> 1000 m²)
+   - 🍎 Frutteto Specializzato
+   - 🫒 Oliveto Professionale
+   - 🍇 Vigneto
+
+2. **Posizione e Clima**:
+   - Coordinate GPS precise
+   - Altitudine (calcolo automatico)
+   - Zona climatica USDA
+   - Microclima locale
+
+3. **Caratteristiche Terreno**:
+   - Tipo (Argilloso, Sabbioso, Franco, etc.)
+   - pH e conducibilità
+   - Analisi chimico-fisica
+   - Esposizione solare 360°
+
+4. **Obiettivi Professionali**:
+   - Produzione per autoconsumo
+   - Vendita diretta
+   - Certificazioni (Bio, GlobalG.A.P.)
+   - Export internazionale
+
+### 2. Navigazione Ottimizzata
+
+L'interfaccia è stata completamente riprogettata per efficienza:
+
+**Desktop**:
+- Sidebar collassabile con gruppi logici
+- Menu contestuali per azioni rapide
+- Dashboard multi-widget personalizzabile
+
+**Mobile**:
+- Bottom navigation a 5 elementi
+- Swipe gestures per navigazione rapida
+- Floating AI assistant sempre disponibile
+
+---
+
+## Dashboard (Home)
+
+La Dashboard PRO offre una panoramica completa e personalizzabile.
+
+### Widget Intelligenti
+
+#### Meteo Multi-Posizione
+- Previsioni specifiche per ogni orto
+- Allarmi automatici (gelo, caldo, pioggia)
+- Consigli operativi basati su meteo
+
+#### Piano del Giorno AI
+- Suggerimenti personalizzati dall'orchestratore
+- Priorità automatiche basate su urgenza
+- Integrazione con calendario lunare
+
+#### Fabbisogno Idrico Dinamico
+- Calcolo in tempo reale per ogni pianta
+- Adattamento automatico a condizioni meteo
+- Breakdown dettagliato per zona
+
+#### Matching Geografico
+- Piante ideali per la tua zona climatica
+- Score di fattibilità 0-100
+- Suggerimenti varietà ottimali
+
+### Modalità Professionali
+
+#### Modalità Vacanza
+- Piano automatico pre-partenza
+- Programmazione irrigazione
+- Checklist raccolti urgenti
+
+#### Lavori Preparatori Stagionali
+- Piano strutturato per cambio stagione
+- Materiali e quantità necessarie
+- Timeline ottimizzata
+
+---
+
+## Il Mio Orto
+
+Sezione unificata per la gestione completa dell'orto con 5 tab ottimizzati.
+
+### Timeline e Calendario
+
+#### Timeline con AI
+- Vista Gantt delle attività
+- Suggerimenti AI per ottimizzazione
+- Dipendenze automatiche tra task
+- Previsioni completamento
+
+#### Calendario Intelligente
+- Integrazione fasi lunari
+- Pianificazione AI stagionale
+- Eventi automatici (semine, trapianti)
+- Sincronizzazione multi-orto
+
+### Piante & Vivaio
+
+Gestione unificata di tutto il ciclo produttivo.
+
+#### Sub-Tabs Integrati
+1. **🌿 Piante in Campo**: Monitoraggio piante attive
+2. **📦 Banca Semi**: Inventario e scadenze
+3. **🌱 Piantine**: Lotti semenzaio e crescita
+4. **🌳 Alberelli**: Vivaio legnose e portinnesti
+
+#### Tracking Individuale
+- Codici univoci per ogni pianta (F1-P001)
+- Heatmap salute in tempo reale
+- Operazioni di massa intelligenti
+- Foto timeline automatiche
+
+#### Banca Semi Professionale
+- Tracciamento germinazione per varietà
+- Alert scorte e scadenze
+- Calcoli fabbisogno stagionale
+- Integrazione con fornitori
+
+### Raccolto
+
+Dashboard completa per monitoraggio rese.
+
+#### Registrazione Avanzata
+- Raccolti parziali durante crescita
+- Qualità e classificazione
+- Foto documentazione
+- Ricette AI automatiche
+
+#### Analytics Economiche
+- Valore generato vs costi
+- ROI per coltura
+- Confronto stagionale
+- Previsioni resa
+
+### Struttura
+
+Gestione fisica dell'orto.
+
+#### Bed Manager
+- Progettazione aiuole e filari
+- Calcoli spaziature ottimali
+- Rotazioni automatiche
+- Mappe 3D interattive
+
+---
+
+## 🤖 Planner AI
+
+Il cuore intelligente di OrtoMio PRO.
+
+### Pianificazione Intelligente
+
+#### Wizard Step-by-Step
+1. **Analisi Terreno**: Upload foto per analisi AI
+2. **Obiettivi**: Produzione, budget, tempo disponibile
+3. **Preferenze**: Varietà, metodi colturali
+4. **Piano Generato**: Calendario completo con task
+
+#### Ottimizzazione Automatica
+- Rotazioni ottimali per famiglia botanica
+- Consociazioni benefiche
+- Successioni intelligenti
+- Gestione spazi vuoti
+
+### Analisi Immagini
+
+#### Riconoscimento Varietà
+- Identificazione automatica da foto
+- Database 10.000+ varietà
+- Suggerimenti varietà simili
+- Compatibilità climatica
+
+#### Diagnosi Malattie
+- Analisi sintomi visivi
+- Identificazione patogeni
+- Trattamenti consigliati
+- Prevenzione futura
+
+#### Valutazione Maturazione
+- Analisi Brix da foto
+- Timing raccolta ottimale
+- Qualità prevista
+- Conservazione consigliata
+
+### Suggerimenti Personalizzati
+
+#### Matching Geografico
+- Score fattibilità per zona climatica
+- Varietà ottimali per microclima
+- Sistemi colturali consigliati
+- Alternative per clima difficile
+
+---
+
+## Salute (Diagnosi e Cura)
+
+Sistema esperto per diagnosi e trattamenti.
+
+### Diagnosi Multimodale
+
+#### Descrizione Sintomi
+- Chat AI per descrizione problemi
+- Domande guidate per precisione
+- Database sintomi 5000+ casi
+- Diagnosi differenziale
+
+#### Analisi Foto
+- Upload immagini per diagnosi
+- Riconoscimento automatico problemi
+- Gravità e urgenza
+- Trattamenti mirati
+
+### Gestione Trattamenti
+
+#### Inventario Fitofarmaci
+- Prodotti bio e convenzionali
+- Tracciamento scorte e scadenze
+- Compatibilità e mescolanze
+- Calcoli dosaggio automatici
+
+#### Registro Trattamenti (PRO)
+- Documentazione completa
+- Condizioni meteo al trattamento
+- Tempi di carenza
+- Export per certificazioni
+
+#### Preparati Naturali
+- Ricette macerati e decotti
+- Istruzioni preparazione
+- Dosaggi e applicazione
+- Calendario trattamenti
+
+---
+
+## Progressi (Analytics)
+
+Dashboard completa per analisi performance.
+
+### Analytics Economiche
+
+#### ROI per Coltura
+- Ricavi vs costi per pianta
+- Margini di contribuzione
+- Break-even analysis
+- Proiezioni stagionali
+
+#### Analisi Costi
+- Breakdown per categoria (semi, fertilizzanti, etc.)
+- Costi per m² e per pianta
+- Confronto con mercato
+- Ottimizzazione spese
+
+### Statistiche Produzione
+
+#### Rese per Zona
+- Produttività per aiuola/filare
+- Confronti stagionali
+- Trend pluriennali
+- Benchmark settoriali
+
+#### Qualità Prodotto
+- Classificazione per qualità
+- Analisi Brix e parametri
+- Correlazioni con trattamenti
+- Miglioramenti suggeriti
+
+---
+
+## Colture Specializzate (PRO)
+
+Gestione professionale per colture ad alto valore.
+
+### Frutteto
+
+#### Gestione Completa
+- **Frutta Tradizionale**: Mele, pere, pesche, ciliegie
+- **Frutta Esotica/Tropicale**: Avocado, mango, papaya, passion fruit
+- **Frutta Secca**: Noci, nocciole, mandorle, pistacchi
+
+#### Funzionalità Avanzate
+- Calcolo fabbisogno freddo (chill hours)
+- Gestione impollinatori
+- Calendario potature automatico
+- Previsioni produzione
+
+#### Potatura Intelligente
+- Suggerimenti per tipo albero
+- Timing ottimale per specie
+- Istruzioni passo-passo
+- Integrazione fasi lunari
+
+### Oliveto
+
+#### Gestione Professionale
+- Varietà e portinnesti
+- Calendario trattamenti specifici
+- Gestione mosca olearia
+- Previsioni raccolta
+
+#### Qualità Olio
+- Monitoraggio maturazione
+- Timing raccolta ottimale
+- Rese previste
+- Classificazione qualità
+
+### Vigneto
+
+#### Viticoltura Avanzata
+- Gestione varietà e cloni
+- Calendario fenologico
+- Trattamenti anticrittogamici
+- Gestione vendemmia
+
+#### Qualità Uva
+- Monitoraggio maturazione
+- Analisi zuccheri e acidità
+- Previsioni qualitative
+- Ottimizzazione raccolta
+
+---
+
+## Gestione Professionale (PRO)
+
+Strumenti avanzati per gestione professionale.
+
+### Irrigazione
+
+#### Microirrigazione Avanzata
+- Progettazione impianti
+- Calcoli idraulici automatici
+- Gestione settori e valvole
+- Monitoraggio consumi
+
+#### Automazione
+- Programmazione centraline
+- Sensori umidità terreno
+- Controllo remoto
+- Alert anomalie
+
+### Nutrizione & Trattamenti
+
+#### Piani Nutrizionali
+- Calcoli NPK per fase fenologica
+- Adattamento a tipo terreno
+- Microelementi e correttivi
+- Calendario applicazioni
+
+#### Fertirrigazione
+- Dosaggi automatici
+- Compatibilità prodotti
+- Monitoraggio EC e pH
+- Registrazione applicazioni
+
+### Lavorazioni
+
+#### Lavorazioni Meccaniche
+- Calendario per tipo terreno
+- Calcolo "terreno in tempera"
+- Scelta attrezzature
+- Registrazione interventi
+
+#### Gestione Filari
+- Tracciabilità per filare
+- Operazioni mirate
+- Confronto performance
+- Ottimizzazione layout
+
+### GlobalG.A.P.
+
+#### Compliance Completa
+- **AF Module (Base)**: 100% requisiti implementati
+- **CB Module (Coltivazioni)**: Gestione completa
+- **FV Module (Frutta/Ortaggi)**: Certificazione pronta
+
+#### Documentazione Automatica
+- Registri automatici
+- Procedure operative
+- Piani di richiamo
+- Audit trail completo
+
+---
+
+## Analytics & Smart (PRO)
+
+Strumenti avanzati per ottimizzazione.
+
+### Analytics
+
+#### Dashboard Esecutiva
+- KPI principali
+- Trend performance
+- Alert automatici
+- Report personalizzati
+
+#### Analisi Predittive
+- Previsioni resa
+- Ottimizzazione risorse
+- Analisi rischi
+- Scenari what-if
+
+### Smart Hub
+
+#### IoT Integration
+- Sensori ambientali
+- Stazioni meteo
+- Controllo irrigazione
+- Monitoraggio remoto
+
+#### Automazione
+- Regole personalizzate
+- Trigger automatici
+- Notifiche push
+- Controllo vocale
+
+### Export
+
+#### Formati Professionali
+- Excel con macro
+- PDF report
+- CSV per analisi
+- API per integrazione
+
+#### Certificazioni
+- Documenti GlobalG.A.P.
+- Registri biologico
+- Tracciabilità prodotto
+- Audit compliance
+
+---
+
+## Supporto
+
+### Manuale Utente
+
+Documentazione completa sempre aggiornata:
+- Guide passo-passo
+- Video tutorial
+- Best practices
+- Troubleshooting
+
+### Impostazioni
+
+#### Configurazione Avanzata
+- Multi-orto con meteo localizzato
+- Personalizzazione dashboard
+- Integrazione API esterne
+- Backup e sincronizzazione
+
+#### Gestione Utenti (PRO)
+- Profili multipli
+- Permessi granulari
+- Audit log accessi
+- Condivisione dati
+
+### Admin (PRO)
+
+#### Pannello Amministrazione
+- Gestione licenze
+- Configurazione sistema
+- Monitoraggio utilizzo
+- Supporto tecnico
+
+---
+
+## FAQ
+
+### Come funziona l'AI in OrtoMio PRO?
+
+OrtoMio PRO utilizza un sistema AI multi-provider:
+- **Groq**: Analisi immagini e riconoscimento varietà
+- **HuggingFace**: Modelli specializzati per piante
+- **Mistral**: Pianificazione e suggerimenti
+- **OpenRouter**: Fallback con 400+ modelli
+
+### Quali certificazioni supporta?
+
+- **GlobalG.A.P. IFA V5.2**: Compliance 100% con tutti i moduli
+- **Biologico EU**: Registri e documentazione
+- **HACCP**: Tracciabilità alimentare
+- **ISO 22000**: Sicurezza alimentare
+
+### Come funziona il multi-orto?
+
+Ogni orto ha:
+- Meteo localizzato per coordinate GPS
+- Inventari separati (semi, fertilizzanti, etc.)
+- Task e calendario indipendenti
+- Analytics separate con confronti
+
+### Posso integrare sensori IoT?
+
+Sì, OrtoMio PRO supporta:
+- Sensori umidità terreno
+- Stazioni meteo
+- Controllo irrigazione
+- Monitoraggio ambientale serra
+
+### Come funziona l'export dati?
+
+Export disponibili:
+- **Excel**: Con formule e grafici
+- **PDF**: Report professionali
+- **CSV**: Per analisi esterne
+- **API**: Integrazione sistemi aziendali
+
+### Supporto per aziende agricole?
+
+OrtoMio PRO è progettato per:
+- Piccole aziende (1-10 ha)
+- Aziende medie (10-100 ha)
+- Cooperative agricole
+- Consulenti agronomici
+
+### Costi e licenze?
+
+- **PRO**: €29/mese - Tutte le funzionalità
+- **PRO Professional**: €99/mese - Multi-utente + API
+- **Enterprise**: Prezzo personalizzato
+- **Prova gratuita**: 30 giorni senza limitazioni
+
+---
+
+*Manuale aggiornato a Gennaio 2026 - Versione OrtoMio PRO 2.0*
 
 ---
 

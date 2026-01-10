@@ -115,13 +115,41 @@ export default function OrchardPage() {
                 <p className="text-gray-600">Monitora e gestisci i tuoi alberi da frutto</p>
               </div>
             </div>
-            <button
-              onClick={() => setShowAddWizard(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Plus size={20} />
-              Aggiungi Albero
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowAddWizard(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Plus size={20} />
+                Aggiungi Albero
+              </button>
+            </div>
+          </div>
+
+          {/* Tabs per Tipologie Frutta */}
+          <div className="bg-white rounded-lg shadow-md mb-6">
+            <div className="flex border-b border-gray-200">
+              <button className="px-6 py-3 border-b-2 border-green-600 text-green-600 font-medium">
+                🍎 Frutta Tradizionale
+              </button>
+              <button className="px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                🥭 Frutta Esotica/Tropicale
+              </button>
+              <button className="px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                🌰 Frutta Secca
+              </button>
+            </div>
+            
+            {/* Info Sezione Attiva */}
+            <div className="p-4 bg-green-50 border-l-4 border-green-500">
+              <div className="flex items-center gap-2">
+                <Info className="text-green-600" size={16} />
+                <span className="text-sm font-medium text-green-800">Frutta Tradizionale</span>
+              </div>
+              <p className="text-sm text-green-700 mt-1">
+                Meli, peri, peschi, ciliegi, susini e altri alberi da frutto tipici del clima temperato
+              </p>
+            </div>
           </div>
 
           {/* Selezione Giardino */}
