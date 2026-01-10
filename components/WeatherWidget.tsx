@@ -107,10 +107,12 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
 
   const getGardenIcon = (garden: Garden) => {
     // Determina l'icona in base al tipo di giardino
-    if (garden.primaryCrop?.includes('Fruit') || garden.name.toLowerCase().includes('frutteto')) {
+    const gardenName = garden.name.toLowerCase();
+    const primaryCropLabel = garden.primaryCrop ? String(garden.primaryCrop) : '';
+    if (primaryCropLabel.includes('Fruit') || gardenName.includes('frutteto')) {
       return <TreePine size={16} className="text-green-600" />;
     }
-    if (garden.name.toLowerCase().includes('vigna') || garden.name.toLowerCase().includes('vite')) {
+    if (gardenName.includes('vigna') || gardenName.includes('vite')) {
       return <Grape size={16} className="text-purple-600" />;
     }
     return <Sprout size={16} className="text-green-600" />;
@@ -348,4 +350,3 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
 };
 
 export default WeatherWidget;
-
