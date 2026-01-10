@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react'
 import { useTier } from '@/packages/core/hooks/useTier'
-import { Settings, User, Bell, Palette, Shield, CreditCard, LogOut, Crown, Cloud, Key, Home } from 'lucide-react'
+import { Settings, User, Bell, Palette, Shield, CreditCard, LogOut, Crown, Cloud, Key, Home, Plane } from 'lucide-react'
 import Link from 'next/link'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useGarden } from '@/packages/core/hooks/useGarden'
 import { CloudSyncStatus } from '@/components/settings/CloudSyncStatus'
 import { AutoSyncSettings } from '@/components/settings/AutoSyncSettings'
 import BackupSettings from '@/components/BackupSettings'
+import VacationMode from '@/components/VacationMode'
 import APIConfigurationForm from '@/components/settings/APIConfigurationForm'
 import { GardenManager } from '@/components/settings/GardenManager'
 import { getSupabaseClient } from '@/config/supabase'
@@ -229,6 +230,7 @@ function SettingsContent() {
   const sections = [
     { id: 'profile', label: 'Profilo', icon: User },
     { id: 'gardens', label: 'I Miei Orti', icon: Home },
+    { id: 'vacation', label: 'Modalità Vacanza', icon: Plane },
     { id: 'notifications', label: 'Notifiche', icon: Bell },
     { id: 'preferences', label: 'Preferenze', icon: Palette },
     { id: 'api-config', label: 'API Keys', icon: Key },
@@ -333,6 +335,36 @@ function SettingsContent() {
                   </p>
                 </div>
                 <GardenManager />
+              </div>
+            )}
+
+            {activeSection === 'vacation' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    <Plane size={24} className="text-blue-600" />
+                    Modalità Vacanza
+                  </h2>
+                  <p className="text-gray-600 mb-6">
+                    Configura un piano di sopravvivenza per le tue piante durante le tue assenze
+                  </p>
+                </div>
+                {activeGarden ? (
+                  <VacationMode 
+                    garden={activeGarden} 
+                    tasks={[]} // TODO: Load tasks if needed
+                    onUpdateGarden={(updatedGarden) => {
+                      // Handle garden update if needed
+                      console.log('Garden updated:', updatedGarden);
+                    }}
+                  />
+                ) : (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                    <p className="text-sm text-gray-600">
+                      Seleziona un giardino per configurare la modalità vacanza.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 

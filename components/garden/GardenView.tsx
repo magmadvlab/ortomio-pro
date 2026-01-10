@@ -5,19 +5,20 @@ import { Garden, GardenTask } from '@/types'
 import { TimelineView } from './TimelineView'
 import { CalendarTabView } from './CalendarTabView'
 import { ListView } from './ListView'
-import { Calendar, List, GanttChart, Plus, Sprout, Settings } from 'lucide-react'
+import { Calendar, List, GanttChart, Plus, Sprout, Settings, Grid3X3, X } from 'lucide-react'
 import { PlantsView } from './PlantsView'
 import { AddItemModal } from './AddItemModal'
 import { HarvestRegistrationModal } from '../harvest/HarvestRegistrationModal'
 import { PhotoCaptureModal } from '../camera/PhotoCaptureModal'
 import { ContextualTip } from '@/components/shared/ContextualTip'
+import { BedManager } from '@/components/gardens/BedManager'
 import Link from 'next/link'
 
 interface GardenViewProps {
   garden: Garden
   tasks: GardenTask[]
-  activeTab: 'timeline' | 'calendar' | 'list' | 'plants'
-  onTabChange: (tab: 'timeline' | 'calendar' | 'list' | 'plants') => void
+  activeTab: 'timeline' | 'calendar' | 'list' | 'plants' | 'structure'
+  onTabChange: (tab: 'timeline' | 'calendar' | 'list' | 'plants' | 'structure') => void
   onToggleTask: (id: string) => void
   onAddTask: (task: Omit<GardenTask, 'id' | 'completed' | 'gardenId'>) => void
   onDeleteTask: (id: string) => void
@@ -38,12 +39,14 @@ export function GardenView({
   const [showAddModal, setShowAddModal] = useState(false)
   const [showHarvestModal, setShowHarvestModal] = useState(false)
   const [showPhotoCapture, setShowPhotoCapture] = useState(false)
+  const [showBedManager, setShowBedManager] = useState(false)
   
   const tabs = [
     { id: 'timeline' as const, label: 'Timeline', icon: GanttChart },
     { id: 'calendar' as const, label: 'Calendario', icon: Calendar },
     { id: 'list' as const, label: 'Lista', icon: List },
-    { id: 'plants' as const, label: 'Piante', icon: Sprout }
+    { id: 'plants' as const, label: 'Piante', icon: Sprout },
+    { id: 'structure' as const, label: 'Struttura', icon: Grid3X3 }
   ]
   
   return (
@@ -142,6 +145,30 @@ export function GardenView({
             tasks={tasks}
             onUpdateTask={onUpdateTask}
           />
+        )}
+
+        {activeTab === 'structure' && (
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Struttura del Giardino</h2>
+                <p className="text-gray-600 mt-1">Gestisci aiuole, filari e zone di coltivazione</p>
+              </div>
+              <button
+                onClick={() => setShowBedManager(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Settings size={20} />
+                Gestisci Zone
+              </button>
+            </div>
+            
+            <BedManager
+              garden={garden}
+              tasks={tasks}
+              onClose={() => {}} // Non chiudere, è integrato nella pagina
+            />
+          </div>
         )}
       </main>
       

@@ -9,16 +9,14 @@ import {
   Package, AlertTriangle, Calendar, Wrench, Info, Plus,
   CheckCircle, X, Loader2, Cloud, CloudRain, ThermometerSun
 } from 'lucide-react'
-import { generateWinterPreparationPlan } from '@/logic/winterPreparationEngine'
-import { calculateMoonPhase } from '@/logic/lunarCalendar'
 import VacationMode from '@/components/VacationMode'
 import SeedInventory from '@/components/SeedInventory'
-import { SeedlingReadyWidget } from '@/components/shared/SeedlingReadyWidget'
+
 import SeedlingManager from '@/components/SeedlingManager'
-import { SaplingReadyWidget } from '@/components/shared/SaplingReadyWidget'
+
 import SaplingManager from '@/components/SaplingManager'
 import { GardenTypeWizard } from '@/components/GardenTypeWizard'
-import { SpecializedCropsWidget } from '@/components/shared/SpecializedCropsWidget'
+
 import { TraditionalCropsWidget } from '@/components/shared/TraditionalCropsWidget'
 import FruitTreeManagement from '@/components/FruitTreeManagement'
 import StrawberryManagement from '@/components/StrawberryManagement'
@@ -27,17 +25,17 @@ import AromaticManagement from '@/components/AromaticManagement'
 import RaspberryManagement from '@/components/RaspberryManagement'
 import OliveHarvest from '@/components/OliveHarvest'
 import VineHarvest from '@/components/VineHarvest'
-import { AccessoriesWidget } from '@/components/shared/AccessoriesWidget'
-import { GardenBedsWidget } from '@/components/shared/GardenBedsWidget'
+
+
 import { IrrigationZonesWidget } from '@/components/irrigation/IrrigationZonesWidget'
 import { IrrigationZoneManager } from '@/components/irrigation/IrrigationZoneManager'
 import { IrrigationZone } from '@/types/irrigation'
-import { HydroponicMonitorWidget } from '@/components/shared/HydroponicMonitorWidget'
-import { AquaponicMonitorWidget } from '@/components/shared/AquaponicMonitorWidget'
-import { AeroponicMonitorWidget } from '@/components/shared/AeroponicMonitorWidget'
-import GeographicMatchingWidget from '@/components/shared/GeographicMatchingWidget'
-import { AccessoriesManager } from '@/components/AccessoriesManager'
-import { BedManager } from '@/components/gardens/BedManager'
+
+
+
+
+
+
 import { ReadingForm } from '@/components/hydroponic/ReadingForm'
 import { getDailyGardenPlan } from '@/logic/director'
 import { DailyPlan } from '@/types'
@@ -49,7 +47,7 @@ import { useRouter } from 'next/navigation'
 import { QuickActions } from './QuickActions'
 import { GardenSelectorCard } from './GardenSelectorCard'
 import { TaskCard } from './TaskCard'
-import WeatherWidget from '@/components/WeatherWidget'
+import WeatherLunarWidget from '@/components/WeatherLunarWidget'
 import { GardenCard } from './GardenCard'
 import { ProgressCard } from './ProgressCard'
 import { WeatherTaskWidget } from './WeatherTaskAlert'
@@ -101,14 +99,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
   const [isGardenSelectorOpen, setIsGardenSelectorOpen] = useState(false)
   const [irrigationZones, setIrrigationZones] = useState<IrrigationZone[]>([])
   const [loadingIrrigationZones, setLoadingIrrigationZones] = useState(false)
-  const [gardenType, setGardenType] = useState<'Summer' | 'Winter'>('Winter')
   const [showSeedInventory, setShowSeedInventory] = useState(false)
-  const [showSeedlingManager, setShowSeedlingManager] = useState(false)
-  const [showSaplingManager, setShowSaplingManager] = useState(false)
-  const [showVacationMode, setShowVacationMode] = useState(false)
-  const [showSpecializedCropManagement, setShowSpecializedCropManagement] = useState<string | null>(null)
-  const [prepTasks, setPrepTasks] = useState<any[]>([])
-  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
   const [weather, setWeather] = useState<{ temp: number; code: number; rainForecastMm: number } | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
   const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(null)
@@ -119,13 +110,14 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
   const [baselineSearch, setBaselineSearch] = useState('')
   const [baselinePriorityFilter, setBaselinePriorityFilter] = useState<'All' | 'High' | 'Medium' | 'Low'>('All')
   // NEW STATES FOR ADVANCED SYSTEM WIDGETS
-  const [showHydroponicReadingForm, setShowHydroponicReadingForm] = useState(false)
-  const [showAquaponicReadingForm, setShowAquaponicReadingForm] = useState(false)
-  const [showAeroponicReadingForm, setShowAeroponicReadingForm] = useState(false)
-  const [showAccessoriesManager, setShowAccessoriesManager] = useState(false)
-  const [showBedManager, setShowBedManager] = useState(false)
   const [showIrrigationManager, setShowIrrigationManager] = useState(false)
   const [showReadingForm, setShowReadingForm] = useState<'hydroponic' | 'aquaponic' | 'aeroponic' | null>(null)
+  
+  // States for modals
+  const [showVacationMode, setShowVacationMode] = useState(false)
+  const [showSeedlingManager, setShowSeedlingManager] = useState(false)
+  const [showSaplingManager, setShowSaplingManager] = useState(false)
+  const [showSpecializedCropManagement, setShowSpecializedCropManagement] = useState<'FruitTree' | 'Strawberry' | 'Olive' | 'Vine' | 'ExoticFruit' | 'Aromatic' | 'Raspberry' | null>(null)
   
   // States for new garden creation
   const [showGardenTypeWizard, setShowGardenTypeWizard] = useState(false)
@@ -289,28 +281,12 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
     loadShowAll()
   }, [activeGarden?.id, storageProvider])
 
-  // Inizializza gardenType solo quando cambia activeGarden
+  // Load weather when active garden changes
   useEffect(() => {
-    if (activeGarden) {
-      // Determina tipo orto basato sul mese solo quando cambia l'orto attivo
-      const month = new Date().getMonth() + 1
-      setGardenType((month >= 4 && month <= 9) ? 'Summer' : 'Winter')
-      
-      // Carica meteo
-      if (activeGarden.coordinates) {
-        fetchWeather(activeGarden.coordinates.latitude, activeGarden.coordinates.longitude)
-      }
+    if (activeGarden && activeGarden.coordinates) {
+      fetchWeather(activeGarden.coordinates.latitude, activeGarden.coordinates.longitude)
     }
   }, [activeGarden])
-
-  // Aggiorna i task preparatori quando cambia gardenType o activeGarden
-  useEffect(() => {
-    if (activeGarden) {
-      // Carica lavori preparatori con il gardenType corrente (che può essere cambiato dall'utente)
-      const prep = generateWinterPreparationPlan(activeGarden, gardenType)
-      setPrepTasks(prep)
-    }
-  }, [activeGarden, gardenType])
 
   const loadDailyPlan = React.useCallback(async () => {
     if (!activeGarden || !gardenTasks) return
@@ -413,47 +389,6 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
     }
   }
 
-  const moonPhase = calculateMoonPhase(new Date())
-  const moonName = moonPhase.isWaxing ? 'Primo Quarto' : moonPhase.isWaning ? 'Ultimo Quarto' : moonPhase.phase === 'Full' ? 'Luna Piena' : moonPhase.phase === 'New' ? 'Luna Nuova' : 'Primo Quarto'
-  const moonAdvice = moonPhase.isWaxing ? 'Luna Crescente: Ideale per semina foglie/frutti e trapianti' : moonPhase.isWaning ? 'Luna Calante: Ideale per semina radici e raccolta foglie' : ''
-
-  const getSoilLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      'Loamy': 'Franco',
-      'Clay': 'Argilloso',
-      'Sandy': 'Sabbioso',
-      'Silty': 'Limoso'
-    }
-    return labels[type] || type
-  }
-
-  const getWeatherLabel = (code: number) => {
-    if (code <= 3) return 'Sereno'
-    if (code <= 48) return 'Nuvoloso'
-    if (code <= 55) return 'Pioggia leggera'
-    if (code <= 65) return 'Pioggia'
-    if (code <= 77) return 'Neve'
-    return 'Nuvoloso'
-  }
-
-  const getIrrigationStatus = () => {
-    if (!weather) return { status: 'IRRIGAZIONE REGOLARE', detail: 'Meteo stabile.', color: 'bg-green-50 border-green-200' }
-    if (weather.rainForecastMm > 5) return { status: 'IRRIGAZIONE SOSPESA', detail: 'Pioggia prevista.', color: 'bg-blue-50 border-blue-200' }
-    if (weather.temp > 25) return { status: 'IRRIGAZIONE AUMENTATA', detail: 'Temperature elevate.', color: 'bg-orange-50 border-orange-200' }
-    return { status: 'IRRIGAZIONE REGOLARE', detail: 'Meteo stabile.', color: 'bg-green-50 border-green-200' }
-  }
-
-  const irrigationStatus = getIrrigationStatus()
-  const winterTasks = tasks.filter(t => !t.completed && t.season === 'Winter').length
-  const upcomingReminders = tasks.filter(t => {
-    if (!t.nextDueDate || t.completed) return false
-    const due = new Date(t.nextDueDate)
-    const diffDays = Math.ceil((due.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-    return diffDays >= 0 && diffDays <= 7
-  }).length
-
-  const activePlants = tasks.filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant')).length
-
   if (!activeGarden) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -491,9 +426,9 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
             <GardenCard garden={activeGarden} tasks={gardenTasks} />
           )}
 
-          {/* Weather Widget - 7 Day Forecast */}
+          {/* Weather + Lunar Widget - Unified forecast with lunar advice */}
           {activeGarden && activeGarden.coordinates?.latitude && activeGarden.coordinates?.longitude && (
-            <WeatherWidget
+            <WeatherLunarWidget
               latitude={activeGarden.coordinates.latitude}
               longitude={activeGarden.coordinates.longitude}
               gardens={gardens}
@@ -733,482 +668,10 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
           </div>
         )}
 
-        {/* Bottom Row: Health + Upcoming */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {/* Widget Stato Salute */}
-          {(() => {
-            const activePlants = gardenTasks.filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant'))
-            const healthStatus = activePlants.length > 0 ? 'good' : 'none'
-            
-            return (
-              <Link href="/app/advice" className="block">
-                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow h-full">
-                  <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Heart size={18} className="text-green-600" />
-                    Stato Salute
-                  </h3>
-                  
-                  {healthStatus === 'none' ? (
-                    <p className="text-sm text-gray-600">Aggiungi piante per monitorare la loro salute</p>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-2xl flex-shrink-0">
-                          😊
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="text-green-600 font-semibold mb-0.5">Buono</h4>
-                          <p className="text-xs text-gray-500">{activePlants.length} piante monitorate</p>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-sm text-green-600">
-                          ✅ {activePlants.length} piante in salute
-                        </div>
-                        <div className="flex items-center gap-2 p-2 bg-amber-100 rounded-lg text-sm text-amber-600">
-                          ⚠️ 0 richiedono attenzione
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </Link>
-            )
-          })()}
-
-          {/* Prossimi Giorni */}
-          {(() => {
-            const nextDays = [1, 2, 3, 4, 5, 6, 7].map(days => {
-              const date = addDays(new Date(), days)
-              const dayTasks = gardenTasks.filter(t => {
-                if (t.completed) return false
-                const taskDate = t.nextDueDate ? parseISO(t.nextDueDate) : parseISO(t.date)
-                return isSameDay(taskDate, date)
-              })
-              return { date, tasks: dayTasks, dayName: format(date, 'EEEE', { locale: it }) }
-            })
-            
-            const hasUpcomingTasks = nextDays.some(d => d.tasks.length > 0)
-            
-            return (
-              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm h-full">
-                <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Calendar size={18} className="text-gray-600" />
-                  Prossimi Giorni
-                </h3>
-                
-                {!hasUpcomingTasks ? (
-                  <p className="text-sm text-gray-600 text-center py-4">
-                    Nessun task programmato per i prossimi 7 giorni
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {nextDays.filter(d => d.tasks.length > 0).slice(0, 5).map((day, idx) => (
-                      <Link
-                        key={idx}
-                        href={`/app/garden?tab=calendar&date=${format(day.date, 'yyyy-MM-dd')}`}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="bg-white px-2.5 py-1 rounded-lg text-xs font-semibold text-gray-600 border border-gray-200">
-                            {format(day.date, 'dd', { locale: it })}
-                          </span>
-                          <span className="text-sm text-gray-900 capitalize">{day.dayName}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded font-medium">
-                            {day.tasks.length} task
-                          </span>
-                          <ArrowRight size={14} className="text-gray-400" />
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )
-          })()}
-        </div>
-
         {/* Progress Card */}
         {activeGarden && (
           <ProgressCard tasks={gardenTasks} gardenId={activeGarden.id} />
         )}
-
-        {/* Irrigation Status - Spostato dopo Prossimi Giorni */}
-
-        {/* Preparatory Works */}
-        {prepTasks.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Wrench size={20} className="text-blue-600" />
-                <h3 className="font-bold text-gray-900">
-                  Preparazione per orto {gardenType === 'Summer' ? 'estivo' : 'invernale'}
-                </h3>
-              </div>
-              <Info size={18} className="text-blue-600" />
-            </div>
-            <div className="space-y-2">
-              {prepTasks.slice(0, 5).map((task) => (
-                <div key={task.id} className="bg-white rounded-lg border border-blue-100 p-3">
-                  <button
-                    onClick={() => setExpandedTaskId(expandedTaskId === task.id ? null : task.id)}
-                    className="w-full text-left"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="font-semibold text-sm text-gray-900">{task.title}</p>
-                        <p className="text-xs text-gray-600 mt-1">{task.description}</p>
-                        <span className="inline-block mt-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                          {task.category === 'Structure' ? 'Struttura' : task.category === 'Fertilization' ? 'Concimazione' : 'Pianificazione'} {task.dueMonth === 1 ? 'Gen' : 'Feb'}
-                        </span>
-                      </div>
-                      <ChevronDown 
-                        size={18} 
-                        className={`text-gray-400 transition-transform ${expandedTaskId === task.id ? 'rotate-180' : ''}`}
-                      />
-                    </div>
-                  </button>
-                  {expandedTaskId === task.id && (
-                    <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
-                      <div>
-                        <p className="text-xs font-semibold text-gray-700 mb-1">Materiali:</p>
-                        <ul className="text-xs text-gray-600 space-y-1">
-                          {task.materials.map((mat: string, idx: number) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <span className="text-blue-600 mt-0.5">•</span>
-                              <span>{mat}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-gray-700 mb-1">Istruzioni:</p>
-                        <ol className="text-xs text-gray-600 space-y-1">
-                          {task.instructions.map((inst: string, idx: number) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <span className="text-blue-600 font-semibold">{idx + 1}.</span>
-                              <span>{inst}</span>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-                      <div className="flex items-center justify-between pt-2">
-                        <span className="text-xs text-gray-500">Tempo stimato: {task.estimatedTime}</span>
-                        <button
-                          onClick={async () => {
-                            // Aggiungi al diario
-                            if (storageProvider && activeGarden) {
-                              const newTask: GardenTask = {
-                                id: crypto.randomUUID(),
-                                gardenId: activeGarden.id,
-                                plantName: task.title,
-                                taskType: 'Treatment', // Usa Treatment come default per task generici
-                                date: new Date().toISOString().split('T')[0],
-                                notes: `${task.description}\n\nMateriali: ${task.materials.join(', ')}\nTempo: ${task.estimatedTime}`,
-                                completed: false,
-                                season: gardenType
-                              }
-                              try {
-                                await storageProvider.createTask(newTask)
-                                // Ricarica i tasks
-                                const updatedTasks = await storageProvider.getTasks(activeGarden.id)
-                                if (onUpdateTask && updatedTasks) {
-                                  // Notifica il parent component se necessario
-                                }
-                                alert('Lavoro aggiunto al Diario!')
-                              } catch (error) {
-                                console.error('Error adding task:', error)
-                                alert('Errore nell\'aggiunta del lavoro')
-                              }
-                            }
-                          }}
-                          className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-                        >
-                          Aggiungi al Diario
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Lunar Phase */}
-        <div className="bg-gradient-to-br from-indigo-400 to-purple-600 rounded-xl p-5 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Moon size={28} className="text-yellow-200" />
-              <div>
-                <h3 className="font-bold text-lg">Fase Lunare</h3>
-                <p className="text-sm opacity-90">{moonName}</p>
-              </div>
-            </div>
-            <div className="text-4xl">🌙</div>
-          </div>
-          {moonAdvice && (
-            <p className="text-xs opacity-90 mt-2">{moonAdvice}</p>
-          )}
-        </div>
-
-        {/* Garden Type Selector */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setGardenType('Summer')}
-              className={`flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors ${
-                gardenType === 'Summer'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <Sun size={16} className="inline mr-1" />
-              Orto Estivo
-            </button>
-            <button
-              onClick={() => setGardenType('Winter')}
-              className={`flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-colors ${
-                gardenType === 'Winter'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <Snowflake size={16} className="inline mr-1" />
-              Orto Invernale
-            </button>
-          </div>
-        </div>
-
-        {/* Vacation Mode */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Package size={20} className="text-blue-600" />
-              <div>
-                <h3 className="font-semibold text-gray-900">Modalità Vacanza</h3>
-                <p className="text-xs text-gray-600">Piano di sopravvivenza per le tue piante</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowVacationMode(true)}
-              className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-            >
-              Imposta Vacanza
-            </button>
-          </div>
-        </div>
-
-        {/* Plant Coach */}
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-green-100 rounded-full p-2">
-              <Sun size={18} className="text-green-600" />
-            </div>
-            <div className="flex-1">
-              {activePlants > 0 ? (
-                <p className="text-sm text-gray-800">
-                  Hai {activePlants} pianta/e attiva/e. Vai al Diario per vedere i suggerimenti!
-                </p>
-              ) : (
-                <p className="text-sm text-gray-800">
-                  Nessuna pianta attiva al momento. Aggiungi una semina o trapianto per ricevere suggerimenti personalizzati!
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Activity Summary */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
-            <Calendar size={24} className="mx-auto mb-2 text-gray-600" />
-            <p className="text-xs text-gray-600 mb-1">ATTIVITÀ {gardenType === 'Summer' ? 'ESTIVE' : 'INVERNALI'}</p>
-            <p className="text-2xl font-bold text-gray-900">{winterTasks}</p>
-          </div>
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
-            <AlertTriangle size={24} className="mx-auto mb-2 text-orange-600" />
-            <p className="text-xs text-gray-600 mb-1">PROMEMORIA IN SCADENZA</p>
-            <p className="text-2xl font-bold text-gray-900">{upcomingReminders}</p>
-          </div>
-        </div>
-
-        {/* Seed Bank */}
-        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Package size={20} className="text-purple-600" />
-              <div>
-                <h3 className="font-semibold text-gray-900">Banca dei Semi</h3>
-                <p className="text-xs text-gray-600">Gestisci l'inventario dei tuoi semi</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowSeedInventory(true)}
-              className="text-xs bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
-            >
-              Apri
-            </button>
-          </div>
-        </div>
-
-        {/* Seedling Ready Widget */}
-        {activeGarden && (
-          <SeedlingReadyWidget 
-            garden={activeGarden} 
-            onOpenManager={() => setShowSeedlingManager(true)}
-          />
-        )}
-
-        {/* Sapling Ready Widget */}
-        {activeGarden && (
-          <SaplingReadyWidget 
-            garden={activeGarden} 
-            onOpenManager={() => setShowSaplingManager(true)}
-            onCreateOrchard={async (batch) => {
-              try {
-                if (!activeGarden) return
-                
-                // Create a specialized crop task for the orchard
-                const orchardTask: GardenTask = {
-                  id: crypto.randomUUID(),
-                  gardenId: activeGarden.id,
-                  plantName: batch.plantName,
-                  variety: batch.variety,
-                  taskType: 'Transplant',
-                  date: new Date().toISOString().split('T')[0],
-                  notes: `Impianto specializzato creato da alberello batch: ${batch.plantName} (${batch.variety || 'varietà standard'})\nQuantità: ${batch.quantity} piante\nPortinnesto: ${batch.rootstock || 'Non specificato'}`,
-                  completed: false,
-                  season: 'Summer',
-                  locationType: 'Ground',
-                  stage: 'Vegetative'
-                }
-                
-                // Create the task
-                await storageProvider.createTask(orchardTask)
-                
-                // Update the batch to link it to the created orchard
-                const updatedBatch = {
-                  ...batch,
-                  specializedCropId: orchardTask.id,
-                  phase: 'ReadyToOrchard' as const
-                }
-                await storageProvider.updateSaplingBatch(batch.id, updatedBatch)
-                
-                // Reload tasks and batches
-                const updatedTasks = await storageProvider.getTasks(activeGarden.id)
-                setGardenTasks(updatedTasks || [])
-                
-                alert(`Impianto specializzato creato con successo!\nPianta: ${batch.plantName}\nQuantità: ${batch.quantity} piante\nControlla il Diario per gestire il nuovo impianto.`)
-              } catch (error) {
-                console.error('Error creating orchard:', error)
-                alert('Errore durante la creazione dell\'impianto: ' + (error instanceof Error ? error.message : 'Errore sconosciuto'))
-              }
-            }}
-          />
-        )}
-
-        {/* Specialized Crops Widget */}
-        {activeGarden && tasks && (
-          <SpecializedCropsWidget
-            garden={activeGarden}
-            tasks={tasks}
-            onOpenManagement={(cropType) => setShowSpecializedCropManagement(cropType)}
-          />
-        )}
-
-        {/* Geographic Matching Widget */}
-        {activeGarden && (
-          <GeographicMatchingWidget garden={activeGarden} />
-        )}
-
-        {/* Advanced Growing Systems Widgets */}
-        {activeGarden && (
-          <>
-            {/* Hydroponic Monitor */}
-            {(activeGarden.gardenType?.startsWith('Hydroponic') || 
-              activeGarden.gardenType === 'NFT' || 
-              activeGarden.gardenType === 'DWC' || 
-              activeGarden.gardenType === 'EbbFlow' || 
-              activeGarden.gardenType === 'Drip' || 
-              activeGarden.gardenType === 'Wick' || 
-              activeGarden.gardenType === 'Kratky' ||
-              activeGarden.gardenType === 'Hydroponic') && (
-              <HydroponicMonitorWidget
-                garden={activeGarden}
-                onOpenDetails={() => setShowReadingForm('hydroponic')}
-              />
-            )}
-
-            {/* Aquaponic Monitor */}
-            {activeGarden.gardenType === 'Aquaponic' && (
-              <AquaponicMonitorWidget
-                garden={activeGarden}
-                onOpenDetails={() => setShowReadingForm('aquaponic')}
-              />
-            )}
-
-            {/* Aeroponic Monitor */}
-            {activeGarden.gardenType === 'Aeroponic' && (
-              <AeroponicMonitorWidget
-                garden={activeGarden}
-                onOpenDetails={() => setShowReadingForm('aeroponic')}
-              />
-            )}
-
-            {/* Accessories Widget */}
-            <AccessoriesWidget
-              garden={activeGarden}
-              onOpenManagement={() => setShowAccessoriesManager(true)}
-            />
-          </>
-        )}
-
-        {/* Garden Beds Widget - Always visible if garden exists */}
-        {activeGarden ? (
-          <GardenBedsWidget
-            garden={activeGarden}
-            tasks={tasks}
-            onOpenManagement={() => setShowBedManager(true)}
-          />
-        ) : (
-          <div className="bg-white p-4 rounded-2xl shadow-lg border border-gray-200">
-            <div className="text-center py-4 text-gray-500 text-sm">
-              Nessun giardino selezionato
-            </div>
-          </div>
-        )}
-
-        {/* Irrigation Zones Widget */}
-        {activeGarden && (
-          <IrrigationZonesWidget
-            garden={activeGarden}
-            tasks={tasks}
-            onOpenManager={() => setShowIrrigationManager(true)}
-          />
-        )}
-
-        {/* Urgent Reminders */}
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-          {upcomingReminders > 0 ? (
-            <div className="flex items-center gap-2">
-              <AlertTriangle size={20} className="text-orange-600" />
-              <p className="text-sm text-gray-800">
-                Hai {upcomingReminders} promemoria in scadenza. Controlla il Diario!
-              </p>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <CheckCircle size={20} className="text-green-600" />
-              <p className="text-sm text-gray-800">
-                Tutto sotto controllo! Nessuna scadenza imminente.
-              </p>
-            </div>
-          )}
-        </div>
       </main>
 
       {/* Modals */}
@@ -1463,53 +926,6 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Accessories Manager Modal */}
-      {showAccessoriesManager && activeGarden && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Gestione Accessori</h2>
-              <button
-                onClick={() => setShowAccessoriesManager(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            <div className="p-4">
-              <AccessoriesManager
-                garden={activeGarden}
-                onClose={() => setShowAccessoriesManager(false)}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bed Manager Modal */}
-      {showBedManager && activeGarden && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Gestione Zone di Coltivazione</h2>
-              <button
-                onClick={() => setShowBedManager(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            <div className="p-4">
-              <BedManager
-                garden={activeGarden}
-                tasks={tasks}
-                onClose={() => setShowBedManager(false)}
-              />
             </div>
           </div>
         </div>

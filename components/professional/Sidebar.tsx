@@ -22,6 +22,8 @@ import {
   Sprout,
   Heart,
   Droplets,
+  Leaf,
+  Shield,
 } from 'lucide-react'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { useEffect } from 'react'
@@ -29,6 +31,7 @@ import { useEffect } from 'react'
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
   { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
+  { icon: Leaf, label: 'Vivaio', path: '/app/semenzaio', tier: 'all' },
   { icon: Heart, label: 'Salute', path: '/app/advice', tier: 'all' },
   { icon: BarChart3, label: 'Progressi', path: '/app/progress', tier: 'all' },
   { icon: TreePine, label: 'Frutteto', path: '/app/orchard', tier: 'PRO', badge: 'PRO' },
@@ -37,6 +40,7 @@ const menuItems = [
   { icon: Droplets, label: 'Irrigazione', path: '/app/irrigation', tier: 'PRO', badge: 'PRO' },
   { icon: FlaskConical, label: 'Nutrizione & Trattamenti', path: '/app/nutrition', tier: 'PRO', badge: 'PRO' },
   { icon: Tractor, label: 'Lavorazioni', path: '/app/mechanical-work', tier: 'PRO', badge: 'PRO' },
+  { icon: Shield, label: 'GlobalG.A.P.', path: '/app/compliance', tier: 'PRO', badge: 'PRO' },
   { icon: BarChart3, label: 'Analytics', path: '/app/analytics', tier: 'PRO', badge: 'PRO' },
   { icon: Wifi, label: 'Smart Hub', path: '/app/smart', tier: 'all' },
   { icon: Database, label: 'Export', path: '/app/export', tier: 'PRO', badge: 'PRO' },
@@ -67,7 +71,7 @@ export function ProfessionalSidebar() {
     {
       title: 'PRINCIPALE',
       items: allMenuItems.filter(item =>
-        ['Dashboard', 'Il Mio Orto', 'Salute', 'Progressi'].includes(item.label)
+        ['Dashboard', 'Il Mio Orto', 'Vivaio', 'Salute', 'Progressi'].includes(item.label)
       ),
       tier: 'all',
       collapsible: false
@@ -85,7 +89,7 @@ export function ProfessionalSidebar() {
       tier: 'PRO',
       collapsible: true,
       items: allMenuItems.filter(item =>
-        ['Irrigazione', 'Analytics', 'Nutrizione & Trattamenti', 'Lavorazioni', 'Export'].includes(item.label)
+        ['Irrigazione', 'Analytics', 'Nutrizione & Trattamenti', 'Lavorazioni', 'GlobalG.A.P.', 'Export'].includes(item.label)
       )
     },
     {

@@ -8,6 +8,7 @@ import {
   Sprout,
   Heart,
   BarChart3,
+  Leaf,
 } from 'lucide-react'
 
 interface NavItem {
@@ -26,7 +27,7 @@ export function MobileBottomNav({ onMenuClick }: MobileBottomNavProps) {
   const navItems: NavItem[] = [
     { icon: LayoutDashboard, label: 'Home', path: '/app' },
     { icon: Sprout, label: 'Orto', path: '/app/garden' },
-    { icon: Heart, label: 'Salute', path: '/app/advice' },
+    { icon: Leaf, label: 'Vivaio', path: '/app/semenzaio' },
     { icon: BarChart3, label: 'Progressi', path: '/app/progress' },
   ]
 

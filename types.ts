@@ -748,6 +748,13 @@ export interface GardenTask {
     monthOfYear?: number; // Per Yearly: mese dell'anno (1-12)
   };
   treatmentProductId?: string; // ID prodotto trattamento (se taskType è 'Treatment')
+  
+  // AI Planning properties
+  surfaceHectares?: number; // Superficie in ettari per task AI
+  expectedYield?: number; // Resa attesa per task AI
+  estimatedCost?: number; // Costo stimato per task AI
+  aiGenerated?: boolean; // true se generato da AI Planning
+  planPhase?: number; // Numero fase del piano AI
   images?: string[]; // Base64 encoded images
   lastPhotoDate?: string; // To track weekly updates
   // Visual Garden Planner

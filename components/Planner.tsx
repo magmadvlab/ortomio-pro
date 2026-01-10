@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { getSeasonalSuggestions, getSpecificPlantDetails, isApiKeyConfigured, checkApiAvailableAsync } from '../services/geminiService';
 import { PlantSuggestion, GeoLocation, SpecificPlantInfo, Garden, GrowingLocation } from '../types';
-import { MapPin, Loader2, PlusCircle, Search, Leaf, ArrowRight, Droplets, FlaskConical, Scale, Edit3, Sun, Thermometer, Layers, Clock, Info, CalendarPlus, Settings, Gauge, Sprout, AlertTriangle, CheckCircle, Calendar, Sparkles, Box, LayoutGrid, Flower2, Package, Map as MapIcon } from 'lucide-react';
+import { MapPin, Loader2, PlusCircle, Search, Leaf, ArrowRight, Droplets, FlaskConical, Scale, Edit3, Sun, Thermometer, Layers, Clock, Info, CalendarPlus, Settings, Gauge, Sprout, AlertTriangle, CheckCircle, Calendar, Sparkles, Box, LayoutGrid, Flower2, Package, Map as MapIcon, Bot, TrendingUp, Camera } from 'lucide-react';
 import { getCurrentPositionWithRetry, getDefaultCoordinates } from '../services/geolocationService';
 import { findSeedsForPlant, getExpiringSeeds } from '@/services/seedInventoryService';
 import { calculateMoonPhase, getMoonPhaseName, isIdealPhaseFor } from '../logic/lunarCalendar';
@@ -38,6 +38,11 @@ import { ExoticFruitCrop } from '../types/exoticFruit';
 import { GardenBed } from '../types/gardenBed';
 import { useStorage } from '../packages/core/hooks/useStorage';
 import { calculateBedSpace } from '../logic/spaceCalculator';
+// AI Integration
+import AIPlanningWizard from './ai/AIPlanningWizard';
+import PlanPreviewModal from './ai/PlanPreviewModal';
+import AIActionButton from './ai/AIActionButton';
+import { ScalingPlan } from '../services/aiPlanningService';
 
 interface PlannerProps {
   onAddToJournal: (plantName: string, notes: string, variety?: string, method?: 'Seed' | 'Seedling' | 'Sapling', date?: string, taskType?: any, additionalData?: any) => void;
@@ -240,6 +245,11 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
   const [selectedBedId, setSelectedBedId] = useState<string | undefined>(undefined);
   const [bedSpaceCalculations, setBedSpaceCalculations] = useState<Record<string, any>>({});
   const [selectedVisualCategory, setSelectedVisualCategory] = useState<'all' | 'Orto' | 'Frutteto' | 'Esotici' | 'Aromatiche'>('all');
+
+  // AI Planning state
+  const [showAIWizard, setShowAIWizard] = useState(false);
+  const [showPlanPreview, setShowPlanPreview] = useState(false);
+  const [generatedPlan, setGeneratedPlan] = useState<ScalingPlan | null>(null);
 
   // Load user location on mount
   useEffect(() => {
@@ -777,6 +787,74 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
       }
   };
 
+  // AI Planning handlers
+  const handlePlanGenerated = (plan: ScalingPlan) => {
+    setGeneratedPlan(plan);
+    setShowAIWizard(false);
+    setShowPlanPreview(true);
+  };
+
+  const handlePlanConfirm = async (plan: ScalingPlan) => {
+    // Converti il piano AI in task del giardino
+    const newTasks: any[] = [];
+    
+    plan.timeline.forEach((phase) => {
+      phase.activities.forEach((activity) => {
+        const task = {
+          id: `ai-${Date.now()}-${Math.random()}`,
+          gardenId: garden.id,
+          plantName: `${plan.overview.totalSurface}ha - Fase ${phase.phaseNumber}`,
+          taskType: activity.type === 'sowing' ? 'Sowing' :
+                   activity.type === 'transplant' ? 'Transplant' :
+                   activity.type === 'fertilization' ? 'Fertilize' :
+                   activity.type === 'harvest' ? 'Harvest' : 'Treatment',
+          date: activity.date,
+          completed: false,
+          isSuggested: true,
+          suggestedBy: 'ai_planning_wizard',
+          suggestedDate: activity.date,
+          notes: `${activity.description}\n\nRisorse: ${activity.resources.join(', ')}\nOre stimate: ${activity.estimatedHours}h\nCosto: €${activity.cost}`,
+          surfaceHectares: phase.surfaceHectares,
+          expectedYield: phase.expectedYield,
+          estimatedCost: activity.cost,
+          aiGenerated: true,
+          planPhase: phase.phaseNumber
+        };
+        
+        // Usa onAddToJournal per ogni task
+        onAddToJournal(
+          task.plantName,
+          task.notes,
+          undefined, // variety
+          activity.type === 'sowing' ? 'Seed' : activity.type === 'transplant' ? 'Seedling' : undefined,
+          task.date,
+          task.taskType,
+          {
+            surfaceHectares: phase.surfaceHectares,
+            expectedYield: phase.expectedYield,
+            estimatedCost: activity.cost,
+            aiGenerated: true,
+            planPhase: phase.phaseNumber
+          }
+        );
+      });
+    });
+
+    setShowPlanPreview(false);
+    setGeneratedPlan(null);
+  };
+
+  const handlePlanReject = () => {
+    setShowPlanPreview(false);
+    setGeneratedPlan(null);
+  };
+
+  const handleConsultOnly = () => {
+    // Salva il piano per consultazione senza creare task
+    console.log('Piano salvato per consultazione:', generatedPlan);
+    setShowPlanPreview(false);
+  };
+
   const todayStr = new Date().toISOString().split('T')[0];
   const soilAnalysis = getSoilAnalysis();
   const fertRecommendation = getFertilizerRecommendation();
@@ -789,9 +867,32 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
           <button className="w-11 h-11 rounded-xl bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors">
             ←
           </button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-3xl font-bold text-gray-900">Pianifica Coltivazione</h1>
             <p className="text-sm text-gray-600 mt-1">Dashboard → Planner</p>
+          </div>
+          
+          {/* AI Integration Buttons */}
+          <div className="flex items-center gap-3">
+            {/* AI Action Button per assistenza generale */}
+            <AIActionButton
+              context={{
+                component: 'planner',
+                data: { garden, tasks: tasks.length },
+                action: 'suggest'
+              }}
+              variant="compact"
+            />
+            
+            {/* Bottone principale AI Planning */}
+            <button
+              onClick={() => setShowAIWizard(true)}
+              className="px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg hover:from-green-700 hover:to-blue-700 transition-all duration-200 flex items-center gap-2 shadow-lg"
+            >
+              <Bot size={20} />
+              <span className="font-medium">Pianifica con AI</span>
+              <Sparkles size={16} className="opacity-80" />
+            </button>
           </div>
         </div>
       </header>
@@ -951,6 +1052,95 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
               </div>
           )}
           </div>
+
+          {/* AI Generated Tasks Section */}
+          {tasks.filter(t => t.aiGenerated).length > 0 && (
+            <div className="bg-gradient-to-r from-blue-50 to-green-50 p-6 rounded-2xl border border-blue-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Bot size={24} className="text-blue-600" />
+                  <div>
+                    <h2 className="text-lg font-bold text-blue-800">Task Generati da AI</h2>
+                    <p className="text-sm text-blue-600">
+                      {tasks.filter(t => t.aiGenerated).length} task creati dal sistema di pianificazione AI
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <AIActionButton
+                    context={{
+                      component: 'planner',
+                      data: { aiTasks: tasks.filter(t => t.aiGenerated).length },
+                      action: 'optimize'
+                    }}
+                    variant="compact"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                {/* Fasi AI */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {Array.from(new Set(tasks.filter(t => t.aiGenerated).map(t => t.planPhase))).map(phase => (
+                    <span key={phase} className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
+                      Fase {phase}
+                    </span>
+                  ))}
+                </div>
+                
+                {/* Task AI più recenti */}
+                <div className="grid gap-3">
+                  {tasks.filter(t => t.aiGenerated).slice(0, 3).map((task) => (
+                    <div key={task.id} className="bg-white border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-3 h-3 rounded-full ${
+                            task.completed ? 'bg-green-500' : 'bg-blue-500'
+                          }`} />
+                          <div>
+                            <h4 className="font-medium text-gray-800">{task.plantName}</h4>
+                            <p className="text-sm text-gray-600">
+                              {task.taskType} • {new Date(task.date).toLocaleDateString('it-IT')}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Bot size={12} className="text-blue-500" />
+                              <span className="text-xs text-blue-600 font-medium">Generato da AI</span>
+                              {task.planPhase && (
+                                <span className="text-xs text-gray-500">• Fase {task.planPhase}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <AIActionButton
+                          context={{
+                            component: 'planner',
+                            data: task,
+                            action: 'optimize'
+                          }}
+                          variant="compact"
+                        />
+                      </div>
+                      
+                      {task.notes && (
+                        <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                          <p className="text-sm text-gray-700 line-clamp-2">{task.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                
+                {tasks.filter(t => t.aiGenerated).length > 3 && (
+                  <div className="text-center">
+                    <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                      Vedi tutti i {tasks.filter(t => t.aiGenerated).length} task AI →
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
       {/* SPECIALIZED CROPS SECTION */}
       {isPro && (
@@ -2235,6 +2425,26 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
             setShowPlantingWizard(false);
             setWizardPlantData(null);
           }}
+        />
+      )}
+
+      {/* AI Planning Wizard Modal */}
+      {showAIWizard && (
+        <AIPlanningWizard
+          garden={garden}
+          onPlanGenerated={handlePlanGenerated}
+          onClose={() => setShowAIWizard(false)}
+        />
+      )}
+
+      {/* Plan Preview Modal */}
+      {showPlanPreview && generatedPlan && (
+        <PlanPreviewModal
+          plan={generatedPlan}
+          onConfirm={handlePlanConfirm}
+          onReject={handlePlanReject}
+          onConsultOnly={handleConsultOnly}
+          isOpen={showPlanPreview}
         />
       )}
         </div>

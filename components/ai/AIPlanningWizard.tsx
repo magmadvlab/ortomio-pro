@@ -1,0 +1,712 @@
+/**
+ * AI Planning Wizard - Interfaccia per pianificazione predittiva coltivazioni
+ * Integrato con il sistema AI multi-provider esistente
+ */
+
+import React, { useState, useEffect } from 'react';
+import { 
+  Sprout, 
+  MapPin, 
+  Calculator, 
+  TrendingUp, 
+  AlertTriangle, 
+  CheckCircle,
+  Loader2,
+  Download,
+  Eye,
+  Calendar,
+  DollarSign,
+  Camera
+} from 'lucide-react';
+import { 
+  AIPlanningService, 
+  CropPlanningRequest, 
+  ScalingPlan 
+} from '../../services/aiPlanningService';
+import { Garden } from '../../types';
+
+interface AIPlanningWizardProps {
+  garden: Garden;
+  onPlanGenerated?: (plan: ScalingPlan) => void;
+  onClose?: () => void;
+}
+
+type WizardStep = 'crop' | 'surface' | 'details' | 'generating' | 'results';
+
+export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
+  garden,
+  onPlanGenerated,
+  onClose
+}) => {
+  const [currentStep, setCurrentStep] = useState<WizardStep>('crop');
+  const [request, setRequest] = useState<Partial<CropPlanningRequest>>({
+    location: {
+      latitude: garden.coordinates?.latitude || 45.0,
+      longitude: garden.coordinates?.longitude || 9.0,
+      region: garden.name || 'Italia'
+    },
+    soilType: garden.soilType,
+    irrigationAvailable: true,
+    targetMarket: 'fresh',
+    experienceLevel: 'intermediate'
+  });
+  const [generatedPlan, setGeneratedPlan] = useState<ScalingPlan | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Stati per analisi immagini
+  const [soilImage, setSoilImage] = useState<string | null>(null);
+  const [aerialImage, setAerialImage] = useState<string | null>(null);
+  const [varietyImage, setVarietyImage] = useState<string | null>(null);
+  const [soilAnalysis, setSoilAnalysis] = useState<any>(null);
+  const [layoutSuggestion, setLayoutSuggestion] = useState<any>(null);
+  const [varietyRecognition, setVarietyRecognition] = useState<any>(null);
+  const [isAnalyzingImages, setIsAnalyzingImages] = useState(false);
+
+  const cropOptions = [
+    { name: 'Fragole', icon: '🍓', season: 'Primavera-Estate', difficulty: 'Medium' },
+    { name: 'Pomodori', icon: '🍅', season: 'Estate', difficulty: 'Easy' },
+    { name: 'Lattuga', icon: '🥬', season: 'Tutto l\'anno', difficulty: 'Easy' },
+    { name: 'Zucchine', icon: '🥒', season: 'Estate', difficulty: 'Easy' },
+    { name: 'Peperoni', icon: '🌶️', season: 'Estate', difficulty: 'Medium' },
+    { name: 'Melanzane', icon: '🍆', season: 'Estate', difficulty: 'Medium' },
+    { name: 'Basilico', icon: '🌿', season: 'Primavera-Estate', difficulty: 'Easy' },
+    { name: 'Carote', icon: '🥕', season: 'Autunno-Inverno', difficulty: 'Easy' }
+  ];
+
+  const handleImageUpload = async (type: 'soil' | 'aerial' | 'variety', file: File) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target?.result as string;
+      const base64Data = base64.split(',')[1];
+      
+      if (type === 'soil') {
+        setSoilImage(base64);
+        setIsAnalyzingImages(true);
+        try {
+          const analysis = await AIPlanningService.analyzeSoilFromImage(
+            base64Data,
+            request.cropName || 'coltura generica',
+            request.location!
+          );
+          setSoilAnalysis(analysis);
+        } catch (error) {
+          console.error('Soil analysis failed:', error);
+        } finally {
+          setIsAnalyzingImages(false);
+        }
+      } else if (type === 'aerial') {
+        setAerialImage(base64);
+        setIsAnalyzingImages(true);
+        try {
+          const layout = await AIPlanningService.suggestLayoutFromAerial(
+            base64Data,
+            request.surfaceHectares || 1,
+            request.cropName || 'coltura generica'
+          );
+          setLayoutSuggestion(layout);
+        } catch (error) {
+          console.error('Layout suggestion failed:', error);
+        } finally {
+          setIsAnalyzingImages(false);
+        }
+      } else if (type === 'variety') {
+        setVarietyImage(base64);
+        setIsAnalyzingImages(true);
+        try {
+          const recognition = await AIPlanningService.recognizeVarietyFromImage(
+            base64Data,
+            request.cropName
+          );
+          setVarietyRecognition(recognition);
+        } catch (error) {
+          console.error('Variety recognition failed:', error);
+        } finally {
+          setIsAnalyzingImages(false);
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleGeneratePlan = async () => {
+    if (!request.cropName || !request.surfaceHectares) {
+      setError('Compila tutti i campi obbligatori');
+      return;
+    }
+
+    setCurrentStep('generating');
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      const plan = await AIPlanningService.generateScalingPlan(
+        request as CropPlanningRequest,
+        'current-user', // In produzione, usa l'ID utente reale
+        soilAnalysis,
+        layoutSuggestion
+      );
+      
+      setGeneratedPlan(plan);
+      setCurrentStep('results');
+      onPlanGenerated?.(plan);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Errore nella generazione del piano');
+      setCurrentStep('details');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 'crop':
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <Sprout size={48} className="mx-auto text-green-600 mb-4" />
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                Cosa vuoi coltivare?
+              </h2>
+              <p className="text-gray-600">
+                Seleziona la coltura per cui vuoi creare un piano di scaglionamento
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {cropOptions.map((crop) => (
+                <button
+                  key={crop.name}
+                  onClick={() => {
+                    setRequest(prev => ({ ...prev, cropName: crop.name }));
+                    setCurrentStep('surface');
+                  }}
+                  className={`p-4 rounded-xl border-2 transition-all hover:shadow-lg ${
+                    request.cropName === crop.name
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-200 hover:border-green-300'
+                  }`}
+                >
+                  <div className="text-3xl mb-2">{crop.icon}</div>
+                  <div className="font-semibold text-gray-800">{crop.name}</div>
+                  <div className="text-xs text-gray-500 mt-1">{crop.season}</div>
+                  <div className="text-xs text-blue-600 mt-1">{crop.difficulty}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'surface':
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <MapPin size={48} className="mx-auto text-green-600 mb-4" />
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                Quale superficie?
+              </h2>
+              <p className="text-gray-600">
+                Indica l'area totale che vuoi dedicare a {request.cropName}
+              </p>
+            </div>
+
+            <div className="max-w-md mx-auto space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Superficie (ettari)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  max="100"
+                  value={request.surfaceHectares || ''}
+                  onChange={(e) => setRequest(prev => ({ 
+                    ...prev, 
+                    surfaceHectares: parseFloat(e.target.value) || 0 
+                  }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg text-center"
+                  placeholder="es. 2.5"
+                />
+              </div>
+
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="text-sm text-blue-800">
+                  <strong>Suggerimento:</strong> Per iniziare, considera:
+                  <ul className="mt-2 space-y-1">
+                    <li>• 0.5-1 ha: Ideale per test e apprendimento</li>
+                    <li>• 1-3 ha: Buon equilibrio produzione/gestibilità</li>
+                    <li>• 3+ ha: Scala commerciale, richiede esperienza</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setCurrentStep('crop')}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Indietro
+                </button>
+                <button
+                  onClick={() => setCurrentStep('details')}
+                  disabled={!request.surfaceHectares || request.surfaceHectares <= 0}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Continua
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'details':
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <Calculator size={48} className="mx-auto text-green-600 mb-4" />
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                Dettagli del progetto
+              </h2>
+              <p className="text-gray-600">
+                Informazioni aggiuntive e analisi AI per personalizzare il piano
+              </p>
+            </div>
+
+            <div className="max-w-4xl mx-auto space-y-8">
+              {/* Sezione Analisi Immagini AI */}
+              <div className="bg-gradient-to-r from-blue-50 to-green-50 p-6 rounded-xl border border-blue-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <Camera size={20} />
+                  Analisi AI con Immagini (Opzionale)
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Carica immagini per ottenere analisi AI avanzate e raccomandazioni personalizzate
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Analisi Terreno */}
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <h4 className="font-medium text-gray-800 mb-2">📸 Foto Terreno</h4>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Analisi tipo suolo, drenaggio, idoneità
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => e.target.files?.[0] && handleImageUpload('soil', e.target.files[0])}
+                      className="w-full text-xs"
+                    />
+                    {soilImage && (
+                      <div className="mt-2">
+                        <img src={soilImage} alt="Soil" className="w-full h-20 object-cover rounded" />
+                        {soilAnalysis && (
+                          <div className="mt-2 text-xs">
+                            <div className="flex items-center gap-1">
+                              <span className={`w-2 h-2 rounded-full ${
+                                soilAnalysis.suitability === 'excellent' ? 'bg-green-500' :
+                                soilAnalysis.suitability === 'good' ? 'bg-yellow-500' : 'bg-red-500'
+                              }`} />
+                              <span className="capitalize">{soilAnalysis.suitability}</span>
+                            </div>
+                            <p className="text-gray-600 mt-1">{soilAnalysis.soilType}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Layout Aereo */}
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <h4 className="font-medium text-gray-800 mb-2">🛰️ Foto Aerea</h4>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Suggerimenti layout e zonizzazione
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => e.target.files?.[0] && handleImageUpload('aerial', e.target.files[0])}
+                      className="w-full text-xs"
+                    />
+                    {aerialImage && (
+                      <div className="mt-2">
+                        <img src={aerialImage} alt="Aerial" className="w-full h-20 object-cover rounded" />
+                        {layoutSuggestion && (
+                          <div className="mt-2 text-xs">
+                            <div className="flex items-center gap-1">
+                              <TrendingUp size={12} className="text-blue-500" />
+                              <span>Efficienza: {layoutSuggestion.efficiency_score}%</span>
+                            </div>
+                            <p className="text-gray-600 mt-1">
+                              {layoutSuggestion.layout.zones.length} zone identificate
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Riconoscimento Varietà */}
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <h4 className="font-medium text-gray-800 mb-2">🌱 Foto Varietà</h4>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Identificazione varietà e caratteristiche
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => e.target.files?.[0] && handleImageUpload('variety', e.target.files[0])}
+                      className="w-full text-xs"
+                    />
+                    {varietyImage && (
+                      <div className="mt-2">
+                        <img src={varietyImage} alt="Variety" className="w-full h-20 object-cover rounded" />
+                        {varietyRecognition && (
+                          <div className="mt-2 text-xs">
+                            <div className="flex items-center gap-1">
+                              <CheckCircle size={12} className="text-green-500" />
+                              <span>{Math.round(varietyRecognition.confidence * 100)}% sicurezza</span>
+                            </div>
+                            <p className="text-gray-600 mt-1 font-medium">
+                              {varietyRecognition.identified_variety}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {isAnalyzingImages && (
+                  <div className="mt-4 flex items-center justify-center gap-2 text-blue-600">
+                    <Loader2 size={16} className="animate-spin" />
+                    <span className="text-sm">Analisi AI in corso...</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Parametri Tradizionali */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mercato di destinazione
+                  </label>
+                  <select
+                    value={request.targetMarket}
+                    onChange={(e) => setRequest(prev => ({ 
+                      ...prev, 
+                      targetMarket: e.target.value as any 
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="fresh">Mercato fresco</option>
+                    <option value="processing">Industria di trasformazione</option>
+                    <option value="export">Export</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Livello di esperienza
+                  </label>
+                  <select
+                    value={request.experienceLevel}
+                    onChange={(e) => setRequest(prev => ({ 
+                      ...prev, 
+                      experienceLevel: e.target.value as any 
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="beginner">Principiante</option>
+                    <option value="intermediate">Intermedio</option>
+                    <option value="expert">Esperto</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Budget disponibile (opzionale)
+                </label>
+                <input
+                  type="number"
+                  step="1000"
+                  min="0"
+                  value={request.budget || ''}
+                  onChange={(e) => setRequest(prev => ({ 
+                    ...prev, 
+                    budget: parseInt(e.target.value) || undefined 
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  placeholder="es. 50000"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Aiuta l'AI a dimensionare il piano sui tuoi investimenti
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="irrigation"
+                  checked={request.irrigationAvailable}
+                  onChange={(e) => setRequest(prev => ({ 
+                    ...prev, 
+                    irrigationAvailable: e.target.checked 
+                  }))}
+                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                />
+                <label htmlFor="irrigation" className="text-sm text-gray-700">
+                  Irrigazione disponibile
+                </label>
+              </div>
+
+              {/* Riepilogo Analisi AI */}
+              {(soilAnalysis || layoutSuggestion || varietyRecognition) && (
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h4 className="font-medium text-green-800 mb-2">🤖 Analisi AI Completate</h4>
+                  <div className="space-y-2 text-sm text-green-700">
+                    {soilAnalysis && (
+                      <div>✅ Terreno analizzato: {soilAnalysis.suitability} per {request.cropName}</div>
+                    )}
+                    {layoutSuggestion && (
+                      <div>✅ Layout ottimizzato: {layoutSuggestion.efficiency_score}% efficienza</div>
+                    )}
+                    {varietyRecognition && (
+                      <div>✅ Varietà identificata: {varietyRecognition.identified_variety}</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <AlertTriangle size={20} className="text-red-600 mr-2" />
+                    <span className="text-red-800">{error}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setCurrentStep('surface')}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Indietro
+                </button>
+                <button
+                  onClick={handleGeneratePlan}
+                  disabled={isGenerating || isAnalyzingImages}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Generazione...
+                    </>
+                  ) : (
+                    <>
+                      <TrendingUp size={16} />
+                      Genera Piano AI
+                      {(soilAnalysis || layoutSuggestion || varietyRecognition) && (
+                        <span className="ml-1 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                          +AI
+                        </span>
+                      )}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'generating':
+        return (
+          <div className="text-center py-12">
+            <Loader2 size={64} className="mx-auto text-green-600 animate-spin mb-6" />
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+              Generazione piano in corso...
+            </h2>
+            <div className="max-w-md mx-auto space-y-3 text-gray-600">
+              <p>🧠 Analisi dati climatici e agronomici</p>
+              <p>📊 Calcolo scaglionamento ottimale</p>
+              <p>💰 Stima costi e ricavi</p>
+              <p>⚠️ Valutazione rischi</p>
+              <p>📋 Generazione raccomandazioni</p>
+            </div>
+          </div>
+        );
+
+      case 'results':
+        if (!generatedPlan) return null;
+        
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <CheckCircle size={48} className="mx-auto text-green-600 mb-4" />
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                Piano generato con successo!
+              </h2>
+              <p className="text-gray-600">
+                Ecco il tuo piano di scaglionamento personalizzato
+              </p>
+            </div>
+
+            {/* Overview Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {generatedPlan.overview.plantingPeriods}
+                </div>
+                <div className="text-sm text-blue-800">Fasi di semina</div>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {generatedPlan.overview.estimatedYield.toFixed(1)}t
+                </div>
+                <div className="text-sm text-green-800">Produzione stimata</div>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-purple-600">
+                  €{(generatedPlan.overview.totalInvestment / 1000).toFixed(0)}k
+                </div>
+                <div className="text-sm text-purple-800">Investimento</div>
+              </div>
+              <div className="bg-orange-50 p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {generatedPlan.overview.roi.toFixed(1)}%
+                </div>
+                <div className="text-sm text-orange-800">ROI stimato</div>
+              </div>
+            </div>
+
+            {/* Timeline Preview */}
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <Calendar size={20} />
+                Timeline Scaglionamento
+              </h3>
+              <div className="space-y-3">
+                {generatedPlan.timeline.slice(0, 3).map((phase, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <div className="font-medium">Fase {phase.phaseNumber}</div>
+                      <div className="text-sm text-gray-600">
+                        {phase.surfaceHectares} ha • {phase.expectedYield}t stimati
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-medium">
+                        {new Date(phase.startDate).toLocaleDateString('it-IT')}
+                      </div>
+                      <div className="text-xs text-gray-500">Inizio</div>
+                    </div>
+                  </div>
+                ))}
+                {generatedPlan.timeline.length > 3 && (
+                  <div className="text-center text-gray-500 text-sm">
+                    +{generatedPlan.timeline.length - 3} altre fasi...
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  // Implementa download PDF
+                  console.log('Download PDF:', generatedPlan);
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2"
+              >
+                <Download size={16} />
+                Scarica PDF
+              </button>
+              <button
+                onClick={() => {
+                  // Implementa visualizzazione dettagliata
+                  console.log('View details:', generatedPlan);
+                }}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+              >
+                <Eye size={16} />
+                Vedi Dettagli
+              </button>
+              <button
+                onClick={() => {
+                  // Implementa applicazione al giardino
+                  onPlanGenerated?.(generatedPlan);
+                  onClose?.();
+                }}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
+              >
+                <CheckCircle size={16} />
+                Applica Piano
+              </button>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">
+                AI Planning Wizard
+              </h1>
+              <p className="text-gray-600">
+                Pianificazione predittiva per {request.cropName || 'la tua coltivazione'}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Progress Bar */}
+          {currentStep !== 'generating' && currentStep !== 'results' && (
+            <div className="mb-8">
+              <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+                <span>Progresso</span>
+                <span>
+                  {currentStep === 'crop' ? '1' : currentStep === 'surface' ? '2' : '3'}/3
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                  style={{ 
+                    width: `${
+                      currentStep === 'crop' ? 33 : 
+                      currentStep === 'surface' ? 66 : 100
+                    }%` 
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Step Content */}
+          {renderStepContent()}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AIPlanningWizard;

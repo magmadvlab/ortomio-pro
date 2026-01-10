@@ -4,11 +4,12 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { ProFeatureGate } from '@/components/shared/ProFeatureGate'
-import { Tractor, Plus, Calendar, MapPin, Ruler, Wrench, FileText, Loader2, AlertTriangle, Sparkles } from 'lucide-react'
+import { Tractor, Plus, Calendar, MapPin, Ruler, Wrench, FileText, Loader2, AlertTriangle, Sparkles, Settings, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { suggestTillageWork, TillageWork, calculateTemperaTiming } from '@/logic/tillageEngine'
 import { getMechanicalWorksForCrop, cropMechanicalWorksConfig } from '@/data/cropMechanicalWork'
+import { AccessoriesManager } from '@/components/AccessoriesManager'
 
 // Work types
 type WorkType = 
@@ -78,6 +79,7 @@ export default function MechanicalWorkPage() {
   const [gardens, setGardens] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [showAccessoriesManager, setShowAccessoriesManager] = useState(false)
   const [selectedGardenId, setSelectedGardenId] = useState<string>('')
   const [selectedCropId, setSelectedCropId] = useState<string>('')
 
@@ -126,19 +128,29 @@ export default function MechanicalWorkPage() {
         const gardenBeds = await storageProvider.getGardenBeds(selectedGardenId)
         setBeds(gardenBeds || [])
 
-        // Carica file se ci sono aiuole
+        const allRows: any[] = []
+
+        // Carica filari di aiuole (garden_rows)
         if (gardenBeds && gardenBeds.length > 0) {
-          const allRows: any[] = []
           for (const bed of gardenBeds) {
             const bedRows = await storageProvider.getGardenRows(bed.id)
             if (bedRows) {
-              allRows.push(...bedRows)
+              allRows.push(...bedRows.map(row => ({ ...row, type: 'garden_row' })))
             }
           }
-          setRows(allRows)
-        } else {
-          setRows([])
         }
+
+        // Carica filari di campo aperto (field_rows)
+        try {
+          const fieldRows = await storageProvider.getFieldRows(selectedGardenId)
+          if (fieldRows && fieldRows.length > 0) {
+            allRows.push(...fieldRows.map(row => ({ ...row, type: 'field_row' })))
+          }
+        } catch (error) {
+          console.warn('Field rows not available:', error)
+        }
+
+        setRows(allRows)
       } catch (error) {
         console.error('Error loading garden structure:', error)
         setBeds([])
@@ -246,10 +258,15 @@ export default function MechanicalWorkPage() {
     e.preventDefault()
     
     try {
+      // Determina il tipo di filare selezionato
+      const selectedRow = rows.find(row => row.id === selectedRowId)
+      const isFieldRow = selectedRow?.type === 'field_row'
+      
       const newWork = await storageProvider.createMechanicalWork({
         garden_id: selectedGardenId || undefined,
         bed_id: selectedBedId || undefined,
-        bed_row_id: selectedRowId || undefined,
+        bed_row_id: (selectedRowId && !isFieldRow) ? selectedRowId : undefined,
+        field_row_id: (selectedRowId && isFieldRow) ? selectedRowId : undefined,
         work_type: formData.work_type!,
         work_date: formData.work_date!,
         area_m2: formData.area_m2 ? parseFloat(formData.area_m2.toString()) : 0,
@@ -514,18 +531,27 @@ export default function MechanicalWorkPage() {
           </div>
         )}
 
-        {/* Pulsante Nuova Lavorazione */}
+        {/* Pulsanti Azioni */}
         <div className="mb-6 flex justify-between items-center">
           <div className="text-sm text-gray-600">
             {works.length} lavorazione{works.length !== 1 ? 'i' : ''} registrata{works.length !== 1 ? 'e' : ''}
           </div>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
-          >
-            <Plus size={20} />
-            {showForm ? 'Annulla' : 'Nuova Lavorazione'}
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowAccessoriesManager(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Settings size={20} />
+              Gestisci Attrezzature
+            </button>
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+            >
+              <Plus size={20} />
+              {showForm ? 'Annulla' : 'Nuova Lavorazione'}
+            </button>
+          </div>
         </div>
 
         {/* Form Nuova Lavorazione */}
@@ -554,32 +580,34 @@ export default function MechanicalWorkPage() {
               </div>
 
               {/* Selettori Micro-Zone (se disponibili) */}
-              {selectedGardenId && beds.length > 0 && (
+              {selectedGardenId && (beds.length > 0 || rows.length > 0) && (
                 <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                     <MapPin size={18} className="text-blue-600" />
                     Dove (opzionale)
                   </h3>
 
-                  {/* Bed selector */}
-                  <div className="mb-3">
-                    <label className="text-xs font-semibold text-gray-700 mb-2 block">
-                      Aiuola/Letto
-                    </label>
-                    <select
-                      value={selectedBedId}
-                      onChange={(e) => setSelectedBedId(e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Tutto l'orto</option>
-                      {beds.map(bed => (
-                        <option key={bed.id} value={bed.id}>{bed.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {/* Bed selector (solo se ci sono aiuole) */}
+                  {beds.length > 0 && (
+                    <div className="mb-3">
+                      <label className="text-xs font-semibold text-gray-700 mb-2 block">
+                        Aiuola/Letto
+                      </label>
+                      <select
+                        value={selectedBedId}
+                        onChange={(e) => setSelectedBedId(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Tutto l'orto</option>
+                        {beds.map(bed => (
+                          <option key={bed.id} value={bed.id}>{bed.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   {/* Row selector */}
-                  {rows.length > 0 && selectedBedId && (
+                  {rows.length > 0 && (
                     <div>
                       <label className="text-xs font-semibold text-gray-700 mb-2 block">
                         Fila/Filare
@@ -589,9 +617,16 @@ export default function MechanicalWorkPage() {
                         onChange={(e) => setSelectedRowId(e.target.value)}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="">Tutta l'aiuola</option>
-                        {rows.filter(row => row.bedId === selectedBedId).map(row => (
-                          <option key={row.id} value={row.id}>{row.name}</option>
+                        <option value="">{selectedBedId ? 'Tutta l\'aiuola' : 'Tutto l\'orto'}</option>
+                        
+                        {/* Filari di aiuole (solo se un'aiuola è selezionata) */}
+                        {selectedBedId && rows.filter(row => row.bedId === selectedBedId && row.type === 'garden_row').map(row => (
+                          <option key={row.id} value={row.id}>🌱 {row.name} (Aiuola)</option>
+                        ))}
+                        
+                        {/* Filari di campo aperto (sempre visibili) */}
+                        {rows.filter(row => row.type === 'field_row').map(row => (
+                          <option key={row.id} value={row.id}>🚜 {row.name} (Campo Aperto)</option>
                         ))}
                       </select>
                     </div>
@@ -957,6 +992,29 @@ export default function MechanicalWorkPage() {
           </div>
         )}
       </ProFeatureGate>
+
+      {/* Accessories Manager Modal */}
+      {showAccessoriesManager && selectedGardenId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold">Gestione Attrezzature</h2>
+              <button
+                onClick={() => setShowAccessoriesManager(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-4">
+              <AccessoriesManager
+                garden={gardens.find(g => g.id === selectedGardenId)}
+                onClose={() => setShowAccessoriesManager(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

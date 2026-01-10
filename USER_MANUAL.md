@@ -897,9 +897,342 @@ Per ogni valvola puoi:
 3. Assegna a una pianta o zona
 4. Configura impostazioni
 
----
+## Tracking Piante Individuali
 
-## Lavorazioni Meccaniche (Terreni Grandi)
+OrtoMio offre un **sistema professionale di tracking pianta-per-pianta** che permette di monitorare e gestire ogni singola pianta con precisione millimetrica. Ideale sia per piccoli orti hobbistici che per campi professionali con migliaia di piante.
+
+### Accesso al Sistema
+
+Il sistema di tracking individuale è accessibile da:
+
+- **Menu principale**: Sezione "🌱 Piante"
+- **Dashboard**: Widget "Gestione Piante Individuali" (se configurato)
+
+### Due Modalità di Gestione
+
+#### Smart Plant Manager (Consigliato per Professionisti)
+
+**Quando usare**: Campi con 100+ piante, operazioni di massa, gestione professionale
+
+**Caratteristiche**:
+- Selezione intelligente multipla
+- Operazioni di massa con foto strategiche
+- Vista heatmap per salute piante
+- Filtri avanzati e statistiche
+- Scalabile fino a 10.000+ piante
+
+#### Field Plant Manager (Configurazione Automatica)
+
+**Quando usare**: Creazione nuovi campi, calcoli automatici spaziature
+
+**Caratteristiche**:
+- Wizard guidato per configurazione campo
+- Calcoli automatici (1000 piante = 10 filari × 100 piante)
+- Generazione codici automatici (F1-P001, F1-P002...)
+- Configurazione distanze e spaziature
+
+### Configurazione Campo Automatica
+
+#### Wizard Configurazione
+
+1. **Accedi a Field Plant Manager**
+2. **Clicca "Crea Campo"**
+3. **Configura dimensioni**:
+   - Numero filari (es. 10)
+   - Lunghezza filare (es. 40 metri)
+   - Distanza tra piante (es. 40cm)
+   - Distanza tra filari (es. 150cm)
+
+4. **Configura coltura**:
+   - Nome pianta (es. Pomodoro)
+   - Varietà (es. San Marzano)
+   - Data piantagione
+   - Nome zona (es. Campo Principale)
+
+5. **Verifica calcoli automatici**:
+   - Piante totali: 1010 (calcolato automaticamente)
+   - Piante per filare: 101
+   - Area totale: 600 m²
+   - Densità: 1.67 piante/m²
+
+6. **Crea campo**: Sistema genera automaticamente:
+   - 10 filari con nomi progressivi
+   - 1010 piante con codici univoci
+   - Coordinate precise per ogni pianta
+   - Struttura database completa
+
+#### Codici Pianta Automatici
+
+Il sistema genera codici univoci per ogni pianta:
+
+- **F1-P001**: Filare 1, Pianta 001
+- **F1-P002**: Filare 1, Pianta 002
+- **F2-P001**: Filare 2, Pianta 001
+- **F10-P101**: Filare 10, Pianta 101
+
+### Smart Plant Manager - Gestione Avanzata
+
+#### Dashboard Statistiche
+
+La dashboard mostra statistiche in tempo reale:
+
+- **Piante totali**: Numero complessivo
+- **Piante sane**: Status "healthy"
+- **Piante malate**: Status "diseased" 
+- **Piante morte**: Status "dead"
+- **Salute media**: Percentuale media di salute
+
+#### Modalità Selezione Intelligente
+
+**5 modalità di selezione**:
+
+1. **🎯 Pianta Singola**: Seleziona una pianta specifica
+2. **👥 Gruppo Piante**: Range di piante (es. F1-P001 → F1-P020)
+3. **📋 Filare Completo**: Tutte le piante del filare
+4. **⚠️ Solo Problemi**: Piante malate o con salute < 70%
+5. **✅ Solo Sane**: Piante in buona salute (salute > 80%)
+
+#### Filtri Avanzati
+
+**Filtri disponibili**:
+- **Ricerca testo**: Cerca per codice pianta o varietà
+- **Stato**: Sane, malate, morte, raccolte
+- **Salute**: Eccellente (90-100%), Buona (70-89%), Discreta (50-69%), Scarsa (<50%)
+
+#### Visualizzazioni
+
+**3 modalità di visualizzazione**:
+
+1. **📊 Heatmap**: Vista colorata per salute piante
+   - Verde: Salute eccellente (90-100%)
+   - Giallo: Salute buona (70-89%)
+   - Arancione: Salute discreta (50-69%)
+   - Rosso: Salute scarsa (<50%)
+
+2. **🔲 Griglia**: Vista a griglia con dettagli pianta
+3. **📋 Lista**: Vista dettagliata con tutte le informazioni
+
+### Operazioni di Massa
+
+#### Tipi di Operazioni
+
+**4 operazioni principali**:
+
+1. **💧 Irrigazione**: Litri per pianta
+2. **⚡ Fertilizzazione**: Grammi per pianta  
+3. **✂️ Trattamento**: Millilitri per pianta
+4. **📸 Aggiornamento Salute**: Foto e note
+
+#### Strategie Foto Intelligenti
+
+Il sistema adatta la strategia foto in base al numero di piante:
+
+**🚫 Nessuna Foto** (Consigliata per 100+ piante):
+- Non scatta foto
+- Ideale per operazioni di massa su grandi campi
+
+**📸 Foto Campione** (Consigliata per 20-500 piante):
+- 5-10 piante rappresentative per filare
+- Distribuite uniformemente per ogni stato di salute
+- Ottimale per monitoraggio professionale
+
+**⚠️ Solo Problemi** (Consigliata quando ci sono piante malate):
+- Foto solo per piante con status "diseased" o salute < 70%
+- Documentazione mirata per problemi
+
+**📷 Tutte le Piante** (Consigliata per < 20 piante):
+- Foto per ogni singola pianta
+- Ideale per orti hobbistici piccoli
+
+#### Processo Operazione di Massa
+
+1. **Seleziona piante** con modalità desiderata
+2. **Clicca operazione** (Irrigazione/Fertilizzazione/Trattamento)
+3. **Configura parametri**:
+   - Quantità per pianta
+   - Unità di misura
+   - Nome prodotto (se applicabile)
+   - Strategia foto
+4. **Carica foto** (se richieste dalla strategia)
+5. **Verifica riepilogo**:
+   - Piante coinvolte
+   - Quantità totale
+   - Costo stimato
+6. **Applica operazione**
+
+#### Calcoli Automatici
+
+Il sistema calcola automaticamente:
+
+- **Quantità totale**: Quantità per pianta × Numero piante
+- **Costo stimato**: Basato su prezzi medi prodotti
+- **Tempo stimato**: Per completare l'operazione
+- **Foto necessarie**: In base alla strategia selezionata
+
+### Heatmap Salute Piante
+
+#### Visualizzazione Avanzata
+
+La heatmap mostra:
+
+- **Colori per salute**: Verde (sana) → Rosso (malata)
+- **Organizzazione per filare**: Piante ordinate per posizione
+- **Zoom dinamico**: Panoramica o dettaglio
+- **Hover informazioni**: Dettagli al passaggio mouse
+
+#### Drill-Down Pianta
+
+Cliccando su una pianta nella heatmap:
+
+- **Informazioni base**: Codice, varietà, posizione
+- **Stato salute**: Percentuale e classificazione
+- **Foto recenti**: Ultime foto scattate
+- **Note**: Annotazioni e osservazioni
+- **Azioni rapide**: Foto, aggiornamento salute
+
+#### Alert Automatici
+
+Il sistema genera alert per:
+
+- **🔴 Piante malate**: Status "diseased" o salute < 50%
+- **🟡 Piante a rischio**: Salute 50-70%
+- **📊 Statistiche anomale**: Filari con molte piante malate
+
+### Monitoraggio Salute
+
+#### Sistema di Punteggio
+
+Ogni pianta ha un **punteggio salute 0-100%**:
+
+- **90-100%**: 🟢 Eccellente
+- **70-89%**: 🟡 Buona  
+- **50-69%**: 🟠 Discreta
+- **0-49%**: 🔴 Scarsa
+
+#### Aggiornamento Automatico
+
+La salute si aggiorna automaticamente in base a:
+
+- **Operazioni eseguite**: Irrigazione (+2%), Fertilizzazione (+3%), Trattamenti (+5%)
+- **Condizioni meteo**: Stress da caldo/freddo
+- **Età pianta**: Declino naturale nel tempo
+- **Problemi rilevati**: Malattie, parassiti
+
+#### Foto e Documentazione
+
+Per ogni pianta puoi:
+
+- **Scattare foto**: Documentazione visiva stato
+- **Aggiungere note**: Osservazioni dettagliate
+- **Tracciare problemi**: Malattie, carenze, parassiti
+- **Monitorare progressi**: Timeline fotografica
+
+### Integrazione con Operazioni Tradizionali
+
+#### Compatibilità Esistente
+
+Il sistema di tracking individuale si integra con:
+
+- **Lavorazioni meccaniche**: Operazioni su filari specifici
+- **Irrigazioni**: Calcoli automatici per piante individuali  
+- **Fertilizzazioni**: Dosaggi per pianta singola
+- **Trattamenti**: Applicazioni mirate
+
+#### Tracciabilità Completa
+
+Ogni operazione viene registrata con:
+
+- **Piante coinvolte**: Lista codici pianta
+- **Data e ora**: Timestamp preciso
+- **Quantità applicate**: Per pianta e totale
+- **Condizioni meteo**: Temperatura, umidità, vento
+- **Foto documentazione**: Prima/dopo operazione
+- **Note operative**: Osservazioni e risultati
+
+### Scalabilità Sistema
+
+#### Per Piccoli Orti (< 100 piante)
+
+**Approccio consigliato**:
+- Foto individuali per ogni pianta
+- Monitoraggio dettagliato pianta-per-pianta
+- Selezione singola pianta
+- Operazioni mirate
+
+#### Per Campi Medi (100-1000 piante)
+
+**Approccio consigliato**:
+- Foto campione rappresentative
+- Operazioni di massa per filare
+- Monitoraggio per gruppi
+- Alert automatici per problemi
+
+#### Per Campi Grandi (1000+ piante)
+
+**Approccio consigliato**:
+- Foto solo per piante con problemi
+- Operazioni di massa estese
+- Vista heatmap per overview
+- Statistiche aggregate per filare
+
+### Best Practices
+
+#### Nomenclatura Piante
+
+**Codici automatici**:
+- Sistema genera automaticamente codici univoci
+- Formato: F[NumeroFilare]-P[NumeroPianta]
+- Esempio: F1-P001, F2-P045, F10-P100
+
+#### Frequenza Monitoraggio
+
+**Consigliata**:
+- **Controllo visivo**: Settimanale via heatmap
+- **Foto documentazione**: Ogni 15 giorni per piante sane
+- **Foto problemi**: Immediata per piante malate
+- **Aggiornamento salute**: Dopo ogni operazione
+
+#### Gestione Foto
+
+**Strategia efficiente**:
+- Comprimi foto automaticamente (< 1MB)
+- Usa foto campione per grandi campi
+- Documenta sempre piante con problemi
+- Mantieni timeline fotografica per analisi
+
+#### Operazioni di Massa
+
+**Pianificazione**:
+- Raggruppa operazioni simili
+- Verifica condizioni meteo
+- Prepara quantità totali necessarie
+- Documenta con foto rappresentative
+
+### Vantaggi Sistema
+
+#### Per Hobbisti
+
+- **Precisione**: Monitoraggio dettagliato ogni pianta
+- **Apprendimento**: Correlazioni tra cure e risultati
+- **Soddisfazione**: Vedere progressi individuali
+- **Ottimizzazione**: Identificare piante più produttive
+
+#### Per Professionisti
+
+- **Scalabilità**: Gestione migliaia di piante
+- **Efficienza**: Operazioni di massa intelligenti
+- **Tracciabilità**: Registro completo per certificazioni
+- **Analisi**: Statistiche per ottimizzazione produzione
+- **Compliance**: Documentazione per audit
+
+#### Per Ricerca
+
+- **Dati precisi**: Tracking individuale per studi
+- **Correlazioni**: Relazioni tra trattamenti e risultati
+- **Sperimentazione**: Test su gruppi controllati
+- **Documentazione**: Timeline completa per pubblicazioni
+
+---
 
 Per orti e terreni più grandi (> 1000 m²), OrtoMio fornisce suggerimenti specifici per lavorazioni meccaniche come aratura e fresatura.
 
@@ -1539,6 +1872,471 @@ Considera:
 - Tipo pianta
 - Fase crescita (germinazione, vegetativa, produzione)
 - Condizioni meteo (pioggia, temperatura)
+
+---
+
+## Microirrigazione e Sistemi Avanzati
+
+OrtoMio supporta la **microirrigazione per singolo filare** con configurazione precisa e calcoli automatici.
+
+### Configurazione Microirrigazione
+
+#### Wizard Sistema Irrigazione
+
+1. **Accedi alla sezione Irrigazione**
+2. **Clicca "Nuovo Sistema"**
+3. **Seleziona tipo coltivazione**:
+   - 🌱 Orto (verdure, ortaggi)
+   - 🌳 Frutteto (alberi da frutto)
+   - 🫒 Uliveto (olivi)
+   - 🍇 Vigneto (viti)
+   - 🏠 Serra (coltivazioni protette)
+   - 🌺 Giardino (prato, ornamentali)
+
+4. **Configura posizione specifica**:
+   - Settore/zona dell'orto
+   - Filari coinvolti
+   - Superficie da irrigare
+
+#### Tipi di Microirrigazione
+
+**Goccia (Drip)**:
+- Ideale per orto e frutteto
+- Risparmio idrico massimo
+- Irrigazione localizzata precisa
+- Pressione consigliata: 1.5-3 bar
+
+**Micro-irrigazione**:
+- Perfetta per vasi e aiuole
+- Controllo preciso umidità
+- Ideale per serra e piccole aree
+- Pressione consigliata: 1-2.5 bar
+
+**Tubo Poroso (Soaker)**:
+- Economico per piccole aree
+- Distribuzione uniforme
+- Facile installazione
+- Pressione consigliata: 0.5-1.5 bar
+
+#### Configurazione per Filare
+
+**Selezione Filari**:
+- Seleziona filari specifici da irrigare
+- Visualizza configurazione esistente (✓ se già configurato)
+- Calcoli automatici portata per metro
+
+**Calcoli Automatici**:
+- **Portata per metro**: L/h per metro lineare
+- **Durata irrigazione**: Calcolata automaticamente
+- **Litri totali**: Per filare e per pianta
+- **Tempo stimato**: 15-20 min per filari diversi
+
+**Esempio Configurazione**:
+- Filare 50m con ala gocciolante 2 L/h/metro
+- Per 20L: sistema calcola 20min automaticamente
+- 100 piante = 0.2L per pianta
+
+### Gestione Avanzata Irrigazione
+
+#### Automazione
+
+**Timer/Centralina**:
+- Programmazione automatica
+- Orari personalizzabili
+- Durata per zona
+
+**Elettrovalvole**:
+- Controllo zone separate
+- Apertura/chiusura automatica
+- Integrazione con sensori
+
+#### Fonti Acqua Supportate
+
+- 🏙️ **Acquedotto comunale**
+- 🚜 **Consorzio di Bonifica**
+- 🕳️ **Pozzo privato**
+- 🌧️ **Raccolta acqua piovana**
+- 🌊 **Fiume/Canale**
+- 🏞️ **Laghetto/Cisterna**
+
+#### Monitoraggio e Controllo
+
+**Pressione Sistema**:
+- Monitoraggio pressione in tempo reale
+- Alert per pressione insufficiente
+- Calcoli ottimali per tipo irrigazione
+
+**Efficienza Idrica**:
+- Calcolo consumo per zona
+- Statistiche risparmio idrico
+- Confronto con irrigazione manuale
+
+---
+
+## Fertilizzazione Avanzata per Filare
+
+### Gestione Fertilizzanti Professionali
+
+#### Inventario Fertilizzanti
+
+**Tipi Supportati**:
+- **Organici**: Compost, letame, humus
+- **Minerali**: NPK, solfato di potassio
+- **Correttivi**: Calce, gesso, zeolite
+- **Microelementi**: Ferro, magnesio, boro
+
+**Gestione Scorte**:
+- Tracciamento quantità disponibili
+- Alert scorte basse (< 20% necessità stagionale)
+- Calcolo fabbisogno per stagione
+- Suggerimenti acquisto con timing
+
+#### Dosaggi Automatici per Filare
+
+**Calcoli Intelligenti**:
+- Considera tipo terreno (argilloso trattiene più, sabbioso perde)
+- Fase pianta (pre-impianto, crescita, fioritura)
+- Area da fertilizzare per filare
+- pH terreno (alcuni prodotti non funzionano a pH sbagliato)
+
+**Esempio Calcolo**:
+- Filare 40m × 1.5m = 60 m²
+- Pomodori in fase fioritura = +30% potassio
+- Terreno sabbioso = +20% dosaggio
+- NPK 15-15-15: 45g/m² → 2.7kg totali
+
+#### Applicazione per Filare
+
+**Selezione Precisa**:
+- Scegli filari specifici
+- Calcolo automatico quantità per filare
+- Verifica disponibilità prodotto
+
+**Registrazione Completa**:
+- Data e ora applicazione
+- Prodotto e dosaggio effettivo
+- Condizioni meteo
+- Filari trattati
+- Foto documentazione
+
+### Autoproduzione Compost
+
+#### Tipi di Compost
+
+**Compost Tradizionale**:
+- Rapporto C/N ottimale: 25-30:1
+- Tempo maturazione: 6-12 mesi
+- Materiali: scarti verdi + marroni
+
+**Lombricompost**:
+- Rapporto C/N: 15-20:1
+- Più ricco di nutrienti
+- Tempo: 3-6 mesi
+- Richiede lombrichi
+
+**Bokashi**:
+- Fermentazione anaerobica
+- Più veloce: 2-4 settimane
+- Usa microrganismi efficaci
+
+#### Calcolo Rapporto C/N
+
+**Materiali Verdi (Azoto)**:
+- Scarti cucina: C/N 12-15:1
+- Erba fresca: C/N 15-20:1
+- Letame fresco: C/N 5-10:1
+
+**Materiali Marroni (Carbonio)**:
+- Foglie secche: C/N 30-80:1
+- Paglia: C/N 40-100:1
+- Carta/cartone: C/N 150-200:1
+
+**Suggerimenti Automatici**:
+- Sistema calcola mix ottimale
+- Suggerisce materiali per bilanciare
+- Stima data maturazione
+
+---
+
+## Lavorazioni Terra Avanzate
+
+### Timing "Terreno in Tempera"
+
+**Calcolo Automatico**:
+- Monitora piogge e temperature
+- Calcola quando terreno sarà lavorabile
+- Alert quando condizioni sono ottimali
+- Evita lavorazioni con terreno bagnato
+
+**Finestra Ottimale**:
+- 3-5 giorni dopo pioggia (dipende da tipo terreno)
+- Terreno argilloso: 4-5 giorni
+- Terreno sabbioso: 2-3 giorni
+- Terreno franco: 3-4 giorni
+
+### Lavorazioni per Tipo Terreno
+
+#### Lavorazioni Principali
+
+**Vangatura**:
+- Profondità: 25-40 cm
+- Quando: Ottobre-Febbraio
+- Scopo: Rovesciamento e aerazione
+- Attrezzi: Vanga (manuale), Aratro (meccanico)
+
+**Fresatura**:
+- Profondità: 15-20 cm
+- Quando: Marzo-Aprile
+- Scopo: Affinamento letto semina
+- Attrezzi: Zappa (manuale), Fresa (meccanico)
+
+#### Lavorazioni Complementari
+
+**Sarchiatura**:
+- Profondità: 5-10 cm
+- Scopo: Aerazione e controllo infestanti
+- Frequenza: Ogni 15-20 giorni
+
+**Rincalzatura**:
+- Accumulo terreno attorno pianta
+- Ideale per: patate, porri, finocchi
+- Migliora stabilità e imbianchimento
+
+### Attrezzi Consigliati per Area
+
+**Piccole Aree (< 200 m²)**:
+- Vanga manuale
+- Zappa a cuore
+- Sarchiello
+
+**Aree Medie (200-1000 m²)**:
+- Motozappa
+- Fresa rotativa
+- Aratro monovomere
+
+**Aree Grandi (> 1000 m²)**:
+- Trattore con aratro
+- Fresatrice portata
+- Erpice a dischi
+
+---
+
+## Gestione Fitofarmaci Professionale
+
+### Inventario Fitofarmaci
+
+**Categorie Prodotti**:
+- **Biologici**: Rame, zolfo, olio di neem
+- **Convenzionali**: Sistemici, di contatto
+- **Trappole**: Feromoni, cromotropiche
+
+**Gestione Scorte**:
+- Tracciamento scadenze
+- Alert prodotti in scadenza
+- Verifica disponibilità prima trattamenti
+- Calcolo costi per stagione
+
+### Timing Critico Trattamenti
+
+**Verifica Condizioni Meteo**:
+- **Pioggia prevista**: Alert dilavamento
+- **Temperatura**: Min/max per prodotto
+- **Vento**: Massimo consentito (< 10 km/h)
+- **Umidità**: Ottimale per assorbimento
+
+**Conflitto con Raccolta**:
+- Verifica periodo carenza
+- Se raccolta prima di fine carenza:
+  1. Tratta ora, ritarda raccolta
+  2. Raccogli prima, poi tratta
+  3. Usa alternativa senza carenza
+
+### Registro Trattamenti (PRO)
+
+**Registrazione Obbligatoria**:
+- Data e prodotto usato
+- Dosaggio e metodo applicazione
+- Condizioni meteo al momento
+- Fine periodo carenza
+- Filari/zone trattate
+
+**Export e Compliance**:
+- Esporta registro in CSV/PDF
+- Documentazione per audit
+- Tracciabilità prodotto
+- Certificazioni biologiche
+
+---
+
+## Banca dei Semi Completa
+
+### Gestione Inventario Semi
+
+**Aggiunta Semi**:
+- Nome varietà e specie
+- Quantità numerica precisa
+- Data acquisto e scadenza
+- Fornitore e lotto
+- Note varietà
+
+**Tracciamento Automatico**:
+- Quantità rimanente aggiornata automaticamente
+- Calcolo percentuale utilizzata
+- Alert scorte basse
+- Suggerimenti riordino
+
+### Consumo Semi Intelligente
+
+**Scala Automatica**:
+- Quando usi semi per semina, quantità si riduce automaticamente
+- Calcolo preciso: semi utilizzati vs disponibili
+- Aggiornamento stato (Alto/Medio/Basso/Vuoto)
+
+**Statistiche Germinazione**:
+- Traccia semi piantati vs piantine nate
+- Calcola tasso germinazione per varietà
+- Identifica semi di qualità migliore
+- Storico performance per fornitore
+
+### Alert e Promemoria
+
+**Scadenze Semi**:
+- Alert per semi in scadenza quest'anno
+- Promemoria utilizzo prioritario
+- Suggerimenti conservazione
+
+**Scorte Basse**:
+- Notifica quando semi < 20% necessità
+- Calcolo fabbisogno stagionale
+- Lista acquisti automatica
+
+---
+
+## Vivaio (Semenzaio) Professionale
+
+### Struttura a 3 Sezioni
+
+#### 📦 Semi (Banca dei Semi)
+- Inventario completo varietà
+- Tracciamento scorte e scadenze
+- Calcoli germinazione
+- Gestione fornitori
+
+#### 🌱 Piantine (Lotti Semenzaio)
+- Gestione lotti semina
+- Fasi crescita (germinazione → nursing → hardening)
+- Tracciamento per lotto
+- Calcoli trapianto
+
+#### 🌳 Alberelli (Gestione Vivai)
+- Piante legnose giovani
+- Crescita pluriennale
+- Preparazione trapianto definitivo
+- Gestione vasi e substrati
+
+### Gestione Lotti Avanzata
+
+**Creazione Lotto**:
+- Collegamento automatico a semi disponibili
+- Calcolo semi necessari
+- Previsione date trapianto
+- Pianificazione spazio semenzaio
+
+**Monitoraggio Crescita**:
+- Foto timeline per lotto
+- Annotazioni sviluppo
+- Problemi e soluzioni
+- Tasso successo
+
+---
+
+## Gestione Multi-Orto Avanzata
+
+### Meteo Specifico per Posizione
+
+**Selettore Intelligente**:
+- Bottoni desktop per cambio rapido
+- Dropdown mobile ottimizzato
+- Icone automatiche per tipo orto
+- Cache separata per posizione
+
+**Previsioni Localizzate**:
+- Meteo preciso per coordinate GPS
+- Allarmi specifici per zona
+- Microclimi differenziati
+- Pianificazione per altitudine
+
+### Gestione Separata
+
+**Per Ogni Orto**:
+- Task e calendario indipendenti
+- Strutture (aiuole/filari) separate
+- Inventari dedicati
+- Storico operazioni
+
+**Sincronizzazione Intelligente**:
+- Copia configurazioni tra orti
+- Replica strategie di successo
+- Rotazioni coordinate
+- Analisi comparative
+
+---
+
+## Fase Lunare e Consigli Tradizionali
+
+### Integrazione Calendario Lunare
+
+**Calcolo Automatico**:
+- Fase lunare corrente sempre visibile
+- Consigli per ogni tipo operazione
+- Integrazione con pianificazione
+- Tradizioni contadine italiane
+
+**Consigli per Fase**:
+- **Luna Crescente**: Semine foglie e frutti, trapianti
+- **Luna Calante**: Semine radici, potature, raccolti
+- **Luna Piena**: Raccolta erbe officinali, conserve
+- **Luna Nuova**: Riposo, pianificazione, preparazione
+
+### Detti Contadini
+
+**Saggezza Tradizionale**:
+- Detti del giorno con varianti regionali
+- Consigli stagionali
+- Tradizioni agricole italiane
+- Challenge giornaliere
+
+---
+
+## Consigli Proattivi e Smart Features
+
+### Sistema AI Integrato
+
+**Suggerimenti Intelligenti**:
+- Analisi condizioni meteo per consigli tempestivi
+- Riconoscimento problemi da foto
+- Ottimizzazione calendario semine
+- Previsioni resa e raccolto
+
+**Query AI Personalizzate**:
+- Chiedi consigli specifici per la tua situazione
+- Diagnosi problemi con descrizione
+- Suggerimenti varietà per zona climatica
+- Schemi rotazione personalizzati
+
+### Features Smart in Sviluppo
+
+**IoT e Sensori**:
+- Integrazione sensori umidità
+- Controllo irrigazione automatica
+- Monitoraggio temperatura serra
+- Alert condizioni critiche
+
+**Analisi Predittiva**:
+- Previsioni malattie basate su meteo
+- Ottimizzazione fabbisogni idrici
+- Calcoli resa attesa
+- Pianificazione acquisti
 
 ---
 

@@ -93,6 +93,11 @@ ortomio-main/
 │   │   ├── VarietySelector.tsx # Selettore varietà
 │   │   ├── CultivationSystemSelector.tsx # Selettore sistema coltivazione
 │   │   └── AccessoriesSuggestionsSection.tsx # Suggerimenti accessori
+│   ├── plants/          # Sistema Tracking Piante Individuali
+│   │   ├── SmartPlantManager.tsx # Gestione intelligente piante
+│   │   ├── FieldPlantManager.tsx # Configuratore campi automatico
+│   │   ├── BulkOperationModal.tsx # Operazioni di massa
+│   │   └── PlantHealthHeatmap.tsx # Heatmap salute piante
 │   └── shared/          # Componenti condivisi
 │       ├── GeographicMatchingWidget.tsx # Widget matching geografico
 │       └── SpecializedCropsWidget.tsx # Widget colture specializzate
@@ -129,7 +134,9 @@ ortomio-main/
 │   ├── treatmentRegistryService.ts # Registro trattamenti
 │   ├── maceratesService.ts      # Preparati naturali
 │   ├── taskCalculationService.ts # Calcoli attività
-│   └── geographicMatchingService.ts # Matching geografico e fattibilità
+│   ├── geographicMatchingService.ts # Matching geografico e fattibilità
+│   ├── individualPlantService.ts # Calcoli piante individuali
+│   └── plantOperationsService.ts # Operazioni su piante individuali
 │
 ├── data/                # Dati statici
 │   ├── plantMasterSheets.ts     # Schede master piante (con visualCategory)
@@ -152,7 +159,8 @@ ortomio-main/
 │   ├── aromatic.ts      # Tipi erbe aromatiche
 │   ├── olive.ts         # Tipi olivi
 │   ├── vine.ts          # Tipi viti
-│   └── accessories.ts  # Tipi accessori giardino
+│   ├── accessories.ts   # Tipi accessori giardino
+│   └── individualPlant.ts # Tipi tracking piante individuali
 ├── App.tsx              # Componente root
 ├── index.tsx            # Entry point
 ├── index.html           # HTML template
@@ -1431,6 +1439,522 @@ export default NuovoComponente;
 
 ---
 
+## Microirrigazione e Sistemi Avanzati
+
+### Architettura Irrigazione
+
+OrtoMio supporta **microirrigazione per singolo filare** con configurazione precisa e calcoli automatici attraverso un sistema modulare:
+
+#### Componenti Principali
+
+**IrrigationSystemModal (`components/irrigation/IrrigationSystemModal.tsx`)**:
+- Form completo per configurazione sistema
+- Validazione parametri (pressione 0-10 bar)
+- Supporto timer e elettrovalvole
+- Gestione fonti acqua multiple
+
+**IrrigationSystemWizard (`components/irrigation/IrrigationSystemWizard.tsx`)**:
+- Wizard guidato per setup sistema
+- Configurazione per tipo coltivazione
+- Selezione filari e aiuole specifiche
+- Calcoli automatici portata e durata
+
+**IrrigationSystemCard (`components/irrigation/IrrigationSystemCard.tsx`)**:
+- Visualizzazione sistema configurato
+- Monitoraggio stato componenti
+- Gestione modifica/eliminazione
+
+#### Tipi Irrigazione Supportati
+
+```typescript
+type IrrigationType = 'Manual' | 'Drip' | 'Sprinkler' | 'Micro' | 'Soaker';
+
+interface IrrigationSystem {
+  type: IrrigationType;
+  waterSource: 'Municipal' | 'Consortium' | 'Well' | 'Rainwater' | 'River' | 'Pond';
+  pressureBar: number;
+  hasTimer: boolean;
+  hasValve: boolean;
+  cultivationType?: 'orto' | 'frutteto' | 'uliveto' | 'vigneto' | 'serra' | 'giardino';
+  bedIds?: string[]; // Aiuole collegate
+  rowIds?: string[]; // Filari collegati
+}
+```
+
+#### Configurazione per Tipo Coltivazione
+
+**Orto (Verdure/Ortaggi)**:
+- Raccomandato: Drip (efficienza Alta), Micro (efficienza Alta)
+- Pressione ottimale: 1.5-3 bar
+- Usa filari per tracciabilità precisa
+
+**Frutteto (Alberi)**:
+- Raccomandato: Drip per adulti, Micro per giovani
+- Pressione ottimale: 2-4 bar
+- Configurazione per settori e varietà
+
+**Vigneto/Uliveto**:
+- Standard: Drip (efficienza Alta)
+- Controllo preciso per qualità
+- Gestione per filari e età piante
+
+#### Calcoli Automatici
+
+**Portata per Metro**:
+```typescript
+// Esempio configurazione filare
+interface RowIrrigationConfig {
+  flowRatePerMeterLph: number; // L/h per metro lineare
+  dripperSpacingCm: number;    // Distanza gocciolatori
+  dripperFlowRate: number;     // Portata singolo gocciolatore
+}
+
+// Calcolo durata irrigazione
+const calculateIrrigationDuration = (
+  rowLengthM: number,
+  flowRatePerMeterLph: number,
+  targetLiters: number
+): number => {
+  const totalFlowRate = rowLengthM * flowRatePerMeterLph;
+  return (targetLiters / totalFlowRate) * 60; // minuti
+};
+```
+
+### Gestione Avanzata Fertilizzanti
+
+#### Fertilizer Engine (`logic/fertilizerEngine.ts`)
+
+**Conversione NPK in Prodotti Concreti**:
+```typescript
+interface FertilizerProduct {
+  id: string;
+  name: string;
+  type: 'organic' | 'mineral' | 'corrective' | 'micronutrient';
+  npkRatio: { n: number; p: number; k: number };
+  dosageRange: { min: number; max: number }; // g/m²
+  applicationTiming: string[];
+  soilCompatibility: SoilType[];
+  phRange: { min: number; max: number };
+}
+
+// Calcolo dosaggio specifico
+const calculateFertilizerDosage = (
+  plantCategory: NutrientCategory,
+  phenologicalPhase: PhenologicalPhase,
+  soilType: SoilType,
+  product: FertilizerProduct
+): FertilizerAdvice => {
+  // Logica calcolo basata su:
+  // - Fabbisogno pianta (da Nutrient Engine)
+  // - Ritenzione terreno (argilloso +20%, sabbioso -15%)
+  // - Fase crescita (pre-impianto, vegetativa, riproduttiva)
+  // - pH compatibilità prodotto
+};
+```
+
+#### Fertilizer Inventory Service (`services/fertilizerInventoryService.ts`)
+
+**Gestione Scorte Intelligente**:
+```typescript
+interface FertilizerInventoryItem {
+  productId: string;
+  currentQuantityKg: number;
+  expiryDate: string;
+  costPerKg: number;
+  supplier: string;
+  storageLocation: string;
+}
+
+// Alert scorte basse
+const checkLowStock = (gardenId: string): FertilizerAlert[] => {
+  // Calcola fabbisogno stagionale
+  // Verifica scorte vs necessità
+  // Genera alert se < 20% necessità
+};
+```
+
+#### Compost Service (`services/compostService.ts`)
+
+**Autoproduzione con Calcoli C/N**:
+```typescript
+interface CompostMaterial {
+  name: string;
+  carbonNitrogenRatio: number;
+  category: 'green' | 'brown';
+  decompositionRate: 'fast' | 'medium' | 'slow';
+}
+
+const calculateOptimalCNRatio = (
+  materials: Array<{ material: CompostMaterial; quantityKg: number }>
+): CompostAnalysis => {
+  // Calcola rapporto C/N risultante
+  // Suggerisce aggiustamenti per 25-30:1 ottimale
+  // Stima tempo maturazione
+};
+```
+
+### Tillage Engine - Lavorazioni Terra
+
+#### Timing "Terreno in Tempera" (`logic/tillageEngine.ts`)
+
+**Calcolo Condizioni Ottimali**:
+```typescript
+interface SoilCondition {
+  soilType: SoilType;
+  lastRainDate: string;
+  temperatureRange: { min: number; max: number };
+  isWorkable: boolean;
+  optimalWorkingWindow: { start: string; end: string };
+}
+
+const calculateTemperaTiming = (
+  soilType: SoilType,
+  weatherHistory: WeatherData[]
+): SoilWorkabilityAdvice => {
+  // Argilloso: 4-5 giorni dopo pioggia
+  // Sabbioso: 2-3 giorni dopo pioggia
+  // Franco: 3-4 giorni dopo pioggia
+  // Considera temperatura (no lavori se < 5°C)
+};
+```
+
+#### Lavorazioni per Dimensione Campo
+
+**Suggerimenti Automatici**:
+```typescript
+const suggestTillageMethod = (areaSqMeters: number): TillageAdvice => {
+  if (areaSqMeters < 200) {
+    return {
+      method: 'manual',
+      tools: ['Vanga', 'Zappa manuale'],
+      estimatedHours: areaSqMeters / 10 // 10 m²/ora manuale
+    };
+  } else if (areaSqMeters < 1000) {
+    return {
+      method: 'mechanical_small',
+      tools: ['Motozappa', 'Fresa rotativa'],
+      estimatedHours: areaSqMeters / 100 // 100 m²/ora motozappa
+    };
+  } else {
+    return {
+      method: 'mechanical_large',
+      tools: ['Trattore', 'Aratro', 'Fresatrice'],
+      estimatedHours: areaSqMeters / 500 // 500 m²/ora trattore
+    };
+  }
+};
+```
+
+### Phyto Engine - Gestione Fitofarmaci
+
+#### Phyto Engine (`logic/phytoEngine.ts`)
+
+**Timing Critico e Registro**:
+```typescript
+interface PhytoProduct {
+  id: string;
+  name: string;
+  activeIngredient: string;
+  safetyIntervalDays: number;
+  maxApplicationsPerSeason: number;
+  weatherConstraints: {
+    maxWindKmh: number;
+    noRainHours: number;
+    tempRange: { min: number; max: number };
+  };
+  organicCertified: boolean;
+  requiresLicense: boolean;
+}
+
+const checkTreatmentTiming = (
+  product: PhytoProduct,
+  harvestDate: string,
+  weatherForecast: WeatherData[]
+): TreatmentTimingAdvice => {
+  // Verifica periodo carenza vs raccolta
+  // Controlla condizioni meteo
+  // Suggerisce finestra ottimale
+};
+```
+
+#### Treatment Registry Service (`services/treatmentRegistryService.ts`)
+
+**Registro Obbligatorio per Professionisti**:
+```typescript
+interface TreatmentRecord {
+  id: string;
+  date: string;
+  productId: string;
+  dosageMlPerLiter: number;
+  areaM2: number;
+  weatherConditions: {
+    temperature: number;
+    humidity: number;
+    windKmh: number;
+  };
+  safetyIntervalEnd: string;
+  operatorLicense: string;
+  fieldRowIds: string[];
+}
+
+// Export per compliance
+const exportTreatmentRegistry = (
+  gardenId: string,
+  format: 'csv' | 'pdf'
+): Promise<Blob> => {
+  // Genera documento per audit
+  // Include tutti i trattamenti con dettagli
+  // Formattazione per certificazioni
+};
+```
+
+### Seed Inventory Service Avanzato
+
+#### Gestione Intelligente Semi (`services/seedInventoryService.ts`)
+
+**Consumo Automatico**:
+```typescript
+interface SeedPacket {
+  id: string;
+  speciesName: string;
+  varietyName: string;
+  initialQuantity?: number;
+  currentQuantity?: number;
+  quantityRemaining: 'High' | 'Medium' | 'Low' | 'Empty';
+  expiryYear: number;
+  supplier: string;
+  isOpen: boolean;
+}
+
+const consumeSeedsForSowing = (
+  gardenId: string,
+  varietyName: string,
+  seedsUsed: number
+): SeedConsumptionResult => {
+  // Trova pacchetto corrispondente
+  // Scala quantità automaticamente
+  // Aggiorna stato (High/Medium/Low/Empty)
+  // Marca come aperto dopo primo uso
+};
+```
+
+**Statistiche Germinazione**:
+```typescript
+const recordGerminationResult = (
+  gardenId: string,
+  batchId: string,
+  seedsPlanted: number,
+  seedlingsGerminated: number
+): GerminationStats => {
+  const germinationRate = (seedlingsGerminated / seedsPlanted) * 100;
+  
+  // Determina efficienza
+  const efficiency = germinationRate >= 80 ? 'Ottima' :
+                    germinationRate >= 60 ? 'Buona' :
+                    germinationRate >= 40 ? 'Media' : 'Scarsa';
+  
+  // Salva per analisi future
+  return { germinationRate, efficiency };
+};
+```
+
+### Vivaio (Semenzaio) Professionale
+
+#### Struttura Modulare
+
+**Pagina Principale (`app/(dashboard)/app/semenzaio/page.tsx`)**:
+```typescript
+const VivaioPage = () => {
+  const [activeTab, setActiveTab] = useState<'semi' | 'piantine' | 'alberelli'>('semi');
+  
+  return (
+    <div className="space-y-6">
+      {/* Tab Navigation */}
+      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+        <TabButton icon="📦" label="Semi" active={activeTab === 'semi'} />
+        <TabButton icon="🌱" label="Piantine" active={activeTab === 'piantine'} />
+        <TabButton icon="🌳" label="Alberelli" active={activeTab === 'alberelli'} />
+      </div>
+      
+      {/* Content per tab */}
+      {activeTab === 'semi' && <SeedInventoryManager />}
+      {activeTab === 'piantine' && <SeedlingBatchManager />}
+      {activeTab === 'alberelli' && <SaplingManager />}
+    </div>
+  );
+};
+```
+
+#### Gestione Lotti Avanzata
+
+**Collegamento Semi → Piantine**:
+```typescript
+interface SeedlingBatch {
+  id: string;
+  seedPacketId: string; // Collegamento a banca semi
+  seedsUsed: number;
+  sowingDate: string;
+  expectedGerminationDate: string;
+  expectedTransplantDate: string;
+  currentPhase: 'germination' | 'nursing' | 'hardening' | 'ready';
+  germinationRate?: number;
+  healthStatus: 'excellent' | 'good' | 'fair' | 'poor';
+  photos: string[];
+  notes: string;
+}
+
+// Calcoli automatici
+const calculateTransplantReadiness = (batch: SeedlingBatch): TransplantAdvice => {
+  // Considera fase crescita
+  // Verifica condizioni meteo
+  // Calcola finestra ottimale trapianto
+};
+```
+
+### Multi-Garden Management Avanzato
+
+#### Weather Service Multi-Location (`services/weatherService.ts`)
+
+**Cache Separata per Posizione**:
+```typescript
+interface WeatherCache {
+  [gardenId: string]: {
+    coordinates: { lat: number; lng: number };
+    forecast: WeatherData[];
+    lastUpdate: string;
+    alerts: WeatherAlert[];
+  };
+}
+
+const getWeatherForGarden = async (gardenId: string): Promise<WeatherData[]> => {
+  // Usa coordinate specifiche giardino
+  // Cache separata per ogni posizione
+  // Calcola allarmi localizzati
+};
+```
+
+#### Multi-Garden Widget (`components/WeatherLunarWidget.tsx`)
+
+**Selettore Intelligente**:
+```typescript
+const WeatherLunarWidget = ({ gardens }: { gardens: Garden[] }) => {
+  const [selectedGardenId, setSelectedGardenId] = useState(gardens[0]?.id);
+  
+  // Desktop: bottoni affiancati
+  // Mobile: dropdown compatto
+  // Icone automatiche per tipo orto
+  
+  return (
+    <div className="space-y-4">
+      {gardens.length > 1 && (
+        <GardenSelector
+          gardens={gardens}
+          selected={selectedGardenId}
+          onChange={setSelectedGardenId}
+          responsive={true}
+        />
+      )}
+      
+      <WeatherForecast gardenId={selectedGardenId} />
+      <LunarPhaseAdvice />
+    </div>
+  );
+};
+```
+
+### AI Integration e Query Personalizzate
+
+#### Gemini Service Avanzato (`services/geminiService.ts`)
+
+**Query AI Personalizzate**:
+```typescript
+const getPersonalizedAdvice = async (
+  query: string,
+  gardenContext: GardenContext
+): Promise<PersonalizedAdvice> => {
+  const prompt = `
+    CONTESTO ORTO:
+    - Posizione: ${gardenContext.coordinates}
+    - Tipo terreno: ${gardenContext.soilType}
+    - Dimensione: ${gardenContext.sizeSqMeters}m²
+    - Piante attuali: ${gardenContext.activePlants.join(', ')}
+    - Stagione: ${gardenContext.currentSeason}
+    
+    DOMANDA: ${query}
+    
+    Fornisci consigli specifici per questo orto.
+  `;
+  
+  // Usa schema strutturato per risposta
+  return await generateStructuredResponse(prompt, personalizedAdviceSchema);
+};
+```
+
+**Riconoscimento Problemi da Foto**:
+```typescript
+const diagnosePlantFromImage = async (
+  imageBase64: string,
+  plantName: string
+): Promise<PlantDiagnosis> => {
+  // Analisi AI dell'immagine
+  // Identificazione sintomi visivi
+  // Diagnosi problema e gravità
+  // Suggerimenti trattamento
+};
+```
+
+### Smart Features e IoT Integration
+
+#### Sensor Integration (In Sviluppo)
+
+**Smart Hub Simulation**:
+```typescript
+interface SensorReading {
+  sensorId: string;
+  type: 'soil_moisture' | 'temperature' | 'humidity' | 'light';
+  value: number;
+  unit: string;
+  timestamp: string;
+  gardenId: string;
+  location: { lat: number; lng: number };
+}
+
+const analyzeSensorData = async (
+  readings: SensorReading[]
+): Promise<SmartAdvice> => {
+  // Analisi AI dei dati sensori
+  // Correlazione con condizioni meteo
+  // Suggerimenti irrigazione automatica
+  // Alert condizioni critiche
+};
+```
+
+#### Predictive Analytics (Roadmap)
+
+**Previsioni Resa**:
+```typescript
+interface YieldPrediction {
+  plantId: string;
+  expectedYieldKg: number;
+  confidenceLevel: number;
+  harvestWindow: { start: string; end: string };
+  factors: {
+    weather: number;
+    soilConditions: number;
+    plantHealth: number;
+    careQuality: number;
+  };
+}
+
+// Modelli predittivi basati su:
+// - Storico rese per varietà
+// - Condizioni meteo attuali/previste
+// - Qualità cure fornite
+// - Salute piante monitorata
+```
+
+---
+
 ## Best Practices
 
 ### Codice
@@ -1505,6 +2029,794 @@ export default NuovoComponente;
 - Documenta funzioni complesse
 - Testa su browser multipli
 - Mantieni compatibilità mobile
+
+---
+
+## Sistema Tracking Piante Individuali
+
+### Architettura Database
+
+Il sistema di tracking individuale utilizza **3 migrazioni Supabase** per creare uno schema completo:
+
+#### Migrazione 1: Schema Base (`20260110100000_create_individual_plant_tracking.sql`)
+
+**Tabelle principali**:
+
+```sql
+-- Piante individuali con posizione precisa
+CREATE TABLE garden_plants (
+    id UUID PRIMARY KEY,
+    garden_id UUID NOT NULL,
+    row_id UUID REFERENCES garden_rows(id),
+    field_row_id UUID REFERENCES field_rows(id),
+    position_in_row INTEGER NOT NULL,
+    plant_code TEXT NOT NULL, -- F1-P001, F2-P015
+    plant_name TEXT NOT NULL,
+    variety TEXT,
+    status TEXT DEFAULT 'healthy',
+    health_score INTEGER DEFAULT 100,
+    coordinates JSONB, -- {"x": 1.5, "y": 0.3}
+    photos TEXT[],
+    notes TEXT,
+    -- Constraints per unicità posizione e codice
+    CONSTRAINT unique_position_per_row UNIQUE (row_id, position_in_row),
+    CONSTRAINT unique_plant_code_per_garden UNIQUE (garden_id, plant_code)
+);
+
+-- Operazioni per pianta singola
+CREATE TABLE plant_operations (
+    id UUID PRIMARY KEY,
+    plant_id UUID NOT NULL REFERENCES garden_plants(id),
+    operation_type TEXT NOT NULL, -- 'watering', 'fertilizing', 'treatment'
+    operation_date DATE NOT NULL,
+    quantity DECIMAL(10,3),
+    unit TEXT,
+    product_name TEXT,
+    effectiveness_score INTEGER, -- 1-10
+    plant_response TEXT, -- 'positive', 'negative', 'neutral'
+    photos TEXT[],
+    notes TEXT
+);
+
+-- Raccolti per pianta singola
+CREATE TABLE plant_harvests (
+    id UUID PRIMARY KEY,
+    plant_id UUID NOT NULL REFERENCES garden_plants(id),
+    harvest_date DATE NOT NULL,
+    quantity_kg DECIMAL(8,3) NOT NULL,
+    quality_grade TEXT, -- 'excellent', 'good', 'fair', 'poor'
+    market_value DECIMAL(8,2),
+    photos TEXT[]
+);
+```
+
+**Funzioni di calcolo**:
+
+```sql
+-- Calcola numero piante in un filare
+CREATE FUNCTION calculate_plants_in_row(
+    row_length_m DECIMAL,
+    plant_spacing_cm INTEGER
+) RETURNS INTEGER;
+
+-- Genera codice pianta automatico (F1-P001)
+CREATE FUNCTION generate_plant_code(
+    p_garden_id UUID,
+    p_row_id UUID,
+    p_field_row_id UUID,
+    p_position INTEGER
+) RETURNS TEXT;
+
+-- Auto-genera tutte le piante in un filare
+CREATE FUNCTION auto_generate_plants_in_row(
+    p_garden_id UUID,
+    p_row_id UUID,
+    p_field_row_id UUID,
+    p_plant_name TEXT,
+    p_variety TEXT,
+    p_planting_date DATE,
+    p_plant_spacing_cm INTEGER
+) RETURNS INTEGER;
+```
+
+#### Migrazione 2: Estensioni Operazioni (`20260110110000_extend_operations_for_individual_plants.sql`)
+
+**Estende tabelle esistenti** per supportare operazioni su piante individuali:
+
+```sql
+-- Aggiunge colonne alle tabelle operazioni esistenti
+ALTER TABLE mechanical_works ADD COLUMN plant_ids UUID[];
+ALTER TABLE watering_logs ADD COLUMN plant_ids UUID[];
+ALTER TABLE fertilizer_applications ADD COLUMN plant_ids UUID[];
+ALTER TABLE treatment_applications ADD COLUMN plant_ids UUID[];
+
+-- Funzioni helper per operazioni di massa
+CREATE FUNCTION get_plants_in_row(
+    p_row_id UUID,
+    p_field_row_id UUID,
+    p_status TEXT
+) RETURNS TABLE (plant_id UUID, plant_code TEXT, ...);
+
+CREATE FUNCTION apply_operation_to_row_plants(
+    p_operation_type TEXT,
+    p_row_id UUID,
+    p_field_row_id UUID,
+    p_quantity DECIMAL,
+    p_product_name TEXT
+) RETURNS INTEGER;
+```
+
+#### Migrazione 3: Setup e Dati Esempio (`20260110120000_add_example_data_and_final_setup.sql`)
+
+**Funzioni avanzate e ottimizzazioni**:
+
+```sql
+-- Statistiche complete per filare
+CREATE FUNCTION get_complete_row_stats(
+    p_row_id UUID,
+    p_field_row_id UUID
+) RETURNS JSONB;
+
+-- Crea campo di esempio (1000 piante)
+CREATE FUNCTION create_example_tomato_field(
+    p_garden_id UUID
+) RETURNS JSONB;
+
+-- Viste ottimizzate per dashboard
+CREATE VIEW garden_plants_dashboard AS
+SELECT 
+    garden_id,
+    COUNT(*) as total_plants,
+    COUNT(*) FILTER (WHERE status = 'healthy') as healthy_plants,
+    AVG(health_score) as avg_health_score,
+    COUNT(DISTINCT plant_name) as plant_varieties
+FROM garden_plants
+GROUP BY garden_id;
+```
+
+### Tipi TypeScript
+
+#### types/individualPlant.ts
+
+**Interfacce principali**:
+
+```typescript
+export interface GardenPlant {
+  id: string;
+  gardenId: string;
+  rowId?: string;
+  fieldRowId?: string;
+  positionInRow: number;
+  plantCode: string; // F1-P001
+  plantName: string;
+  variety?: string;
+  status: 'healthy' | 'diseased' | 'dead' | 'harvested';
+  healthScore: number; // 0-100
+  coordinates?: { x: number; y: number };
+  photos: string[];
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlantOperation {
+  id: string;
+  plantId: string;
+  gardenId: string;
+  operationType: 'watering' | 'fertilizing' | 'treatment' | 'pruning';
+  operationDate: string;
+  quantity?: number;
+  unit?: string;
+  productName?: string;
+  effectivenessScore?: number; // 1-10
+  plantResponse?: 'positive' | 'negative' | 'neutral';
+  photos: string[];
+  notes?: string;
+}
+
+export interface FieldConfiguration {
+  gardenId: string;
+  zoneName: string;
+  rowCount: number;
+  rowLengthMeters: number;
+  plantSpacingCm: number;
+  rowSpacingCm: number;
+  totalPlants: number; // Calcolato automaticamente
+  plantsPerRow: number;
+  totalAreaSqm: number;
+  plantsPerSqMeter: number;
+  plantName: string;
+  variety?: string;
+  plantingDate: string;
+}
+```
+
+### Servizi
+
+#### services/individualPlantService.ts
+
+**Calcoli automatici**:
+
+```typescript
+export const plantCalculations = {
+  // Calcola numero massimo piante in un filare
+  maxPlantsInRow: (lengthMeters: number, spacingCm: number): number => {
+    return Math.floor((lengthMeters * 100) / spacingCm) + 1;
+  },
+
+  // Calcola area totale campo
+  totalArea: (rowCount: number, rowLength: number, rowSpacing: number): number => {
+    return rowLength * ((rowCount - 1) * (rowSpacing / 100) + 0.5);
+  },
+
+  // Calcola piante per metro quadro
+  plantsPerSqMeter: (plantSpacing: number, rowSpacing: number): number => {
+    const plantsPerMeterRow = 100 / plantSpacing;
+    const rowsPerMeter = 100 / rowSpacing;
+    return plantsPerMeterRow * rowsPerMeter;
+  }
+};
+
+// Configurazione campo automatica
+export const calculateFieldConfiguration = (
+  config: Partial<FieldWizardConfig>
+): FieldConfiguration => {
+  const plantsPerRow = plantCalculations.maxPlantsInRow(
+    config.rowLengthMeters, 
+    config.plantSpacingCm
+  );
+  const totalPlants = plantsPerRow * config.rowCount;
+  const totalAreaSqm = plantCalculations.totalArea(
+    config.rowCount, 
+    config.rowLengthMeters, 
+    config.rowSpacingCm
+  );
+  
+  return {
+    // ... configurazione completa calcolata
+  };
+};
+```
+
+#### services/plantOperationsService.ts
+
+**Operazioni di massa**:
+
+```typescript
+export const createBulkOperation = async (
+  operation: BulkRowOperation,
+  photos?: File[]
+): Promise<BulkOperationResult> => {
+  const plantIds = operation.plantIds || [];
+  const operationsCreated: string[] = [];
+  
+  // Upload foto se presenti
+  let photoUrls: string[] = [];
+  if (photos && photos.length > 0) {
+    photoUrls = await uploadPhotos(photos);
+  }
+
+  // Crea operazioni per ogni pianta
+  for (const plantId of plantIds) {
+    const plantOperation = await createPlantOperation(plantId, '', {
+      operationType: operation.operationType,
+      operationDate: operation.operationDate,
+      quantity: operation.quantityPerPlant,
+      unit: operation.unit,
+      productName: operation.productName,
+      photos: photoUrls
+    });
+    
+    operationsCreated.push(plantOperation.id);
+  }
+
+  return {
+    success: true,
+    operationsCreated: operationsCreated.length,
+    plantsAffected: plantIds.length,
+    operationIds: operationsCreated
+  };
+};
+
+// Strategie foto intelligenti
+export const selectRepresentativePlants = (
+  plants: GardenPlant[],
+  count: number = 10
+): GardenPlant[] => {
+  // Seleziona piante rappresentative per ogni stato di salute
+  const healthRanges = [
+    { min: 90, max: 100, label: 'excellent' },
+    { min: 70, max: 89, label: 'good' },
+    { min: 50, max: 69, label: 'fair' },
+    { min: 0, max: 49, label: 'poor' }
+  ];
+  
+  const representative: GardenPlant[] = [];
+  const plantsPerRange = Math.ceil(count / healthRanges.length);
+  
+  for (const range of healthRanges) {
+    const plantsInRange = plants.filter(p => 
+      p.healthScore >= range.min && p.healthScore <= range.max
+    );
+    
+    if (plantsInRange.length > 0) {
+      const step = Math.max(1, Math.floor(plantsInRange.length / plantsPerRange));
+      for (let i = 0; i < plantsInRange.length && representative.length < count; i += step) {
+        representative.push(plantsInRange[i]);
+      }
+    }
+  }
+  
+  return representative.slice(0, count);
+};
+```
+
+### Componenti React
+
+#### components/plants/SmartPlantManager.tsx
+
+**Gestione intelligente con selezione multipla**:
+
+```typescript
+type SelectionMode = 'single' | 'group' | 'row' | 'problems' | 'healthy';
+type ViewMode = 'grid' | 'heatmap' | 'list';
+
+interface PlantSelection {
+  mode: SelectionMode;
+  plantIds: string[];
+  criteria?: {
+    healthScoreMin?: number;
+    healthScoreMax?: number;
+    status?: string[];
+  };
+}
+
+const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
+  const [plants, setPlants] = useState<GardenPlant[]>([]);
+  const [selection, setSelection] = useState<PlantSelection>({
+    mode: 'single',
+    plantIds: []
+  });
+  const [viewMode, setViewMode] = useState<ViewMode>('heatmap');
+
+  // Modalità selezione intelligente
+  const handleSelectionModeChange = (mode: SelectionMode) => {
+    setSelection({
+      mode,
+      plantIds: [],
+      criteria: mode === 'problems' ? { healthScoreMax: 70 } :
+                mode === 'healthy' ? { healthScoreMin: 80 } : undefined
+    });
+  };
+
+  // Operazioni di massa
+  const handleBulkOperation = async (operation: BulkRowOperation, photos?: File[]) => {
+    const result = await createBulkOperation(operation, photos);
+    
+    if (result.success) {
+      alert(`✅ ${result.operationsCreated} operazioni su ${result.plantsAffected} piante`);
+      await loadPlants(); // Ricarica dati
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Statistiche rapide */}
+      <div className="grid grid-cols-5 gap-4">
+        <div className="bg-green-50 p-4 rounded-lg">
+          <p className="text-xl font-bold text-green-700">
+            {plants.filter(p => p.status === 'healthy').length}
+          </p>
+          <p className="text-sm text-green-600">Sane</p>
+        </div>
+        {/* ... altre statistiche */}
+      </div>
+
+      {/* Modalità selezione */}
+      <div className="grid grid-cols-5 gap-3">
+        {(['single', 'group', 'row', 'problems', 'healthy'] as SelectionMode[]).map((mode) => (
+          <button
+            key={mode}
+            onClick={() => handleSelectionModeChange(mode)}
+            className={`p-3 rounded-lg border-2 ${
+              selection.mode === mode ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+            }`}
+          >
+            {/* Icona e label per modalità */}
+          </button>
+        ))}
+      </div>
+
+      {/* Vista piante */}
+      {viewMode === 'heatmap' && (
+        <PlantHealthHeatmap
+          plants={filteredPlants}
+          onPlantSelect={(plant) => {
+            if (selection.mode === 'single') {
+              setSelection({ ...selection, plantIds: [plant.id] });
+            }
+          }}
+        />
+      )}
+
+      {/* Azioni di massa */}
+      {selection.plantIds.length > 0 && (
+        <div className="flex gap-3">
+          <button onClick={() => setShowOperationModal(true)}>
+            💧 Irrigazione ({selection.plantIds.length})
+          </button>
+          {/* ... altre operazioni */}
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+#### components/plants/BulkOperationModal.tsx
+
+**Modal per operazioni di massa con foto strategiche**:
+
+```typescript
+interface BulkOperationModalProps {
+  operationType: 'watering' | 'fertilizing' | 'treatment' | 'health';
+  selectedPlants: GardenPlant[];
+  onSubmit: (operation: BulkRowOperation, photos?: File[]) => Promise<void>;
+}
+
+const BulkOperationModal: React.FC<BulkOperationModalProps> = ({
+  operationType,
+  selectedPlants,
+  onSubmit
+}) => {
+  const [formData, setFormData] = useState({
+    quantityPerPlant: '',
+    unit: '',
+    productName: '',
+    photoStrategy: 'sample' as 'none' | 'sample' | 'problems' | 'all'
+  });
+
+  // Strategia foto intelligente
+  const getPhotoStrategy = () => {
+    switch (formData.photoStrategy) {
+      case 'none':
+        return { label: 'Nessuna Foto', recommended: selectedPlants.length > 100 };
+      case 'sample':
+        return { 
+          label: 'Foto Campione', 
+          description: `${Math.min(10, Math.ceil(selectedPlants.length / 20))} foto`,
+          recommended: selectedPlants.length > 20 && selectedPlants.length <= 500 
+        };
+      case 'problems':
+        const problemPlants = selectedPlants.filter(p => p.status === 'diseased' || p.healthScore < 70);
+        return { 
+          label: 'Solo Problemi', 
+          description: `${problemPlants.length} foto`,
+          recommended: problemPlants.length > 0 && problemPlants.length < 50 
+        };
+      case 'all':
+        return { 
+          label: 'Tutte le Piante', 
+          description: `${selectedPlants.length} foto`,
+          recommended: selectedPlants.length <= 20 
+        };
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50">
+      <div className="bg-white rounded-lg max-w-2xl mx-auto mt-20 p-6">
+        {/* Statistiche selezione */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-blue-600">{selectedPlants.length}</p>
+            <p className="text-sm text-gray-600">Totali</p>
+          </div>
+          {/* ... altre statistiche */}
+        </div>
+
+        {/* Strategia foto */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {(['none', 'sample', 'problems', 'all'] as const).map((strategy) => {
+            const strategyInfo = getPhotoStrategy();
+            const isRecommended = strategy === 'sample' && selectedPlants.length > 20;
+            
+            return (
+              <button
+                key={strategy}
+                onClick={() => setFormData({ ...formData, photoStrategy: strategy })}
+                className={`p-3 border-2 rounded-lg ${
+                  formData.photoStrategy === strategy ? 'border-blue-500' : 'border-gray-200'
+                } ${isRecommended ? 'ring-2 ring-green-200' : ''}`}
+              >
+                {isRecommended && (
+                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                    Consigliata
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Riepilogo operazione */}
+        <div className="bg-blue-50 rounded-lg p-4 mb-6">
+          <h4 className="font-semibold text-blue-900 mb-2">Riepilogo</h4>
+          <div className="text-sm text-blue-800 space-y-1">
+            <p>• <strong>{selectedPlants.length} piante</strong> coinvolte</p>
+            <p>• <strong>{formData.quantityPerPlant} {formData.unit}</strong> per pianta</p>
+            <p>• Totale: <strong>
+              {(parseFloat(formData.quantityPerPlant) * selectedPlants.length).toFixed(1)} {formData.unit}
+            </strong></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+#### components/plants/PlantHealthHeatmap.tsx
+
+**Visualizzazione heatmap con drill-down**:
+
+```typescript
+const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
+  plants,
+  onPlantSelect
+}) => {
+  const [selectedPlant, setSelectedPlant] = useState<GardenPlant | null>(null);
+  const [zoomLevel, setZoomLevel] = useState<'overview' | 'detailed'>('overview');
+
+  // Organizza piante per filare
+  const heatmapData = useMemo(() => {
+    const rows: { [key: string]: GardenPlant[] } = {};
+    
+    plants.forEach(plant => {
+      const rowMatch = plant.plantCode.match(/F(\d+)-P/);
+      const rowNumber = rowMatch ? parseInt(rowMatch[1]) : 1;
+      const rowKey = `row_${rowNumber}`;
+      
+      if (!rows[rowKey]) rows[rowKey] = [];
+      rows[rowKey].push(plant);
+    });
+
+    // Ordina piante per posizione
+    Object.keys(rows).forEach(rowKey => {
+      rows[rowKey].sort((a, b) => a.positionInRow - b.positionInRow);
+    });
+
+    return rows;
+  }, [plants]);
+
+  const getHealthColor = (healthScore: number) => {
+    if (healthScore >= 90) return 'rgba(34, 197, 94, 1)'; // green-500
+    if (healthScore >= 70) return 'rgba(234, 179, 8, 1)'; // yellow-500
+    if (healthScore >= 50) return 'rgba(249, 115, 22, 1)'; // orange-500
+    return 'rgba(239, 68, 68, 1)'; // red-500
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Statistiche */}
+      <div className="grid grid-cols-5 gap-4">
+        <div className="text-center">
+          <p className="text-2xl font-bold text-blue-600">{plants.length}</p>
+          <p className="text-sm text-gray-600">Totali</p>
+        </div>
+        {/* ... altre statistiche */}
+      </div>
+
+      {/* Heatmap per filare */}
+      <div className="space-y-4">
+        {Object.keys(heatmapData).sort().map((rowKey) => {
+          const rowNumber = parseInt(rowKey.split('_')[1]);
+          const rowPlants = heatmapData[rowKey];
+          
+          return (
+            <div key={rowKey} className="space-y-2">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium w-20">Filare {rowNumber}</span>
+                <div className="text-xs text-gray-500">
+                  {rowPlants.length} piante • 
+                  Media: {Math.round(rowPlants.reduce((sum, p) => sum + p.healthScore, 0) / rowPlants.length)}%
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-1">
+                {rowPlants.map((plant) => (
+                  <div
+                    key={plant.id}
+                    className={`${zoomLevel === 'overview' ? 'w-3 h-3' : 'w-6 h-6'} rounded-sm cursor-pointer transition-all`}
+                    style={{ backgroundColor: getHealthColor(plant.healthScore) }}
+                    onClick={() => {
+                      setSelectedPlant(plant);
+                      onPlantSelect?.(plant);
+                    }}
+                    title={`${plant.plantCode} - ${plant.healthScore}% - ${plant.status}`}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Dettagli pianta selezionata */}
+      {selectedPlant && (
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <h5 className="font-semibold text-lg">{selectedPlant.plantCode}</h5>
+              <p className="text-gray-600">{selectedPlant.plantName} - {selectedPlant.variety}</p>
+              <div className="mt-3 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Salute:</span>
+                  <span className="font-medium">{selectedPlant.healthScore}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Stato:</span>
+                  <span className="font-medium capitalize">{selectedPlant.status}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              {selectedPlant.photos && selectedPlant.photos.length > 0 && (
+                <div>
+                  <h6 className="font-medium mb-2">Foto Recenti</h6>
+                  <div className="grid grid-cols-3 gap-2">
+                    {selectedPlant.photos.slice(0, 3).map((photo, index) => (
+                      <img
+                        key={index}
+                        src={photo}
+                        alt={`${selectedPlant.plantCode} foto ${index + 1}`}
+                        className="w-full h-16 object-cover rounded-lg"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+### Integrazione con Sistema Esistente
+
+#### Pagina Principale
+
+```typescript
+// app/(dashboard)/app/plants/page.tsx
+export default function PlantsPage() {
+  const { activeGarden } = useGarden();
+  const [activeTab, setActiveTab] = useState<'smart' | 'field'>('smart');
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex bg-gray-100 rounded-lg p-1">
+        <button
+          onClick={() => setActiveTab('smart')}
+          className={`px-4 py-2 rounded-md ${
+            activeTab === 'smart' ? 'bg-white shadow-sm' : ''
+          }`}
+        >
+          🎯 Smart Manager
+        </button>
+        <button
+          onClick={() => setActiveTab('field')}
+          className={`px-4 py-2 rounded-md ${
+            activeTab === 'field' ? 'bg-white shadow-sm' : ''
+          }`}
+        >
+          🔧 Field Manager
+        </button>
+      </div>
+
+      {activeTab === 'smart' && <SmartPlantManager garden={activeGarden} />}
+      {activeTab === 'field' && <FieldPlantManager garden={activeGarden} />}
+    </div>
+  );
+}
+```
+
+### Scalabilità e Performance
+
+#### Ottimizzazioni Database
+
+```sql
+-- Indici per performance
+CREATE INDEX idx_garden_plants_garden_status ON garden_plants(garden_id, status);
+CREATE INDEX idx_garden_plants_row_position ON garden_plants(COALESCE(row_id, field_row_id), position_in_row);
+CREATE INDEX idx_plant_operations_plant_date ON plant_operations(plant_id, operation_date DESC);
+
+-- Viste materializzate per statistiche
+CREATE VIEW plants_per_row_summary AS
+SELECT 
+    COALESCE(gr.name, fr.name) as row_name,
+    COUNT(*) as total_plants,
+    COUNT(*) FILTER (WHERE gp.status = 'healthy') as healthy_plants,
+    AVG(gp.health_score) as avg_health_score
+FROM garden_plants gp
+LEFT JOIN garden_rows gr ON gp.row_id = gr.id
+LEFT JOIN field_rows fr ON gp.field_row_id = fr.id
+GROUP BY COALESCE(gr.name, fr.name);
+```
+
+#### Ottimizzazioni Frontend
+
+```typescript
+// Lazy loading per grandi dataset
+const PlantGrid = React.lazy(() => import('./PlantGrid'));
+
+// Virtualizzazione per migliaia di piante
+import { FixedSizeGrid as Grid } from 'react-window';
+
+const VirtualizedPlantGrid = ({ plants }: { plants: GardenPlant[] }) => (
+  <Grid
+    columnCount={20}
+    columnWidth={20}
+    height={600}
+    rowCount={Math.ceil(plants.length / 20)}
+    rowHeight={20}
+    itemData={plants}
+  >
+    {({ columnIndex, rowIndex, style, data }) => {
+      const plantIndex = rowIndex * 20 + columnIndex;
+      const plant = data[plantIndex];
+      
+      return plant ? (
+        <div style={style} className="plant-cell">
+          {/* Render pianta */}
+        </div>
+      ) : null;
+    }}
+  </Grid>
+);
+```
+
+### Testing e Validazione
+
+#### Test Calcoli
+
+```typescript
+// Test calcoli automatici
+describe('Plant Calculations', () => {
+  test('calcola correttamente piante per filare', () => {
+    const result = plantCalculations.maxPlantsInRow(40, 40); // 40m, 40cm
+    expect(result).toBe(101); // (40*100)/40 + 1 = 101
+  });
+
+  test('calcola area totale campo', () => {
+    const result = plantCalculations.totalArea(10, 40, 150); // 10 filari, 40m, 150cm
+    expect(result).toBe(600); // 40 * (9*1.5 + 0.5) = 600 m²
+  });
+});
+```
+
+#### Test Componenti
+
+```typescript
+// Test componenti React
+import { render, screen, fireEvent } from '@testing-library/react';
+import SmartPlantManager from '../SmartPlantManager';
+
+test('mostra statistiche piante', () => {
+  const mockPlants = [
+    { id: '1', status: 'healthy', healthScore: 95 },
+    { id: '2', status: 'diseased', healthScore: 45 }
+  ];
+
+  render(<SmartPlantManager garden={mockGarden} plants={mockPlants} />);
+  
+  expect(screen.getByText('1')).toBeInTheDocument(); // Piante sane
+  expect(screen.getByText('1')).toBeInTheDocument(); // Piante malate
+});
+```
 
 ---
 

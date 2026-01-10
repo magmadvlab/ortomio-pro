@@ -17,11 +17,13 @@ import {
   BarChart3,
   Star,
   BookOpen,
+  Leaf,
 } from 'lucide-react'
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/app' },
   { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden' },
+  { icon: Leaf, label: 'Vivaio', path: '/app/semenzaio' },
   { icon: Heart, label: 'Salute', path: '/app/advice' },
   { icon: BarChart3, label: 'Progressi', path: '/app/progress' },
   { icon: BookOpen, label: 'Guida Colture', path: '/app/guide' },
@@ -53,7 +55,7 @@ export function FreeSidebar() {
     {
       title: 'PRINCIPALE',
       items: allMenuItems.filter(item =>
-        ['Dashboard', 'Il Mio Orto', 'Salute', 'Progressi', 'Guida Colture'].includes(item.label)
+        ['Dashboard', 'Il Mio Orto', 'Vivaio', 'Salute', 'Progressi', 'Guida Colture'].includes(item.label)
       ),
       collapsible: false
     },
