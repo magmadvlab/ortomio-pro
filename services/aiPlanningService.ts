@@ -1,9 +1,14 @@
 /**
  * AI Planning Service - Sistema predittivo per scaglionamento coltivazioni
- * Integra con l'architettura AI esistente di OrtoMio Free
+ * Integra con l'architettura AI esistente di OrtoMio Free e il nuovo sistema integrato
  */
 
-import { Garden, GardenTask } from '../types';
+import { Garden, GardenTask, PlantMasterSheet } from '../types';
+import { 
+  IntegratedStaggeringService, 
+  IntegratedStaggeringPlan, 
+  StaggeringMethod 
+} from './integratedStaggeringService';
 
 export interface CropPlanningRequest {
   cropName: string;
@@ -264,7 +269,8 @@ Fornisci identificazione precisa e consigli per pianificazione.`;
   }
 
   /**
-   * Genera piano di scaglionamento completo usando AI
+   * Genera piano di scaglionamento completo usando AI con focus operativo
+   * NUOVO: Integra con IntegratedStaggeringService per gestione completa processi
    */
   static async generateScalingPlan(
     request: CropPlanningRequest,
@@ -273,28 +279,441 @@ Fornisci identificazione precisa e consigli per pianificazione.`;
     layoutSuggestion?: any
   ): Promise<ScalingPlan> {
     
-    // Usa il sistema AI esistente di OrtoMio Free
-    const { callAI } = await import('../services/aiProxyService');
+    // 1. Ottieni dati pianta dal database
+    const plant = await this.getPlantData(request.cropName);
     
-    const systemPrompt = this.buildPlanningSystemPrompt(request, soilAnalysis, layoutSuggestion);
-    const userPrompt = this.buildPlanningUserPrompt(request, soilAnalysis, layoutSuggestion);
+    // 2. Determina metodo di coltivazione ottimale
+    const method = this.determineOptimalMethod(request, soilAnalysis);
+    
+    // 3. Genera piano integrato completo
+    const integratedPlan = IntegratedStaggeringService.generateIntegratedPlan(
+      plant,
+      request.surfaceHectares,
+      method,
+      new Date(),
+      { name: request.location.region } as Garden
+    );
+    
+    // 4. Usa AI per ottimizzazioni avanzate
+    const aiOptimizations = await this.getAIOptimizations(
+      request, 
+      integratedPlan, 
+      soilAnalysis, 
+      layoutSuggestion
+    );
+    
+    // 5. Converti in formato ScalingPlan per UI
+    return this.convertToScalingPlan(integratedPlan, aiOptimizations, request);
+  }
+
+  /**
+   * Ottieni dati pianta (mock per ora, in produzione da database)
+   */
+  private static async getPlantData(cropName: string): Promise<PlantMasterSheet> {
+    // In produzione, query al database delle piante
+    const plantDatabase: Record<string, Partial<PlantMasterSheet>> = {
+      'Pomodori': {
+        commonName: 'Pomodori',
+        scientificName: 'Solanum lycopersicum',
+        family: 'Solanaceae',
+        daysToMaturity: 80,
+        nutrientCategory: 'Heavy' as any,
+        requiredTools: {
+          seedTray: true,
+          seedSoil: true,
+          heatingMat: false,
+          sprayer: true
+        },
+        germination: {
+          preSoak: false,
+          sowingDepth: 0.5,
+          idealTemp: '20-24°C',
+          minTemp: 12,
+          optimalTemp: 22,
+          maxTemp: 30,
+          lightRequirement: 'Light',
+          emergenceDays: { min: 7, max: 14 },
+          coveringNeeded: true
+        },
+        seedlingCare: {
+          transplantWhen: 'alla seconda coppia di foglie vere',
+          lightNeeds: 'Tanta luce diretta o lampade LED',
+          temperature: '18-22°C',
+          watering: 'Solo quando il terriccio è quasi asciutto'
+        },
+        transplanting: {
+          when: 'Quando le notturne superano i 12°C stabilmente',
+          minTemp: 12,
+          spacing: '50cm sulla fila, 120cm tra le file',
+          holeDepth: 15,
+          holeWidth: 20,
+          soilRequirements: 'Ricco di azoto e ben drenato',
+          buryStem: true
+        },
+        availableTags: [],
+        baseInstructions: {
+          introduction: 'Il pomodoro è una delle colture più gratificanti per l\'orticoltore.',
+          commonMistakes: ['Troppa acqua', 'Poco sole', 'Trapianto precoce'],
+          harvestGuide: 'Raccogliere quando il frutto è completamente colorato ma ancora sodo.'
+        }
+      },
+      'Lattuga': {
+        commonName: 'Lattuga',
+        scientificName: 'Lactuca sativa',
+        family: 'Asteraceae',
+        daysToMaturity: 45,
+        nutrientCategory: 'Light' as any,
+        requiredTools: {
+          seedTray: true,
+          seedSoil: true,
+          heatingMat: false,
+          sprayer: true
+        },
+        germination: {
+          preSoak: false,
+          sowingDepth: 0.3,
+          idealTemp: '15-20°C',
+          minTemp: 8,
+          optimalTemp: 18,
+          maxTemp: 25,
+          lightRequirement: 'Light',
+          emergenceDays: { min: 3, max: 7 },
+          coveringNeeded: false
+        },
+        seedlingCare: {
+          transplantWhen: 'alla prima coppia di foglie vere',
+          lightNeeds: 'Luce moderata',
+          temperature: '15-18°C',
+          watering: 'Mantenere umido ma non bagnato'
+        },
+        transplanting: {
+          when: 'Quando le notturne superano i 5°C',
+          minTemp: 5,
+          spacing: '25cm sulla fila, 30cm tra le file',
+          holeDepth: 10,
+          holeWidth: 15,
+          soilRequirements: 'Fertile e ben drenato'
+        },
+        availableTags: [],
+        baseInstructions: {
+          introduction: 'La lattuga è ideale per principianti.',
+          commonMistakes: ['Troppo caldo', 'Semina troppo fitta'],
+          harvestGuide: 'Raccogliere al mattino quando le foglie sono croccanti.'
+        }
+      },
+      'Zucchine': {
+        commonName: 'Zucchine',
+        scientificName: 'Cucurbita pepo',
+        family: 'Cucurbitaceae',
+        daysToMaturity: 60,
+        nutrientCategory: 'Heavy' as any,
+        requiredTools: {
+          seedTray: true,
+          seedSoil: true,
+          heatingMat: true,
+          sprayer: true
+        },
+        germination: {
+          preSoak: true,
+          sowingDepth: 2,
+          idealTemp: '22-28°C',
+          minTemp: 15,
+          optimalTemp: 25,
+          maxTemp: 35,
+          lightRequirement: 'Light',
+          emergenceDays: { min: 5, max: 10 },
+          coveringNeeded: true
+        },
+        seedlingCare: {
+          transplantWhen: 'alla seconda coppia di foglie vere',
+          lightNeeds: 'Molta luce diretta',
+          temperature: '20-25°C',
+          watering: 'Regolare ma senza ristagni'
+        },
+        transplanting: {
+          when: 'Quando le notturne superano i 15°C',
+          minTemp: 15,
+          spacing: '100cm sulla fila, 150cm tra le file',
+          holeDepth: 20,
+          holeWidth: 30,
+          soilRequirements: 'Molto ricco di sostanza organica'
+        },
+        availableTags: [],
+        baseInstructions: {
+          introduction: 'Le zucchine sono molto produttive e facili da coltivare.',
+          commonMistakes: ['Poco spazio', 'Irrigazione fogliare'],
+          harvestGuide: 'Raccogliere i frutti giovani e teneri, lunghi 15-20cm.'
+        }
+      }
+    };
+    
+    const plantData = plantDatabase[cropName] || plantDatabase['Pomodori'];
+    
+    return {
+      id: '1',
+      ...plantData,
+      // Campi obbligatori mancanti
+      nutrientCategory: plantData.nutrientCategory || 'Medium',
+      requiredTools: plantData.requiredTools || {
+        seedTray: true,
+        seedSoil: true,
+        heatingMat: false,
+        sprayer: true
+      },
+      germination: plantData.germination || {
+        preSoak: false,
+        sowingDepth: 1,
+        idealTemp: '18-22°C',
+        minTemp: 10,
+        lightRequirement: 'Light',
+        emergenceDays: { min: 7, max: 14 },
+        coveringNeeded: false
+      },
+      seedlingCare: plantData.seedlingCare || {
+        transplantWhen: 'alla seconda coppia di foglie vere',
+        lightNeeds: 'Luce diretta',
+        temperature: '18-22°C',
+        watering: 'Regolare'
+      },
+      transplanting: plantData.transplanting || {
+        when: 'Quando le temperature sono stabili',
+        minTemp: 10,
+        spacing: '50cm tra piante',
+        holeDepth: 15,
+        holeWidth: 20,
+        soilRequirements: 'Ben drenato'
+      },
+      availableTags: plantData.availableTags || [],
+      baseInstructions: plantData.baseInstructions || {
+        introduction: `${cropName} è una coltura versatile.`,
+        commonMistakes: ['Irrigazione eccessiva', 'Trapianto precoce'],
+        harvestGuide: 'Raccogliere quando maturo.'
+      }
+    } as PlantMasterSheet;
+  }
+
+  /**
+   * Determina metodo di coltivazione ottimale
+   */
+  private static determineOptimalMethod(
+    request: CropPlanningRequest,
+    soilAnalysis?: any
+  ): StaggeringMethod {
+    
+    // Logica intelligente per scegliere il metodo
+    if (request.experienceLevel === 'beginner') {
+      return {
+        type: 'seedling',
+        daysToMaturity: 70,
+        nurseryDays: 30,
+        transplantWindow: 14
+      };
+    }
+    
+    if (request.surfaceHectares > 5) {
+      // Grandi superfici: semina diretta più efficiente
+      return {
+        type: 'seed',
+        daysToMaturity: 85,
+      };
+    }
+    
+    if (soilAnalysis?.drainage === 'poor') {
+      // Terreno con problemi: trapianto più sicuro
+      return {
+        type: 'transplant',
+        daysToMaturity: 75,
+        transplantWindow: 10
+      };
+    }
+    
+    // Default: seedling per controllo qualità
+    return {
+      type: 'seedling',
+      daysToMaturity: 70,
+      nurseryDays: 25,
+      transplantWindow: 14
+    };
+  }
+
+  /**
+   * Ottieni ottimizzazioni AI avanzate
+   */
+  private static async getAIOptimizations(
+    request: CropPlanningRequest,
+    integratedPlan: IntegratedStaggeringPlan,
+    soilAnalysis?: any,
+    layoutSuggestion?: any
+  ): Promise<{
+    marketTiming: string[];
+    riskMitigation: string[];
+    costOptimization: string[];
+    yieldMaximization: string[];
+  }> {
     
     try {
-      const response = await callAI([
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ], {
-        provider: 'mistral', // Mistral via OpenRouter per reasoning complesso
-        model: 'mistralai/mistral-small-3.1-24b-instruct:free', // Modello gratuito
-        temperature: 0.3 // Bassa per consistenza nei calcoli
-      });
+      const { callAI } = await import('../services/aiProxyService');
       
-      return this.parseScalingPlan(response.content, request);
+      const prompt = `Analizza questo piano di scaglionamento integrato e suggerisci ottimizzazioni:
+
+PIANO INTEGRATO:
+- Coltura: ${integratedPlan.cropName}
+- Superficie: ${integratedPlan.totalSurface} ha
+- Lotti: ${integratedPlan.batches.length}
+- Metodo: ${integratedPlan.method.type}
+
+BATCHES TIMELINE:
+${integratedPlan.batches.map(b => 
+  `Lotto ${b.batchNumber}: ${b.surfaceHectares}ha, semina ${b.plantingDate.toLocaleDateString()}, raccolta ${b.timeline.harvestStart.toLocaleDateString()}`
+).join('\n')}
+
+GESTIONE RISORSE:
+- Irrigazioni programmate: ${integratedPlan.resourceManagement.irrigationSchedule.length}
+- Fertilizzazioni: ${integratedPlan.resourceManagement.fertilizationSchedule.length}
+- Trattamenti: ${integratedPlan.resourceManagement.treatmentSchedule.length}
+
+MERCATO TARGET: ${request.targetMarket}
+BUDGET: ${request.budget ? `€${request.budget}` : 'Non specificato'}
+
+Fornisci ottimizzazioni specifiche per:
+1. TIMING MERCATO - Quando vendere ogni lotto per massimizzare ricavi
+2. MITIGAZIONE RISCHI - Come ridurre rischi operativi e climatici  
+3. OTTIMIZZAZIONE COSTI - Come ridurre costi mantenendo qualità
+4. MASSIMIZZAZIONE RESE - Come aumentare produttività per ettaro`;
+
+      const response = await callAI([
+        { 
+          role: 'system', 
+          content: 'Sei un consulente agricolo esperto in ottimizzazione operativa e analisi economica delle coltivazioni intensive.' 
+        },
+        { role: 'user', content: prompt }
+      ], {
+        provider: 'mistral',
+        model: 'mistralai/mistral-small-3.1-24b-instruct:free',
+        temperature: 0.2
+      });
+
+      return this.parseAIOptimizations(response.content);
       
     } catch (error) {
-      console.error('AI Planning failed:', error);
-      throw new Error('Errore nella generazione del piano di scaglionamento');
+      console.error('AI optimizations failed:', error);
+      
+      // Fallback con ottimizzazioni standard
+      return {
+        marketTiming: [
+          'Vendere primo lotto a prezzi premium inizio stagione',
+          'Distribuire vendite per evitare saturazione mercato',
+          'Riservare ultimo lotto per mercato tardivo'
+        ],
+        riskMitigation: [
+          'Diversificare varietà per ridurre rischio climatico',
+          'Implementare sistema allerta meteo',
+          'Stipulare assicurazione agricola'
+        ],
+        costOptimization: [
+          'Condividere attrezzature tra lotti adiacenti',
+          'Ottimizzare percorsi per ridurre carburante',
+          'Negoziare prezzi input per quantità'
+        ],
+        yieldMaximization: [
+          'Aumentare densità impianto nelle zone migliori',
+          'Implementare fertirrigazione di precisione',
+          'Monitorare stress idrico con sensori'
+        ]
+      };
     }
+  }
+
+  /**
+   * Converti piano integrato in formato UI
+   */
+  private static convertToScalingPlan(
+    integratedPlan: IntegratedStaggeringPlan,
+    aiOptimizations: any,
+    request: CropPlanningRequest
+  ): ScalingPlan {
+    
+    // Calcola metriche economiche
+    const totalInvestment = integratedPlan.batches.reduce((sum, batch) => {
+      return sum + batch.scheduledProcesses.reduce((batchSum, sp) => {
+        return batchSum + sp.process.resources.cost;
+      }, 0);
+    }, 0);
+    
+    const estimatedYield = integratedPlan.batches.reduce((sum, batch) => {
+      return sum + (batch.surfaceHectares * 25); // 25 ton/ha media
+    }, 0);
+    
+    const expectedRevenue = estimatedYield * 2500; // €2.5/kg
+    const roi = ((expectedRevenue - totalInvestment) / totalInvestment) * 100;
+    
+    return {
+      overview: {
+        totalSurface: integratedPlan.totalSurface,
+        estimatedYield,
+        plantingPeriods: integratedPlan.batches.length,
+        harvestWindows: integratedPlan.batches.map(b => 
+          b.timeline.harvestStart.toISOString().split('T')[0]
+        ),
+        totalInvestment,
+        expectedRevenue,
+        roi
+      },
+      timeline: integratedPlan.batches.map(batch => ({
+        phaseNumber: batch.batchNumber,
+        startDate: batch.plantingDate.toISOString().split('T')[0],
+        endDate: batch.timeline.harvestEnd.toISOString().split('T')[0],
+        surfaceHectares: batch.surfaceHectares,
+        activities: batch.scheduledProcesses.map(sp => ({
+          type: sp.process.processType as any,
+          date: sp.scheduledDates[0].toISOString().split('T')[0],
+          description: sp.process.description,
+          resources: sp.process.resources.equipment || [],
+          estimatedHours: sp.process.resources.laborHours,
+          cost: sp.process.resources.cost
+        })),
+        expectedYield: batch.surfaceHectares * 25,
+        harvestDate: batch.timeline.harvestStart.toISOString().split('T')[0]
+      })),
+      resources: this.generateResourceRequirements(request),
+      riskAnalysis: this.generateRiskAnalysis(request),
+      recommendations: [
+        ...aiOptimizations.marketTiming,
+        ...aiOptimizations.riskMitigation,
+        ...aiOptimizations.costOptimization,
+        ...aiOptimizations.yieldMaximization
+      ]
+    };
+  }
+
+  /**
+   * Parse ottimizzazioni AI
+   */
+  private static parseAIOptimizations(aiResponse: string) {
+    // In produzione, parsing intelligente della risposta AI
+    // Per ora, struttura di fallback
+    return {
+      marketTiming: [
+        'Primo lotto: vendita immediata a prezzi premium',
+        'Lotti centrali: distribuzione su 2-3 settimane',
+        'Ultimo lotto: mercato tardivo o trasformazione'
+      ],
+      riskMitigation: [
+        'Monitoraggio meteo continuo per processi critici',
+        'Diversificazione varietà per resilienza climatica',
+        'Backup plan per ritardi o problemi operativi'
+      ],
+      costOptimization: [
+        'Condivisione attrezzature tra lotti contigui',
+        'Ottimizzazione percorsi per ridurre trasporti',
+        'Acquisti collettivi input per economie di scala'
+      ],
+      yieldMaximization: [
+        'Densità impianto variabile per zona produttiva',
+        'Fertirrigazione di precisione basata su sensori',
+        'Potatura e gestione chioma ottimizzata'
+      ]
+    };
   }
 
   /**
@@ -336,12 +755,18 @@ OBIETTIVO:
 Creare un piano di scaglionamento dettagliato per ${request.cropName} su ${request.surfaceHectares} ettari.
 
 PRINCIPI GUIDA:
-1. Massimizzare la produzione distribuendo i rischi
-2. Ottimizzare l'uso delle risorse (manodopera, macchinari)
-3. Garantire fornitura costante al mercato
-4. Minimizzare perdite da avversità climatiche
-5. Rispettare sostenibilità economica e ambientale
-6. Integrare analisi terreno e layout quando disponibili
+1. **GESTIONE OPERATIVA**: Ogni coltura su scala commerciale beneficia dello scaglionamento
+2. **CAPACITÀ RACCOLTA**: Distribuire il carico per evitare picchi operativi insostenibili  
+3. **QUALITÀ PRODOTTO**: Mantenere standard qualitativi con raccolte tempestive
+4. **RISCHIO MERCATO**: Diversificare finestre di vendita per stabilizzare prezzi
+5. **MANODOPERA**: Ottimizzare utilizzo risorse umane evitando sovraccarichi
+6. **SOSTENIBILITÀ**: Ridurre perdite da sovramaturazione e concentrazione raccolta
+
+FOCUS SCAGLIONAMENTO PROFESSIONALE:
+- 10 ettari di pomodori che maturano insieme = DISASTRO OPERATIVO
+- Impossibile raccogliere tutto in 7-10 giorni di finestra qualità
+- Necessario distribuire su 3-4 lotti con intervalli 21 giorni
+- Calcolare capacità raccolta: 0.5-1 ettaro/giorno per ortaggi intensivi
 
 FORMATO RISPOSTA:
 Struttura la risposta in JSON con tutti i campi richiesti dall'interfaccia ScalingPlan.

@@ -25,6 +25,8 @@ import {
   Leaf,
   Shield,
   Bot,
+  Satellite,
+  Map,
 } from 'lucide-react'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { useEffect } from 'react'
@@ -42,6 +44,8 @@ const menuItems = [
   { icon: FlaskConical, label: 'Nutrizione & Trattamenti', path: '/app/nutrition', tier: 'PRO', badge: 'PRO' },
   { icon: Tractor, label: 'Lavorazioni', path: '/app/mechanical-work', tier: 'PRO', badge: 'PRO' },
   { icon: Shield, label: 'GlobalG.A.P.', path: '/app/compliance', tier: 'PRO', badge: 'PRO' },
+  { icon: Satellite, label: 'NDVI Satellitare', path: '/app/ndvi', tier: 'PRO', badge: 'NEW' },
+  { icon: Map, label: 'Prescription Maps', path: '/app/prescription-maps', tier: 'PRO', badge: 'NEW' },
   { icon: BarChart3, label: 'Analytics', path: '/app/analytics', tier: 'PRO', badge: 'PRO' },
   { icon: Wifi, label: 'Smart Hub', path: '/app/smart', tier: 'all' },
   { icon: Database, label: 'Export', path: '/app/export', tier: 'PRO', badge: 'PRO' },
@@ -98,7 +102,7 @@ export function ProfessionalSidebar() {
       tier: 'PRO',
       collapsible: true,
       items: allMenuItems.filter(item =>
-        ['Analytics', 'Smart Hub', 'Export'].includes(item.label)
+        ['NDVI Satellitare', 'Prescription Maps', 'Analytics', 'Smart Hub', 'Export'].includes(item.label)
       )
     },
     {

@@ -196,15 +196,16 @@ export function AchievementsTab() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Challenge System */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <Award size={20} className="text-purple-600" />
-          Challenge Giornaliere
-        </h3>
-        <ChallengeSystem />
+        
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            💡 <strong>Suggerimento:</strong> Le challenge giornaliere sono ora integrate nella 
+            <a href="/app/progress?tab=overview" className="font-medium underline hover:text-blue-900 ml-1">
+              Panoramica
+            </a> 
+            insieme al calendario per una migliore esperienza utente.
+          </p>
+        </div>
       </div>
     </div>
   )

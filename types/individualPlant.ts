@@ -8,8 +8,10 @@ export interface GardenPlant {
   
   // Collegamento al filare
   gardenId: string;
-  rowId?: string; // garden_rows
-  fieldRowId?: string; // field_rows
+  
+  // Row connections (integrated approach)
+  gardenRowId?: string; // garden_rows (bed rows)
+  fieldRowId?: string; // field_rows (open field rows)
   
   // Posizione nel filare
   positionInRow: number; // 1, 2, 3, 4...

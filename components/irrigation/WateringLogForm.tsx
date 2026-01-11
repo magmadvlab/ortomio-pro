@@ -14,17 +14,20 @@ import { X } from 'lucide-react'
 interface WateringLogFormProps {
   zones: IrrigationZone[]
   preselectedZone?: IrrigationZone
+  fieldRows?: any[] // Field rows del garden per irrigazione diretta
   onSubmit: (log: Omit<WateringLog, 'id' | 'createdAt'>) => Promise<void>
   onSubmitBatch?: (logs: Array<Omit<WateringLog, 'id' | 'createdAt'>>) => Promise<void>
   onCancel: () => void
 }
 
-export function WateringLogForm({ zones, preselectedZone, onSubmit, onSubmitBatch, onCancel }: WateringLogFormProps) {
+export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubmit, onSubmitBatch, onCancel }: WateringLogFormProps) {
   const { storageProvider } = useStorage()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     zoneId: preselectedZone?.id || '',
     bedId: '',
+    fieldRowId: '', // Nuovo: per field rows
+    irrigationType: 'zone' as 'zone' | 'field', // Nuovo: tipo irrigazione
     date: new Date().toISOString().split('T')[0],
     time: new Date().toTimeString().slice(0, 5),
     litersPerRow: 10,
@@ -39,6 +42,7 @@ export function WateringLogForm({ zones, preselectedZone, onSubmit, onSubmitBatc
   const [bedOptions, setBedOptions] = useState<GardenBed[]>([])
   const [rowOptions, setRowOptions] = useState<GardenRow[]>([])
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([])
+  const [selectedFieldRowIds, setSelectedFieldRowIds] = useState<string[]>([]) // Nuovo: per field rows
 
   const selectedZone = zones.find(z => z.id === formData.zoneId)
 

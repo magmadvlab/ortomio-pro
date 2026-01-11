@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { X, LayoutDashboard, Heart, BarChart3, FlaskConical, Tractor, TreePine, CircleDot, Grape, ChefHat, Database, Wifi, HelpCircle, Settings, Crown, Book, Sprout, ChevronDown, Home } from 'lucide-react'
+import { X, LayoutDashboard, Heart, BarChart3, FlaskConical, Tractor, TreePine, CircleDot, Grape, ChefHat, Database, Wifi, HelpCircle, Settings, Crown, Book, Sprout, ChevronDown, Home, Droplets, Satellite, Map, Shield, Target, Leaf } from 'lucide-react'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { AppTier } from '@/packages/core/config/tiers'
@@ -138,43 +138,51 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       items: [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
         { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
+        { icon: Leaf, label: 'Piante', path: '/app/plants', tier: 'all' },
         { icon: Heart, label: 'Salute', path: '/app/advice', tier: 'all' },
         { icon: BarChart3, label: 'Progressi', path: '/app/progress', tier: 'all' },
       ],
       tier: 'all'
     },
     {
-      title: 'PROFESSIONAL',
-      tier: 'PRO',
+      title: 'COLTURE SPECIALIZZATE',
+      tier: 'all',
       collapsible: true,
       items: [
-        { icon: TreePine, label: 'Frutteto', path: '/app/orchard', tier: 'PRO', badge: 'PRO' },
-        { icon: CircleDot, label: 'Oliveto', path: '/app/olives', tier: 'PRO', badge: 'PRO' },
-        { icon: Grape, label: 'Vigneto', path: '/app/vineyard', tier: 'PRO', badge: 'PRO' },
-        { icon: FlaskConical, label: 'Nutrizione & Trattamenti', path: '/app/nutrition', tier: 'PRO', badge: 'PRO' },
-        { icon: Tractor, label: 'Lavorazioni', path: '/app/mechanical-work', tier: 'PRO', badge: 'PRO' },
-        { icon: BarChart3, label: 'Analytics', path: '/app/analytics', tier: 'PRO', badge: 'PRO' },
-        { icon: Wifi, label: 'Smart Hub', path: '/app/smart', tier: 'all' },
-        { icon: Database, label: 'Export', path: '/app/export', tier: 'PRO', badge: 'PRO' },
+        { icon: TreePine, label: 'Frutteto', path: '/app/orchard', tier: 'all' },
+        { icon: CircleDot, label: 'Oliveto', path: '/app/olives', tier: 'all' },
+        { icon: Grape, label: 'Vigneto', path: '/app/vineyard', tier: 'all' },
       ]
     },
     {
-      title: 'GESTIONE AVANZATA',
+      title: 'GESTIONE PROFESSIONALE',
+      tier: 'all',
+      collapsible: true,
       items: [
-        { icon: BarChart3, label: 'Analytics', path: '/app/analytics', tier: 'PRO', badge: 'PRO' },
-        { icon: FlaskConical, label: 'Nutrizione & Trattamenti', path: '/app/nutrition', tier: 'PRO', badge: 'PRO' },
-        { icon: Tractor, label: 'Lavorazioni', path: '/app/mechanical-work', tier: 'PRO', badge: 'PRO' },
-        { icon: Database, label: 'Export', path: '/app/export', tier: 'PRO', badge: 'PRO' },
-      ],
-      tier: 'PRO',
-      collapsible: true
+        { icon: Droplets, label: 'Irrigazione', path: '/app/irrigation', tier: 'all' },
+        { icon: FlaskConical, label: 'Nutrizione & Trattamenti', path: '/app/nutrition', tier: 'all' },
+        { icon: Tractor, label: 'Lavorazioni', path: '/app/mechanical-work', tier: 'all' },
+        { icon: Shield, label: 'GlobalG.A.P.', path: '/app/compliance', tier: 'all' },
+      ]
     },
     {
-      title: 'IMPOSTAZIONI',
+      title: 'ANALYTICS & SMART',
+      tier: 'all',
+      collapsible: true,
       items: [
+        { icon: Satellite, label: 'NDVI Satellitare', path: '/app/ndvi', tier: 'all' },
+        { icon: Target, label: 'Prescription Maps', path: '/app/prescription-maps', tier: 'all' },
+        { icon: BarChart3, label: 'Analytics', path: '/app/analytics', tier: 'all' },
+        { icon: Wifi, label: 'Smart Hub', path: '/app/smart', tier: 'all' },
+        { icon: Database, label: 'Export', path: '/app/export', tier: 'all' },
+      ]
+    },
+    {
+      title: 'SUPPORTO',
+      items: [
+        { icon: Book, label: 'Manuale Utente', path: '/app/help', tier: 'all' },
         { icon: Settings, label: 'Impostazioni', path: '/app/settings', tier: 'all' },
-        { icon: HelpCircle, label: 'Aiuto', path: '/app/help', tier: 'all' },
-        { icon: Crown, label: 'Admin', path: '/app/admin', tier: 'PRO' },
+        { icon: Crown, label: 'Admin', path: '/app/admin', tier: 'all' },
       ],
       tier: 'all'
     }
@@ -187,25 +195,27 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       items: [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
         { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
+        { icon: Leaf, label: 'Piante', path: '/app/plants', tier: 'all' },
         { icon: Heart, label: 'Salute', path: '/app/advice', tier: 'all' },
         { icon: BarChart3, label: 'Progressi', path: '/app/progress', tier: 'all' },
       ],
       tier: 'all'
     },
     {
-      title: 'PRO',
+      title: 'FUNZIONALITÀ AVANZATE',
       items: [
-        { icon: ChefHat, label: 'Ricette', path: '/app/recipes', tier: 'PRO', badge: 'PRO' },
-        { icon: Book, label: 'Guide Premium', path: '/app/guides', tier: 'PRO', badge: 'PRO' },
+        { icon: ChefHat, label: 'Ricette', path: '/app/recipes', tier: 'all' },
+        { icon: Book, label: 'Guide Premium', path: '/app/guides', tier: 'all' },
+        { icon: Wifi, label: 'Smart Hub', path: '/app/smart', tier: 'all' },
       ],
-      tier: 'PRO',
+      tier: 'all',
       collapsible: true
     },
     {
-      title: 'IMPOSTAZIONI',
+      title: 'SUPPORTO',
       items: [
+        { icon: Book, label: 'Manuale Utente', path: '/app/help', tier: 'all' },
         { icon: Settings, label: 'Impostazioni', path: '/app/settings', tier: 'all' },
-        { icon: HelpCircle, label: 'Aiuto', path: '/app/help', tier: 'all' },
       ],
       tier: 'all'
     }
@@ -218,15 +228,17 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       items: [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
         { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
+        { icon: Leaf, label: 'Piante', path: '/app/plants', tier: 'all' },
         { icon: Heart, label: 'Salute', path: '/app/advice', tier: 'all' },
         { icon: BarChart3, label: 'Progressi', path: '/app/progress', tier: 'all' },
+        { icon: Wifi, label: 'Smart Hub', path: '/app/smart', tier: 'all' },
       ],
       tier: 'all'
     },
     {
-      title: 'IMPOSTAZIONI',
+      title: 'SUPPORTO',
       items: [
-        { icon: HelpCircle, label: 'Aiuto', path: '/app/help', tier: 'all' },
+        { icon: Book, label: 'Manuale Utente', path: '/app/help', tier: 'all' },
         { icon: Settings, label: 'Impostazioni', path: '/app/settings', tier: 'all' },
       ],
       tier: 'all'

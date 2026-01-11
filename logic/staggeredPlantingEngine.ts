@@ -1,6 +1,7 @@
 /**
- * Staggered Planting Engine (Scaglionatura)
- * Suggests optimal batch intervals and number of batches for continuous harvest
+ * Staggered Planting Engine (Scaglionatura) - VERSIONE PROFESSIONALE
+ * Calcola scaglionamento basato su gestione operativa e capacità di raccolta
+ * PRINCIPIO: Ogni coltura su scala commerciale beneficia dello scaglionamento
  */
 
 import { PlantMasterSheet } from '../types';
@@ -16,117 +17,165 @@ export interface StaggeredPlantingAdvice {
     totalDays: number;
   };
   benefits: string[];
+  operationalBenefits: {
+    harvestCapacityManagement: string;
+    laborDistribution: string;
+    marketRiskReduction: string;
+    qualityMaintenance: string;
+  };
 }
 
 /**
- * Plants that benefit most from staggered planting
+ * Configurazione scaglionamento per gestione operativa professionale
+ * Basata su: capacità raccolta, deperibilità, finestra commerciale
  */
-const STAGGERED_PRIORITY_PLANTS: Record<string, { batches: number; interval: number }> = {
-  'LATTUGA': { batches: 4, interval: 14 }, // Lattuga: raccolto continuo
-  'RAVANELLO': { batches: 5, interval: 10 }, // Ravanelli: ciclo molto breve
-  'SPINACI': { batches: 4, interval: 14 },
-  'RUCOLA': { batches: 4, interval: 12 },
-  'BASILICO': { batches: 3, interval: 21 }, // Basilico: raccolto foglie continue
-  'PREZZEMOLO': { batches: 3, interval: 30 },
-  'CAROTA': { batches: 3, interval: 21 }, // Carote: raccolto scalare
-  'FAGIOLO': { batches: 3, interval: 14 }, // Fagioli: raccolto continuo
-  'PISELLO': { batches: 3, interval: 14 },
-  'ZUCCHINA': { batches: 2, interval: 21 }, // Zucchine: produzione continua ma più lunga
-  'CETRIOLO': { batches: 2, interval: 21 },
+const PROFESSIONAL_STAGGERING_CONFIG: Record<string, { 
+  batches: number; 
+  interval: number; 
+  reason: string;
+  harvestWindow: number; // giorni di finestra raccolta per lotto
+}> = {
+  // ORTAGGI A CICLO BREVE - Scaglionamento per continuità
+  'LATTUGA': { batches: 4, interval: 14, reason: 'Ciclo breve, deperibilità alta', harvestWindow: 7 },
+  'RAVANELLO': { batches: 5, interval: 10, reason: 'Ciclo velocissimo, qualità degrada rapidamente', harvestWindow: 5 },
+  'SPINACI': { batches: 4, interval: 14, reason: 'Foglie tenere, finestra raccolta limitata', harvestWindow: 10 },
+  'RUCOLA': { batches: 4, interval: 12, reason: 'Crescita rapida, qualità ottimale solo giovane', harvestWindow: 7 },
+  
+  // ORTAGGI A CICLO MEDIO - Scaglionamento per gestione operativa
+  'POMODORO': { batches: 3, interval: 21, reason: 'Gestione raccolta intensiva, distribuzione carico lavoro', harvestWindow: 14 },
+  'PEPERONE': { batches: 3, interval: 21, reason: 'Raccolta manuale intensiva, evita picchi operativi', harvestWindow: 21 },
+  'MELANZANA': { batches: 3, interval: 21, reason: 'Raccolta frequente richiesta, distribuzione manodopera', harvestWindow: 14 },
+  'ZUCCHINA': { batches: 2, interval: 21, reason: 'Produzione continua, evita sovraccarico raccolta', harvestWindow: 30 },
+  'CETRIOLO': { batches: 2, interval: 21, reason: 'Raccolta quotidiana necessaria, gestione operativa', harvestWindow: 30 },
+  
+  // LEGUMINOSE - Scaglionamento per mercato e lavorazione
+  'FAGIOLO': { batches: 3, interval: 14, reason: 'Concentrazione raccolta, distribuzione per mercato', harvestWindow: 10 },
+  'PISELLO': { batches: 3, interval: 14, reason: 'Finestra raccolta stretta, qualità degrada velocemente', harvestWindow: 7 },
+  'FAVA': { batches: 2, interval: 21, reason: 'Raccolta manuale, distribuzione carico operativo', harvestWindow: 14 },
+  
+  // ERBE AROMATICHE - Scaglionamento per qualità
+  'BASILICO': { batches: 3, interval: 21, reason: 'Qualità foglie giovani, raccolta continua', harvestWindow: 45 },
+  'PREZZEMOLO': { batches: 3, interval: 30, reason: 'Raccolta scalare, mantenimento qualità', harvestWindow: 60 },
+  
+  // RADICI - Scaglionamento per conservazione e mercato
+  'CAROTA': { batches: 3, interval: 21, reason: 'Calibri diversi, distribuzione mercato', harvestWindow: 30 },
+  'BARBABIETOLA': { batches: 2, interval: 28, reason: 'Gestione calibri, evita sovraproduzione', harvestWindow: 21 },
+  'CIPOLLA': { batches: 2, interval: 30, reason: 'Maturazione scalare, gestione conservazione', harvestWindow: 14 },
+  
+  // BRASSICACEE - Scaglionamento per qualità e mercato
+  'CAVOLO': { batches: 2, interval: 21, reason: 'Evita sovramaturazione, distribuzione mercato', harvestWindow: 21 },
+  'CAVOLFIORE': { batches: 3, interval: 14, reason: 'Finestra qualità stretta, gestione operativa', harvestWindow: 7 },
+  'BROCCOLO': { batches: 3, interval: 14, reason: 'Qualità degrada rapidamente, raccolta frequente', harvestWindow: 7 },
 };
 
 /**
- * Calculate optimal staggered planting for a plant
+ * Calcola scaglionamento professionale basato su superficie e gestione operativa
  */
 export const calculateStaggeredPlanting = (
   plant: PlantMasterSheet,
   startDate: Date = new Date(),
-  harvestWindowDays?: number // Optional: days from planting to first harvest
+  surfaceHectares: number = 1, // NUOVO: considera la superficie
+  harvestCapacityPerDay: number = 0.5 // NUOVO: ettari raccoglibili al giorno
 ): StaggeredPlantingAdvice => {
   const plantName = plant.commonName.toUpperCase();
-  const priority = STAGGERED_PRIORITY_PLANTS[plantName];
+  const config = PROFESSIONAL_STAGGERING_CONFIG[plantName];
 
-  // If plant has successionIntervalDays in master sheet, use it
-  // (This would require adding it to PlantMasterSheet interface)
-  
-  // Determine if plant benefits from staggered planting
-  const isShortCycle = plant.family === 'Asteraceae' || // Lattughe, spinaci
-                       plant.family === 'Brassicaceae' || // Ravanelli, rucola
-                       plant.nutrientCategory === 'LEAFY'; // Piante da foglia
-
-  const isContinuousHarvest = plant.family === 'Cucurbitaceae' || // Zucchine, cetrioli
-                               plant.family === 'Fabaceae' || // Fagioli, piselli
-                               plant.family === 'Leguminosae';
-
-  if (!isShortCycle && !isContinuousHarvest && !priority) {
-    return {
-      recommended: false,
-      reason: `${plant.commonName} ha un ciclo lungo e raccolto concentrato. La scaglionatura non è necessaria.`,
-      optimalBatches: 1,
-      optimalIntervalDays: 0,
-      expectedHarvestWindow: {
-        firstHarvest: new Date(startDate),
-        lastHarvest: new Date(startDate),
-        totalDays: 0,
-      },
-      benefits: [],
-    };
-  }
-
-  // Calculate optimal batches and interval
+  // LOGICA PROFESSIONALE: Calcola scaglionamento basato su capacità operativa
   let batches: number;
   let interval: number;
+  let reason: string;
+  let harvestWindow: number;
 
-  if (priority) {
-    // Use predefined optimal values
-    batches = priority.batches;
-    interval = priority.interval;
-  } else if (isShortCycle) {
-    // Short cycle plants: 4 batches, 14 days apart
-    batches = 4;
-    interval = 14;
-  } else if (isContinuousHarvest) {
-    // Continuous harvest: 3 batches, 21 days apart
-    batches = 3;
-    interval = 21;
+  if (config) {
+    // Usa configurazione predefinita come base
+    batches = config.batches;
+    interval = config.interval;
+    reason = config.reason;
+    harvestWindow = config.harvestWindow;
   } else {
-    // Default: 2 batches, 21 days apart
-    batches = 2;
-    interval = 21;
+    // FALLBACK INTELLIGENTE: Calcola basandosi su caratteristiche della pianta
+    const isLeafy = plant.family === 'Asteraceae' || plant.family === 'Brassicaceae';
+    const isFruit = plant.family === 'Solanaceae' || plant.family === 'Cucurbitaceae';
+    const isRoot = plant.family === 'Apiaceae' || plant.family === 'Amaranthaceae';
+    
+    if (isLeafy) {
+      batches = 4;
+      interval = 14;
+      reason = 'Ortaggi a foglia: qualità degrada rapidamente, raccolta frequente';
+      harvestWindow = 7;
+    } else if (isFruit) {
+      batches = 3;
+      interval = 21;
+      reason = 'Ortaggi da frutto: gestione raccolta intensiva, distribuzione carico lavoro';
+      harvestWindow = 14;
+    } else if (isRoot) {
+      batches = 2;
+      interval = 28;
+      reason = 'Ortaggi da radice: gestione calibri, distribuzione mercato';
+      harvestWindow = 21;
+    } else {
+      batches = 2;
+      interval = 21;
+      reason = 'Gestione operativa standard: evita concentrazione raccolta';
+      harvestWindow = 14;
+    }
   }
 
-  // Estimate harvest window
-  // For short cycle: 40-60 days from planting
-  // For continuous: 60-90 days from planting
-  const daysToFirstHarvest = isShortCycle ? 45 : 70;
-  const harvestDuration = isShortCycle ? 20 : 60; // Days of continuous harvest
+  // ADATTAMENTO PER SUPERFICIE GRANDE
+  if (surfaceHectares > 2) {
+    // Per superfici grandi, aumenta il numero di lotti
+    const additionalBatches = Math.ceil(surfaceHectares / 2);
+    batches = Math.min(batches + additionalBatches, 6); // Max 6 lotti
+    
+    // Riduci intervallo per superfici molto grandi
+    if (surfaceHectares > 5) {
+      interval = Math.max(interval - 7, 7); // Min 7 giorni
+    }
+    
+    reason += ` - Superficie ${surfaceHectares}ha richiede distribuzione raccolta`;
+  }
 
+  // CALCOLO CAPACITÀ RACCOLTA
+  const totalHarvestDays = surfaceHectares / harvestCapacityPerDay;
+  if (totalHarvestDays > harvestWindow) {
+    // Se serve più tempo per raccogliere di quanto la qualità permetta
+    const neededBatches = Math.ceil(totalHarvestDays / harvestWindow);
+    batches = Math.max(batches, neededBatches);
+    reason += ` - Capacità raccolta richiede ${neededBatches} lotti minimi`;
+  }
+
+  // Calcola date e finestre
   const firstHarvest = new Date(startDate);
-  firstHarvest.setDate(firstHarvest.getDate() + daysToFirstHarvest);
+  firstHarvest.setDate(firstHarvest.getDate() + (plant.daysToMaturity || 70));
 
   const lastPlantingDate = new Date(startDate);
   lastPlantingDate.setDate(lastPlantingDate.getDate() + ((batches - 1) * interval));
 
   const lastHarvest = new Date(lastPlantingDate);
-  lastHarvest.setDate(lastHarvest.getDate() + daysToFirstHarvest + harvestDuration);
+  lastHarvest.setDate(lastHarvest.getDate() + (plant.daysToMaturity || 70) + harvestWindow);
 
   const totalDays = Math.ceil((lastHarvest.getTime() - firstHarvest.getTime()) / (1000 * 60 * 60 * 24));
 
-  // Generate benefits
-  const benefits: string[] = [];
-  if (isShortCycle) {
-    benefits.push('Raccolto continuo per tutta la stagione');
-    benefits.push('Evita sovraproduzione concentrata');
-    benefits.push('Mantiene qualità ottimale (piante giovani)');
-  } else if (isContinuousHarvest) {
-    benefits.push('Estende periodo di raccolta');
-    benefits.push('Riduce stress da raccolta eccessiva');
-    benefits.push('Migliora gestione spazio');
-  }
+  // Benefici operativi specifici
+  const operationalBenefits = {
+    harvestCapacityManagement: `Distribuzione raccolta su ${totalDays} giorni invece di ${harvestWindow}`,
+    laborDistribution: `Fabbisogno manodopera distribuito: ${Math.ceil(surfaceHectares/batches)}ha per lotto`,
+    marketRiskReduction: `Riduzione rischio mercato: ${batches} finestre di vendita diverse`,
+    qualityMaintenance: `Qualità ottimale: raccolta in finestre di ${harvestWindow} giorni per lotto`
+  };
+
+  const benefits = [
+    'Distribuzione carico di lavoro operativo',
+    'Riduzione rischio concentrazione raccolta',
+    'Ottimizzazione qualità prodotto',
+    'Diversificazione finestre di mercato',
+    'Gestione efficiente manodopera',
+    'Riduzione perdite da sovramaturazione'
+  ];
 
   return {
-    recommended: true,
-    reason: `${plant.commonName} beneficia della scaglionatura: ${isShortCycle ? 'ciclo breve' : 'raccolto continuo'}.`,
+    recommended: true, // SEMPRE raccomandato per uso professionale
+    reason,
     optimalBatches: batches,
     optimalIntervalDays: interval,
     expectedHarvestWindow: {
@@ -135,31 +184,54 @@ export const calculateStaggeredPlanting = (
       totalDays,
     },
     benefits,
+    operationalBenefits,
   };
 };
 
 /**
- * Get suggested batches for a plant based on its characteristics
+ * Get suggested batches for a plant based on professional configuration
  */
-export const getSuggestedBatches = (plant: PlantMasterSheet): { batches: number; interval: number } => {
+export const getSuggestedBatches = (plant: PlantMasterSheet, surfaceHectares: number = 1): { batches: number; interval: number } => {
   const plantName = plant.commonName.toUpperCase();
-  const priority = STAGGERED_PRIORITY_PLANTS[plantName];
+  const config = PROFESSIONAL_STAGGERING_CONFIG[plantName];
 
-  if (priority) {
-    return priority;
+  if (config) {
+    let batches = config.batches;
+    
+    // Adatta per superficie grande
+    if (surfaceHectares > 2) {
+      const additionalBatches = Math.ceil(surfaceHectares / 2);
+      batches = Math.min(batches + additionalBatches, 6);
+    }
+    
+    return { batches, interval: config.interval };
   }
 
-  const isShortCycle = plant.family === 'Asteraceae' || plant.family === 'Brassicaceae';
-  const isContinuousHarvest = plant.family === 'Cucurbitaceae' || plant.family === 'Fabaceae';
+  // Fallback basato su famiglia botanica
+  const isLeafy = plant.family === 'Asteraceae' || plant.family === 'Brassicaceae';
+  const isFruit = plant.family === 'Solanaceae' || plant.family === 'Cucurbitaceae';
+  const isRoot = plant.family === 'Apiaceae' || plant.family === 'Amaranthaceae';
 
-  if (isShortCycle) {
-    return { batches: 4, interval: 14 };
-  }
-  if (isContinuousHarvest) {
-    return { batches: 3, interval: 21 };
+  let batches = 2;
+  let interval = 21;
+
+  if (isLeafy) {
+    batches = 4;
+    interval = 14;
+  } else if (isFruit) {
+    batches = 3;
+    interval = 21;
+  } else if (isRoot) {
+    batches = 2;
+    interval = 28;
   }
 
-  return { batches: 1, interval: 0 }; // No staggering recommended
+  // Adatta per superficie
+  if (surfaceHectares > 2) {
+    batches = Math.min(batches + Math.ceil(surfaceHectares / 2), 6);
+  }
+
+  return { batches, interval };
 };
 
 /**

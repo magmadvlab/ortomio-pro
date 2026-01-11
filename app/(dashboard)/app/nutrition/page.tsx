@@ -78,11 +78,14 @@ export default function NutritionPage() {
 
   const [beds, setBeds] = useState<GardenBed[]>([])
   const [rowsForSelectedBed, setRowsForSelectedBed] = useState<GardenRow[]>([])
+  const [fieldRows, setFieldRows] = useState<any[]>([]) // Field rows del garden
   const [selectedBedId, setSelectedBedId] = useState<string>('')
   const [selectedRowId, setSelectedRowId] = useState<string>('')
+  const [selectedFieldRowId, setSelectedFieldRowId] = useState<string>('') // Nuovo: per field rows
 
   const [bedNameById, setBedNameById] = useState<Record<string, string>>({})
   const [rowNameById, setRowNameById] = useState<Record<string, string>>({})
+  const [fieldRowNameById, setFieldRowNameById] = useState<Record<string, string>>({}) // Nuovo: per field rows
 
   const [showTreatmentForm, setShowTreatmentForm] = useState(false)
   const [showFertilizationForm, setShowFertilizationForm] = useState(false)
@@ -153,21 +156,34 @@ export default function NutritionPage() {
     loadedRowBedIdsRef.current = new Set()
     setBedNameById({})
     setRowNameById({})
+    setFieldRowNameById({}) // Reset field row names
   }, [selectedGardenId])
 
   useEffect(() => {
     const loadBeds = async () => {
       if (!selectedGardenId) {
         setBeds([])
+        setFieldRows([])
         setSelectedBedId('')
         setSelectedRowId('')
+        setSelectedFieldRowId('')
         return
       }
       try {
         const b = await storageProvider.getGardenBeds(selectedGardenId)
         setBeds(b || [])
+        
+        // Carica field rows del garden
+        try {
+          const fieldRowsData = await storageProvider.getFieldRows(selectedGardenId)
+          setFieldRows(fieldRowsData || [])
+        } catch (error) {
+          console.warn('Field rows not available:', error)
+          setFieldRows([])
+        }
       } catch {
         setBeds([])
+        setFieldRows([])
       }
     }
     void loadBeds()
@@ -180,6 +196,13 @@ export default function NutritionPage() {
         map[b.id] = b.name
       })
       setBedNameById(map)
+
+      // Mappa field rows
+      const fieldRowsMap: Record<string, string> = {}
+      fieldRows.forEach((r) => {
+        fieldRowsMap[r.id] = r.name
+      })
+      setFieldRowNameById(fieldRowsMap)
 
       const bedIdsInHistory = new Set<string>()
       fertilizerLogs.forEach((l) => {
@@ -213,7 +236,7 @@ export default function NutritionPage() {
     }
 
     void mapBeds()
-  }, [beds, fertilizerLogs, treatments, storageProvider])
+  }, [beds, fertilizerLogs, treatments, fieldRows, storageProvider])
 
   useEffect(() => {
     const loadRows = async () => {
@@ -458,6 +481,7 @@ export default function NutritionPage() {
         garden_id: selectedGardenId,
         bed_id: selectedBedId || undefined,
         bed_row_id: selectedRowId || undefined,
+        field_row_id: selectedFieldRowId || undefined, // Nuovo: supporto field rows
         crop_name: treatmentForm.crop_name,
         treatment_date: treatmentForm.treatment_date,
         product_name: treatmentForm.product_name,
@@ -476,6 +500,7 @@ export default function NutritionPage() {
       setShowTreatmentForm(false)
       setSelectedBedId('')
       setSelectedRowId('')
+      setSelectedFieldRowId('') // Reset field row selection
       setTreatmentForm({
         crop_name: '',
         treatment_date: format(new Date(), 'yyyy-MM-dd'),
@@ -538,6 +563,7 @@ export default function NutritionPage() {
         const updated = await storageProvider.updateFertilizerApplicationLog(editingFertilizationLog.id, {
           bedId: selectedBedId || null,
           bedRowId: selectedRowId || null,
+          fieldRowId: selectedFieldRowId || null, // Nuovo: supporto field rows
           fertilizerProductName: fertilizationForm.product_name,
           applicationDate: fertilizationForm.application_date,
           areaSqm: Number(effectiveAreaSqm.toFixed(4)),
@@ -555,6 +581,7 @@ export default function NutritionPage() {
           taskId: null,
           bedId: selectedBedId || null,
           bedRowId: selectedRowId || null,
+          fieldRowId: selectedFieldRowId || null, // Nuovo: supporto field rows
           fertilizerProductId: 'manual',
           fertilizerProductName: fertilizationForm.product_name,
           dosageAmount: Number(totalDosage.toFixed(4)),
@@ -572,6 +599,7 @@ export default function NutritionPage() {
       setEditingFertilizationLog(null)
       setSelectedBedId('')
       setSelectedRowId('')
+      setSelectedFieldRowId('') // Reset field row selection
       setFertilizationForm({
         application_date: format(new Date(), 'yyyy-MM-dd'),
         product_name: '',
@@ -626,6 +654,7 @@ export default function NutritionPage() {
                 setEditingFertilizationLog(null)
                 setSelectedBedId('')
                 setSelectedRowId('')
+                setSelectedFieldRowId('') // Reset field row selection
                 setShowFertilizationForm(true)
               }}
               className="inline-flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -634,7 +663,12 @@ export default function NutritionPage() {
               <span className="text-sm font-semibold">Nuova fertilizzazione</span>
             </button>
             <button
-              onClick={() => setShowTreatmentForm(true)}
+              onClick={() => {
+                setSelectedBedId('')
+                setSelectedRowId('')
+                setSelectedFieldRowId('')
+                setShowTreatmentForm(true)
+              }}
               className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Plus size={16} />
@@ -761,6 +795,7 @@ export default function NutritionPage() {
                               setEditingFertilizationLog(l)
                               setSelectedBedId(l.bedId || '')
                               setSelectedRowId(l.bedRowId || '')
+                              setSelectedFieldRowId((l as any).fieldRowId || '') // Nuovo: supporto field rows
                               setFertilizationForm((p) => ({
                                 ...p,
                                 application_date: l.applicationDate || format(new Date(), 'yyyy-MM-dd'),
@@ -786,10 +821,11 @@ export default function NutritionPage() {
                         {typeof l.dosageAmount === 'number' ? `${l.dosageAmount} ${l.dosageUnit || ''}` : 'Dose: —'}
                         {typeof l.areaSqm === 'number' ? ` · Area: ${l.areaSqm} m²` : ''}
                       </div>
-                      {l.bedId || l.bedRowId ? (
+                      {l.bedId || l.bedRowId || (l as any).fieldRowId ? (
                         <div className="text-xs text-gray-600 mt-1">
                           {l.bedId ? `Letto: ${bedNameById[l.bedId] || l.bedId}` : ''}
                           {l.bedRowId ? ` · Filare: ${rowNameById[l.bedRowId] || l.bedRowId}` : ''}
+                          {(l as any).fieldRowId ? ` · Filare Campo: ${fieldRowNameById[(l as any).fieldRowId] || (l as any).fieldRowId}` : ''}
                         </div>
                       ) : null}
                       {l.nextApplicationDate ? (
@@ -826,10 +862,11 @@ export default function NutritionPage() {
                         {t.crop_name ? `Coltura: ${t.crop_name}` : ''}
                         {t.reason ? ` · Motivo: ${t.reason}` : ''}
                       </div>
-                      {(t as any).bed_id || (t as any).row_id ? (
+                      {(t as any).bed_id || (t as any).row_id || (t as any).field_row_id ? (
                         <div className="text-xs text-gray-600 mt-1">
                           {(t as any).bed_id ? `Letto: ${bedNameById[(t as any).bed_id] || (t as any).bed_id}` : ''}
                           {(t as any).row_id ? ` · Filare: ${rowNameById[(t as any).row_id] || (t as any).row_id}` : ''}
+                          {(t as any).field_row_id ? ` · Filare Campo: ${fieldRowNameById[(t as any).field_row_id] || (t as any).field_row_id}` : ''}
                         </div>
                       ) : null}
                       {t.dosage ? (
@@ -914,7 +951,7 @@ export default function NutritionPage() {
               </div>
 
               <form onSubmit={handleSubmitTreatment} className="p-4 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs font-semibold text-gray-700">Letto (opzionale)</label>
                     <select
@@ -942,6 +979,22 @@ export default function NutritionPage() {
                       {rowsForSelectedBed.map((r) => (
                         <option key={r.id} value={r.id}>
                           {r.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Filare Campo (opzionale)</label>
+                    <select
+                      value={selectedFieldRowId}
+                      onChange={(e) => setSelectedFieldRowId(e.target.value)}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                      disabled={fieldRows.length === 0}
+                    >
+                      <option value="">—</option>
+                      {fieldRows.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name} ({r.cropName || 'Nessuna coltura'})
                         </option>
                       ))}
                     </select>
@@ -1080,7 +1133,7 @@ export default function NutritionPage() {
               </div>
 
               <form onSubmit={handleSubmitFertilization} className="p-4 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs font-semibold text-gray-700">Letto (opzionale)</label>
                     <select
@@ -1108,6 +1161,22 @@ export default function NutritionPage() {
                       {rowsForSelectedBed.map((r) => (
                         <option key={r.id} value={r.id}>
                           {r.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Filare Campo (opzionale)</label>
+                    <select
+                      value={selectedFieldRowId}
+                      onChange={(e) => setSelectedFieldRowId(e.target.value)}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                      disabled={fieldRows.length === 0}
+                    >
+                      <option value="">—</option>
+                      {fieldRows.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name} ({r.cropName || 'Nessuna coltura'})
                         </option>
                       ))}
                     </select>

@@ -15,6 +15,7 @@ import { BedManager } from '@/components/gardens/BedManager'
 import SeedInventory from '@/components/SeedInventory'
 import SeedlingDashboard from '@/components/seedling/SeedlingDashboard'
 import SaplingDashboard from '@/components/SaplingDashboard'
+import DailyGardenReport from './DailyGardenReport'
 import Link from 'next/link'
 
 interface GardenViewProps {

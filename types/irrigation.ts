@@ -130,6 +130,10 @@ export interface WateringLog {
   gardenId?: string;
   bedId?: string;
   rowId?: string;
+  fieldRowId?: string; // Nuovo: per filari campo aperto
+  plantIds?: string[]; // Nuovo: array di plant IDs
+  plantsAffected?: number; // Nuovo: numero piante irrigate
+  waterPerPlantLiters?: number; // Nuovo: litri per pianta
   wateredAt?: string; // ISO datetime
   date: string; // ISO date
   durationMinutes: number;

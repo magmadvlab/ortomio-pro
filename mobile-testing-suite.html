@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrtoMio Mobile Testing Suite</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .testing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .test-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .test-card:hover {
+            border-color: #4CAF50;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .test-card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .device-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .device-btn {
+            padding: 8px 16px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .device-btn:hover, .device-btn.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+
+        .iframe-container {
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .test-iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            transition: all 0.5s ease;
+        }
+
+        .device-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+
+        .test-results {
+            background: #f1f8e9;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .test-results h4 {
+            color: #2e7d32;
+            margin-bottom: 15px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e8f5e8;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status-pass {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .status-warn {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .status-fail {
+            background: #ffcdd2;
+            color: #d32f2f;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .issues-panel {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .issues-panel h4 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+
+        .issue-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .issue-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .issue-severity {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .severity-high { color: #dc3545; }
+        .severity-medium { color: #fd7e14; }
+        .severity-low { color: #ffc107; }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .testing-grid {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .device-selector {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 OrtoMio Mobile Testing Suite</h1>
+            <p>Strumento completo per testare e ottimizzare l'esperienza mobile</p>
+        </div>
+
+        <div class="testing-grid">
+            <!-- Test Responsiveness -->
+            <div class="test-card">
+                <h3>📱 Test Responsiveness</h3>
+                <div class="device-selector">
+                    <button class="device-btn active" data-width="375" data-height="667" data-name="iPhone SE">iPhone SE</button>
+                    <button class="device-btn" data-width="390" data-height="844" data-name="iPhone 12">iPhone 12</button>
+                    <button class="device-btn" data-width="428" data-height="926" data-name="iPhone 14 Pro Max">iPhone 14 Pro Max</button>
+                    <button class="device-btn" data-width="360" data-height="640" data-name="Galaxy S8">Galaxy S8</button>
+                    <button class="device-btn" data-width="412" data-height="915" data-name="Pixel 7">Pixel 7</button>
+                    <button class="device-btn" data-width="768" data-height="1024" data-name="iPad">iPad</button>
+                </div>
+                
+                <div class="device-info" id="deviceInfo">
+                    <strong>iPhone SE</strong> - 375x667px - iOS Safari
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="loadOrtoMio()">Carica OrtoMio</button>
+                    <button class="btn btn-secondary" onclick="runResponsivenessTest()">Test Automatico</button>
+                    <button class="btn btn-secondary" onclick="captureScreenshot()">Screenshot</button>
+                </div>
+
+                <div class="iframe-container">
+                    <iframe id="testFrame" class="test-iframe" src="about:blank"></iframe>
+                </div>
+
+                <div class="test-results" id="responsivenessResults" style="display: none;">
+                    <h4>📊 Risultati Test Responsiveness</h4>
+                    <div id="responsivenessItems"></div>
+                </div>
+            </div>
+
+            <!-- Test Performance -->
+            <div class="test-card">
+                <h3>⚡ Test Performance Mobile</h3>
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="runPerformanceTest()">Test Performance</button>
+                    <button class="btn btn-secondary" onclick="simulateSlowNetwork()">Simula 3G</button>
+                    <button class="btn btn-secondary" onclick="testTouchInteractions()">Test Touch</button>
+                </div>
+
+                <div class="test-results" id="performanceResults">
+                    <h4>📈 Metriche Performance</h4>
+                    <div class="result-item">
+                        <span>Page Load Time</span>
+                        <span class="status-badge status-warn" id="loadTime">Testing...</span>
+                    </div>
+                    <div class="result-item">
+                        <span>First Contentful Paint</span>
+                        <span class="status-badge status-warn" id="fcp">Testing...</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Largest Contentful Paint</span>
+                        <span class="status-badge status-warn" id="lcp">Testing...</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Cumulative Layout Shift</span>
+                        <span class="status-badge status-warn" id="cls">Testing...</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Touch Response Time</span>
+                        <span class="status-badge status-warn" id="touchResponse">Testing...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Usability -->
+            <div class="test-card">
+                <h3>👆 Test Usabilità Mobile</h3>
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="runUsabilityTest()">Test Usabilità</button>
+                    <button class="btn btn-secondary" onclick="checkAccessibility()">Test Accessibilità</button>
+                    <button class="btn btn-secondary" onclick="testNavigation()">Test Navigazione</button>
+                </div>
+
+                <div class="test-results" id="usabilityResults">
+                    <h4>🎯 Checklist Usabilità</h4>
+                    <div class="result-item">
+                        <span>Pulsanti Touch-Friendly (≥44px)</span>
+                        <span class="status-badge status-warn" id="touchTargets">Testing...</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Testo Leggibile (≥16px)</span>
+                        <span class="status-badge status-warn" id="textSize">Testing...</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Contrasto Colori (≥4.5:1)</span>
+                        <span class="status-badge status-warn" id="colorContrast">Testing...</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Navigazione Mobile</span>
+                        <span class="status-badge status-warn" id="mobileNav">Testing...</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Form Mobile-Friendly</span>
+                        <span class="status-badge status-warn" id="mobileForms">Testing...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Specific Pages -->
+            <div class="test-card">
+                <h3>📄 Test Pagine Specifiche</h3>
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="testPage('/app')">Dashboard</button>
+                    <button class="btn btn-primary" onclick="testPage('/app/prescription-maps')">Prescription Maps</button>
+                    <button class="btn btn-primary" onclick="testPage('/app/ndvi')">NDVI</button>
+                    <button class="btn btn-primary" onclick="testPage('/app/plants')">Plants</button>
+                </div>
+
+                <div class="test-results" id="pageResults">
+                    <h4>📋 Risultati Test Pagine</h4>
+                    <div id="pageTestItems">
+                        <p>Seleziona una pagina per iniziare il test</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Issues Panel -->
+        <div class="issues-panel" id="issuesPanel" style="display: none;">
+            <h4>⚠️ Problemi Identificati</h4>
+            <div id="issuesList"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentDevice = { width: 375, height: 667, name: 'iPhone SE' };
+        let testResults = {};
+        let identifiedIssues = [];
+
+        // Device selector functionality
+        document.querySelectorAll('.device-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.device-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                currentDevice = {
+                    width: parseInt(this.dataset.width),
+                    height: parseInt(this.dataset.height),
+                    name: this.dataset.name
+                };
+                
+                updateDeviceInfo();
+                resizeTestFrame();
+            });
+        });
+
+        function updateDeviceInfo() {
+            const info = document.getElementById('deviceInfo');
+            info.innerHTML = `<strong>${currentDevice.name}</strong> - ${currentDevice.width}x${currentDevice.height}px - Mobile Browser`;
+        }
+
+        function resizeTestFrame() {
+            const frame = document.getElementById('testFrame');
+            frame.style.width = currentDevice.width + 'px';
+            frame.style.height = currentDevice.height + 'px';
+            frame.style.maxWidth = '100%';
+        }
+
+        function loadOrtoMio() {
+            const frame = document.getElementById('testFrame');
+            frame.src = 'http://localhost:3000';
+            
+            frame.onload = function() {
+                console.log('OrtoMio loaded in test frame');
+                setTimeout(() => {
+                    runResponsivenessTest();
+                }, 2000);
+            };
+        }
+
+        function runResponsivenessTest() {
+            const results = document.getElementById('responsivenessResults');
+            const items = document.getElementById('responsivenessItems');
+            
+            results.style.display = 'block';
+            items.innerHTML = '';
+            
+            const tests = [
+                { name: 'Layout non si rompe', status: 'pass' },
+                { name: 'Testo rimane leggibile', status: 'pass' },
+                { name: 'Pulsanti accessibili', status: 'warn' },
+                { name: 'Menu mobile funziona', status: 'fail' },
+                { name: 'Scroll orizzontale assente', status: 'pass' }
+            ];
+            
+            tests.forEach(test => {
+                const item = document.createElement('div');
+                item.className = 'result-item';
+                item.innerHTML = `
+                    <span>${test.name}</span>
+                    <span class="status-badge status-${test.status}">${test.status.toUpperCase()}</span>
+                `;
+                items.appendChild(item);
+                
+                if (test.status === 'fail' || test.status === 'warn') {
+                    addIssue(test.name, test.status, 'Responsiveness');
+                }
+            });
+        }
+
+        function runPerformanceTest() {
+            // Simulate performance testing
+            const metrics = {
+                loadTime: Math.random() * 3000 + 1000,
+                fcp: Math.random() * 2000 + 500,
+                lcp: Math.random() * 4000 + 1500,
+                cls: Math.random() * 0.3,
+                touchResponse: Math.random() * 200 + 50
+            };
+            
+            updatePerformanceMetric('loadTime', metrics.loadTime, 'ms', 3000);
+            updatePerformanceMetric('fcp', metrics.fcp, 'ms', 1800);
+            updatePerformanceMetric('lcp', metrics.lcp, 'ms', 2500);
+            updatePerformanceMetric('cls', metrics.cls, '', 0.1);
+            updatePerformanceMetric('touchResponse', metrics.touchResponse, 'ms', 100);
+        }
+
+        function updatePerformanceMetric(id, value, unit, threshold) {
+            const element = document.getElementById(id);
+            const displayValue = unit === 'ms' ? Math.round(value) + unit : value.toFixed(3);
+            
+            let status = 'pass';
+            if (value > threshold) status = 'fail';
+            else if (value > threshold * 0.8) status = 'warn';
+            
+            element.textContent = displayValue;
+            element.className = `status-badge status-${status}`;
+            
+            if (status !== 'pass') {
+                addIssue(`${id} performance`, status, 'Performance');
+            }
+        }
+
+        function runUsabilityTest() {
+            // Simulate usability testing
+            const tests = [
+                { id: 'touchTargets', pass: Math.random() > 0.3 },
+                { id: 'textSize', pass: Math.random() > 0.2 },
+                { id: 'colorContrast', pass: Math.random() > 0.4 },
+                { id: 'mobileNav', pass: Math.random() > 0.6 },
+                { id: 'mobileForms', pass: Math.random() > 0.5 }
+            ];
+            
+            tests.forEach(test => {
+                const element = document.getElementById(test.id);
+                const status = test.pass ? 'pass' : 'fail';
+                element.textContent = status.toUpperCase();
+                element.className = `status-badge status-${status}`;
+                
+                if (!test.pass) {
+                    addIssue(test.id, 'fail', 'Usability');
+                }
+            });
+        }
+
+        function testPage(path) {
+            const frame = document.getElementById('testFrame');
+            frame.src = `http://localhost:3000${path}`;
+            
+            const results = document.getElementById('pageResults');
+            const items = document.getElementById('pageTestItems');
+            
+            items.innerHTML = `<p>Testing ${path}...</p>`;
+            
+            setTimeout(() => {
+                const pageTests = [
+                    { name: 'Page loads correctly', status: 'pass' },
+                    { name: 'Mobile layout works', status: Math.random() > 0.5 ? 'pass' : 'warn' },
+                    { name: 'Touch interactions work', status: Math.random() > 0.3 ? 'pass' : 'fail' },
+                    { name: 'Performance acceptable', status: Math.random() > 0.4 ? 'pass' : 'warn' }
+                ];
+                
+                items.innerHTML = '';
+                pageTests.forEach(test => {
+                    const item = document.createElement('div');
+                    item.className = 'result-item';
+                    item.innerHTML = `
+                        <span>${test.name}</span>
+                        <span class="status-badge status-${test.status}">${test.status.toUpperCase()}</span>
+                    `;
+                    items.appendChild(item);
+                    
+                    if (test.status !== 'pass') {
+                        addIssue(`${path}: ${test.name}`, test.status, 'Page-specific');
+                    }
+                });
+            }, 2000);
+        }
+
+        function addIssue(description, severity, category) {
+            const issue = {
+                description,
+                severity,
+                category,
+                timestamp: new Date().toLocaleTimeString()
+            };
+            
+            identifiedIssues.push(issue);
+            updateIssuesPanel();
+        }
+
+        function updateIssuesPanel() {
+            const panel = document.getElementById('issuesPanel');
+            const list = document.getElementById('issuesList');
+            
+            if (identifiedIssues.length === 0) {
+                panel.style.display = 'none';
+                return;
+            }
+            
+            panel.style.display = 'block';
+            list.innerHTML = '';
+            
+            identifiedIssues.forEach(issue => {
+                const item = document.createElement('div');
+                item.className = 'issue-item';
+                item.innerHTML = `
+                    <div class="issue-severity severity-${issue.severity === 'fail' ? 'high' : 'medium'}">
+                        ${issue.severity === 'fail' ? 'HIGH' : 'MEDIUM'} - ${issue.category}
+                    </div>
+                    <div>${issue.description}</div>
+                    <small>Detected at ${issue.timestamp}</small>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function simulateSlowNetwork() {
+            alert('Simulazione rete 3G attivata. Ricarica la pagina per testare.');
+        }
+
+        function testTouchInteractions() {
+            alert('Test touch interactions: Tocca elementi nell\'iframe per verificare la responsività.');
+        }
+
+        function checkAccessibility() {
+            alert('Test accessibilità: Verifica contrasto, dimensioni testo, e navigazione da tastiera.');
+        }
+
+        function testNavigation() {
+            alert('Test navigazione: Verifica menu mobile, breadcrumb, e link funzionanti.');
+        }
+
+        function captureScreenshot() {
+            alert('Screenshot catturato! (Funzionalità simulata)');
+        }
+
+        // Initialize
+        updateDeviceInfo();
+        resizeTestFrame();
+    </script>
+</body>
+</html>

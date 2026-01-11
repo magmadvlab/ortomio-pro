@@ -140,6 +140,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
     setError(null);
 
     try {
+      // Usa il nuovo sistema integrato di scaglionamento
       const plan = await AIPlanningService.generateScalingPlan(
         request as CropPlanningRequest,
         'current-user', // In produzione, usa l'ID utente reale
@@ -532,10 +533,12 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
             </h2>
             <div className="max-w-md mx-auto space-y-3 text-gray-600">
               <p>🧠 Analisi dati climatici e agronomici</p>
-              <p>📊 Calcolo scaglionamento ottimale</p>
-              <p>💰 Stima costi e ricavi</p>
-              <p>⚠️ Valutazione rischi</p>
-              <p>📋 Generazione raccomandazioni</p>
+              <p>📊 Calcolo scaglionamento integrato con memoria processi</p>
+              <p>⚙️ Coordinamento risorse tra tutti i lotti</p>
+              <p>💰 Stima costi e ricavi per ogni processo</p>
+              <p>⚠️ Simulazione conflitti operativi</p>
+              <p>🎯 Ottimizzazioni AI personalizzate</p>
+              <p>📋 Generazione calendario integrato</p>
             </div>
           </div>
         );

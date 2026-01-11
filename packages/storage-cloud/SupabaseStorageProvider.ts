@@ -3655,6 +3655,12 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .insert({
         zone_id: log.zoneId,
         garden_id: gardenId,
+        bed_id: log.bedId || null,
+        bed_row_id: log.rowId || null,
+        field_row_id: log.fieldRowId || null,
+        plant_ids: log.plantIds || null,
+        plants_affected: log.plantsAffected ?? null,
+        water_per_plant_liters: log.waterPerPlantLiters ?? null,
         watered_at: wateredAt,
         date: log.date,
         duration_minutes: log.durationMinutes,
@@ -3683,6 +3689,12 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     const dbUpdates: any = {};
     if (updates.date !== undefined) dbUpdates.date = updates.date;
+    if (updates.bedId !== undefined) dbUpdates.bed_id = updates.bedId || null;
+    if (updates.rowId !== undefined) dbUpdates.bed_row_id = updates.rowId || null;
+    if (updates.fieldRowId !== undefined) dbUpdates.field_row_id = updates.fieldRowId || null;
+    if (updates.plantIds !== undefined) dbUpdates.plant_ids = updates.plantIds || null;
+    if (updates.plantsAffected !== undefined) dbUpdates.plants_affected = updates.plantsAffected ?? null;
+    if (updates.waterPerPlantLiters !== undefined) dbUpdates.water_per_plant_liters = updates.waterPerPlantLiters ?? null;
     if (updates.durationMinutes !== undefined) dbUpdates.duration_minutes = updates.durationMinutes;
     if (updates.litersApplied !== undefined) dbUpdates.liters_applied = updates.litersApplied;
     if (updates.method !== undefined) dbUpdates.method = updates.method;
@@ -3971,6 +3983,12 @@ export class SupabaseStorageProvider implements IStorageProvider {
       id: db.id,
       zoneId: db.zone_id,
       gardenId: db.garden_id || undefined,
+      bedId: db.bed_id || undefined,
+      rowId: db.bed_row_id || undefined, // bed_row_id maps to rowId
+      fieldRowId: db.field_row_id || undefined,
+      plantIds: db.plant_ids || undefined,
+      plantsAffected: db.plants_affected ?? undefined,
+      waterPerPlantLiters: db.water_per_plant_liters !== null && db.water_per_plant_liters !== undefined ? Number(db.water_per_plant_liters) : undefined,
       wateredAt: db.watered_at || undefined,
       date: db.date,
       durationMinutes: db.duration_minutes,

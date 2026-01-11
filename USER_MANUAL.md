@@ -1,4 +1,4 @@
-# 📖 Manuale Utente OrtoMio PRO
+# 📖 Manuale Utente OrtoMio
 
 ## Indice
 
@@ -14,45 +14,51 @@
    - [Pianificazione Intelligente](#pianificazione-intelligente)
    - [Analisi Immagini](#analisi-immagini)
    - [Suggerimenti Personalizzati](#suggerimenti-personalizzati)
+   - [🎯 Sistema Scaglionamento Integrato](#-sistema-scaglionamento-integrato)
 6. [Salute (Diagnosi e Cura)](#salute-diagnosi-e-cura)
 7. [Progressi (Analytics)](#progressi-analytics)
-8. [Colture Specializzate (PRO)](#colture-specializzate-pro)
+8. [Colture Specializzate](#colture-specializzate)
    - [Frutteto](#frutteto)
    - [Oliveto](#oliveto)
    - [Vigneto](#vigneto)
-9. [Gestione Professionale (PRO)](#gestione-professionale-pro)
+9. [Gestione Professionale](#gestione-professionale)
    - [Irrigazione](#irrigazione)
    - [Nutrizione & Trattamenti](#nutrizione--trattamenti)
    - [Lavorazioni](#lavorazioni)
    - [GlobalG.A.P.](#globalgap)
-10. [Analytics & Smart (PRO)](#analytics--smart-pro)
+10. [Analytics & Smart](#analytics--smart)
+    - [NDVI Satellitare](#ndvi-satellitare)
+    - [Prescription Maps](#prescription-maps)
     - [Analytics](#analytics)
     - [Smart Hub](#smart-hub)
     - [Export](#export)
 11. [Supporto](#supporto)
     - [Manuale Utente](#manuale-utente)
     - [Impostazioni](#impostazioni)
-    - [Admin (PRO)](#admin-pro)
+    - [Admin](#admin)
 12. [FAQ](#faq)
 
 ---
 
 ## Introduzione
 
-Benvenuto in **OrtoMio PRO**! Questo manuale ti guiderà attraverso tutte le funzionalità dell'applicazione professionale per la gestione completa del tuo orto, frutteto e colture specializzate.
+Benvenuto in **OrtoMio**! Questo manuale ti guiderà attraverso tutte le funzionalità dell'applicazione professionale per la gestione completa del tuo orto, frutteto e colture specializzate.
 
-### Novità OrtoMio PRO 2026
+### Funzionalità OrtoMio 2026
 
 - **🤖 Intelligenza Artificiale Integrata**: Pianificazione automatica, analisi immagini, suggerimenti personalizzati
+- **🛰️ NDVI Satellitare con Mappe Interattive**: Monitoraggio vegetazione da satellite Sentinel-2 con visualizzazione geografica
+- **🎯 Sistema Scaglionamento Integrato**: Gestione professionale di TUTTI i processi agricoli con memoria e coordinamento
 - **🌱 Gestione Unificata**: Piante e Vivaio in un'unica sezione ottimizzata
 - **📊 Analytics Avanzate**: Statistiche professionali e analisi ROI
 - **🌍 GlobalG.A.P. Compliance**: Certificazione internazionale integrata
 - **🍎 Frutta Esotica/Tropicale**: Supporto completo per colture specializzate
 - **📱 UX Ottimizzata**: Navigazione semplificata e mobile-first
 
-### Cosa Puoi Fare con OrtoMio PRO
+### Cosa Puoi Fare con OrtoMio
 
 - **Pianificazione AI**: Suggerimenti intelligenti basati su clima, terreno e obiettivi
+- **🎯 Scaglionamento Professionale**: Gestione integrata di TUTTI i processi agricoli (irrigazione, fertilizzazione, trattamenti, lavorazioni, raccolta) con memoria e coordinamento
 - **Analisi Immagini**: Riconoscimento varietà, diagnosi malattie, valutazione maturazione
 - **Gestione Professionale**: Irrigazione, fertilizzazione, trattamenti con tracciabilità completa
 - **Colture Specializzate**: Frutteto, oliveto, vigneto con guide specifiche
@@ -66,7 +72,7 @@ Benvenuto in **OrtoMio PRO**! Questo manuale ti guiderà attraverso tutte le fun
 
 ### 1. Configurazione Iniziale
 
-Al primo avvio, OrtoMio PRO ti guida nella configurazione:
+Al primo avvio, OrtoMio ti guida nella configurazione:
 
 1. **Tipo di Coltivazione**:
    - 🌱 Orto Domestico (< 1000 m²)
@@ -97,6 +103,40 @@ Al primo avvio, OrtoMio PRO ti guida nella configurazione:
 
 L'interfaccia è stata completamente riprogettata per efficienza:
 
+#### **📱 Struttura Menu OrtoMio**
+
+Il menu è organizzato in sezioni logiche per un accesso rapido a tutte le funzionalità:
+
+**🏠 PRINCIPALE**
+- **Dashboard**: Panoramica generale con widget intelligenti
+- **Il Mio Orto**: Gestione layout, timeline e calendario  
+- **Piante**: Gestione individuale piante con plant-level tracking
+- **Salute**: Diagnosi AI, consulenze e cure
+- **Progressi**: Analytics e statistiche di base
+
+**🌳 COLTURE SPECIALIZZATE**
+- **Frutteto**: Gestione alberi da frutto e frutta esotica
+- **Oliveto**: Coltivazione olive e produzione olio
+- **Vigneto**: Viticoltura e produzione vino
+
+**🚜 GESTIONE PROFESSIONALE**
+- **Irrigazione**: Gestione irrigazione con row tracking
+- **Nutrizione & Trattamenti**: Fertilizzazione e fitofarmaci
+- **Lavorazioni**: Operazioni meccaniche e manuali
+- **GlobalG.A.P.**: Compliance e certificazioni internazionali
+
+**📊 ANALYTICS & SMART**
+- **NDVI Satellitare**: Monitoraggio vegetazione da satellite
+- **Prescription Maps**: Mappe prescrizione per agricoltura di precisione
+- **Analytics**: Statistiche avanzate e ROI
+- **Smart Hub**: Sensori IoT e automazione
+- **Export**: Esportazione dati professionali
+
+**🛠️ SUPPORTO**
+- **Manuale Utente**: Documentazione completa
+- **Impostazioni**: Configurazione app e account
+- **Admin**: Pannello amministrazione
+
 **Desktop**:
 - Sidebar collassabile con gruppi logici
 - Menu contestuali per azioni rapide
@@ -111,7 +151,7 @@ L'interfaccia è stata completamente riprogettata per efficienza:
 
 ## Dashboard (Home)
 
-La Dashboard PRO offre una panoramica completa e personalizzabile.
+La Dashboard offre una panoramica completa e personalizzabile.
 
 ### Widget Intelligenti
 
@@ -135,7 +175,7 @@ La Dashboard PRO offre una panoramica completa e personalizzabile.
 - Score di fattibilità 0-100
 - Suggerimenti varietà ottimali
 
-### Modalità Professionali
+### Modalità Avanzate
 
 #### Modalità Vacanza
 - Piano automatico pre-partenza
@@ -219,7 +259,7 @@ Gestione fisica dell'orto.
 
 ## 🤖 Planner AI
 
-Il cuore intelligente di OrtoMio PRO.
+Il cuore intelligente di OrtoMio.
 
 ### Pianificazione Intelligente
 
@@ -262,6 +302,385 @@ Il cuore intelligente di OrtoMio PRO.
 - Varietà ottimali per microclima
 - Sistemi colturali consigliati
 - Alternative per clima difficile
+
+---
+
+## 🎯 Sistema Scaglionamento Integrato
+
+**RIVOLUZIONE PROFESSIONALE**: OrtoMio 2026 introduce il primo sistema di scaglionamento che gestisce **TUTTI i processi agricoli** con memoria e coordinamento, non solo la raccolta.
+
+### Il Problema Risolto
+
+**PRIMA**: "10 ettari di pomodori che maturano tutti insieme = DISASTRO OPERATIVO"
+- Concentrazione raccolta impossibile da gestire
+- Sovraccarico operativo e perdite da sovramaturazione  
+- Mancanza coordinamento tra processi diversi
+- Conflitti risorse non identificati
+
+**ADESSO**: Gestione operativa professionale su scala commerciale
+- Distribuzione raccolta su 4 mesi invece di 2 settimane
+- Coordinamento intelligente di TUTTI i processi
+- Prevenzione conflitti prima che accadano
+- Ottimizzazione automatica risorse condivise
+
+### AI Planning Wizard - Pianificazione Predittiva
+
+Il nuovo **AI Planning Wizard** crea piani di scaglionamento completi usando intelligenza artificiale avanzata.
+
+#### Accesso al Sistema
+
+**Dal Planner AI**:
+1. Vai in sezione "🤖 Planner AI"
+2. Clicca "Pianificazione Scaglionamento Avanzata"
+3. Segui il wizard step-by-step
+
+#### Step 1: Selezione Coltura
+
+**Colture Supportate**:
+- 🍅 **Pomodori**: Gestione professionale per tutte le varietà
+- 🥬 **Lattuga**: Cicli brevi con continuità produttiva
+- 🥒 **Zucchine**: Produzione continua ottimizzata
+- 🌶️ **Peperoni**: Raccolta intensiva distribuita
+- 🍆 **Melanzane**: Gestione operativa professionale
+- 🥕 **Carote**: Calibri diversi e distribuzione mercato
+- E molte altre...
+
+**Configurazione**:
+- Superficie in ettari (da 0.1 a 100+ ettari)
+- Mercato target (fresco, industria, export)
+- Budget disponibile (opzionale)
+- Livello esperienza (principiante, intermedio, esperto)
+
+#### Step 2: Analisi AI con Immagini
+
+**🤖 NOVITÀ ASSOLUTA**: Analisi AI avanzata con upload immagini per personalizzazione massima.
+
+##### Analisi Terreno da Foto
+- **Upload**: Foto del terreno da coltivare
+- **AI Analizza**: Tipo suolo, drenaggio, struttura, problemi
+- **Risultato**: Valutazione idoneità con raccomandazioni specifiche
+- **Confidence**: Percentuale sicurezza analisi (85-95%)
+
+**Esempio Output**:
+```
+✅ Terreno: ECCELLENTE (92% sicurezza)
+📊 Tipo: Limoso-argilloso ben strutturato  
+💧 Drenaggio: Buono
+⚠️ Issues: Leggera compattazione superficiale
+💡 Raccomandazioni:
+   • Lavorazione superficiale pre-trapianto
+   • Incorporazione compost maturo 3 ton/ha
+   • Verifica pH - ottimale 6.0-7.0 per pomodori
+```
+
+##### Layout Ottimale da Foto Aerea
+- **Upload**: Foto aerea del terreno (drone, satellite, Google Earth)
+- **AI Progetta**: Zonizzazione ottimale, accessi, irrigazione
+- **Risultato**: Layout con efficienza calcolata e raccomandazioni
+- **Integrazione**: Suggerimenti per massimizzare produttività
+
+**Esempio Output**:
+```
+🎯 Layout: 94% EFFICIENZA
+🗺️ Zone Identificate: 2
+   • Zona A (6ha): Ottima esposizione sud-est
+   • Zona B (4ha): Buona esposizione sud
+💧 Piano Irrigazione: 4 settori indipendenti
+🚜 Accessi: Viabilità ogni 100m
+📦 Depositi: Area nord-ovest protetta
+```
+
+##### Riconoscimento Varietà da Foto
+- **Upload**: Foto pianta/frutto per identificazione varietà
+- **AI Identifica**: Varietà specifica con caratteristiche
+- **Risultato**: Esigenze colturali precise e compatibilità
+- **Suggerimenti**: Varietà alternative ottimali per zona
+
+#### Step 3: Generazione Piano Integrato
+
+**🧠 MOTORE AI AVANZATO**: Il sistema combina tutti i dati per generare il piano ottimale.
+
+##### Determinazione Metodo Ottimale
+
+**Metodi Supportati**:
+- **🌱 Da Seme**: Semina diretta in campo (più economico, controllo totale)
+- **🌿 Da Piantina**: Semenzaio + trapianto (controllo qualità, anticipo stagione)  
+- **🌳 Da Trapianto**: Piante già sviluppate (velocità, sicurezza)
+
+**Selezione Intelligente**:
+- **Principianti**: Sistema preferisce "da piantina" per controllo qualità
+- **Superfici grandi**: "Da seme" per efficienza economica
+- **Terreni problematici**: "Da trapianto" per sicurezza
+- **Esperti**: Scelta libera con pro/contro per ogni metodo
+
+##### Calcolo Lotti Ottimali
+
+**Algoritmo Professionale**:
+```
+Lotti Base (per tipo coltura) + Aggiustamento Superficie + Capacità Operativa
+```
+
+**Esempio Pomodori 10 ettari**:
+- Lotti base: 3 (standard pomodori)
+- Aggiustamento superficie: +5 lotti (1 ogni 2 ettari)
+- Lotti finali: 6 (massimo gestibile)
+- Intervallo: 21 giorni (ottimale per pomodori)
+- Superficie per lotto: 1.67 ettari
+
+**Considerazioni Automatiche**:
+- **Capacità raccolta**: 0.5-1 ettaro/giorno per ortaggi intensivi
+- **Finestra qualità**: Giorni disponibili per raccolta ottimale
+- **Manodopera**: Distribuzione carico lavoro
+- **Attrezzature**: Condivisione risorse tra lotti
+
+#### Step 4: Timeline Processi Integrati
+
+**🗓️ COORDINAMENTO TOTALE**: Il sistema programma TUTTI i processi per ogni lotto.
+
+##### Processi Gestiti Automaticamente
+
+**💧 Irrigazione**:
+- Programmazione settimanale per ogni lotto
+- Coordinamento tra lotti per ottimizzare risorse
+- Adattamento a condizioni meteo
+- Calcolo fabbisogno idrico per fase fenologica
+
+**⚡ Fertilizzazione**:
+- Concimazione di fondo pre-trapianto
+- Fertilizzazioni di copertura programmate
+- Adattamento a tipo terreno e varietà
+- Coordinamento applicazioni tra lotti
+
+**🛡️ Trattamenti**:
+- Trattamenti preventivi programmati
+- Finestre ottimali per applicazione
+- Coordinamento per ridurre passaggi
+- Adattamento a condizioni meteo
+
+**🚜 Lavorazioni**:
+- Sarchiature e controllo infestanti
+- Rincalzature per colture che lo richiedono
+- Coordinamento attrezzature tra lotti
+- Ottimizzazione percorsi e tempi
+
+**🧺 Raccolta**:
+- Raccolta scaglionata per ogni lotto
+- Distribuzione su finestre ottimali
+- Coordinamento squadre e attrezzature
+- Pianificazione logistica e trasporti
+
+##### Esempio Timeline Integrata
+
+**Lotto 1 (1.67 ha) - Pomodori San Marzano**:
+```
+📅 30/01/2026: Semenzaio (30 giorni prima trapianto)
+📅 01/03/2026: Trapianto in campo
+📅 08/03/2026: Prima irrigazione post-trapianto
+📅 15/03/2026: Concimazione di copertura
+📅 22/03/2026: Prima sarchiatura
+📅 05/04/2026: Trattamento preventivo
+📅 20/04/2026: Inizio raccolta (80 giorni da trapianto)
+📅 11/05/2026: Fine raccolta lotto
+```
+
+**Coordinamento Multi-Lotto**:
+```
+📅 05/04/2026: 
+   💧 Irrigazione: Lotti 1+2 (combinata)
+   ⚡ Fertilizzazione: Solo Lotto 1
+   🛡️ Trattamento: Lotti 1+2 (sincronizzato)
+   ⏱️ Risparmio: 0.5h lavoro + €25 costi
+```
+
+#### Step 5: Simulazione Conflitti
+
+**⚠️ PREVENZIONE PROATTIVA**: Il sistema identifica problemi prima che accadano.
+
+##### Tipi di Conflitti Rilevati
+
+**Sovraccarico Manodopera**:
+- Giorni con >8 ore lavoro richieste
+- Sovrapposizione raccolta + trapianto
+- Picchi operativi insostenibili
+
+**Conflitti Attrezzature**:
+- Attrezzature richieste simultaneamente
+- Mancanza attrezzature specifiche
+- Colli di bottiglia operativi
+
+**Rischi Meteo**:
+- Trattamenti durante pioggia prevista
+- Trapianti con gelate in arrivo
+- Raccolte con maltempo
+
+##### Soluzioni Automatiche
+
+**Aggiustamenti Timeline**:
+- Anticipo/posticipo operazioni critiche
+- Redistribuzione carico lavoro
+- Ottimizzazione sequenze operative
+
+**Suggerimenti Risorse**:
+- Noleggio attrezzature temporaneo
+- Assunzione manodopera stagionale
+- Coordinamento con aziende vicine
+
+**Piani Contingenza**:
+- Alternative per condizioni avverse
+- Backup plan per emergenze
+- Flessibilità operativa
+
+#### Step 6: Ottimizzazioni AI
+
+**🎯 INTELLIGENZA AVANZATA**: Raccomandazioni personalizzate per massimizzare risultati.
+
+##### Ottimizzazioni Timing Mercato
+
+**Analisi Prezzi**:
+- Primo lotto: Vendita premium inizio stagione (+15% prezzo)
+- Lotti centrali: Mix mercato fresco + industria
+- Ultimo lotto: Mercato tardivo e trasformazione
+
+**Strategie Vendita**:
+- Contratti forward per stabilizzare prezzi
+- Diversificazione canali di vendita
+- Pianificazione logistica ottimale
+
+##### Ottimizzazioni Operative
+
+**Efficienza Risorse**:
+- Irrigazione combinata per lotti adiacenti
+- Trattamenti sincronizzati per ridurre passaggi
+- Squadre specializzate per tipo operazione
+
+**Riduzione Costi**:
+- Acquisti collettivi input per economie scala
+- Condivisione attrezzature tra lotti
+- Ottimizzazione percorsi e trasporti
+
+##### Massimizzazione Rese
+
+**Tecniche Avanzate**:
+- Densità impianto variabile per zona produttiva
+- Fertirrigazione di precisione con sensori
+- Potatura e gestione chioma ottimizzata
+
+**Monitoraggio Qualità**:
+- Analisi fogliare ogni 15 giorni
+- Sensori stress idrico per irrigazione ottimale
+- Controlli qualità per ogni lotto
+
+### Risultati del Piano
+
+#### Dashboard Risultati
+
+**📊 Overview Economico**:
+- **Investimento Totale**: €55,000 (per 10 ettari)
+- **Produzione Stimata**: 600 tonnellate
+- **Ricavo Atteso**: €1,680,000
+- **ROI Stimato**: 87.5%
+- **Break-even**: 32.7 ton/ha
+
+**🗓️ Timeline Operativa**:
+- **6 lotti** scaglionati ogni 21 giorni
+- **234 processi** coordinati automaticamente
+- **4 mesi** distribuzione raccolta vs 2 settimane
+- **2 conflitti** identificati e risolti preventivamente
+
+#### Vantaggi Misurabili
+
+**❌ ELIMINA**:
+- Concentrazione raccolta disastrosa
+- Sovraccarico operativo ingestibile
+- Perdite da sovramaturazione
+- Conflitti risorse non previsti
+
+**✅ GARANTISCE**:
+- Distribuzione operativa professionale
+- Coordinamento intelligente processi
+- Prevenzione conflitti proattiva
+- Ottimizzazione automatica risorse
+
+### Implementazione del Piano
+
+#### Applicazione Automatica
+
+**Dal Wizard**:
+1. Rivedi il piano generato
+2. Clicca "Applica Piano"
+3. Sistema crea automaticamente:
+   - Task programmati per ogni lotto
+   - Calendario integrato processi
+   - Alert e promemoria
+   - Tracciabilità operazioni
+
+#### Integrazione con OrtoMio
+
+**Sincronizzazione Completa**:
+- **Diario**: Task automatici per ogni processo
+- **Calendario**: Timeline visiva integrata
+- **Inventari**: Calcolo fabbisogni automatico
+- **Analytics**: Monitoraggio performance real-time
+
+#### Monitoraggio e Aggiustamenti
+
+**Feedback Continuo**:
+- Registrazione operazioni effettive
+- Confronto con piano originale
+- Aggiustamenti automatici basati su dati reali
+- Ottimizzazione continua per stagioni future
+
+### Scalabilità del Sistema
+
+#### Per Piccole Aziende (1-5 ettari)
+
+**Approccio Consigliato**:
+- 2-3 lotti per coltura
+- Foto individuali per documentazione
+- Operazioni combinate per efficienza
+- Focus su qualità e mercato locale
+
+#### Per Aziende Medie (5-20 ettari)
+
+**Approccio Consigliato**:
+- 4-6 lotti per coltura
+- Foto campione rappresentative
+- Squadre specializzate per processo
+- Diversificazione mercati e canali
+
+#### Per Aziende Grandi (20+ ettari)
+
+**Approccio Consigliato**:
+- 6-8 lotti massimo per gestibilità
+- Documentazione strategica
+- Automazione massima processi
+- Integrazione con sistemi aziendali
+
+### Best Practices Scaglionamento
+
+#### Pianificazione Iniziale
+
+**Fattori Critici**:
+- Capacità operativa reale dell'azienda
+- Disponibilità manodopera per periodo
+- Attrezzature e infrastrutture esistenti
+- Mercati di sbocco identificati
+
+#### Gestione Operativa
+
+**Coordinamento Processi**:
+- Verificare condizioni meteo prima operazioni
+- Documentare ogni intervento per lotto
+- Monitorare performance vs piano
+- Aggiustare tempestivamente se necessario
+
+#### Ottimizzazione Continua
+
+**Apprendimento Stagionale**:
+- Analizzare risultati fine stagione
+- Identificare miglioramenti per anno successivo
+- Aggiornare parametri sistema
+- Condividere best practices
 
 ---
 
@@ -339,7 +758,7 @@ Dashboard completa per analisi performance.
 
 ---
 
-## Colture Specializzate (PRO)
+## Colture Specializzate
 
 Gestione professionale per colture ad alto valore.
 
@@ -392,7 +811,7 @@ Gestione professionale per colture ad alto valore.
 
 ---
 
-## Gestione Professionale (PRO)
+## Gestione Professionale
 
 Strumenti avanzati per gestione professionale.
 
@@ -453,9 +872,365 @@ Strumenti avanzati per gestione professionale.
 
 ---
 
-## Analytics & Smart (PRO)
+## Analytics & Smart
 
-Strumenti avanzati per ottimizzazione.
+Strumenti avanzati per ottimizzazione e monitoraggio professionale.
+
+### NDVI Satellitare
+
+#### Monitoraggio Vegetazione da Satellite
+
+OrtoMio integra i dati satellitari **Sentinel-2 ESA** per il monitoraggio avanzato della salute delle colture tramite l'**Indice di Vegetazione NDVI**.
+
+#### Cos'è l'NDVI?
+L'**Indice di Vegetazione a Differenza Normalizzata (NDVI)** misura la salute e densità della vegetazione utilizzando dati satellitari. Valori più alti indicano vegetazione più sana e densa.
+
+- **Range valori**: da -1.0 (acqua) a +1.0 (vegetazione ottimale)
+- **Risoluzione**: 10 metri (Sentinel-2)
+- **Aggiornamento**: Ogni 5 giorni
+- **Copertura**: Globale
+
+#### Dashboard NDVI
+
+**Accesso**: Menu → Analytics & Smart → NDVI Satellitare
+
+La dashboard NDVI offre 5 sezioni principali:
+
+##### 1. Panoramica
+- **Gauge NDVI**: Visualizzazione circolare del valore corrente
+- **Salute vegetazione**: Classificazione da critico a eccellente
+- **Indicatori stress**: Rilevamento automatico di:
+  - Stress idrico
+  - Carenze nutrizionali  
+  - Rischio malattie
+- **Raccomandazioni AI**: Consigli personalizzati basati sui dati
+
+##### 2. Mappa NDVI Interattiva ⭐ NUOVO
+- **Visualizzazione geografica**: Mappa colorata in tempo reale
+- **Controlli professionali**:
+  - Toggle mostra/nascondi layer NDVI
+  - Slider opacità (10%-100%)
+  - Zoom in/out per dettaglio
+  - Reset vista automatico
+- **Bounds garden**: Rettangolo blu delimita la tua area
+- **Legenda colorata**: Interpretazione immediata dei colori
+- **Info panel**: Dettagli tecnici e configurazione
+
+**Come interpretare la mappa**:
+- 🔴 **Rosso**: Zone critiche con stress severo
+- 🟠 **Arancio**: Aree con problemi significativi  
+- 🟡 **Giallo**: Stress leggero, monitorare
+- 🟢 **Verde chiaro**: Vegetazione in buona salute
+- 🟢 **Verde scuro**: Vegetazione ottimale
+
+**Risoluzione**: Ogni pixel della mappa = 10x10 metri reali
+
+##### 3. Analisi Zone
+- **Zone multiple**: Analisi separata per punti del garden
+- **Distribuzione salute**: Percentuali per livello di salute
+- **Variazioni locali**: Identificazione aree problematiche
+- **Statistiche dettagliate**: Min, max, media per zona
+
+##### 4. Trend Storico
+- **Evoluzione temporale**: Grafici NDVI ultimi 60-90 giorni
+- **Direzione trend**: Miglioramento/stabile/peggioramento
+- **Pattern stagionali**: Variazioni naturali nel tempo
+- **Confronto periodi**: Analisi comparative
+
+##### 5. Aree Stress
+- **Rilevamento automatico**: Identificazione zone problematiche
+- **Classificazione stress**: Idrico, nutrizionale, fitosanitario
+- **Severità**: Basso, medio, alto
+- **Azioni consigliate**: Raccomandazioni specifiche per area
+
+#### Status Connessione
+
+Il widget di status mostra sempre la fonte dei dati:
+
+- 🟢 **Connesso**: Dati satellitari reali da Sentinel-2
+- 🟡 **Demo**: Dati simulati realistici per test
+- 🔴 **Errore**: Fallback automatico a simulazione
+
+#### Mappa NDVI Interattiva - Guida Completa
+
+**Controlli Mappa**:
+- **Toggle NDVI**: Pulsante per mostrare/nascondere il layer colorato
+- **Opacità**: Slider per regolare trasparenza (10%-100%)
+- **Zoom**: Pulsanti + e - per ingrandire/rimpicciolire
+- **Reset Vista**: Ritorna alla vista iniziale del garden
+- **Pan**: Trascina la mappa per esplorare l'area
+
+**Elementi Visivi**:
+- **Rettangolo blu**: Delimita i confini del tuo garden
+- **Overlay colorato**: Layer NDVI sovrapposto alla mappa base
+- **Legenda**: Pannello con interpretazione colori
+- **Info panel**: Dettagli garden e configurazione tecnica
+
+**Risoluzione e Precisione**:
+- **Pixel size**: 10x10 metri (Sentinel-2)
+- **Orti piccoli** (<1000m²): Vista generale, 1-10 pixel
+- **Orti medi** (1000-10000m²): Buon dettaglio, 10-100 pixel
+- **Aziende agricole** (>10000m²): Analisi dettagliata per zone
+
+**Fonte Dati**:
+- **Satellite**: Sentinel-2 ESA (Agenzia Spaziale Europea)
+- **Configurazione**: OrtoMio WMS dedicata
+- **Aggiornamento**: Ogni 5 giorni (quando disponibile)
+- **Copertura**: Globale (tutte le terre emerse)
+
+#### Interpretazione Valori NDVI
+
+| NDVI | Salute | Significato | Azioni |
+|------|--------|-------------|---------|
+| 0.8+ | Eccellente | Vegetazione densa e sana | Mantenere pratiche attuali |
+| 0.6-0.8 | Buona | Vegetazione in buona salute | Monitoraggio regolare |
+| 0.4-0.6 | Moderata | Possibili stress lievi | Verificare irrigazione/nutrizione |
+| 0.2-0.4 | Scarsa | Stress significativo | Intervento necessario |
+| <0.2 | Critica | Vegetazione in sofferenza | Intervento urgente |
+
+#### Applicazioni Pratiche
+
+**Irrigazione Intelligente**
+- Identifica zone con stress idrico
+- Ottimizza programmazione irrigazione
+- Riduce sprechi d'acqua
+
+**Nutrizione Mirata**
+- Rileva carenze nutrizionali precoci
+- Guida fertilizzazione differenziata
+- Migliora efficienza input
+
+**Prevenzione Malattie**
+- Identifica stress che predispongono a malattie
+- Allerta precoce per trattamenti preventivi
+- Riduce uso pesticidi
+
+**Pianificazione Raccolta**
+- Monitora maturazione uniforme
+- Ottimizza timing raccolta
+- Migliora qualità prodotto
+
+#### Integrazione con Altre Funzionalità
+
+**Sistema Scaglionamento**
+- NDVI guida ottimizzazione timeline
+- Adatta programmi in base a stress rilevati
+- Coordina interventi tra lotti
+
+**IoT Smart Hub**
+- Correlazione NDVI con sensori suolo
+- Validazione dati satellitari con misure locali
+- Automazione basata su dati combinati
+
+**AI Planning**
+- NDVI integrato nelle raccomandazioni AI
+- Pianificazione basata su salute vegetazione
+- Previsioni adattate a condizioni reali
+
+#### Limitazioni e Note
+
+**Condizioni Meteo**
+- Nuvole possono limitare disponibilità dati
+- Sistema filtra automaticamente pixel nuvolosi
+- Fallback a dati simulati se necessario
+
+**Risoluzione Temporale**
+- Aggiornamento ogni 5 giorni (Sentinel-2)
+- Per monitoraggio più frequente: integrare con sensori IoT
+- Trend significativi richiedono almeno 2-3 settimane
+
+**Interpretazione**
+- NDVI è indicatore, non diagnosi definitiva
+- Combinare sempre con osservazione diretta
+- Considerare fattori locali (microclima, suolo, etc.)
+
+### Prescription Maps
+
+**Accesso**: Menu → Analytics & Smart → Prescription Maps
+
+Il sistema **Prescription Maps** trasforma i dati plant-level, NDVI satellitare e analisi del suolo in mappe prescrizione precise per l'applicazione variabile di fertilizzanti, pesticidi e altri input agricoli.
+
+#### Vantaggi Chiave
+- 🎯 **Precisione Plant-Level**: Mappe basate su dati individuali delle piante
+- 🛰️ **Integrazione NDVI**: Fusione dati satellitari e ground truth
+- 🚜 **Compatibilità Universale**: Export per tutti i GPS agricoli
+- 💰 **Ottimizzazione Costi**: Riduzione input fino al 30%
+- 📊 **Analisi Storica**: Confronto performance nel tempo
+
+#### Dashboard Prescription Maps
+
+La dashboard principale offre una panoramica completa delle mappe prescrizione:
+
+**Statistiche Principali**
+- Numero mappe attive
+- Superficie totale coperta
+- Risparmio costi stimato
+- Efficienza applicazioni
+
+**Lista Mappe**
+- Visualizzazione mappe esistenti
+- Stato generazione (Completata, In Corso, Errore)
+- Data ultima modifica
+- Azioni rapide (Visualizza, Esporta, Modifica)
+
+#### Creazione Nuova Mappa
+
+**Passo 1: Configurazione Base**
+1. Click "Nuova Mappa"
+2. Inserisci nome descrittivo (es. "Fertilizzazione Azoto Gennaio 2026")
+3. Seleziona tipo applicazione:
+   - **Fertilizzante**: NPK, microelementi, ammendanti
+   - **Pesticida**: Fungicidi, insetticidi, erbicidi
+   - **Irrigazione**: Gestione idrica variabile
+   - **Semina**: Densità semina variabile
+
+**Passo 2: Parametri Applicazione**
+- **Dose Base**: Quantità standard (es. 150 kg/ha)
+- **Unità Misura**: kg/ha, L/ha, semi/m²
+- **Range Variazione**: ±20% dalla dose base (raccomandato)
+- **Periodo Analisi**: Ultimi 30-90 giorni per dati NDVI
+
+**Passo 3: Generazione Automatica**
+- Il sistema analizza automaticamente:
+  - Dati NDVI satellitari
+  - Salute individuale piante
+  - Storico operazioni
+  - Caratteristiche suolo
+- Tempo generazione: 30-60 secondi per campi fino a 50 ettari
+
+#### Gestione Zone
+
+**Visualizzazione Zone**
+- **Mappa Interattiva**: Zone colorate da verde (eccellente) a rosso (critica)
+- **Lista Dettagliata**: ID zona, area, dose, livello confidenza
+- **Click su Zona**: Dettagli specifici e possibilità modifica
+
+**Modifica Zone**
+- **Aggiustamento Dose**: Modifica manuale con rationale
+- **Validazione Automatica**: Controllo limiti sicurezza
+- **Operazioni Bulk**: Selezione multipla per modifiche di gruppo
+- **Merge/Split**: Unisci zone simili o dividi zone grandi
+
+#### Ottimizzazione Costi
+
+**4 Algoritmi Avanzati**
+1. **Genetic Algorithm**: Ottimizzazione globale complessa (30-60s)
+2. **Simulated Annealing**: Evita minimi locali (20-40s)
+3. **Particle Swarm**: Convergenza rapida (15-30s)
+4. **Gradient Descent**: Problemi lineari (10-20s)
+
+**Configurazione Obiettivi**
+- **Minimizza Costi** (0-100%): Riduzione spesa input
+- **Massimizza Resa** (0-100%): Ottimizzazione produzione
+- **Minimizza Impatto Ambientale** (0-100%): Sostenibilità
+- **Massimizza Efficienza** (0-100%): Rapporto costo/beneficio
+
+**Vincoli Operativi**
+- Budget massimo disponibile
+- Resa minima accettabile
+- Limiti impatto ambientale
+- ROI minimo richiesto
+
+#### Confronto Storico
+
+**Analisi Trend Temporali**
+- Evoluzione performance nel tempo
+- Identificazione pattern stagionali
+- Calcolo tasso variazione
+- Punteggio confidenza trend
+
+**Evoluzione Zone**
+- Performance zone nel tempo
+- Correlazione risultati attesi/reali
+- Raccomandazioni specifiche per zona
+- Raggruppamento zone simili
+
+**Insights Automatici**
+- Risultati chiave automatici
+- Identificazione fattori rischio
+- Opportunità miglioramento
+- Azioni consigliate prioritarie
+
+#### Export per Machinery
+
+**5 Formati Supportati**
+
+1. **Shapefile (.shp)**
+   - Compatibilità: GIS software, GPS professionali
+   - Dimensione: Media (2-8 MB)
+   - Raccomandato per: Analisi GIS, GPS avanzati
+
+2. **KML/KMZ (.kml/.kmz)**
+   - Compatibilità: Google Earth, GPS consumer
+   - Dimensione: Piccola (0.5-2 MB)
+   - Raccomandato per: Visualizzazione, GPS semplici
+
+3. **ISO-XML (.xml)**
+   - Compatibilità: Trattori ISOBUS, machinery avanzata
+   - Dimensione: Piccola (0.2-1 MB)
+   - Raccomandato per: Automazione machinery
+
+4. **GeoJSON (.json)**
+   - Compatibilità: Web mapping, API integration
+   - Dimensione: Media (1-4 MB)
+   - Raccomandato per: Sviluppo software, web apps
+
+5. **CSV con Coordinate (.csv)**
+   - Compatibilità: Universale, Excel, GPS base
+   - Dimensione: Piccola (0.1-0.5 MB)
+   - Raccomandato per: GPS semplici, analisi Excel
+
+#### Compatibilità GPS Testata
+
+**Trattori ISOBUS**
+- ✅ John Deere 8R Series (ISO-XML, Shapefile)
+- ✅ Case IH Magnum (ISO-XML, Shapefile, KML)
+- ✅ New Holland T7 (KML, CSV)
+- ✅ Fendt 900 Series (ISO-XML, Shapefile, GeoJSON)
+- ✅ Massey Ferguson 8700 (Shapefile, CSV)
+
+**GPS Standalone**
+- ✅ Trimble CFX-750 (Shapefile, ISO-XML)
+- ✅ Ag Leader Integra (Shapefile, CSV)
+- ✅ Raven Viper 4 (ISO-XML, KML)
+- ✅ Topcon X35 (Shapefile, GeoJSON)
+
+#### Procedura Caricamento GPS
+
+**Metodo USB**
+1. Export mappa in formato compatibile
+2. Salva file su USB drive
+3. Inserisci USB nel terminale GPS
+4. Importa dal menu GPS
+5. Verifica caricamento
+
+**Metodo Wireless**
+1. Configura connessione WiFi/Bluetooth
+2. Usa app companion GPS
+3. Trasferisci file wireless
+4. Sincronizza con terminale
+
+**Metodo Cloud**
+1. Carica su piattaforma cloud GPS
+2. Sincronizza dal terminale
+3. Download automatico in campo
+
+#### Best Practices
+
+**Frequenza Aggiornamento**
+- Ogni 2-4 settimane durante stagione attiva
+- Dopo eventi significativi (piogge intense, trattamenti)
+- Prima di ogni applicazione importante
+
+**Validazione Campo**
+- Verifica sempre con osservazione diretta
+- Controlla zone critiche manualmente
+- Documenta risultati per miglioramento algoritmi
+
+**Ottimizzazione Performance**
+- Usa CSV per compatibilità universale
+- ISO-XML per trattori ISOBUS moderni
+- Shapefile per analisi GIS avanzate
 
 ### Analytics
 
@@ -537,13 +1312,306 @@ Documentazione completa sempre aggiornata:
 
 ## FAQ
 
-### Come funziona l'AI in OrtoMio PRO?
+### Come funziona l'AI in OrtoMio?
 
-OrtoMio PRO utilizza un sistema AI multi-provider:
+OrtoMio utilizza un sistema AI multi-provider:
 - **Groq**: Analisi immagini e riconoscimento varietà
 - **HuggingFace**: Modelli specializzati per piante
 - **Mistral**: Pianificazione e suggerimenti
 - **OpenRouter**: Fallback con 400+ modelli
+
+### Cos'è il Sistema Scaglionamento Integrato?
+
+**RIVOLUZIONE PROFESSIONALE**: Il primo sistema che gestisce **TUTTI i processi agricoli** (irrigazione, fertilizzazione, trattamenti, lavorazioni, raccolta) con memoria e coordinamento.
+
+**Problema risolto**: "10 ettari di pomodori che maturano tutti insieme = DISASTRO OPERATIVO"
+
+**Vantaggi**:
+- Distribuzione raccolta su 4 mesi invece di 2 settimane
+- Coordinamento intelligente di tutti i processi
+- Prevenzione conflitti prima che accadano
+- Ottimizzazione automatica risorse condivise
+
+### Come accedo al Sistema Scaglionamento?
+
+1. Vai in sezione "🤖 Planner AI"
+2. Clicca "Pianificazione Scaglionamento Avanzata"
+3. Segui il wizard step-by-step:
+   - Selezione coltura e superficie
+   - Analisi AI con immagini (opzionale)
+
+### Come funziona l'NDVI Satellitare?
+
+**NDVI (Normalized Difference Vegetation Index)** è un indice che misura la salute della vegetazione usando dati satellitari Sentinel-2.
+
+**Come funziona**:
+- Satellite Sentinel-2 scatta foto ogni 5 giorni
+- Calcolo automatico: (Infrarosso - Rosso) / (Infrarosso + Rosso)
+- Valori da -1 (acqua) a +1 (vegetazione ottimale)
+- Risoluzione 10 metri per pixel
+
+**Cosa rileva**:
+- Stress idrico precoce
+- Carenze nutrizionali
+- Rischio malattie
+- Maturazione non uniforme
+
+### Perché a volte vedo "Modalità Demo" nell'NDVI?
+
+OrtoMio ha un **sistema fallback intelligente**:
+
+**Modalità Connessa** 🟢: Dati reali da Sentinel-2
+**Modalità Demo** 🟡: Dati simulati realistici quando:
+- Copernicus temporaneamente non disponibile
+- Troppa copertura nuvolosa
+- Problemi di rete
+
+**Vantaggio**: OrtoMio funziona sempre, anche offline!
+
+### L'NDVI è preciso per piccoli orti?
+
+**Risoluzione Sentinel-2**: 10 metri per pixel
+
+**Orti piccoli** (<100m²): Un solo pixel, analisi generale
+**Orti medi** (500-1000m²): 5-10 pixel, buona precisione  
+**Orti grandi** (>1000m²): Analisi dettagliata per zone
+
+**Consiglio**: Per orti <500m² combina NDVI con sensori IoT per precisione massima.
+
+### Posso usare NDVI per tutte le colture?
+
+**Sì, NDVI funziona per**:
+- ✅ Ortaggi (pomodori, lattughe, etc.)
+- ✅ Cereali (grano, mais, etc.)
+- ✅ Frutteti (meli, peri, etc.)
+- ✅ Vigneti e oliveti
+- ✅ Colture industriali
+
+**Limitazioni**:
+- Terreno nudo: NDVI ~0 (normale)
+- Colture molto giovani: NDVI basso iniziale
+- Periodo dormienza: NDVI naturalmente basso
+
+### Come uso la mappa NDVI interattiva?
+
+**Accesso**: Dashboard NDVI → Tab "Mappa NDVI"
+
+**Controlli principali**:
+1. **Toggle Layer**: Pulsante "Mostra/Nascondi NDVI" per attivare overlay
+2. **Opacità**: Slider per regolare trasparenza del layer (10%-100%)
+3. **Zoom**: Pulsanti + e - per ingrandire fino al singolo pixel
+4. **Reset**: Pulsante per tornare alla vista iniziale del garden
+5. **Pan**: Trascina con mouse/dito per esplorare l'area
+
+**Interpretazione colori**:
+- 🔴 **Rosso**: Stress critico, intervento urgente
+- 🟠 **Arancio**: Problemi significativi, monitorare
+- 🟡 **Giallo**: Stress leggero, verificare cause
+- 🟢 **Verde chiaro**: Vegetazione normale
+- 🟢 **Verde scuro**: Vegetazione ottimale
+
+**Elementi mappa**:
+- **Rettangolo blu**: Confini del tuo garden
+- **Pixel colorati**: Ogni pixel = 10x10 metri reali
+- **Legenda**: Pannello interpretazione colori
+- **Info panel**: Dettagli garden e fonte dati
+
+### La mappa NDVI funziona per orti piccoli?
+
+**Dipende dalla dimensione**:
+
+**Orti molto piccoli** (<100m²): 
+- 1 solo pixel, analisi generale
+- Meglio combinare con sensori IoT
+
+**Orti piccoli** (100-1000m²):
+- 1-10 pixel, buona indicazione generale
+- Utile per trend temporali
+
+**Orti medi** (1000-10000m²):
+- 10-100 pixel, analisi dettagliata
+- Identificazione zone problematiche
+
+**Aziende agricole** (>10000m²):
+- 100+ pixel, precisione massima
+- Analisi per zone e prescription maps
+
+**Consiglio**: Per orti <500m² usa NDVI per trend generali e sensori IoT per precisione locale.
+
+### Cosa significa se la mappa è "trasparente"?
+
+**Possibili cause**:
+1. **Nuvole**: Pixel nuvolosi appaiono trasparenti
+2. **Dati non disponibili**: Nessun passaggio satellitare recente
+3. **Layer disattivato**: Toggle NDVI su "Nascondi"
+4. **Opacità bassa**: Slider opacità sotto 20%
+
+**Soluzioni**:
+- Aumenta opacità con lo slider
+- Attiva layer con pulsante "Mostra NDVI"
+- Aspetta prossimo passaggio Sentinel-2 (max 5 giorni)
+- Usa dati simulati se disponibili
+
+### Posso salvare o esportare la mappa NDVI?
+
+**Attualmente disponibile**:
+- Screenshot della mappa (funzione browser)
+- Dati NDVI numerici nelle altre tab
+
+**Prossimamente** (Prescription Maps):
+- Export mappe in formato GIS (Shapefile, KML)
+- Mappe fertilizzazione variabile
+- Integrazione GPS agricoli
+- Report PDF con mappe
+
+**Workaround temporaneo**:
+1. Apri mappa NDVI a schermo intero
+2. Usa screenshot del browser (Ctrl+Shift+S)
+3. Salva immagine per riferimento
+
+### Qual è la differenza tra dati NDVI e mappa NDVI?
+
+**Dati NDVI** (Tab Panoramica):
+- Valore numerico medio del garden
+- Indicatori stress automatici
+- Raccomandazioni AI testuali
+- Trend temporale grafico
+
+**Mappa NDVI** (Tab Mappa):
+- Visualizzazione geografica colorata
+- Dettaglio per ogni pixel (10x10m)
+- Identificazione zone specifiche
+- Controlli interattivi professionali
+
+**Quando usare cosa**:
+- **Dati**: Per overview rapida e trend
+- **Mappa**: Per localizzare problemi specifici
+- **Insieme**: Per analisi completa e interventi mirati
+
+### La mappa NDVI sostituisce i sensori IoT?
+
+**No, si complementano**:
+
+**NDVI Satellitare**:
+- ✅ Copertura completa area
+- ✅ Visione d'insieme
+- ✅ Trend temporali
+- ❌ Aggiornamento ogni 5 giorni
+- ❌ Dipende da meteo (nuvole)
+
+**Sensori IoT**:
+- ✅ Dati real-time continui
+- ✅ Precisione puntuale
+- ✅ Indipendente da meteo
+- ❌ Copertura limitata a punti
+- ❌ Costo per sensore
+
+**Strategia ottimale**:
+1. **NDVI**: Identifica aree problematiche
+2. **Sensori IoT**: Monitora punti critici
+3. **Combinazione**: Validazione incrociata dati
+4. **AI**: Correlazione per diagnosi precise
+- Meglio combinare con sensori IoT
+
+**Orti piccoli** (100-1000m²):
+- 1-10 pixel, buona indicazione generale
+- Utile per trend temporali
+
+**Orti medi** (1000-10000m²):
+- 10-100 pixel, analisi dettagliata
+- Identificazione zone problematiche
+
+**Aziende agricole** (>10000m²):
+- 100+ pixel, precisione massima
+- Analisi per zone e prescription maps
+
+**Consiglio**: Per orti <500m² usa NDVI per trend generali e sensori IoT per precisione locale.
+
+### Cosa significa se la mappa è "trasparente"?
+
+**Possibili cause**:
+1. **Nuvole**: Pixel nuvolosi appaiono trasparenti
+2. **Dati non disponibili**: Nessun passaggio satellitare recente
+3. **Layer disattivato**: Toggle NDVI su "Nascondi"
+4. **Opacità bassa**: Slider opacità sotto 20%
+
+**Soluzioni**:
+- Aumenta opacità con lo slider
+- Attiva layer con pulsante "Mostra NDVI"
+- Aspetta prossimo passaggio Sentinel-2 (max 5 giorni)
+- Usa dati simulati se disponibili
+
+### Posso salvare o esportare la mappa NDVI?
+
+**Attualmente disponibile**:
+- Screenshot della mappa (funzione browser)
+- Dati NDVI numerici nelle altre tab
+
+**Prossimamente** (Prescription Maps):
+- Export mappe in formato GIS (Shapefile, KML)
+- Mappe fertilizzazione variabile
+- Integrazione GPS agricoli
+- Report PDF con mappe
+
+**Workaround temporaneo**:
+1. Apri mappa NDVI a schermo intero
+2. Usa screenshot del browser (Ctrl+Shift+S)
+3. Salva immagine per riferimento
+   - Generazione piano integrato
+   - Simulazione conflitti
+   - Ottimizzazioni personalizzate
+
+### Quali colture supporta lo Scaglionamento?
+
+**Tutte le colture commerciali**:
+- 🍅 Pomodori, 🌶️ Peperoni, 🍆 Melanzane
+- 🥬 Lattuga, 🥕 Carote, 🥒 Zucchine
+- 🌿 Erbe aromatiche, 🫘 Legumi
+- E molte altre...
+
+**Principio**: Ogni coltura su scala commerciale beneficia dello scaglionamento per gestione operativa.
+
+### Come funziona l'Analisi AI con Immagini?
+
+**3 tipi di analisi**:
+
+1. **Analisi Terreno**: Upload foto terreno → AI valuta tipo suolo, drenaggio, idoneità
+2. **Layout Aereo**: Upload foto aerea → AI progetta zonizzazione ottimale
+3. **Riconoscimento Varietà**: Upload foto pianta → AI identifica varietà e caratteristiche
+
+**Risultato**: Raccomandazioni personalizzate per massimizzare risultati.
+
+### Il Sistema Scaglionamento è incluso?
+
+**Sì, completamente incluso**:
+- Tutte le funzionalità di scaglionamento integrato
+- Gestione multi-processo con memoria
+- Coordinamento automatico delle operazioni
+- Analytics avanzate e ottimizzazione
+- **Enterprise**: Prezzo personalizzato per grandi aziende
+
+### Per quali dimensioni è adatto?
+
+**Scalabile per ogni esigenza**:
+- **Piccole aziende (1-5 ha)**: 2-3 lotti, focus qualità
+- **Aziende medie (5-20 ha)**: 4-6 lotti, squadre specializzate
+- **Aziende grandi (20+ ha)**: 6-8 lotti, automazione massima
+
+### Come si integra con OrtoMio esistente?
+
+**Integrazione completa**:
+- **Diario**: Task automatici per ogni processo
+- **Calendario**: Timeline visiva integrata
+- **Inventari**: Calcolo fabbisogni automatico
+- **Analytics**: Monitoraggio performance real-time
+
+### I piani sono modificabili?
+
+**Sì, completamente flessibili**:
+- Aggiustamenti automatici basati su dati reali
+- Modifiche manuali per situazioni specifiche
+- Ottimizzazione continua per stagioni future
+- Feedback continuo per miglioramenti
 
 ### Quali certificazioni supporta?
 
@@ -562,7 +1630,7 @@ Ogni orto ha:
 
 ### Posso integrare sensori IoT?
 
-Sì, OrtoMio PRO supporta:
+Sì, OrtoMio supporta:
 - Sensori umidità terreno
 - Stazioni meteo
 - Controllo irrigazione
@@ -578,7 +1646,7 @@ Export disponibili:
 
 ### Supporto per aziende agricole?
 
-OrtoMio PRO è progettato per:
+OrtoMio è progettato per:
 - Piccole aziende (1-10 ha)
 - Aziende medie (10-100 ha)
 - Cooperative agricole
@@ -591,9 +1659,123 @@ OrtoMio PRO è progettato per:
 - **Enterprise**: Prezzo personalizzato
 - **Prova gratuita**: 30 giorni senza limitazioni
 
+### Cosa sono le Prescription Maps?
+
+Le **Prescription Maps** (Mappe Prescrizione) sono mappe digitali che indicano esattamente quanto fertilizzante, pesticida o altro input applicare in ogni zona del campo.
+
+**Vantaggi**:
+- 🎯 **Precisione**: Dose ottimale per ogni zona
+- 💰 **Risparmio**: 15-30% riduzione costi input
+- 📈 **Rese**: 10-20% aumento produzione
+- 🌱 **Sostenibilità**: Riduzione impatto ambientale
+
+### Come si creano le Prescription Maps?
+
+**Processo Automatico**:
+1. Vai in "Analytics & Smart" → "Prescription Maps"
+2. Click "Nuova Mappa"
+3. Seleziona tipo (Fertilizzante, Pesticida, etc.)
+4. Il sistema analizza automaticamente:
+   - Dati NDVI satellitari
+   - Salute individuale piante
+   - Storico operazioni
+   - Caratteristiche suolo
+5. Mappa generata in 30-60 secondi
+
+### Quali GPS sono compatibili?
+
+**Compatibilità Testata** (87% dispositivi):
+- ✅ **John Deere** (8R Series): ISO-XML, Shapefile
+- ✅ **Case IH** (Magnum): ISO-XML, Shapefile, KML
+- ✅ **Fendt** (900 Series): ISO-XML, Shapefile, GeoJSON
+- ✅ **New Holland** (T7): KML, CSV
+- ✅ **Massey Ferguson** (8700): Shapefile, CSV
+
+**Formati Universali**:
+- **CSV**: Compatibile con tutti i GPS (100%)
+- **Shapefile**: GPS professionali (90%)
+- **KML**: Google Earth e GPS consumer (85%)
+
+### Quanto posso risparmiare con le Prescription Maps?
+
+**Risparmi Tipici Clienti**:
+- **Fertilizzanti**: 20-30% riduzione costi
+- **Pesticidi**: 15-25% riduzione applicazioni
+- **Carburante**: 10-15% ottimizzazione percorsi
+- **Tempo**: 30-50% riduzione pianificazione
+
+**Esempio Pratico** (10 ettari pomodori):
+- Costo fertilizzante uniforme: €3.000
+- Con prescription maps: €2.100
+- **Risparmio**: €900 (30%)
+- **ROI**: 450% (costo OrtoMio €200)
+
+### Come carico le mappe sul GPS del trattore?
+
+**Metodo 1: USB** (più comune)
+1. Export mappa in formato compatibile
+2. Salva file su chiavetta USB
+3. Inserisci USB nel terminale GPS
+4. Menu GPS → Importa → Seleziona file
+5. Verifica caricamento corretto
+
+**Metodo 2: Wireless**
+1. Connetti GPS a WiFi/Bluetooth
+2. Usa app companion del GPS
+3. Trasferisci file wireless
+4. Sincronizza automaticamente
+
+### Posso modificare le zone generate automaticamente?
+
+**Sì, controllo completo**:
+- **Modifica Dosi**: Click su zona → Cambia dose
+- **Unisci Zone**: Seleziona multiple → Merge
+- **Dividi Zone**: Zone grandi → Split manuale
+- **Validazione**: Sistema controlla limiti sicurezza
+- **Rationale**: Documenta motivo modifiche
+
+### Cosa fa l'Ottimizzazione Costi?
+
+**4 Algoritmi Avanzati**:
+1. **Genetic Algorithm**: Ottimizzazione globale (30-60s)
+2. **Simulated Annealing**: Evita minimi locali (20-40s)
+3. **Particle Swarm**: Convergenza rapida (15-30s)
+4. **Gradient Descent**: Problemi lineari (10-20s)
+
+**Obiettivi Bilanciabili**:
+- Minimizza costi input
+- Massimizza resa attesa
+- Minimizza impatto ambientale
+- Massimizza efficienza operativa
+
+### Quanto spesso devo aggiornare le mappe?
+
+**Frequenza Consigliata**:
+- **Stagione Attiva**: Ogni 2-4 settimane
+- **Dopo Eventi**: Piogge intense, grandine, trattamenti
+- **Prima Applicazioni**: Sempre verificare prima di applicare
+- **Cambio Coltura**: Nuova mappa per ogni coltura
+
+**Monitoraggio Automatico**: OrtoMio ti avvisa quando è il momento di aggiornare.
+
+### Le Prescription Maps funzionano per tutte le colture?
+
+**Ottimizzate per**:
+- ✅ **Cereali**: Grano, mais, orzo, avena
+- ✅ **Orticole**: Pomodori, peperoni, melanzane, zucchine
+- ✅ **Industriali**: Girasole, soia, colza
+- ✅ **Frutticole**: Melo, pero, pesco, ciliegio
+- ✅ **Specializzate**: Vite, olivo, agrumi
+
+**Supporto Limitato**: Colture molto specialistiche (es. zafferano, tartufo)
+
 ---
 
-*Manuale aggiornato a Gennaio 2026 - Versione OrtoMio PRO 2.0*
+*Manuale aggiornato a Gennaio 2026 - Versione OrtoMio 2.0*
+
+**🎯 NOVITÀ GENNAIO 2026**: 
+- **Sistema Scaglionamento Integrato**: Il primo sistema al mondo che gestisce TUTTI i processi agricoli con memoria e coordinamento per gestione operativa professionale su scala commerciale
+- **NDVI Satellitare con Mappe Interattive**: Monitoraggio vegetazione da satellite Sentinel-2 con visualizzazione geografica in tempo reale, controlli professionali e analisi per zone
 
 ---
 

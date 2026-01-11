@@ -13,7 +13,7 @@ import { IrrigationSystemCard } from '@/components/irrigation/IrrigationSystemCa
 import { IrrigationZoneList } from '@/components/irrigation/IrrigationZoneList'
 import { WateringHistory } from '@/components/irrigation/WateringHistory'
 import { IrrigationZoneWizard } from '@/components/irrigation/IrrigationZoneWizard'
-import { WateringLogForm } from '@/components/irrigation/WateringLogForm'
+import { WateringLogFormWithFieldRows } from '@/components/irrigation/WateringLogFormWithFieldRows'
 import { IrrigationSystemModal } from '@/components/irrigation/IrrigationSystemModal'
 import { IrrigationZoneEditModal } from '@/components/irrigation/IrrigationZoneEditModal'
 import { IrrigationZoneAnalytics } from '@/components/irrigation/IrrigationZoneAnalytics'
@@ -33,6 +33,7 @@ function IrrigationContent() {
   const [zones, setZones] = useState<IrrigationZone[]>([])
   const [logs, setLogs] = useState<WateringLog[]>([])
   const [beds, setBeds] = useState<GardenBed[]>([]) // Beds del garden attivo
+  const [fieldRows, setFieldRows] = useState<any[]>([]) // Field rows del garden attivo
 
   const [selectedSystemId, setSelectedSystemId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -75,6 +76,15 @@ function IrrigationContent() {
       // Carica beds del garden
       const bedsData = await storageProvider.getGardenBeds(gardenId)
       setBeds(bedsData || [])
+
+      // Carica field rows del garden (filari campo aperto)
+      try {
+        const fieldRowsData = await storageProvider.getFieldRows(gardenId)
+        setFieldRows(fieldRowsData || [])
+      } catch (error) {
+        console.warn('Field rows not available:', error)
+        setFieldRows([])
+      }
 
       const systemsData = await storageProvider.getIrrigationSystems(gardenId)
       setSystems(systemsData)
@@ -562,9 +572,10 @@ function IrrigationContent() {
 
       {showLogForm && (
         selectedZoneForLog ? (
-          <WateringLogForm
+          <WateringLogFormWithFieldRows
             zones={selectedSystemZones}
             preselectedZone={selectedZoneForLog}
+            fieldRows={fieldRows}
             onSubmit={handleLogWatering}
             onSubmitBatch={handleLogWateringBatch}
             onCancel={() => {
@@ -573,29 +584,13 @@ function IrrigationContent() {
             }}
           />
         ) : (
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">Seleziona una zona</h3>
-                <p className="text-sm text-gray-600">Scegli una zona per registrare l'irrigazione.</p>
-              </div>
-              <Button variant="outline" onClick={() => setShowLogForm(false)}>Chiudi</Button>
-            </div>
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-              {selectedSystemZones.map((z) => (
-                <button
-                  key={z.id}
-                  onClick={() => {
-                    setSelectedZoneForLog(z)
-                  }}
-                  className="text-left p-4 border rounded-lg hover:bg-gray-50"
-                >
-                  <div className="font-semibold text-gray-900">{z.name}</div>
-                  <div className="text-sm text-gray-600">{z.flowRateLph} L/h</div>
-                </button>
-              ))}
-            </div>
-          </Card>
+          <WateringLogFormWithFieldRows
+            zones={selectedSystemZones}
+            fieldRows={fieldRows}
+            onSubmit={handleLogWatering}
+            onSubmitBatch={handleLogWateringBatch}
+            onCancel={() => setShowLogForm(false)}
+          />
         )
       )}
 
