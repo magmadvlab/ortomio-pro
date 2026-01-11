@@ -88,10 +88,10 @@ export function getUserBadges(userId: string): BadgeInfo[] {
     
     const badges = JSON.parse(stored);
     return badges.map((b: any) => ({
-      id: b.badge_id,
-      nome: b.badge_name,
-      emoji: b.badge_emoji,
-      descrizione: b.badge_description,
+      id: b.id || b.badge_id,
+      nome: b.nome || b.badge_name,
+      emoji: b.emoji || b.badge_emoji,
+      descrizione: b.descrizione || b.badge_description,
       earned_at: b.earned_at ? new Date(b.earned_at) : undefined
     }));
   } catch (error) {
