@@ -1736,7 +1736,7 @@ Ogni operazione viene registrata con:
 
 **Codici automatici**:
 - Sistema genera automaticamente codici univoci
-- Formato: F[NumeroFilare]-P[NumeroPianta]
+- Formato: F\[NumeroFilare\]-P\[NumeroPianta\]
 - Esempio: F1-P001, F2-P045, F10-P100
 
 #### Frequenza Monitoraggio
@@ -2124,7 +2124,7 @@ Il widget meteo include un **selettore di posizione** quando hai più orti:
 - Orto selezionato evidenziato in verde
 
 **Mobile**:
-- Dropdown compatto: "Meteo per: [Seleziona orto]"
+- Dropdown compatto: "Meteo per: \[Seleziona orto\]"
 - Touch-friendly per cambio rapido
 
 #### Meteo Specifico per Posizione

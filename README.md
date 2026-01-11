@@ -349,21 +349,21 @@ vercel --prod
 ## 📚 **Documentazione Completa**
 
 ### **Guide Utente**
-- 📖 **[Manuale Utente](docs/USER_MANUAL.md)** - Guida completa per utilizzatori
-- 🚀 **[Quick Start](docs/QUICK_START.md)** - Setup in 5 minuti
-- 🔧 **[Guida Deployment](docs/DEPLOYMENT.md)** - Setup Supabase e deploy
-- 📋 **[GlobalG.A.P. Compliance](docs/GLOBALGAP_COMPLIANCE.md)** - Guida certificazioni
+- 📖 **[Manuale Utente](USER_MANUAL.md)** - Guida completa per utilizzatori
+- 🚀 **[Quick Start](QUICK_START_ADMIN.md)** - Setup in 5 minuti
+- 🔧 **[Guida Deployment](README_DEV.md)** - Setup Supabase e deploy
+- 📋 **[GlobalG.A.P. Compliance](SETUP_SCHEMA_PROFESSIONAL_SUPABASE.md)** - Guida certificazioni
 
 ### **Documentazione Tecnica**
-- 🏗️ **[Architettura Sistema](docs/ARCHITECTURE.md)** - Panoramica tecnica completa
-- 🗄️ **[Database Schema](docs/DATABASE_SCHEMA.md)** - Schema database dettagliato
-- 🌱 **[Agricoltura di Precisione](docs/PRECISION_AGRICULTURE.md)** - Funzionalità avanzate
-- 🔄 **[Guida Migrazione](docs/MIGRATION_GUIDE.md)** - Migrazione Free → Pro
+- 🏗️ **[Architettura Sistema](TECHNICAL_DOCS.md)** - Panoramica tecnica completa
+- 🗄️ **[Database Schema](SCHEMA_UNICO_FINALE.md)** - Schema database dettagliato
+- 🌱 **[Agricoltura di Precisione](FUNZIONALITA_ORTOMIO.md)** - Funzionalità avanzate
+- 🔄 **[Guida Migrazione](SETUP_PRO_RIEPILOGO.md)** - Migrazione Free → Pro
 
 ### **Per Sviluppatori**
 - 🔧 **[TECHNICAL_DOCS.md](TECHNICAL_DOCS.md)** - Documentazione tecnica completa
-- 🌿 **[Replicabilità Piante](docs/REPLICABILITA_INFORMAZIONI_PIANTE.md)** - Guide coltivazione
-- 🚀 **[Deploy Vercel](docs/VERCEL_DEPLOYMENT.md)** - Guida dettagliata Vercel
+- 🌿 **[Replicabilità Piante](INTEGRAZIONE_BANCA_SEMI_COMPLETA.md)** - Guide coltivazione
+- 🚀 **[Deploy Vercel](README_VERCEL_ADMIN.md)** - Guida dettagliata Vercel
 
 ---
 
@@ -529,8 +529,8 @@ Questo progetto è rilasciato sotto **Licenza MIT**. Vedi il file [LICENSE](LICE
 **OrtoMio AI** - Dove Tradizione, Tecnologia e Compliance si Incontrano
 
 [![Inizia Ora](https://img.shields.io/badge/🚀_Inizia_Ora-Gratis-green?style=for-the-badge)](https://ortomio.ai)
-[![GlobalG.A.P. Ready](https://img.shields.io/badge/📋_GlobalG.A.P.-Ready-blue?style=for-the-badge)](docs/GLOBALGAP_COMPLIANCE.md)
-[![Documentazione](https://img.shields.io/badge/📚_Documentazione-Completa-blue?style=for-the-badge)](docs/USER_MANUAL.md)
+[![GlobalG.A.P. Ready](https://img.shields.io/badge/📋_GlobalG.A.P.-Ready-blue?style=for-the-badge)](SETUP_SCHEMA_PROFESSIONAL_SUPABASE.md)
+[![Documentazione](https://img.shields.io/badge/📚_Documentazione-Completa-blue?style=for-the-badge)](USER_MANUAL.md)
 [![Community](https://img.shields.io/badge/👥_Community-Discord-purple?style=for-the-badge)](https://discord.gg/ortomio)
 
 ---
@@ -766,20 +766,20 @@ vercel --prod
 ## 📚 **Documentazione Completa**
 
 ### **Guide Utente**
-- 📖 **[Manuale Utente](docs/USER_MANUAL.md)** - Guida completa per utilizzatori
-- 🚀 **[Quick Start](docs/QUICK_START.md)** - Setup in 5 minuti
-- 🔧 **[Guida Deployment](docs/DEPLOYMENT.md)** - Setup Supabase e deploy
+- 📖 **[Manuale Utente](USER_MANUAL.md)** - Guida completa per utilizzatori
+- 🚀 **[Quick Start](QUICK_START_ADMIN.md)** - Setup in 5 minuti
+- 🔧 **[Guida Deployment](README_DEV.md)** - Setup Supabase e deploy
 
 ### **Documentazione Tecnica**
-- 🏗️ **[Architettura Sistema](docs/ARCHITECTURE.md)** - Panoramica tecnica completa
-- 🗄️ **[Database Schema](docs/DATABASE_SCHEMA.md)** - Schema database dettagliato
-- 🌱 **[Agricoltura di Precisione](docs/PRECISION_AGRICULTURE.md)** - Funzionalità avanzate
-- 🔄 **[Guida Migrazione](docs/MIGRATION_GUIDE.md)** - Migrazione Free → Pro
+- 🏗️ **[Architettura Sistema](TECHNICAL_DOCS.md)** - Panoramica tecnica completa
+- 🗄️ **[Database Schema](SCHEMA_UNICO_FINALE.md)** - Schema database dettagliato
+- 🌱 **[Agricoltura di Precisione](FUNZIONALITA_ORTOMIO.md)** - Funzionalità avanzate
+- 🔄 **[Guida Migrazione](SETUP_PRO_RIEPILOGO.md)** - Migrazione Free → Pro
 
 ### **Per Sviluppatori**
 - 🔧 **[TECHNICAL_DOCS.md](TECHNICAL_DOCS.md)** - Documentazione tecnica completa
-- 🌿 **[Replicabilità Piante](docs/REPLICABILITA_INFORMAZIONI_PIANTE.md)** - Guide coltivazione
-- 🚀 **[Deploy Vercel](docs/VERCEL_DEPLOYMENT.md)** - Guida dettagliata Vercel
+- 🌿 **[Replicabilità Piante](INTEGRAZIONE_BANCA_SEMI_COMPLETA.md)** - Guide coltivazione
+- 🚀 **[Deploy Vercel](README_VERCEL_ADMIN.md)** - Guida dettagliata Vercel
 
 ---
 
@@ -910,7 +910,7 @@ Questo progetto è rilasciato sotto **Licenza MIT**. Vedi il file [LICENSE](LICE
 **OrtoMio AI** - Dove Tradizione e Tecnologia si Incontrano
 
 [![Inizia Ora](https://img.shields.io/badge/🚀_Inizia_Ora-Gratis-green?style=for-the-badge)](https://ortomio.ai)
-[![Documentazione](https://img.shields.io/badge/📚_Documentazione-Completa-blue?style=for-the-badge)](docs/USER_MANUAL.md)
+[![Documentazione](https://img.shields.io/badge/📚_Documentazione-Completa-blue?style=for-the-badge)](USER_MANUAL.md)
 [![Community](https://img.shields.io/badge/👥_Community-Discord-purple?style=for-the-badge)](https://discord.gg/ortomio)
 
 ---
@@ -972,7 +972,7 @@ Questo progetto è rilasciato sotto **Licenza MIT**. Vedi il file [LICENSE](LICE
 
    L'app sarà disponibile su `http://localhost:3002/app/`
 
-> 💡 **Suggerimento**: Vedi [docs/QUICK_START.md](docs/QUICK_START.md) per una guida ancora più rapida.
+> 💡 **Suggerimento**: Vedi [QUICK_START_ADMIN.md](QUICK_START_ADMIN.md) per una guida ancora più rapida.
 
 ## 📦 Deploy su Vercel
 
@@ -1003,7 +1003,7 @@ Questo progetto è rilasciato sotto **Licenza MIT**. Vedi il file [LICENSE](LICE
    - **Output Directory**: `.next`
    - **Install Command**: `npm install`
 
-> 📖 **Guida Completa**: Vedi [docs/VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md) per istruzioni dettagliate.
+> 📖 **Guida Completa**: Vedi [README_VERCEL_ADMIN.md](README_VERCEL_ADMIN.md) per istruzioni dettagliate.
 
 ## 🔧 Configurazione
 
@@ -1025,18 +1025,18 @@ Questo progetto è rilasciato sotto **Licenza MIT**. Vedi il file [LICENSE](LICE
 4. Esegui schema database: `database/schema.sql` in SQL Editor
 5. Configura variabili ambiente (vedi sopra)
 
-Vedi [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) per dettagli completi.
+Vedi [README_DEV.md](README_DEV.md) per dettagli completi.
 
 ## 📚 Documentazione
 
-- **[Quick Start Guide](docs/QUICK_START.md)** - Setup in 5 minuti
-- **[Architettura del Sistema](docs/ARCHITECTURE.md)** - Panoramica tecnica completa
-- **[Agricoltura di Precisione](docs/PRECISION_AGRICULTURE.md)** - Guida completa funzionalità precision agriculture
-- **[Database Schema](docs/DATABASE_SCHEMA.md)** - Documentazione schema database
-- **[Guida Deployment](docs/DEPLOYMENT.md)** - Setup Supabase e deploy
-- **[Deploy Vercel](docs/VERCEL_DEPLOYMENT.md)** - Guida dettagliata Vercel
-- **[Guida Migrazione](docs/MIGRATION_GUIDE.md)** - Migrazione dati Free → Pro
-- **[Replicabilità Informazioni Piante](docs/REPLICABILITA_INFORMAZIONI_PIANTE.md)** - Guide coltivazione replicate tra famiglie botaniche
+- **[Quick Start Guide](QUICK_START_ADMIN.md)** - Setup in 5 minuti
+- **[Architettura del Sistema](TECHNICAL_DOCS.md)** - Panoramica tecnica completa
+- **[Agricoltura di Precisione](FUNZIONALITA_ORTOMIO.md)** - Guida completa funzionalità precision agriculture
+- **[Database Schema](SCHEMA_UNICO_FINALE.md)** - Documentazione schema database
+- **[Guida Deployment](README_DEV.md)** - Setup Supabase e deploy
+- **[Deploy Vercel](README_VERCEL_ADMIN.md)** - Guida dettagliata Vercel
+- **[Guida Migrazione](SETUP_PRO_RIEPILOGO.md)** - Migrazione dati Free → Pro
+- **[Replicabilità Informazioni Piante](INTEGRAZIONE_BANCA_SEMI_COMPLETA.md)** - Guide coltivazione replicate tra famiglie botaniche
 
 ## 🛠️ Scripts Disponibili
 
@@ -1090,7 +1090,6 @@ ortomio-main/
 │   ├── diseaseDatabase.ts   # Database malattie
 │   └── ...
 ├── types/             # TypeScript type definitions
-├── docs/              # Documentazione
 ├── database/          # Schema SQL Supabase
 └── scripts/           # Script utility
 ```
