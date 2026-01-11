@@ -43,7 +43,7 @@ function GardenContent() {
     loadData()
   }, [storageProvider])
   
-  const handleTabChange = (tab: 'timeline' | 'calendar' | 'plants' | 'harvest' | 'structure') => {
+  const handleTabChange = (tab: 'timeline' | 'calendar' | 'plants' | 'harvest' | 'structure' | 'registry') => {
     router.push(`/app/garden?tab=${tab}`)
   }
   
@@ -124,7 +124,7 @@ function GardenContent() {
     <GardenView
       garden={garden}
       tasks={tasks}
-      activeTab={activeTab as 'timeline' | 'calendar' | 'plants' | 'harvest' | 'structure'}
+      activeTab={activeTab as 'timeline' | 'calendar' | 'plants' | 'harvest' | 'structure' | 'registry'}
       onTabChange={handleTabChange}
       onToggleTask={handleToggleTask}
       onAddTask={handleAddTask}

@@ -1,15 +1,20 @@
 'use client'
 
 import React, { useState, useEffect, Suspense } from 'react'
-import { HealthDashboard } from '@/components/health/HealthDashboard'
+import { useSearchParams } from 'next/navigation'
+import Advice from '@/components/Advice'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden, GardenTask } from '@/types'
 
 function AdvicePageContent() {
   const { storageProvider } = useStorage()
+  const searchParams = useSearchParams()
   const [garden, setGarden] = useState<Garden | null>(null)
   const [tasks, setTasks] = useState<GardenTask[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // Get initial tab from URL params
+  const initialTab = (searchParams.get('tab') as 'diagnosis' | 'consultations' | 'agronomists') || 'diagnosis'
   
   useEffect(() => {
     const loadData = async () => {
@@ -29,6 +34,27 @@ function AdvicePageContent() {
     }
     loadData()
   }, [storageProvider])
+  
+  const handleAddToJournal = async (title: string, notes: string, date: string) => {
+    try {
+      if (garden) {
+        await storageProvider.createTask({
+          gardenId: garden.id,
+          plantName: 'Trattamento',
+          taskType: 'Treatment',
+          date: date,
+          notes: `${title}\n\n${notes}`,
+          completed: false
+        })
+        
+        // Ricarica i task
+        const updatedTasks = await storageProvider.getTasks(garden.id)
+        setTasks(updatedTasks || [])
+      }
+    } catch (error) {
+      console.error('Error adding treatment to journal:', error)
+    }
+  }
   
   if (loading) {
     return (
@@ -51,7 +77,12 @@ function AdvicePageContent() {
     )
   }
   
-  return <HealthDashboard garden={garden} tasks={tasks} />
+  return (
+    <Advice 
+      onAddToJournal={handleAddToJournal}
+      initialTab={initialTab}
+    />
+  )
 }
 
 export default function AdvicePage() {

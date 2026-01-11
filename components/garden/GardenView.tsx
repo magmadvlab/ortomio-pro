@@ -5,7 +5,8 @@ import { Garden, GardenTask } from '@/types'
 import { TimelineView } from './TimelineView'
 import { CalendarTabView } from './CalendarTabView'
 import { ListView } from './ListView'
-import { Calendar, List, GanttChart, Plus, Sprout, Settings, Grid3X3, X, Package, Leaf, Bot } from 'lucide-react'
+import ActivityRegistry from './ActivityRegistry'
+import { Calendar, List, GanttChart, Plus, Sprout, Settings, Grid3X3, X, Package, Leaf, Bot, FileText } from 'lucide-react'
 import { PlantsView } from './PlantsView'
 import { AddItemModal } from './AddItemModal'
 import { HarvestRegistrationModal } from '../harvest/HarvestRegistrationModal'
@@ -21,8 +22,8 @@ import Link from 'next/link'
 interface GardenViewProps {
   garden: Garden
   tasks: GardenTask[]
-  activeTab: 'timeline' | 'calendar' | 'plants' | 'harvest' | 'structure'
-  onTabChange: (tab: 'timeline' | 'calendar' | 'plants' | 'harvest' | 'structure') => void
+  activeTab: 'timeline' | 'calendar' | 'plants' | 'harvest' | 'structure' | 'registry'
+  onTabChange: (tab: 'timeline' | 'calendar' | 'plants' | 'harvest' | 'structure' | 'registry') => void
   onToggleTask: (id: string) => void
   onAddTask: (task: Omit<GardenTask, 'id' | 'completed' | 'gardenId'>) => void
   onDeleteTask: (id: string) => void
@@ -50,6 +51,7 @@ export function GardenView({
     { id: 'calendar' as const, label: 'Calendario', icon: Calendar },
     { id: 'plants' as const, label: 'Piante & Vivaio', icon: Sprout },
     { id: 'harvest' as const, label: 'Raccolto', icon: Package },
+    { id: 'registry' as const, label: 'Registro', icon: FileText },
     { id: 'structure' as const, label: 'Struttura', icon: Grid3X3 }
   ]
   
@@ -394,6 +396,17 @@ export function GardenView({
               </div>
             </div>
           </div>
+        )}
+
+        {activeTab === 'registry' && (
+          <ActivityRegistry
+            tasks={tasks}
+            onTaskUpdate={onUpdateTask}
+            onExportData={() => {
+              // Implementa export personalizzato se necessario
+              console.log('Export data requested')
+            }}
+          />
         )}
 
         {activeTab === 'structure' && (
