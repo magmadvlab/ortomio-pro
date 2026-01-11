@@ -42,6 +42,7 @@ import { calculateBedSpace } from '../logic/spaceCalculator';
 import AIPlanningWizard from './ai/AIPlanningWizard';
 import PlanPreviewModal from './ai/PlanPreviewModal';
 import AIActionButton from './ai/AIActionButton';
+import PlannerAIChat from './planner/PlannerAIChat';
 import { ScalingPlan } from '../services/aiPlanningService';
 
 interface PlannerProps {
@@ -169,6 +170,9 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
   const [loadingSeasonalSuggestions, setLoadingSeasonalSuggestions] = useState(false);
   const [selectedMethods, setSelectedMethods] = useState<Record<number, 'Seed' | 'Seedling'>>({});
   const [error, setError] = useState<string | null>(null);
+  
+  // AI Chat state
+  const [showAIChat, setShowAIChat] = useState(false);
   
   // Director - Piano Giornaliero Intelligente
   const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(null);
@@ -2540,6 +2544,14 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
         )}
         </div>
       </div>
+      
+      {/* AI Chat */}
+      <PlannerAIChat
+        garden={garden}
+        tasks={tasks}
+        isOpen={showAIChat}
+        onToggle={() => setShowAIChat(!showAIChat)}
+      />
     </div>
   );
 };

@@ -2,7 +2,8 @@
 
 import React from 'react'
 import { Garden, GardenTask } from '@/types'
-import IntegratedCalendarWithChallenges from '@/components/calendar/IntegratedCalendarWithChallenges'
+import CalendarAlmanac from '@/components/CalendarAlmanac'
+import ChallengeSection from './ChallengeSection'
 
 interface CalendarTabViewProps {
   garden: Garden
@@ -24,12 +25,19 @@ export function CalendarTabView({
   }
 
   return (
-    <div className="space-y-4">
-      <IntegratedCalendarWithChallenges
+    <div className="space-y-6">
+      {/* Calendario principale */}
+      <CalendarAlmanac
+        tasks={tasks}
+        onDateClick={onDateClick}
+        onUpdateTask={onUpdateTask}
+      />
+      
+      {/* Sezione Challenge separata */}
+      <ChallengeSection
         tasks={tasks}
         onTaskUpdate={onUpdateTask}
         onChallengeComplete={handleChallengeComplete}
-        onDateClick={onDateClick}
       />
     </div>
   )
