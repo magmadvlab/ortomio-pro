@@ -7,6 +7,7 @@ import { getStreak } from '@/lib/challenges/streakCalculator'
 import { ChallengeSystem } from '@/components/challenges/ChallengeSystem'
 import { ShareButton } from '@/components/social/ShareButton'
 import { useAuth } from '@/packages/core/hooks/useAuth'
+import { checkAndAssignBadges, assignSeasonalBadges } from '@/lib/challenges/initialBadges'
 
 export function AchievementsTab() {
   const { user } = useAuth()
@@ -20,13 +21,26 @@ export function AchievementsTab() {
     setUserId(id)
     
     if (id) {
-      const userBadges = getUserBadges(id)
-      const stats = getBadgeStats(id)
-      const userStreak = getStreak(id)
+      // Assegna badge iniziali e stagionali automaticamente
+      const initializeBadges = async () => {
+        await checkAndAssignBadges(id, {
+          hasCompletedTasks: true, // Assume che l'utente abbia fatto qualche attività
+          hasUsedPlanner: true,    // Assume che abbia visitato il planner
+          hasConfiguredGarden: true // Assume che abbia un orto configurato
+        })
+        await assignSeasonalBadges(id)
+        
+        // Ricarica badge dopo l'assegnazione
+        const userBadges = getUserBadges(id)
+        const stats = getBadgeStats(id)
+        const userStreak = getStreak(id)
+        
+        setBadges(userBadges)
+        setBadgeStats(stats)
+        setStreak(userStreak)
+      }
       
-      setBadges(userBadges)
-      setBadgeStats(stats)
-      setStreak(userStreak)
+      initializeBadges()
     }
   }, [user])
 
@@ -116,11 +130,11 @@ export function AchievementsTab() {
               >
                 <div className="text-4xl mb-2">{badge.emoji || '🏆'}</div>
                 <div className="text-xs font-medium text-gray-700 text-center">
-                  {badge.name || 'Badge'}
+                  {badge.nome || 'Badge'}
                 </div>
-                {badge.date && (
+                {badge.earned_at && (
                   <div className="text-[10px] text-gray-500 mt-1">
-                    {new Date(badge.date).toLocaleDateString('it-IT', { month: 'short', day: 'numeric' })}
+                    {new Date(badge.earned_at).toLocaleDateString('it-IT', { month: 'short', day: 'numeric' })}
                   </div>
                 )}
                 
@@ -129,8 +143,8 @@ export function AchievementsTab() {
                   <ShareButton
                     content={{
                       type: 'achievement',
-                      title: badge.name || 'Badge Sbloccato',
-                      description: `Ho sbloccato il badge "${badge.name}" in OrtoMio!`,
+                      title: badge.nome || 'Badge Sbloccato',
+                      description: `Ho sbloccato il badge "${badge.nome}" in OrtoMio!`,
                       stats: {
                         level: currentLevel,
                         xp: totalXP,
@@ -138,7 +152,7 @@ export function AchievementsTab() {
                       },
                       badge: {
                         emoji: badge.emoji || '🏆',
-                        name: badge.name || 'Badge',
+                        name: badge.nome || 'Badge',
                         rarity: 'common'
                       }
                     }}
