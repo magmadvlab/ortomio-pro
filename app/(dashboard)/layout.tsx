@@ -17,7 +17,7 @@ import GlobalSearch from '@/components/shared/GlobalSearch'
 import AuthStatus from '@/components/shared/AuthStatus'
 import InstallPrompt from '@/components/shared/InstallPrompt'
 import { GlobalQuickActions } from '@/components/shared/GlobalQuickActions'
-import FloatingAIWidget from '@/components/ai/FloatingAIWidget'
+import GlobalAIChat from '@/components/ai/GlobalAIChat'
 
 // Import cleanup utilities (only in development)
 if (process.env.NODE_ENV === 'development') {
@@ -113,8 +113,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           {/* Global Quick Actions FAB */}
           <GlobalQuickActions />
           
-          {/* Floating AI Widget */}
-          <FloatingAIWidget />
+          {/* Global AI Chat */}
+          <GlobalAIChat />
           
           <InstallPrompt />
         </div>

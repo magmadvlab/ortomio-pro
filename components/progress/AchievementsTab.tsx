@@ -23,21 +23,37 @@ export function AchievementsTab() {
     if (id) {
       // Assegna badge iniziali e stagionali automaticamente
       const initializeBadges = async () => {
-        await checkAndAssignBadges(id, {
-          hasCompletedTasks: true, // Assume che l'utente abbia fatto qualche attività
-          hasUsedPlanner: true,    // Assume che abbia visitato il planner
-          hasConfiguredGarden: true // Assume che abbia un orto configurato
-        })
-        await assignSeasonalBadges(id)
-        
-        // Ricarica badge dopo l'assegnazione
-        const userBadges = getUserBadges(id)
-        const stats = getBadgeStats(id)
-        const userStreak = getStreak(id)
-        
-        setBadges(userBadges)
-        setBadgeStats(stats)
-        setStreak(userStreak)
+        try {
+          await checkAndAssignBadges(id, {
+            hasCompletedTasks: true, // Assume che l'utente abbia fatto qualche attività
+            hasUsedPlanner: true,    // Assume che abbia visitato il planner
+            hasConfiguredGarden: true // Assume che abbia un orto configurato
+          })
+          await assignSeasonalBadges(id)
+          
+          // Ricarica badge dopo l'assegnazione
+          setTimeout(() => {
+            const userBadges = getUserBadges(id)
+            const stats = getBadgeStats(id)
+            const userStreak = getStreak(id)
+            
+            setBadges(userBadges)
+            setBadgeStats(stats)
+            setStreak(userStreak)
+            
+            console.log('✅ Badge caricati:', userBadges.length)
+          }, 500)
+        } catch (error) {
+          console.error('Errore inizializzazione badge:', error)
+          // Fallback: carica badge esistenti
+          const userBadges = getUserBadges(id)
+          const stats = getBadgeStats(id)
+          const userStreak = getStreak(id)
+          
+          setBadges(userBadges)
+          setBadgeStats(stats)
+          setStreak(userStreak)
+        }
       }
       
       initializeBadges()
@@ -110,9 +126,33 @@ export function AchievementsTab() {
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-gray-900">Badge Sbloccati</h3>
-          <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-            {badges.length} badge
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+              {badges.length} badge
+            </span>
+            {badges.length === 0 && (
+              <button
+                onClick={async () => {
+                  if (userId) {
+                    await checkAndAssignBadges(userId, {
+                      hasCompletedTasks: true,
+                      hasUsedPlanner: true,
+                      hasConfiguredGarden: true
+                    })
+                    await assignSeasonalBadges(userId)
+                    
+                    setTimeout(() => {
+                      const userBadges = getUserBadges(userId)
+                      setBadges(userBadges)
+                    }, 500)
+                  }
+                }}
+                className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
+              >
+                Sblocca Badge
+              </button>
+            )}
+          </div>
         </div>
         
         {badges.length === 0 ? (
