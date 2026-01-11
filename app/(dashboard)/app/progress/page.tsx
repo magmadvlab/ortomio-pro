@@ -127,7 +127,7 @@ function OverviewTab() {
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-2">
           <a 
-            href="/app/planner" 
+            href="/app/garden?tab=calendar" 
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
           >
             📅 Vai al Calendario
@@ -147,25 +147,25 @@ function OverviewTab() {
         </div>
       </div>
 
-      {/* Challenge System - Integrated with Calendar Context */}
+      {/* Challenge System - Redirect to Calendar */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <Target className="text-green-600" size={20} />
-            Challenge Integrate
+            Challenge Spostate nel Calendario
           </h3>
           <a 
-            href="/app/planner" 
+            href="/app/garden?tab=calendar" 
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
           >
             Vai al Calendario →
           </a>
         </div>
         
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-          <p className="text-sm text-green-800">
-            🎯 <strong>Novità:</strong> Le challenge sono ora completamente integrate nel calendario! 
-            Ogni giorno ha challenge personalizzate basate sui tuoi task pianificati.
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <p className="text-sm text-blue-800">
+            🎯 <strong>Novità:</strong> Le challenge sono ora integrate nel calendario del tuo orto! 
+            Vai su <strong>Il Mio Orto → Calendario</strong> per vedere le challenge giornaliere sotto il calendario.
           </p>
         </div>
         

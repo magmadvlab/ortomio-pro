@@ -171,7 +171,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
   const [selectedMethods, setSelectedMethods] = useState<Record<number, 'Seed' | 'Seedling'>>({});
   const [error, setError] = useState<string | null>(null);
   
-  // AI Chat state
+  // AI Chat state - inizializzato come chiuso ma con pulsante visibile
   const [showAIChat, setShowAIChat] = useState(false);
   
   // Director - Piano Giornaliero Intelligente
