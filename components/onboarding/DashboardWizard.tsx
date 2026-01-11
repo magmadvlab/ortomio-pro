@@ -100,14 +100,14 @@ export function DashboardWizard({ onComplete, onSkip }: DashboardWizardProps) {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">
             {steps[currentStep].title}
           </h2>
           <p className="text-sm text-gray-600">{steps[currentStep].description}</p>
         </div>
         <button
           onClick={onSkip}
-          className="p-2 hover:bg-white/50 rounded-lg transition-colors"
+          className="p-3 hover:bg-white/50 rounded-lg transition-colors"
           aria-label="Salta configurazione"
         >
           <X size={20} className="text-gray-600" />
@@ -115,7 +115,7 @@ export function DashboardWizard({ onComplete, onSkip }: DashboardWizardProps) {
       </div>
 
       {/* Progress Indicator */}
-      <div className="flex items-center justify-center gap-2 mb-6">
+      <div className="flex items-center justify-center gap-3 mb-6">
         {steps.map((step, idx) => (
           <React.Fragment key={step.id}>
             <div
@@ -161,7 +161,7 @@ export function DashboardWizard({ onComplete, onSkip }: DashboardWizardProps) {
             <label className="block text-sm font-medium text-gray-700 mb-4">
               Seleziona la dimensione
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {sizeOptions.map((option) => (
                 <button
                   key={option.value}
@@ -194,7 +194,7 @@ export function DashboardWizard({ onComplete, onSkip }: DashboardWizardProps) {
             </label>
             {gardenData.coordinates ? (
               <div className="bg-green-50 border-2 border-green-300 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-green-700">
+                <div className="flex items-center gap-3 text-green-700">
                   <MapPin size={20} />
                   <span className="font-medium">Posizione impostata</span>
                 </div>
@@ -213,7 +213,7 @@ export function DashboardWizard({ onComplete, onSkip }: DashboardWizardProps) {
               <div className="space-y-3">
                 <button
                   onClick={handleLocationClick}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                  className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
                 >
                   <MapPin size={20} />
                   Usa la mia posizione attuale
@@ -236,11 +236,11 @@ export function DashboardWizard({ onComplete, onSkip }: DashboardWizardProps) {
           Salta configurazione - lo faccio dopo
         </button>
         
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           {currentStep > 0 && (
             <button
               onClick={handleBack}
-              className="px-4 py-2 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
+              className="px-4 py-2 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium flex items-center gap-3"
             >
               <ArrowLeft size={18} />
               Indietro

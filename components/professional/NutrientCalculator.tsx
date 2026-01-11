@@ -39,7 +39,7 @@ export function NutrientCalculator() {
             type="text"
             value={crop}
             onChange={(e) => setCrop(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
             placeholder="es. Pomodoro"
           />
         </div>
@@ -51,7 +51,7 @@ export function NutrientCalculator() {
           <select
             value={phase}
             onChange={(e) => setPhase(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
           >
             <option value="">Seleziona fase</option>
             <option value="germination">Germinazione</option>
@@ -69,7 +69,7 @@ export function NutrientCalculator() {
             type="number"
             value={area}
             onChange={(e) => setArea(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
             placeholder="es. 10"
           />
         </div>
@@ -81,7 +81,7 @@ export function NutrientCalculator() {
           <select
             value={soilType}
             onChange={(e) => setSoilType(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
           >
             <option value="">Seleziona terreno</option>
             <option value="clay">Argilloso</option>

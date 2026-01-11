@@ -54,7 +54,7 @@ export const AquaponicMonitorWidget: React.FC<AquaponicMonitorWidgetProps> = ({
   return (
     <div className="bg-white p-4 rounded-2xl shadow-lg border border-gray-200">
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Fish size={20} className="text-blue-600" />
           <h3 className="text-lg font-bold text-gray-800">Monitoraggio Acquaponica</h3>
         </div>
@@ -100,7 +100,7 @@ export const AquaponicMonitorWidget: React.FC<AquaponicMonitorWidgetProps> = ({
             </span>
           </div>
           {ammoniaStatus === 'critical' && (
-            <div className="flex items-center gap-1 text-xs text-red-600 bg-red-50 p-1 rounded">
+            <div className="flex items-center gap-3 text-xs text-red-600 bg-red-50 p-1 rounded">
               <AlertCircle size={12} />
               <span>CRITICO per pesci!</span>
             </div>
@@ -118,7 +118,7 @@ export const AquaponicMonitorWidget: React.FC<AquaponicMonitorWidgetProps> = ({
             </span>
           </div>
           {nitriteStatus === 'critical' && (
-            <div className="flex items-center gap-1 text-xs text-red-600 bg-red-50 p-1 rounded">
+            <div className="flex items-center gap-3 text-xs text-red-600 bg-red-50 p-1 rounded">
               <AlertCircle size={12} />
               <span>CRITICO per pesci!</span>
             </div>

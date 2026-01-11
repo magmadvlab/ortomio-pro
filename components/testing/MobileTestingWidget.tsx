@@ -122,7 +122,7 @@ const MobileTestingWidget: React.FC<MobileTestingWidgetProps> = ({ onClose }) =>
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pass': return <CheckCircle className="text-green-600" size={16} />;
-      case 'warn': return <AlertTriangle className="text-yellow-600" size={16} />;
+      case 'warn': return <AlertTriangle className="text-yellow-full max-w-sm" size={16} />;
       case 'fail': return <X className="text-red-600" size={16} />;
       default: return null;
     }
@@ -178,7 +178,7 @@ const MobileTestingWidget: React.FC<MobileTestingWidgetProps> = ({ onClose }) =>
     <div className="fixed bottom-4 right-4 z-50 bg-white rounded-lg shadow-xl border border-gray-200 w-80 max-h-96 overflow-hidden">
       {/* Header */}
       <div className="bg-blue-600 text-white p-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Smartphone size={20} />
           <span className="font-semibold">Mobile Testing</span>
         </div>
@@ -196,12 +196,12 @@ const MobileTestingWidget: React.FC<MobileTestingWidgetProps> = ({ onClose }) =>
 
       {/* Device Simulator */}
       <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-3 mb-3">
           <span className="text-sm font-medium text-gray-700">Device:</span>
           <span className="text-sm text-gray-600">{devices[currentDevice].name}</span>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             onClick={() => simulateDevice('mobile')}
             className={`p-2 rounded-lg transition-colors ${
@@ -241,7 +241,7 @@ const MobileTestingWidget: React.FC<MobileTestingWidgetProps> = ({ onClose }) =>
           <button
             onClick={runMobileTests}
             disabled={isRunningTests}
-            className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50"
+            className="p-3 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50"
             title="Run Tests"
           >
             {isRunningTests ? <Zap className="animate-spin" size={16} /> : <Target size={16} />}
@@ -272,8 +272,8 @@ const MobileTestingWidget: React.FC<MobileTestingWidgetProps> = ({ onClose }) =>
         ) : (
           <div className="space-y-2">
             {testResults.map((result, index) => (
-              <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   {getStatusIcon(result.status)}
                   <span className="text-sm font-medium text-gray-900 truncate">
                     {result.name}
@@ -302,16 +302,16 @@ const MobileTestingWidget: React.FC<MobileTestingWidgetProps> = ({ onClose }) =>
 
       {/* Actions */}
       <div className="p-4 border-t border-gray-200 bg-gray-50">
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             onClick={() => window.open('/mobile-testing-suite.html', '_blank')}
-            className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors"
+            className="flex-1 bg-blue-600 text-white px-4 py-3 text-base rounded-lg text-sm hover:bg-blue-700 transition-colors"
           >
             Full Test Suite
           </button>
           <button
             onClick={resetSimulation}
-            className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 transition-colors"
+            className="px-4 py-3 text-base bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 transition-colors"
           >
             Reset
           </button>

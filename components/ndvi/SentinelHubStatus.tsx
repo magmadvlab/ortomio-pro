@@ -149,10 +149,10 @@ const SentinelHubStatus: React.FC<SentinelHubStatusProps> = ({ onStatusChange })
 
       {/* Info aggiuntiva per modalità demo */}
       {status === 'simulated' && (
-        <div className="mt-3 pt-3 border-t border-yellow-200">
-          <div className="flex items-start gap-2">
-            <Satellite className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-            <div className="text-xs text-yellow-700">
+        <div className="mt-3 pt-3 border-t border-yellow-full max-w-sm">
+          <div className="flex items-start gap-3">
+            <Satellite className="w-4 h-4 text-yellow-full max-w-sm mt-0.5 flex-shrink-0" />
+            <div className="text-xs text-yellow-full max-w-sm">
               <p className="font-medium mb-1">Modalità Demo Attiva</p>
               <p>I dati NDVI sono simulati ma realistici. Per dati satellitari reali, configura le credenziali Sentinel Hub nelle variabili d'ambiente.</p>
             </div>
@@ -163,7 +163,7 @@ const SentinelHubStatus: React.FC<SentinelHubStatusProps> = ({ onStatusChange })
       {/* Info aggiuntiva per connessione attiva */}
       {status === 'connected' && (
         <div className="mt-3 pt-3 border-t border-green-200">
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-3">
             <Satellite className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
             <div className="text-xs text-green-700">
               <p className="font-medium mb-1">Sentinel-2 ESA Attivo</p>

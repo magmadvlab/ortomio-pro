@@ -58,7 +58,7 @@ export function OnboardingStep3GardenType({ initialValue, onNext, onBack }: Onbo
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">
+        <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
           Cosa coltivi?
         </h3>
         <p className="text-gray-600">
@@ -66,7 +66,7 @@ export function OnboardingStep3GardenType({ initialValue, onNext, onBack }: Onbo
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {gardenTypes.map((type) => {
           const Icon = type.icon
           const isSelected = selectedTypes.includes(type.id)

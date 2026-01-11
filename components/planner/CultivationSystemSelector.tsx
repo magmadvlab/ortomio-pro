@@ -121,7 +121,7 @@ const CultivationSystemSelector: React.FC<CultivationSystemSelectorProps> = ({
       </div>
 
       {/* Systems Grid */}
-      <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="p-4 grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-4">
         {systems.map((system) => {
           const systemData =
             system === 'openField'
@@ -160,7 +160,7 @@ const CultivationSystemSelector: React.FC<CultivationSystemSelectorProps> = ({
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {getSystemIcon(system)}
                   <div>
                     <h4 className="font-bold text-gray-800">{getSystemLabel(system)}</h4>
@@ -169,7 +169,7 @@ const CultivationSystemSelector: React.FC<CultivationSystemSelectorProps> = ({
                 </div>
                 {isSelected && <CheckCircle size={20} className="text-purple-600 shrink-0" />}
                 {isRecommended && !isSelected && (
-                  <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-0.5 rounded-full">
+                  <span className="bg-yellow-full max-w-sm text-yellow-800 text-xs font-semibold px-2 py-0.5 rounded-full">
                     Consigliato
                   </span>
                 )}
@@ -177,7 +177,7 @@ const CultivationSystemSelector: React.FC<CultivationSystemSelectorProps> = ({
 
               {/* Feasibility Status */}
               {!isFeasible && (
-                <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-800">
+                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-xs text-red-800">
                   <AlertTriangle size={14} className="inline mr-1" />
                   {feasibility.reason || 'Non fattibile'}
                 </div>
@@ -188,7 +188,7 @@ const CultivationSystemSelector: React.FC<CultivationSystemSelectorProps> = ({
                 {openFieldData && openFieldData.possible && (
                   <>
                     {openFieldData.requires?.protection !== 'None' && (
-                      <div className="flex items-start gap-2 text-gray-700">
+                      <div className="flex items-start gap-3 text-gray-700">
                         <Shield size={16} className="text-orange-500 shrink-0 mt-0.5" />
                         <div>
                           <div className="font-medium">Protezione:</div>
@@ -204,7 +204,7 @@ const CultivationSystemSelector: React.FC<CultivationSystemSelectorProps> = ({
                       const requiredZoneDesc = translateUsdaZone(requiredZoneKey);
                       
                       return (
-                        <div className="flex items-start gap-2 text-gray-700">
+                        <div className="flex items-start gap-3 text-gray-700">
                           <Thermometer size={16} className="text-blue-500 shrink-0 mt-0.5" />
                           <div>
                             <div className="font-medium">Clima minimo richiesto:</div>
@@ -221,7 +221,7 @@ const CultivationSystemSelector: React.FC<CultivationSystemSelectorProps> = ({
                 {containerData && containerData.possible && (
                   <>
                     {containerData.minSizeLiters && (
-                      <div className="flex items-start gap-2 text-gray-700">
+                      <div className="flex items-start gap-3 text-gray-700">
                         <Ruler size={16} className="text-green-500 shrink-0 mt-0.5" />
                         <div>
                           <div className="font-medium">Dimensione minima:</div>
@@ -230,7 +230,7 @@ const CultivationSystemSelector: React.FC<CultivationSystemSelectorProps> = ({
                       </div>
                     )}
                     {containerData.moveableIndoor && (
-                      <div className="flex items-start gap-2 text-gray-700">
+                      <div className="flex items-start gap-3 text-gray-700">
                         <Home size={16} className="text-purple-500 shrink-0 mt-0.5" />
                         <div>
                           <div className="font-medium">Spostabile indoor:</div>
@@ -247,7 +247,7 @@ const CultivationSystemSelector: React.FC<CultivationSystemSelectorProps> = ({
 
                 {greenhouseData && (
                   <>
-                    <div className="flex items-start gap-2 text-gray-700">
+                    <div className="flex items-start gap-3 text-gray-700">
                       <Home size={16} className="text-purple-500 shrink-0 mt-0.5" />
                       <div>
                         <div className="font-medium">Tipo serra:</div>
@@ -259,7 +259,7 @@ const CultivationSystemSelector: React.FC<CultivationSystemSelectorProps> = ({
                       </div>
                     </div>
                     {greenhouseData.heatingRequired && (
-                      <div className="flex items-start gap-2 text-gray-700">
+                      <div className="flex items-start gap-3 text-gray-700">
                         <Thermometer size={16} className="text-orange-500 shrink-0 mt-0.5" />
                         <div>
                           <div className="font-medium">Riscaldamento:</div>
@@ -268,7 +268,7 @@ const CultivationSystemSelector: React.FC<CultivationSystemSelectorProps> = ({
                       </div>
                     )}
                     {greenhouseData.minTempGreenhouse && (
-                      <div className="flex items-start gap-2 text-gray-700">
+                      <div className="flex items-start gap-3 text-gray-700">
                         <Thermometer size={16} className="text-blue-500 shrink-0 mt-0.5" />
                         <div>
                           <div className="font-medium">Temp. minima:</div>

@@ -79,16 +79,16 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
 
   return (
     <div className="space-y-6">
-      <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+      <h3 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-3">
         <BarChart3 size={28} />
         Previsioni Agricoltura di Precisione
       </h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
         {/* Harvest Prediction */}
         {harvestPrediction && (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-3 mb-4">
               <Calendar size={20} className="text-blue-600" />
               <h4 className="text-lg font-semibold">Data Raccolto Ottimale</h4>
             </div>
@@ -125,7 +125,7 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
         {/* Yield Prediction */}
         {yieldPrediction && (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-3 mb-4">
               <TrendingUp size={20} className="text-green-600" />
               <h4 className="text-lg font-semibold">Resa Prevista</h4>
             </div>
@@ -161,7 +161,7 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
         {/* Disease Risk */}
         {diseaseRisk && (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-3 mb-4">
               <AlertTriangle 
                 size={20} 
                 className={`${
@@ -210,13 +210,13 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({
         {/* Water Requirement */}
         {waterRequirement && (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-3 mb-4">
               <Droplets size={20} className="text-blue-600" />
               <h4 className="text-lg font-semibold">Fabbisogno Idrico</h4>
             </div>
             <div className="space-y-3">
               <div>
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="text-xl md:text-2xl font-bold text-blue-600">
                   {waterRequirement.averageDailyRequirement.toFixed(1)} L/m²/giorno
                 </p>
                 <p className="text-sm text-gray-600 mt-1">

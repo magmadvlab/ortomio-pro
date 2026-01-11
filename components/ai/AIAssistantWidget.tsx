@@ -169,7 +169,7 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
     <div className="fixed bottom-6 right-6 w-96 h-[500px] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col z-50">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-green-50 rounded-t-xl">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
             <MessageCircle size={16} className="text-white" />
           </div>
@@ -242,17 +242,17 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
               
               {/* Feedback buttons for AI messages */}
               {message.type === 'ai' && !message.feedback && (
-                <div className="flex gap-2 mt-2">
+                <div className="flex gap-3 mt-2">
                   <button
                     onClick={() => provideFeedback(message.id, 'helpful')}
-                    className="text-xs text-green-600 hover:text-green-700 flex items-center gap-1"
+                    className="text-xs text-green-600 hover:text-green-700 flex items-center gap-3"
                   >
                     <CheckCircle size={12} />
                     Utile
                   </button>
                   <button
                     onClick={() => provideFeedback(message.id, 'not_helpful')}
-                    className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1"
+                    className="text-xs text-red-600 hover:text-red-700 flex items-center gap-3"
                   >
                     <AlertCircle size={12} />
                     Non utile
@@ -297,7 +297,7 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
           </div>
         )}
         
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             onClick={() => {
               setShowImageUpload(!showImageUpload);
@@ -305,7 +305,7 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
                 fileInputRef.current?.click();
               }
             }}
-            className="p-2 text-gray-500 hover:text-gray-700 transition-colors"
+            className="p-3 text-gray-500 hover:text-gray-700 transition-colors"
             title="Carica immagine"
           >
             <Camera size={20} />
@@ -317,14 +317,14 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && !isLoading && sendMessage(input)}
             placeholder="Scrivi la tua domanda..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="flex-1 px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
             disabled={isLoading}
           />
           
           <button
             onClick={() => sendMessage(input)}
             disabled={isLoading || (!input.trim())}
-            className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Send size={20} />
           </button>

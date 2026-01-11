@@ -73,7 +73,7 @@ const ZoneMemoryView: React.FC<ZoneMemoryViewProps> = ({
     <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-3">
           <BarChart3 size={24} />
           Memoria Zona: {zoneName || zoneId}
         </h2>
@@ -83,32 +83,32 @@ const ZoneMemoryView: React.FC<ZoneMemoryViewProps> = ({
       </div>
 
       {/* Statistiche Generali */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
           <div className="text-sm text-blue-600 font-medium">Resa Media</div>
-          <div className="text-2xl font-bold text-blue-800">{avgYield.toFixed(2)} kg/m²</div>
+          <div className="text-xl md:text-2xl font-bold text-blue-800">{avgYield.toFixed(2)} kg/m²</div>
         </div>
         <div className="bg-green-50 rounded-lg p-4 border border-green-200">
           <div className="text-sm text-green-600 font-medium">Qualità Media</div>
-          <div className="text-2xl font-bold text-green-800">{avgQuality.toFixed(1)}/5</div>
+          <div className="text-xl md:text-2xl font-bold text-green-800">{avgQuality.toFixed(1)}/5</div>
         </div>
         <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
           <div className="text-sm text-orange-600 font-medium">Problemi Totali</div>
-          <div className="text-2xl font-bold text-orange-800">{totalProblems}</div>
+          <div className="text-xl md:text-2xl font-bold text-orange-800">{totalProblems}</div>
         </div>
       </div>
 
       {/* Pattern Riconosciuti */}
       {memory.patterns && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-3">
             <TrendingUp size={20} />
             Pattern Riconosciuti
           </h3>
 
           {memory.patterns.bestPlantingDate && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <CheckCircle size={18} className="text-green-600" />
                 <span className="font-medium text-green-800">Data Migliore Storica</span>
               </div>
@@ -124,7 +124,7 @@ const ZoneMemoryView: React.FC<ZoneMemoryViewProps> = ({
 
           {memory.patterns.worstPlantingDate && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <AlertTriangle size={18} className="text-red-600" />
                 <span className="font-medium text-red-800">Data Peggiore Storica</span>
               </div>
@@ -139,11 +139,11 @@ const ZoneMemoryView: React.FC<ZoneMemoryViewProps> = ({
           )}
 
           {memory.patterns.recurringProblems.length > 0 && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="font-medium text-yellow-800 mb-2">Problemi Ricorrenti</div>
+            <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-4">
+              <div className="font-medium text-yellow-full max-w-sm mb-2">Problemi Ricorrenti</div>
               <ul className="space-y-1">
                 {memory.patterns.recurringProblems.map((p, idx) => (
-                  <li key={idx} className="text-sm text-yellow-700">
+                  <li key={idx} className="text-sm text-yellow-full max-w-sm">
                     • {p.problem} - {p.frequency} volte (mesi: {p.months.join(', ')})
                   </li>
                 ))}
@@ -168,7 +168,7 @@ const ZoneMemoryView: React.FC<ZoneMemoryViewProps> = ({
 
       {/* Storia Piantagioni */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-3">
           <Calendar size={20} />
           Storia Piantagioni
         </h3>
@@ -234,7 +234,7 @@ const ZoneMemoryView: React.FC<ZoneMemoryViewProps> = ({
                     : 'bg-red-50 border-red-200'
                 }`}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {corr.impactType === 'positive' ? (
                     <TrendingUp size={16} className="text-green-600" />
                   ) : (

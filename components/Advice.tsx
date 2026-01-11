@@ -462,10 +462,10 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
    */
   const getSeverityBadge = (level: string) => {
       switch(level) {
-          case 'Low': return <span className="bg-green-100 text-green-800 border border-green-200 px-3 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-1"><ShieldCheck size={14}/> Gravità Bassa</span>;
-          case 'Medium': return <span className="bg-yellow-100 text-yellow-800 border border-yellow-200 px-3 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-1"><AlertTriangle size={14}/> Gravità Media</span>;
-          case 'High': return <span className="bg-orange-100 text-orange-800 border border-orange-200 px-3 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-1"><AlertTriangle size={14}/> Gravità Alta</span>;
-          case 'Critical': return <span className="bg-red-100 text-red-800 border border-red-200 px-3 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-1"><AlertCircle size={14}/> Critico</span>;
+          case 'Low': return <span className="bg-green-100 text-green-800 border border-green-200 px-3 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-3"><ShieldCheck size={14}/> Gravità Bassa</span>;
+          case 'Medium': return <span className="bg-yellow-full max-w-sm text-yellow-full max-w-sm border border-yellow-200 px-3 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-3"><AlertTriangle size={14}/> Gravità Media</span>;
+          case 'High': return <span className="bg-orange-100 text-orange-800 border border-orange-200 px-3 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-3"><AlertTriangle size={14}/> Gravità Alta</span>;
+          case 'Critical': return <span className="bg-red-100 text-red-800 border border-red-200 px-3 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-3"><AlertCircle size={14}/> Critico</span>;
           default: return null;
       }
   };
@@ -473,7 +473,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-green-800">Il Dottore dell'Orto</h1>
+        <h1 className="text-lg md:text-xl md:text-xl md:text-2xl font-bold text-green-800">Il Dottore dell'Orto</h1>
         <p className="text-green-600">Chiedi consiglio o scatta una foto per diagnosticare malattie.</p>
       </header>
 
@@ -521,7 +521,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
       {/* Tab Content - Diagnosis */}
       {activeTab === 'diagnosis' && (
         <div>
-          <form onSubmit={handleSearch} className="mb-8 flex gap-2">
+          <form onSubmit={handleSearch} className="mb-8 flex gap-3">
         <div className="relative flex-1">
             <input
             type="text"
@@ -533,7 +533,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
             <button 
                 type="submit" 
                 disabled={loading || isAnalyzingImage}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-green-600 hover:text-green-800 disabled:opacity-50"
+                className="absolute right-3 top-3/2 -translate-y-1/2 p-3 text-green-600 hover:text-green-800 disabled:opacity-50"
             >
                 {loading ? <Loader2 size={24} className="animate-spin" /> : <Search size={24} />}
             </button>
@@ -562,7 +562,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
             </button>
           </>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               type="button"
               onClick={stopCamera}
@@ -594,7 +594,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
                 <button
                   onClick={capturePhoto}
-                  className="bg-green-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                  className="bg-green-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-green-700 transition-colors flex items-center gap-3"
                 >
                   <Camera size={20} />
                   <span>Scatta Foto</span>
@@ -607,7 +607,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
         <div className="bg-white rounded-2xl shadow-xl border border-green-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4">
           <div className="bg-green-50 p-5 border-b border-green-100">
             <div className="flex justify-between items-start mb-2">
-                 <h2 className="text-2xl font-bold text-green-900 flex items-center gap-2 leading-none">
+                 <h2 className="text-lg md:text-xl md:text-xl md:text-2xl font-bold text-green-900 flex items-center gap-3 leading-none">
                     {advice.problem}
                 </h2>
                 {getSeverityBadge(advice.severity)}
@@ -617,10 +617,10 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
                 {advice.description}
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                  {advice.cause && (
-                     <div className="bg-white/60 p-2 rounded-lg border border-green-200 text-xs flex gap-2 items-start">
-                         <div className="p-1 bg-green-100 rounded text-green-700 shrink-0"><AlertCircle size={12}/></div>
+                     <div className="bg-white/60 p-3 rounded-lg border border-green-200 text-xs flex gap-3 items-start">
+                         <div className="p-3 bg-green-100 rounded text-green-700 shrink-0"><AlertCircle size={12}/></div>
                          <div>
                              <span className="font-bold text-green-900 block uppercase text-[10px]">Causa Probabile</span>
                              <span className="text-green-800">{advice.cause}</span>
@@ -628,11 +628,11 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
                      </div>
                  )}
                  {advice.symptoms && advice.symptoms.length > 0 && (
-                     <div className="bg-white/60 p-2 rounded-lg border border-green-200 text-xs flex gap-2 items-start">
-                         <div className="p-1 bg-green-100 rounded text-green-700 shrink-0"><Bug size={12}/></div>
+                     <div className="bg-white/60 p-3 rounded-lg border border-green-200 text-xs flex gap-3 items-start">
+                         <div className="p-3 bg-green-100 rounded text-green-700 shrink-0"><Bug size={12}/></div>
                          <div>
                              <span className="font-bold text-green-900 block uppercase text-[10px]">Sintomi Osservati</span>
-                             <div className="flex flex-wrap gap-1 mt-0.5">
+                             <div className="flex flex-wrap gap-3 mt-0.5">
                                  {advice.symptoms.map((s, i) => (
                                      <span key={i} className="bg-green-100 px-1.5 rounded text-[10px] text-green-800">{s}</span>
                                  ))}
@@ -647,7 +647,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
             
             {/* IMMEDIATE ACTION */}
             <div className="bg-red-50 p-4 rounded-xl border border-red-100">
-                 <h3 className="text-red-900 font-bold text-sm uppercase mb-2 flex items-center gap-2">
+                 <h3 className="text-red-900 font-bold text-sm uppercase mb-2 flex items-center gap-3">
                     <Activity size={18} /> Azione Immediata
                 </h3>
                 <p className="text-red-800 font-medium">{advice.immediateAction}</p>
@@ -655,7 +655,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
 
             {/* STEPS */}
             <div>
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-3 flex items-center gap-3">
                   <ClipboardList size={18} className="text-green-600"/> Piano di Trattamento
               </h3>
               <ul className="space-y-4">
@@ -672,7 +672,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
 
             {/* LONG TERM */}
             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                 <h3 className="text-blue-900 font-bold text-sm uppercase mb-2 flex items-center gap-2">
+                 <h3 className="text-blue-900 font-bold text-sm uppercase mb-2 flex items-center gap-3">
                     <CalendarClock size={18} /> Prevenzione Futura
                 </h3>
                 <p className="text-blue-800 text-sm">{advice.longTermCare}</p>
@@ -681,10 +681,10 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
             {/* Prodotti Generici da AI */}
             {advice.products && advice.products.length > 0 && phytoRecommendations.length === 0 && (
                 <div className="border-t border-gray-100 pt-4">
-                    <h4 className="text-gray-500 font-bold text-xs uppercase mb-3 flex items-center gap-2">
+                    <h4 className="text-gray-500 font-bold text-xs uppercase mb-3 flex items-center gap-3">
                         <Leaf size={14} /> Prodotti Consigliati {advice.organic && '(Bio)'}
                     </h4>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-3">
                         {advice.products.map((p, i) => (
                             <span key={i} className="bg-white px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 text-sm font-semibold shadow-sm hover:border-green-300 transition-colors">
                                 {p}
@@ -697,7 +697,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
             {/* Prodotti Concreti con Dosaggi da Phyto Engine */}
             {phytoRecommendations.length > 0 && (
                 <div className="border-t border-gray-100 pt-4">
-                    <h4 className="text-green-700 font-bold text-sm mb-3 flex items-center gap-2">
+                    <h4 className="text-green-700 font-bold text-sm mb-3 flex items-center gap-3">
                         <Leaf size={16} /> Prodotti Specifici con Dosaggi
                         {loadingPhyto && <Loader2 size={14} className="animate-spin" />}
                     </h4>
@@ -718,18 +718,18 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
                                     </span>
                                 </div>
                                 <div className="mt-2 space-y-1 text-xs">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-3">
                                         <span className="font-medium text-gray-700">Dosaggio:</span>
                                         <span className="text-gray-900">{rec.dosage.amount} {rec.dosage.unit}</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-3">
                                         <span className="font-medium text-gray-700">Metodo:</span>
                                         <span className="text-gray-900 capitalize">{rec.method}</span>
                                     </div>
                                     {rec.warnings && rec.warnings.length > 0 && (
-                                        <div className="mt-2 p-2 bg-yellow-50 rounded border border-yellow-200">
-                                            <p className="text-xs text-yellow-800 font-medium">⚠️ Avvisi:</p>
-                                            <ul className="text-xs text-yellow-700 mt-1 space-y-1">
+                                        <div className="mt-2 p-3 bg-yellow-50 rounded border border-yellow-full max-w-sm">
+                                            <p className="text-xs text-yellow-full max-w-sm font-medium">⚠️ Avvisi:</p>
+                                            <ul className="text-xs text-yellow-full max-w-sm mt-1 space-y-1">
                                                 {rec.warnings.map((w, i) => (
                                                     <li key={i}>• {w}</li>
                                                 ))}
@@ -745,7 +745,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
 
             <button
                 onClick={scheduleTreatment}
-                className="w-full py-4 bg-green-600 text-white rounded-xl font-bold shadow-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 transform active:scale-95"
+                className="w-full py-4 bg-green-600 text-white rounded-xl font-bold shadow-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-3 transform active:scale-95"
             >
                 <AlertCircle size={20} />
                 Aggiungi Trattamento al Diario
@@ -765,10 +765,10 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
             </p>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Agronomo di Fiducia */}
             <div className="bg-white border border-green-200 rounded-xl p-4">
-              <h4 className="font-bold text-green-900 mb-3 flex items-center gap-2">
+              <h4 className="font-bold text-green-900 mb-3 flex items-center gap-3">
                 <UserCheck size={18} /> Agronomo di Fiducia
               </h4>
               {loadingAgronomists ? (
@@ -778,7 +778,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
               ) : agronomists.length > 0 ? (
                 <div className="space-y-2">
                   {agronomists.slice(0, 2).map((agr) => (
-                    <div key={agr.id} className="bg-green-50 p-2 rounded-lg border border-green-200">
+                    <div key={agr.id} className="bg-green-50 p-3 rounded-lg border border-green-200">
                       <p className="font-semibold text-sm text-green-900">{agr.name}</p>
                       {agr.specialization && agr.specialization.length > 0 && (
                         <p className="text-xs text-green-700 mt-1">
@@ -789,7 +789,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
                   ))}
                   <button
                     onClick={() => setShowAgronomistModal(true)}
-                    className="w-full mt-2 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                    className="w-full mt-2 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-3"
                   >
                     <Users size={16} /> Vedi tutti
                   </button>
@@ -797,7 +797,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
               ) : (
                 <button
                   onClick={() => setShowAgronomistModal(true)}
-                  className="w-full py-3 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-3"
                 >
                   <Plus size={16} /> Aggiungi Primo Agronomo
                 </button>
@@ -806,7 +806,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
 
             {/* Agronomi OrtoMio */}
             <div className="bg-white border border-blue-200 rounded-xl p-4">
-              <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
+              <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-3">
                 <Users size={18} /> Agronomi OrtoMio
               </h4>
               <p className="text-sm text-gray-600 mb-3">
@@ -814,7 +814,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
               </p>
               <button
                 onClick={() => setShowAgronomistModal(true)}
-                className="w-full py-3 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-3"
               >
                 <Mail size={16} /> Contatta Agronomo OrtoMio
               </button>
@@ -841,10 +841,10 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowAgronomistModal(false)}>
           <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-green-900">Seleziona Agronomo</h3>
+              <h3 className="text-lg md:text-lg md:text-xl font-bold text-green-900">Seleziona Agronomo</h3>
               <button
                 onClick={() => setShowAgronomistModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <X size={20} />
               </button>
@@ -853,7 +853,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
             <div className="p-4 space-y-4">
               {/* Agronomi di Fiducia */}
               <div>
-                <h4 className="font-bold text-green-900 mb-3 flex items-center gap-2">
+                <h4 className="font-bold text-green-900 mb-3 flex items-center gap-3">
                   <UserCheck size={18} /> I Tuoi Agronomi di Fiducia
                 </h4>
                 {agronomists.length > 0 ? (
@@ -872,11 +872,11 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
                               <p className="text-xs text-gray-600 mt-1">{agr.notes}</p>
                             )}
                           </div>
-                          <div className="flex gap-2 ml-4">
+                          <div className="flex gap-3 ml-4">
                             {agr.email && (
                               <a
                                 href={`mailto:${agr.email}?subject=Consulenza OrtoMio - ${advice?.problem || 'Problema Piante'}&body=${encodeURIComponent(`Ciao ${agr.name},\n\nHo bisogno di una consulenza riguardo:\n\nProblema: ${advice?.problem || query}\n\nGravità: ${advice?.severity || 'N/A'}\n\nDescrizione: ${advice?.description || query}\n\nGrazie!`)}`}
-                                className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                className="p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                                 title="Invia Email"
                               >
                                 <Mail size={16} />
@@ -885,7 +885,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
                             {agr.phone && (
                               <a
                                 href={`tel:${agr.phone}`}
-                                className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                className="p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                                 title="Chiama"
                               >
                                 <Phone size={16} />
@@ -904,7 +904,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
                         setShowAgronomistModal(false);
                         setActiveTab('agronomists');
                       }}
-                      className="py-2 px-4 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors flex items-center gap-2 mx-auto"
+                      className="py-2 px-4 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors flex items-center gap-3 mx-auto"
                     >
                       <Plus size={16} /> Aggiungi Agronomo
                     </button>
@@ -914,7 +914,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
 
               {/* Agronomi OrtoMio */}
               <div className="border-t border-gray-200 pt-4">
-                <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
+                <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-3">
                   <Users size={18} /> Agronomi Certificati OrtoMio
                 </h4>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -923,7 +923,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
                   </p>
                   <a
                     href="mailto:agronomi@ortomio.it?subject=Richiesta Consulenza"
-                    className="block w-full py-3 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors text-center flex items-center justify-center gap-2"
+                    className="block w-full py-3 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors text-center flex items-center justify-center gap-3"
                   >
                     <Mail size={16} /> Contatta Agronomi OrtoMio
                   </a>
@@ -937,7 +937,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
       {/* Error message - visibile in tutte le tab */}
       {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-              <p className="text-sm text-red-800 font-medium flex items-center gap-2">
+              <p className="text-sm text-red-800 font-medium flex items-center gap-3">
                   <AlertCircle size={16} className="text-red-600"/>
                   {error}
               </p>
@@ -947,7 +947,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
       {activeTab === 'consultations' && (
         <div>
           <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {selectedAgronomistId && (
                 <button
                   onClick={() => {
@@ -972,7 +972,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
                 setShowConsultationForm(true);
                 setEditingConsultation(null);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <Plus size={20} />
               Nuova Consultazione
@@ -1008,12 +1008,12 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
       {activeTab === 'agronomists' && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Agronomi di Fiducia</h2>
+            <h2 className="text-lg md:text-lg md:text-xl font-bold text-gray-900 mb-4">Agronomi di Fiducia</h2>
             <AgronomistManager onSelectAgronomist={handleSelectAgronomist} />
           </div>
 
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Cerca Agronomo</h2>
+            <h2 className="text-lg md:text-lg md:text-xl font-bold text-gray-900 mb-4">Cerca Agronomo</h2>
             <AgronomistSearch
               onSelectAgronomist={handleSelectAgronomist}
               existingAgronomists={agronomists}

@@ -283,11 +283,11 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
     <div className="space-y-4 lg:space-y-6 p-4 lg:p-0">
       {/* Mobile Header */}
       <div className="bg-white rounded-lg shadow-md p-4 lg:p-6">
-        <div className="flex flex-col space-y-4 lg:space-y-0 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col space-y-4 lg:space-y-0 lg:flex-col md:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
             <Map className="text-green-600 flex-shrink-0" size={24} />
             <div className="min-w-0">
-              <h2 className="text-lg lg:text-2xl font-bold text-gray-900 truncate">
+              <h2 className="text-lg lg:text-xl md:text-2xl font-bold text-gray-900 truncate">
                 Prescription Maps
               </h2>
               <p className="text-sm lg:text-base text-gray-600">
@@ -296,10 +296,10 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-col md:flex-row gap-3">
             <button
               onClick={() => setShowHistoricalComparison(true)}
-              className="bg-blue-600 text-white px-4 py-3 lg:py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 min-h-[44px] text-sm lg:text-base"
+              className="bg-blue-600 text-white px-4 py-3 lg:py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-3 min-h-[44px] text-sm lg:text-base"
             >
               <History size={18} />
               <span className="hidden sm:inline">Confronto Storico</span>
@@ -308,7 +308,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
             
             <button
               onClick={() => setShowCreateModal(true)}
-              className="bg-green-600 text-white px-4 py-3 lg:py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 min-h-[44px] text-sm lg:text-base font-medium"
+              className="bg-green-600 text-white px-4 py-3 lg:py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-3 min-h-[44px] text-sm lg:text-base font-medium"
             >
               <Plus size={18} />
               <span className="hidden sm:inline">Nuova Mappa</span>
@@ -319,12 +319,12 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
 
         {/* Mobile Statistics Grid */}
         {stats && (
-          <div className="mt-6 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4">
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4">
             <div className="bg-blue-50 p-3 lg:p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
                   <p className="text-xs lg:text-sm text-blue-600 truncate">Mappe</p>
-                  <p className="text-lg lg:text-xl font-bold text-blue-700">{stats.totalMapsGenerated}</p>
+                  <p className="text-lg lg:text-lg md:text-xl font-bold text-blue-700">{stats.totalMapsGenerated}</p>
                 </div>
                 <Map className="text-blue-600 flex-shrink-0" size={18} />
               </div>
@@ -334,7 +334,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
                   <p className="text-xs lg:text-sm text-green-600 truncate">Area</p>
-                  <p className="text-lg lg:text-xl font-bold text-green-700">{stats.totalAreaCovered}ha</p>
+                  <p className="text-lg lg:text-lg md:text-xl font-bold text-green-700">{stats.totalAreaCovered}ha</p>
                 </div>
                 <Layers className="text-green-600 flex-shrink-0" size={18} />
               </div>
@@ -344,7 +344,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
                   <p className="text-xs lg:text-sm text-purple-600 truncate">Qualità</p>
-                  <p className="text-lg lg:text-xl font-bold text-purple-700">{stats.averageQualityScore}%</p>
+                  <p className="text-lg lg:text-lg md:text-xl font-bold text-purple-700">{stats.averageQualityScore}%</p>
                 </div>
                 <BarChart3 className="text-purple-600 flex-shrink-0" size={18} />
               </div>
@@ -354,7 +354,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
                   <p className="text-xs lg:text-sm text-orange-600 truncate">Risparmio</p>
-                  <p className="text-lg lg:text-xl font-bold text-orange-700">€{stats.totalCostSavings}</p>
+                  <p className="text-lg lg:text-lg md:text-xl font-bold text-orange-700">€{stats.totalCostSavings}</p>
                 </div>
                 <DollarSign className="text-orange-600 flex-shrink-0" size={18} />
               </div>
@@ -364,7 +364,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
                   <p className="text-xs lg:text-sm text-cyan-600 truncate">ROI</p>
-                  <p className="text-lg lg:text-xl font-bold text-cyan-700">{stats.averageRoi}%</p>
+                  <p className="text-lg lg:text-lg md:text-xl font-bold text-cyan-700">{stats.averageRoi}%</p>
                 </div>
                 <TrendingUp className="text-cyan-600 flex-shrink-0" size={18} />
               </div>
@@ -374,7 +374,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
                   <p className="text-xs lg:text-sm text-indigo-600 truncate">Riduzione</p>
-                  <p className="text-lg lg:text-xl font-bold text-indigo-700">{stats.inputReductionAchieved}%</p>
+                  <p className="text-lg lg:text-lg md:text-xl font-bold text-indigo-700">{stats.inputReductionAchieved}%</p>
                 </div>
                 <CheckCircle className="text-indigo-600 flex-shrink-0" size={18} />
               </div>
@@ -438,13 +438,13 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                           <div className="text-gray-600">Risparmio: €{map.costSavings}</div>
                         </div>
                         
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <button
                             onClick={() => {
                               setSelectedMap(map);
                               setShowZoneManagement(true);
                             }}
-                            className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="Gestisci Zone"
                           >
                             <Settings size={18} />
@@ -455,7 +455,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                               setSelectedMap(map);
                               setShowCostOptimization(true);
                             }}
-                            className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            className="p-3 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                             title="Ottimizza Costi"
                           >
                             <Target size={18} />
@@ -466,14 +466,14 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                               setSelectedMap(map);
                               setShowExportModal(true);
                             }}
-                            className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                            className="p-3 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                             title="Esporta"
                           >
                             <Download size={18} />
                           </button>
                           
                           <button
-                            className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
+                            className="p-3 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
                             title="Anteprima"
                           >
                             <Eye size={18} />
@@ -501,26 +501,26 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                     
                     <button
                       onClick={() => setShowMobileActions(showMobileActions === map.id ? null : map.id)}
-                      className="p-2 text-gray-400 hover:text-gray-600 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      className="p-3 text-gray-400 hover:text-gray-600 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
                     >
                       <MoreVertical size={18} />
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
-                    <div className="bg-gray-50 p-2 rounded">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3 text-xs">
+                    <div className="bg-gray-50 p-3 rounded">
                       <span className="text-gray-600">Area:</span>
                       <span className="font-semibold ml-1">{map.areaHectares} ha</span>
                     </div>
-                    <div className="bg-gray-50 p-2 rounded">
+                    <div className="bg-gray-50 p-3 rounded">
                       <span className="text-gray-600">Zone:</span>
                       <span className="font-semibold ml-1">{map.zonesCount}</span>
                     </div>
-                    <div className="bg-gray-50 p-2 rounded">
+                    <div className="bg-gray-50 p-3 rounded">
                       <span className="text-gray-600">Qualità:</span>
                       <span className="font-semibold ml-1">{map.qualityScore}%</span>
                     </div>
-                    <div className="bg-gray-50 p-2 rounded">
+                    <div className="bg-gray-50 p-3 rounded">
                       <span className="text-gray-600">Risparmio:</span>
                       <span className="font-semibold ml-1">€{map.costSavings}</span>
                     </div>
@@ -540,14 +540,14 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                   {/* Mobile Actions Menu */}
                   {showMobileActions === map.id && (
                     <div className="mt-4 pt-4 border-t border-gray-200">
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <button
                           onClick={() => {
                             setSelectedMap(map);
                             setShowZoneManagement(true);
                             setShowMobileActions(null);
                           }}
-                          className="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 min-h-[44px]"
+                          className="bg-blue-50 text-blue-700 px-4 py-3 text-base rounded-lg text-sm font-medium flex items-center justify-center gap-3 min-h-[44px]"
                         >
                           <Settings size={16} />
                           Gestisci Zone
@@ -559,7 +559,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                             setShowCostOptimization(true);
                             setShowMobileActions(null);
                           }}
-                          className="bg-green-50 text-green-700 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 min-h-[44px]"
+                          className="bg-green-50 text-green-700 px-4 py-3 text-base rounded-lg text-sm font-medium flex items-center justify-center gap-3 min-h-[44px]"
                         >
                           <Target size={16} />
                           Ottimizza
@@ -571,7 +571,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                             setShowExportModal(true);
                             setShowMobileActions(null);
                           }}
-                          className="bg-purple-50 text-purple-700 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 min-h-[44px]"
+                          className="bg-purple-50 text-purple-700 px-4 py-3 text-base rounded-lg text-sm font-medium flex items-center justify-center gap-3 min-h-[44px]"
                         >
                           <Download size={16} />
                           Esporta
@@ -579,7 +579,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                         
                         <button
                           onClick={() => setShowMobileActions(null)}
-                          className="bg-gray-50 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 min-h-[44px]"
+                          className="bg-gray-50 text-gray-700 px-4 py-3 text-base rounded-lg text-sm font-medium flex items-center justify-center gap-3 min-h-[44px]"
                         >
                           <Eye size={16} />
                           Anteprima

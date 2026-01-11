@@ -34,7 +34,7 @@ export function UpgradeCard({
         <div className="flex items-start gap-4">
           <div className="text-3xl">🔒</div>
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
+            <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">
               {feature || 'Feature'} - {tierName} Feature
             </h3>
             {description && (
@@ -62,8 +62,8 @@ export function UpgradeCard({
   if (variant === 'modal') {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-8 max-w-md mx-4">
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">
+        <div className="bg-white rounded-lg p-8 max-w-[90vw] md:max-w-md max-h-[90vh] overflow-y-auto mx-4">
+          <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">
             🔒 {feature}
           </h3>
           {description && (
@@ -96,7 +96,7 @@ export function UpgradeCard({
   return (
     <div className="bg-gradient-to-br from-green-50 to-blue-50 border border-green-200 rounded-lg p-4">
       <div className="flex items-start gap-3">
-        <div className="text-2xl">🔒</div>
+        <div className="text-xl md:text-2xl">🔒</div>
         <div className="flex-1">
           <h4 className="font-semibold text-gray-900 mb-1">
             {feature || 'Feature'} - {tierName} Feature

@@ -105,7 +105,7 @@ const VacationMode: React.FC<VacationModeProps> = ({ garden, tasks, onUpdateGard
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-6">
       <header className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-blue-800 flex items-center gap-2">
+          <h1 className="text-xl md:text-2xl font-bold text-blue-800 flex items-center gap-3">
             <Plane size={28} />
             Modalità Vacanza
           </h1>
@@ -114,7 +114,7 @@ const VacationMode: React.FC<VacationModeProps> = ({ garden, tasks, onUpdateGard
         {plan && (
           <button
             onClick={handleDeletePlan}
-            className="px-4 py-2 bg-red-50 text-red-600 rounded-xl text-sm font-bold hover:bg-red-100 flex items-center gap-2"
+            className="px-4 py-2 bg-red-50 text-red-600 rounded-xl text-sm font-bold hover:bg-red-100 flex items-center gap-3"
           >
             <X size={18} />
             Elimina Piano
@@ -181,7 +181,7 @@ const VacationMode: React.FC<VacationModeProps> = ({ garden, tasks, onUpdateGard
             </div>
             <button
               onClick={handleGeneratePlan}
-              className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md flex items-center justify-center gap-2"
+              className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md flex items-center justify-center gap-3"
             >
               <Calendar size={18} />
               Genera Piano di Sopravvivenza
@@ -241,7 +241,7 @@ const VacationMode: React.FC<VacationModeProps> = ({ garden, tasks, onUpdateGard
                     
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-lg ${getPriorityColor(task.priority).split(' ')[0]}`}>
                             {getTaskIcon(task.category)}
                           </div>
@@ -259,18 +259,18 @@ const VacationMode: React.FC<VacationModeProps> = ({ garden, tasks, onUpdateGard
                       <p className="text-sm text-gray-600 mb-3">{task.description}</p>
                       
                       <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-3">
                           <Calendar size={14} />
                           <span>Scadenza: {dueDate.toLocaleDateString('it-IT')}</span>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-3">
                           <Clock size={14} />
                           <span>{task.estimatedTime}</span>
                         </div>
                       </div>
                       
                       {isOverdue && !task.completed && (
-                        <div className="mt-2 text-xs text-red-600 font-bold flex items-center gap-1">
+                        <div className="mt-2 text-xs text-red-600 font-bold flex items-center gap-3">
                           <AlertTriangle size={14} />
                           Scaduto! Completa al più presto
                         </div>
@@ -285,7 +285,7 @@ const VacationMode: React.FC<VacationModeProps> = ({ garden, tasks, onUpdateGard
           {/* Save Button */}
           <button
             onClick={handleSavePlan}
-            className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md flex items-center justify-center gap-2 mt-6"
+            className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md flex items-center justify-center gap-3 mt-6"
           >
             <Save size={18} />
             Salva Piano di Vacanza

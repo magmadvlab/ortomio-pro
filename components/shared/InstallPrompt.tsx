@@ -115,7 +115,7 @@ const InstallPrompt: React.FC = () => {
             <p className="text-sm text-gray-600 mb-3">
               Aggiungi OrtoMio alla schermata home per un accesso rapido e funzionamento offline.
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <button
                 onClick={handleInstall}
                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm"
@@ -124,7 +124,7 @@ const InstallPrompt: React.FC = () => {
               </button>
               <button
                 onClick={handleDismiss}
-                className="px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                className="px-4 py-3 text-base text-gray-600 hover:text-gray-800 transition-colors"
                 aria-label="Chiudi"
               >
                 <X size={20} />

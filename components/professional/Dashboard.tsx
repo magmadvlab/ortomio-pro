@@ -99,7 +99,7 @@ export function ProfessionalDashboard() {
       {/* Header minimale */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">
             Dashboard Aziendale
           </h1>
           <div className="flex gap-3">
@@ -152,13 +152,13 @@ export function ProfessionalDashboard() {
         {upcomingPrunings.length > 0 && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-3">
                 <Scissors className="text-green-600" size={20} />
                 Prossime Potature
               </h2>
               <Link
                 href="/app/mechanical-work?filter=Pruning"
-                className="text-sm text-green-600 hover:text-green-800 flex items-center gap-1"
+                className="text-sm text-green-600 hover:text-green-800 flex items-center gap-3"
               >
                 Vedi tutte
                 <LinkIcon size={14} />
@@ -196,7 +196,7 @@ export function ProfessionalDashboard() {
                     </div>
                     <Link
                       href={`/app/mechanical-work?filter=Pruning`}
-                      className="text-green-600 hover:text-green-800 text-sm flex items-center gap-1"
+                      className="text-green-600 hover:text-green-800 text-sm flex items-center gap-3"
                     >
                       Dettagli
                       <LinkIcon size={14} />

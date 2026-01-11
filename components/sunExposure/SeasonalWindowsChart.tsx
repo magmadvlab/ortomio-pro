@@ -176,7 +176,7 @@ export default function SeasonalWindowsChart({ windows, classification }: Season
 
       {/* Legenda e informazioni */}
       <div className="mt-6 space-y-3">
-        <div className="flex items-start gap-2 text-sm text-gray-600">
+        <div className="flex items-start gap-3 text-sm text-gray-600">
           <Info size={16} className="mt-0.5 flex-shrink-0" />
           <div>
             <p className="font-medium text-gray-900 mb-1">Classificazione:</p>
@@ -188,7 +188,7 @@ export default function SeasonalWindowsChart({ windows, classification }: Season
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
           <div>
             <span className="font-medium text-gray-700">Score Estivo:</span>{' '}
             <span className={`font-bold ${classification.summerScore >= 0.7 ? 'text-orange-600' : 'text-gray-600'}`}>

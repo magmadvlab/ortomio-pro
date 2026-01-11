@@ -109,7 +109,7 @@ export const GardenBedsWidget: React.FC<GardenBedsWidgetProps> = ({
   return (
     <div className="bg-white p-4 rounded-2xl shadow-lg border border-gray-200">
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Grid size={20} className="text-green-600" />
           <h3 className="text-lg font-bold text-gray-800">Zone di Coltivazione</h3>
         </div>
@@ -129,21 +129,21 @@ export const GardenBedsWidget: React.FC<GardenBedsWidgetProps> = ({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-4 gap-2 mb-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
             <div className="text-center">
-              <div className="text-xl font-bold text-green-600">{byType.RaisedBed}</div>
+              <div className="text-lg md:text-xl font-bold text-green-600">{byType.RaisedBed}</div>
               <div className="text-xs text-gray-600">Cassoni</div>
             </div>
             <div className="text-center">
-              <div className="text-xl font-bold text-blue-600">{byType.Container}</div>
+              <div className="text-lg md:text-xl font-bold text-blue-600">{byType.Container}</div>
               <div className="text-xs text-gray-600">Contenitori</div>
             </div>
             <div className="text-center">
-              <div className="text-xl font-bold text-purple-600">{byType.Pot}</div>
+              <div className="text-lg md:text-xl font-bold text-purple-600">{byType.Pot}</div>
               <div className="text-xs text-gray-600">Vasi</div>
             </div>
             <div className="text-center">
-              <div className="text-xl font-bold text-orange-600">{byType.Greenhouse + byType.Hydroponic}</div>
+              <div className="text-lg md:text-xl font-bold text-orange-600">{byType.Greenhouse + byType.Hydroponic}</div>
               <div className="text-xs text-gray-600">Strutture</div>
             </div>
           </div>
@@ -176,7 +176,7 @@ export const GardenBedsWidget: React.FC<GardenBedsWidgetProps> = ({
 
           {/* Alert letti pieni */}
           {fullBeds.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-2 flex items-center gap-2 mb-2">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2 mb-2">
               <AlertTriangle size={16} className="text-red-600" />
               <span className="text-sm text-red-800">
                 {fullBeds.length} letto/i pieno/i ({'>'}90%)
@@ -185,9 +185,9 @@ export const GardenBedsWidget: React.FC<GardenBedsWidgetProps> = ({
           )}
 
           {almostFullBeds.length > 0 && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2 flex items-center gap-2">
-              <TrendingUp size={16} className="text-yellow-600" />
-              <span className="text-sm text-yellow-800">
+            <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-3 flex items-center gap-2">
+              <TrendingUp size={16} className="text-yellow-full max-w-sm" />
+              <span className="text-sm text-yellow-full max-w-sm">
                 {almostFullBeds.length} letto/i quasi pieno/i (80-90%)
               </span>
             </div>

@@ -112,9 +112,9 @@ export function SunExposureWidget({ garden, className = '' }: SunExposureWidgetP
         onClick={() => setShowModal(true)}
         className={`flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-sm transition-all ${className}`}
       >
-        <Sun size={18} className="text-yellow-500" />
+        <Sun size={18} className="text-yellow-full max-w-sm" />
         <div className="flex-1 text-left">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-gray-700">Esposizione Solare</span>
             <InfoTooltip
               content="L'esposizione solare indica quante ore di sole diretto riceve il tuo orto ogni giorno. Questo valore viene calcolato considerando la posizione geografica, la stagione e gli ostacoli circostanti (palazzi, alberi)."
@@ -122,7 +122,7 @@ export function SunExposureWidget({ garden, className = '' }: SunExposureWidgetP
             />
           </div>
           {dailyHours !== null && exposure ? (
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-3 mt-1">
               <span className="text-lg font-bold text-gray-900">{dailyHours}h</span>
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getExposureBadgeClass(exposure)}`}>
                 {getExposureLabel(exposure)}

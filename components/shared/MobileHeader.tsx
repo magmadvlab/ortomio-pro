@@ -15,11 +15,11 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
   return (
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b border-green-200 shadow-sm lg:hidden">
       {!showSearch ? (
-        <div className="px-3 py-2 flex items-center justify-between h-14">
+        <div className="px-4 py-3 text-base flex items-center justify-between h-14">
           {/* Hamburger Menu */}
           <button
             onClick={onMenuClick}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-3 rounded-lg hover:bg-gray-100 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Apri menu"
           >
             <Menu size={24} className="text-gray-700" />
@@ -31,10 +31,10 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
           </div>
 
           {/* Search & Auth */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setShowSearch(true)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="p-3 rounded-lg hover:bg-gray-100 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label="Cerca"
             >
               <Search size={20} className="text-gray-700" />
@@ -45,10 +45,10 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
           </div>
         </div>
       ) : (
-        <div className="px-3 py-2 flex items-center gap-2 h-14">
+        <div className="px-4 py-3 text-base flex items-center gap-3 h-14">
           <button
             onClick={() => setShowSearch(false)}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-3 rounded-lg hover:bg-gray-100 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Chiudi ricerca"
           >
             <X size={20} className="text-gray-700" />

@@ -45,7 +45,7 @@ const AromaticManagement: React.FC<AromaticManagementProps> = ({
       <div className="p-6 bg-white rounded-xl border border-gray-200">
         <div className="flex items-center gap-3 mb-4">
           <Leaf className="text-green-500" size={24} />
-          <h3 className="text-xl font-bold text-gray-800">Gestione Erbe Aromatiche</h3>
+          <h3 className="text-lg md:text-xl font-bold text-gray-800">Gestione Erbe Aromatiche</h3>
         </div>
         <p className="text-gray-600">Nessuna coltura di erbe aromatiche attiva in questo orto.</p>
       </div>
@@ -71,7 +71,7 @@ const AromaticManagement: React.FC<AromaticManagementProps> = ({
     <div className="p-6 bg-white rounded-lg border border-gray-200">
       <div className="flex items-center gap-3 mb-6">
         <Leaf className="text-green-500" size={24} />
-        <h3 className="text-xl font-bold text-gray-800">Gestione Erbe Aromatiche</h3>
+        <h3 className="text-lg md:text-xl font-bold text-gray-800">Gestione Erbe Aromatiche</h3>
       </div>
 
       {/* Selettore Pianta */}
@@ -84,7 +84,7 @@ const AromaticManagement: React.FC<AromaticManagementProps> = ({
               const task = aromaticTasks.find(t => t.id === e.target.value);
               if (task) setSelectedTask(task);
             }}
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
           >
             {aromaticTasks.map(task => (
               <option key={task.id} value={task.id}>
@@ -96,7 +96,7 @@ const AromaticManagement: React.FC<AromaticManagementProps> = ({
       )}
 
       {/* Info Pianta */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="p-4 bg-green-50 rounded-lg border border-green-200">
           <div className="text-sm text-gray-600 mb-1">Parte Raccolta</div>
           <div className="font-bold text-gray-800">
@@ -115,12 +115,12 @@ const AromaticManagement: React.FC<AromaticManagementProps> = ({
 
       {/* Essiccazione */}
       {aromaticCrop.dryingRequired && (
-        <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-          <div className="flex items-center gap-2 mb-2">
-            <Droplets className="text-yellow-600" size={18} />
-            <span className="font-semibold text-yellow-800">Essiccazione Richiesta</span>
+        <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-full max-w-sm">
+          <div className="flex items-center gap-3 mb-2">
+            <Droplets className="text-yellow-full max-w-sm" size={18} />
+            <span className="font-semibold text-yellow-full max-w-sm">Essiccazione Richiesta</span>
           </div>
-          <div className="space-y-1 text-sm text-yellow-700">
+          <div className="space-y-1 text-sm text-yellow-full max-w-sm">
             <p><strong>Metodo:</strong> {
               aromaticCrop.dryingMethod === 'Air' ? 'Aria' :
               aromaticCrop.dryingMethod === 'Dehydrator' ? 'Essiccatore' :
@@ -140,7 +140,7 @@ const AromaticManagement: React.FC<AromaticManagementProps> = ({
       {/* Moltiplicazione */}
       {aromaticCrop.multiplicationMethod && (
         <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-2">
             <Scissors className="text-blue-600" size={18} />
             <span className="font-semibold text-blue-800">Metodo Moltiplicazione</span>
           </div>
@@ -155,7 +155,7 @@ const AromaticManagement: React.FC<AromaticManagementProps> = ({
 
       {/* Task Consigliati */}
       <div className="mb-6">
-        <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+        <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-3">
           <Calendar className="text-green-500" size={20} />
           Task Consigliati
         </h4>
@@ -182,12 +182,12 @@ const AromaticManagement: React.FC<AromaticManagementProps> = ({
                   <Leaf className="text-green-500" size={20} />
                 )}
                 {advice.taskType === 'Drying' && (
-                  <Droplets className="text-yellow-500" size={20} />
+                  <Droplets className="text-yellow-full max-w-sm" size={20} />
                 )}
               </div>
               <ul className="text-sm text-gray-700 space-y-1 mt-2">
                 {advice.instructions.map((inst, i) => (
-                  <li key={i} className="flex items-start gap-2">
+                  <li key={i} className="flex items-start gap-3">
                     <span className="text-green-500 mt-1">•</span>
                     <span>{inst}</span>
                   </li>
@@ -201,7 +201,7 @@ const AromaticManagement: React.FC<AromaticManagementProps> = ({
       {/* Resa Oli Essenziali */}
       {aromaticCrop.essentialOilYield && (
         <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
-          <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+          <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-3">
             <Package className="text-purple-600" size={18} />
             Resa Oli Essenziali
           </h4>

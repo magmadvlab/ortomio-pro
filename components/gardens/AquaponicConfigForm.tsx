@@ -104,7 +104,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
         <select
           value={systemType}
           onChange={(e) => setSystemType(e.target.value as AquaponicSystemType)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
         >
           <option value="MediaBed">Media Bed</option>
           <option value="NFT">NFT</option>
@@ -115,7 +115,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
 
       <div className="bg-gray-50 p-4 rounded-lg">
         <h3 className="font-semibold text-gray-800 mb-3">Vasca Pesci</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Capacità Vasca (L)
@@ -124,7 +124,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
               type="number"
               value={tankCapacity}
               onChange={(e) => setTankCapacity(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               required
               min="50"
             />
@@ -137,7 +137,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
               type="text"
               value={fishSpecies}
               onChange={(e) => setFishSpecies(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               placeholder="es. Tilapia, Carpe"
             />
           </div>
@@ -149,7 +149,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
               type="number"
               value={fishCount}
               onChange={(e) => setFishCount(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="1"
             />
           </div>
@@ -159,7 +159,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
       <div className="bg-gray-50 p-4 rounded-lg">
         <h3 className="font-semibold text-gray-800 mb-3">Filtrazione</h3>
         <div className="space-y-2">
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-3">
             <input
               type="checkbox"
               checked={hasMechanicalFilter}
@@ -168,7 +168,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
             />
             <span className="text-sm font-medium text-gray-700">Filtro Meccanico</span>
           </label>
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-3">
             <input
               type="checkbox"
               checked={hasBiologicalFilter}
@@ -182,14 +182,14 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
 
       <div className="bg-gray-50 p-4 rounded-lg">
         <h3 className="font-semibold text-gray-800 mb-3">Parametri Qualità Acqua Target</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">pH Target</label>
             <input
               type="number"
               value={phTarget}
               onChange={(e) => setPhTarget(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               step="0.1"
               min="6.5"
               max="7.5"
@@ -201,7 +201,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
               type="number"
               value={ammoniaTarget}
               onChange={(e) => setAmmoniaTarget(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               step="0.1"
               min="0"
               max="2"
@@ -213,7 +213,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
               type="number"
               value={nitriteTarget}
               onChange={(e) => setNitriteTarget(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               step="0.1"
               min="0"
               max="2"
@@ -225,7 +225,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
               type="number"
               value={nitrateTarget}
               onChange={(e) => setNitrateTarget(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="20"
               max="100"
             />
@@ -236,7 +236,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
               type="number"
               value={tempMin}
               onChange={(e) => setTempMin(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="15"
               max="30"
             />
@@ -247,7 +247,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
               type="number"
               value={tempMax}
               onChange={(e) => setTempMax(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="20"
               max="35"
             />
@@ -265,7 +265,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
             type="number"
             value={pumpFlowRate}
             onChange={(e) => setPumpFlowRate(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
             min="1"
           />
         </div>
@@ -273,7 +273,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
 
       <div className="bg-gray-50 p-4 rounded-lg">
         <h3 className="font-semibold text-gray-800 mb-3">Manutenzione</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Frequenza Test Acqua (giorni)
@@ -282,7 +282,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
               type="number"
               value={testFrequencyDays}
               onChange={(e) => setTestFrequencyDays(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="1"
               max="7"
             />
@@ -295,7 +295,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
               type="number"
               value={feedFrequency}
               onChange={(e) => setFeedFrequency(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="1"
               max="4"
             />
@@ -303,7 +303,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
         </div>
       </div>
 
-      <div className="flex gap-2 justify-end pt-4">
+      <div className="flex gap-3 justify-end pt-4">
         {onCancel && (
           <button
             type="button"

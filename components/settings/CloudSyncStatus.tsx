@@ -64,12 +64,12 @@ export function CloudSyncStatus() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">Stato Sincronizzazione</h3>
         {isCloudEnabled ? (
-          <div className="flex items-center gap-2 text-green-600">
+          <div className="flex items-center gap-3 text-green-600">
             <CheckCircle size={20} />
             <span className="text-sm font-medium">Attivo</span>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-gray-400">
+          <div className="flex items-center gap-3 text-gray-400">
             <CloudOff size={20} />
             <span className="text-sm">Non disponibile</span>
           </div>
@@ -101,7 +101,7 @@ export function CloudSyncStatus() {
         
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-3">
               <AlertCircle size={16} className="text-red-600 mt-0.5" />
               <p className="text-sm text-red-800">{error}</p>
             </div>
@@ -113,7 +113,7 @@ export function CloudSyncStatus() {
             <button
               onClick={handleManualSync}
               disabled={syncing}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {syncing ? (
                 <>
@@ -131,14 +131,14 @@ export function CloudSyncStatus() {
         )}
         
         {!isCloudEnabled && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <div className="flex items-start gap-2">
-              <AlertCircle size={18} className="text-yellow-600 mt-0.5" />
+          <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-3">
+            <div className="flex items-start gap-3">
+              <AlertCircle size={18} className="text-yellow-full max-w-sm mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm text-yellow-800 font-medium">
+                <p className="text-sm text-yellow-full max-w-sm font-medium">
                   Sincronizzazione cloud non disponibile
                 </p>
-                <p className="text-xs text-yellow-700 mt-1">
+                <p className="text-xs text-yellow-full max-w-sm mt-1">
                   I dati sono salvati solo localmente. Per abilitare la sincronizzazione cloud, 
                   accedi con un account PRO.
                 </p>

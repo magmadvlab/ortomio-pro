@@ -72,7 +72,7 @@ const AlmanaccoWidget: React.FC<AlmanaccoWidgetProps> = ({
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-amber-600 text-white rounded-full w-12 h-12 flex items-center justify-center text-2xl shrink-0">
+            <div className="bg-amber-600 text-white rounded-full w-12 h-12 flex items-center justify-center text-xl md:text-2xl shrink-0">
               📖
             </div>
             <div>
@@ -91,7 +91,7 @@ const AlmanaccoWidget: React.FC<AlmanaccoWidgetProps> = ({
           
           <button
             onClick={handleShare}
-            className="p-2 rounded-lg hover:bg-amber-100 transition-colors"
+            className="p-3 rounded-lg hover:bg-amber-100 transition-colors"
             aria-label="Condividi almanacco"
           >
             <Share2 size={18} className="text-amber-700" />
@@ -100,7 +100,7 @@ const AlmanaccoWidget: React.FC<AlmanaccoWidgetProps> = ({
         
         {/* Badge regione (se disponibile variante regionale) */}
         {hasRegional && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <MapPin size={16} className="text-amber-600" />
             <span className="bg-amber-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
               📍 Tradizione {capitalize(regione!)}
@@ -129,8 +129,8 @@ const AlmanaccoWidget: React.FC<AlmanaccoWidgetProps> = ({
         {content.dialetto && (
           <div className="space-y-2">
             <blockquote className="relative pl-6">
-              <div className="text-3xl text-amber-300 absolute -top-1 -left-1 select-none">"</div>
-              <p className="text-2xl font-serif italic text-amber-900 leading-relaxed">
+              <div className="text-3xl text-amber-300 absolute -top-3 -left-1 select-none">"</div>
+              <p className="text-xl md:text-2xl font-serif italic text-amber-900 leading-relaxed">
                 {content.dialetto}
               </p>
             </blockquote>
@@ -147,8 +147,8 @@ const AlmanaccoWidget: React.FC<AlmanaccoWidgetProps> = ({
         {/* Proverbio ITALIANO (se no dialetto) */}
         {!content.dialetto && (
           <blockquote className="relative pl-6">
-            <div className="text-3xl text-amber-300 absolute -top-1 -left-1 select-none">"</div>
-            <p className="text-2xl font-serif italic text-amber-900 leading-relaxed">
+            <div className="text-3xl text-amber-300 absolute -top-3 -left-1 select-none">"</div>
+            <p className="text-xl md:text-2xl font-serif italic text-amber-900 leading-relaxed">
               {content.proverbio}
             </p>
           </blockquote>
@@ -169,13 +169,13 @@ const AlmanaccoWidget: React.FC<AlmanaccoWidgetProps> = ({
         {/* Lavori specifici REGIONE (se disponibile) */}
         {content.lavoriSpecifici && content.lavoriSpecifici.length > 0 && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="font-semibold text-green-900 text-sm mb-2 flex items-center gap-2">
+            <p className="font-semibold text-green-900 text-sm mb-2 flex items-center gap-3">
               <span>🌱</span>
               <span>Lavori consigliati nella tua zona:</span>
             </p>
             <ul className="space-y-1.5">
               {content.lavoriSpecifici.map((lavoro, idx) => (
-                <li key={idx} className="text-sm text-green-800 flex items-start gap-2">
+                <li key={idx} className="text-sm text-green-800 flex items-start gap-3">
                   <span className="text-green-600 mt-0.5 shrink-0">•</span>
                   <span>{lavoro}</span>
                 </li>
@@ -187,13 +187,13 @@ const AlmanaccoWidget: React.FC<AlmanaccoWidgetProps> = ({
         {/* Lavori specifici generici (se non specificati per regione) */}
         {!content.lavoriSpecifici && almanacco.lavoriSpecifici && almanacco.lavoriSpecifici.length > 0 && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="font-semibold text-green-900 text-sm mb-2 flex items-center gap-2">
+            <p className="font-semibold text-green-900 text-sm mb-2 flex items-center gap-3">
               <span>🌱</span>
               <span>Lavori consigliati:</span>
             </p>
             <ul className="space-y-1.5">
               {almanacco.lavoriSpecifici.map((lavoro, idx) => (
-                <li key={idx} className="text-sm text-green-800 flex items-start gap-2">
+                <li key={idx} className="text-sm text-green-800 flex items-start gap-3">
                   <span className="text-green-600 mt-0.5 shrink-0">•</span>
                   <span>{lavoro}</span>
                 </li>
@@ -221,10 +221,10 @@ const AlmanaccoWidget: React.FC<AlmanaccoWidgetProps> = ({
         )}
         
         {/* CTA Buttons */}
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-3 pt-2">
           <Link
             href="/app/almanacco"
-            className="flex-1 px-4 py-2 bg-white border border-amber-300 text-amber-900 rounded-lg hover:bg-amber-100 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2 bg-white border border-amber-300 text-amber-900 rounded-lg hover:bg-amber-100 transition-colors text-sm font-medium flex items-center justify-center gap-3"
           >
             <BookOpen size={16} />
             Sfoglia Almanacco
@@ -233,7 +233,7 @@ const AlmanaccoWidget: React.FC<AlmanaccoWidgetProps> = ({
           
           <button
             onClick={handleShare}
-            className="flex-1 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-3"
           >
             <Share2 size={16} />
             Condividi

@@ -78,7 +78,7 @@ export function SaplingReadyWidget({ garden, onOpenManager, onCreateOrchard }: S
   if (loading) {
     return (
       <div className="bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl p-5 text-white shadow-lg">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <TreePine size={24} className="text-amber-100" />
           <div>
             <h3 className="font-bold text-lg">Alberelli</h3>
@@ -105,7 +105,7 @@ export function SaplingReadyWidget({ garden, onOpenManager, onCreateOrchard }: S
             </div>
             <button
               onClick={handleOpenManager}
-              className="bg-white text-amber-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-amber-50 transition-colors flex items-center gap-2"
+              className="bg-white text-amber-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-amber-50 transition-colors flex items-center gap-3"
             >
               Apri
               <ChevronRight size={16} />
@@ -121,16 +121,16 @@ export function SaplingReadyWidget({ garden, onOpenManager, onCreateOrchard }: S
           ) : (
             <div className="mt-4 space-y-2">
               <div className="flex items-center gap-4">
-                <div className="bg-white/20 rounded-lg px-3 py-2">
-                  <p className="text-2xl font-bold">{readyBatches.length}</p>
+                <div className="bg-white/20 rounded-lg px-4 py-3 text-base">
+                  <p className="text-xl md:text-2xl font-bold">{readyBatches.length}</p>
                   <p className="text-xs opacity-90">Pronti</p>
                 </div>
-                <div className="bg-white/20 rounded-lg px-3 py-2">
-                  <p className="text-2xl font-bold">{plantedBatches.length}</p>
+                <div className="bg-white/20 rounded-lg px-4 py-3 text-base">
+                  <p className="text-xl md:text-2xl font-bold">{plantedBatches.length}</p>
                   <p className="text-xs opacity-90">Piantati</p>
                 </div>
-                <div className="bg-white/20 rounded-lg px-3 py-2">
-                  <p className="text-2xl font-bold">{batches.length}</p>
+                <div className="bg-white/20 rounded-lg px-4 py-3 text-base">
+                  <p className="text-xl md:text-2xl font-bold">{batches.length}</p>
                   <p className="text-xs opacity-90">Totali</p>
                 </div>
               </div>
@@ -141,9 +141,9 @@ export function SaplingReadyWidget({ garden, onOpenManager, onCreateOrchard }: S
                   {readyBatches.slice(0, 3).map((batch) => (
                     <div 
                       key={batch.id} 
-                      className="bg-white/10 rounded-lg p-2 flex items-center justify-between text-sm"
+                      className="bg-white/10 rounded-lg p-3 flex items-center justify-between text-sm"
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <TreePine size={14} />
                         <span className="font-medium">{batch.plantName}</span>
                         {batch.variety && (

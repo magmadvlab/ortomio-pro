@@ -66,7 +66,7 @@ export function AlertCard({ alert, onResolve, onPlanTask, onIgnore }: AlertCardP
               <span className="text-3xl">{style.icon}</span>
             </div>
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-3 mb-1">
                 <h4 className={`font-bold text-lg ${style.textColor}`}>
                   {alert.title}
                 </h4>
@@ -74,7 +74,7 @@ export function AlertCard({ alert, onResolve, onPlanTask, onIgnore }: AlertCardP
                   {typeIcons[alert.alertType]}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-gray-600">
+              <div className="flex items-center gap-3 text-xs text-gray-600">
                 <span className="bg-white/60 px-2 py-0.5 rounded">
                   {sourceLabels[alert.source]}
                 </span>
@@ -102,7 +102,7 @@ export function AlertCard({ alert, onResolve, onPlanTask, onIgnore }: AlertCardP
         {/* Recommendation */}
         {alert.recommendation && (
           <div className="bg-white/60 p-3 rounded-lg border border-gray-200">
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-3">
               <div className="flex-shrink-0 mt-0.5">
                 <span className="text-base">💡</span>
               </div>
@@ -120,7 +120,7 @@ export function AlertCard({ alert, onResolve, onPlanTask, onIgnore }: AlertCardP
 
         {/* Metadata (opzionale, solo per debug o info extra) */}
         {alert.metadata && Object.keys(alert.metadata).length > 0 && (
-          <div className="text-xs text-gray-600 bg-white/30 p-2 rounded">
+          <div className="text-xs text-gray-600 bg-white/30 p-3 rounded">
             {alert.metadata.temp && (
               <span className="mr-3">🌡️ {alert.metadata.temp}°C</span>
             )}
@@ -141,11 +141,11 @@ export function AlertCard({ alert, onResolve, onPlanTask, onIgnore }: AlertCardP
         )}
 
         {/* Actions */}
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200">
+        <div className="flex flex-wrap gap-3 pt-2 border-t border-gray-200">
           <Button
             onClick={onResolve}
             size="sm"
-            className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white"
+            className="flex items-center gap-3.5 bg-green-600 hover:bg-green-700 text-white"
           >
             <CheckCircle size={16} />
             Risolto
@@ -156,7 +156,7 @@ export function AlertCard({ alert, onResolve, onPlanTask, onIgnore }: AlertCardP
               onClick={onPlanTask}
               variant="outline"
               size="sm"
-              className="flex items-center gap-1.5"
+              className="flex items-center gap-3.5"
             >
               <Calendar size={16} />
               Pianifica
@@ -168,7 +168,7 @@ export function AlertCard({ alert, onResolve, onPlanTask, onIgnore }: AlertCardP
               onClick={onIgnore}
               variant="ghost"
               size="sm"
-              className="flex items-center gap-1.5 text-gray-600 hover:text-gray-800"
+              className="flex items-center gap-3.5 text-gray-600 hover:text-gray-800"
             >
               <X size={16} />
               Ignora

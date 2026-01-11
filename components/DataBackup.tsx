@@ -68,7 +68,7 @@ const DataBackup: React.FC<DataBackupProps> = ({
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-3">
         <FileText size={20} className="text-blue-600" />
         Backup e Ripristino Dati
       </h3>
@@ -86,7 +86,7 @@ const DataBackup: React.FC<DataBackupProps> = ({
             <button
               onClick={handleExport}
               disabled={exporting}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {exporting ? (
                 <>
@@ -114,7 +114,7 @@ const DataBackup: React.FC<DataBackupProps> = ({
               Importa dati da un file di backup. Verrà creato un nuovo giardino con i dati importati.
             </p>
           </div>
-          <label className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+          <label className="flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
             {importing ? (
               <>
                 <Loader2 size={18} className="animate-spin" />

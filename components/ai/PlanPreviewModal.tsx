@@ -58,27 +58,27 @@ export const PlanPreviewModal: React.FC<PlanPreviewModalProps> = ({
   const renderOverview = () => (
     <div className="space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-blue-50 p-4 rounded-lg text-center">
-          <div className="text-2xl font-bold text-blue-600">
+          <div className="text-xl md:text-2xl font-bold text-blue-600">
             {modifiedPlan.overview.plantingPeriods}
           </div>
           <div className="text-sm text-blue-800">Fasi di semina</div>
         </div>
         <div className="bg-green-50 p-4 rounded-lg text-center">
-          <div className="text-2xl font-bold text-green-600">
+          <div className="text-xl md:text-2xl font-bold text-green-600">
             {modifiedPlan.overview.estimatedYield.toFixed(1)}t
           </div>
           <div className="text-sm text-green-800">Produzione stimata</div>
         </div>
         <div className="bg-purple-50 p-4 rounded-lg text-center">
-          <div className="text-2xl font-bold text-purple-600">
+          <div className="text-xl md:text-2xl font-bold text-purple-600">
             €{(modifiedPlan.overview.totalInvestment / 1000).toFixed(0)}k
           </div>
           <div className="text-sm text-purple-800">Investimento</div>
         </div>
         <div className="bg-orange-50 p-4 rounded-lg text-center">
-          <div className="text-2xl font-bold text-orange-600">
+          <div className="text-xl md:text-2xl font-bold text-orange-600">
             {modifiedPlan.overview.roi.toFixed(1)}%
           </div>
           <div className="text-sm text-orange-800">ROI stimato</div>
@@ -87,12 +87,12 @@ export const PlanPreviewModal: React.FC<PlanPreviewModalProps> = ({
 
       {/* Raccomandazioni AI */}
       <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-xl border border-green-200">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
           🤖 Raccomandazioni AI
         </h3>
         <div className="space-y-2">
           {modifiedPlan.recommendations.map((rec, index) => (
-            <div key={index} className="flex items-start gap-2">
+            <div key={index} className="flex items-start gap-3">
               <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
               <p className="text-sm text-gray-700">{rec}</p>
             </div>
@@ -102,11 +102,11 @@ export const PlanPreviewModal: React.FC<PlanPreviewModalProps> = ({
 
       {/* Finestre di Raccolta */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
           <Calendar size={20} />
           Finestre di Raccolta
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {modifiedPlan.overview.harvestWindows.map((date, index) => (
             <div key={index} className="bg-green-50 p-3 rounded-lg text-center">
               <div className="font-medium text-green-800">
@@ -145,7 +145,7 @@ export const PlanPreviewModal: React.FC<PlanPreviewModalProps> = ({
                 {phase.surfaceHectares} ha • {phase.expectedYield}t stimati
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="text-right">
                 <div className="text-sm font-medium">
                   {new Date(phase.startDate).toLocaleDateString('it-IT')} - {new Date(phase.endDate).toLocaleDateString('it-IT')}
@@ -156,7 +156,7 @@ export const PlanPreviewModal: React.FC<PlanPreviewModalProps> = ({
               </div>
               <button
                 onClick={() => setEditingPhase(index)}
-                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                className="p-3 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
               >
                 <Edit3 size={16} />
               </button>
@@ -200,7 +200,7 @@ export const PlanPreviewModal: React.FC<PlanPreviewModalProps> = ({
     <div className="space-y-6">
       {/* Semi */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
           <Package size={20} />
           Semi e Materiale Vegetale
         </h3>
@@ -228,7 +228,7 @@ export const PlanPreviewModal: React.FC<PlanPreviewModalProps> = ({
 
       {/* Attrezzature */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
           <Truck size={20} />
           Attrezzature e Macchinari
         </h3>
@@ -251,7 +251,7 @@ export const PlanPreviewModal: React.FC<PlanPreviewModalProps> = ({
 
       {/* Manodopera */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
           <Users size={20} />
           Fabbisogno Manodopera
         </h3>
@@ -274,7 +274,7 @@ export const PlanPreviewModal: React.FC<PlanPreviewModalProps> = ({
 
       {/* Input Tecnici */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
           <Droplets size={20} />
           Input Tecnici
         </h3>
@@ -287,7 +287,7 @@ export const PlanPreviewModal: React.FC<PlanPreviewModalProps> = ({
                   {input.quantity} • {input.type}
                 </div>
               </div>
-              <div className="font-bold text-yellow-600">
+              <div className="font-bold text-yellow-full max-w-sm">
                 €{input.cost}
               </div>
             </div>
@@ -310,7 +310,7 @@ export const PlanPreviewModal: React.FC<PlanPreviewModalProps> = ({
                 Categoria: {risk.category}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                 risk.probability === 'high' ? 'bg-red-100 text-red-800' :
                 risk.probability === 'medium' ? 'bg-yellow-100 text-yellow-800' :
@@ -344,7 +344,7 @@ export const PlanPreviewModal: React.FC<PlanPreviewModalProps> = ({
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-800">
                 Anteprima Piano AI
               </h1>
               <p className="text-gray-600">
@@ -406,7 +406,7 @@ export const PlanPreviewModal: React.FC<PlanPreviewModalProps> = ({
                 // Implementa download PDF
                 console.log('Download PDF:', modifiedPlan);
               }}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-3"
             >
               <Download size={16} />
               Scarica PDF
@@ -414,7 +414,7 @@ export const PlanPreviewModal: React.FC<PlanPreviewModalProps> = ({
             
             <button
               onClick={onConsultOnly}
-              className="px-4 py-2 border border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 flex items-center gap-2"
+              className="px-4 py-2 border border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 flex items-center gap-3"
             >
               <Eye size={16} />
               Solo Consultazione
@@ -424,7 +424,7 @@ export const PlanPreviewModal: React.FC<PlanPreviewModalProps> = ({
             
             <button
               onClick={onReject}
-              className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 flex items-center gap-2"
+              className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 flex items-center gap-3"
             >
               <X size={16} />
               Scarta Piano
@@ -432,7 +432,7 @@ export const PlanPreviewModal: React.FC<PlanPreviewModalProps> = ({
             
             <button
               onClick={() => onConfirm(modifiedPlan)}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-3"
             >
               <Check size={16} />
               Conferma e Applica
@@ -461,7 +461,7 @@ const PhaseEditForm: React.FC<{
     <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
       <h5 className="font-medium text-blue-800 mb-3">Modifica Fase {phase.phaseNumber}</h5>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Superficie (ha)
@@ -474,7 +474,7 @@ const PhaseEditForm: React.FC<{
               ...prev,
               surfaceHectares: parseFloat(e.target.value) || 0
             }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
           />
         </div>
         
@@ -489,7 +489,7 @@ const PhaseEditForm: React.FC<{
               ...prev,
               startDate: e.target.value
             }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
           />
         </div>
         
@@ -505,12 +505,12 @@ const PhaseEditForm: React.FC<{
               ...prev,
               expectedYield: parseFloat(e.target.value) || 0
             }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
           />
         </div>
       </div>
       
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <button
           onClick={() => onSave(editedPhase)}
           className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"

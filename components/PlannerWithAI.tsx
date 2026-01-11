@@ -88,7 +88,7 @@ export const PlannerWithAI: React.FC<PlannerWithAIProps> = ({
         {/* Header con AI Integration */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Pianificazione Orto</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-800">Pianificazione Orto</h1>
             <p className="text-gray-600">Gestisci le tue coltivazioni con l'assistenza AI</p>
           </div>
           
@@ -106,7 +106,7 @@ export const PlannerWithAI: React.FC<PlannerWithAIProps> = ({
             {/* Bottone principale AI Planning */}
             <button
               onClick={() => setShowAIWizard(true)}
-              className="px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg hover:from-green-700 hover:to-blue-700 transition-all duration-200 flex items-center gap-2 shadow-lg"
+              className="px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg hover:from-green-700 hover:to-blue-700 transition-all duration-200 flex items-center gap-3 shadow-lg"
             >
               <Bot size={20} />
               <span className="font-medium">Pianifica con AI</span>
@@ -119,14 +119,14 @@ export const PlannerWithAI: React.FC<PlannerWithAIProps> = ({
         <div className="grid gap-4">
           {tasks.filter(t => t.aiGenerated).length > 0 && (
             <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-xl border border-blue-200">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <Bot size={20} className="text-blue-600" />
                 <h3 className="font-semibold text-blue-800">Task Generati da AI</h3>
               </div>
               <p className="text-sm text-blue-700 mb-3">
                 {tasks.filter(t => t.aiGenerated).length} task creati dal sistema di pianificazione AI
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-3">
                 {Array.from(new Set(tasks.filter(t => t.aiGenerated).map(t => t.planPhase))).map(phase => (
                   <span key={phase} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                     Fase {phase}
@@ -154,7 +154,7 @@ export const PlannerWithAI: React.FC<PlannerWithAIProps> = ({
                       {task.taskType} • {new Date(task.date).toLocaleDateString('it-IT')}
                     </p>
                     {task.aiGenerated && (
-                      <div className="flex items-center gap-1 mt-1">
+                      <div className="flex items-center gap-3 mt-1">
                         <Bot size={12} className="text-blue-500" />
                         <span className="text-xs text-blue-600">Generato da AI</span>
                       </div>

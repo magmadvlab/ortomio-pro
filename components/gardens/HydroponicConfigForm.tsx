@@ -163,7 +163,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
         <select
           value={systemType}
           onChange={(e) => setSystemType(e.target.value as HydroponicSystemType)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
         >
           <option value="NFT">NFT (Tecnica del Film Nutriente)</option>
           <option value="DWC">DWC (Coltura in Acqua Profonda)</option>
@@ -176,7 +176,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
 
       <div className="bg-gray-50 p-4 rounded-lg">
         <h3 className="font-semibold text-gray-800 mb-3">Soluzione Nutritiva</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Capacità Serbatoio (L)
@@ -186,7 +186,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
               type="number"
               value={reservoirCapacity}
               onChange={(e) => setReservoirCapacity(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               required
               min="1"
             />
@@ -200,7 +200,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
               type="number"
               value={currentVolume}
               onChange={(e) => setCurrentVolume(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="0"
             />
           </div>
@@ -213,7 +213,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
               type="number"
               value={phTarget}
               onChange={(e) => setPhTarget(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               required
               step="0.1"
               min="4"
@@ -229,7 +229,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
               type="number"
               value={phCurrent}
               onChange={(e) => setPhCurrent(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               step="0.1"
               min="4"
               max="8"
@@ -244,7 +244,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
               type="number"
               value={ecTarget}
               onChange={(e) => setEcTarget(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               required
               step="0.1"
               min="0.5"
@@ -260,7 +260,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
               type="number"
               value={ecCurrent}
               onChange={(e) => setEcCurrent(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               step="0.1"
               min="0"
               max="5"
@@ -275,7 +275,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
               type="text"
               value={nutrientBrand}
               onChange={(e) => setNutrientBrand(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               placeholder="es. General Hydroponics"
             />
           </div>
@@ -288,7 +288,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
               type="text"
               value={nutrientFormula}
               onChange={(e) => setNutrientFormula(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               placeholder="es. 5-5-5"
             />
           </div>
@@ -298,7 +298,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
       {systemType === 'NFT' && (
         <div className="bg-blue-50 p-4 rounded-lg">
           <h3 className="font-semibold text-gray-800 mb-3">Configurazione NFT</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Lunghezza Canali (cm)
@@ -307,7 +307,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
                 type="number"
                 value={channelLength}
                 onChange={(e) => setChannelLength(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="50"
               />
             </div>
@@ -319,7 +319,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
                 type="number"
                 value={channelSlope}
                 onChange={(e) => setChannelSlope(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 step="0.1"
                 min="1"
                 max="5"
@@ -333,7 +333,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
                 type="number"
                 value={flowRate}
                 onChange={(e) => setFlowRate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="0.5"
                 step="0.1"
               />
@@ -346,7 +346,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
                 type="number"
                 value={channelCount}
                 onChange={(e) => setChannelCount(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="1"
               />
             </div>
@@ -357,7 +357,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
       {systemType === 'DWC' && (
         <div className="bg-blue-50 p-4 rounded-lg">
           <h3 className="font-semibold text-gray-800 mb-3">Configurazione DWC</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Dimensione Secchi (L)
@@ -366,7 +366,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
                 type="number"
                 value={bucketSize}
                 onChange={(e) => setBucketSize(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="5"
               />
             </div>
@@ -378,7 +378,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
                 type="number"
                 value={bucketCount}
                 onChange={(e) => setBucketCount(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="1"
               />
             </div>
@@ -390,7 +390,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
                 type="number"
                 value={airPumpPower}
                 onChange={(e) => setAirPumpPower(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="1"
               />
             </div>
@@ -402,7 +402,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
                 type="number"
                 value={airStoneCount}
                 onChange={(e) => setAirStoneCount(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="1"
               />
             </div>
@@ -413,7 +413,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
       {systemType === 'EbbFlow' && (
         <div className="bg-blue-50 p-4 rounded-lg">
           <h3 className="font-semibold text-gray-800 mb-3">Configurazione Flusso e Riflusso</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Profondità Allagamento (cm)
@@ -422,7 +422,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
                 type="number"
                 value={floodDepth}
                 onChange={(e) => setFloodDepth(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="2"
                 max="15"
               />
@@ -435,7 +435,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
                 type="number"
                 value={floodDuration}
                 onChange={(e) => setFloodDuration(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="5"
                 max="60"
               />
@@ -448,7 +448,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
                 type="number"
                 value={drainDuration}
                 onChange={(e) => setDrainDuration(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="5"
                 max="60"
               />
@@ -461,7 +461,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
                 type="number"
                 value={floodFrequency}
                 onChange={(e) => setFloodFrequency(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="1"
                 max="12"
               />
@@ -473,7 +473,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
       {systemType === 'Drip' && (
         <div className="bg-blue-50 p-4 rounded-lg">
           <h3 className="font-semibold text-gray-800 mb-3">Configurazione Drip</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Portata Gocciolatore (L/h)
@@ -482,7 +482,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
                 type="number"
                 value={dripperFlowRate}
                 onChange={(e) => setDripperFlowRate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="0.5"
                 step="0.1"
               />
@@ -495,7 +495,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
                 type="number"
                 value={dripperCount}
                 onChange={(e) => setDripperCount(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="1"
               />
             </div>
@@ -507,7 +507,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
                 type="number"
                 value={timerFrequency}
                 onChange={(e) => setTimerFrequency(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="1"
                 max="12"
               />
@@ -520,7 +520,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
                 type="number"
                 value={timerDuration}
                 onChange={(e) => setTimerDuration(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="5"
                 max="120"
               />
@@ -531,7 +531,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
 
       <div className="bg-gray-50 p-4 rounded-lg">
         <h3 className="font-semibold text-gray-800 mb-3">Manutenzione</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Frequenza Cambio Soluzione (giorni)
@@ -541,7 +541,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
               type="number"
               value={changeFrequencyDays}
               onChange={(e) => setChangeFrequencyDays(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               required
               min="7"
               max="30"
@@ -556,7 +556,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
               type="number"
               value={phCheckFrequencyDays}
               onChange={(e) => setPhCheckFrequencyDays(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               required
               min="1"
               max="7"
@@ -565,7 +565,7 @@ export const HydroponicConfigForm: React.FC<HydroponicConfigFormProps> = ({
         </div>
       </div>
 
-      <div className="flex gap-2 justify-end pt-4">
+      <div className="flex gap-3 justify-end pt-4">
         {onCancel && (
           <button
             type="button"

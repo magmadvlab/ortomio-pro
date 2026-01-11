@@ -420,7 +420,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
 
       <main className="p-4 lg:p-6 space-y-6 max-w-7xl mx-auto">
         {/* Top Row: Garden Card + Weather Card */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Garden Card */}
           {activeGarden && (
             <GardenCard garden={activeGarden} tasks={gardenTasks} />
@@ -455,14 +455,14 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
           return (
             <div className="bg-white rounded-xl border-2 border-gray-200 p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="text-lg lg:text-lg md:text-xl font-bold text-gray-900 flex items-center gap-3">
                   <Calendar size={20} className="text-green-600 lg:size-6" />
                   COSA FARE OGGI
                 </h2>
                 {todayTasks.length > 0 && (
                   <Link
                     href="/app/garden?tab=list"
-                    className="text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1"
+                    className="text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-3"
                   >
                     Vedi tutti
                     <ArrowRight size={16} />
@@ -477,7 +477,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                   <p className="text-sm text-gray-500 mt-1">Goditi il tuo orto 🌱</p>
         </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {todayTasks.slice(0, 6).map(task => (
                     <TaskCard
                       key={task.id}
@@ -549,27 +549,27 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         {dailyPlan && dailyPlan.baselinePrompts && dailyPlan.baselinePrompts.length > 0 && (
           <div className="bg-white rounded-xl border-2 border-green-200 p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+              <h2 className="text-lg lg:text-lg md:text-xl font-bold text-gray-900 flex items-center gap-3">
                 <Sparkles size={20} className="text-green-600 lg:size-6" />
                 Checklist Stagionale
               </h2>
               <span className="text-xs font-semibold text-gray-500">Proposta dal Director</span>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-2 mb-4">
+            <div className="flex flex-col md:flex-col md:flex-row gap-3 mb-4">
               <div className="flex-1">
                 <input
                   value={baselineSearch}
                   onChange={(e) => setBaselineSearch(e.target.value)}
                   placeholder="Cerca..."
-                  className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-800"
+                  className="w-full text-sm px-4 py-3 text-base rounded-lg border border-gray-200 bg-white text-gray-800"
                 />
               </div>
               <div>
                 <select
                   value={baselinePriorityFilter}
                   onChange={(e) => setBaselinePriorityFilter(e.target.value as any)}
-                  className="text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-800"
+                  className="text-sm px-4 py-3 text-base rounded-lg border border-gray-200 bg-white text-gray-800"
                 >
                   <option value="All">Tutte le priorità</option>
                   <option value="High">Alta</option>
@@ -599,7 +599,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                       <div key={p.id} className="border border-gray-200 rounded-xl p-4 bg-green-50/40">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               <p className="font-semibold text-gray-900">{p.title}</p>
                               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
                                 Stagionale
@@ -617,7 +617,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                           </div>
                         </div>
 
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="mt-3 flex flex-wrap gap-3">
                           {p.options.map((opt) => (
                             <button
                               key={opt.id}
@@ -679,7 +679,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Banca dei Semi</h2>
+              <h2 className="text-lg md:text-xl font-bold">Banca dei Semi</h2>
               <button
                 onClick={() => setShowSeedInventory(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -698,7 +698,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Gestione Semenzai</h2>
+              <h2 className="text-lg md:text-xl font-bold">Gestione Semenzai</h2>
               <button
                 onClick={() => setShowSeedlingManager(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -730,7 +730,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Gestione Alberelli</h2>
+              <h2 className="text-lg md:text-xl font-bold">Gestione Alberelli</h2>
               <button
                 onClick={() => setShowSaplingManager(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -810,7 +810,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Modalità Vacanza</h2>
+              <h2 className="text-lg md:text-xl font-bold">Modalità Vacanza</h2>
               <button
                 onClick={() => setShowVacationMode(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -834,7 +834,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">
+              <h2 className="text-lg md:text-xl font-bold">
                 {showSpecializedCropManagement === 'FruitTree' && 'Gestione Alberi da Frutto'}
                 {showSpecializedCropManagement === 'Strawberry' && 'Gestione Fragole'}
                 {showSpecializedCropManagement === 'Olive' && 'Gestione Olive'}
@@ -889,14 +889,14 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
               {showSpecializedCropManagement === 'Olive' && (
                 <div className="p-6 bg-white rounded-lg border border-gray-200">
                   <div className="flex items-center gap-3 mb-4">
-                    <Droplets className="text-yellow-500" size={24} />
-                    <h3 className="text-xl font-bold text-gray-800">Gestione Olivi</h3>
+                    <Droplets className="text-yellow-full max-w-sm" size={24} />
+                    <h3 className="text-lg md:text-xl font-bold text-gray-800">Gestione Olivi</h3>
                   </div>
                   <p className="text-gray-600 mb-4">
                     La gestione completa degli olivi e la registrazione della raccolta sono disponibili nel Diario.
                     Vai al Diario per registrare la raccolta delle olive e calcolare la resa di olio.
                   </p>
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-4">
                     <p className="text-sm text-gray-700">
                       <strong>Colture Olivi Attive:</strong> {tasks.filter(t => {
                         const master = getMasterSheetSync(t.plantName);
@@ -910,7 +910,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                 <div className="p-6 bg-white rounded-lg border border-gray-200">
                   <div className="flex items-center gap-3 mb-4">
                     <Package className="text-purple-500" size={24} />
-                    <h3 className="text-xl font-bold text-gray-800">Gestione Viti</h3>
+                    <h3 className="text-lg md:text-xl font-bold text-gray-800">Gestione Viti</h3>
                   </div>
                   <p className="text-gray-600 mb-4">
                     La gestione completa delle viti e la registrazione della vendemmia sono disponibili nel Diario.
@@ -936,7 +936,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Gestione Zone Irrigue</h2>
+              <h2 className="text-lg md:text-xl font-bold">Gestione Zone Irrigue</h2>
               <button
                 onClick={() => setShowIrrigationManager(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -996,7 +996,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">
+              <h2 className="text-lg md:text-xl font-bold">
                 {showReadingForm === 'hydroponic' ? 'Registra Lettura Idroponica' : 
                  showReadingForm === 'aquaponic' ? 'Registra Test Acqua Acquaponica' : 
                  'Registra Lettura Aeroponica'}

@@ -54,25 +54,25 @@ const ContactAgronomist: React.FC<ContactAgronomistProps> = ({
           <User className="text-green-600" size={32} />
         </div>
         <div className="flex-1">
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
+          <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
             {agronomist.name}
           </h3>
           
           <div className="space-y-2 text-sm text-gray-600">
             {agronomist.email && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Mail size={16} />
                 <span>{agronomist.email}</span>
               </div>
             )}
             {agronomist.phone && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Phone size={16} />
                 <span>{agronomist.phone}</span>
               </div>
             )}
             {agronomist.specialization && agronomist.specialization.length > 0 && (
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
                 <MapPin size={16} />
                 <span className="text-xs">
                   Specializzazione: {agronomist.specialization.join(', ')}
@@ -99,11 +99,11 @@ const ContactAgronomist: React.FC<ContactAgronomistProps> = ({
       <div className="space-y-3">
         <h4 className="text-sm font-semibold text-gray-700">Azioni Rapide</h4>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-3">
           {agronomist.email && (
             <button
               onClick={handleEmail}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center justify-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Mail size={18} />
               Invia Email
@@ -113,7 +113,7 @@ const ContactAgronomist: React.FC<ContactAgronomistProps> = ({
           {agronomist.phone && (
             <button
               onClick={handlePhone}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="flex items-center justify-center gap-3 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <Phone size={18} />
               Chiama
@@ -122,7 +122,7 @@ const ContactAgronomist: React.FC<ContactAgronomistProps> = ({
 
           <button
             onClick={handleRequestConsultation}
-            className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            className="flex items-center justify-center gap-3 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
           >
             <Calendar size={18} />
             Richiedi Consultazione
@@ -130,7 +130,7 @@ const ContactAgronomist: React.FC<ContactAgronomistProps> = ({
 
           <button
             onClick={() => setShowConsultationForm(true)}
-            className="flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+            className="flex items-center justify-center gap-3 px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
           >
             <MessageSquare size={18} />
             Registra Consultazione

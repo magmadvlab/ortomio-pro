@@ -114,7 +114,7 @@ const PatternView: React.FC<PatternViewProps> = ({ garden, years = 3 }) => {
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-3">
           <TrendingUp size={24} />
           Pattern Locali Riconosciuti
         </h2>
@@ -133,7 +133,7 @@ const PatternView: React.FC<PatternViewProps> = ({ garden, years = 3 }) => {
               <div className="flex items-start gap-3">
                 {getPatternIcon(pattern.patternType)}
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-3 mb-1">
                     <h3 className="font-semibold text-gray-800">
                       {pattern.patternDescription || pattern.patternName}
                     </h3>
@@ -170,7 +170,7 @@ const PatternView: React.FC<PatternViewProps> = ({ garden, years = 3 }) => {
             {/* Prediction */}
             {pattern.prediction && (
               <div className="bg-white rounded p-3 mb-3 border border-gray-200">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-3 mb-1">
                   <Calendar size={16} className="text-purple-600" />
                   <span className="text-sm font-medium text-gray-700">Predizione</span>
                 </div>
@@ -193,17 +193,17 @@ const PatternView: React.FC<PatternViewProps> = ({ garden, years = 3 }) => {
 
             {/* Actions */}
             {!pattern.userConfirmed && (
-              <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
+              <div className="flex items-center gap-3 pt-3 border-t border-gray-200">
                 <button
                   onClick={() => handleConfirmPattern(pattern.id || pattern.patternName)}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
+                  className="flex items-center gap-3 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
                 >
                   <CheckCircle size={16} />
                   Conferma Pattern
                 </button>
                 <button
                   onClick={() => handleRejectPattern(pattern.id || pattern.patternName)}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
+                  className="flex items-center gap-3 px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
                 >
                   <XCircle size={16} />
                   Rifiuta
@@ -212,7 +212,7 @@ const PatternView: React.FC<PatternViewProps> = ({ garden, years = 3 }) => {
             )}
 
             {pattern.userConfirmed && (
-              <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
+              <div className="flex items-center gap-3 pt-3 border-t border-gray-200">
                 <CheckCircle size={16} className="text-green-600" />
                 <span className="text-sm text-green-700 font-medium">Pattern confermato</span>
               </div>

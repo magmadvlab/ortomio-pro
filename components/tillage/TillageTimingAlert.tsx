@@ -68,7 +68,7 @@ const TillageTimingAlert: React.FC<TillageTimingAlertProps> = ({
           <CheckCircle size={20} className="text-green-600" />
         </div>
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-3 mb-1">
             <Bell size={16} className="text-green-600" />
             <h4 className="font-semibold text-green-800">Terreno in Tempera!</h4>
           </div>
@@ -92,7 +92,7 @@ const TillageTimingAlert: React.FC<TillageTimingAlertProps> = ({
         <Clock size={20} className="text-blue-600" />
       </div>
       <div className="flex-1">
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-3 mb-1">
           <Calendar size={16} className="text-blue-600" />
           <h4 className="font-semibold text-blue-800">Terreno Non Ancora in Tempera</h4>
         </div>

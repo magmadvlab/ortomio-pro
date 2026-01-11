@@ -82,13 +82,13 @@ export const YieldOptimizer: React.FC<YieldOptimizerProps> = ({
 
   return (
     <div className="space-y-6">
-      <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+      <h3 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-3">
         <Target size={28} />
         Ottimizzazione Resa
       </h3>
 
       {/* Current vs Optimized */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h4 className="text-lg font-semibold mb-4 text-gray-700">Resa Attuale Prevista</h4>
           <div className="space-y-2">
@@ -130,7 +130,7 @@ export const YieldOptimizer: React.FC<YieldOptimizerProps> = ({
       {/* Recommendations */}
       {recommendations.length > 0 && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <h4 className="text-lg font-semibold mb-4 flex items-center gap-3">
             <TrendingUp size={20} className="text-blue-600" />
             Raccomandazioni per Ottimizzazione
           </h4>
@@ -160,7 +160,7 @@ export const YieldOptimizer: React.FC<YieldOptimizerProps> = ({
       {/* ROI Analysis */}
       {recommendations.length > 0 && marketPrice > 0 && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <h4 className="text-lg font-semibold mb-4 flex items-center gap-3">
             <DollarSign size={20} className="text-green-600" />
             Analisi ROI
           </h4>
@@ -178,7 +178,7 @@ export const YieldOptimizer: React.FC<YieldOptimizerProps> = ({
               return (
                 <div key={i} className="bg-gray-50 p-4 rounded-lg">
                   <p className="font-medium text-gray-900 mb-2">{rec.action}</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
                       <p className="text-gray-600">Resa aggiuntiva</p>
                       <p className="font-semibold text-gray-900">{roi.additionalYield} kg</p>

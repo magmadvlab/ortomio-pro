@@ -60,7 +60,7 @@ export function StatsTab() {
   return (
     <div className="space-y-6">
       {/* Metriche Generali */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-2">
             <Sprout size={20} className="text-green-600" />
@@ -99,7 +99,7 @@ export function StatsTab() {
 
       {/* Task per Tipo */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-3">
           <BarChart3 size={20} className="text-blue-600" />
           Task per Tipo
         </h3>
@@ -146,14 +146,14 @@ export function StatsTab() {
       {/* Sezione PRO */}
       {isPro && (
         <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-200 p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-3">
             <TrendingUp size={20} className="text-purple-600" />
             Analytics Avanzate (PRO)
           </h3>
           <p className="text-gray-600 mb-4">
             Grafici dettagliati e analisi avanzate disponibili per utenti PRO.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-white rounded-lg p-4 border border-purple-200">
               <h4 className="font-semibold text-gray-900 mb-2">Produttività Mensile</h4>
               <p className="text-sm text-gray-600">Grafico disponibile nella versione PRO completa</p>

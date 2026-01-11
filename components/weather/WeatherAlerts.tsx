@@ -56,7 +56,7 @@ export function WeatherAlerts({ alerts }: WeatherAlertsProps) {
           <div className="flex items-start gap-3">
             {getAlertIcon(alert.type)}
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-3 mb-1">
                 <AlertTriangle className="text-semantic-warning" size={18} />
                 <h4 className="font-semibold text-gray-900">
                   {alert.type === 'frost' && 'Rischio Gelate'}

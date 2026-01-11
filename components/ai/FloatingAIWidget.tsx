@@ -33,7 +33,7 @@ export default function FloatingAIWidget() {
         <div className="fixed bottom-36 right-4 z-50 lg:bottom-20">
           <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-64">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+              <h3 className="font-semibold text-gray-800 flex items-center gap-3">
                 <Sparkles className="w-4 h-4 text-purple-600" />
                 AI Assistant
               </h3>

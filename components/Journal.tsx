@@ -1164,12 +1164,12 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
       <div className="p-4 pb-24 max-w-2xl mx-auto">
       <header className="flex justify-between items-center mb-6 sticky top-0 bg-green-50/95 backdrop-blur py-2 z-10">
         <div>
-          <h1 className="text-2xl font-bold text-green-800">Diario dell'Orto</h1>
+          <h1 className="text-lg md:text-xl md:text-xl md:text-2xl font-bold text-green-800">Diario dell'Orto</h1>
           <p className="text-green-600 text-sm">Monitora le attività dell'orto attivo.</p>
         </div>
         <button 
           onClick={() => setIsAdding(!isAdding)}
-          className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+          className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:bg-green-700 transition-colors flex items-center gap-3"
         >
           {isAdding ? <X size={18}/> : <><PlusCircle size={18}/> Aggiungi</>}
         </button>
@@ -1179,17 +1179,17 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
       {harvestModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95">
-            <h3 className="text-xl font-bold text-orange-600 mb-2 flex items-center gap-2">
+            <h3 className="text-lg md:text-lg md:text-xl font-bold text-orange-600 mb-2 flex items-center gap-3">
               <ShoppingBasket/> Registra Raccolto
             </h3>
             <p className="text-sm text-gray-500 mb-4">Chiudi il ciclo colturale di questa pianta.</p>
             <form onSubmit={submitHarvest} className="space-y-4">
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="text-xs font-bold text-gray-500 uppercase">Quantità</label>
                   <input 
                     type="number" step="0.1" required
-                    className="w-full p-2 border border-gray-300 rounded-lg"
+                    className="w-full p-3 border border-gray-300 rounded-lg"
                     value={harvestData.quantity}
                     onChange={e => setHarvestData({...harvestData, quantity: parseFloat(e.target.value)})}
                   />
@@ -1197,7 +1197,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase">Unità</label>
                   <select 
-                    className="w-full p-2 border border-gray-300 rounded-lg bg-white"
+                    className="w-full p-3 border border-gray-300 rounded-lg bg-white"
                     value={harvestData.unit}
                     onChange={e => setHarvestData({...harvestData, unit: e.target.value as 'kg' | 'g' | 'units'})}
                   >
@@ -1217,7 +1217,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                   ))}
                 </div>
               </div>
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setHarvestModalOpen(null)} className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold">Annulla</button>
                 <button type="submit" className="flex-1 py-2 bg-orange-600 text-white rounded-lg font-bold">Salva & Chiudi</button>
               </div>
@@ -1239,7 +1239,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
               onClick={() => handleFuzzySuggestionSelect(suggestion)}
               className="w-full p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-left flex items-center gap-3"
             >
-              <span className="text-2xl">{suggestion.archetypeIcon}</span>
+              <span className="text-lg md:text-xl md:text-xl md:text-2xl">{suggestion.archetypeIcon}</span>
               <div className="flex-1">
                 <div className="font-medium text-gray-800">
                   {suggestion.name}
@@ -1266,7 +1266,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
               setShowCropWizard(true);
               setIsAdding(false);
             }}
-            className="w-full p-2 text-sm text-gray-600 hover:text-gray-800 underline text-center"
+            className="w-full p-3 text-sm text-gray-600 hover:text-gray-800 underline text-center"
           >
             Non lo trovo → apri wizard completo
           </button>
@@ -1277,7 +1277,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-xl border border-green-100 mb-8 animate-in slide-in-from-top-4">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Nuova Attività</h2>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Pianta</label>
                 {/* TODO: Sostituire con PlantFuzzySearch per supportare sinonimi dialettali */}
@@ -1291,7 +1291,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo Azione</label>
                 <select className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none" 
@@ -1311,7 +1311,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
             </div>
             
             {/* Toggle Pianifica per dopo */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <input
                 type="checkbox"
                 id="isScheduled"
@@ -1375,7 +1375,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
 
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Metodo di Partenza</label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-3">
                     {/* 
                      * METODO DI PARTENZA - 3 opzioni distinte:
                      * 
@@ -1485,14 +1485,14 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                   </div>
                 )}
                 {newTask.plantingMethod === 'Seed' && availableSeeds.length === 0 && (
-                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm text-yellow-800">
+                  <div className="p-3 bg-yellow-50 border border-yellow-full max-w-sm rounded-lg">
+                    <p className="text-sm text-yellow-full max-w-sm">
                       🌰 Non hai ancora aggiunto semi alla banca. 
                       <button 
                         onClick={() => {
                           // TODO: Naviga a SeedBank o apri modal
                         }}
-                        className="text-yellow-900 underline font-bold ml-1"
+                        className="text-yellow-full max-w-sm underline font-bold ml-1"
                       >
                         Aggiungi semi ora
                       </button>
@@ -1567,14 +1567,14 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                   </div>
                 )}
                 {newTask.plantingMethod === 'Seedling' && availableBatches.length === 0 && (
-                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm text-yellow-800">
+                  <div className="p-3 bg-yellow-50 border border-yellow-full max-w-sm rounded-lg">
+                    <p className="text-sm text-yellow-full max-w-sm">
                       🌱 Non hai ancora aggiunto piantine. 
                       <button 
                         onClick={() => {
                           // TODO: Naviga a SeedlingManager o apri modal
                         }}
-                        className="text-yellow-900 underline font-bold ml-1"
+                        className="text-yellow-full max-w-sm underline font-bold ml-1"
                       >
                         Aggiungi piantine ora
                       </button>
@@ -1652,14 +1652,14 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                   </div>
                 )}
                 {newTask.plantingMethod === 'Sapling' && availableSaplings.length === 0 && (
-                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm text-yellow-800">
+                  <div className="p-3 bg-yellow-50 border border-yellow-full max-w-sm rounded-lg">
+                    <p className="text-sm text-yellow-full max-w-sm">
                       🌳 Non hai ancora aggiunto alberelli. 
                       <button 
                         onClick={() => {
                           // TODO: Naviga a SaplingManager o apri modal
                         }}
-                        className="text-yellow-900 underline font-bold ml-1"
+                        className="text-yellow-full max-w-sm underline font-bold ml-1"
                       >
                         Aggiungi alberelli ora
                       </button>
@@ -1667,7 +1667,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Quantità</label>
                     <input type="number" min="1" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none"
@@ -1719,7 +1719,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                       <p className="text-xs text-blue-600 mt-1">ℹ️ Con vassoio, la posizione finale sarà impostata al momento del trapianto</p>
                     )}
                     {newTask.season === 'Winter' && newTask.plantingMethod === 'Seed' && newTask.locationType !== 'Tray' && (
-                      <p className="text-xs text-yellow-600 mt-1">⚠️ Per orto invernale, si consiglia "Vassoio per Semina" o "Da Piantina"</p>
+                      <p className="text-xs text-yellow-full max-w-sm mt-1">⚠️ Per orto invernale, si consiglia "Vassoio per Semina" o "Da Piantina"</p>
                     )}
                     {newTask.season === 'Summer' && newTask.plantingMethod === 'Seed' && newTask.locationType === 'Ground' && (
                       <p className="text-xs text-green-600 mt-1">✓ Piena Terra disponibile per coltivazioni primaverili/estive</p>
@@ -1773,9 +1773,9 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                     {task.completed ? <CheckCircle2 size={26} className="text-green-500" /> : <Circle size={26} />}
                   </button>
                   <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap justify-between items-start gap-2">
+                    <div className="flex flex-wrap justify-between items-start gap-3">
                       <div>
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-3 flex-wrap">
                           <h3 className={`font-bold text-lg text-gray-800 ${task.completed ? 'line-through text-gray-500' : ''}`}>
                             {task.plantName}
                           </h3>
@@ -1795,17 +1795,17 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                             return (
                               <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                                 <p className="text-sm font-medium text-blue-900 mb-2">{advice.message}</p>
-                                <div className="flex gap-2">
+                                <div className="flex gap-3">
                                   <button
                                     onClick={() => handleLifecycleResponse(task, true, advice)}
-                                    className="flex-1 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 flex items-center justify-center gap-1"
+                                    className="flex-1 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 flex items-center justify-center gap-3"
                                   >
                                     <CheckCircle size={14} />
                                     Sì
                                   </button>
                                   <button
                                     onClick={() => handleLifecycleResponse(task, false, advice)}
-                                    className="flex-1 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-300 flex items-center justify-center gap-1"
+                                    className="flex-1 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-300 flex items-center justify-center gap-3"
                                   >
                                     <XCircle size={14} />
                                     No
@@ -1825,7 +1825,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                       </span>
                     </div>
                     
-                    <div className="flex items-center gap-2 mt-2 text-xs text-gray-500 flex-wrap">
+                    <div className="flex items-center gap-3 mt-2 text-xs text-gray-500 flex-wrap">
                       <Calendar size={12} /> 
                       {(() => {
                         // Usa array statico per evitare problemi di hydration SSR
@@ -1907,7 +1907,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                           return moonInfo.isWaxing ? '🌒' : moonInfo.isWaning ? '🌘' : moonInfo.phase === 'Full' ? '🌕' : moonInfo.phase === 'New' ? '🌑' : '🌓';
                         })();
                         return (
-                          <span className="flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded bg-purple-50 text-purple-700">
+                          <span className="flex items-center gap-3 ml-2 px-1.5 py-0.5 rounded bg-purple-50 text-purple-700">
                             <Moon size={10}/> {moonEmoji} {moonName}
                           </span>
                         );
@@ -1916,13 +1916,13 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
 
                     {/* Location and Quantity Tracking */}
                     {(task.taskType === 'Sowing' || task.taskType === 'Transplant') && (
-                      <div className="mt-3 flex gap-2 items-center">
-                        <div className="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                      <div className="mt-3 flex gap-3 items-center">
+                        <div className="flex items-center gap-3 text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
                           {getLocationIcon(task.locationType)} {getLocationLabel(task.locationType)}
                         </div>
                         
                         {!task.completed && (
-                          <div className="flex items-center gap-1 bg-green-50 px-2 py-0.5 rounded border border-green-100">
+                          <div className="flex items-center gap-3 bg-green-50 px-2 py-0.5 rounded border border-green-100">
                             <Users size={12} className="text-green-600"/>
                             <span className="text-xs font-bold text-green-800">Vive:</span>
                             <input 
@@ -1940,7 +1940,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                     )}
 
                     {isIndoor && !task.completed && (
-                      <div className="mt-3 flex items-center justify-between bg-orange-50 p-2 rounded-lg border border-orange-100">
+                      <div className="mt-3 flex items-center justify-between bg-orange-50 p-3 rounded-lg border border-orange-100">
                         <span className="text-xs font-bold text-orange-800 uppercase">Stadio Indoor:</span>
                         <select 
                           className="bg-white text-xs border border-orange-200 rounded px-2 py-1 text-orange-900 font-medium"
@@ -1955,14 +1955,14 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                     )}
 
                     {photoNeeded && (
-                      <div className="mt-2 text-xs font-bold text-blue-600 flex items-center gap-1 bg-blue-50 inline-block px-2 py-1 rounded border border-blue-100 animate-pulse">
+                      <div className="mt-2 text-xs font-bold text-blue-600 flex items-center gap-3 bg-blue-50 inline-block px-2 py-1 rounded border border-blue-100 animate-pulse">
                         <Clock size={12} /> Check-up settimanale richiesto
                       </div>
                     )}
 
                     {/* Completion Status Badge */}
                     {task.completed && task.actualCompletedDate && (
-                      <div className="mt-3 flex items-center gap-2 text-xs bg-green-50 text-green-700 px-3 py-2 rounded-lg border border-green-200">
+                      <div className="mt-3 flex items-center gap-3 text-xs bg-green-50 text-green-700 px-4 py-3 text-base rounded-lg border border-green-200">
                         <CheckCircle2 size={14} className="text-green-600" />
                         <span className="font-semibold">Completato</span>
                         {(() => {
@@ -2008,7 +2008,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                     )}
                     
                     {task.nextDueDate && (
-                      <div className="mt-2 text-xs font-bold text-orange-600 flex items-center gap-1 bg-orange-50 inline-block px-2 py-1 rounded border border-orange-100">
+                      <div className="mt-2 text-xs font-bold text-orange-600 flex items-center gap-3 bg-orange-50 inline-block px-2 py-1 rounded border border-orange-100">
                         ⏳ Prossimo: {(() => {
                           // Usa array statico per evitare problemi di hydration SSR
                           const monthNamesShort = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 
@@ -2048,10 +2048,10 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                       return (
                         <div className={`mt-3 p-4 rounded-xl border-2 ${colors.border} ${colors.bg}`}>
                           <div className="flex items-start justify-between gap-3 mb-2">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               <FlaskConical size={18} className={colors.icon} />
                               <div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-3">
                                   <span className={`text-xs font-bold px-2 py-0.5 rounded ${colors.badge}`}>
                                     {elementLabels[advice.elementFocus]}
                                   </span>
@@ -2090,18 +2090,18 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                                   </div>
                                 </div>
                                 <div className="mt-2 space-y-1 text-xs">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-3">
                                     <span className="font-medium text-gray-700">Dosaggio:</span>
                                     <span className="text-gray-900">{fertilizerRec.dosage.amount} {fertilizerRec.dosage.unit}{fertilizerRec.dosage.perSqm ? '/m²' : ''}</span>
                                   </div>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-3">
                                     <span className="font-medium text-gray-700">Metodo:</span>
                                     <span className="text-gray-900 capitalize">{fertilizerRec.method}</span>
                                   </div>
                                   {fertilizerRec.warnings && fertilizerRec.warnings.length > 0 && (
-                                    <div className="mt-2 p-2 bg-yellow-50 rounded border border-yellow-200">
-                                      <p className="text-xs text-yellow-800 font-medium">⚠️ Avvisi:</p>
-                                      <ul className="text-xs text-yellow-700 mt-1 space-y-1">
+                                    <div className="mt-2 p-3 bg-yellow-50 rounded border border-yellow-full max-w-sm">
+                                      <p className="text-xs text-yellow-full max-w-sm font-medium">⚠️ Avvisi:</p>
+                                      <ul className="text-xs text-yellow-full max-w-sm mt-1 space-y-1">
                                         {fertilizerRec.warnings.map((w, i) => (
                                           <li key={i}>• {w}</li>
                                         ))}
@@ -2140,10 +2140,10 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                       return (
                         <div className={`mt-3 p-4 rounded-xl border-2 ${colors.border} ${colors.bg}`}>
                           <div className="flex items-start justify-between gap-3 mb-2">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               <Shield size={18} className={colors.icon} />
                               <div>
-                                <div className="flex items-center gap-2 flex-wrap">
+                                <div className="flex items-center gap-3 flex-wrap">
                                   <span className={`text-xs font-bold px-2 py-0.5 rounded ${colors.badge}`}>
                                     {actionLabels[healthAdvice.actionType]}
                                   </span>
@@ -2197,7 +2197,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                     {/* Harvest History Preview */}
                     {task.harvestHistory && task.harvestHistory.length > 0 && (
                       <div className="mt-2 pl-2 border-l-2 border-orange-200">
-                        <p className="text-[10px] uppercase font-bold text-orange-400 mb-1 flex items-center gap-1">
+                        <p className="text-[10px] uppercase font-bold text-orange-400 mb-1 flex items-center gap-3">
                           <History size={10}/> Raccolti parziali
                         </p>
                         {task.harvestHistory.map(h => {
@@ -2219,16 +2219,16 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
 
                     {/* Harvest / Brix Section */}
                     {((task.taskType === 'Sowing' || task.taskType === 'Transplant') && !task.completed && !isIndoor) && (
-                      <div className="mt-3 p-3 bg-yellow-50 rounded-xl border border-yellow-100">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Gauge size={14} className="text-yellow-700"/>
-                          <span className="text-xs font-bold text-yellow-800 uppercase">Controllo Maturazione</span>
+                      <div className="mt-3 p-3 bg-yellow-50 rounded-xl border border-yellow-full max-w-sm">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Gauge size={14} className="text-yellow-full max-w-sm"/>
+                          <span className="text-xs font-bold text-yellow-full max-w-sm uppercase">Controllo Maturazione</span>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                           <input 
                             type="number" 
                             placeholder="Brix (es. 6.5)" 
-                            className="w-24 text-sm p-1.5 rounded border border-yellow-200"
+                            className="w-24 text-sm p-3.5 rounded border border-yellow-full max-w-sm"
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') handleBrixCheck(task.id, (e.target as HTMLInputElement).value);
                             }}
@@ -2240,13 +2240,13 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                               if (el) handleBrixCheck(task.id, el.value);
                             }}
                             disabled={checkingBrixId === task.id}
-                            className="text-xs bg-yellow-600 text-white px-3 py-1.5 rounded font-bold hover:bg-yellow-700"
+                            className="text-xs bg-yellow-full max-w-sm text-white px-3 py-1.5 rounded font-bold hover:bg-yellow-full max-w-sm"
                           >
                             {checkingBrixId === task.id ? <Loader2 size={12} className="animate-spin"/> : 'Verifica'}
                           </button>
                         </div>
                         {task.harvestReadyAnalysis && (
-                          <div className="mt-2 text-xs text-yellow-900 font-medium bg-white p-2 rounded border border-yellow-100">
+                          <div className="mt-2 text-xs text-yellow-full max-w-sm font-medium bg-white p-3 rounded border border-yellow-full max-w-sm">
                             💡 {task.harvestReadyAnalysis}
                           </div>
                         )}
@@ -2257,13 +2257,13 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                     {task.images && task.images.length > 0 && (
                       <div className="mt-4">
                         <p className="text-xs font-bold text-gray-400 uppercase mb-2">Foto & Analisi ({task.images.length})</p>
-                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                           {task.images.map((img, idx) => (
                             <div key={idx} className="relative shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
                               <img src={img} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
                               
                               {/* Pulsanti azioni - sempre visibili */}
-                              <div className="absolute top-1 right-1 flex gap-1 z-20">
+                              <div className="absolute top-3 right-1 flex gap-3 z-20">
                                 {/* Pulsante elimina */}
                                 <button
                                   onClick={(e) => {
@@ -2272,7 +2272,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                                       handleDeleteImage(task.id, idx);
                                     }
                                   }}
-                                  className="bg-red-500/90 text-white rounded-full p-1.5 shadow-lg hover:bg-red-600 transition-colors"
+                                  className="bg-red-500/90 text-white rounded-full p-3.5 shadow-lg hover:bg-red-600 transition-colors"
                                   aria-label="Elimina foto"
                                   title="Elimina foto"
                                 >
@@ -2280,7 +2280,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                                 </button>
                                 
                                 {/* Pulsante sostituisci */}
-                                <label className="bg-blue-500/90 text-white rounded-full p-1.5 shadow-lg hover:bg-blue-600 transition-colors cursor-pointer">
+                                <label className="bg-blue-500/90 text-white rounded-full p-3.5 shadow-lg hover:bg-blue-600 transition-colors cursor-pointer">
                                   <input
                                     type="file"
                                     accept="image/*"
@@ -2310,7 +2310,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                                     e.stopPropagation();
                                     handleAnalyzeImage(img, task.id);
                                   }}
-                                  className="absolute bottom-0 inset-x-0 bg-green-600/90 text-white text-[10px] py-1.5 font-bold flex justify-center items-center gap-1 hover:bg-green-700 transition-colors z-10"
+                                  className="absolute bottom-0 inset-x-0 bg-green-600/90 text-white text-[10px] py-1.5 font-bold flex justify-center items-center gap-3 hover:bg-green-700 transition-colors z-10"
                                   title="Analizza con AI"
                                 >
                                   <Sparkles size={10} />
@@ -2324,7 +2324,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                     )}
                     
                     {/* Actions Row */}
-                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3 pt-3 border-t border-dashed border-gray-100">
+                    <div className="flex flex-col sm:flex-col md:flex-col md:flex-row gap-3 sm:gap-3 mt-3 pt-3 border-t border-dashed border-gray-100">
                       <label className={`flex items-center gap-2 text-xs font-bold cursor-pointer px-3 py-1.5 rounded-lg transition-colors ${photoNeeded ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-green-50 text-green-600 hover:text-green-700'}`}>
                         <Camera size={14} />
                         {photoNeeded ? 'AGGIORNA PROGRESSI' : 'AGGIUNGI FOTO'}
@@ -2340,7 +2340,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                       {(!task.completed && (task.taskType === 'Sowing' || task.taskType === 'Transplant') && (task.harvestReadyAnalysis || task.recordedBrix)) && (
                         <button
                           onClick={() => openHarvestModal(task.id)}
-                          className="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors ml-auto"
+                          className="flex items-center gap-3 text-xs font-bold px-3 py-1.5 rounded-lg bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors ml-auto"
                         >
                           <CheckCircle2 size={14} />
                           RACCOLTO FINALE
@@ -2351,7 +2351,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
                 </div>
                 <button 
                   onClick={() => onDeleteTask(task.id)} 
-                  className="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors p-2"
+                  className="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors p-3"
                   aria-label="Delete"
                 >
                   <X size={16} />

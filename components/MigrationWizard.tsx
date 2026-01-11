@@ -211,7 +211,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({ onComplete, onCancel 
       <div className="bg-white rounded-lg border border-gray-200 p-6 max-w-2xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <Database size={24} className="text-blue-600" />
-          <h3 className="text-xl font-bold text-gray-800">Migrazione Dati</h3>
+          <h3 className="text-lg md:text-xl font-bold text-gray-800">Migrazione Dati</h3>
         </div>
 
         <p className="text-gray-600 mb-6">
@@ -243,7 +243,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({ onComplete, onCancel 
         <div className="flex gap-3">
           <button
             onClick={startMigration}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-3"
           >
             <Cloud size={18} />
             Inizia Migrazione
@@ -264,7 +264,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({ onComplete, onCancel 
       <div className="bg-white rounded-lg border border-gray-200 p-6 max-w-2xl mx-auto">
         <div className="text-center">
           <Loader2 className="animate-spin mx-auto mb-4 text-blue-600" size={48} />
-          <h3 className="text-xl font-bold text-gray-800 mb-2">Migrazione in corso...</h3>
+          <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-2">Migrazione in corso...</h3>
           <p className="text-gray-600 mb-4">Non chiudere questa finestra</p>
           <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
             <div
@@ -283,13 +283,13 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({ onComplete, onCancel 
       <div className="bg-white rounded-lg border border-gray-200 p-6 max-w-2xl mx-auto">
         <div className="text-center">
           <CheckCircle size={48} className="mx-auto mb-4 text-green-600" />
-          <h3 className="text-xl font-bold text-gray-800 mb-2">Migrazione Completata!</h3>
+          <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-2">Migrazione Completata!</h3>
           <p className="text-gray-600 mb-4">
             I tuoi dati sono stati migrati con successo a Supabase.
           </p>
           {stats && stats.errors > 0 && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-              <p className="text-yellow-800 text-sm">
+            <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-3 mb-4">
+              <p className="text-yellow-full max-w-sm text-sm">
                 ⚠️ {stats.errors} errori durante la migrazione. Controlla i log per dettagli.
               </p>
             </div>
@@ -310,7 +310,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({ onComplete, onCancel 
       <div className="bg-white rounded-lg border border-red-200 p-6 max-w-2xl mx-auto">
         <div className="text-center">
           <AlertTriangle size={48} className="mx-auto mb-4 text-red-600" />
-          <h3 className="text-xl font-bold text-gray-800 mb-2">Errore durante la migrazione</h3>
+          <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-2">Errore durante la migrazione</h3>
           <p className="text-red-600 mb-4">{error}</p>
           <div className="flex gap-3 justify-center">
             <button

@@ -236,7 +236,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
     if (temp > 25) {
       return <ThermometerSun className="text-orange-500" size={24} />;
     }
-    return <Sun className="text-yellow-500" size={24} />;
+    return <Sun className="text-yellow-full max-w-sm" size={24} />;
   };
 
   const formatDate = (dateStr: string) => {
@@ -282,7 +282,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
       <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl shadow-lg border border-blue-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
+            <div className="p-3 bg-blue-100 rounded-lg">
               <Moon className="text-blue-600" size={24} />
             </div>
             <div>
@@ -290,20 +290,20 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
               <p className="text-sm text-gray-600">Tradizione contadina</p>
             </div>
           </div>
-          <span className="text-2xl">{lunarAdvice?.phaseIcon}</span>
+          <span className="text-xl md:text-2xl">{lunarAdvice?.phaseIcon}</span>
         </div>
 
         {lunarAdvice && (
           <div className="space-y-4">
             <div className="bg-white/70 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <span className="text-lg">{lunarAdvice.phaseIcon}</span>
                 <span className="font-semibold text-gray-900">{lunarAdvice.phase}</span>
               </div>
               <p className="text-sm text-gray-600 mb-3">{lunarAdvice.description}</p>
               
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-3 mb-2">
                   <Lightbulb className="text-green-600" size={16} />
                   <span className="font-semibold text-green-800">Consiglio di oggi</span>
                 </div>
@@ -321,7 +321,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
+          <div className="p-3 bg-blue-100 rounded-lg">
             <Sun className="text-blue-600" size={24} />
           </div>
           <div>
@@ -332,7 +332,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
         
         {/* Garden Selector */}
         {gardensWithCoordinates.length > 1 && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <MapPin size={16} className="text-gray-500" />
             <select
               value={selectedGarden?.id || ''}
@@ -358,7 +358,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <AlertTriangle className="text-red-600" size={20} />
             <span className="text-red-800 font-medium">Errore Meteo</span>
           </div>
@@ -369,7 +369,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
       {!loading && !error && (
         <div className="space-y-6">
           {/* Today's Weather + Lunar */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
             {/* Weather Today */}
             {forecast.length > 0 && (
               <div className="bg-white/70 rounded-lg p-4">
@@ -379,15 +379,15 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-gray-900">
+                    <span className="text-xl md:text-2xl font-bold text-gray-900">
                       {Math.round(forecast[0].temp)}°C
                     </span>
                     <div className="text-right text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-3">
                         <Droplets size={14} />
                         {forecast[0].rainForecastMm}mm
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-3">
                         <Wind size={14} />
                         {forecast[0].windSpeed} km/h
                       </div>
@@ -403,7 +403,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
               <div className="bg-white/70 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-semibold text-gray-900">Fase Lunare</span>
-                  <span className="text-2xl">{lunarAdvice.phaseIcon}</span>
+                  <span className="text-xl md:text-2xl">{lunarAdvice.phaseIcon}</span>
                 </div>
                 <div className="space-y-2">
                   <p className="font-medium text-gray-900">{lunarAdvice.phase}</p>
@@ -415,13 +415,13 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
 
           {/* Combined Advice */}
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-3 mb-3">
               <Lightbulb className="text-green-600" size={20} />
               <span className="font-semibold text-green-800">Consigli di Oggi</span>
             </div>
             <div className="space-y-2">
               {getCombinedAdvice().map((advice, index) => (
-                <p key={index} className="text-sm text-green-700 flex items-start gap-2">
+                <p key={index} className="text-sm text-green-700 flex items-start gap-3">
                   <span className="text-green-600 mt-0.5">•</span>
                   <span>{advice}</span>
                 </p>
@@ -432,11 +432,11 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
           {/* 7-Day Forecast */}
           {forecast.length > 1 && (
             <div className="bg-white/70 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-3">
                 <Calendar size={18} />
                 Prossimi Giorni
               </h4>
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
                 {forecast.slice(1, 8).map((day, index) => (
                   <div key={index} className="text-center">
                     <p className="text-xs text-gray-600 mb-1">
@@ -466,7 +466,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
                   alert.severity === 'MEDIUM' ? 'bg-yellow-50 border-yellow-200' :
                   'bg-blue-50 border-blue-200'
                 }`}>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <AlertTriangle className={
                       alert.severity === 'HIGH' ? 'text-red-600' :
                       alert.severity === 'MEDIUM' ? 'text-yellow-600' :

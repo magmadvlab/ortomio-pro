@@ -81,7 +81,7 @@ const GeographicMatchingWidget: React.FC<GeographicMatchingWidgetProps> = ({ gar
   if (loading) {
     return (
       <div className="bg-white rounded-xl border-2 border-blue-200 p-4 shadow-sm">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-3 mb-3">
           <MapPin size={20} className="text-blue-600" />
           <h3 className="text-lg font-bold text-gray-800">Matching Geografico</h3>
         </div>
@@ -97,20 +97,20 @@ const GeographicMatchingWidget: React.FC<GeographicMatchingWidgetProps> = ({ gar
   return (
     <div className="bg-white rounded-xl border-2 border-blue-200 p-4 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <MapPin size={20} className="text-blue-600" />
           <h3 className="text-lg font-bold text-gray-800">Matching Geografico</h3>
         </div>
         <Link
           href="/app/garden?tab=timeline"
-          className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+          className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-3"
         >
           Vedi tutte
           <ArrowRight size={14} />
         </Link>
       </div>
 
-      <div className="text-xs text-gray-600 mb-4 flex items-center gap-2 flex-wrap">
+      <div className="text-xs text-gray-600 mb-4 flex items-center gap-3 flex-wrap">
         <MapPin size={12} />
         <span>{userLocation.city || userLocation.region || 'La tua zona'}</span>
         {userLocation.usdaZone && (
@@ -119,7 +119,7 @@ const GeographicMatchingWidget: React.FC<GeographicMatchingWidgetProps> = ({ gar
               {translateUsdaZone(userLocation.usdaZone).emoji} {translateUsdaZone(userLocation.usdaZone).climateName}
               <Info size={10} className="ml-1 opacity-60" />
             </span>
-            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-10 w-64 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
+            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-10 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
               <div className="font-semibold mb-1">{translateUsdaZone(userLocation.usdaZone).climateName}</div>
               <div className="text-gray-300 mb-1">{translateUsdaZone(userLocation.usdaZone).description}</div>
               <div className="text-gray-400 text-xs">
@@ -135,7 +135,7 @@ const GeographicMatchingWidget: React.FC<GeographicMatchingWidgetProps> = ({ gar
       {/* Ideal Plants */}
       {idealPlants.length > 0 && (
         <div className="mb-4">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-2">
             <CheckCircle size={16} className="text-green-600" />
             <span className="text-sm font-semibold text-gray-700">Piante Ideali</span>
           </div>
@@ -143,7 +143,7 @@ const GeographicMatchingWidget: React.FC<GeographicMatchingWidgetProps> = ({ gar
             {idealPlants.map((item, idx) => (
               <div
                 key={idx}
-                className="bg-green-50 border border-green-200 rounded-lg p-2 text-sm"
+                className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-gray-800">{(item.plant as any).commonName || (item.plant as any).name || (item.plant as any).plantName || 'Sconosciuto'}</span>
@@ -165,19 +165,19 @@ const GeographicMatchingWidget: React.FC<GeographicMatchingWidgetProps> = ({ gar
       {/* Opportunities */}
       {opportunities.length > 0 && (
         <div className="mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles size={16} className="text-yellow-600" />
+          <div className="flex items-center gap-3 mb-2">
+            <Sparkles size={16} className="text-yellow-full max-w-sm" />
             <span className="text-sm font-semibold text-gray-700">Nuove Opportunità</span>
           </div>
           <div className="space-y-2">
             {opportunities.map((item, idx) => (
               <div
                 key={idx}
-                className="bg-yellow-50 border border-yellow-200 rounded-lg p-2 text-sm"
+                className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-3 text-sm"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-gray-800">{(item.plant as any).commonName || (item.plant as any).name || (item.plant as any).plantName || 'Sconosciuto'}</span>
-                  <span className="bg-yellow-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  <span className="bg-yellow-full max-w-sm text-white text-xs font-bold px-2 py-0.5 rounded-full">
                     {item.feasibility.score}/100
                   </span>
                 </div>
@@ -195,7 +195,7 @@ const GeographicMatchingWidget: React.FC<GeographicMatchingWidgetProps> = ({ gar
       {/* Warnings */}
       {warnings.length > 0 && (
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-2">
             <AlertTriangle size={16} className="text-orange-600" />
             <span className="text-sm font-semibold text-gray-700">Attenzione Clima</span>
           </div>
@@ -203,7 +203,7 @@ const GeographicMatchingWidget: React.FC<GeographicMatchingWidgetProps> = ({ gar
             {warnings.map((item, idx) => (
               <div
                 key={idx}
-                className="bg-orange-50 border border-orange-200 rounded-lg p-2 text-sm"
+                className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-sm"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-gray-800">{(item.plant as any).commonName || (item.plant as any).name || (item.plant as any).plantName || 'Sconosciuto'}</span>

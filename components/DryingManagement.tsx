@@ -40,11 +40,11 @@ const DryingManagement: React.FC<DryingManagementProps> = ({
     <div className="p-6 bg-white rounded-xl border border-gray-200">
       <div className="flex items-center gap-3 mb-6">
         <Droplets className="text-blue-500" size={24} />
-        <h3 className="text-xl font-bold text-gray-800">Gestione Essiccazione</h3>
+        <h3 className="text-lg md:text-xl font-bold text-gray-800">Gestione Essiccazione</h3>
       </div>
 
       {/* Controlli Ambiente */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
           <label className="block text-sm font-semibold text-gray-700 mb-2">
             Umidità Relativa (%)
@@ -55,7 +55,7 @@ const DryingManagement: React.FC<DryingManagementProps> = ({
             max="100"
             value={currentHumidity}
             onChange={(e) => setCurrentHumidity(parseInt(e.target.value) || 50)}
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -68,7 +68,7 @@ const DryingManagement: React.FC<DryingManagementProps> = ({
             max="40"
             value={currentTemperature}
             onChange={(e) => setCurrentTemperature(parseInt(e.target.value) || 20)}
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
@@ -76,7 +76,7 @@ const DryingManagement: React.FC<DryingManagementProps> = ({
       {/* Essiccazioni in Corso */}
       {activeDryings.length > 0 && (
         <div className="mb-6">
-          <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-3">
             <Clock className="text-blue-500" size={20} />
             Essiccazioni in Corso
           </h4>
@@ -121,7 +121,7 @@ const DryingManagement: React.FC<DryingManagementProps> = ({
                   </div>
 
                   {/* Controllo Peso */}
-                  <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                     <div>
                       <label className="block text-xs text-gray-600 mb-1">Peso Iniziale (kg)</label>
                       <input
@@ -130,7 +130,7 @@ const DryingManagement: React.FC<DryingManagementProps> = ({
                         step="0.1"
                         value={record.initialWeight}
                         readOnly
-                        className="w-full p-2 border border-gray-300 rounded-lg bg-white text-sm"
+                        className="w-full p-3 border border-gray-300 rounded-lg bg-white text-sm"
                       />
                     </div>
                     <div>
@@ -153,7 +153,7 @@ const DryingManagement: React.FC<DryingManagementProps> = ({
                             });
                           }
                         }}
-                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                         placeholder="Inserisci peso"
                       />
                     </div>
@@ -164,7 +164,7 @@ const DryingManagement: React.FC<DryingManagementProps> = ({
                     <div className="mt-3">
                       {isDryingComplete(record.initialWeight, record.finalWeight) ? (
                         <div className="p-3 bg-green-50 rounded-lg border border-green-200 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <CheckCircle className="text-green-600" size={18} />
                             <span className="text-sm font-semibold text-green-800">Essiccazione Completa!</span>
                           </div>
@@ -176,10 +176,10 @@ const DryingManagement: React.FC<DryingManagementProps> = ({
                           </button>
                         </div>
                       ) : (
-                        <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                          <div className="flex items-center gap-2">
-                            <AlertCircle className="text-yellow-600" size={18} />
-                            <span className="text-sm text-yellow-800">Ancora in essiccazione</span>
+                        <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-full max-w-sm">
+                          <div className="flex items-center gap-3">
+                            <AlertCircle className="text-yellow-full max-w-sm" size={18} />
+                            <span className="text-sm text-yellow-full max-w-sm">Ancora in essiccazione</span>
                           </div>
                         </div>
                       )}
@@ -195,7 +195,7 @@ const DryingManagement: React.FC<DryingManagementProps> = ({
       {/* Storico Essiccazioni */}
       {completedDryings.length > 0 && (
         <div>
-          <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-3">
             <CheckCircle className="text-green-500" size={20} />
             Essiccazioni Completate
           </h4>

@@ -51,37 +51,37 @@ export function AnalyticsTable({ data = [] }: AnalyticsTableProps) {
           <thead>
             <tr className="border-b">
               <th
-                className="text-left p-2 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                className="text-left p-3 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
                 onClick={() => handleSort('crop')}
               >
                 Coltura {sortBy === 'crop' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th
-                className="text-left p-2 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                className="text-left p-3 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
                 onClick={() => handleSort('kg')}
               >
                 Kg {sortBy === 'kg' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th
-                className="text-left p-2 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                className="text-left p-3 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
                 onClick={() => handleSort('revenue')}
               >
                 Revenue {sortBy === 'revenue' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th
-                className="text-left p-2 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                className="text-left p-3 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
                 onClick={() => handleSort('costs')}
               >
                 Costi {sortBy === 'costs' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th
-                className="text-left p-2 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                className="text-left p-3 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
                 onClick={() => handleSort('roi')}
               >
                 ROI % {sortBy === 'roi' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th
-                className="text-left p-2 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                className="text-left p-3 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
                 onClick={() => handleSort('yieldPerSqm')}
               >
                 Resa/m² {sortBy === 'yieldPerSqm' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -98,14 +98,14 @@ export function AnalyticsTable({ data = [] }: AnalyticsTableProps) {
             ) : (
               sortedData.map((row, idx) => (
                 <tr key={idx} className="border-b hover:bg-gray-50">
-                  <td className="p-2 text-sm text-gray-900">{row.crop}</td>
-                  <td className="p-2 text-sm text-gray-700">{row.kg.toFixed(2)}</td>
-                  <td className="p-2 text-sm text-gray-700">€{row.revenue.toFixed(2)}</td>
-                  <td className="p-2 text-sm text-gray-700">€{row.costs.toFixed(2)}</td>
+                  <td className="p-3 text-sm text-gray-900">{row.crop}</td>
+                  <td className="p-3 text-sm text-gray-700">{row.kg.toFixed(2)}</td>
+                  <td className="p-3 text-sm text-gray-700">€{row.revenue.toFixed(2)}</td>
+                  <td className="p-3 text-sm text-gray-700">€{row.costs.toFixed(2)}</td>
                   <td className={`p-2 text-sm font-medium ${row.roi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {row.roi.toFixed(1)}%
                   </td>
-                  <td className="p-2 text-sm text-gray-700">{row.yieldPerSqm.toFixed(2)} kg/m²</td>
+                  <td className="p-3 text-sm text-gray-700">{row.yieldPerSqm.toFixed(2)} kg/m²</td>
                 </tr>
               ))
             )}

@@ -176,17 +176,17 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
           <div className="flex items-center gap-3">
             <Map className="text-green-600" size={28} />
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Mappe Prescrizione</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900">Mappe Prescrizione</h2>
               <p className="text-gray-600">
                 Mappe prescrizione per precision farming
               </p>
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex flex-col sm:flex-col md:flex-row items-start sm:items-center gap-3">
             <button
               onClick={() => setShowCreateModal(true)}
-              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-medium shadow-sm"
+              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-3 font-medium shadow-sm"
             >
               <Plus size={20} />
               Crea Nuova Mappa
@@ -194,7 +194,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
             
             <button
               onClick={() => setShowHistoricalComparison(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-3"
             >
               <History size={20} />
               Confronto Storico
@@ -204,12 +204,12 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
 
         {/* Statistics Dashboard */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-blue-600">Mappe Totali</p>
-                  <p className="text-xl font-bold text-blue-700">{stats.totalMapsGenerated}</p>
+                  <p className="text-lg md:text-xl font-bold text-blue-700">{stats.totalMapsGenerated}</p>
                 </div>
                 <Map className="text-blue-600" size={24} />
               </div>
@@ -219,7 +219,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-green-600">Area Coperta</p>
-                  <p className="text-xl font-bold text-green-700">{stats.totalAreaCovered} ha</p>
+                  <p className="text-lg md:text-xl font-bold text-green-700">{stats.totalAreaCovered} ha</p>
                 </div>
                 <Layers className="text-green-600" size={24} />
               </div>
@@ -229,7 +229,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-purple-600">Qualità Media</p>
-                  <p className="text-xl font-bold text-purple-700">{stats.averageQualityScore}%</p>
+                  <p className="text-lg md:text-xl font-bold text-purple-700">{stats.averageQualityScore}%</p>
                 </div>
                 <BarChart3 className="text-purple-600" size={24} />
               </div>
@@ -239,7 +239,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-orange-600">Risparmio</p>
-                  <p className="text-xl font-bold text-orange-700">€{stats.totalCostSavings}</p>
+                  <p className="text-lg md:text-xl font-bold text-orange-700">€{stats.totalCostSavings}</p>
                 </div>
                 <TrendingUp className="text-orange-600" size={24} />
               </div>
@@ -249,7 +249,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-cyan-600">ROI Medio</p>
-                  <p className="text-xl font-bold text-cyan-700">{stats.averageRoi}%</p>
+                  <p className="text-lg md:text-xl font-bold text-cyan-700">{stats.averageRoi}%</p>
                 </div>
                 <Target className="text-cyan-600" size={24} />
               </div>
@@ -259,7 +259,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-indigo-600">Riduzione Input</p>
-                  <p className="text-xl font-bold text-indigo-700">{stats.inputReductionAchieved}%</p>
+                  <p className="text-lg md:text-xl font-bold text-indigo-700">{stats.inputReductionAchieved}%</p>
                 </div>
                 <CheckCircle className="text-indigo-600" size={24} />
               </div>
@@ -311,13 +311,13 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <button
                       onClick={() => {
                         setSelectedMap(map);
                         setShowCostOptimization(true);
                       }}
-                      className="p-2 text-orange-600 hover:text-orange-900 hover:bg-orange-100 rounded-lg transition-colors"
+                      className="p-3 text-orange-600 hover:text-orange-900 hover:bg-orange-100 rounded-lg transition-colors"
                       title="Ottimizza Costi"
                     >
                       <DollarSign size={16} />
@@ -328,7 +328,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                         setSelectedMap(map);
                         setShowZoneManagement(true);
                       }}
-                      className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                       title="Gestisci Zone"
                     >
                       <Settings size={16} />
@@ -339,7 +339,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                         setSelectedMap(map);
                         setShowExportModal(true);
                       }}
-                      className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition-colors"
+                      className="p-3 text-blue-600 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition-colors"
                       title="Esporta"
                     >
                       <Download size={16} />
@@ -350,7 +350,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                         // TODO: Implement map preview
                         alert('Anteprima mappa - funzionalità in sviluppo');
                       }}
-                      className="p-2 text-green-600 hover:text-green-900 hover:bg-green-100 rounded-lg transition-colors"
+                      className="p-3 text-green-600 hover:text-green-900 hover:bg-green-100 rounded-lg transition-colors"
                       title="Anteprima"
                     >
                       <Eye size={16} />
@@ -360,7 +360,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
 
                 {/* Cost Analysis Summary */}
                 {map.costAnalysis && (
-                  <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                     <div className="bg-green-50 p-3 rounded-lg">
                       <p className="text-green-600 font-medium">Risparmio vs Uniforme</p>
                       <p className="text-green-700 font-bold">€{map.costAnalysis.savingsVsUniform}</p>
@@ -384,7 +384,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
       {/* Generation Progress Modal */}
       {generating && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="bg-white rounded-lg shadow-xl max-w-[90vw] md:max-w-md max-h-[90vh] overflow-y-auto w-full p-6">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -525,7 +525,7 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Nuova Mappa Prescrizione</h2>
+          <h2 className="text-lg md:text-xl font-bold text-gray-900">Nuova Mappa Prescrizione</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             ×
           </button>
@@ -533,7 +533,7 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Basic Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Nome Mappa *
@@ -542,7 +542,7 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
                 type="text"
                 value={formData.name || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 placeholder="es. Fertilizzazione Primavera 2026"
                 required
               />
@@ -555,7 +555,7 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
               <select
                 value={formData.mapType || 'fertilizer'}
                 onChange={(e) => setFormData(prev => ({ ...prev, mapType: e.target.value as any }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               >
                 <option value="fertilizer">Fertilizzazione</option>
                 <option value="seeding">Semina</option>
@@ -573,14 +573,14 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
             <textarea
               value={formData.description || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               rows={3}
               placeholder="Descrizione opzionale della mappa..."
             />
           </div>
 
           {/* Prescription Config */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Dose Base
@@ -595,7 +595,7 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
                     baseRate: parseFloat(e.target.value) || 100
                   }
                 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 min="0"
                 step="0.1"
               />
@@ -614,7 +614,7 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
                     unit: e.target.value
                   }
                 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               >
                 <option value="kg/ha">kg/ha</option>
                 <option value="L/ha">L/ha</option>
@@ -637,7 +637,7 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
                     maxVariation: parseFloat(e.target.value) || 30
                   }
                 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 min="0"
                 max="100"
               />

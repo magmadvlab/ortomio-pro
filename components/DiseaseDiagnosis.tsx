@@ -129,9 +129,9 @@ const DiseaseDiagnosis: React.FC<DiseaseDiagnosisProps> = ({ plant, garden, weat
 
   return (
     <div className="bg-white p-6 rounded-xl border-2 border-red-200">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-3 mb-4">
         <FlaskConical size={24} className="text-red-600" />
-        <h3 className="text-xl font-bold text-gray-800">Diagnosi Malattie</h3>
+        <h3 className="text-lg md:text-xl font-bold text-gray-800">Diagnosi Malattie</h3>
       </div>
 
       {/* Upload Foto */}
@@ -140,7 +140,7 @@ const DiseaseDiagnosis: React.FC<DiseaseDiagnosisProps> = ({ plant, garden, weat
           <Camera size={16} className="inline mr-1" />
           Foto della Pianta
         </label>
-        <div className="flex flex-col sm:flex-row items-stretch gap-3">
+        <div className="flex flex-col sm:flex-col md:flex-row items-stretch gap-3">
           {/* Opzione 1: Scatta foto (mobile) */}
           <label className="flex-1 cursor-pointer">
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-red-400 transition-colors h-full flex flex-col items-center justify-center">
@@ -179,7 +179,7 @@ const DiseaseDiagnosis: React.FC<DiseaseDiagnosisProps> = ({ plant, garden, weat
             <img src={photo} alt="Sintomi" className="max-h-48 mx-auto rounded-lg border-2 border-green-400" />
             <button
               onClick={() => setPhoto(null)}
-              className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg"
+              className="absolute top-3 right-2 bg-red-500 text-white rounded-full p-3.5 hover:bg-red-600 transition-colors shadow-lg"
             >
               <X size={16} />
             </button>
@@ -206,7 +206,7 @@ const DiseaseDiagnosis: React.FC<DiseaseDiagnosisProps> = ({ plant, garden, weat
       <button
         onClick={handleAnalyze}
         disabled={isAnalyzing || (!photo && !symptomsText.trim())}
-        className="w-full py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-3"
       >
         {isAnalyzing ? (
           <>
@@ -225,8 +225,8 @@ const DiseaseDiagnosis: React.FC<DiseaseDiagnosisProps> = ({ plant, garden, weat
       {diagnosisResult && (
         <div className="mt-6 space-y-4">
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-2">
-              <div className="flex items-center gap-2 flex-1">
+            <div className="flex flex-col sm:flex-col md:flex-row items-start sm:items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 flex-1">
                 <Shield size={18} className="text-blue-600" />
                 <h4 className="font-bold text-blue-900">Risultati Analisi</h4>
               </div>
@@ -253,14 +253,14 @@ const DiseaseDiagnosis: React.FC<DiseaseDiagnosisProps> = ({ plant, garden, weat
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-3 mb-1">
                       <h5 className="font-bold text-gray-800">{diagnosis.disease.nameIT}</h5>
                       <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getCategoryColor(diagnosis.disease.category)}`}>
                         {diagnosis.disease.category}
                       </span>
                     </div>
                     <p className="text-sm text-gray-600 mb-2">{diagnosis.reasoning}</p>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <div className="flex items-center gap-3 text-xs text-gray-500">
                       <span>Confidenza: {Math.round(diagnosis.confidence * 100)}%</span>
                       {diagnosis.matchedSymptoms.length > 0 && (
                         <span>• Sintomi: {diagnosis.matchedSymptoms.slice(0, 3).join(', ')}</span>
@@ -293,7 +293,7 @@ const DiseaseDiagnosis: React.FC<DiseaseDiagnosisProps> = ({ plant, garden, weat
       {/* Piano Trattamento */}
       {treatmentPlan && (
         <div className="mt-6 bg-orange-50 p-6 rounded-xl border-2 border-orange-200">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-3 mb-4">
             <FlaskConical size={20} className="text-orange-600" />
             <h4 className="font-bold text-orange-900">Piano Trattamento</h4>
             <span className={`ml-auto px-2 py-1 rounded text-xs font-bold ${getUrgencyColor(treatmentPlan.disease.treatment.urgency)}`}>
@@ -304,7 +304,7 @@ const DiseaseDiagnosis: React.FC<DiseaseDiagnosisProps> = ({ plant, garden, weat
           {/* Timeline */}
           {treatmentPlan.timeline.immediate.length > 0 && (
             <div className="mb-4">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <AlertTriangle size={16} className="text-red-600" />
                 <h5 className="font-bold text-red-900">AZIONI IMMEDIATE (Oggi)</h5>
               </div>
@@ -318,7 +318,7 @@ const DiseaseDiagnosis: React.FC<DiseaseDiagnosisProps> = ({ plant, garden, weat
 
           {treatmentPlan.timeline.shortTerm.length > 0 && (
             <div className="mb-4">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <Clock size={16} className="text-orange-600" />
                 <h5 className="font-bold text-orange-900">BREVE TERMINE (1-3 giorni)</h5>
               </div>
@@ -332,7 +332,7 @@ const DiseaseDiagnosis: React.FC<DiseaseDiagnosisProps> = ({ plant, garden, weat
 
           {treatmentPlan.timeline.longTerm.length > 0 && (
             <div className="mb-4">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <Clock size={16} className="text-blue-600" />
                 <h5 className="font-bold text-blue-900">LUNGO TERMINE (1-2 settimane)</h5>
               </div>
@@ -347,7 +347,7 @@ const DiseaseDiagnosis: React.FC<DiseaseDiagnosisProps> = ({ plant, garden, weat
           {/* Trattamenti Organici */}
           <div className="mb-4">
             <h5 className="font-bold text-gray-800 mb-2">Trattamenti Biologici Consigliati:</h5>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {treatmentPlan.disease.treatment.organic.map((treatment, idx) => (
                 <span key={idx} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
                   {treatment}

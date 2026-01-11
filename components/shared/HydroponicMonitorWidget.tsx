@@ -56,7 +56,7 @@ export const HydroponicMonitorWidget: React.FC<HydroponicMonitorWidgetProps> = (
   return (
     <div className="bg-white p-4 rounded-2xl shadow-lg border border-gray-200">
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Droplets size={20} className="text-blue-600" />
           <h3 className="text-lg font-bold text-gray-800">Monitoraggio Idroponica</h3>
         </div>
@@ -90,7 +90,7 @@ export const HydroponicMonitorWidget: React.FC<HydroponicMonitorWidgetProps> = (
                 {phCurrent?.toFixed(2) || 'N/A'}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="flex-1 bg-gray-200 rounded-full h-2">
                 <div
                   className={`h-2 rounded-full ${
@@ -104,7 +104,7 @@ export const HydroponicMonitorWidget: React.FC<HydroponicMonitorWidgetProps> = (
               <span className="text-xs text-gray-500">Target: {phTarget}</span>
             </div>
             {phStatus !== 'ok' && phDiff !== null && (
-              <div className="flex items-center gap-1 mt-1 text-xs text-red-600">
+              <div className="flex items-center gap-3 mt-1 text-xs text-red-600">
                 <AlertCircle size={12} />
                 <span>Deviazione: {phDiff.toFixed(2)}</span>
               </div>
@@ -123,7 +123,7 @@ export const HydroponicMonitorWidget: React.FC<HydroponicMonitorWidgetProps> = (
                 {ecCurrent?.toFixed(2) || 'N/A'}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="flex-1 bg-gray-200 rounded-full h-2">
                 <div
                   className={`h-2 rounded-full ${
@@ -137,7 +137,7 @@ export const HydroponicMonitorWidget: React.FC<HydroponicMonitorWidgetProps> = (
               <span className="text-xs text-gray-500">Target: {ecTarget}</span>
             </div>
             {ecStatus !== 'ok' && ecDiff !== null && (
-              <div className="flex items-center gap-1 mt-1 text-xs text-red-600">
+              <div className="flex items-center gap-3 mt-1 text-xs text-red-600">
                 <AlertCircle size={12} />
                 <span>Deviazione: {ecDiff.toFixed(2)}</span>
               </div>
@@ -156,7 +156,7 @@ export const HydroponicMonitorWidget: React.FC<HydroponicMonitorWidgetProps> = (
                   {volumePercent.toFixed(0)}%
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <div className="flex-1 bg-gray-200 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full ${

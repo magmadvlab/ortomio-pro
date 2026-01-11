@@ -31,7 +31,7 @@ export function PopularPlantsTags({ plants, selectedPlant, onSelect }: PopularPl
       <div className="text-xs font-semibold text-gray-600 mb-3">
         Popolari in questo periodo:
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-3">
         {displayPlants.map((plant) => {
           const isSelected = selectedPlant?.toLowerCase() === plant.name.toLowerCase()
           return (

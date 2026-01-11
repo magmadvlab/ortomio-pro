@@ -77,7 +77,7 @@ export const CalendarTaskItem: React.FC<CalendarTaskItemProps> = ({
         
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start justify-between gap-3">
             <div className="flex-1">
               <p className={`
                 font-medium
@@ -89,7 +89,7 @@ export const CalendarTaskItem: React.FC<CalendarTaskItemProps> = ({
                 {task.title}
               </p>
               
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <div className="flex items-center gap-3 mt-1 flex-wrap">
                 {/* Tipo task */}
                 <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
                   {task.type}
@@ -117,7 +117,7 @@ export const CalendarTaskItem: React.FC<CalendarTaskItemProps> = ({
               
               {/* Note */}
               {task.notes && (
-                <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                <p className="text-xs text-gray-600 mt-1 line-clamp-3">
                   {task.notes}
                 </p>
               )}

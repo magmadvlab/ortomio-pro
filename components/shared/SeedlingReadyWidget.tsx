@@ -74,7 +74,7 @@ export function SeedlingReadyWidget({ garden, onOpenManager }: SeedlingReadyWidg
   if (loading) {
     return (
       <div className="bg-gradient-to-br from-green-400 to-green-600 rounded-2xl p-5 text-white shadow-lg">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Sprout size={24} className="text-green-100" />
           <div>
             <h3 className="font-bold text-lg">Piantine Pronte</h3>
@@ -101,7 +101,7 @@ export function SeedlingReadyWidget({ garden, onOpenManager }: SeedlingReadyWidg
             </div>
             <button
               onClick={handleOpenManager}
-              className="bg-white text-green-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-green-50 transition-colors flex items-center gap-2"
+              className="bg-white text-green-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-green-50 transition-colors flex items-center gap-3"
             >
               Apri
               <ChevronRight size={16} />
@@ -117,12 +117,12 @@ export function SeedlingReadyWidget({ garden, onOpenManager }: SeedlingReadyWidg
           ) : (
             <div className="mt-4 space-y-2">
               <div className="flex items-center gap-4">
-                <div className="bg-white/20 rounded-lg px-3 py-2">
-                  <p className="text-2xl font-bold">{readyBatches.length}</p>
+                <div className="bg-white/20 rounded-lg px-4 py-3 text-base">
+                  <p className="text-xl md:text-2xl font-bold">{readyBatches.length}</p>
                   <p className="text-xs opacity-90">Batch pronti</p>
                 </div>
-                <div className="bg-white/20 rounded-lg px-3 py-2">
-                  <p className="text-2xl font-bold">{totalReady}</p>
+                <div className="bg-white/20 rounded-lg px-4 py-3 text-base">
+                  <p className="text-xl md:text-2xl font-bold">{totalReady}</p>
                   <p className="text-xs opacity-90">Piantine totali</p>
                 </div>
               </div>
@@ -141,9 +141,9 @@ export function SeedlingReadyWidget({ garden, onOpenManager }: SeedlingReadyWidg
                     return (
                       <div 
                         key={batch.id} 
-                        className="bg-white/10 rounded-lg p-2 flex items-center justify-between text-sm"
+                        className="bg-white/10 rounded-lg p-3 flex items-center justify-between text-sm"
                       >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <Sprout size={14} />
                           <span className="font-medium">{batch.plantName}</span>
                           {batch.variety && (
@@ -151,7 +151,7 @@ export function SeedlingReadyWidget({ garden, onOpenManager }: SeedlingReadyWidg
                           )}
                         </div>
                         {transplantDate && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <Calendar size={12} />
                             <span className="text-xs">
                               {format(transplantDate, 'dd MMM', { locale: it })}

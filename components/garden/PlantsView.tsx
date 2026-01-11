@@ -105,7 +105,7 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
       <div className="space-y-3">
         {/* Search */}
         <div className="relative">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={18} className="absolute left-3 top-3/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             placeholder="Cerca piante..."
@@ -116,9 +116,9 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        <div className="flex gap-3 overflow-x-auto pb-2">
           {/* Status Filter */}
-          <div className="flex gap-2 min-w-max">
+          <div className="flex gap-3 min-w-max">
             <button
               onClick={() => setStatusFilter('all')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
@@ -163,7 +163,7 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
 
           {/* Zone Filter */}
           {zones.length > 1 && (
-            <div className="flex gap-2 min-w-max border-l border-gray-200 pl-2">
+            <div className="flex gap-3 min-w-max border-l border-gray-200 pl-2">
               <button
                 onClick={() => setZoneFilter('all')}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
@@ -204,7 +204,7 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPlants.map((plant) => (
             <PlantCard
               key={plant.task.id}
@@ -253,7 +253,7 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
               {/* Header */}
               <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-3">
                     <Sprout className="text-green-600" />
                     {detailsTask.plantName}
                   </h2>
@@ -274,7 +274,7 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
                 {/* Basic Info */}
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <h3 className="font-semibold text-green-900 mb-3">Informazioni Base</h3>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                     <div>
                       <span className="text-gray-600">Tipo attività:</span>
                       <p className="font-medium text-gray-900">{detailsTask.taskType}</p>
@@ -330,8 +330,8 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
 
                 {/* Notes */}
                 {detailsTask.notes && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-yellow-900 mb-2">Note</h3>
+                  <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-4">
+                    <h3 className="font-semibold text-yellow-full max-w-sm mb-2">Note</h3>
                     <p className="text-sm text-gray-700 whitespace-pre-wrap">{detailsTask.notes}</p>
                   </div>
                 )}
@@ -366,9 +366,9 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
                       .map(relatedTask => (
                         <div
                           key={relatedTask.id}
-                          className="flex items-center justify-between p-2 bg-white rounded border border-gray-200"
+                          className="flex items-center justify-between p-3 bg-white rounded border border-gray-200"
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <span className={`text-xs px-2 py-0.5 rounded ${
                               relatedTask.completed
                                 ? 'bg-green-100 text-green-700'

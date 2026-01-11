@@ -193,7 +193,7 @@ export function GardenManager() {
         </p>
         <button
           onClick={() => window.location.href = '/app'}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          className="inline-flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
         >
           <Plus size={18} />
           Crea Orto
@@ -228,8 +228,8 @@ export function GardenManager() {
               `}
             >
               {isActive && (
-                <div className="absolute top-2 right-2">
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-600 text-white text-xs rounded-full font-medium">
+                <div className="absolute top-3 right-2">
+                  <span className="inline-flex items-center gap-3 px-2 py-1 bg-green-600 text-white text-xs rounded-full font-medium">
                     ✓ Attivo
                   </span>
                 </div>
@@ -246,12 +246,12 @@ export function GardenManager() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
-                <div className="flex items-center gap-2 text-gray-600">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 text-sm">
+                <div className="flex items-center gap-3 text-gray-600">
                   <MapPin size={14} />
                   <span>{formatArea(garden.sizeSqMeters, garden.sizeUnit)}</span>
                 </div>
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-3 text-gray-600">
                   <Calendar size={14} />
                   <span>
                     {format(new Date(garden.createdAt), 'd MMM yyyy', { locale: it })}
@@ -265,12 +265,12 @@ export function GardenManager() {
                 </div>
               )}
 
-              <div className="flex flex-col gap-2 pt-3 border-t border-gray-200">
+              <div className="flex flex-col gap-3 pt-3 border-t border-gray-200">
                 {/* Prima riga - Aggiungi Struttura */}
                 <button
                   onClick={() => handleAddStructures(garden)}
                   disabled={isDeleting}
-                  className="w-full px-3 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm font-medium"
+                  className="w-full px-4 py-3 text-base border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-3 text-sm font-medium"
                   title="Aggiungi strutture all'orto"
                 >
                   <Layers size={16} />
@@ -278,12 +278,12 @@ export function GardenManager() {
                 </button>
 
                 {/* Seconda riga - Altri pulsanti */}
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   {!isActive && (
                     <button
                       onClick={() => handleSetActive(garden)}
                       disabled={isDeleting}
-                      className="flex-1 px-3 py-2 border border-green-600 text-green-600 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50 text-sm font-medium"
+                      className="flex-1 px-4 py-3 text-base border border-green-600 text-green-600 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50 text-sm font-medium"
                     >
                       Rendi Attivo
                     </button>
@@ -292,7 +292,7 @@ export function GardenManager() {
                   <button
                     onClick={() => handleEdit(garden)}
                     disabled={isDeleting}
-                    className="px-3 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    className="px-4 py-3 text-base border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 flex items-center gap-3"
                     title="Modifica orto"
                   >
                     <Edit size={16} />
@@ -302,7 +302,7 @@ export function GardenManager() {
                   <button
                     onClick={() => handleDelete(garden.id, garden.name)}
                     disabled={isDeleting}
-                    className="px-3 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    className="px-4 py-3 text-base border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 flex items-center gap-3"
                     title="Elimina orto"
                   >
                     {isDeleting ? (
@@ -324,8 +324,8 @@ export function GardenManager() {
         })}
       </div>
 
-      <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-        <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+      <div className="mt-6 p-4 bg-yellow-50 border border-yellow-full max-w-sm rounded-xl">
+        <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-3">
           ⚠️ Attenzione
         </h4>
         <ul className="text-sm text-gray-700 space-y-1">

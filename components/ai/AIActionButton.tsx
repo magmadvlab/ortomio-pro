@@ -144,7 +144,7 @@ export const AIActionButton: React.FC<AIActionButtonProps> = ({
           <button
             onClick={() => setShowOptions(!showOptions)}
             disabled={isLoading}
-            className="bg-green-600 hover:bg-green-700 text-white p-3 rounded-full shadow-lg transition-all duration-200 flex items-center gap-2"
+            className="bg-green-600 hover:bg-green-700 text-white p-3 rounded-full shadow-lg transition-all duration-200 flex items-center gap-3"
           >
             {isLoading ? (
               <Loader2 size={20} className="animate-spin" />
@@ -159,7 +159,7 @@ export const AIActionButton: React.FC<AIActionButtonProps> = ({
                 <button
                   key={option.key}
                   onClick={() => handleAIAction(option.key)}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
+                  className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-3 text-sm"
                 >
                   <option.icon size={16} />
                   {option.label}
@@ -209,7 +209,7 @@ export const AIActionButton: React.FC<AIActionButtonProps> = ({
       <button
         onClick={() => setShowOptions(!showOptions)}
         disabled={isLoading}
-        className="inline-flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+        className="inline-flex items-center gap-3 px-4 py-3 text-base bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
       >
         {isLoading ? (
           <Loader2 size={16} className="animate-spin" />
@@ -225,7 +225,7 @@ export const AIActionButton: React.FC<AIActionButtonProps> = ({
             <button
               key={option.key}
               onClick={() => handleAIAction(option.key)}
-              className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
+              className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-3 text-sm"
             >
               <option.icon size={16} />
               {option.label}

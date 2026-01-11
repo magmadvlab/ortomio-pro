@@ -106,7 +106,7 @@ const CustomCropsDashboard: React.FC<CustomCropsDashboardProps> = ({ gardenId })
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-3 mb-2">
                     <h4 className="font-semibold text-gray-900">{crop.common_name}</h4>
                     <span className={`px-2 py-0.5 text-xs font-semibold rounded-full border ${status.color} flex items-center gap-1`}>
                       {status.icon}
@@ -119,16 +119,16 @@ const CustomCropsDashboard: React.FC<CustomCropsDashboardProps> = ({ gardenId })
                   )}
                   
                   <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-3">
                       <Calendar size={14} />
                       {crop.stats.totalPlantings} semine
                     </span>
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-3">
                       <TrendingUp size={14} />
                       {crop.stats.totalHarvests} raccolti
                     </span>
                     {crop.stats.successRate > 0 && (
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center gap-3">
                         <CheckCircle size={14} />
                         {Math.round(crop.stats.successRate * 100)}% successo
                       </span>
@@ -148,7 +148,7 @@ const CustomCropsDashboard: React.FC<CustomCropsDashboardProps> = ({ gardenId })
                   {/* Suggerimenti */}
                   {suggestions.planting && (
                     <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-3">
                         <Calendar className="text-blue-600 mt-0.5" size={16} />
                         <div className="flex-1">
                           <div className="text-xs font-semibold text-blue-700 mb-1">Suggerimento Semina</div>
@@ -160,7 +160,7 @@ const CustomCropsDashboard: React.FC<CustomCropsDashboardProps> = ({ gardenId })
 
                   {suggestions.harvest && (
                     <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-3">
                         <TrendingUp className="text-green-600 mt-0.5" size={16} />
                         <div className="flex-1">
                           <div className="text-xs font-semibold text-green-700 mb-1">Suggerimento Raccolta</div>
@@ -194,7 +194,7 @@ const CustomCropsDashboard: React.FC<CustomCropsDashboardProps> = ({ gardenId })
 
                   {suggestions.problems && suggestions.problems.length > 0 && (
                     <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-3">
                         <AlertCircle className="text-red-600 mt-0.5" size={16} />
                         <div className="flex-1">
                           <div className="text-xs font-semibold text-red-700 mb-2">Problemi Ricorrenti</div>
@@ -221,7 +221,7 @@ const CustomCropsDashboard: React.FC<CustomCropsDashboardProps> = ({ gardenId })
                   {/* Pattern appresi */}
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <div className="text-xs font-semibold text-gray-700 mb-2">Pattern Appresi</div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                       <div>
                         <span className="text-gray-500">Confidenza Semina:</span>
                         <span className="ml-2 font-semibold">

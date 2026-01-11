@@ -143,7 +143,7 @@ export const AccessoriesSuggestionsSection: React.FC<AccessoriesSuggestionsSecti
     return (
       <div className="bg-white p-4 rounded-xl border-2 border-green-200 mb-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-3">
             <Package size={20} className="text-green-600" />
             Aggiungi Accessorio Suggerito
           </h3>
@@ -181,7 +181,7 @@ export const AccessoriesSuggestionsSection: React.FC<AccessoriesSuggestionsSecti
 
   return (
     <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-xl border-2 border-purple-200 mb-4">
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-3 mb-3">
         <Package size={20} className="text-purple-600" />
         <h3 className="text-lg font-bold text-gray-800">Accessori Consigliati</h3>
         <Info size={16} className="text-gray-500" />
@@ -205,17 +205,17 @@ export const AccessoriesSuggestionsSection: React.FC<AccessoriesSuggestionsSecti
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-start gap-3 flex-1">
-                  <span className="text-2xl">
+                  <span className="text-xl md:text-2xl">
                     {suggestedAcc ? getAccessoryIcon(suggestedAcc.category, suggestedAcc.type) : '📦'}
                   </span>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-3 mb-1">
                       <h4 className="font-semibold text-gray-800">{suggestion.message}</h4>
                       <span className={`text-xs px-2 py-0.5 rounded-full border ${getPriorityColor(suggestion.priority)}`}>
                         {suggestion.priority === 'High' ? 'Importante' : suggestion.priority === 'Medium' ? 'Consigliato' : 'Opzionale'}
                       </span>
                       {alreadyPresent && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800 border border-green-300 flex items-center gap-1">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800 border border-green-300 flex items-center gap-3">
                           <CheckCircle size={12} />
                           Già presente
                         </span>
@@ -223,7 +223,7 @@ export const AccessoriesSuggestionsSection: React.FC<AccessoriesSuggestionsSecti
                     </div>
                     <div className="text-sm text-gray-600 space-y-1">
                       {suggestion.instructions.slice(0, 2).map((instruction, idx) => (
-                        <p key={idx} className="flex items-start gap-2">
+                        <p key={idx} className="flex items-start gap-3">
                           <span className="text-purple-500 mt-0.5">•</span>
                           <span>{instruction}</span>
                         </p>
@@ -244,7 +244,7 @@ export const AccessoriesSuggestionsSection: React.FC<AccessoriesSuggestionsSecti
                     setSelectedSuggestion(suggestion);
                     setShowForm(true);
                   }}
-                  className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                  className="mt-3 w-full flex items-center justify-center gap-3 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
                 >
                   <Plus size={16} />
                   Aggiungi Accessorio
@@ -260,7 +260,7 @@ export const AccessoriesSuggestionsSection: React.FC<AccessoriesSuggestionsSecti
           <p className="text-xs text-gray-600 mb-2">
             Accessori già presenti per questa pianta:
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {existingAccessories.map(acc => (
               <span
                 key={acc.id}

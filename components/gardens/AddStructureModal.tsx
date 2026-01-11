@@ -212,7 +212,7 @@ export const AddStructureModal: React.FC<AddStructureModalProps> = ({
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-800">
               {currentStep === 'select' ? 'Aggiungi Strutture' : `Configura ${structureLabels[currentConfiguring!]}`}
             </h2>
             <button
@@ -231,7 +231,7 @@ export const AddStructureModal: React.FC<AddStructureModalProps> = ({
                 Seleziona le strutture che vuoi aggiungere al tuo orto:
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
                 {structureOptions.map((option) => (
                   <div
                     key={option.type}

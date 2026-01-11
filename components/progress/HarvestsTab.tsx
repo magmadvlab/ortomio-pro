@@ -96,7 +96,7 @@ export function HarvestsTab() {
   return (
     <div className="space-y-6">
       {/* Stats Mese Corrente */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200 p-6">
           <div className="flex items-center gap-3 mb-2">
             <ShoppingBasket size={24} className="text-green-600" />
@@ -109,7 +109,7 @@ export function HarvestsTab() {
             {currentMonthHarvests.length} raccolti
           </p>
           {analytics && (
-            <div className="mt-3 flex items-center gap-2 text-sm">
+            <div className="mt-3 flex items-center gap-3 text-sm">
               <TrendingUp size={16} className="text-green-600" />
               <span className="text-green-700 font-medium">
                 +15% vs mese scorso
@@ -118,9 +118,9 @@ export function HarvestsTab() {
           )}
         </div>
 
-        <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl border border-yellow-200 p-6">
+        <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl border border-yellow-full max-w-sm p-6">
           <div className="flex items-center gap-3 mb-2">
-            <Euro size={24} className="text-yellow-600" />
+            <Euro size={24} className="text-yellow-full max-w-sm" />
             <h3 className="text-lg font-semibold text-gray-900">Valore Stimato</h3>
           </div>
           <div className="text-3xl font-bold text-gray-900 mb-1">
@@ -134,7 +134,7 @@ export function HarvestsTab() {
 
       {/* Grafico Andamento Annuale */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-3">
           <TrendingUp size={20} className="text-blue-600" />
           Andamento Annuale
         </h3>
@@ -185,7 +185,7 @@ export function HarvestsTab() {
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-sm transition-shadow"
                 >
                   <div className="flex items-center gap-4 flex-1">
-                    <div className="text-2xl">
+                    <div className="text-xl md:text-2xl">
                       {harvest.plantName === 'Pomodoro' ? '🍅' :
                        harvest.plantName === 'Lattuga' ? '🥬' :
                        harvest.plantName === 'Basilico' ? '🌿' :
@@ -195,7 +195,7 @@ export function HarvestsTab() {
                     <div className="flex-1">
                       <div className="font-semibold text-gray-900">{harvest.plantName}</div>
                       <div className="flex items-center gap-3 text-sm text-gray-600 mt-1">
-                        <span className="flex items-center gap-1">
+                        <span className="flex items-center gap-3">
                           <Calendar size={14} />
                           {format(parseISO(harvest.date), 'dd MMM yyyy', { locale: it })}
                         </span>
@@ -203,7 +203,7 @@ export function HarvestsTab() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-2xl">
+                  <div className="text-xl md:text-2xl">
                     {getQualityEmoji(harvest.rating)}
                   </div>
                 </div>

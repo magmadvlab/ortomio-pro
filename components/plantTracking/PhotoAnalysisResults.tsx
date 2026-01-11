@@ -43,7 +43,7 @@ export const PhotoAnalysisResults: React.FC<PhotoAnalysisResultsProps> = ({
     if (!growthComparison) {
       return analysisResult.isHealthy 
         ? <CheckCircle size={16} className="text-green-600" />
-        : <AlertTriangle size={16} className="text-yellow-600" />;
+        : <AlertTriangle size={16} className="text-yellow-full max-w-sm" />;
     }
     
     switch (growthComparison.healthChange) {
@@ -60,15 +60,15 @@ export const PhotoAnalysisResults: React.FC<PhotoAnalysisResultsProps> = ({
     <div className={`space-y-4 ${className}`}>
       {/* Analisi Base */}
       <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-3">
           <Leaf size={18} />
           Analisi Foto
         </h4>
         
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <p className="text-xs text-gray-500 mb-1">Salute</p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {getHealthIcon()}
               <span className={`text-sm font-medium ${
                 analysisResult.isHealthy ? 'text-green-700' : 'text-yellow-700'
@@ -113,9 +113,9 @@ export const PhotoAnalysisResults: React.FC<PhotoAnalysisResultsProps> = ({
         {analysisResult.issues && analysisResult.issues.length > 0 && (
           <div className="mt-3 pt-3 border-t border-gray-200">
             <p className="text-xs text-gray-500 mb-1">Problemi Rilevati</p>
-            <ul className="text-sm text-yellow-700">
+            <ul className="text-sm text-yellow-full max-w-sm">
               {analysisResult.issues.map((issue, idx) => (
-                <li key={idx} className="flex items-center gap-1">
+                <li key={idx} className="flex items-center gap-3">
                   <AlertTriangle size={12} />
                   {issue}
                 </li>
@@ -128,7 +128,7 @@ export const PhotoAnalysisResults: React.FC<PhotoAnalysisResultsProps> = ({
       {/* Confronto con Foto Precedente */}
       {growthComparison && (
         <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
-          <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+          <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-3">
             {getGrowthIcon()}
             Confronto con Foto Precedente
           </h4>
@@ -171,7 +171,7 @@ export const PhotoAnalysisResults: React.FC<PhotoAnalysisResultsProps> = ({
               <p className="text-xs font-medium text-blue-900 mb-2">Raccomandazioni:</p>
               <ul className="space-y-1">
                 {growthComparison.recommendations.map((rec, idx) => (
-                  <li key={idx} className="text-xs text-blue-700 flex items-start gap-1">
+                  <li key={idx} className="text-xs text-blue-700 flex items-start gap-3">
                     <span className="mt-0.5">•</span>
                     <span>{rec}</span>
                   </li>
@@ -184,19 +184,19 @@ export const PhotoAnalysisResults: React.FC<PhotoAnalysisResultsProps> = ({
 
       {/* Suggerimento Fertilizzazione */}
       {fertilizationSuggestion && fertilizationSuggestion.needed && (
-        <div className="bg-yellow-50 rounded-lg border border-yellow-300 p-4">
-          <h4 className="font-semibold text-yellow-900 mb-2 flex items-center gap-2">
+        <div className="bg-yellow-50 rounded-lg border border-yellow-full max-w-sm p-4">
+          <h4 className="font-semibold text-yellow-full max-w-sm mb-2 flex items-center gap-3">
             <AlertTriangle size={18} />
             Suggerimento Fertilizzazione
           </h4>
           
-          <p className="text-sm text-yellow-800 mb-3">
+          <p className="text-sm text-yellow-full max-w-sm mb-3">
             {fertilizationSuggestion.reason}
           </p>
           
           <div className="space-y-2 text-sm">
             <div>
-              <span className="text-yellow-700 font-medium">Priorità: </span>
+              <span className="text-yellow-full max-w-sm font-medium">Priorità: </span>
               <span className={`font-semibold ${
                 fertilizationSuggestion.priority === 'high' ? 'text-red-700' :
                 fertilizationSuggestion.priority === 'medium' ? 'text-orange-700' :
@@ -209,8 +209,8 @@ export const PhotoAnalysisResults: React.FC<PhotoAnalysisResultsProps> = ({
             </div>
             
             <div>
-              <span className="text-yellow-700 font-medium">Nutrienti consigliati: </span>
-              <span className="text-yellow-800">
+              <span className="text-yellow-full max-w-sm font-medium">Nutrienti consigliati: </span>
+              <span className="text-yellow-full max-w-sm">
                 {Object.entries(fertilizationSuggestion.recommendedNutrients)
                   .filter(([_, needed]) => needed)
                   .map(([nutrient, _]) => {
@@ -227,15 +227,15 @@ export const PhotoAnalysisResults: React.FC<PhotoAnalysisResultsProps> = ({
             </div>
             
             <div>
-              <span className="text-yellow-700 font-medium">Dosaggio: </span>
-              <span className="text-yellow-800">
+              <span className="text-yellow-full max-w-sm font-medium">Dosaggio: </span>
+              <span className="text-yellow-full max-w-sm">
                 {fertilizationSuggestion.dosage.amount}g/m², {fertilizationSuggestion.dosage.frequency}
               </span>
             </div>
             
             <div>
-              <span className="text-yellow-700 font-medium">Metodo: </span>
-              <span className="text-yellow-800">
+              <span className="text-yellow-full max-w-sm font-medium">Metodo: </span>
+              <span className="text-yellow-full max-w-sm">
                 {fertilizationSuggestion.dosage.method === 'foliar' ? 'Fogliare' :
                  fertilizationSuggestion.dosage.method === 'fertigation' ? 'Fertirrigazione' :
                  'Al terreno'}
@@ -243,7 +243,7 @@ export const PhotoAnalysisResults: React.FC<PhotoAnalysisResultsProps> = ({
             </div>
             
             <div>
-              <span className="text-yellow-700 font-medium">Timing: </span>
+              <span className="text-yellow-full max-w-sm font-medium">Timing: </span>
               <span className={`font-semibold ${
                 fertilizationSuggestion.timing.urgency === 'immediate' ? 'text-red-700' :
                 fertilizationSuggestion.timing.urgency === 'soon' ? 'text-orange-700' :
@@ -255,11 +255,11 @@ export const PhotoAnalysisResults: React.FC<PhotoAnalysisResultsProps> = ({
           </div>
 
           {fertilizationSuggestion.notes && fertilizationSuggestion.notes.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-yellow-200">
-              <p className="text-xs font-medium text-yellow-900 mb-1">Note:</p>
+            <div className="mt-3 pt-3 border-t border-yellow-full max-w-sm">
+              <p className="text-xs font-medium text-yellow-full max-w-sm mb-1">Note:</p>
               <ul className="space-y-1">
                 {fertilizationSuggestion.notes.map((note, idx) => (
-                  <li key={idx} className="text-xs text-yellow-800">
+                  <li key={idx} className="text-xs text-yellow-full max-w-sm">
                     • {note}
                   </li>
                 ))}

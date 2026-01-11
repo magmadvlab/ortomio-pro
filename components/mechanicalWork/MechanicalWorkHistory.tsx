@@ -134,26 +134,26 @@ export function MechanicalWorkHistory({
   return (
     <div className="space-y-6">
       {/* STATISTICHE RIEPILOGO */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-green-50 rounded-lg p-4 border border-green-200">
           <div className="text-sm text-gray-600 mb-1">Totale Lavorazioni</div>
-          <div className="text-2xl font-bold text-gray-900">{stats.totalWorks}</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-900">{stats.totalWorks}</div>
         </div>
         <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
           <div className="text-sm text-gray-600 mb-1">Area Lavorata</div>
-          <div className="text-2xl font-bold text-gray-900">
+          <div className="text-xl md:text-2xl font-bold text-gray-900">
             {stats.totalArea.toFixed(0)} <span className="text-sm">m²</span>
           </div>
         </div>
         <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
           <div className="text-sm text-gray-600 mb-1">Ore Lavorate</div>
-          <div className="text-2xl font-bold text-gray-900">
+          <div className="text-xl md:text-2xl font-bold text-gray-900">
             {stats.totalHours.toFixed(1)} <span className="text-sm">h</span>
           </div>
         </div>
         <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
           <div className="text-sm text-gray-600 mb-1">Costo Totale</div>
-          <div className="text-2xl font-bold text-gray-900">
+          <div className="text-xl md:text-2xl font-bold text-gray-900">
             {stats.totalCost.toFixed(0)} <span className="text-sm">€</span>
           </div>
         </div>
@@ -161,17 +161,17 @@ export function MechanicalWorkHistory({
 
       {/* FILTRI */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-3 mb-3">
           <Filter size={18} className="text-gray-600" />
           <span className="font-semibold text-gray-900">Filtri</span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-gray-600 mb-1 block">Tipo Lavorazione</label>
             <select
               value={filterType}
               onChange={e => setFilterType(e.target.value as WorkType | 'all')}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+              className="w-full border border-gray-300 rounded px-4 py-3 text-base text-sm"
             >
               <option value="all">Tutte</option>
               <option value="Plowing">Aratura</option>
@@ -186,7 +186,7 @@ export function MechanicalWorkHistory({
             <select
               value={filterEquipment}
               onChange={e => setFilterEquipment(e.target.value as EquipmentType | 'all')}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+              className="w-full border border-gray-300 rounded px-4 py-3 text-base text-sm"
             >
               <option value="all">Tutte</option>
               <option value="Tractor">Trattore</option>
@@ -206,7 +206,7 @@ export function MechanicalWorkHistory({
           >
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-3 mb-1">
                   <h3 className="font-bold text-gray-900 text-lg">
                     {getWorkTypeLabel(log.workType)}
                   </h3>
@@ -220,11 +220,11 @@ export function MechanicalWorkHistory({
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 {onView && (
                   <button
                     onClick={() => onView(log)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
                     title="Visualizza dettagli"
                   >
                     <Eye size={18} className="text-gray-600" />
@@ -233,7 +233,7 @@ export function MechanicalWorkHistory({
                 {onEdit && (
                   <button
                     onClick={() => onEdit(log)}
-                    className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
+                    className="p-3 hover:bg-blue-100 rounded-lg transition-colors"
                     title="Modifica"
                   >
                     <Edit size={18} className="text-blue-600" />
@@ -246,7 +246,7 @@ export function MechanicalWorkHistory({
                         await onDelete(log.id!)
                       }
                     }}
-                    className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                    className="p-3 hover:bg-red-100 rounded-lg transition-colors"
                     title="Elimina"
                   >
                     <Trash2 size={18} className="text-red-600" />
@@ -256,8 +256,8 @@ export function MechanicalWorkHistory({
             </div>
 
             {/* INFO GRID */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="flex items-center gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="flex items-center gap-3">
                 <Calendar size={16} className="text-gray-500" />
                 <div>
                   <div className="text-xs text-gray-500">Data</div>
@@ -268,7 +268,7 @@ export function MechanicalWorkHistory({
               </div>
 
               {log.areaCoveredSqm && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <MapPin size={16} className="text-gray-500" />
                   <div>
                     <div className="text-xs text-gray-500">Area</div>
@@ -280,7 +280,7 @@ export function MechanicalWorkHistory({
               )}
 
               {log.durationMinutes && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <Clock size={16} className="text-gray-500" />
                   <div>
                     <div className="text-xs text-gray-500">Durata</div>
@@ -294,7 +294,7 @@ export function MechanicalWorkHistory({
               )}
 
               {log.cost && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <Euro size={16} className="text-gray-500" />
                   <div>
                     <div className="text-xs text-gray-500">Costo</div>
@@ -315,7 +315,7 @@ export function MechanicalWorkHistory({
                   </div>
                 )}
                 {log.operatorName && (
-                  <div className="text-gray-600 flex items-center gap-1.5">
+                  <div className="text-gray-600 flex items-center gap-3.5">
                     <User size={14} />
                     <span className="font-medium">Operatore:</span> {log.operatorName}
                   </div>

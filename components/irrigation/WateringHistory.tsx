@@ -122,7 +122,7 @@ export function WateringHistory({ logs }: WateringHistoryProps) {
 
   if (logs.length === 0) {
     return (
-      <Card className="p-12 text-center">
+      <Card className="p-32 text-center">
         <div className="text-gray-400 mb-3">
           <Calendar size={48} className="mx-auto" />
         </div>
@@ -176,7 +176,7 @@ export function WateringHistory({ logs }: WateringHistoryProps) {
             {sortedLogs.map((log) => (
               <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <Calendar className="text-gray-400" size={16} />
                     <div>
                       <p className="text-sm font-medium text-gray-900">
@@ -208,14 +208,14 @@ export function WateringHistory({ logs }: WateringHistoryProps) {
                 </td>
 
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-3.5">
                     <Clock className="text-orange-400" size={16} />
                     <span className="text-sm text-gray-900">{log.durationMinutes} min</span>
                   </div>
                 </td>
 
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-3.5">
                     <Droplets className="text-blue-400" size={16} />
                     <span className="text-sm font-medium text-blue-600">
                       {log.litersApplied.toFixed(1)} L
@@ -230,9 +230,9 @@ export function WateringHistory({ logs }: WateringHistoryProps) {
                 </td>
 
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-3">
                     {log.weatherCondition && (
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-3.5">
                         <Cloud className="text-gray-400" size={14} />
                         <span className="text-xs text-gray-600">
                           {getWeatherIcon(log.weatherCondition)} {log.weatherCondition}
@@ -240,7 +240,7 @@ export function WateringHistory({ logs }: WateringHistoryProps) {
                       </div>
                     )}
                     {log.airTemperatureC && (
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-3.5">
                         <Thermometer className="text-red-400" size={14} />
                         <span className="text-xs text-gray-600">{log.airTemperatureC}°C</span>
                       </div>

@@ -95,7 +95,7 @@ export const WeeklyPhotoReminder: React.FC<WeeklyPhotoReminderProps> = ({
   return (
     <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4 shadow-sm">
       <div className="flex items-start gap-3">
-        <div className="bg-blue-100 rounded-full p-2">
+        <div className="bg-blue-100 rounded-full p-3">
           <Camera size={20} className="text-blue-600" />
         </div>
         <div className="flex-1">
@@ -110,10 +110,10 @@ export const WeeklyPhotoReminder: React.FC<WeeklyPhotoReminderProps> = ({
               Ultima foto: {new Date(nextReminder.lastPhotoDate).toLocaleDateString('it-IT')}
             </p>
           )}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => handleTakePhoto(nextReminder.taskId)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              className="flex items-center gap-3 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
             >
               <Camera size={14} />
               Scatta Foto Ora

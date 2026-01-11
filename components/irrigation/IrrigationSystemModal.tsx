@@ -78,11 +78,11 @@ export function IrrigationSystemModal({
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-cyan-600 text-white p-6 flex items-center justify-between -m-6 mb-6 rounded-t-xl">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-lg">
+            <div className="p-3 bg-white/20 rounded-lg">
               <Droplets size={24} />
             </div>
             <div>
-              <h2 className="text-xl font-bold">
+              <h2 className="text-lg md:text-xl font-bold">
                 {system ? 'Modifica Sistema' : 'Nuovo Sistema Irrigazione'}
               </h2>
               <p className="text-sm text-blue-100">
@@ -92,7 +92,7 @@ export function IrrigationSystemModal({
           </div>
           <button
             onClick={onCancel}
-            className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+            className="p-3 hover:bg-white/20 rounded-lg transition-colors"
           >
             <X size={24} />
           </button>
@@ -111,7 +111,7 @@ export function IrrigationSystemModal({
               placeholder="Es. Impianto Orto Principale"
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+              <p className="mt-1 text-sm text-red-600 flex items-center gap-3">
                 <AlertCircle size={14} />
                 {errors.name}
               </p>
@@ -175,7 +175,7 @@ export function IrrigationSystemModal({
               placeholder="Es. 2.0"
             />
             {errors.pressureBar && (
-              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+              <p className="mt-1 text-sm text-red-600 flex items-center gap-3">
                 <AlertCircle size={14} />
                 {errors.pressureBar}
               </p>
@@ -186,7 +186,7 @@ export function IrrigationSystemModal({
           </div>
 
           {/* Componenti */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
               <input
                 type="checkbox"
@@ -224,7 +224,7 @@ export function IrrigationSystemModal({
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Aggiungi note sul tuo impianto..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             />
           </div>
 

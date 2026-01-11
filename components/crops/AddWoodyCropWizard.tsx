@@ -237,7 +237,7 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900">
             Aggiungi {cropType === 'FruitTree' ? 'Albero da Frutto' : cropType === 'Olive' ? 'Olivo' : 'Vite'}
           </h2>
           <button
@@ -254,7 +254,7 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
           {step === 'type' && (
             <div>
               <h3 className="text-lg font-semibold mb-4">Seleziona Tipo Coltura</h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <button
                   onClick={() => {
                     setCropType('FruitTree');
@@ -300,7 +300,7 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
               {/* Info frutteto/oliveto/vigneto esistente */}
               {detectionResult?.exists && (
                 <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-3">
                     <Info className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
                     <div className="text-sm">
                       <p className="font-semibold text-blue-900 mb-1">
@@ -346,7 +346,7 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
 
               {/* Età / Nuovo Impianto */}
               <div className="mb-4">
-                <label className="flex items-center gap-2 mb-2">
+                <label className="flex items-center gap-3 mb-2">
                   <input
                     type="checkbox"
                     checked={isNewPlanting}
@@ -432,7 +432,7 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
                     ? 'bg-green-50 border-green-200' 
                     : 'bg-orange-50 border-orange-200'
                 }`}>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-3">
                     {compatibility.compatible ? (
                       <CheckCircle className="text-green-600 flex-shrink-0 mt-0.5" size={20} />
                     ) : (
@@ -449,7 +449,7 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
               <div className="flex justify-between mt-6">
                 <button
                   onClick={() => setStep('type')}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-3"
                 >
                   <ArrowLeft size={18} />
                   Indietro
@@ -457,7 +457,7 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
                 <button
                   onClick={handleComplete}
                   disabled={!selectedVariety}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-3"
                 >
                   Completa
                   <ArrowRight size={18} />

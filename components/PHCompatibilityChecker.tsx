@@ -70,7 +70,7 @@ const PHCompatibilityChecker: React.FC<PHCompatibilityCheckerProps> = ({
               <span className="text-xs text-gray-600">pH Terreno: <span className="font-bold text-gray-800">{soilPH.toFixed(1)}</span></span>
               <span className="text-xs text-gray-600">Pianta: <span className="font-bold text-gray-800">{plant.commonName}</span></span>
             </div>
-            <div className="relative h-4 bg-gradient-to-r from-red-400 via-yellow-400 via-green-400 to-blue-400 rounded-full">
+            <div className="relative h-4 bg-gradient-to-r from-red-400 via-yellow-full max-w-sm via-green-400 to-blue-400 rounded-full">
               <div
                 className="absolute top-0 bottom-0 w-1 bg-black rounded-full"
                 style={{ left: `${((soilPH - 0) / 14) * 100}%` }}
@@ -93,10 +93,10 @@ const PHCompatibilityChecker: React.FC<PHCompatibilityCheckerProps> = ({
 
           {/* Suggerimento */}
           {advice.suggestion && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
-              <div className="flex items-start gap-2">
-                <Lightbulb size={16} className="text-yellow-600 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-yellow-800">
+            <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-3 mb-3">
+              <div className="flex items-start gap-3">
+                <Lightbulb size={16} className="text-yellow-full max-w-sm mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-yellow-full max-w-sm">
                   <span className="font-semibold">💡 Suggerimento:</span> {advice.suggestion}
                 </p>
               </div>
@@ -109,12 +109,12 @@ const PHCompatibilityChecker: React.FC<PHCompatibilityCheckerProps> = ({
               <p className="text-sm font-semibold text-gray-800 mb-2">
                 Piante alternative compatibili con pH {soilPH.toFixed(1)}:
               </p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {advice.alternatives.slice(0, 6).map((alt) => (
                   <button
                     key={alt.id}
                     onClick={() => onSelectAlternative?.(alt)}
-                    className="text-left px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors text-sm"
+                    className="text-left px-4 py-3 text-base bg-white border border-gray-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors text-sm"
                   >
                     <p className="font-medium text-gray-800">{alt.commonName}</p>
                     <p className="text-xs text-gray-600">{alt.family}</p>

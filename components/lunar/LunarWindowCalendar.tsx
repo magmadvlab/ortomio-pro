@@ -45,11 +45,11 @@ export function LunarWindowCalendar({
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-white/20 rounded-lg">
+          <div className="p-3 bg-white/20 rounded-lg">
             <Calendar size={24} />
           </div>
           <div>
-            <h3 className="text-xl font-bold">Calendario Lunare</h3>
+            <h3 className="text-lg md:text-xl font-bold">Calendario Lunare</h3>
             <p className="text-sm text-purple-100">
               Prossime finestre ideali per {operationLabels[operation]}
               {plantName && ` di ${plantName}`}
@@ -100,7 +100,7 @@ export function LunarWindowCalendar({
                 <div className="flex-1">
                   {/* Active Badge */}
                   {isActive && (
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-full mb-2">
+                    <div className="inline-flex items-center gap-3.5 px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-full mb-2">
                       <Sparkles size={14} />
                       IN CORSO ADESSO
                     </div>
@@ -122,7 +122,7 @@ export function LunarWindowCalendar({
                   </div>
 
                   {/* Moon Phase */}
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className="flex items-center gap-3 text-sm text-gray-600">
                     <span>{window.phase === 'waxing' ? '🌒' : '🌘'}</span>
                     <span>{window.phaseName}</span>
                     {!isActive && window.daysFromNow > 0 && (
@@ -150,7 +150,7 @@ export function LunarWindowCalendar({
                 <div className="text-xs font-medium text-gray-600 mb-2">
                   Operazioni ideali:
                 </div>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-3.5">
                   {window.idealFor.slice(0, 3).map((op, opIdx) => (
                     <span
                       key={opIdx}
@@ -178,7 +178,7 @@ export function LunarWindowCalendar({
       {/* Footer Info */}
       <div className="px-6 pb-6">
         <div className="bg-blue-50 rounded-lg p-4 text-sm text-gray-700">
-          <div className="font-semibold mb-1 flex items-center gap-2">
+          <div className="font-semibold mb-1 flex items-center gap-3">
             <Sparkles size={16} className="text-blue-600" />
             Perché seguire la luna?
           </div>

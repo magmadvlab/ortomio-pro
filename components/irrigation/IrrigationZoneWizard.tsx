@@ -210,7 +210,7 @@ export const IrrigationZoneWizard: React.FC<IrrigationZoneWizardProps> = ({
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Droplets size={24} className="text-blue-600" />
-            <h2 className="text-2xl font-bold text-gray-900">Crea Zona Irrigua</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Crea Zona Irrigua</h2>
           </div>
           <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
             <X size={24} />
@@ -222,7 +222,7 @@ export const IrrigationZoneWizard: React.FC<IrrigationZoneWizardProps> = ({
           <div className="p-6">
             <p className="text-gray-600 mb-6">Scegli un template o configura manualmente:</p>
             
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
               {irrigationTemplates.map(template => (
                 <button
                   key={template.id}
@@ -591,14 +591,14 @@ export const IrrigationZoneWizard: React.FC<IrrigationZoneWizardProps> = ({
             <div className="flex gap-3 mt-6">
               <button 
                 onClick={() => setStep('method')} 
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                className="px-4 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-3"
               >
                 <ArrowLeft size={18} />
                 Indietro
               </button>
               <button 
                 onClick={() => setStep('assign')} 
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-3"
               >
                 Avanti
                 <ArrowRight size={18} />
@@ -624,7 +624,7 @@ export const IrrigationZoneWizard: React.FC<IrrigationZoneWizardProps> = ({
                 {beds.map(bed => (
                   <label 
                     key={bed.id} 
-                    className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                    className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
                   >
                     <input
                       type="checkbox"
@@ -652,14 +652,14 @@ export const IrrigationZoneWizard: React.FC<IrrigationZoneWizardProps> = ({
             <div className="flex gap-3">
               <button 
                 onClick={() => setStep('details')} 
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                className="px-4 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-3"
               >
                 <ArrowLeft size={18} />
                 Indietro
               </button>
               <button 
                 onClick={handleComplete}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-3"
               >
                 <CheckCircle size={18} />
                 Crea Zona

@@ -32,7 +32,7 @@ const LimitIndicator: React.FC<LimitIndicatorProps> = ({
   const isAtLimit = !limitCheck.allowed;
 
   return (
-    <div className="flex items-center gap-2 text-xs">
+    <div className="flex items-center gap-3 text-xs">
       <span className={`font-medium ${isAtLimit ? 'text-red-600' : isNearLimit ? 'text-orange-600' : 'text-gray-500'}`}>
         {label}: {currentValue}/{maxValue}
       </span>

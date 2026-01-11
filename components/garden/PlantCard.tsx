@@ -44,8 +44,8 @@ export function PlantCard({ plant, onHarvest, onViewDetails }: PlantCardProps) {
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl">{getStatusEmoji(plant.status)}</span>
+          <div className="flex items-center gap-3 mb-1">
+            <span className="text-xl md:text-2xl">{getStatusEmoji(plant.status)}</span>
             <h3 className="font-bold text-gray-900">{plant.task.plantName}</h3>
           </div>
           {plant.task.variety && (
@@ -55,7 +55,7 @@ export function PlantCard({ plant, onHarvest, onViewDetails }: PlantCardProps) {
       </div>
 
       {/* Zone */}
-      <div className="flex items-center gap-1 text-sm text-gray-600 mb-3">
+      <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
         <MapPin size={14} />
         <span>{plant.zone}</span>
       </div>
@@ -99,12 +99,12 @@ export function PlantCard({ plant, onHarvest, onViewDetails }: PlantCardProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         {/* Mostra button Raccogli solo se pianta è matura (usando isPlantMature) */}
         {isMature && !plant.task.harvestLogId && (
           <button
             onClick={() => onHarvest(plant.task)}
-            className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 flex items-center justify-center gap-1 transition-colors"
+            className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 flex items-center justify-center gap-3 transition-colors"
           >
             <ShoppingBasket size={16} />
             Raccogli ora

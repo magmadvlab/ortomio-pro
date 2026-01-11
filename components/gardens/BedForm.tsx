@@ -125,12 +125,12 @@ export const BedForm: React.FC<BedFormProps> = ({
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-800">
+        <h2 className="text-lg md:text-xl font-bold text-gray-800">
           {bed ? 'Modifica Letto' : 'Nuovo Letto'}
         </h2>
         <button
           onClick={onCancel}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
         >
           <X size={20} />
         </button>
@@ -203,7 +203,7 @@ export const BedForm: React.FC<BedFormProps> = ({
 
         {/* Dimensioni */}
         {shape === 'Rectangle' ? (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Lunghezza (cm) *
@@ -273,7 +273,7 @@ export const BedForm: React.FC<BedFormProps> = ({
         )}
 
         {/* Caratteristiche opzionali */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Tipo terreno
@@ -324,7 +324,7 @@ export const BedForm: React.FC<BedFormProps> = ({
         {/* Associazione a struttura (serra/tunnel) */}
         {(garden.gardenType === 'Greenhouse' || garden.gardenType === 'Tunnel') && (
           <div className="border-t border-gray-200 pt-4">
-            <label className="flex items-center gap-2 mb-3 cursor-pointer">
+            <label className="flex items-center gap-3 mb-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={isCovered}

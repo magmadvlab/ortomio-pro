@@ -36,7 +36,7 @@ export function WeatherForecast({ forecast }: WeatherForecastProps) {
             className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <div className="flex items-center gap-3 flex-1">
-              <div className="text-2xl">{getWeatherIcon(day.condition)}</div>
+              <div className="text-xl md:text-2xl">{getWeatherIcon(day.condition)}</div>
               <div className="flex-1">
                 <div className="font-semibold text-gray-900">
                   {day.date.toLocaleDateString('it-IT', {
@@ -51,12 +51,12 @@ export function WeatherForecast({ forecast }: WeatherForecastProps) {
             
             <div className="flex items-center gap-4">
               {day.rainChance > 0 && (
-                <div className="flex items-center gap-1 text-blue-600">
+                <div className="flex items-center gap-3 text-blue-600">
                   <Droplets size={16} />
                   <span className="text-sm font-medium">{day.rainChance}%</span>
                 </div>
               )}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-3">
                 <ThermometerSun size={18} className="text-orange-500" />
                 <span className="font-semibold text-gray-900">{day.temp}°C</span>
               </div>

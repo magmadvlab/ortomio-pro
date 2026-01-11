@@ -37,7 +37,7 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
     <div className="space-y-4">
       {/* Raccolta Olive */}
       <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-        <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+        <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-3">
           <Droplets className="text-green-600" size={18} />
           Raccolta Olive
         </h4>
@@ -53,7 +53,7 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
               step="0.1"
               value={oliveQty || ''}
               onChange={(e) => onUpdate({ oliveQuantity: parseFloat(e.target.value) || 0 })}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             />
           </div>
 
@@ -64,7 +64,7 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
             <select
               value={harvestData.harvestMethod || 'Manual'}
               onChange={(e) => onUpdate({ harvestMethod: e.target.value as any })}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             >
               <option value="Manual">Manuale</option>
               <option value="Mechanical">Meccanico</option>
@@ -80,7 +80,7 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
               type="date"
               value={(harvestData as any).date || new Date().toISOString().split('T')[0]}
               onChange={(e) => onUpdate({ date: e.target.value } as Partial<OliveHarvestData>)}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             />
           </div>
         </div>
@@ -89,7 +89,7 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
       {/* Stima Olio */}
       {oliveQty > 0 && (
         <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-2">
             <Droplets className="text-blue-600" size={18} />
             <span className="font-semibold text-blue-800">Stima Olio Atteso</span>
           </div>
@@ -104,12 +104,12 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
       {/* Frangitura */}
       <div className="p-4 bg-orange-50 rounded-lg border-2 border-orange-300">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+          <h4 className="font-semibold text-gray-800 flex items-center gap-3">
             <Calendar className="text-orange-600" size={18} />
             Frangitura
           </h4>
           {isUrgent && (
-            <div className="flex items-center gap-1 text-red-600">
+            <div className="flex items-center gap-3 text-red-600">
               <AlertCircle size={16} />
               <span className="text-xs font-semibold">URGENTE</span>
             </div>
@@ -128,7 +128,7 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
         <button
           type="button"
           onClick={() => setShowMilling(!showMilling)}
-          className="w-full p-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+          className="w-full p-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
         >
           {showMilling ? 'Nascondi' : 'Registra Frangitura'}
         </button>
@@ -143,7 +143,7 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
                 type="date"
                 value={harvestData.millingDate || new Date().toISOString().split('T')[0]}
                 onChange={(e) => onUpdate({ millingDate: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
               />
             </div>
 
@@ -154,7 +154,7 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
               <select
                 value={(harvestData as any).millingType || 'Traditional'}
                 onChange={(e) => onUpdate({ millingType: e.target.value as any } as Partial<OliveHarvestData>)}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
               >
                 <option value="Traditional">Tradizionale</option>
                 <option value="Continuous">Continua</option>
@@ -172,7 +172,7 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
                 step="0.1"
                 value={harvestData.oilProduced || ''}
                 onChange={(e) => onUpdate({ oilProduced: parseFloat(e.target.value) || 0 })}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
               />
             </div>
 
@@ -194,7 +194,7 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
                         acidity: parseFloat(e.target.value) || 0
                       } as OilQuality
                     })}
-                    className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full p-3 border border-gray-300 rounded-lg text-sm"
                     placeholder="0.00"
                   />
                 </div>
@@ -211,7 +211,7 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
                         peroxide: parseFloat(e.target.value) || 0
                       } as OilQuality
                     })}
-                    className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full p-3 border border-gray-300 rounded-lg text-sm"
                     placeholder="0.0"
                   />
                 </div>
@@ -228,7 +228,7 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
                         polyphenols: parseFloat(e.target.value) || 0
                       } as OilQuality
                     })}
-                    className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full p-3 border border-gray-300 rounded-lg text-sm"
                     placeholder="0"
                   />
                 </div>
@@ -243,7 +243,7 @@ const OliveHarvest: React.FC<OliveHarvestProps> = ({ harvestData, oilYieldExpect
                 value={harvestData.millingNotes || ''}
                 onChange={(e) => onUpdate({ millingNotes: e.target.value })}
                 rows={3}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                 placeholder="Nome frantoio, note sulla qualità, etc."
               />
             </div>

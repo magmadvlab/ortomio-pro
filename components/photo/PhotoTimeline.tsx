@@ -40,14 +40,14 @@ export function PhotoTimeline({ photos, plantName }: PhotoTimelineProps) {
 
         return (
           <Card key={dateKey} variant="default" className="p-4">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-3 mb-4">
               <Calendar className="text-gray-400" size={18} />
               <h3 className="font-semibold text-gray-900">
                 {format(date, 'EEEE d MMMM yyyy', { locale: it })}
               </h3>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-3">
               {datePhotos.map((photo) => (
                 <div
                   key={photo.id}
@@ -59,7 +59,7 @@ export function PhotoTimeline({ photos, plantName }: PhotoTimelineProps) {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                   />
                   {photo.notes && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 text-xs">
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-3 text-xs">
                       {photo.notes}
                     </div>
                   )}

@@ -175,7 +175,7 @@ const SpecializedCropsWidget: React.FC<SpecializedCropsWidgetProps> = ({
                     {crop.icon}
                   </div>
                   <div className="text-left flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <div className="font-semibold text-gray-800">{crop.label}</div>
                       {crop.badge && typeof crop.badge === 'string' && (
                         <span className="px-2 py-0.5 text-xs font-bold bg-red-100 text-red-700 rounded-full border border-red-200">
@@ -199,7 +199,7 @@ const SpecializedCropsWidget: React.FC<SpecializedCropsWidgetProps> = ({
       )}
 
       {!expanded && (
-        <div className="flex flex-wrap gap-2 mt-3">
+        <div className="flex flex-wrap gap-3 mt-3">
           {activeCrops.slice(0, 4).map((crop) => {
             const colorClasses = getColorClasses(crop.color);
             return (
@@ -212,14 +212,14 @@ const SpecializedCropsWidget: React.FC<SpecializedCropsWidgetProps> = ({
                 </div>
                 <span className="font-medium text-gray-700">{crop.label}</span>
                 {crop.badge && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                  <span className="absolute -top-3 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
                 )}
                 <span className="text-gray-500">({crop.count})</span>
               </div>
             );
           })}
           {activeCrops.length > 4 && (
-            <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 text-xs text-gray-600">
+            <div className="flex items-center gap-3 px-3 py-1.5 rounded-full bg-gray-100 text-xs text-gray-600">
               +{activeCrops.length - 4} altre
             </div>
           )}

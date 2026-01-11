@@ -127,7 +127,7 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="text-center">
-          <AlertTriangle className="mx-auto h-12 w-12 text-yellow-500 mb-4" />
+          <AlertTriangle className="mx-auto h-12 w-12 text-yellow-full max-w-sm mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             Dati Compliance Non Disponibili
           </h3>
@@ -153,7 +153,7 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
           <div className="flex items-center gap-3">
             <Shield className="h-8 w-8 text-green-600" />
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900">
                 GlobalG.A.P. IFA V5.2 Compliance
               </h1>
               <p className="text-gray-600">
@@ -164,14 +164,14 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
           <div className="flex gap-3">
             <button
               onClick={handleExportAuditPackage}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Download size={16} />
               Export Audit
             </button>
             <button
               onClick={loadComplianceOverview}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              className="flex items-center gap-3 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
             >
               <RotateCcw size={16} />
               Aggiorna
@@ -180,7 +180,7 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
         </div>
 
         {/* Compliance Score */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
             <div className="flex items-center justify-between">
               <div>
@@ -209,11 +209,11 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
             </div>
           </div>
 
-          <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg p-4 border border-yellow-200">
+          <div className="bg-gradient-to-r from-yellow-50 to-yellow-full max-w-sm rounded-lg p-4 border border-yellow-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-yellow-800">Gap Critici</p>
-                <p className="text-3xl font-bold text-yellow-900">
+                <p className="text-sm font-medium text-yellow-full max-w-sm">Gap Critici</p>
+                <p className="text-3xl font-bold text-yellow-full max-w-sm">
                   {completeOverview ? 
                     (completeOverview.af_module.critical_gaps.length + 
                      completeOverview.cb_module.critical_gaps.length + 
@@ -222,7 +222,7 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
                   }
                 </p>
               </div>
-              <AlertTriangle className="h-8 w-8 text-yellow-600" />
+              <AlertTriangle className="h-8 w-8 text-yellow-full max-w-sm" />
             </div>
           </div>
 
@@ -287,13 +287,13 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
               {/* Critical Gaps */}
               {overview.critical_gaps.length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-red-900 mb-3 flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-red-900 mb-3 flex items-center gap-3">
                     <AlertTriangle size={20} />
                     Gap Critici da Risolvere
                   </h3>
                   <div className="space-y-2">
                     {overview.critical_gaps.map((gap, index) => (
-                      <div key={index} className="flex items-center gap-2 text-red-800">
+                      <div key={index} className="flex items-center gap-3 text-red-800">
                         <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                         <span className="text-sm">{gap}</span>
                       </div>
@@ -304,7 +304,7 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
 
               {/* Certification Readiness */}
               <div className={`border rounded-lg p-4 ${getReadinessColor(overview.certification_readiness)}`}>
-                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                <h3 className="text-lg font-semibold mb-2 flex items-center gap-3">
                   <Award size={20} />
                   Stato Certificazione
                 </h3>
@@ -376,7 +376,7 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-3 mb-2">
                         {requirement.status === 'completed' ? (
                           <CheckCircle className="h-5 w-5 text-green-600" />
                         ) : (
@@ -426,7 +426,7 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-3 mb-2">
                             <Clock className="h-4 w-4" />
                             <span className="text-xs font-medium uppercase tracking-wide">
                               {action.priority} Priority

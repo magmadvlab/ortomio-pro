@@ -44,16 +44,16 @@ export function PlantHealthStatus({ garden, tasks }: PlantHealthStatusProps) {
   
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 className="text-xl font-bold text-gray-900 mb-4">Stato Piante</h2>
+      <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4">Stato Piante</h2>
       
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Piante Sane */}
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="flex items-center gap-3 mb-2">
             <CheckCircle className="text-green-600" size={24} />
             <div>
               <p className="text-sm text-gray-600">Piante Sane</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-xl md:text-2xl font-bold text-gray-900">
                 {healthStats.healthy}
               </p>
             </div>
@@ -85,7 +85,7 @@ export function PlantHealthStatus({ garden, tasks }: PlantHealthStatusProps) {
       
       {healthStats.needsAttention === 0 && healthStats.healthy > 0 && (
         <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3">
-          <p className="text-sm text-green-900 flex items-center gap-2">
+          <p className="text-sm text-green-900 flex items-center gap-3">
             <CheckCircle size={16} />
             Tutte le tue piante sono in buona salute!
           </p>

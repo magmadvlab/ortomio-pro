@@ -37,7 +37,7 @@ export function OnboardingStep7Tutorial({ onComplete, onBack }: OnboardingStep7T
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">
+        <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
           🎉 Tutto pronto!
         </h3>
         <p className="text-gray-600">
@@ -45,7 +45,7 @@ export function OnboardingStep7Tutorial({ onComplete, onBack }: OnboardingStep7T
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
         {features.map((feature, idx) => (
           <Card key={idx} variant="interactive" className="p-4">
             <div className="text-3xl mb-2">{feature.icon}</div>

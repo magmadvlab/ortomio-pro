@@ -73,7 +73,7 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
                   />
               </svg>
               <div className="absolute flex flex-col items-center">
-                  <span className="text-2xl font-bold text-gray-700">{Math.round(value)}%</span>
+                  <span className="text-xl md:text-2xl font-bold text-gray-700">{Math.round(value)}%</span>
                   <span className="text-[10px] text-gray-400 uppercase font-bold">Umidità</span>
               </div>
           </div>
@@ -86,7 +86,7 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
               <div className="bg-gray-100 p-6 rounded-full inline-block mb-4">
                   <Wifi size={48} className="text-gray-400"/>
               </div>
-              <h2 className="text-xl font-bold text-gray-700">Nessun Dispositivo</h2>
+              <h2 className="text-lg md:text-xl font-bold text-gray-700">Nessun Dispositivo</h2>
               <p className="text-gray-500 mt-2">Collega il tuo Arduino/ESP32 per vedere i dati in tempo reale qui.</p>
               <div className="mt-6 p-4 bg-blue-50 text-blue-800 text-sm rounded-xl border border-blue-100">
                   <p className="font-bold mb-1">💡 Modalità Demo Attiva</p>
@@ -99,7 +99,7 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-6">
       <header>
-        <h1 className="text-2xl font-bold text-blue-900 flex items-center gap-2">
+        <h1 className="text-xl md:text-2xl font-bold text-blue-900 flex items-center gap-3">
             <Wifi size={24} className="text-blue-600"/> Smart Hub IoT
         </h1>
         <p className="text-blue-600 text-sm">Monitoraggio e automazione sensori.</p>
@@ -116,12 +116,12 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
                           </div>
                           <div>
                               <h3 className="font-bold text-gray-800">{device.name}</h3>
-                              <p className="text-xs text-gray-500 flex items-center gap-1">
+                              <p className="text-xs text-gray-500 flex items-center gap-3">
                                   <Activity size={10} className="text-green-500"/> Online
                               </p>
                           </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                            <button 
                                 onClick={() => setEditingId(editingId === device.id ? null : device.id)}
                                 className={`p-2 rounded-lg transition-colors ${editingId === device.id ? 'bg-gray-100 text-gray-800' : 'text-gray-400 hover:bg-gray-50'}`}
@@ -133,7 +133,7 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
 
                   {/* DASHBOARD BODY */}
                   <div className="p-6">
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                      <div className="flex flex-col sm:flex-col md:flex-row items-center justify-between gap-6">
                           {/* MOISTURE GAUGE */}
                           <div className="flex flex-col items-center">
                               <CircularProgress 
@@ -143,7 +143,7 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
                               <button 
                                 onClick={() => handleAnalyze(device)}
                                 disabled={analyzingId === device.id}
-                                className="mt-4 text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full flex items-center gap-1 hover:bg-purple-100 transition-colors"
+                                className="mt-4 text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full flex items-center gap-3 hover:bg-purple-100 transition-colors"
                               >
                                   {analyzingId === device.id ? <Loader2 size={12} className="animate-spin"/> : <Sparkles size={12}/>}
                                   AI ANALISI
@@ -187,16 +187,16 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
                                  * - Target Auto-Stop: Volume massimo da erogare prima di chiudere automaticamente la valvola.
                                  *   Quando sessionLiters raggiunge targetLiters, la valvola si chiude automaticamente.
                                  */}
-                               <div className="grid grid-cols-2 gap-3">
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                    <div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
                                        <p className="text-[10px] font-bold text-blue-400 uppercase mb-1">Sessione</p>
-                                       <p className="text-xl font-mono font-bold text-blue-900 leading-none">
+                                       <p className="text-lg md:text-xl font-mono font-bold text-blue-900 leading-none">
                                            {device.sessionLiters.toFixed(1)} <span className="text-xs font-sans">L</span>
                                        </p>
                                    </div>
                                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Target Auto-Stop</p>
-                                       <p className="text-xl font-mono font-bold text-gray-600 leading-none">
+                                       <p className="text-lg md:text-xl font-mono font-bold text-gray-600 leading-none">
                                            {device.targetLiters > 0 ? device.targetLiters : '∞'} <span className="text-xs font-sans">L</span>
                                        </p>
                                    </div>
@@ -207,7 +207,7 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
                       {/* AI ADVICE RESULT */}
                       {aiAdvice[device.id] && (
                           <div className="mt-4 bg-purple-50 p-3 rounded-xl border border-purple-100 text-sm text-purple-900 animate-in fade-in">
-                              <span className="font-bold flex items-center gap-1 mb-1"><Bot size={14}/> Consiglio AI:</span>
+                              <span className="font-bold flex items-center gap-3 mb-1"><Bot size={14}/> Consiglio AI:</span>
                               {aiAdvice[device.id]}
                           </div>
                       )}
@@ -215,8 +215,8 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
 
                   {/* SETTINGS DRAWER */}
                   {editingId === device.id && (
-                      <div className="bg-gray-50 p-5 border-t border-gray-100 animate-in slide-in-from-top-2">
-                          <h4 className="font-bold text-gray-700 text-sm uppercase mb-4 flex items-center gap-2">
+                      <div className="bg-gray-50 p-5 border-t border-gray-100 animate-in slide-in-from-top-3">
+                          <h4 className="font-bold text-gray-700 text-sm uppercase mb-4 flex items-center gap-3">
                               <Settings size={16}/> Configurazione Automazione
                           </h4>
                           
@@ -266,7 +266,7 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
                                             className="w-8 h-8 rounded bg-white border border-gray-300 font-bold text-gray-600 hover:bg-gray-50"
                                        >+</button>
                                    </div>
-                                   <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
+                                   <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-3">
                                        <AlertTriangle size={10}/> Se la valvola è aperta, si chiuderà raggiunti i {device.targetLiters}L.
                                    </p>
                                </div>
@@ -277,7 +277,7 @@ const SmartHub: React.FC<SmartHubProps> = ({ devices, onToggleValve, onUpdateDev
                                  * Quando attiva: la valvola si apre automaticamente quando l'umidità scende sotto autoThreshold
                                  * e si chiude quando sessionLiters raggiunge targetLiters.
                                  */}
-                               <div className="pt-2 flex items-center gap-2">
+                               <div className="pt-2 flex items-center gap-3">
                                    <input 
                                         type="checkbox" 
                                         checked={device.autoMode}

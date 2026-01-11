@@ -119,7 +119,7 @@ export function IrrigationZoneAnalytics({ zone, logs, beds }: IrrigationZoneAnal
           Analytics - {zone.name}
         </h3>
 
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           {(['7d', '30d', '90d', 'all'] as TimePeriod[]).map(period => (
             <button
               key={period}
@@ -137,46 +137,46 @@ export function IrrigationZoneAnalytics({ zone, logs, beds }: IrrigationZoneAnal
       </div>
 
       {/* Cards statistiche generali */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
+            <div className="p-3 bg-blue-100 rounded-lg">
               <Droplets className="text-blue-600" size={24} />
             </div>
             <div>
               <p className="text-sm text-gray-600">Consumo Totale</p>
-              <p className="text-2xl font-bold text-gray-900">{zoneStats.totalLiters}L</p>
+              <p className="text-xl md:text-2xl font-bold text-gray-900">{zoneStats.totalLiters}L</p>
             </div>
           </div>
         </Card>
 
         <Card className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
+            <div className="p-3 bg-green-100 rounded-lg">
               <BarChart3 className="text-green-600" size={24} />
             </div>
             <div>
               <p className="text-sm text-gray-600">Irrigazioni</p>
-              <p className="text-2xl font-bold text-gray-900">{zoneStats.irrigationCount}</p>
+              <p className="text-xl md:text-2xl font-bold text-gray-900">{zoneStats.irrigationCount}</p>
             </div>
           </div>
         </Card>
 
         <Card className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg">
+            <div className="p-3 bg-purple-100 rounded-lg">
               <TrendingUp className="text-purple-600" size={24} />
             </div>
             <div>
               <p className="text-sm text-gray-600">Media per Irrigazione</p>
-              <p className="text-2xl font-bold text-gray-900">{zoneStats.avgLitersPerIrrigation}L</p>
+              <p className="text-xl md:text-2xl font-bold text-gray-900">{zoneStats.avgLitersPerIrrigation}L</p>
             </div>
           </div>
         </Card>
 
         <Card className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-orange-100 rounded-lg">
+            <div className="p-3 bg-orange-100 rounded-lg">
               <Calendar className="text-orange-600" size={24} />
             </div>
             <div>
@@ -194,7 +194,7 @@ export function IrrigationZoneAnalytics({ zone, logs, beds }: IrrigationZoneAnal
 
       {/* Breakdown per Bed */}
       <Card className="p-6">
-        <h4 className="text-md font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <h4 className="text-md font-semibold text-gray-900 mb-4 flex items-center gap-3">
           <BarChart3 size={20} className="text-blue-600" />
           Consumo per Aiuola/Letto
         </h4>
@@ -262,7 +262,7 @@ export function IrrigationZoneAnalytics({ zone, logs, beds }: IrrigationZoneAnal
               <p className="text-sm text-amber-800 mb-2">
                 I seguenti letti non sono assegnati a nessuna zona irrigua. Assegnali per tracciare i consumi:
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-3">
                 {orphanBeds.map(bed => (
                   <span
                     key={bed.id}

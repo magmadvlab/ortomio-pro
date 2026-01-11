@@ -66,11 +66,11 @@ export function ManualTaskModal({ gardenId, isOpen, onClose, onAddTask }: Manual
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+      <div className="bg-white rounded-xl shadow-2xl max-w-[90vw] md:max-w-md max-h-[90vh] overflow-y-auto w-full">
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Nuovo Task Manuale</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Nuovo Task Manuale</h2>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -86,7 +86,7 @@ export function ManualTaskModal({ gardenId, isOpen, onClose, onAddTask }: Manual
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tipo di Task
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {(Object.keys(taskTypeLabels) as TaskType[]).map((type) => (
                   <button
                     key={type}
@@ -98,7 +98,7 @@ export function ManualTaskModal({ gardenId, isOpen, onClose, onAddTask }: Manual
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="text-2xl mb-1">{taskTypeIcons[type]}</div>
+                    <div className="text-xl md:text-2xl mb-1">{taskTypeIcons[type]}</div>
                     <div className="text-sm font-medium">{taskTypeLabels[type]}</div>
                   </button>
                 ))}
@@ -115,7 +115,7 @@ export function ManualTaskModal({ gardenId, isOpen, onClose, onAddTask }: Manual
                 value={formData.plantName}
                 onChange={(e) => setFormData({ ...formData, plantName: e.target.value })}
                 placeholder="es. Pomodoro San Marzano"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 required
               />
             </div>
@@ -129,7 +129,7 @@ export function ManualTaskModal({ gardenId, isOpen, onClose, onAddTask }: Manual
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 required
               />
             </div>
@@ -144,7 +144,7 @@ export function ManualTaskModal({ gardenId, isOpen, onClose, onAddTask }: Manual
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="Aggiungi dettagli sul task..."
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
               />
             </div>
 

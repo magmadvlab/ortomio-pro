@@ -54,8 +54,8 @@ const PhotoTimelapse: React.FC<PhotoTimelapseProps> = ({
 
   if (!can('photoTimeLapse')) {
     return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
-        <p className="text-yellow-800">Time-lapse disponibile solo in versione Pro</p>
+      <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-4 text-center">
+        <p className="text-yellow-full max-w-sm">Time-lapse disponibile solo in versione Pro</p>
       </div>
     );
   }
@@ -93,7 +93,7 @@ const PhotoTimelapse: React.FC<PhotoTimelapseProps> = ({
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-3">
           <Camera size={20} className="text-green-600" />
           Time-Lapse {plantName}
         </h3>
@@ -115,13 +115,13 @@ const PhotoTimelapse: React.FC<PhotoTimelapseProps> = ({
           <>
             <button
               onClick={goToPrevious}
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg"
+              className="absolute left-2 top-3/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-3 shadow-lg"
             >
               <ChevronLeft size={20} />
             </button>
             <button
               onClick={goToNext}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg"
+              className="absolute right-2 top-3/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-3 shadow-lg"
             >
               <ChevronRight size={20} />
             </button>
@@ -129,9 +129,9 @@ const PhotoTimelapse: React.FC<PhotoTimelapseProps> = ({
         )}
 
         {/* Photo Info Overlay */}
-        <div className="absolute bottom-2 left-2 right-2 bg-black/60 text-white rounded px-3 py-2 text-sm">
+        <div className="absolute bottom-2 left-2 right-2 bg-black/60 text-white rounded px-4 py-3 text-base text-sm">
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-3">
               <Calendar size={14} />
               Giorno {currentPhoto.daysFromPlanting}
             </span>
@@ -143,13 +143,13 @@ const PhotoTimelapse: React.FC<PhotoTimelapseProps> = ({
       {/* AI Analysis */}
       {analysis && (
         <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+          <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-3">
             <Sparkles size={16} className="text-purple-600" />
             Analisi AI
           </h4>
           
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {analysis.isHealthy ? (
                 <CheckCircle size={16} className="text-green-600" />
               ) : (
@@ -160,7 +160,7 @@ const PhotoTimelapse: React.FC<PhotoTimelapseProps> = ({
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Leaf size={16} className="text-green-600" />
               <span className="text-sm">
                 Crescita: <strong>
@@ -198,7 +198,7 @@ const PhotoTimelapse: React.FC<PhotoTimelapseProps> = ({
 
       {/* Timeline Dots */}
       {photos.length > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
+        <div className="flex justify-center gap-3 mt-4">
           {photos.map((_, idx) => (
             <button
               key={idx}

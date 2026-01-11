@@ -19,25 +19,25 @@ export function PlantExpectations({
 }: PlantExpectationsProps) {
   return (
     <Card variant="default" className="p-6">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-3 mb-4">
         <ClipboardList className="text-ortomio-green-600" size={24} />
         <h3 className="text-lg font-semibold text-gray-900">Cosa aspettarti</h3>
       </div>
       
       <ul className="space-y-2 text-sm text-gray-600">
-        <li className="flex items-center gap-2">
+        <li className="flex items-center gap-3">
           <span className="w-1.5 h-1.5 bg-ortomio-green-500 rounded-full" />
           Germinazione: {germinationDays}
         </li>
-        <li className="flex items-center gap-2">
+        <li className="flex items-center gap-3">
           <span className="w-1.5 h-1.5 bg-ortomio-green-500 rounded-full" />
           Trapianto: dopo {transplantWeeks}
         </li>
-        <li className="flex items-center gap-2">
+        <li className="flex items-center gap-3">
           <span className="w-1.5 h-1.5 bg-ortomio-green-500 rounded-full" />
           Prima raccolta: {harvestDays}
         </li>
-        <li className="flex items-center gap-2">
+        <li className="flex items-center gap-3">
           <span className="w-1.5 h-1.5 bg-ortomio-green-500 rounded-full" />
           Produzione media: {production}
         </li>

@@ -67,16 +67,16 @@ const MapControls: React.FC<{
       )}
 
       {/* Zoom Controls */}
-      <div className="flex gap-1">
+      <div className="flex gap-3">
         <button
           onClick={handleZoomIn}
-          className="flex-1 flex items-center justify-center p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+          className="flex-1 flex items-center justify-center p-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
         >
           <ZoomIn size={16} className="text-gray-700" />
         </button>
         <button
           onClick={handleZoomOut}
-          className="flex-1 flex items-center justify-center p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+          className="flex-1 flex items-center justify-center p-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
         >
           <ZoomOut size={16} className="text-gray-700" />
         </button>
@@ -85,7 +85,7 @@ const MapControls: React.FC<{
       {/* Reset View */}
       <button
         onClick={onResetView}
-        className="w-full flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm"
+        className="w-full flex items-center gap-3 px-4 py-3 text-base bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm"
       >
         <RotateCcw size={16} />
         Reset Vista
@@ -191,12 +191,12 @@ const NDVIMap: React.FC<NDVIMapProps> = ({ garden, onBoundsChange }) => {
 
       {/* WMS Error Warning */}
       {wmsError && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1001] bg-yellow-100 border border-yellow-300 rounded-lg p-3 max-w-sm">
-          <div className="flex items-center gap-2 text-yellow-800">
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1001] bg-yellow-full max-w-sm border border-yellow-300 rounded-lg p-3 max-w-sm">
+          <div className="flex items-center gap-3 text-yellow-full max-w-sm">
             <AlertCircle size={16} />
             <span className="text-sm font-medium">Sentinel Hub 503</span>
           </div>
-          <p className="text-xs text-yellow-700 mt-1">
+          <p className="text-xs text-yellow-full max-w-sm mt-1">
             Overload temporaneo. Riprova tra 10-30 minuti.
           </p>
         </div>
@@ -245,29 +245,29 @@ const NDVIMap: React.FC<NDVIMapProps> = ({ garden, onBoundsChange }) => {
       {/* Legend */}
       {showNDVI && (
         <div className="absolute bottom-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-3">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-2">
             <Layers size={16} className="text-green-600" />
             <span className="text-sm font-medium text-gray-800">Legenda NDVI</span>
           </div>
           
           <div className="space-y-1 text-xs">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="w-4 h-3 bg-red-500 rounded"></div>
               <span>Critico (0.0-0.2)</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="w-4 h-3 bg-orange-400 rounded"></div>
               <span>Scarso (0.2-0.4)</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-3 bg-yellow-400 rounded"></div>
+            <div className="flex items-center gap-3">
+              <div className="w-4 h-3 bg-yellow-full max-w-sm rounded"></div>
               <span>Moderato (0.4-0.6)</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="w-4 h-3 bg-green-400 rounded"></div>
               <span>Buono (0.6-0.8)</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="w-4 h-3 bg-green-600 rounded"></div>
               <span>Eccellente (0.8+)</span>
             </div>
@@ -277,7 +277,7 @@ const NDVIMap: React.FC<NDVIMapProps> = ({ garden, onBoundsChange }) => {
 
       {/* Info Panel */}
       <div className="absolute top-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-3 max-w-xs">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-3 mb-2">
           <Map size={16} className="text-blue-600" />
           <span className="text-sm font-medium text-gray-800">Mappa NDVI</span>
         </div>

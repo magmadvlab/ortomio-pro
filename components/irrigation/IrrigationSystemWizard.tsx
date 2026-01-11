@@ -236,7 +236,7 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
         <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
           <div className="border-b px-6 py-4 flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Nuovo Sistema Irrigazione</h2>
+              <h2 className="text-lg md:text-xl font-bold text-gray-900">Nuovo Sistema Irrigazione</h2>
               <p className="text-sm text-gray-600">Step {step} di {totalSteps} - Configura il tuo impianto</p>
             </div>
             <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
@@ -246,7 +246,7 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
 
           {/* Progress bar */}
           <div className="px-6 pt-4">
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               {[1, 2, 3, 4].map(s => (
                 <div
                   key={s}
@@ -269,7 +269,7 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
             {step === 1 && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-3">
                     <MapPin className="text-blue-600" size={20} />
                     Dove stai installando il sistema?
                   </h3>
@@ -282,7 +282,7 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Tipo di Coltivazione *
                     </label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-3 gap-3">
                       {Object.entries(cultivationConfigs).map(([key, config]) => (
                         <button
                           key={key}
@@ -299,7 +299,7 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-3 mb-2">
                             {config.icon}
                             <span className="font-medium">{config.label}</span>
                           </div>
@@ -369,9 +369,9 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
                               <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Aiuole da irrigare (opzionale)
                               </label>
-                              <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2 space-y-1">
+                              <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-md p-3 space-y-1">
                                 {beds.map(bed => (
-                                  <label key={bed.id} className="flex items-center gap-2 text-sm">
+                                  <label key={bed.id} className="flex items-center gap-3 text-sm">
                                     <input
                                       type="checkbox"
                                       checked={formData.selectedBedIds.includes(bed.id)}
@@ -406,15 +406,15 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
                           {/* Filari (solo se il tipo di coltivazione li usa) */}
                           {selectedConfig?.usesRows && rows.length > 0 && (
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-3">
                                 <Layers size={16} />
                                 Filari da irrigare (opzionale)
                               </label>
-                              <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2 space-y-1">
+                              <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-md p-3 space-y-1">
                                 {rows.map(row => {
                                   const bed = beds.find(b => b.id === row.bedId)
                                   return (
-                                    <label key={row.id} className="flex items-center gap-2 text-sm">
+                                    <label key={row.id} className="flex items-center gap-3 text-sm">
                                       <input
                                         type="checkbox"
                                         checked={formData.selectedRowIds.includes(row.id)}
@@ -470,7 +470,7 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
             {step === 2 && selectedConfig && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-3">
                     {selectedConfig.icon}
                     Tipo di Irrigazione per {selectedConfig.label}
                   </h3>
@@ -492,7 +492,7 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-3">
-                            <span className="text-2xl">
+                            <span className="text-xl md:text-2xl">
                               {recType.type === 'Drip' && '💦'}
                               {recType.type === 'Sprinkler' && '🌧️'}
                               {recType.type === 'Micro' && '🌊'}
@@ -678,7 +678,7 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
                         Note aggiuntive
                       </label>
                       <textarea
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         rows={4}
                         placeholder="Marca componenti, dettagli installazione, particolarità del terreno..."
                         value={formData.notes}
@@ -703,7 +703,7 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
               Indietro
             </Button>
 
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <Button variant="ghost" onClick={onCancel}>
                 Annulla
               </Button>

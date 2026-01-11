@@ -152,12 +152,12 @@ export function FertilizerApplicationModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl max-w-md w-full shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl max-w-[90vw] md:max-w-md max-h-[90vh] overflow-y-auto w-full shadow-xl max-h-[90vh] overflow-y-auto">
         {/* Header verde come harvest */}
         <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 rounded-t-xl sticky top-0 z-10">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold">🌱 Fertilizzazione</h2>
+              <h2 className="text-lg md:text-xl font-bold">🌱 Fertilizzazione</h2>
               <p className="text-sm opacity-90 mt-1">
                 {task.plantName}{task.variety ? ` (${task.variety})` : ''}
               </p>
@@ -203,7 +203,7 @@ export function FertilizerApplicationModal({
           {/* Micro-zone: Dove applicare */}
           {beds.length > 0 && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <Layers size={16} className="text-green-600" />
                 <h4 className="text-sm font-semibold text-gray-900">Dove applicare (opzionale)</h4>
               </div>
@@ -254,7 +254,7 @@ export function FertilizerApplicationModal({
             <select
               value={selectedProduct?.id || ''}
               onChange={(e) => setSelectedProduct(getFertilizerById(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               required
             >
               <option value="">Seleziona prodotto...</option>
@@ -286,7 +286,7 @@ export function FertilizerApplicationModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Quantità applicata *
             </label>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <input
                 type="number"
                 step="0.1"
@@ -294,10 +294,10 @@ export function FertilizerApplicationModal({
                 value={dosageAmount}
                 onChange={(e) => setDosageAmount(e.target.value)}
                 placeholder={suggestedDosage?.amount.toString() || '0'}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="flex-1 px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 required
               />
-              <div className="px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 flex items-center">
+              <div className="px-4 py-3 text-base border border-gray-300 rounded-lg bg-gray-50 flex items-center">
                 <span className="text-sm text-gray-700">
                   {selectedProduct?.dosagePerSqm.unit || 'g/m²'}
                 </span>
@@ -313,7 +313,7 @@ export function FertilizerApplicationModal({
             <select
               value={method}
               onChange={(e) => setMethod(e.target.value as any)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             >
               <option value="surface">Copertura (Surface)</option>
               <option value="incorporated">Incorporato (Lavorazione)</option>
@@ -336,7 +336,7 @@ export function FertilizerApplicationModal({
                   Ripeti fertilizzazione automaticamente
                 </span>
                 {shouldRepeat && (
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-2 flex items-center gap-3">
                     <span className="text-xs text-gray-600">Ogni</span>
                     <input
                       type="number"
@@ -362,7 +362,7 @@ export function FertilizerApplicationModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               placeholder="Osservazioni, condizioni meteo, ecc..."
             />
           </div>
@@ -372,7 +372,7 @@ export function FertilizerApplicationModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Data applicazione
             </label>
-            <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
+            <div className="flex items-center gap-3 px-4 py-3 text-base border border-gray-300 rounded-lg bg-gray-50">
               <Calendar size={18} className="text-gray-400" />
               <span className="text-sm text-gray-700">
                 {format(new Date(), 'dd MMMM yyyy', { locale: it })}
@@ -382,7 +382,7 @@ export function FertilizerApplicationModal({
 
           {/* Warning incompatibilità */}
           {selectedProduct?.incompatibilities && selectedProduct.incompatibilities.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex gap-2">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex gap-3">
               <AlertCircle size={18} className="text-red-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-red-800">
                 <strong>Attenzione!</strong> Non mescolare con:{' '}

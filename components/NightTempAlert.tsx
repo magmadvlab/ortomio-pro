@@ -58,9 +58,9 @@ const NightTempAlert: React.FC<NightTempAlertProps> = ({ analysis, plant, onSetR
           </h4>
 
           {/* Statistiche */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="bg-white/50 rounded-lg p-2 text-center">
-              <div className="flex items-center justify-center gap-1 mb-1">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+            <div className="bg-white/50 rounded-lg p-3 text-center">
+              <div className="flex items-center justify-center gap-3 mb-1">
                 <Thermometer size={14} className={analysis.minNightTemp < 5 ? 'text-red-600' : 'text-gray-600'} />
                 <p className="text-xs text-gray-600">Min Notturna</p>
               </div>
@@ -69,13 +69,13 @@ const NightTempAlert: React.FC<NightTempAlertProps> = ({ analysis, plant, onSetR
               </p>
             </div>
 
-            <div className="bg-white/50 rounded-lg p-2 text-center">
+            <div className="bg-white/50 rounded-lg p-3 text-center">
               <p className="text-xs text-gray-600 mb-1">Media Notti</p>
               <p className="text-lg font-bold text-gray-800">{analysis.avgNightTemp}°C</p>
             </div>
 
-            <div className="bg-white/50 rounded-lg p-2 text-center">
-              <div className="flex items-center justify-center gap-1 mb-1">
+            <div className="bg-white/50 rounded-lg p-3 text-center">
+              <div className="flex items-center justify-center gap-3 mb-1">
                 <Snowflake size={14} className={analysis.frostRiskDays > 0 ? 'text-red-600' : 'text-gray-600'} />
                 <p className="text-xs text-gray-600">Rischio Gelo</p>
               </div>

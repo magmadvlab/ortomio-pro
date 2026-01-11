@@ -66,7 +66,7 @@ export default function AuthStatus() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2">
+      <div className="flex items-center gap-3 px-4 py-3 text-base">
         <Loader2 size={16} className="animate-spin text-gray-400" />
       </div>
     )
@@ -77,7 +77,7 @@ export default function AuthStatus() {
       <div className="relative">
         <button
           onClick={() => setShowMenu(!showMenu)}
-          className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+          className="flex items-center gap-3 px-4 py-3 text-base bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
         >
           <Wifi size={16} className="text-green-600" />
           <span className="text-sm font-medium text-green-800">Online</span>
@@ -98,7 +98,7 @@ export default function AuthStatus() {
               <button
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="w-full flex items-center gap-3 px-4 py-3 text-base text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 {loggingOut ? (
                   <>
@@ -120,20 +120,20 @@ export default function AuthStatus() {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+    <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 px-4 py-3 text-base bg-gray-50 border border-gray-200 rounded-lg">
         <WifiOff size={16} className="text-gray-400" />
         <span className="text-sm text-gray-600">Offline</span>
       </div>
       <button
         onClick={() => router.push('/register')}
-        className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+        className="flex items-center gap-3 px-4 py-3 text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
       >
         Registrati
       </button>
       <button
         onClick={() => router.push('/login')}
-        className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+        className="flex items-center gap-3 px-4 py-3 text-base bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
       >
         <LogIn size={16} />
         Login

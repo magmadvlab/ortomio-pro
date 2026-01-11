@@ -44,7 +44,7 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900">Crea Nuovo Spazio</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Crea Nuovo Spazio</h2>
             <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
               <X size={24} />
             </button>
@@ -53,7 +53,7 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
           <div className="p-6">
             <p className="text-gray-600 mb-6">Scegli il tipo di spazio che vuoi creare:</p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
               {/* Orto */}
               <button
                 onClick={() => handleTypeSelect('vegetable')}
@@ -64,7 +64,7 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
                     <Sprout size={32} className="text-green-600" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900">Orto</h3>
+                    <h3 className="text-lg md:text-xl font-bold text-gray-900">Orto</h3>
                     <p className="text-sm text-gray-600">Ortaggi, verdure, erbe</p>
                   </div>
                 </div>
@@ -83,7 +83,7 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
                     <TreePine size={32} className="text-green-600" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900">Frutteto</h3>
+                    <h3 className="text-lg md:text-xl font-bold text-gray-900">Frutteto</h3>
                     <p className="text-sm text-gray-600">Alberi da frutto</p>
                   </div>
                 </div>
@@ -102,7 +102,7 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
                     <CircleDot size={32} className="text-green-600" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900">Oliveto</h3>
+                    <h3 className="text-lg md:text-xl font-bold text-gray-900">Oliveto</h3>
                     <p className="text-sm text-gray-600">Olivi per olio o mensa</p>
                   </div>
                 </div>
@@ -121,7 +121,7 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
                     <Grape size={32} className="text-green-600" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900">Vigneto</h3>
+                    <h3 className="text-lg md:text-xl font-bold text-gray-900">Vigneto</h3>
                     <p className="text-sm text-gray-600">Viti da vino o tavola</p>
                   </div>
                 </div>

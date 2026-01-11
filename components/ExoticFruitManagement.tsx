@@ -45,7 +45,7 @@ const ExoticFruitManagement: React.FC<ExoticFruitManagementProps> = ({
       <div className="p-6 bg-white rounded-xl border border-gray-200">
         <div className="flex items-center gap-3 mb-4">
           <Sprout className="text-orange-500" size={24} />
-          <h3 className="text-xl font-bold text-gray-800">Gestione Frutti Esotici</h3>
+          <h3 className="text-lg md:text-xl font-bold text-gray-800">Gestione Frutti Esotici</h3>
         </div>
         <p className="text-gray-600">Nessuna coltura di frutti esotici attiva in questo orto.</p>
       </div>
@@ -68,7 +68,7 @@ const ExoticFruitManagement: React.FC<ExoticFruitManagementProps> = ({
     <div className="p-6 bg-white rounded-lg border border-gray-200">
       <div className="flex items-center gap-3 mb-6">
         <Sprout className="text-orange-500" size={24} />
-        <h3 className="text-xl font-bold text-gray-800">Gestione Frutti Esotici</h3>
+        <h3 className="text-lg md:text-xl font-bold text-gray-800">Gestione Frutti Esotici</h3>
       </div>
 
       {/* Selettore Pianta */}
@@ -81,7 +81,7 @@ const ExoticFruitManagement: React.FC<ExoticFruitManagementProps> = ({
               const task = exoticFruitTasks.find(t => t.id === e.target.value);
               if (task) setSelectedTask(task);
             }}
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
           >
             {exoticFruitTasks.map(task => (
               <option key={task.id} value={task.id}>
@@ -93,7 +93,7 @@ const ExoticFruitManagement: React.FC<ExoticFruitManagementProps> = ({
       )}
 
       {/* Info Pianta */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
           <div className="text-sm text-gray-600 mb-1">Tipo</div>
           <div className="font-bold text-gray-800">{exoticCrop.fruitType}</div>
@@ -113,11 +113,11 @@ const ExoticFruitManagement: React.FC<ExoticFruitManagementProps> = ({
           climateStatus.status === 'Warning' ? 'bg-yellow-50 border-yellow-300' :
           'bg-green-50 border-green-300'
         }`}>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-2">
             {climateStatus.status === 'Critical' ? (
               <AlertTriangle className="text-red-600" size={20} />
             ) : climateStatus.status === 'Warning' ? (
-              <AlertTriangle className="text-yellow-600" size={20} />
+              <AlertTriangle className="text-yellow-full max-w-sm" size={20} />
             ) : (
               <CheckCircle className="text-green-600" size={20} />
             )}
@@ -147,7 +147,7 @@ const ExoticFruitManagement: React.FC<ExoticFruitManagementProps> = ({
       {/* Note Clima Italiano */}
       {exoticCrop.italianClimateNotes && (
         <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-2">
             <Cloud className="text-blue-600" size={18} />
             <span className="font-semibold text-blue-800">Note Clima Italiano</span>
           </div>
@@ -157,7 +157,7 @@ const ExoticFruitManagement: React.FC<ExoticFruitManagementProps> = ({
 
       {/* Task Consigliati */}
       <div className="mb-6">
-        <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+        <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-3">
           <Calendar className="text-orange-500" size={20} />
           Task Consigliati
         </h4>
@@ -186,7 +186,7 @@ const ExoticFruitManagement: React.FC<ExoticFruitManagementProps> = ({
               </div>
               <ul className="text-sm text-gray-700 space-y-1 mt-2">
                 {advice.instructions.map((inst, i) => (
-                  <li key={i} className="flex items-start gap-2">
+                  <li key={i} className="flex items-start gap-3">
                     <span className="text-orange-500 mt-1">•</span>
                     <span>{inst}</span>
                   </li>
@@ -200,7 +200,7 @@ const ExoticFruitManagement: React.FC<ExoticFruitManagementProps> = ({
       {/* Gestione Serra */}
       {exoticCrop.greenhouseRequired && (
         <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
-          <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+          <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-3">
             <Cloud className="text-purple-600" size={18} />
             Gestione Serra
           </h4>

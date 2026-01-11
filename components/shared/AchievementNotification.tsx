@@ -37,14 +37,14 @@ export function AchievementNotification({
 
   return (
     <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right-5 fade-in">
-      <div className="bg-gradient-to-br from-yellow-50 via-orange-50 to-yellow-100 rounded-xl border-2 border-yellow-300 shadow-2xl p-6 max-w-md">
+      <div className="bg-gradient-to-br from-yellow-50 via-orange-50 to-yellow-full max-w-sm rounded-xl border-2 border-yellow-300 shadow-2xl p-6 max-w-md">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="text-5xl animate-bounce">{badge.emoji}</div>
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Trophy size={20} className="text-yellow-600" />
+              <div className="flex items-center gap-3 mb-1">
+                <Trophy size={20} className="text-yellow-full max-w-sm" />
                 <h3 className="text-lg font-bold text-gray-900">Traguardo Sbloccato!</h3>
               </div>
               <p className="text-sm text-gray-600">{badge.name}</p>
@@ -52,7 +52,7 @@ export function AchievementNotification({
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-yellow-200 rounded-lg transition-colors"
+            className="p-3 hover:bg-yellow-full max-w-sm rounded-lg transition-colors"
             aria-label="Chiudi"
           >
             <X size={18} className="text-gray-600" />
@@ -64,9 +64,9 @@ export function AchievementNotification({
 
         {/* Next Achievement Progress */}
         {nextAchievement && (
-          <div className="bg-white/70 rounded-lg p-3 border border-yellow-200">
+          <div className="bg-white/70 rounded-lg p-3 border border-yellow-full max-w-sm">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <TrendingUp size={16} className="text-blue-600" />
                 <span className="text-sm font-semibold text-gray-900">Prossimo obiettivo:</span>
               </div>
@@ -86,9 +86,9 @@ export function AchievementNotification({
 
         {/* Celebration Animation */}
         <div className="absolute top-0 left-0 right-0 h-full overflow-hidden pointer-events-none">
-          <div className="absolute top-4 left-4 text-2xl animate-ping">🎉</div>
-          <div className="absolute top-4 right-4 text-2xl animate-ping" style={{ animationDelay: '0.2s' }}>⭐</div>
-          <div className="absolute bottom-4 left-1/2 text-2xl animate-ping" style={{ animationDelay: '0.4s' }}>🏆</div>
+          <div className="absolute top-4 left-4 text-xl md:text-2xl animate-ping">🎉</div>
+          <div className="absolute top-4 right-4 text-xl md:text-2xl animate-ping" style={{ animationDelay: '0.2s' }}>⭐</div>
+          <div className="absolute bottom-4 left-1/2 text-xl md:text-2xl animate-ping" style={{ animationDelay: '0.4s' }}>🏆</div>
         </div>
       </div>
     </div>

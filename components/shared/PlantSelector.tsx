@@ -45,7 +45,7 @@ export function PlantSelector({
           </div>
 
           {/* Griglia icone archetipi */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mb-4">
             {mainArchetypes.map((archetype) => (
               <button
                 key={archetype.id}
@@ -74,7 +74,7 @@ export function PlantSelector({
         </>
       ) : (
         <div>
-          <div className="mb-4 flex items-center gap-2">
+          <div className="mb-4 flex items-center gap-3">
             <button
               type="button"
               onClick={() => {

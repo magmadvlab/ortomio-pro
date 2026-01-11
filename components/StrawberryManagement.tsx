@@ -27,7 +27,7 @@ const StrawberryManagement: React.FC<StrawberryManagementProps> = ({ tasks, gard
       <div className="p-6 bg-white rounded-xl border border-gray-200">
         <div className="flex items-center gap-3 mb-4">
           <Package className="text-red-500" size={24} />
-          <h3 className="text-xl font-bold text-gray-800">Gestione Fragole</h3>
+          <h3 className="text-lg md:text-xl font-bold text-gray-800">Gestione Fragole</h3>
         </div>
         <p className="text-gray-600">Nessuna coltura di fragole attiva in questo orto.</p>
       </div>
@@ -50,7 +50,7 @@ const StrawberryManagement: React.FC<StrawberryManagementProps> = ({ tasks, gard
     <div className="p-6 bg-white rounded-xl border border-gray-200">
       <div className="flex items-center gap-3 mb-6">
         <Package className="text-red-500" size={24} />
-        <h3 className="text-xl font-bold text-gray-800">Gestione Fragole</h3>
+        <h3 className="text-lg md:text-xl font-bold text-gray-800">Gestione Fragole</h3>
       </div>
 
       {/* Selettore Task */}
@@ -63,7 +63,7 @@ const StrawberryManagement: React.FC<StrawberryManagementProps> = ({ tasks, gard
               const task = strawberryTasks.find(t => t.id === e.target.value);
               if (task) setSelectedTask(task);
             }}
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
           >
             {strawberryTasks.map(task => (
               <option key={task.id} value={task.id}>
@@ -75,7 +75,7 @@ const StrawberryManagement: React.FC<StrawberryManagementProps> = ({ tasks, gard
       )}
 
       {/* Info Impianto */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="p-4 bg-red-50 rounded-lg border border-red-200">
           <div className="text-sm text-gray-600 mb-1">Varietà</div>
           <div className="font-bold text-gray-800">{strawberryCrop.varietyType}</div>
@@ -88,7 +88,7 @@ const StrawberryManagement: React.FC<StrawberryManagementProps> = ({ tasks, gard
 
       {/* Task Consigliati */}
       <div className="mb-6">
-        <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+        <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-3">
           <Calendar className="text-red-500" size={20} />
           Task Consigliati
         </h4>
@@ -115,7 +115,7 @@ const StrawberryManagement: React.FC<StrawberryManagementProps> = ({ tasks, gard
               </div>
               <ul className="text-sm text-gray-700 space-y-1 mt-2">
                 {advice.instructions.map((inst, i) => (
-                  <li key={i} className="flex items-start gap-2">
+                  <li key={i} className="flex items-start gap-3">
                     <span className="text-red-500 mt-1">•</span>
                     <span>{inst}</span>
                   </li>
@@ -129,7 +129,7 @@ const StrawberryManagement: React.FC<StrawberryManagementProps> = ({ tasks, gard
       {/* Stato Raccolta */}
       {isHarvestTime && (
         <div className="mb-6 p-4 bg-green-50 rounded-lg border-2 border-green-300">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-2">
             <CheckCircle className="text-green-600" size={20} />
             <span className="font-semibold text-green-800">Periodo di Raccolta Attivo</span>
           </div>
@@ -145,7 +145,7 @@ const StrawberryManagement: React.FC<StrawberryManagementProps> = ({ tasks, gard
       {/* Rinnovo Impianto (solo per June-bearing) */}
       {strawberryCrop.varietyType === 'June-bearing' && strawberryCrop.renovationRequired && nextRenovation && (
         <div className="mb-6 p-4 bg-blue-50 rounded-lg border-2 border-blue-300">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-2">
             <Scissors className="text-blue-600" size={20} />
             <span className="font-semibold text-blue-800">Prossimo Rinnovo</span>
           </div>
@@ -161,12 +161,12 @@ const StrawberryManagement: React.FC<StrawberryManagementProps> = ({ tasks, gard
 
       {/* Gestione Stoloni */}
       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <h4 className="text-md font-semibold text-gray-800 mb-3 flex items-center gap-2">
+        <h4 className="text-md font-semibold text-gray-800 mb-3 flex items-center gap-3">
           <Sprout className="text-gray-600" size={18} />
           Gestione Stoloni
         </h4>
         <div className="space-y-2">
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
               checked={currentTask.strawberryData?.runnerAction === 'Remove'}
@@ -184,7 +184,7 @@ const StrawberryManagement: React.FC<StrawberryManagementProps> = ({ tasks, gard
             />
             <span className="text-sm text-gray-700">Rimuovi stoloni (consigliato per June-bearing)</span>
           </label>
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
               checked={currentTask.strawberryData?.runnerAction === 'Propagate'}

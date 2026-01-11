@@ -110,7 +110,7 @@ const TreatmentPlanner: React.FC<TreatmentPlannerProps> = ({
 
       {/* Prodotto Consigliato */}
       <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-3 mb-2">
           <CheckCircle size={18} className="text-green-600" />
           <span className="font-semibold text-green-800">{recommendation.product.name}</span>
           <span className="text-xs px-2 py-1 bg-white rounded-full text-green-700">
@@ -121,7 +121,7 @@ const TreatmentPlanner: React.FC<TreatmentPlannerProps> = ({
       </div>
 
       {/* Dosaggio */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <div className="text-xs text-gray-600">Dosaggio</div>
           <div className="font-semibold text-gray-800">
@@ -136,15 +136,15 @@ const TreatmentPlanner: React.FC<TreatmentPlannerProps> = ({
 
       {/* Timing Check */}
       {timingCheck && timingCheck.conflict && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-start gap-2 mb-2">
-            <AlertTriangle size={18} className="text-yellow-600 mt-0.5" />
+        <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-4">
+          <div className="flex items-start gap-3 mb-2">
+            <AlertTriangle size={18} className="text-yellow-full max-w-sm mt-0.5" />
             <div className="flex-1">
-              <div className="font-medium text-yellow-800 mb-1">Conflitto Rilevato</div>
-              <p className="text-sm text-yellow-700 mb-3">{timingCheck.message}</p>
+              <div className="font-medium text-yellow-full max-w-sm mb-1">Conflitto Rilevato</div>
+              <p className="text-sm text-yellow-full max-w-sm mb-3">{timingCheck.message}</p>
               <div className="space-y-2">
                 {timingCheck.options.map((option: any, idx: number) => (
-                  <div key={idx} className="text-sm text-yellow-800 bg-white rounded p-2">
+                  <div key={idx} className="text-sm text-yellow-full max-w-sm bg-white rounded p-3">
                     {idx + 1}. {option.action}
                   </div>
                 ))}
@@ -158,12 +158,12 @@ const TreatmentPlanner: React.FC<TreatmentPlannerProps> = ({
       {weatherForecast && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <div className="text-xs font-medium text-blue-800 mb-2">Condizioni Meteo</div>
-          <div className="grid grid-cols-3 gap-2 text-xs text-blue-700">
-            <div className="flex items-center gap-1">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-blue-700">
+            <div className="flex items-center gap-3">
               <Droplets size={12} />
               <span>Pioggia: {weatherForecast.precipitation || 0}mm</span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-3">
               <Wind size={12} />
               <span>Vento: {weatherForecast.wind || 0} km/h</span>
             </div>

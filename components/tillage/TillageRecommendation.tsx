@@ -62,7 +62,7 @@ const TillageRecommendation: React.FC<TillageRecommendationProps> = ({
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
       <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Shovel size={20} className="text-green-600" />
           <h3 className="text-lg font-semibold text-gray-800">{recommendation.workType}</h3>
         </div>
@@ -84,7 +84,7 @@ const TillageRecommendation: React.FC<TillageRecommendationProps> = ({
 
       {/* Timing */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-3 mb-2">
           <Calendar size={16} className="text-blue-600" />
           <span className="text-sm font-medium text-blue-800">Finestra Ottimale</span>
         </div>
@@ -115,7 +115,7 @@ const TillageRecommendation: React.FC<TillageRecommendationProps> = ({
         <div className="text-sm font-medium text-gray-800 mb-2">Istruzioni</div>
         <ul className="space-y-1">
           {recommendation.instructions.map((instruction, idx) => (
-            <li key={idx} className="text-xs text-gray-700 flex items-start gap-2">
+            <li key={idx} className="text-xs text-gray-700 flex items-start gap-3">
               <CheckCircle size={12} className="text-green-600 mt-0.5 flex-shrink-0" />
               <span>{instruction}</span>
             </li>
@@ -125,9 +125,9 @@ const TillageRecommendation: React.FC<TillageRecommendationProps> = ({
 
       {/* Weather Warning */}
       {recommendation.weatherWarning && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-start gap-2">
-          <AlertTriangle size={16} className="text-yellow-600 mt-0.5" />
-          <p className="text-sm text-yellow-800">{recommendation.weatherWarning}</p>
+        <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-3 flex items-start gap-3">
+          <AlertTriangle size={16} className="text-yellow-full max-w-sm mt-0.5" />
+          <p className="text-sm text-yellow-full max-w-sm">{recommendation.weatherWarning}</p>
         </div>
       )}
     </div>

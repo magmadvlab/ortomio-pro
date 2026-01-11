@@ -95,7 +95,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
         <select
           value={systemType}
           onChange={(e) => setSystemType(e.target.value as AeroponicSystemType)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
         >
           <option value="HighPressure">Alta Pressione</option>
           <option value="LowPressure">Bassa Pressione</option>
@@ -105,7 +105,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
 
       <div className="bg-gray-50 p-4 rounded-lg">
         <h3 className="font-semibold text-gray-800 mb-3">Nebulizzazione</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Numero Ugelli
@@ -114,7 +114,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
               type="number"
               value={nozzleCount}
               onChange={(e) => setNozzleCount(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="1"
             />
           </div>
@@ -127,7 +127,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
                 type="number"
                 value={pressure}
                 onChange={(e) => setPressure(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="40"
                 max="120"
               />
@@ -141,7 +141,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
               type="number"
               value={mistFrequency}
               onChange={(e) => setMistFrequency(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="12"
               max="144"
             />
@@ -154,7 +154,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
               type="number"
               value={mistDuration}
               onChange={(e) => setMistDuration(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="3"
               max="15"
             />
@@ -167,7 +167,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
               type="number"
               value={mistInterval}
               onChange={(e) => setMistInterval(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="1"
               max="30"
             />
@@ -177,7 +177,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
 
       <div className="bg-gray-50 p-4 rounded-lg">
         <h3 className="font-semibold text-gray-800 mb-3">Soluzione Nutritiva</h3>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Capacità Serbatoio (L)
@@ -186,7 +186,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
               type="number"
               value={reservoirCapacity}
               onChange={(e) => setReservoirCapacity(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="10"
             />
           </div>
@@ -198,7 +198,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
               type="number"
               value={phTarget}
               onChange={(e) => setPhTarget(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               step="0.1"
               min="5"
               max="7"
@@ -212,7 +212,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
               type="number"
               value={ecTarget}
               onChange={(e) => setEcTarget(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               step="0.1"
               min="1"
               max="3"
@@ -232,12 +232,12 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
               type="number"
               value={chamberVolume}
               onChange={(e) => setChamberVolume(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="20"
             />
           </div>
           <div className="space-y-2">
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-3">
               <input
                 type="checkbox"
                 checked={hasDrainage}
@@ -246,7 +246,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
               />
               <span className="text-sm font-medium text-gray-700">Sistema di Drenaggio</span>
             </label>
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-3">
               <input
                 type="checkbox"
                 checked={hasVentilation}
@@ -261,7 +261,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
 
       <div className="bg-gray-50 p-4 rounded-lg">
         <h3 className="font-semibold text-gray-800 mb-3">Manutenzione</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Frequenza Pulizia Ugelli (giorni)
@@ -270,7 +270,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
               type="number"
               value={cleanFrequencyDays}
               onChange={(e) => setCleanFrequencyDays(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="3"
               max="14"
             />
@@ -283,7 +283,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
               type="number"
               value={changeFrequencyDays}
               onChange={(e) => setChangeFrequencyDays(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="7"
               max="30"
             />
@@ -291,7 +291,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
         </div>
       </div>
 
-      <div className="flex gap-2 justify-end pt-4">
+      <div className="flex gap-3 justify-end pt-4">
         {onCancel && (
           <button
             type="button"

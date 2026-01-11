@@ -40,7 +40,7 @@ const UpgradePrompt: React.FC<UpgradePromptProps> = ({
     <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
             <Sparkles size={20} className="text-purple-600 flex-shrink-0" />
             <h4 className="font-bold text-gray-800 text-sm sm:text-base">Passa a Pro</h4>
           </div>
@@ -51,9 +51,9 @@ const UpgradePrompt: React.FC<UpgradePromptProps> = ({
               <>La funzionalità <strong>{feature || 'questa funzionalità'}</strong> è disponibile solo in versione Pro</>
             )}
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+          <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             {proFeatures.map((feat, idx) => (
-              <div key={idx} className="flex items-center gap-2 text-xs text-gray-600">
+              <div key={idx} className="flex items-center gap-3 text-xs text-gray-600">
                 <feat.icon size={14} className="text-purple-600" />
                 <span>{feat.text || ''}</span>
               </div>
@@ -83,7 +83,7 @@ const UpgradePrompt: React.FC<UpgradePromptProps> = ({
   if (variant === 'modal') {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-lg p-4 sm:p-6 max-w-[90vw] md:max-w-md max-h-[90vh] overflow-y-auto w-full mx-4 max-h-[90vh] overflow-y-auto">
           {content}
         </div>
       </div>

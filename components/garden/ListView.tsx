@@ -158,7 +158,7 @@ export function ListView({
         <div className="flex flex-col gap-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <Search className="absolute left-3 top-3/2 transform -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
               placeholder="Cerca per pianta o note..."
@@ -169,7 +169,7 @@ export function ListView({
           </div>
           
           {/* Filters Row */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {/* Type Filter */}
             <select
               value={filterType}
@@ -193,7 +193,7 @@ export function ListView({
             </select>
             
             {/* Status Filter - Buttons */}
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-3 flex-wrap">
               {[
                 { value: 'all', label: 'Tutti' },
                 { value: 'pending', label: 'Da fare' },
@@ -221,7 +221,7 @@ export function ListView({
       <div className="relative">
         <button
           onClick={() => setShowAddMenu(!showAddMenu)}
-          className="w-full bg-green-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+          className="w-full bg-green-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-3"
         >
           <PlusCircle size={20} />
           <span>Nuovo Task</span>
@@ -238,7 +238,7 @@ export function ListView({
               className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100"
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl">🌱</span>
+                <span className="text-xl md:text-2xl">🌱</span>
                 <div>
                   <div className="font-medium text-gray-900">Semina / Trapianto</div>
                   <div className="text-xs text-gray-500">Nuova pianta da seme o piantina</div>
@@ -254,7 +254,7 @@ export function ListView({
               className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl">📝</span>
+                <span className="text-xl md:text-2xl">📝</span>
                 <div>
                   <div className="font-medium text-gray-900">Task Manuale</div>
                   <div className="text-xs text-gray-500">Concimazione, Trattamento, Potatura, Raccolta</div>
@@ -279,7 +279,7 @@ export function ListView({
           sortedGroups.map(([groupLabel, groupTasks]) => (
             <div key={groupLabel} className="space-y-3">
               {/* Group Header */}
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <h3 className="text-lg font-bold text-gray-900">{groupLabel}</h3>
                 <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
                   {groupTasks.length}
@@ -338,7 +338,7 @@ export function ListView({
                         await onToggleTask(task.id)
                       }
                     }}
-                    className="mt-1 flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors"
+                    className="mt-1 flex-shrink-0 p-3 hover:bg-gray-100 rounded transition-colors"
                     aria-label={task.completed ? 'Segna come non completato' : 'Segna come completato'}
                   >
                     {task.completed ? (
@@ -350,15 +350,15 @@ export function ListView({
                   
                   {/* Task Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-3 mb-1">
                           {getIcon(task.taskType)}
                           <h3 className="font-semibold text-gray-900">
                             {task.plantName}{variety}
                           </h3>
                           {task.locationType && (
-                            <span className="flex items-center gap-1 text-xs text-gray-500">
+                            <span className="flex items-center gap-3 text-xs text-gray-500">
                               {getLocationIcon(task.locationType)}
                               {getLocationLabel(task.locationType)}
                             </span>
@@ -378,19 +378,19 @@ export function ListView({
                         {/* Info Contestuali Inline */}
                         <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 mb-2">
                           {task.nextDueDate && (
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-3">
                               <Clock size={14} />
                               <span>{format(parseISO(task.nextDueDate), 'HH:mm')}</span>
                             </div>
                           )}
                           {task.date && (
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-3">
                               <Calendar size={14} />
                               <span>{format(parseISO(task.date), 'dd MMM yyyy', { locale: it })}</span>
                             </div>
                           )}
                           {task.locationType && (
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-3">
                               <MapPin size={14} />
                               <span>{getLocationLabel(task.locationType)}</span>
                             </div>
@@ -405,7 +405,7 @@ export function ListView({
                       </div>
                       
                       {/* Actions */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-3 flex-shrink-0">
                         {!task.completed && (
                           <>
                             <button
@@ -418,7 +418,7 @@ export function ListView({
                                   nextDueDate: newDate.toISOString().split('T')[0]
                                 })
                               }}
-                              className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors flex items-center gap-1"
+                              className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors flex items-center gap-3"
                               title="Rimanda"
                             >
                               <Clock size={14} />
@@ -437,7 +437,7 @@ export function ListView({
                         )}
                         <button
                           onClick={() => onDeleteTask(task.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                          className="p-3 text-gray-400 hover:text-red-600 transition-colors"
                           title="Elimina"
                         >
                           <X size={18} />
@@ -459,7 +459,7 @@ export function ListView({
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Nuovo Task</h2>
+              <h2 className="text-lg md:text-xl font-bold">Nuovo Task</h2>
               <button
                 onClick={() => setShowCropWizard(false)}
                 className="text-gray-500 hover:text-gray-700"

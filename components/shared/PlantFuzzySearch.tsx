@@ -101,7 +101,7 @@ export function PlantFuzzySearch({
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         {loading && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+          <div className="absolute right-3 top-3/2 transform -translate-y-1/2">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
           </div>
         )}
@@ -122,8 +122,8 @@ export function PlantFuzzySearch({
                 onClick={() => handleSelect(suggestion)}
                 className="w-full text-left px-4 py-3 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none transition-colors"
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{getArchetypeIcon(suggestion.archetypeId)}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-lg md:text-xl">{getArchetypeIcon(suggestion.archetypeId)}</span>
                   <div className="flex-1">
                     <div className="font-medium text-gray-900">
                       {suggestion.plantName}
@@ -133,7 +133,7 @@ export function PlantFuzzySearch({
                         Intendevi: {suggestion.plantName}?
                       </div>
                     )}
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">
                         {suggestion.archetypeId}
                       </span>

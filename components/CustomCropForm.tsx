@@ -64,7 +64,7 @@ const CustomCropForm: React.FC<CustomCropFormProps> = ({
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Plus className="text-green-600" size={24} />
-          <h3 className="text-xl font-bold text-gray-800">
+          <h3 className="text-lg md:text-xl font-bold text-gray-800">
             Aggiungi Coltura Personalizzata
           </h3>
         </div>
@@ -77,7 +77,7 @@ const CustomCropForm: React.FC<CustomCropFormProps> = ({
       </div>
 
       <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-3">
           <Info className="text-blue-600 mt-0.5" size={16} />
           <p className="text-sm text-blue-700">
             Il sistema imparerà dai tuoi lavori e ti suggerirà quando fare le operazioni.
@@ -95,7 +95,7 @@ const CustomCropForm: React.FC<CustomCropFormProps> = ({
             type="text"
             value={formData.commonName}
             onChange={(e) => setFormData({ ...formData, commonName: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             placeholder="Es. Fagiolo Rampicante Personalizzato"
             required
           />
@@ -109,7 +109,7 @@ const CustomCropForm: React.FC<CustomCropFormProps> = ({
             type="text"
             value={formData.scientificName}
             onChange={(e) => setFormData({ ...formData, scientificName: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             placeholder="Es. Phaseolus vulgaris"
           />
         </div>
@@ -122,7 +122,7 @@ const CustomCropForm: React.FC<CustomCropFormProps> = ({
             type="text"
             value={formData.family}
             onChange={(e) => setFormData({ ...formData, family: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             placeholder="Es. Fabaceae"
           />
         </div>
@@ -135,7 +135,7 @@ const CustomCropForm: React.FC<CustomCropFormProps> = ({
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             placeholder="Aggiungi note sulla coltura..."
           />
         </div>

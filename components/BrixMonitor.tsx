@@ -48,7 +48,7 @@ const BrixMonitor: React.FC<BrixMonitorProps> = ({ task, garden, onUpdateBrix })
     <div className="p-6 bg-white rounded-xl border border-gray-200">
       <div className="flex items-center gap-3 mb-4">
         <TrendingUp className="text-purple-500" size={24} />
-        <h3 className="text-xl font-bold text-gray-800">Monitoraggio Brix</h3>
+        <h3 className="text-lg md:text-xl font-bold text-gray-800">Monitoraggio Brix</h3>
       </div>
 
       {/* Input Brix Manuale */}
@@ -103,7 +103,7 @@ const BrixMonitor: React.FC<BrixMonitorProps> = ({ task, garden, onUpdateBrix })
       {/* Stato Vendemmia */}
       {isReady ? (
         <div className="p-4 bg-green-50 rounded-lg border-2 border-green-300 mb-4">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-2">
             <CheckCircle className="text-green-600" size={20} />
             <span className="font-semibold text-green-800">Pronto per Vendemmia!</span>
           </div>
@@ -113,7 +113,7 @@ const BrixMonitor: React.FC<BrixMonitorProps> = ({ task, garden, onUpdateBrix })
         </div>
       ) : daysToHarvest !== null ? (
         <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-300 mb-4">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-2">
             <Calendar className="text-blue-600" size={20} />
             <span className="font-semibold text-blue-800">Stima Giorni alla Vendemmia</span>
           </div>
@@ -123,7 +123,7 @@ const BrixMonitor: React.FC<BrixMonitorProps> = ({ task, garden, onUpdateBrix })
         </div>
       ) : (
         <div className="p-4 bg-gray-50 rounded-lg border border-gray-300 mb-4">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-2">
             <AlertCircle className="text-gray-600" size={20} />
             <span className="font-semibold text-gray-800">Fuori Periodo</span>
           </div>

@@ -280,7 +280,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
           <div className="flex items-center gap-3">
             <RotateCcw className="h-8 w-8 text-red-600" />
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900">
                 Procedura Ritiro/Ritirata Prodotti (AF 9.1)
               </h1>
               <p className="text-gray-600">
@@ -292,7 +292,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
             <button
               onClick={startSimulation}
               disabled={!!activeTest}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
+              className="flex items-center gap-3 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
             >
               <Play size={16} />
               Simula Richiamo
@@ -300,7 +300,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              className="flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
             >
               <FileText size={16} />
               {saving ? 'Salvando...' : 'Salva Procedura'}
@@ -309,7 +309,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
         </div>
 
         {/* Procedure Info */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Versione Procedura
@@ -318,7 +318,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
               type="text"
               value={procedure.procedure_version || ''}
               onChange={(e) => setProcedure(prev => ({ ...prev, procedure_version: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
             />
           </div>
           <div>
@@ -329,7 +329,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
               type="date"
               value={procedure.last_updated || ''}
               onChange={(e) => setProcedure(prev => ({ ...prev, last_updated: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
             />
           </div>
           <div>
@@ -340,7 +340,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
               type="date"
               value={procedure.annual_test_date || ''}
               onChange={(e) => setProcedure(prev => ({ ...prev, annual_test_date: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -363,7 +363,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
             </div>
             <button
               onClick={completeSimulation}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+              className="flex items-center gap-3 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
             >
               <CheckCircle size={16} />
               Completa Test
@@ -449,7 +449,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
                 <div className="space-y-3">
                   {procedure.decision_makers?.map((maker, index) => (
                     <div key={index} className="border rounded-lg p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Nome
@@ -462,7 +462,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
                               updatedMakers[index] = { ...maker, name: e.target.value }
                               setProcedure(prev => ({ ...prev, decision_makers: updatedMakers }))
                             }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                            className="w-full px-4 py-3 text-base border border-gray-300 rounded text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
                           />
                         </div>
                         <div>
@@ -477,7 +477,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
                               updatedMakers[index] = { ...maker, position: e.target.value }
                               setProcedure(prev => ({ ...prev, decision_makers: updatedMakers }))
                             }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                            className="w-full px-4 py-3 text-base border border-gray-300 rounded text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
                           />
                         </div>
                         <div>
@@ -495,7 +495,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
                               }
                               setProcedure(prev => ({ ...prev, decision_makers: updatedMakers }))
                             }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                            className="w-full px-4 py-3 text-base border border-gray-300 rounded text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
                           />
                         </div>
                         <div>
@@ -513,7 +513,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
                               }
                               setProcedure(prev => ({ ...prev, decision_makers: updatedMakers }))
                             }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                            className="w-full px-4 py-3 text-base border border-gray-300 rounded text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
                           />
                         </div>
                       </div>
@@ -539,7 +539,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
                       <p className="text-gray-700 mb-2">
                         <strong>Azione:</strong> {step.action_required}
                       </p>
-                      <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
                         <div>
                           <strong>Responsabile:</strong> {step.responsible_person}
                         </div>
@@ -562,7 +562,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
                     value={procedure.traceability_method || ''}
                     onChange={(e) => setProcedure(prev => ({ ...prev, traceability_method: e.target.value }))}
                     rows={3}
-                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 text-base border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Descrivi come vengono tracciati i prodotti dal campo al cliente..."
                   />
                 </div>
@@ -574,7 +574,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
             <div className="space-y-6">
               <div className="text-center py-8">
                 <Target className="mx-auto h-16 w-16 text-orange-500 mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-2">
                   Simulazione Test Richiamo
                 </h3>
                 <p className="text-gray-600 mb-6">
@@ -584,7 +584,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
                 {!activeTest ? (
                   <button
                     onClick={startSimulation}
-                    className="flex items-center gap-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors mx-auto"
+                    className="flex items-center gap-3 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors mx-auto"
                   >
                     <Play size={20} />
                     Avvia Simulazione
@@ -612,7 +612,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
                     </div>
                     <button
                       onClick={completeSimulation}
-                      className="mt-4 flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors mx-auto"
+                      className="mt-4 flex items-center gap-3 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors mx-auto"
                     >
                       <CheckCircle size={16} />
                       Completa Test
@@ -626,19 +626,19 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
                   Cosa viene testato:
                 </h4>
                 <ul className="space-y-2 text-sm text-gray-700">
-                  <li className="flex items-center gap-2">
+                  <li className="flex items-center gap-3">
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     Tempo di tracciamento prodotti dal lotto al cliente
                   </li>
-                  <li className="flex items-center gap-2">
+                  <li className="flex items-center gap-3">
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     Efficacia delle comunicazioni interne ed esterne
                   </li>
-                  <li className="flex items-center gap-2">
+                  <li className="flex items-center gap-3">
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     Risposta dei contatti nella timeline di escalation
                   </li>
-                  <li className="flex items-center gap-2">
+                  <li className="flex items-center gap-3">
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     Completezza della documentazione di tracciabilità
                   </li>
@@ -676,7 +676,7 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         <div className="bg-blue-50 rounded p-3">
                           <div className="text-sm text-blue-800 font-medium">Tempo Tracciamento</div>
                           <div className="text-lg font-bold text-blue-900">
@@ -698,11 +698,11 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
                       </div>
 
                       {test.improvements_identified && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-                          <div className="text-sm font-medium text-yellow-800 mb-1">
+                        <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded p-3">
+                          <div className="text-sm font-medium text-yellow-full max-w-sm mb-1">
                             Miglioramenti Identificati:
                           </div>
-                          <div className="text-sm text-yellow-700">
+                          <div className="text-sm text-yellow-full max-w-sm">
                             {test.improvements_identified}
                           </div>
                         </div>

@@ -119,13 +119,13 @@ export function PhotoCapture({
 
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl max-w-md w-full mx-4 overflow-hidden">
+      <div className="bg-white rounded-2xl max-w-[90vw] md:max-w-md max-h-[90vh] overflow-y-auto w-full mx-4 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <h2 className="text-lg font-bold text-gray-900">{title}</h2>
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <X size={20} className="text-gray-500" />
           </button>
@@ -173,7 +173,7 @@ export function PhotoCapture({
               
               {/* Overlay con griglia */}
               <div className="absolute inset-0 pointer-events-none">
-                <div className="w-full h-full border-2 border-white/30 grid grid-cols-3 grid-rows-3">
+                <div className="w-full h-full border-2 border-white/30 grid grid-cols-1 md:grid-cols-3 grid-rows-3">
                   {Array.from({ length: 9 }).map((_, i) => (
                     <div key={i} className="border border-white/20" />
                   ))}
@@ -192,14 +192,14 @@ export function PhotoCapture({
             <div className="flex gap-3">
               <button
                 onClick={retakePhoto}
-                className="flex-1 flex items-center justify-center gap-2 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                className="flex-1 flex items-center justify-center gap-3 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 <RotateCcw size={18} />
                 Rifai
               </button>
               <button
                 onClick={confirmPhoto}
-                className="flex-1 flex items-center justify-center gap-2 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                className="flex-1 flex items-center justify-center gap-3 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 <Check size={18} />
                 Conferma

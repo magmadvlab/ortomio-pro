@@ -94,7 +94,7 @@ export function EnhancedDashboard({
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              <h1 className="text-xl md:text-2xl sm:text-3xl font-bold text-gray-900">
                 🌤️ Buongiorno {displayName}!
               </h1>
               {weather && (
@@ -119,7 +119,7 @@ export function EnhancedDashboard({
         {todayTasks.length > 0 && (
           <Card variant="elevated" className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <h2 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-3">
                 <Clock className="text-ortomio-green-600" size={24} />
                 OGGI
               </h2>
@@ -189,12 +189,12 @@ export function EnhancedDashboard({
         )}
 
         {/* Quick Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-3 gap-4">
           <Card variant="default" className="p-6 text-center">
             <div className="text-3xl font-bold text-ortomio-green-600 mb-1">
               {activePlants}
             </div>
-            <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+            <div className="text-sm text-gray-600 flex items-center justify-center gap-3">
               <Sprout size={16} />
               Piante attive
             </div>
@@ -203,7 +203,7 @@ export function EnhancedDashboard({
             <div className="text-3xl font-bold text-blue-600 mb-1">
               {monthlyTasks}
             </div>
-            <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+            <div className="text-sm text-gray-600 flex items-center justify-center gap-3">
               <Calendar size={16} />
               Task questo mese
             </div>
@@ -212,7 +212,7 @@ export function EnhancedDashboard({
             <div className="text-3xl font-bold text-orange-600 mb-1">
               {monthlyHarvests}
             </div>
-            <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+            <div className="text-sm text-gray-600 flex items-center justify-center gap-3">
               <ShoppingBasket size={16} />
               Raccolto questo mese
             </div>
@@ -221,7 +221,7 @@ export function EnhancedDashboard({
 
         {/* What to Plant Now */}
         <Card variant="elevated" className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
+          <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4">
             COSA PIANTARE ORA
           </h2>
           <p className="text-sm text-gray-600 mb-4">
@@ -245,7 +245,7 @@ export function EnhancedDashboard({
             ))}
             <Link
               href="/app/garden?tab=timeline"
-              className="px-4 py-2 text-sm font-medium text-ortomio-green-600 hover:text-ortomio-green-700 flex items-center gap-1"
+              className="px-4 py-2 text-sm font-medium text-ortomio-green-600 hover:text-ortomio-green-700 flex items-center gap-3"
             >
               + Vedi tutti <ArrowRight size={16} />
             </Link>

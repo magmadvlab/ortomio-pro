@@ -244,7 +244,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
         <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900">Registra Irrigazione</h2>
+            <h2 className="text-lg md:text-xl font-bold text-gray-900">Registra Irrigazione</h2>
             <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
               <X size={24} />
             </button>
@@ -359,7 +359,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
             ) : null}
 
             {/* Data e Ora */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Data *
@@ -385,7 +385,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
             </div>
 
             {/* Litri per filare + riepilogo durata */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Litri per filare *
@@ -412,7 +412,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
                   {selectedRowIds.length === 0 ? (
                     <span className="text-gray-500">Seleziona filari per calcolare</span>
                   ) : hasAnyRowMissingConfig ? (
-                    <span className="text-yellow-800">Config mancante su uno o più filari</span>
+                    <span className="text-yellow-full max-w-sm">Config mancante su uno o più filari</span>
                   ) : durationSummary ? (
                     durationSummary.min === durationSummary.max ? (
                       <span>{durationSummary.min} min</span>
@@ -448,7 +448,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
             <div className="border-t pt-4">
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Condizioni (opzionale)</h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Meteo
@@ -478,7 +478,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Umidità suolo prima (%)
@@ -514,7 +514,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
                 Note
               </label>
               <textarea
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows={3}
                 placeholder="Eventuali osservazioni..."
                 value={formData.notes}

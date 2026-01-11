@@ -204,21 +204,21 @@ export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
           <h1 className="text-3xl font-bold text-gray-900">Analytics PRO</h1>
           <p className="text-gray-600 mt-1">Dashboard prestazioni orto</p>
         </div>
-        <Button variant="outline" className="flex items-center gap-2">
+        <Button variant="outline" className="flex items-center gap-3">
           <Download size={18} />
           Esporta Report
         </Button>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((kpi, index) => (
           <Card key={index} className="p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <p className="text-sm text-gray-600 mb-1">{kpi.label}</p>
                 <p className="text-3xl font-bold text-gray-900 mb-2">{kpi.value}</p>
-                <div className="flex items-center gap-1 text-sm">
+                <div className="flex items-center gap-3 text-sm">
                   {kpi.trend === 'up' && <TrendingUp size={14} className="text-green-600" />}
                   {kpi.trend === 'down' && <TrendingDown size={14} className="text-red-600" />}
                   <span className={
@@ -240,9 +240,9 @@ export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
 
       {/* Suggerimenti AI */}
       <Card className="p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Lightbulb className="text-yellow-500" size={24} />
-          <h2 className="text-xl font-bold text-gray-900">Suggerimenti AI</h2>
+        <div className="flex items-center gap-3 mb-4">
+          <Lightbulb className="text-yellow-full max-w-sm" size={24} />
+          <h2 className="text-lg md:text-xl font-bold text-gray-900">Suggerimenti AI</h2>
         </div>
 
         {suggestions.length === 0 ? (
@@ -278,10 +278,10 @@ export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
       </Card>
 
       {/* Grafici */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Grafico Produzione per Pianta */}
         <Card className="p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-3">
             <BarChart3 size={20} />
             Produzione per Pianta
           </h3>
@@ -318,7 +318,7 @@ export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
 
         {/* Grafico Task Completion */}
         <Card className="p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-3">
             <PieChart size={20} />
             Task per Tipo
           </h3>
@@ -356,12 +356,12 @@ export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
 
       {/* Timeline Previsioni */}
       <Card className="p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-3">
           <Calendar size={20} />
           Previsioni Prossimi 30 Giorni
         </h3>
         <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
               <p className="text-3xl font-bold text-green-600 mb-2">
                 {(totalProduction * 1.15).toFixed(1)} kg

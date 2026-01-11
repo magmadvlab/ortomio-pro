@@ -142,13 +142,13 @@ export const GardenStructuresEditor: React.FC<GardenStructuresEditorProps> = ({
               <Grid size={20} className="text-green-600" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-800">Modifica Strutture</h2>
+              <h2 className="text-lg md:text-xl font-bold text-gray-800">Modifica Strutture</h2>
               <p className="text-sm text-gray-500">{garden.name}</p>
             </div>
           </div>
           <button
             onClick={onCancel}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
             aria-label="Chiudi"
           >
             <X size={20} className="text-gray-500" />
@@ -247,7 +247,7 @@ export const GardenStructuresEditor: React.FC<GardenStructuresEditorProps> = ({
           <button
             onClick={handleSave}
             disabled={loading || calculatedSizeSqMeters <= 0}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+            className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-3 transition-colors"
           >
             <Save size={18} />
             {loading ? 'Salvataggio...' : 'Salva Modifiche'}

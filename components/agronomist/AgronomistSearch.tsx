@@ -135,9 +135,9 @@ const AgronomistSearch: React.FC<AgronomistSearchProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Cerca per nome, email, telefono o specializzazione
             </label>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <Search className="absolute left-3 top-3/2 transform -translate-y-1/2 text-gray-400" size={20} />
                 <input
                   type="text"
                   value={searchQuery}
@@ -197,7 +197,7 @@ const AgronomistSearch: React.FC<AgronomistSearchProps> = ({
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <User className="text-green-600" size={24} />
-                        <h4 className="text-xl font-semibold text-gray-800">
+                        <h4 className="text-lg md:text-xl font-semibold text-gray-800">
                           {agronomist.name}
                         </h4>
                         {isAlreadyTrusted && (
@@ -209,19 +209,19 @@ const AgronomistSearch: React.FC<AgronomistSearchProps> = ({
 
                       <div className="space-y-2 text-sm text-gray-600">
                         {agronomist.email && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <Mail size={14} />
                             <span>{agronomist.email}</span>
                           </div>
                         )}
                         {agronomist.phone && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <Phone size={14} />
                             <span>{agronomist.phone}</span>
                           </div>
                         )}
                         {agronomist.specialization && agronomist.specialization.length > 0 && (
-                          <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex items-center gap-3 flex-wrap">
                             <MapPin size={14} />
                             <span className="text-xs">
                               {agronomist.specialization.join(', ')}
@@ -236,11 +236,11 @@ const AgronomistSearch: React.FC<AgronomistSearchProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                       {!isAlreadyTrusted && (
                         <button
                           onClick={() => handleAddToTrusted(agronomist)}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                          className="flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                         >
                           <Plus size={16} />
                           Aggiungi ai Fiducia
@@ -264,7 +264,7 @@ const AgronomistSearch: React.FC<AgronomistSearchProps> = ({
       )}
 
       {searchQuery && !isSearching && searchResults.length === 0 && (
-        <div className="bg-white rounded-lg shadow-md p-12 text-center">
+        <div className="bg-white rounded-lg shadow-md p-32 text-center">
           <Search className="mx-auto text-gray-400 mb-4" size={48} />
           <p className="text-gray-600 mb-2">Nessun risultato trovato</p>
           <p className="text-sm text-gray-500">

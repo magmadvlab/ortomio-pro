@@ -61,7 +61,7 @@ export function OnboardingBanner({ onDismiss, onComplete }: OnboardingBannerProp
                 <Sprout className="text-white" size={24} />
               </div>
               <div>
-                <h3 className="text-2xl font-bold text-gray-900">
+                <h3 className="text-xl md:text-2xl font-bold text-gray-900">
                   👋 Benvenuto in OrtoMio!
                 </h3>
                 <p className="text-sm text-gray-600">
@@ -79,7 +79,7 @@ export function OnboardingBanner({ onDismiss, onComplete }: OnboardingBannerProp
             <div className="flex flex-wrap gap-3">
               <Button
                 onClick={() => handleOpenWizard('auto')}
-                className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-3"
               >
                 <MapPin size={18} />
                 Usa mia posizione
@@ -88,7 +88,7 @@ export function OnboardingBanner({ onDismiss, onComplete }: OnboardingBannerProp
               <Button
                 onClick={() => handleOpenWizard('manual')}
                 variant="outline"
-                className="border-green-600 text-green-700 hover:bg-green-50 flex items-center gap-2"
+                className="border-green-600 text-green-700 hover:bg-green-50 flex items-center gap-3"
               >
                 <Edit size={18} />
                 Inserisci manualmente
@@ -97,7 +97,7 @@ export function OnboardingBanner({ onDismiss, onComplete }: OnboardingBannerProp
               <Button
                 onClick={handleDismiss}
                 variant="ghost"
-                className="text-gray-600 hover:text-gray-800 flex items-center gap-2"
+                className="text-gray-600 hover:text-gray-800 flex items-center gap-3"
               >
                 <SkipForward size={18} />
                 Salta per ora
@@ -121,7 +121,7 @@ export function OnboardingBanner({ onDismiss, onComplete }: OnboardingBannerProp
           <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900">
                   Configura il tuo primo orto
                 </h2>
                 <button

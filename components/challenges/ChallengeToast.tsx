@@ -27,7 +27,7 @@ export function ChallengeToast({ progress, onClose, onViewDetails }: ChallengeTo
   
   return (
     <div className="fixed bottom-20 left-4 right-4 z-50 animate-in slide-in-from-bottom-4 fade-in lg:left-auto lg:right-6 lg:max-w-md">
-      <div className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 rounded-xl shadow-2xl p-4 text-white">
+      <div className="bg-gradient-to-r from-yellow-full max-w-sm via-yellow-500 to-orange-500 rounded-xl shadow-2xl p-4 text-white">
         <div className="flex items-start gap-3">
           {/* Badge/Icon */}
           <div className="flex-shrink-0">
@@ -62,17 +62,17 @@ export function ChallengeToast({ progress, onClose, onViewDetails }: ChallengeTo
             )}
             
             {/* Actions */}
-            <div className="flex items-center gap-2 mt-3">
+            <div className="flex items-center gap-3 mt-3">
               <button
                 onClick={handleViewDetails}
-                className="flex items-center gap-1 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors backdrop-blur-sm"
+                className="flex items-center gap-3 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors backdrop-blur-sm"
               >
                 <span>Vedi dettagli</span>
                 <ChevronRight size={16} />
               </button>
               <button
                 onClick={onClose}
-                className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+                className="p-3.5 hover:bg-white/20 rounded-lg transition-colors"
                 aria-label="Chiudi"
               >
                 <X size={18} />

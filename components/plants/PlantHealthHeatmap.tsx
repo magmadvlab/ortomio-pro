@@ -125,10 +125,10 @@ const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
             </h3>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setZoomLevel(zoomLevel === 'overview' ? 'detailed' : 'overview')}
-              className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+              className="px-4 py-3 text-base border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-3"
             >
               <ZoomIn size={16} />
               {zoomLevel === 'overview' ? 'Dettaglio' : 'Panoramica'}
@@ -137,25 +137,25 @@ const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
         </div>
 
         {/* Statistiche rapide */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-5 gap-4">
           <div className="text-center">
-            <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
+            <p className="text-xl md:text-2xl font-bold text-blue-600">{stats.total}</p>
             <p className="text-sm text-gray-600">Totali</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">{stats.healthy}</p>
+            <p className="text-xl md:text-2xl font-bold text-green-600">{stats.healthy}</p>
             <p className="text-sm text-gray-600">Sane</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-orange-600">{stats.diseased}</p>
+            <p className="text-xl md:text-2xl font-bold text-orange-600">{stats.diseased}</p>
             <p className="text-sm text-gray-600">Malate</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-red-600">{stats.dead}</p>
+            <p className="text-xl md:text-2xl font-bold text-red-600">{stats.dead}</p>
             <p className="text-sm text-gray-600">Morte</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-purple-600">{Math.round(stats.avgHealth)}%</p>
+            <p className="text-xl md:text-2xl font-bold text-purple-600">{Math.round(stats.avgHealth)}%</p>
             <p className="text-sm text-gray-600">Salute Media</p>
           </div>
         </div>
@@ -165,19 +165,19 @@ const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
       <div className="bg-white rounded-lg shadow-md p-4">
         <h4 className="font-semibold text-gray-900 mb-3">Legenda Salute</h4>
         <div className="flex flex-wrap gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div className="w-4 h-4 rounded-sm bg-green-500"></div>
             <span className="text-sm">Eccellente (90-100%)</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-sm bg-yellow-500"></div>
+          <div className="flex items-center gap-3">
+            <div className="w-4 h-4 rounded-sm bg-yellow-full max-w-sm"></div>
             <span className="text-sm">Buona (70-89%)</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div className="w-4 h-4 rounded-sm bg-orange-500"></div>
             <span className="text-sm">Discreta (50-69%)</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div className="w-4 h-4 rounded-sm bg-red-500"></div>
             <span className="text-sm">Scarsa (&lt;50%)</span>
           </div>
@@ -205,7 +205,7 @@ const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
                 </div>
                 
                 {/* Row Plants */}
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-3">
                   {rowPlants.map((plant) => {
                     const cellSize = zoomLevel === 'overview' ? 'w-3 h-3' : 'w-6 h-6';
                     const isSelected = selectedPlant?.id === plant.id;
@@ -261,11 +261,11 @@ const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
             if (!plant) return null;
             
             return (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Basic Info */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{getStatusIcon(plant.status)}</span>
+                    <span className="text-xl md:text-2xl">{getStatusIcon(plant.status)}</span>
                     <div>
                       <h5 className="font-semibold text-lg">{plant.plantCode}</h5>
                       <p className="text-gray-600">{plant.plantName} - {plant.variety}</p>
@@ -275,7 +275,7 @@ const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">Salute:</span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <div 
                           className="w-4 h-4 rounded-full"
                           style={{ backgroundColor: getHealthColor(plant.healthScore) }}
@@ -313,7 +313,7 @@ const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
                   {plant.photos && plant.photos.length > 0 && (
                     <div>
                       <h6 className="font-medium text-gray-900 mb-2">Foto Recenti</h6>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         {plant.photos.slice(0, 3).map((photo, index) => (
                           <img
                             key={index}
@@ -336,12 +336,12 @@ const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
                   )}
                   
                   {selectedPlant && (
-                    <div className="flex gap-2 pt-3">
-                      <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm">
+                    <div className="flex gap-3 pt-3">
+                      <button className="flex-1 px-4 py-3 text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-3 text-sm">
                         <Camera size={16} />
                         Foto
                       </button>
-                      <button className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm">
+                      <button className="flex-1 px-4 py-3 text-base bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-3 text-sm">
                         <Eye size={16} />
                         Dettagli
                       </button>
@@ -357,7 +357,7 @@ const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
       {/* Alert per piante con problemi */}
       {stats.diseased > 0 && (
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-2">
             <AlertTriangle className="text-orange-600" size={20} />
             <h4 className="font-semibold text-orange-900">
               Attenzione: {stats.diseased} piante con problemi

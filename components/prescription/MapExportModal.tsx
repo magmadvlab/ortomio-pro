@@ -153,7 +153,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
           <div className="flex items-center gap-3">
             <Download className="text-green-600" size={24} />
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Export Mappa Prescrizione</h2>
+              <h2 className="text-lg md:text-xl font-bold text-gray-900">Export Mappa Prescrizione</h2>
               <p className="text-sm text-gray-600">{prescriptionMap.name}</p>
             </div>
           </div>
@@ -197,7 +197,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Seleziona Formato Export</h3>
                     
-                    <div className="grid grid-cols-1 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
                       {(['shapefile', 'kml', 'isoxml', 'geojson', 'csv'] as const).map((format) => (
                         <label
                           key={format}
@@ -235,7 +235,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                   {/* Coordinate System */}
                   <div>
                     <h4 className="font-medium text-gray-900 mb-3">Sistema di Coordinate</h4>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <label className="flex items-center p-3 border rounded-lg cursor-pointer">
                         <input
                           type="radio"
@@ -275,7 +275,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                         <select
                           value={exportConfig.utmZone || '33N'}
                           onChange={(e) => setExportConfig(prev => ({ ...prev, utmZone: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                         >
                           <option value="32N">32N (Italia Ovest)</option>
                           <option value="33N">33N (Italia Centro-Est)</option>
@@ -293,7 +293,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Compatibilità Machinery</h3>
                     
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Marca
@@ -301,7 +301,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                         <select
                           value={selectedMachinery.brand}
                           onChange={(e) => setSelectedMachinery(prev => ({ ...prev, brand: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                         >
                           <option value="">Seleziona marca...</option>
                           <option value="John Deere">John Deere</option>
@@ -322,7 +322,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                           value={selectedMachinery.model}
                           onChange={(e) => setSelectedMachinery(prev => ({ ...prev, model: e.target.value }))}
                           placeholder="es. 8R Series"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                         />
                       </div>
                     </div>
@@ -334,11 +334,11 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                           ? 'bg-green-50 border-green-200' 
                           : 'bg-yellow-50 border-yellow-200'
                       }`}>
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-3 mb-3">
                           {machineryCompatibility.compatible ? (
                             <CheckCircle className="text-green-600" size={20} />
                           ) : (
-                            <AlertTriangle className="text-yellow-600" size={20} />
+                            <AlertTriangle className="text-yellow-full max-w-sm" size={20} />
                           )}
                           <span className={`font-medium ${
                             machineryCompatibility.compatible ? 'text-green-900' : 'text-yellow-900'
@@ -352,7 +352,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                             <p className="text-sm font-medium text-gray-700 mb-2">Raccomandazioni:</p>
                             <ul className="text-sm text-gray-600 space-y-1">
                               {machineryCompatibility.recommendations.map((rec, index) => (
-                                <li key={index} className="flex items-start gap-2">
+                                <li key={index} className="flex items-start gap-3">
                                   <span className="text-green-500 mt-1">•</span>
                                   {rec}
                                 </li>
@@ -363,11 +363,11 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
 
                         {machineryCompatibility.warnings.length > 0 && (
                           <div>
-                            <p className="text-sm font-medium text-yellow-700 mb-2">Avvertenze:</p>
-                            <ul className="text-sm text-yellow-600 space-y-1">
+                            <p className="text-sm font-medium text-yellow-full max-w-sm mb-2">Avvertenze:</p>
+                            <ul className="text-sm text-yellow-full max-w-sm space-y-1">
                               {machineryCompatibility.warnings.map((warning, index) => (
-                                <li key={index} className="flex items-start gap-2">
-                                  <span className="text-yellow-500 mt-1">⚠</span>
+                                <li key={index} className="flex items-start gap-3">
+                                  <span className="text-yellow-full max-w-sm mt-1">⚠</span>
                                   {warning}
                                 </li>
                               ))}
@@ -456,7 +456,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                                 ...prev,
                                 kmlOptions: { ...prev.kmlOptions, colorScheme: e.target.value as any }
                               }))}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                             >
                               <option value="default">Default</option>
                               <option value="ndvi">NDVI</option>
@@ -470,7 +470,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                     {exportConfig.format === 'csv' && (
                       <div className="mt-6 p-4 bg-gray-50 rounded-lg">
                         <h4 className="font-medium text-gray-900 mb-3">Opzioni CSV</h4>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                               Delimitatore
@@ -481,7 +481,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                                 ...prev,
                                 csvOptions: { ...prev.csvOptions, delimiter: e.target.value as any }
                               }))}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                             >
                               <option value=",">Virgola (,)</option>
                               <option value=";">Punto e virgola (;)</option>
@@ -499,7 +499,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                                 ...prev,
                                 csvOptions: { ...prev.csvOptions, coordinateFormat: e.target.value as any }
                               }))}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                             >
                               <option value="decimal">Decimale</option>
                               <option value="dms">Gradi, Minuti, Secondi</option>
@@ -576,7 +576,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
               {/* Export Result */}
               {exportResult && (
                 <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-3 mb-3">
                     <CheckCircle className="text-green-600" size={20} />
                     <span className="font-medium text-green-900">Export Completato</span>
                   </div>
@@ -595,7 +595,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                   </div>
                   
                   {exportResult.downloadUrl && (
-                    <div className="mt-3 flex gap-2">
+                    <div className="mt-3 flex gap-3">
                       <button
                         onClick={() => {
                           const link = document.createElement('a');
@@ -603,7 +603,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                           link.download = exportResult.fileName;
                           link.click();
                         }}
-                        className="flex-1 bg-green-600 text-white py-2 px-3 rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center justify-center gap-2"
+                        className="flex-1 bg-green-600 text-white py-2 px-3 rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center justify-center gap-3"
                       >
                         <Download size={16} />
                         Download
@@ -614,7 +614,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                           navigator.clipboard.writeText(exportResult.downloadUrl);
                           alert('Link copiato negli appunti');
                         }}
-                        className="p-2 text-green-600 border border-green-300 rounded-lg hover:bg-green-100 transition-colors"
+                        className="p-3 text-green-600 border border-green-300 rounded-lg hover:bg-green-100 transition-colors"
                       >
                         <Copy size={16} />
                       </button>
@@ -627,7 +627,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
               <button
                 onClick={handleExport}
                 disabled={exporting}
-                className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-3"
               >
                 {exporting ? (
                   <>
@@ -648,7 +648,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                   // TODO: Implement map preview
                   alert('Anteprima mappa - funzionalità in sviluppo');
                 }}
-                className="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-3"
               >
                 <Eye size={16} />
                 Anteprima

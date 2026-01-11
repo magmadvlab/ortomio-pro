@@ -138,15 +138,15 @@ export function ObstacleManager({ garden, obstacles, onObstaclesChange, classNam
   return (
     <div className={className}>
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <h3 className="text-lg font-semibold text-gray-900">Ostacoli</h3>
           <InfoTooltip
             content="Gli ostacoli (palazzi, alberi, montagne) possono bloccare il sole e ridurre le ore di esposizione solare. Aggiungi gli ostacoli principali per un calcolo più preciso."
             size="sm"
           />
         </div>
-        <div className="flex gap-2">
-          <label className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer text-sm font-medium flex items-center gap-2 transition-colors">
+        <div className="flex gap-3">
+          <label className="px-4 py-3 text-base bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer text-sm font-medium flex items-center gap-3 transition-colors">
             <Upload size={16} />
             Foto 360°
             <input
@@ -160,7 +160,7 @@ export function ObstacleManager({ garden, obstacles, onObstaclesChange, classNam
           </label>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2 transition-colors"
+            className="px-4 py-3 text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-3 transition-colors"
           >
             <Plus size={16} />
             Aggiungi Manuale
@@ -183,7 +183,7 @@ export function ObstacleManager({ garden, obstacles, onObstaclesChange, classNam
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Direzione
@@ -197,7 +197,7 @@ export function ObstacleManager({ garden, obstacles, onObstaclesChange, classNam
                     if (option) setAzimuth(option.azimuth.toString())
                   }
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               >
                 {directionOptions.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -217,7 +217,7 @@ export function ObstacleManager({ garden, obstacles, onObstaclesChange, classNam
                   max="360"
                   value={azimuth}
                   onChange={(e) => setAzimuth(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               </div>
             )}
@@ -233,7 +233,7 @@ export function ObstacleManager({ garden, obstacles, onObstaclesChange, classNam
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
                 placeholder="Es. 10"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               />
             </div>
 
@@ -248,7 +248,7 @@ export function ObstacleManager({ garden, obstacles, onObstaclesChange, classNam
                 value={distance}
                 onChange={(e) => setDistance(e.target.value)}
                 placeholder="Es. 20"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               />
             </div>
 
@@ -262,7 +262,7 @@ export function ObstacleManager({ garden, obstacles, onObstaclesChange, classNam
                 max="180"
                 value={widthDegrees}
                 onChange={(e) => setWidthDegrees(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               />
             </div>
 
@@ -273,7 +273,7 @@ export function ObstacleManager({ garden, obstacles, onObstaclesChange, classNam
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as any)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               >
                 <option value="Building">Edificio</option>
                 <option value="Tree">Albero</option>
@@ -283,7 +283,7 @@ export function ObstacleManager({ garden, obstacles, onObstaclesChange, classNam
             </div>
           </div>
 
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex gap-3">
             <button
               onClick={handleAddObstacle}
               disabled={!height || !distance}
@@ -327,17 +327,17 @@ export function ObstacleManager({ garden, obstacles, onObstaclesChange, classNam
                   </div>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
                   onClick={() => handleEditObstacle(index)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  className="p-3 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                   aria-label="Modifica"
                 >
                   <Edit2 size={18} />
                 </button>
                 <button
                   onClick={() => handleDeleteObstacle(index)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   aria-label="Elimina"
                 >
                   <Trash2 size={18} />

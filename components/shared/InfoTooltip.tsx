@@ -74,7 +74,7 @@ export function InfoTooltip({
             {/* Close button */}
             <button
               onClick={() => setIsOpen(false)}
-              className="absolute top-1 right-1 text-gray-400 hover:text-white transition-colors"
+              className="absolute top-3 right-1 text-gray-400 hover:text-white transition-colors"
               aria-label="Chiudi"
             >
               <X size={14} />

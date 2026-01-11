@@ -465,12 +465,12 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
           <div>
-            <h2 className="text-xl font-bold text-gray-800">Aggiungi Coltura</h2>
+            <h2 className="text-lg md:text-xl font-bold text-gray-800">Aggiungi Coltura</h2>
             <p className="text-sm text-gray-500">{garden.name}</p>
           </div>
           <button
             onClick={onCancel}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
             aria-label="Chiudi"
           >
             <X size={20} className="text-gray-500" />
@@ -487,7 +487,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                 <p className="text-gray-600 text-sm">Scegli il metodo di coltivazione più adatto</p>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Da Seme */}
                 <button
                   onClick={() => setCultivationMethod('seed')}
@@ -498,7 +498,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                   }`}
                 >
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-2xl">
+                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-xl md:text-2xl">
                       🌰
                     </div>
                     <div>
@@ -507,19 +507,19 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                     </div>
                   </div>
                   <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-green-700">
+                    <div className="flex items-center gap-3 text-green-700">
                       <span>✓</span>
                       <span>Controllo completo del processo</span>
                     </div>
-                    <div className="flex items-center gap-2 text-green-700">
+                    <div className="flex items-center gap-3 text-green-700">
                       <span>✓</span>
                       <span>Costo ridotto</span>
                     </div>
-                    <div className="flex items-center gap-2 text-green-700">
+                    <div className="flex items-center gap-3 text-green-700">
                       <span>✓</span>
                       <span>Maggiore varietà disponibile</span>
                     </div>
-                    <div className="flex items-center gap-2 text-orange-600">
+                    <div className="flex items-center gap-3 text-orange-600">
                       <span>⏱</span>
                       <span>Richiede più tempo (2-8 settimane)</span>
                     </div>
@@ -536,7 +536,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                   }`}
                 >
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-2xl">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-xl md:text-2xl">
                       🌱
                     </div>
                     <div>
@@ -545,19 +545,19 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                     </div>
                   </div>
                   <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-green-700">
+                    <div className="flex items-center gap-3 text-green-700">
                       <span>✓</span>
                       <span>Risultati più rapidi</span>
                     </div>
-                    <div className="flex items-center gap-2 text-green-700">
+                    <div className="flex items-center gap-3 text-green-700">
                       <span>✓</span>
                       <span>Maggiore tasso di successo</span>
                     </div>
-                    <div className="flex items-center gap-2 text-green-700">
+                    <div className="flex items-center gap-3 text-green-700">
                       <span>✓</span>
                       <span>Meno rischi di germinazione</span>
                     </div>
-                    <div className="flex items-center gap-2 text-orange-600">
+                    <div className="flex items-center gap-3 text-orange-600">
                       <span>💰</span>
                       <span>Costo maggiore</span>
                     </div>
@@ -604,7 +604,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                 <button
                   onClick={handleNext}
                   disabled={!cultivationMethod}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-3"
                 >
                   {cultivationMethod === 'seed' ? 'Vai al Semenzaio' : 'Avanti'}
                   <ArrowRight size={18} />
@@ -630,15 +630,15 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                     autoFocus
                   />
                   {searching && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="absolute right-3 top-3/2 -translate-y-1/2">
                       <Loader2 size={20} className="animate-spin text-gray-400" />
                     </div>
                   )}
                 </div>
                 {foundArchetype && (
                   <div className="mt-2 bg-green-50 border border-green-200 rounded-lg p-3">
-                    <p className="text-sm text-green-800 flex items-center gap-2">
-                      <span className="text-xl">{currentArchetype?.icon}</span>
+                    <p className="text-sm text-green-800 flex items-center gap-3">
+                      <span className="text-lg md:text-xl">{currentArchetype?.icon}</span>
                       <span>✓ Trovato: <strong>{currentArchetype?.label}</strong></span>
                     </p>
                     {extractedMainName && extractedMainName !== plantName.trim().toLowerCase() && (
@@ -664,7 +664,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                     <p className="text-sm text-purple-800 mb-3">
                       Per alberi da frutto, olivi e viti è disponibile un wizard dedicato con funzionalità avanzate.
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                       <button
                         type="button"
                         onClick={() => {
@@ -704,7 +704,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                         onClick={() => handleFuzzySuggestionSelect(suggestion)}
                         className="w-full p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-left flex items-center gap-3"
                       >
-                        <span className="text-2xl">{suggestion.archetypeIcon}</span>
+                        <span className="text-xl md:text-2xl">{suggestion.archetypeIcon}</span>
                         <div className="flex-1">
                           <div className="font-medium text-gray-800">
                             {suggestion.name}
@@ -776,7 +776,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
               <div className="flex justify-between gap-3">
                 <button
                   onClick={() => setStep('method')}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium flex items-center gap-2"
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium flex items-center gap-3"
                 >
                   <ArrowLeft size={18} />
                   Indietro
@@ -784,7 +784,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                 <button
                   onClick={handleNext}
                   disabled={!plantName.trim() || searching}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-3"
                 >
                   Avanti
                   <ArrowRight size={18} />
@@ -804,7 +804,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Ambiente *
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 gap-3">
                     {(['Ground', 'RaisedBed', 'Pot', 'Greenhouse', 'HydroponicDrip', 'Indoor'] as GrowingLocation[]).map((loc) => (
                       <button
                         key={loc}
@@ -846,7 +846,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                     </div>
                   )}
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Area (m²)
@@ -968,7 +968,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                 {/* Advanced toggle */}
                 <button
                   onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-3"
                 >
                   <Info size={14} />
                   {showAdvanced ? 'Nascondi' : 'Mostra'} opzioni avanzate (portate, sensori)
@@ -978,14 +978,14 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
               <div className="flex justify-between gap-3">
                 <button
                   onClick={() => setStep('name')}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium flex items-center gap-2"
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium flex items-center gap-3"
                 >
                   <ArrowLeft size={18} />
                   Indietro
                 </button>
                 <button
                   onClick={handleNext}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 flex items-center gap-2"
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 flex items-center gap-3"
                 >
                   {showAdvanced ? 'Avanti' : 'Completa'}
                   <ArrowRight size={18} />
@@ -1023,7 +1023,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                     Sensori disponibili
                   </label>
                   <div className="space-y-2">
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-3">
                       <input
                         type="checkbox"
                         checked={hasMoistureSensor}
@@ -1032,7 +1032,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                       />
                       <span className="text-sm text-gray-700">Sensore umidità terreno</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-3">
                       <input
                         type="checkbox"
                         checked={hasECSensor}
@@ -1041,7 +1041,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                       />
                       <span className="text-sm text-gray-700">Sensore EC (conducibilità)</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-3">
                       <input
                         type="checkbox"
                         checked={hasPHSensor}
@@ -1057,14 +1057,14 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
               <div className="flex justify-between gap-3">
                 <button
                   onClick={() => setStep('setup')}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium flex items-center gap-2"
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium flex items-center gap-3"
                 >
                   <ArrowLeft size={18} />
                   Indietro
                 </button>
                 <button
                   onClick={handleComplete}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 flex items-center gap-2"
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 flex items-center gap-3"
                 >
                   Completa
                   <ArrowRight size={18} />

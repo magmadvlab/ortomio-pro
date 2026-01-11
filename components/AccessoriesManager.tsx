@@ -130,7 +130,7 @@ export const AccessoriesManager: React.FC<AccessoriesManagerProps> = ({
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-800">Gestione Accessori</h2>
+        <h2 className="text-lg md:text-xl font-bold text-gray-800">Gestione Accessori</h2>
         {onClose && (
           <button
             onClick={onClose}
@@ -142,28 +142,28 @@ export const AccessoriesManager: React.FC<AccessoriesManagerProps> = ({
       </div>
 
       {/* Statistiche */}
-      <div className="grid grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
         <div className="bg-blue-50 p-3 rounded-lg">
-          <div className="text-2xl font-bold text-blue-600">{byCategory.Support}</div>
+          <div className="text-xl md:text-2xl font-bold text-blue-600">{byCategory.Support}</div>
           <div className="text-xs text-gray-600">Supporti</div>
         </div>
         <div className="bg-green-50 p-3 rounded-lg">
-          <div className="text-2xl font-bold text-green-600">{byCategory.Netting}</div>
+          <div className="text-xl md:text-2xl font-bold text-green-600">{byCategory.Netting}</div>
           <div className="text-xs text-gray-600">Reti</div>
         </div>
         <div className="bg-yellow-50 p-3 rounded-lg">
-          <div className="text-2xl font-bold text-yellow-600">{byCategory.Wire}</div>
+          <div className="text-xl md:text-2xl font-bold text-yellow-full max-w-sm">{byCategory.Wire}</div>
           <div className="text-xs text-gray-600">Fili</div>
         </div>
         <div className="bg-purple-50 p-3 rounded-lg">
-          <div className="text-2xl font-bold text-purple-600">{byCategory.Structure}</div>
+          <div className="text-xl md:text-2xl font-bold text-purple-600">{byCategory.Structure}</div>
           <div className="text-xs text-gray-600">Strutture</div>
         </div>
       </div>
 
       {needsReplacement.length > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-          <div className="flex items-center gap-2 text-red-800">
+          <div className="flex items-center gap-3 text-red-800">
             <AlertTriangle size={20} />
             <span className="font-semibold">{needsReplacement.length} accessorio/i da sostituire</span>
           </div>
@@ -172,7 +172,7 @@ export const AccessoriesManager: React.FC<AccessoriesManagerProps> = ({
 
       {/* Filtri */}
       <div className="space-y-2 mb-4">
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
           <span className="text-sm font-medium text-gray-700">Filtra:</span>
           <select
             value={filterCategory}
@@ -199,14 +199,14 @@ export const AccessoriesManager: React.FC<AccessoriesManagerProps> = ({
           )}
           <button
             onClick={handleNew}
-            className="ml-auto flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className="ml-auto flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
             <Plus size={18} />
             Nuovo Accessorio
           </button>
         </div>
         {filterPlant && (
-          <div className="text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-2">
+          <div className="text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3">
             Mostrando accessori per: <strong>{filterPlant}</strong>
             <button
               onClick={() => setFilterPlant('')}
@@ -236,7 +236,7 @@ export const AccessoriesManager: React.FC<AccessoriesManagerProps> = ({
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <h3 className="font-semibold text-gray-800">{accessory.name}</h3>
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
                       {accessory.category}
@@ -260,17 +260,17 @@ export const AccessoriesManager: React.FC<AccessoriesManagerProps> = ({
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <button
                     onClick={() => handleEdit(accessory)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                    className="p-3 text-blue-600 hover:bg-blue-50 rounded"
                     title="Modifica"
                   >
                     <Edit2 size={18} />
                   </button>
                   <button
                     onClick={() => handleDelete(accessory.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded"
+                    className="p-3 text-red-600 hover:bg-red-50 rounded"
                     title="Elimina"
                   >
                     <Trash2 size={18} />

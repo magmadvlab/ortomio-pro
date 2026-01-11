@@ -613,7 +613,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-800">
               {existingGarden ? 'Modifica Giardino' : 'Nuovo Giardino'}
             </h2>
             <button
@@ -645,9 +645,9 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
           {/* Step 1: Nome Giardino */}
           {step === 1 && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-3 mb-4">
                 <Home size={24} className="text-green-600" />
-                <h3 className="text-xl font-bold text-gray-800">Nome Giardino</h3>
+                <h3 className="text-lg md:text-xl font-bold text-gray-800">Nome Giardino</h3>
               </div>
 
               <div>
@@ -671,9 +671,9 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
           {/* Step 2: Tipo Giardino */}
           {step === 2 && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-3 mb-4">
                 <Grid size={24} className="text-green-600" />
-                <h3 className="text-xl font-bold text-gray-800">Tipo Giardino</h3>
+                <h3 className="text-lg md:text-xl font-bold text-gray-800">Tipo Giardino</h3>
               </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
@@ -746,9 +746,9 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
           {/* Step 3: Posizione Geografica (Condizionale) */}
           {step === 3 && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-3 mb-4">
                 <MapPin size={24} className="text-green-600" />
-                <h3 className="text-xl font-bold text-gray-800">Posizione Geografica</h3>
+                <h3 className="text-lg md:text-xl font-bold text-gray-800">Posizione Geografica</h3>
               </div>
 
               {!needsLocation && (
@@ -787,7 +787,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Latitudine {needsLocation && '*'}
@@ -822,7 +822,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                 <button
                   onClick={() => handleGetLocation(false)}
                   disabled={loading || isRefreshingLocation}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-3 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50"
                 >
                   {loading ? (
                     <>
@@ -871,7 +871,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                   <button
                     onClick={handleRefreshLocation}
                     disabled={loading || isRefreshingLocation}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50 text-sm"
+                    className="w-full flex items-center justify-center gap-3 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50 text-sm"
                   >
                     {isRefreshingLocation ? (
                       <>
@@ -889,14 +889,14 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
               </div>
 
               {inferringGeo && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-3 text-sm text-gray-600">
                   <Loader2 size={16} className="animate-spin" />
                   <span>Inferenza dati geoclimatici...</span>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-3">
                   <Mountain size={16} />
                   Altitudine (metri)
                   {altitudeSource === 'inferred' && (
@@ -983,9 +983,9 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
           {/* Step 5: Suolo */}
           {step === 5 && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-3 mb-4">
                 <Shovel size={24} className="text-green-600" />
-                <h3 className="text-xl font-bold text-gray-800">Struttura Suolo</h3>
+                <h3 className="text-lg md:text-xl font-bold text-gray-800">Struttura Suolo</h3>
               </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
@@ -1069,14 +1069,14 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
           {/* Step 6: Microclima */}
           {step === 6 && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-3 mb-4">
                 <Sun size={24} className="text-green-600" />
-                <h3 className="text-xl font-bold text-gray-800">Microclima</h3>
+                <h3 className="text-lg md:text-xl font-bold text-gray-800">Microclima</h3>
               </div>
 
               {/* Foto Analisi AI (Pro Feature) */}
               <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4 mb-4">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-3 mb-3">
                   <Camera size={18} className="text-purple-600" />
                   <h4 className="font-bold text-gray-800 text-sm">Analisi AI da Foto (Pro)</h4>
                 </div>
@@ -1098,7 +1098,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                       />
                       <button
                         onClick={removeNoonPhoto}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                        className="absolute top-3 right-2 bg-red-500 text-white rounded-full p-3 hover:bg-red-600"
                       >
                         <X size={14} />
                       </button>
@@ -1138,7 +1138,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                       />
                       <button
                         onClick={removeHorizonPhoto}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                        className="absolute top-3 right-2 bg-red-500 text-white rounded-full p-3 hover:bg-red-600"
                       >
                         <X size={14} />
                       </button>
@@ -1204,7 +1204,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                       />
                       <button
                         onClick={removePanoramicPhoto}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                        className="absolute top-3 right-2 bg-red-500 text-white rounded-full p-3 hover:bg-red-600"
                       >
                         <X size={14} />
                       </button>
@@ -1231,7 +1231,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                 </div>
 
                 {photoAnalysisError && (
-                  <div className="mt-2 text-xs text-orange-600 bg-orange-50 p-2 rounded border border-orange-200">
+                  <div className="mt-2 text-xs text-orange-600 bg-orange-50 p-3 rounded border border-orange-200">
                     {photoAnalysisError}
                   </div>
                 )}
@@ -1239,7 +1239,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
 
               {/* Advanced Sun Exposure Wizard */}
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700 flex items-center gap-2 mb-2">
+                <label className="block text-sm font-medium text-gray-700 flex items-center gap-3 mb-2">
                   <Sun size={16} />
                   Esposizione Solare
                 </label>
@@ -1257,7 +1257,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-3">
                   <Wind size={16} />
                   Direzione Esposizione
                 </label>
@@ -1319,7 +1319,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
               {/* Gestione Ostacoli */}
               {(latitude && longitude) && (
                 <div className="mt-6 pt-6 border-t border-gray-200">
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-3 mb-3">
                     <h4 className="text-lg font-semibold text-gray-900">Ostacoli (Opzionale)</h4>
                     <InfoTooltip
                       content="Aggiungi ostacoli come palazzi, alberi o montagne che possono bloccare il sole. Questo migliora la precisione del calcolo dell'esposizione solare giorno-per-giorno."
@@ -1348,7 +1348,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                 <label className="flex items-center justify-between cursor-pointer">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${hasCompostBin ? 'bg-green-100' : 'bg-gray-100'}`}>
-                      <span className="text-xl">{hasCompostBin ? '♻️' : '📦'}</span>
+                      <span className="text-lg md:text-xl">{hasCompostBin ? '♻️' : '📦'}</span>
                     </div>
                     <div>
                       <span className={`text-lg font-bold ${hasCompostBin ? 'text-green-800' : 'text-gray-700'}`}>
@@ -1365,13 +1365,13 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                 </label>
                 {hasCompostBin && (
                   <div className="mt-3 pt-3 border-t border-green-300">
-                    <div className="flex items-start gap-2 mb-2">
+                    <div className="flex items-start gap-3 mb-2">
                       <Info size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
                       <p className="text-sm text-green-700">
                         Una compostiera ti permette di riciclare i materiali di risulta del tuo orto (scarti vegetali, foglie, erba tagliata) trasformandoli in prezioso humus.
                       </p>
                     </div>
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-3">
                       <span className="text-green-600">🌱</span>
                       <p className="text-sm text-green-700">
                         L'humus è un fertilizzante naturale eccellente che migliora la struttura del suolo, aumenta la sua fertilità e la capacità di trattenere acqua e nutrienti per le stagioni successive.
@@ -1387,7 +1387,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
             <button
               onClick={step === 1 ? onCancel : handlePrevious}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              className="flex items-center gap-3 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
             >
               <ArrowLeft size={18} />
               {step === 1 ? 'Annulla' : 'Indietro'}
@@ -1396,7 +1396,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
             {step < 6 ? (
               <button
                 onClick={handleNext}
-                className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                className="flex items-center gap-3 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 Avanti
                 <ArrowRight size={18} />
@@ -1404,7 +1404,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
             ) : (
               <button
                 onClick={handleComplete}
-                className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                className="flex items-center gap-3 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 <CheckCircle size={18} />
                 Completa

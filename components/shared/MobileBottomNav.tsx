@@ -54,7 +54,7 @@ export function MobileBottomNav({ onMenuClick }: MobileBottomNavProps) {
                 />
                 <span className="text-[10px] mt-0.5 font-medium">{item.label}</span>
                 {item.path === '/app/planner' && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] px-1 rounded-full">
+                  <span className="absolute -top-3 -right-1 bg-red-500 text-white text-[8px] px-1 rounded-full">
                     NEW
                   </span>
                 )}

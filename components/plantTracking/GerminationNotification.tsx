@@ -99,7 +99,7 @@ export const GerminationNotification: React.FC<GerminationNotificationProps> = (
         >
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-3 flex-1">
-              <div className="bg-green-100 rounded-full p-2">
+              <div className="bg-green-100 rounded-full p-3">
                 <Sprout size={20} className="text-green-600" />
               </div>
               <div className="flex-1">
@@ -112,17 +112,17 @@ export const GerminationNotification: React.FC<GerminationNotificationProps> = (
                 <div className="flex items-center gap-4 text-xs text-green-600">
                   <span>Finestra: {check.germinationWindowStart.toLocaleDateString('it-IT')} - {check.germinationWindowEnd.toLocaleDateString('it-IT')}</span>
                 </div>
-                <div className="flex items-center gap-2 mt-3">
+                <div className="flex items-center gap-3 mt-3">
                   <button
                     onClick={() => handleTakePhoto(task.id)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                    className="flex items-center gap-3 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
                   >
                     <Camera size={14} />
                     Scatta Foto
                   </button>
                   <button
                     onClick={() => handleConfirmGermination(task)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-white text-green-700 border border-green-300 rounded-lg hover:bg-green-50 transition-colors text-sm"
+                    className="flex items-center gap-3 px-3 py-1.5 bg-white text-green-700 border border-green-300 rounded-lg hover:bg-green-50 transition-colors text-sm"
                   >
                     <CheckCircle size={14} />
                     Ho visto il germoglio

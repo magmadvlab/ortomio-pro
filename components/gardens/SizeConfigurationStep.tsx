@@ -492,8 +492,8 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-4">
-        <h3 className="text-xl font-bold text-gray-800">Configurazione Strutture e Dimensioni</h3>
+      <div className="flex items-center gap-3 mb-4">
+        <h3 className="text-lg md:text-xl font-bold text-gray-800">Configurazione Strutture e Dimensioni</h3>
         <InfoTooltip content="Configura tutti gli elementi del tuo spazio coltivabile. La superficie totale verrà calcolata automaticamente sommando tutti gli elementi." />
       </div>
 
@@ -663,7 +663,7 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
         <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-lg font-bold text-gray-800">Superficie Totale Coltivabile:</span>
-            <span className="text-2xl font-bold text-green-700">
+            <span className="text-xl md:text-2xl font-bold text-green-700">
               {totalArea.toFixed(2)} m²
             </span>
           </div>
@@ -683,7 +683,7 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
           )}
           
           {totalArea === 0 && (
-            <p className="text-xs text-orange-600 mt-2 flex items-center gap-1">
+            <p className="text-xs text-orange-600 mt-2 flex items-center gap-3">
               <Info size={14} />
               Configura almeno un elemento per calcolare la superficie totale.
             </p>

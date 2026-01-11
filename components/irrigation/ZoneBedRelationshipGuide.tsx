@@ -51,19 +51,19 @@ export function ZoneBedRelationshipGuide({ zones, beds }: ZoneBedRelationshipGui
               (stessa linea d'acqua, stesso timer, stessa configurazione).
             </p>
             <div className="bg-blue-100 p-3 rounded-lg text-sm text-blue-900 space-y-2">
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-3">
                 <CheckCircle2 size={16} className="flex-shrink-0 mt-0.5 text-blue-700" />
                 <span>
                   <strong>Esempio 1:</strong> Tutti i letti del "Settore Nord" irrigati con lo stesso impianto a goccia → 1 zona
                 </span>
               </div>
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-3">
                 <CheckCircle2 size={16} className="flex-shrink-0 mt-0.5 text-blue-700" />
                 <span>
                   <strong>Esempio 2:</strong> Serra idroponica con 4 letti → 1 zona (stesso sistema circolante)
                 </span>
               </div>
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-3">
                 <CheckCircle2 size={16} className="flex-shrink-0 mt-0.5 text-blue-700" />
                 <span>
                   <strong>Esempio 3:</strong> 2 aiuole rialzate + 3 letti in campo → 2 zone separate (diversi impianti)
@@ -76,7 +76,7 @@ export function ZoneBedRelationshipGuide({ zones, beds }: ZoneBedRelationshipGui
 
       {/* Mappa relazioni zone → beds */}
       <Card className="p-6">
-        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-3">
           <Layers size={20} className="text-gray-700" />
           Configurazione Attuale
         </h3>
@@ -115,16 +115,16 @@ export function ZoneBedRelationshipGuide({ zones, beds }: ZoneBedRelationshipGui
                 </div>
 
                 {bedCount === 0 ? (
-                  <div className="flex items-center gap-2 text-amber-800 text-sm mt-3">
+                  <div className="flex items-center gap-3 text-amber-800 text-sm mt-3">
                     <AlertCircle size={16} />
                     <span>Nessun letto assegnato a questa zona</span>
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-2 mt-3">
+                  <div className="flex flex-wrap gap-3 mt-3">
                     {zoneBeds.map(bed => (
                       <div
                         key={bed.id}
-                        className="px-3 py-1 bg-white border border-green-300 rounded-lg text-sm flex items-center gap-2"
+                        className="px-3 py-1 bg-white border border-green-300 rounded-lg text-sm flex items-center gap-3"
                       >
                         <CheckCircle2 size={14} className="text-green-600" />
                         <span className="font-medium text-gray-900">{bed.name}</span>
@@ -151,7 +151,7 @@ export function ZoneBedRelationshipGuide({ zones, beds }: ZoneBedRelationshipGui
                 I seguenti letti non sono assegnati a nessuna zona irrigua. Per tracciare i consumi d'acqua per letto,
                 assegnali a una zona (o creane una nuova).
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-3">
                 {unassignedBeds.map(bed => (
                   <span
                     key={bed.id}
@@ -178,7 +178,7 @@ export function ZoneBedRelationshipGuide({ zones, beds }: ZoneBedRelationshipGui
               <p className="text-sm text-orange-800 mb-2">
                 Le seguenti zone non hanno letti assegnati. Modifica la zona per assegnare dei letti:
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-3">
                 {zonesWithoutBeds.map(zone => (
                   <span
                     key={zone.id}

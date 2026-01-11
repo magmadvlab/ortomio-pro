@@ -223,7 +223,7 @@ export default function TimelineComparison({
             <div key={index} className="relative">
               {/* Linea di connessione */}
               {index < phases.length - 1 && (
-                <div className="absolute left-6 top-12 w-0.5 h-8 bg-gray-300" />
+                <div className="absolute left-6 top-32 w-0.5 h-8 bg-gray-300" />
               )}
               
               <div className="flex items-start gap-4">
@@ -240,7 +240,7 @@ export default function TimelineComparison({
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-semibold text-gray-900">{phase.name}</h4>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <Badge variant="outline" className={`border-${phase.color}-300 text-${phase.color}-700`}>
                             {phase.days} {phase.days === 1 ? 'giorno' : 'giorni'}
                           </Badge>
@@ -254,21 +254,21 @@ export default function TimelineComparison({
                       
                       {/* Condizioni ambientali */}
                       {phase.conditions && (
-                        <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                           {phase.conditions.temperature && (
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                            <div className="flex items-center gap-3 text-xs text-gray-500">
                               <Thermometer className="w-3 h-3" />
                               {phase.conditions.temperature}
                             </div>
                           )}
                           {phase.conditions.humidity && (
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                            <div className="flex items-center gap-3 text-xs text-gray-500">
                               <Droplets className="w-3 h-3" />
                               {phase.conditions.humidity}
                             </div>
                           )}
                           {phase.conditions.light && (
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                            <div className="flex items-center gap-3 text-xs text-gray-500">
                               <Sun className="w-3 h-3" />
                               {phase.conditions.light}
                             </div>
@@ -279,7 +279,7 @@ export default function TimelineComparison({
                       {/* Task principali */}
                       <div className="space-y-1">
                         {phase.tasks.slice(0, 2).map((task, taskIndex) => (
-                          <div key={taskIndex} className="flex items-center gap-2 text-xs text-gray-600">
+                          <div key={taskIndex} className="flex items-center gap-3 text-xs text-gray-600">
                             <div className="w-1 h-1 bg-gray-400 rounded-full" />
                             {task}
                           </div>
@@ -315,7 +315,7 @@ export default function TimelineComparison({
     }
     
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-3 gap-4">
         {months.map((month, index) => (
           <Card key={index} className="p-3">
             <h4 className="font-medium text-center mb-2 capitalize">{month.name}</h4>
@@ -333,24 +333,24 @@ export default function TimelineComparison({
       {/* Header con statistiche */}
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-orange-600">{seedTotalDays}</div>
+              <div className="text-xl md:text-2xl font-bold text-orange-600">{seedTotalDays}</div>
               <div className="text-sm text-gray-600">Giorni dal seme</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-green-600">{transplantTotalDays}</div>
+              <div className="text-xl md:text-2xl font-bold text-green-600">{transplantTotalDays}</div>
               <div className="text-sm text-gray-600">Giorni da piantina</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-blue-600">{timeDifference}</div>
+              <div className="text-xl md:text-2xl font-bold text-blue-600">{timeDifference}</div>
               <div className="text-sm text-gray-600">Giorni di differenza</div>
             </div>
           </div>
           
           {highlightDifferences && (
             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-              <div className="flex items-center gap-2 text-blue-800">
+              <div className="flex items-center gap-3 text-blue-800">
                 <AlertTriangle className="w-4 h-4" />
                 <span className="font-medium">
                   Scegliendo le piantine risparmi {timeDifference} giorni e puoi raccogliere prima!
@@ -386,10 +386,10 @@ export default function TimelineComparison({
       {activeView === 'timeline' && (
         <div className="space-y-6">
           {showBoth ? (
-            <div className="grid lg:grid-cols-2 gap-6">
+            <div className="grid lg:grid-cols-1 md:grid-cols-2 gap-6">
               {/* Timeline Dal Seme */}
               <div>
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-3 mb-4">
                   <Sprout className="w-5 h-5 text-orange-500" />
                   <h3 className="font-semibold text-orange-700">Dal Seme</h3>
                   {onMethodSelect && (
@@ -408,7 +408,7 @@ export default function TimelineComparison({
 
               {/* Timeline Dalla Piantina */}
               <div>
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-3 mb-4">
                   <Sprout className="w-5 h-5 text-green-500" />
                   <h3 className="font-semibold text-green-700">Dalla Piantina</h3>
                   {onMethodSelect && (
@@ -444,10 +444,10 @@ export default function TimelineComparison({
               return (
                 <Card key={index}>
                   <CardContent className="p-4">
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid md:grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Fase dal seme */}
                       <div>
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-3 mb-2">
                           <div className={`w-3 h-3 rounded-full bg-${seedPhase.color}-500`} />
                           <h4 className="font-medium">{seedPhase.name}</h4>
                           <Badge variant="outline" className="text-xs">
@@ -457,7 +457,7 @@ export default function TimelineComparison({
                         <p className="text-sm text-gray-600 mb-2">{seedPhase.description}</p>
                         <ul className="text-xs text-gray-500 space-y-1">
                           {seedPhase.tasks.map((task, taskIndex) => (
-                            <li key={taskIndex} className="flex items-center gap-1">
+                            <li key={taskIndex} className="flex items-center gap-3">
                               <div className="w-1 h-1 bg-gray-400 rounded-full" />
                               {task}
                             </li>
@@ -469,7 +469,7 @@ export default function TimelineComparison({
                       <div>
                         {transplantPhase ? (
                           <>
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-3 mb-2">
                               <div className={`w-3 h-3 rounded-full bg-${transplantPhase.color}-500`} />
                               <h4 className="font-medium">{transplantPhase.name}</h4>
                               <Badge variant="outline" className="text-xs">
@@ -479,7 +479,7 @@ export default function TimelineComparison({
                             <p className="text-sm text-gray-600 mb-2">{transplantPhase.description}</p>
                             <ul className="text-xs text-gray-500 space-y-1">
                               {transplantPhase.tasks.map((task, taskIndex) => (
-                                <li key={taskIndex} className="flex items-center gap-1">
+                                <li key={taskIndex} className="flex items-center gap-3">
                                   <div className="w-1 h-1 bg-gray-400 rounded-full" />
                                   {task}
                                 </li>

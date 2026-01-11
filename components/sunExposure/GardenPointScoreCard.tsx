@@ -24,7 +24,7 @@ const GardenPointScoreCard: React.FC<GardenPointScoreCardProps> = ({
 
   const getScoreIcon = (scoreValue: number) => {
     if (scoreValue >= 80) return <CheckCircle size={16} className="text-green-600" />;
-    if (scoreValue >= 50) return <AlertTriangle size={16} className="text-yellow-600" />;
+    if (scoreValue >= 50) return <AlertTriangle size={16} className="text-yellow-full max-w-sm" />;
     return <XCircle size={16} className="text-red-600" />;
   };
 
@@ -39,7 +39,7 @@ const GardenPointScoreCard: React.FC<GardenPointScoreCardProps> = ({
     return (
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {icon}
             <span className="text-sm font-medium text-gray-700">{label}</span>
           </div>
@@ -82,7 +82,7 @@ const GardenPointScoreCard: React.FC<GardenPointScoreCardProps> = ({
         <ScoreBar
           label="🍅 Orto estivo"
           value={score.scores.ortoEstivo}
-          icon={<Sun size={16} className="text-yellow-500" />}
+          icon={<Sun size={16} className="text-yellow-full max-w-sm" />}
         />
         <ScoreBar
           label="🥬 Foglia primavera"

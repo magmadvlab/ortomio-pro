@@ -59,7 +59,7 @@ export function GardenView({
       <header className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-10 relative">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">🌱 Il Mio Orto</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">🌱 Il Mio Orto</h1>
             <p className="text-sm text-gray-600">{garden.name}</p>
           </div>
           <ContextualTip
@@ -68,10 +68,10 @@ export function GardenView({
             message="Qui puoi gestire tutte le tue coltivazioni: pianifica semine, visualizza il calendario, controlla i task e monitora le tue piante."
             position="bottom"
           />
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <Link
               href="/app/settings?section=gardens"
-              className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
+              className="px-4 py-3 text-base border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-3"
               title="Gestisci i tuoi orti"
             >
               <Settings size={18} />
@@ -79,7 +79,7 @@ export function GardenView({
             </Link>
             <button
               onClick={() => setShowAddModal(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-3"
             >
               <Plus size={18} />
               <span className="hidden sm:inline">Aggiungi</span>
@@ -88,7 +88,7 @@ export function GardenView({
         </div>
         
         {/* Tab Switcher */}
-        <div className="flex gap-2 border-b border-gray-200">
+        <div className="flex gap-3 border-b border-gray-200">
           {tabs.map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
@@ -126,7 +126,7 @@ export function GardenView({
                 </div>
                 <Link
                   href="/app/planner"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-3"
                 >
                   <Bot size={16} />
                   Apri Planner AI
@@ -158,7 +158,7 @@ export function GardenView({
                     <p className="text-sm text-gray-600">Consigli personalizzati per la tua timeline</p>
                   </div>
                 </div>
-                <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+                <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-3">
                   <Bot size={16} />
                   Ottimizza Timeline
                 </button>
@@ -179,20 +179,20 @@ export function GardenView({
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">🌱 Piante & Vivaio</h2>
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900">🌱 Piante & Vivaio</h2>
                   <p className="text-gray-600 mt-1">Gestisci le tue piante e il vivaio in un unico posto</p>
                 </div>
                 <div className="flex gap-3">
                   <Link
                     href="/app/planner"
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-3"
                   >
                     <Bot size={16} />
                     Pianifica con AI
                   </Link>
                   <Link
                     href="/app/semenzaio"
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-3"
                   >
                     <Leaf size={16} />
                     Vivaio Completo
@@ -201,7 +201,7 @@ export function GardenView({
               </div>
 
               {/* Sub-tabs per Piante e Vivaio */}
-              <div className="flex gap-2 mb-6 border-b border-gray-200">
+              <div className="flex gap-3 mb-6 border-b border-gray-200">
                 <button className="px-4 py-2 border-b-2 border-green-600 text-green-600 font-medium">
                   🌿 Piante in Campo
                 </button>
@@ -225,11 +225,11 @@ export function GardenView({
             </div>
 
             {/* Vivaio Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6">
               {/* Semi */}
-              <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-xl border border-yellow-200">
+              <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-xl border border-yellow-full max-w-sm">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl">📦</span>
+                  <span className="text-xl md:text-2xl">📦</span>
                   <div>
                     <h3 className="font-semibold text-gray-900">Banca dei Semi</h3>
                     <p className="text-sm text-gray-600">Inventario e scadenze</p>
@@ -250,7 +250,7 @@ export function GardenView({
               {/* Piantine */}
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border border-green-200">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl">🌱</span>
+                  <span className="text-xl md:text-2xl">🌱</span>
                   <div>
                     <h3 className="font-semibold text-gray-900">Piantine</h3>
                     <p className="text-sm text-gray-600">Lotti in crescita</p>
@@ -271,7 +271,7 @@ export function GardenView({
               {/* Alberelli */}
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl">🌳</span>
+                  <span className="text-xl md:text-2xl">🌳</span>
                   <div>
                     <h3 className="font-semibold text-gray-900">Alberelli</h3>
                     <p className="text-sm text-gray-600">Portinnesti e impianti</p>
@@ -296,23 +296,23 @@ export function GardenView({
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">📦 Raccolto</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900">📦 Raccolto</h2>
                 <p className="text-gray-600 mt-1">Registra e monitora i tuoi raccolti</p>
               </div>
               <Link
                 href="/app/progress?tab=harvests"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors"
+                className="inline-flex items-center gap-3 px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors"
               >
                 <Package size={18} />
                 Vedi Tutti i Raccolti
               </Link>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
               {/* Statistiche raccolto */}
               <div className="bg-gradient-to-br from-orange-50 to-red-50 p-6 rounded-xl border border-orange-200">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl">📊</span>
+                  <span className="text-xl md:text-2xl">📊</span>
                   <div>
                     <h3 className="font-semibold text-gray-900">Questo Mese</h3>
                     <p className="text-sm text-gray-600">Raccolti di gennaio</p>
@@ -337,7 +337,7 @@ export function GardenView({
               {/* Prossimi raccolti */}
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border border-green-200">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl">⏰</span>
+                  <span className="text-xl md:text-2xl">⏰</span>
                   <div>
                     <h3 className="font-semibold text-gray-900">Prossimi Raccolti</h3>
                     <p className="text-sm text-gray-600">Pronti nei prossimi giorni</p>
@@ -400,12 +400,12 @@ export function GardenView({
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Struttura del Giardino</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900">Struttura del Giardino</h2>
                 <p className="text-gray-600 mt-1">Gestisci aiuole, filari e zone di coltivazione</p>
               </div>
               <button
                 onClick={() => setShowBedManager(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                className="flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 <Settings size={20} />
                 Gestisci Zone
@@ -465,7 +465,7 @@ export function GardenView({
                   className={`${action.color} text-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all transform hover:scale-110`}
                   aria-label={action.label}
                 >
-                  <span className="text-xl">{action.icon}</span>
+                  <span className="text-lg md:text-xl">{action.icon}</span>
                 </button>
               </div>
             ))}

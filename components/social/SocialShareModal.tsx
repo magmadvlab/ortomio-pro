@@ -111,7 +111,7 @@ export function SocialShareModal({
   return (
     <>
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-2xl max-w-[90vw] md:max-w-md max-h-[90vh] overflow-y-auto w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div className="flex items-center gap-3">
@@ -125,7 +125,7 @@ export function SocialShareModal({
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <X size={20} className="text-gray-500" />
             </button>
@@ -145,7 +145,7 @@ export function SocialShareModal({
                 <div className="flex items-center gap-3 mb-4">
                   <div className="text-4xl">{getContentEmoji()}</div>
                   <div>
-                    <h3 className="text-xl font-bold">{content.title}</h3>
+                    <h3 className="text-lg md:text-xl font-bold">{content.title}</h3>
                     <p className="text-white/90 text-sm">{content.description}</p>
                   </div>
                 </div>
@@ -185,10 +185,10 @@ export function SocialShareModal({
             <div className="mt-4">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="font-medium text-gray-900">Aggiungi Foto</h4>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <button
                     onClick={openCamera}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors"
+                    className="flex items-center gap-3 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors"
                   >
                     <Camera size={16} />
                     Scatta Foto
@@ -196,7 +196,7 @@ export function SocialShareModal({
                   {onPhotoCapture && (
                     <button
                       onClick={onPhotoCapture}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors"
+                      className="flex items-center gap-3 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors"
                     >
                       <Camera size={16} />
                       Galleria
@@ -212,15 +212,15 @@ export function SocialShareModal({
                     alt="Foto del traguardo" 
                     className="w-full h-32 object-cover rounded-lg"
                   />
-                  <div className="absolute top-2 right-2 flex gap-1">
+                  <div className="absolute top-3 right-2 flex gap-3">
                     <button 
                       onClick={clearPhoto}
-                      className="p-1.5 bg-red-500/90 text-white rounded-lg hover:bg-red-600 transition-colors"
+                      className="p-3.5 bg-red-500/90 text-white rounded-lg hover:bg-red-600 transition-colors"
                       title="Rimuovi foto"
                     >
                       <Trash2 size={14} />
                     </button>
-                    <button className="p-1.5 bg-white/90 rounded-lg hover:bg-white transition-colors">
+                    <button className="p-3.5 bg-white/90 rounded-lg hover:bg-white transition-colors">
                       <Download size={14} className="text-gray-700" />
                     </button>
                   </div>
@@ -242,7 +242,7 @@ export function SocialShareModal({
           <div className="p-6">
             <h4 className="font-medium text-gray-900 mb-4">Condividi su:</h4>
             
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
               {Object.entries(SOCIAL_PLATFORMS).map(([key, platform]) => (
                 <button
                   key={key}
@@ -250,7 +250,7 @@ export function SocialShareModal({
                   className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors"
                   style={{ borderColor: selectedPlatform === key ? platform.color : undefined }}
                 >
-                  <span className="text-xl">{platform.icon}</span>
+                  <span className="text-lg md:text-xl">{platform.icon}</span>
                   <span className="font-medium text-gray-900">{platform.name}</span>
                 </button>
               ))}
@@ -259,7 +259,7 @@ export function SocialShareModal({
             {/* Copy Text Button */}
             <button
               onClick={handleCopyText}
-              className="w-full flex items-center justify-center gap-2 p-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className="w-full flex items-center justify-center gap-3 p-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
             >
               {copied ? (
                 <>
@@ -277,7 +277,7 @@ export function SocialShareModal({
             {/* Hashtags Preview */}
             <div className="mt-4 p-3 bg-gray-50 rounded-lg">
               <p className="text-xs text-gray-600 mb-2">Hashtags inclusi:</p>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-3">
                 {hashtags.map((tag, index) => (
                   <span key={index} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
                     #{tag}

@@ -333,12 +333,12 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Modifica Orto</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Modifica Orto</h2>
             <p className="text-sm text-gray-600 mt-1">{garden.name}</p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
             disabled={loading}
           >
             <X size={24} />
@@ -346,7 +346,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 px-6 pt-4 border-b border-gray-200 overflow-x-auto">
+        <div className="flex gap-3 px-6 pt-4 border-b border-gray-200 overflow-x-auto">
           {tabs.map(tab => {
             const Icon = tab.icon
             return (
@@ -385,7 +385,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-900 mb-2">
                     Dimensione
@@ -417,18 +417,18 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
               </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-3 mb-3">
                   <MapPin size={18} className="text-blue-600" />
                   <h3 className="font-semibold text-gray-900">Coordinate GPS (opzionale)</h3>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Latitudine</label>
                     <input
                       type="number"
                       value={latitude}
                       onChange={(e) => setLatitude(parseFloat(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                       placeholder="41.9028"
                       step="0.0001"
                     />
@@ -439,7 +439,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                       type="number"
                       value={longitude}
                       onChange={(e) => setLongitude(parseFloat(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                       placeholder="12.4964"
                       step="0.0001"
                     />
@@ -448,7 +448,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
               </div>
 
               <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-3 mb-3">
                   <TreeDeciduous size={18} className="text-green-600" />
                   <h3 className="font-semibold text-gray-900">Terreno</h3>
                 </div>
@@ -460,7 +460,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                     type="number"
                     value={soilPh}
                     onChange={(e) => setSoilPh(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                     placeholder="Es. 6.5"
                     step="0.1"
                     min="0"
@@ -507,8 +507,8 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                 {pots.length > 0 ? (
                   <div className="space-y-2">
                     {pots.map((pot, index) => (
-                      <div key={index} className="flex items-center gap-2 bg-white rounded-lg p-3">
-                        <div className="flex-1 grid grid-cols-2 gap-2">
+                      <div key={index} className="flex items-center gap-3 bg-white rounded-lg p-3">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs text-gray-600 mb-1">Numero vasi</label>
                             <input
@@ -540,7 +540,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                         </div>
                         <button
                           onClick={() => setPots(pots.filter((_, i) => i !== index))}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                          className="p-3 text-red-600 hover:bg-red-50 rounded"
                           title="Elimina"
                         >
                           <Trash2 size={16} />
@@ -568,8 +568,8 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                 {containers.length > 0 ? (
                   <div className="space-y-2">
                     {containers.map((container, index) => (
-                      <div key={index} className="flex items-center gap-2 bg-white rounded-lg p-3">
-                        <div className="flex-1 grid grid-cols-4 gap-2">
+                      <div key={index} className="flex items-center gap-3 bg-white rounded-lg p-3">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
                           <div>
                             <label className="block text-xs text-gray-600 mb-1">N°</label>
                             <input
@@ -629,7 +629,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                         </div>
                         <button
                           onClick={() => setContainers(containers.filter((_, i) => i !== index))}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                          className="p-3 text-red-600 hover:bg-red-50 rounded"
                           title="Elimina"
                         >
                           <Trash2 size={16} />
@@ -643,12 +643,12 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
               </div>
 
               {/* Letti Rialzati */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+              <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-gray-900">🛏️ Letti Rialzati</h3>
                   <button
                     onClick={() => setRaisedBeds([...raisedBeds, { count: 1, length: 200, width: 100, height: 40 }])}
-                    className="px-3 py-1 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors"
+                    className="px-3 py-1 bg-yellow-full max-w-sm text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors"
                   >
                     + Aggiungi
                   </button>
@@ -657,8 +657,8 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                 {raisedBeds.length > 0 ? (
                   <div className="space-y-2">
                     {raisedBeds.map((bed, index) => (
-                      <div key={index} className="flex items-center gap-2 bg-white rounded-lg p-3">
-                        <div className="flex-1 grid grid-cols-4 gap-2">
+                      <div key={index} className="flex items-center gap-3 bg-white rounded-lg p-3">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
                           <div>
                             <label className="block text-xs text-gray-600 mb-1">N°</label>
                             <input
@@ -718,7 +718,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                         </div>
                         <button
                           onClick={() => setRaisedBeds(raisedBeds.filter((_, i) => i !== index))}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                          className="p-3 text-red-600 hover:bg-red-50 rounded"
                           title="Elimina"
                         >
                           <Trash2 size={16} />
@@ -755,8 +755,8 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                 {tanks.length > 0 ? (
                   <div className="space-y-2">
                     {tanks.map((tank, index) => (
-                      <div key={index} className="flex items-center gap-2 bg-white rounded-lg p-3">
-                        <div className="flex-1 grid grid-cols-4 gap-2">
+                      <div key={index} className="flex items-center gap-3 bg-white rounded-lg p-3">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
                           <div>
                             <label className="block text-xs text-gray-600 mb-1">N°</label>
                             <input
@@ -816,7 +816,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                         </div>
                         <button
                           onClick={() => setTanks(tanks.filter((_, i) => i !== index))}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                          className="p-3 text-red-600 hover:bg-red-50 rounded"
                           title="Elimina"
                         >
                           <Trash2 size={16} />
@@ -892,11 +892,11 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                       {fieldRows.length > 0 ? `Gestisci i ${fieldRows.length} filari del tuo campo` : 'Aggiungi filari al tuo campo'}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     <button
                       onClick={handleStartNewFieldRow}
                       disabled={loading}
-                      className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+                      className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-3"
                     >
                       <Plus size={16} />
                       Nuovo
@@ -904,7 +904,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                     <button
                       onClick={() => setShowBulkForm(!showBulkForm)}
                       disabled={loading}
-                      className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+                      className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-3"
                     >
                       <Layers size={16} />
                       Crea Multipli
@@ -918,14 +918,14 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                     <h4 className="font-semibold text-gray-900 mb-3">
                       {editingFieldRow ? 'Modifica Filare' : 'Nuovo Filare'}
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1">Nome</label>
                         <input
                           type="text"
                           value={fieldRowForm.name}
                           onChange={(e) => setFieldRowForm({ ...fieldRowForm, name: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                           placeholder="Es. Filare 1"
                         />
                       </div>
@@ -936,7 +936,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                           min={1}
                           value={fieldRowForm.rowNumber}
                           onChange={(e) => setFieldRowForm({ ...fieldRowForm, rowNumber: parseInt(e.target.value) || 1 })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                         />
                       </div>
                       <div>
@@ -947,7 +947,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                           step={0.1}
                           value={fieldRowForm.lengthMeters}
                           onChange={(e) => setFieldRowForm({ ...fieldRowForm, lengthMeters: parseFloat(e.target.value) || 0 })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                         />
                       </div>
                       <div>
@@ -957,7 +957,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                           min={0}
                           value={fieldRowForm.distanceFromPreviousRow}
                           onChange={(e) => setFieldRowForm({ ...fieldRowForm, distanceFromPreviousRow: parseInt(e.target.value) || 0 })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                           placeholder="Es. 100"
                         />
                       </div>
@@ -967,14 +967,14 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                           type="text"
                           value={fieldRowForm.cultivar}
                           onChange={(e) => setFieldRowForm({ ...fieldRowForm, cultivar: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                           placeholder="Es. Pomodoro Datterino"
                         />
                       </div>
 
                       {/* Campi avanzati - Accordion espandibile */}
                       <div className="md:col-span-2 mt-3 border-t pt-3">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-3">
                           <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">
                               Spaziatura piante (cm)
@@ -985,7 +985,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                               min={0}
                               value={fieldRowForm.plantSpacing}
                               onChange={(e) => setFieldRowForm({ ...fieldRowForm, plantSpacing: parseInt(e.target.value) || 0 })}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                               placeholder="Es. 50"
                             />
                             {fieldRowForm.plantSpacing > 0 && fieldRowForm.lengthMeters > 0 && (
@@ -1001,7 +1001,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                               type="date"
                               value={fieldRowForm.plantedDate}
                               onChange={(e) => setFieldRowForm({ ...fieldRowForm, plantedDate: e.target.value })}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                             />
                           </div>
 
@@ -1010,7 +1010,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                             <select
                               value={fieldRowForm.orientation}
                               onChange={(e) => setFieldRowForm({ ...fieldRowForm, orientation: e.target.value as any })}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                             >
                               <option value="">Non specificato</option>
                               <option value="N-S">Nord-Sud (N-S)</option>
@@ -1022,7 +1022,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-4">
+                    <div className="flex items-center gap-3 mt-4">
                       <button
                         onClick={handleSaveFieldRow}
                         disabled={loading || !fieldRowForm.name || fieldRowForm.lengthMeters <= 0}
@@ -1044,14 +1044,14 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                 {/* Form creazione multipla */}
                 {showBulkForm && (
                   <div className="bg-blue-50 rounded-lg p-4 mb-3 border-2 border-blue-300">
-                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-3">
                       <Layers size={18} />
                       Crea Filari Multipli
                     </h4>
                     <p className="text-xs text-gray-600 mb-3">
                       Crea più filari contemporaneamente con le stesse caratteristiche di base
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1">Numero filari da creare</label>
                         <input
@@ -1060,7 +1060,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                           max={50}
                           value={bulkFieldRowForm.count}
                           onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, count: parseInt(e.target.value) || 1 })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                         />
                       </div>
                       <div>
@@ -1069,7 +1069,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                           type="text"
                           value={bulkFieldRowForm.prefix}
                           onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, prefix: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                           placeholder="Es. Filare"
                         />
                         <p className="text-xs text-gray-500 mt-1">
@@ -1083,7 +1083,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                           min={1}
                           value={bulkFieldRowForm.startNumber}
                           onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, startNumber: parseInt(e.target.value) || 1 })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                         />
                       </div>
                       <div>
@@ -1094,7 +1094,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                           step={0.1}
                           value={bulkFieldRowForm.lengthMeters}
                           onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, lengthMeters: parseFloat(e.target.value) || 0 })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                         />
                       </div>
                       <div>
@@ -1104,7 +1104,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                           min={0}
                           value={bulkFieldRowForm.distanceFromPreviousRow}
                           onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, distanceFromPreviousRow: parseInt(e.target.value) || 0 })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                           placeholder="Es. 100"
                         />
                       </div>
@@ -1115,7 +1115,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                           min={0}
                           value={bulkFieldRowForm.plantSpacing}
                           onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, plantSpacing: parseInt(e.target.value) || 0 })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                           placeholder="Es. 50"
                         />
                       </div>
@@ -1125,7 +1125,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                           type="text"
                           value={bulkFieldRowForm.cultivar}
                           onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, cultivar: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                           placeholder="Es. Pomodoro Datterino"
                         />
                       </div>
@@ -1134,7 +1134,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                         <select
                           value={bulkFieldRowForm.orientation}
                           onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, orientation: e.target.value as any })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                         >
                           <option value="">Non specificato</option>
                           <option value="N-S">Nord-Sud (N-S)</option>
@@ -1151,11 +1151,11 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                         ognuno lungo <strong>{bulkFieldRowForm.lengthMeters}m</strong> con distanza di <strong>{bulkFieldRowForm.distanceFromPreviousRow}cm</strong> dal precedente.
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 mt-4">
+                    <div className="flex items-center gap-3 mt-4">
                       <button
                         onClick={handleBulkCreateFieldRows}
                         disabled={loading || bulkFieldRowForm.count <= 0 || bulkFieldRowForm.lengthMeters <= 0 || !bulkFieldRowForm.prefix}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-3"
                       >
                         {loading ? 'Creazione...' : `Crea ${bulkFieldRowForm.count} Filari`}
                       </button>
@@ -1176,7 +1176,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                     {fieldRows.map((row, index) => (
                       <div key={row.id} className="bg-white rounded-lg p-3 flex items-center justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <span className="font-medium text-gray-900">{row.name}</span>
                             <span className="text-xs text-gray-500">#{row.row_number || index + 1}</span>
                           </div>
@@ -1207,11 +1207,11 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <button
                             onClick={() => handleEditFieldRow(row)}
                             disabled={loading}
-                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
+                            className="p-3 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
                             title="Modifica filare"
                           >
                             <Edit2 size={16} />
@@ -1219,7 +1219,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                           <button
                             onClick={() => handleDeleteFieldRow(row.id, row.name)}
                             disabled={loading}
-                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
+                            className="p-3 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
                             title="Elimina filare"
                           >
                             <Trash2 size={16} />
@@ -1252,7 +1252,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                 </div>
               )}
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+              <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-xl p-4">
                 <p className="text-sm text-gray-700">
                   💡 <strong>Prossimamente</strong>: Potrai aggiungere, modificare ed eliminare aiuole e file direttamente da qui.
                 </p>
@@ -1271,7 +1271,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                 <div className="space-y-2">
                   {garden.coordinates && (
                     <div className="bg-white rounded-lg p-3">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-3 mb-1">
                         <MapPin size={16} className="text-blue-600" />
                         <span className="text-sm font-medium text-gray-900">Posizione GPS</span>
                       </div>
@@ -1283,7 +1283,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
 
                   {garden.altitudeMeters && (
                     <div className="bg-white rounded-lg p-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <span className="text-sm font-medium text-gray-900">🏔️ Altitudine</span>
                         <span className="text-sm text-gray-600">{garden.altitudeMeters}m s.l.m.</span>
                       </div>
@@ -1292,8 +1292,8 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
 
                   {garden.sunExposure && (
                     <div className="bg-white rounded-lg p-3">
-                      <div className="flex items-center gap-2">
-                        <Sun size={16} className="text-yellow-600" />
+                      <div className="flex items-center gap-3">
+                        <Sun size={16} className="text-yellow-full max-w-sm" />
                         <span className="text-sm font-medium text-gray-900">Esposizione Solare</span>
                         <span className="text-sm text-gray-600">
                           {garden.sunExposure === 'FullSun' && 'Pieno sole'}
@@ -1306,7 +1306,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
 
                   {garden.dailySunHours && (
                     <div className="bg-white rounded-lg p-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <span className="text-sm font-medium text-gray-900">☀️ Ore di sole</span>
                         <span className="text-sm text-gray-600">{garden.dailySunHours}h/giorno</span>
                       </div>
@@ -1321,7 +1321,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                 </div>
               </div>
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+              <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-xl p-4">
                 <p className="text-sm text-gray-700">
                   💡 <strong>Prossimamente</strong>: Potrai modificare questi dati e configurare informazioni climatiche avanzate.
                 </p>
@@ -1342,7 +1342,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
           <button
             onClick={handleSave}
             disabled={loading || !name || sizeSqMeters <= 0}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-3"
           >
             {loading ? (
               <>

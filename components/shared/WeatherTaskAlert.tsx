@@ -113,7 +113,7 @@ export function WeatherTaskAlert({
               </p>
 
               <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-3.5">
                   <Calendar size={16} className="text-gray-500" />
                   <span className="text-gray-600">
                     Previsto: <span className="line-through">{notification.originalDate}</span>
@@ -121,7 +121,7 @@ export function WeatherTaskAlert({
                 </div>
 
                 {notification.newDate !== 'Da decidere' && (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-3.5">
                     <Calendar size={16} className="text-green-600" />
                     <span className="text-green-700 font-semibold">
                       Suggerito: {notification.newDate}
@@ -131,10 +131,10 @@ export function WeatherTaskAlert({
               </div>
 
               {notification.newDate !== 'Da decidere' && onTaskUpdate && (
-                <div className="flex gap-2 mt-3">
+                <div className="flex gap-3 mt-3">
                   <button
                     onClick={() => handleReschedule(notification.taskId, notification.newDate)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition-colors"
+                    className="flex items-center gap-3.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition-colors"
                   >
                     <Check size={16} />
                     Riprogramma

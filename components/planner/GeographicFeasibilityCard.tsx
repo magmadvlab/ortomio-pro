@@ -42,7 +42,7 @@ const GeographicFeasibilityCard: React.FC<GeographicFeasibilityCardProps> = ({
       case 'Ideal':
         return <CheckCircle size={20} className="text-green-600" />;
       case 'Possible':
-        return <AlertTriangle size={20} className="text-yellow-600" />;
+        return <AlertTriangle size={20} className="text-yellow-full max-w-sm" />;
       case 'Difficult':
         return <AlertTriangle size={20} className="text-orange-600" />;
       case 'NotRecommended':
@@ -95,11 +95,11 @@ const GeographicFeasibilityCard: React.FC<GeographicFeasibilityCardProps> = ({
         <div className="flex items-center gap-3 flex-1">
           {getFeasibilityIcon(feasibilityResult.feasibility)}
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-3 mb-1">
               <h3 className="font-bold text-gray-800">Fattibilità Geografica</h3>
               {userLocation && (
-                <div className="text-xs text-gray-600 flex items-center gap-2 flex-wrap">
-                  <span className="flex items-center gap-1">
+                <div className="text-xs text-gray-600 flex items-center gap-3 flex-wrap">
+                  <span className="flex items-center gap-3">
                     <MapPin size={12} />
                     {userLocation.city || userLocation.region || 'La tua zona'}
                   </span>
@@ -109,7 +109,7 @@ const GeographicFeasibilityCard: React.FC<GeographicFeasibilityCardProps> = ({
                         {translateUsdaZone(userLocation.usdaZone).emoji} {translateUsdaZone(userLocation.usdaZone).climateName}
                         <Info size={10} className="ml-1 opacity-60" />
                       </span>
-                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-10 w-64 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
+                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-10 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
                         <div className="font-semibold mb-1">{translateUsdaZone(userLocation.usdaZone).climateName}</div>
                         <div className="text-gray-300 mb-1">{translateUsdaZone(userLocation.usdaZone).description}</div>
                         <div className="text-gray-400 text-xs">
@@ -125,7 +125,7 @@ const GeographicFeasibilityCard: React.FC<GeographicFeasibilityCardProps> = ({
             </div>
             <div className="flex items-center gap-3">
               {/* Score Badge */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <div className={`${getScoreColor(feasibilityResult.score)} text-white text-xs font-bold px-2 py-1 rounded-full`}>
                   {feasibilityResult.score}/100
                 </div>
@@ -139,7 +139,7 @@ const GeographicFeasibilityCard: React.FC<GeographicFeasibilityCardProps> = ({
               
               {/* Recommended System */}
               {feasibilityResult.recommendedSystem && (
-                <div className="text-xs text-gray-600 flex items-center gap-1">
+                <div className="text-xs text-gray-600 flex items-center gap-3">
                   <span>{getSystemIcon(feasibilityResult.recommendedSystem)}</span>
                   <span>{getSystemLabel(feasibilityResult.recommendedSystem)}</span>
                 </div>
@@ -161,7 +161,7 @@ const GeographicFeasibilityCard: React.FC<GeographicFeasibilityCardProps> = ({
           {/* Recommended Variety */}
           {feasibilityResult.recommendedVariety && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-3 mb-1">
                 <Info size={16} className="text-blue-600" />
                 <span className="text-sm font-semibold text-blue-900">Varietà Consigliata</span>
               </div>
@@ -172,7 +172,7 @@ const GeographicFeasibilityCard: React.FC<GeographicFeasibilityCardProps> = ({
           {/* Required Protections */}
           {feasibilityResult.requiredProtections.length > 0 && (
             <div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <Shield size={16} className="text-orange-600" />
                 <span className="text-sm font-semibold text-gray-700">Protezioni Necessarie</span>
               </div>
@@ -187,7 +187,7 @@ const GeographicFeasibilityCard: React.FC<GeographicFeasibilityCardProps> = ({
           {/* Warnings */}
           {feasibilityResult.warnings.length > 0 && (
             <div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <AlertTriangle size={16} className="text-orange-600" />
                 <span className="text-sm font-semibold text-gray-700">Avvisi</span>
               </div>
@@ -202,7 +202,7 @@ const GeographicFeasibilityCard: React.FC<GeographicFeasibilityCardProps> = ({
           {/* Personalized Timeline */}
           {feasibilityResult.personalizedTimeline && (
             <div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <Thermometer size={16} className="text-green-600" />
                 <span className="text-sm font-semibold text-gray-700">Calendario Personalizzato</span>
               </div>

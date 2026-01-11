@@ -57,12 +57,12 @@ export function HarvestPromptModal({ task, onHarvest, onSkip }: HarvestPromptMod
   
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl max-w-md w-full shadow-xl">
+      <div className="bg-white rounded-xl max-w-[90vw] md:max-w-[90vw] md:max-w-md max-h-[90vh] overflow-y-auto max-h-[90vh] overflow-y-auto w-full shadow-xl">
         {/* Header */}
         <div className="bg-green-600 text-white p-4 rounded-t-xl">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold">🍅 Raccolto Pronto!</h2>
+              <h2 className="text-lg md:text-lg md:text-xl font-bold">🍅 Raccolto Pronto!</h2>
               <p className="text-sm opacity-90 mt-1">
                 {task.plantName}{task.variety ? ` (${task.variety})` : ''}
               </p>
@@ -104,7 +104,7 @@ export function HarvestPromptModal({ task, onHarvest, onSkip }: HarvestPromptMod
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Quantità raccolta *
             </label>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <input
                 type="number"
                 step="0.1"
@@ -112,13 +112,13 @@ export function HarvestPromptModal({ task, onHarvest, onSkip }: HarvestPromptMod
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 placeholder={expectedYield.toFixed(1)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="flex-1 px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 required
               />
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value as any)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               >
                 <option value="kg">kg</option>
                 <option value="g">g</option>
@@ -132,7 +132,7 @@ export function HarvestPromptModal({ task, onHarvest, onSkip }: HarvestPromptMod
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Valutazione qualità
             </label>
-            <div className="flex gap-1">
+            <div className="flex gap-3">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
@@ -154,7 +154,7 @@ export function HarvestPromptModal({ task, onHarvest, onSkip }: HarvestPromptMod
               Foto (opzionale)
             </label>
             <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+              <label className="flex items-center gap-3 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
                 <Camera size={18} className="text-gray-600" />
                 <span className="text-sm text-gray-700">Carica foto</span>
                 <input
@@ -170,7 +170,7 @@ export function HarvestPromptModal({ task, onHarvest, onSkip }: HarvestPromptMod
                   <button
                     type="button"
                     onClick={() => setPhoto(null)}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                    className="absolute -top-3 -right-2 bg-red-500 text-white rounded-full p-3"
                   >
                     <X size={12} />
                   </button>
@@ -188,7 +188,7 @@ export function HarvestPromptModal({ task, onHarvest, onSkip }: HarvestPromptMod
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               placeholder="Osservazioni sul raccolto..."
             />
           </div>
@@ -198,7 +198,7 @@ export function HarvestPromptModal({ task, onHarvest, onSkip }: HarvestPromptMod
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Data raccolto
             </label>
-            <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg">
+            <div className="flex items-center gap-3 px-4 py-3 text-base border border-gray-300 rounded-lg">
               <Calendar size={18} className="text-gray-400" />
               <span className="text-sm text-gray-700">
                 {format(new Date(), 'dd MMMM yyyy', { locale: it })}

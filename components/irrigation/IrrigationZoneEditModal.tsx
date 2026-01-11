@@ -102,17 +102,17 @@ export function IrrigationZoneEditModal({
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-cyan-600 text-white p-6 flex items-center justify-between -m-6 mb-6 rounded-t-xl">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-lg">
+            <div className="p-3 bg-white/20 rounded-lg">
               <Droplets size={24} />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Modifica Zona Irrigua</h2>
+              <h2 className="text-lg md:text-xl font-bold">Modifica Zona Irrigua</h2>
               <p className="text-sm text-blue-100">{zone.name}</p>
             </div>
           </div>
           <button
             onClick={onCancel}
-            className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+            className="p-3 hover:bg-white/20 rounded-lg transition-colors"
           >
             <X size={24} />
           </button>
@@ -131,7 +131,7 @@ export function IrrigationZoneEditModal({
               placeholder="Es. Aiuola Pomodori"
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+              <p className="mt-1 text-sm text-red-600 flex items-center gap-3">
                 <AlertCircle size={14} />
                 {errors.name}
               </p>
@@ -152,7 +152,7 @@ export function IrrigationZoneEditModal({
               placeholder="Es. 15"
             />
             {errors.areaSqm && (
-              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+              <p className="mt-1 text-sm text-red-600 flex items-center gap-3">
                 <AlertCircle size={14} />
                 {errors.areaSqm}
               </p>
@@ -192,7 +192,7 @@ export function IrrigationZoneEditModal({
               placeholder="Es. 120"
             />
             {errors.flowRateLph && (
-              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+              <p className="mt-1 text-sm text-red-600 flex items-center gap-3">
                 <AlertCircle size={14} />
                 {errors.flowRateLph}
               </p>
@@ -215,7 +215,7 @@ export function IrrigationZoneEditModal({
                     Per fornire <strong>5mm di irrigazione</strong> a questa zona ({formData.areaSqm} m²)
                     con portata {formData.flowRateLph} L/h:
                   </div>
-                  <div className="text-2xl font-bold text-purple-600 mt-2">
+                  <div className="text-xl md:text-2xl font-bold text-purple-600 mt-2">
                     {minutesFor5mm} minuti
                   </div>
                 </div>
@@ -228,7 +228,7 @@ export function IrrigationZoneEditModal({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Piante in questa zona
             </label>
-            <div className="flex gap-2 mb-3">
+            <div className="flex gap-3 mb-3">
               <Input
                 value={plantInput}
                 onChange={(e) => setPlantInput(e.target.value)}
@@ -240,11 +240,11 @@ export function IrrigationZoneEditModal({
               </Button>
             </div>
             {formData.plantTypes.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-3">
                 {formData.plantTypes.map((plant, idx) => (
                   <span
                     key={idx}
-                    className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-2"
+                    className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-3"
                   >
                     {plant}
                     <button
@@ -283,7 +283,7 @@ export function IrrigationZoneEditModal({
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Aggiungi note su questa zona..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             />
           </div>
 

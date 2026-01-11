@@ -167,7 +167,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
           <div className="space-y-6">
             <div className="text-center">
               <Sprout size={48} className="mx-auto text-green-600 mb-4" />
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">
                 Cosa vuoi coltivare?
               </h2>
               <p className="text-gray-600">
@@ -175,7 +175,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
               </p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
               {cropOptions.map((crop) => (
                 <button
                   key={crop.name}
@@ -204,7 +204,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
           <div className="space-y-6">
             <div className="text-center">
               <MapPin size={48} className="mx-auto text-green-600 mb-4" />
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">
                 Quale superficie?
               </h2>
               <p className="text-gray-600">
@@ -267,7 +267,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
           <div className="space-y-6">
             <div className="text-center">
               <Calculator size={48} className="mx-auto text-green-600 mb-4" />
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">
                 Dettagli del progetto
               </h2>
               <p className="text-gray-600">
@@ -278,7 +278,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
             <div className="max-w-4xl mx-auto space-y-8">
               {/* Sezione Analisi Immagini AI */}
               <div className="bg-gradient-to-r from-blue-50 to-green-50 p-6 rounded-xl border border-blue-200">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
                   <Camera size={20} />
                   Analisi AI con Immagini (Opzionale)
                 </h3>
@@ -286,7 +286,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
                   Carica immagini per ottenere analisi AI avanzate e raccomandazioni personalizzate
                 </p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Analisi Terreno */}
                   <div className="bg-white p-4 rounded-lg border border-gray-200">
                     <h4 className="font-medium text-gray-800 mb-2">📸 Foto Terreno</h4>
@@ -304,7 +304,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
                         <img src={soilImage} alt="Soil" className="w-full h-20 object-cover rounded" />
                         {soilAnalysis && (
                           <div className="mt-2 text-xs">
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-3">
                               <span className={`w-2 h-2 rounded-full ${
                                 soilAnalysis.suitability === 'excellent' ? 'bg-green-500' :
                                 soilAnalysis.suitability === 'good' ? 'bg-yellow-500' : 'bg-red-500'
@@ -335,7 +335,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
                         <img src={aerialImage} alt="Aerial" className="w-full h-20 object-cover rounded" />
                         {layoutSuggestion && (
                           <div className="mt-2 text-xs">
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-3">
                               <TrendingUp size={12} className="text-blue-500" />
                               <span>Efficienza: {layoutSuggestion.efficiency_score}%</span>
                             </div>
@@ -365,7 +365,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
                         <img src={varietyImage} alt="Variety" className="w-full h-20 object-cover rounded" />
                         {varietyRecognition && (
                           <div className="mt-2 text-xs">
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-3">
                               <CheckCircle size={12} className="text-green-500" />
                               <span>{Math.round(varietyRecognition.confidence * 100)}% sicurezza</span>
                             </div>
@@ -380,7 +380,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
                 </div>
 
                 {isAnalyzingImages && (
-                  <div className="mt-4 flex items-center justify-center gap-2 text-blue-600">
+                  <div className="mt-4 flex items-center justify-center gap-3 text-blue-600">
                     <Loader2 size={16} className="animate-spin" />
                     <span className="text-sm">Analisi AI in corso...</span>
                   </div>
@@ -388,7 +388,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
               </div>
 
               {/* Parametri Tradizionali */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Mercato di destinazione
@@ -399,7 +399,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
                       ...prev, 
                       targetMarket: e.target.value as any 
                     }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                   >
                     <option value="fresh">Mercato fresco</option>
                     <option value="processing">Industria di trasformazione</option>
@@ -417,7 +417,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
                       ...prev, 
                       experienceLevel: e.target.value as any 
                     }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                   >
                     <option value="beginner">Principiante</option>
                     <option value="intermediate">Intermedio</option>
@@ -439,7 +439,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
                     ...prev, 
                     budget: parseInt(e.target.value) || undefined 
                   }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                   placeholder="es. 50000"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -500,7 +500,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
                 <button
                   onClick={handleGeneratePlan}
                   disabled={isGenerating || isAnalyzingImages}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 >
                   {isGenerating ? (
                     <>
@@ -528,7 +528,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
         return (
           <div className="text-center py-12">
             <Loader2 size={64} className="mx-auto text-green-600 animate-spin mb-6" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4">
               Generazione piano in corso...
             </h2>
             <div className="max-w-md mx-auto space-y-3 text-gray-600">
@@ -550,7 +550,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
           <div className="space-y-6">
             <div className="text-center">
               <CheckCircle size={48} className="mx-auto text-green-600 mb-4" />
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">
                 Piano generato con successo!
               </h2>
               <p className="text-gray-600">
@@ -559,27 +559,27 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
             </div>
 
             {/* Overview Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-blue-50 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-xl md:text-2xl font-bold text-blue-600">
                   {generatedPlan.overview.plantingPeriods}
                 </div>
                 <div className="text-sm text-blue-800">Fasi di semina</div>
               </div>
               <div className="bg-green-50 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-xl md:text-2xl font-bold text-green-600">
                   {generatedPlan.overview.estimatedYield.toFixed(1)}t
                 </div>
                 <div className="text-sm text-green-800">Produzione stimata</div>
               </div>
               <div className="bg-purple-50 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-purple-600">
+                <div className="text-xl md:text-2xl font-bold text-purple-600">
                   €{(generatedPlan.overview.totalInvestment / 1000).toFixed(0)}k
                 </div>
                 <div className="text-sm text-purple-800">Investimento</div>
               </div>
               <div className="bg-orange-50 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-orange-600">
+                <div className="text-xl md:text-2xl font-bold text-orange-600">
                   {generatedPlan.overview.roi.toFixed(1)}%
                 </div>
                 <div className="text-sm text-orange-800">ROI stimato</div>
@@ -588,7 +588,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
 
             {/* Timeline Preview */}
             <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
                 <Calendar size={20} />
                 Timeline Scaglionamento
               </h3>
@@ -624,7 +624,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
                   // Implementa download PDF
                   console.log('Download PDF:', generatedPlan);
                 }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-3"
               >
                 <Download size={16} />
                 Scarica PDF
@@ -634,7 +634,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
                   // Implementa visualizzazione dettagliata
                   console.log('View details:', generatedPlan);
                 }}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-3"
               >
                 <Eye size={16} />
                 Vedi Dettagli
@@ -645,7 +645,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
                   onPlanGenerated?.(generatedPlan);
                   onClose?.();
                 }}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-3"
               >
                 <CheckCircle size={16} />
                 Applica Piano
@@ -666,7 +666,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-800">
                 AI Planning Wizard
               </h1>
               <p className="text-gray-600">

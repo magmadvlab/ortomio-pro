@@ -33,7 +33,7 @@ const FertigationPlanner: React.FC<FertigationPlannerProps> = ({ task, garden })
   if (!plan.shouldFertigate) {
     return (
       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-3 mb-2">
           <Info size={16} className="text-gray-500" />
           <p className="text-sm font-medium text-gray-700">Fertirrigazione</p>
         </div>
@@ -44,7 +44,7 @@ const FertigationPlanner: React.FC<FertigationPlannerProps> = ({ task, garden })
 
   return (
     <div className="bg-blue-50 p-6 rounded-xl border-2 border-blue-200">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-3 mb-4">
         <Droplets size={20} className="text-blue-600" />
         <h3 className="text-lg font-bold text-gray-800">Piano Fertirrigazione</h3>
       </div>
@@ -74,7 +74,7 @@ const FertigationPlanner: React.FC<FertigationPlannerProps> = ({ task, garden })
       </div>
 
       {/* Dosaggio */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
         <div className="bg-white p-3 rounded-lg border border-blue-100">
           <p className="text-xs text-gray-600 mb-1">Dosaggio per Litro</p>
           <p className="text-lg font-bold text-blue-800">
@@ -91,7 +91,7 @@ const FertigationPlanner: React.FC<FertigationPlannerProps> = ({ task, garden })
 
       {/* Volume Acqua */}
       <div className="bg-blue-100 p-3 rounded-lg mb-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Droplets size={16} className="text-blue-700" />
           <p className="text-sm text-blue-900">
             <span className="font-semibold">Volume irrigazione:</span>{' '}
@@ -105,23 +105,23 @@ const FertigationPlanner: React.FC<FertigationPlannerProps> = ({ task, garden })
 
       {/* Tempistiche */}
       <div className="bg-white p-4 rounded-lg mb-4 border border-blue-100">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-3 mb-3">
           <Calendar size={16} className="text-blue-600" />
           <p className="font-semibold text-gray-800">Tempistiche</p>
         </div>
         <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Clock size={14} className="text-gray-500" />
             <span className="text-gray-700">
               Prossima fertirrigazione: <span className="font-semibold">{plan.timing.nextDate.toLocaleDateString('it-IT')}</span>
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className="text-gray-700">
               Frequenza: <span className="font-semibold">ogni {plan.timing.frequency} giorni</span>
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className="text-gray-700">
               Orario ideale: <span className="font-semibold">{plan.timing.bestTimeOfDay === 'Evening' ? 'Sera (dopo le 18:00)' : 'Mattina (prima delle 10:00)'}</span>
             </span>
@@ -142,7 +142,7 @@ const FertigationPlanner: React.FC<FertigationPlannerProps> = ({ task, garden })
       {/* Warnings */}
       {plan.warnings.length > 0 && (
         <div className="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-4">
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-3">
             <AlertTriangle size={18} className="text-orange-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
               <p className="font-semibold text-orange-800 mb-1">Avvertenze</p>

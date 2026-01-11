@@ -94,11 +94,11 @@ export function AICreditsWidget() {
     <div className="bg-white border border-gray-200 rounded-lg p-6">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Zap className="text-yellow-500" size={24} />
+          <div className="flex items-center gap-3">
+            <Zap className="text-yellow-full max-w-sm" size={24} />
             <h3 className="font-semibold text-lg">AI Credits</h3>
           </div>
-          <div className="text-2xl font-bold text-green-600">
+          <div className="text-xl md:text-2xl font-bold text-green-600">
             {remaining}
           </div>
         </div>
@@ -119,13 +119,13 @@ export function AICreditsWidget() {
         </div>
         
         {percentage > 80 && (
-          <div className="flex items-start gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <AlertCircle className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
+          <div className="flex items-start gap-3 bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-3">
+            <AlertCircle className="text-yellow-full max-w-sm flex-shrink-0 mt-0.5" size={20} />
             <div className="text-sm">
-              <p className="font-medium text-yellow-900">
+              <p className="font-medium text-yellow-full max-w-sm">
                 Stai per esaurire i credits!
               </p>
-              <p className="text-yellow-800 mt-1">
+              <p className="text-yellow-full max-w-sm mt-1">
                 Acquista 50 credits extra per €4.99
               </p>
             </div>
@@ -134,7 +134,7 @@ export function AICreditsWidget() {
         
         <Link
           href="/settings/credits"
-          className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+          className="flex items-center justify-center gap-3 w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
         >
           <TrendingUp size={16} />
           Compra Credits

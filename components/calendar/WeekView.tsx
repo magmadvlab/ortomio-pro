@@ -71,7 +71,7 @@ export function WeekView({ currentDate, tasks, onDateChange, onTaskClick }: Week
       </div>
 
       {/* Week Grid */}
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
         {weekDays.map((day) => {
           const dayTasks = getTasksForDay(day)
           const isCurrentDay = isToday(day)
@@ -102,9 +102,9 @@ export function WeekView({ currentDate, tasks, onDateChange, onTaskClick }: Week
                   <button
                     key={task.id}
                     onClick={() => onTaskClick?.(task)}
-                    className="w-full text-left p-1.5 bg-gray-50 hover:bg-gray-100 rounded text-xs transition-colors"
+                    className="w-full text-left p-3.5 bg-gray-50 hover:bg-gray-100 rounded text-xs transition-colors"
                   >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-3">
                       <span>{getTaskIcon(task.taskType)}</span>
                       <span className="truncate">{task.plantName}</span>
                     </div>

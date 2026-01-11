@@ -83,7 +83,7 @@ export function FreeSidebar() {
   return (
     <aside className="hidden lg:block w-64 bg-white border-r border-gray-200 min-h-screen p-4">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-green-900">🌱 OrtoMio</h2>
+        <h2 className="text-lg md:text-xl font-bold text-green-900">🌱 OrtoMio</h2>
         <p className="text-xs text-gray-500 mt-1">FREE</p>
       </div>
       
@@ -138,9 +138,9 @@ export function FreeSidebar() {
         })}
       </nav>
       
-      <div className="mt-8 p-4 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg border-2 border-yellow-200 shadow-sm">
-        <div className="flex items-center gap-2 mb-2">
-          <Star size={18} className="text-yellow-600 fill-yellow-600" />
+      <div className="mt-8 p-4 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg border-2 border-yellow-full max-w-sm shadow-sm">
+        <div className="flex items-center gap-3 mb-2">
+          <Star size={18} className="text-yellow-full max-w-sm fill-yellow-600" />
           <p className="text-sm font-bold text-gray-900">
             Passa a PRO
         </p>

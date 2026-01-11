@@ -108,7 +108,7 @@ export function AchievementBadge({
 
       {/* Rarity Indicator */}
       {unlocked && rarity !== 'common' && (
-        <div className="absolute top-2 left-2">
+        <div className="absolute top-3 left-2">
           <div className={`w-3 h-3 rounded-full ${
             rarity === 'rare' ? 'bg-blue-500' :
             rarity === 'epic' ? 'bg-purple-500' :

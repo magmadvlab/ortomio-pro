@@ -101,7 +101,7 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="bg-gray-50 p-4 rounded-lg">
         <h3 className="font-semibold text-gray-800 mb-3">Illuminazione</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Tipo Illuminazione
@@ -109,7 +109,7 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
             <select
               value={lightingType}
               onChange={(e) => setLightingType(e.target.value as "Hybrid" | "LED" | "HPS" | "MH" | "Fluorescent" | "Natural")}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
             >
               <option value="LED">LED</option>
               <option value="HPS">HPS</option>
@@ -127,7 +127,7 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
               type="number"
               value={wattage}
               onChange={(e) => setWattage(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="50"
             />
           </div>
@@ -138,7 +138,7 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
             <select
               value={spectrum}
               onChange={(e) => setSpectrum(e.target.value as "Full" | "Vegetative" | "Flowering" | "Custom")}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
             >
               <option value="Full">Completo</option>
               <option value="Vegetative">Vegetativo</option>
@@ -154,7 +154,7 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
               type="number"
               value={hoursPerDay}
               onChange={(e) => setHoursPerDay(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="8"
               max="24"
             />
@@ -164,14 +164,14 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
 
       <div className="bg-gray-50 p-4 rounded-lg">
         <h3 className="font-semibold text-gray-800 mb-3">Clima</h3>
-        <div className="grid grid-cols-3 gap-3 mb-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Temp Min (°C)</label>
             <input
               type="number"
               value={tempMin}
               onChange={(e) => setTempMin(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="10"
               max="25"
             />
@@ -182,7 +182,7 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
               type="number"
               value={tempTarget}
               onChange={(e) => setTempTarget(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="15"
               max="30"
             />
@@ -193,7 +193,7 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
               type="number"
               value={tempMax}
               onChange={(e) => setTempMax(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="20"
               max="35"
             />
@@ -204,7 +204,7 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
               type="number"
               value={humidityMin}
               onChange={(e) => setHumidityMin(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="30"
               max="60"
             />
@@ -215,7 +215,7 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
               type="number"
               value={humidityTarget}
               onChange={(e) => setHumidityTarget(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="40"
               max="70"
             />
@@ -226,14 +226,14 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
               type="number"
               value={humidityMax}
               onChange={(e) => setHumidityMax(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="50"
               max="80"
             />
           </div>
         </div>
         <div className="space-y-2">
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-3">
             <input
               type="checkbox"
               checked={hasExtractor}
@@ -242,7 +242,7 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
             />
             <span className="text-sm font-medium text-gray-700">Aspiratore</span>
           </label>
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-3">
             <input
               type="checkbox"
               checked={hasIntake}
@@ -251,7 +251,7 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
             />
             <span className="text-sm font-medium text-gray-700">Immissione Aria</span>
           </label>
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-3">
             <input
               type="checkbox"
               checked={hasCirculation}
@@ -265,14 +265,14 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
 
       <div className="bg-gray-50 p-4 rounded-lg">
         <h3 className="font-semibold text-gray-800 mb-3">Spazio Coltivabile</h3>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Larghezza (cm)</label>
             <input
               type="number"
               value={width}
               onChange={(e) => setWidth(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="50"
             />
           </div>
@@ -282,7 +282,7 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
               type="number"
               value={length}
               onChange={(e) => setLength(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="50"
             />
           </div>
@@ -292,14 +292,14 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
               type="number"
               value={height}
               onChange={(e) => setHeight(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="100"
             />
           </div>
         </div>
       </div>
 
-      <div className="flex gap-2 justify-end pt-4">
+      <div className="flex gap-3 justify-end pt-4">
         {onCancel && (
           <button
             type="button"

@@ -35,24 +35,24 @@ export function Input({
           {...props}
         />
         {variant === 'success' && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <div className="absolute right-3 top-3/2 -translate-y-1/2">
             <CheckCircle className="w-5 h-5 text-semantic-success" />
           </div>
         )}
         {variant === 'error' && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <div className="absolute right-3 top-3/2 -translate-y-1/2">
             <AlertCircle className="w-5 h-5 text-semantic-error" />
           </div>
         )}
       </div>
       {errorMessage && (
-        <p className="mt-1 text-sm text-semantic-error flex items-center gap-1">
+        <p className="mt-1 text-sm text-semantic-error flex items-center gap-3">
           <AlertCircle className="w-4 h-4" />
           {errorMessage}
         </p>
       )}
       {successMessage && (
-        <p className="mt-1 text-sm text-semantic-success flex items-center gap-1">
+        <p className="mt-1 text-sm text-semantic-success flex items-center gap-3">
           <CheckCircle className="w-4 h-4" />
           {successMessage}
         </p>

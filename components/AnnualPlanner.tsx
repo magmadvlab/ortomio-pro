@@ -132,19 +132,19 @@ const AnnualPlanner: React.FC<AnnualPlannerProps> = ({ garden, tasks, onUpdatePl
   return (
     <div className="p-4 sm:p-6 pb-24 max-w-6xl mx-auto space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-col md:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-green-800 flex items-center gap-2">
+          <h1 className="text-xl md:text-2xl sm:text-3xl font-bold text-green-800 flex items-center gap-3">
             <Calendar size={28} className="text-green-600" />
             Piano Annuale {new Date().getFullYear()}
           </h1>
           <p className="text-green-600 text-sm sm:text-base mt-1">Pianifica tutto l'anno per: <b>{garden.name}</b></p>
         </div>
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
           <button
             onClick={generateInitialPlan}
             disabled={isGenerating}
-            className="px-4 py-2 min-h-[44px] bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base flex items-center gap-2"
+            className="px-4 py-2 min-h-[44px] bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base flex items-center gap-3"
           >
             {isGenerating ? (
               <>
@@ -161,7 +161,7 @@ const AnnualPlanner: React.FC<AnnualPlannerProps> = ({ garden, tasks, onUpdatePl
           <button
             onClick={handleOptimizeRotations}
             disabled={!annualPlan || isGenerating}
-            className="px-4 py-2 min-h-[44px] bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base flex items-center gap-2"
+            className="px-4 py-2 min-h-[44px] bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base flex items-center gap-3"
           >
             <RotateCw size={18} />
             Ottimizza Rotazioni
@@ -169,7 +169,7 @@ const AnnualPlanner: React.FC<AnnualPlannerProps> = ({ garden, tasks, onUpdatePl
           <button
             onClick={handleExportPlan}
             disabled={!annualPlan}
-            className="px-4 py-2 min-h-[44px] bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base flex items-center gap-2"
+            className="px-4 py-2 min-h-[44px] bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base flex items-center gap-3"
           >
             <Download size={18} />
             Esporta
@@ -199,7 +199,7 @@ const AnnualPlanner: React.FC<AnnualPlannerProps> = ({ garden, tasks, onUpdatePl
         <>
           {/* Quarter Selector */}
           <div className="bg-white rounded-xl p-4 border border-gray-200">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-4 gap-3">
               {(['Q1', 'Q2', 'Q3', 'Q4'] as const).map(q => (
                 <button
                   key={q}
@@ -219,7 +219,7 @@ const AnnualPlanner: React.FC<AnnualPlannerProps> = ({ garden, tasks, onUpdatePl
           {/* Current Quarter Plan */}
           {currentQuarter && (
             <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-4 flex items-center gap-3">
                 <Calendar size={20} />
                 {getQuarterLabel(selectedQuarter)}
               </h2>
@@ -235,13 +235,13 @@ const AnnualPlanner: React.FC<AnnualPlannerProps> = ({ garden, tasks, onUpdatePl
                       key={idx}
                       className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-300 transition-all duration-200"
                     >
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="flex flex-col sm:flex-col md:flex-row justify-between items-start sm:items-center gap-3">
                         <div className="flex-1">
                           <h3 className="font-bold text-lg text-gray-800">{planting.plantName}</h3>
                           {planting.variety && (
                             <p className="text-sm text-gray-600 italic">Varietà: {planting.variety}</p>
                           )}
-                          <div className="flex flex-wrap gap-2 mt-2 text-xs sm:text-sm">
+                          <div className="flex flex-wrap gap-3 mt-2 text-xs sm:text-sm">
                             <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded">
                               Semina: Mese {planting.month}
                             </span>
@@ -270,7 +270,7 @@ const AnnualPlanner: React.FC<AnnualPlannerProps> = ({ garden, tasks, onUpdatePl
           {projections && (
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border-2 border-green-200">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <h2 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-3">
                   <TrendingUp size={20} className="text-green-600" />
                   Proiezioni Anno {new Date().getFullYear()}
                 </h2>
@@ -286,13 +286,13 @@ const AnnualPlanner: React.FC<AnnualPlannerProps> = ({ garden, tasks, onUpdatePl
                 <div className={`grid gap-4 ${projections.breakEvenDate ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
                   <div className="bg-white p-4 rounded-lg border border-green-100">
                     <p className="text-xs text-gray-600 mb-1">Resa Totale Stimata</p>
-                    <p className="text-2xl font-bold text-green-700">
+                    <p className="text-xl md:text-2xl font-bold text-green-700">
                       {projections.totalYield.toFixed(1)} kg
                     </p>
                   </div>
                   <div className="bg-white p-4 rounded-lg border border-green-100">
                     <p className="text-xs text-gray-600 mb-1">Risparmio Stimato</p>
-                    <p className="text-2xl font-bold text-green-700 flex items-center gap-1">
+                    <p className="text-xl md:text-2xl font-bold text-green-700 flex items-center gap-3">
                       <DollarSign size={20} />
                       {projections.costSavings.toFixed(0)} €
                     </p>
@@ -313,20 +313,20 @@ const AnnualPlanner: React.FC<AnnualPlannerProps> = ({ garden, tasks, onUpdatePl
           {/* Succession Suggestions */}
           {successions.length > 0 && (
             <div className="bg-purple-50 rounded-xl p-4 sm:p-6 border border-purple-200">
-              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-4 flex items-center gap-3">
                 <RotateCw size={20} className="text-purple-600" />
                 Suggerimenti Successioni
               </h2>
               <div className="space-y-3">
                 {successions.map((succession, idx) => (
                   <div key={idx} className="bg-white p-4 rounded-lg border border-purple-100">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-3 mb-2">
                       <span className="font-bold text-gray-800">{succession.fromPlant}</span>
                       <span className="text-gray-400">→</span>
                       <span className="font-bold text-green-700">{succession.toPlant}</span>
                     </div>
                     <p className="text-sm text-gray-600 mb-2">{succession.reason}</p>
-                    <div className="flex flex-wrap gap-2 text-xs">
+                    <div className="flex flex-wrap gap-3 text-xs">
                       <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded">
                         Spazio libero: {succession.daysUntilSpaceFree} giorni
                       </span>
@@ -343,31 +343,31 @@ const AnnualPlanner: React.FC<AnnualPlannerProps> = ({ garden, tasks, onUpdatePl
           {/* Rotation Matrix */}
           {annualPlan.rotations && annualPlan.rotations.length > 0 && (
             <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Rotazioni Aiuole</h2>
+              <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-4">Rotazioni Aiuole</h2>
               <div className="space-y-3">
                 {annualPlan.rotations.map((rotation, idx) => (
                   <div key={idx} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <h3 className="font-bold text-gray-800 mb-2">Aiuola: {rotation.bedName || rotation.bedId || `Aiuola ${idx + 1}`}</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                       {rotation.quarters ? (
                         <>
                           {rotation.quarters.Q1 && (
-                            <div className="p-2 bg-white rounded border border-gray-200">
+                            <div className="p-3 bg-white rounded border border-gray-200">
                               <p className="font-medium text-gray-700">Q1: {rotation.quarters.Q1}</p>
                             </div>
                           )}
                           {rotation.quarters.Q2 && (
-                            <div className="p-2 bg-white rounded border border-gray-200">
+                            <div className="p-3 bg-white rounded border border-gray-200">
                               <p className="font-medium text-gray-700">Q2: {rotation.quarters.Q2}</p>
                             </div>
                           )}
                           {rotation.quarters.Q3 && (
-                            <div className="p-2 bg-white rounded border border-gray-200">
+                            <div className="p-3 bg-white rounded border border-gray-200">
                               <p className="font-medium text-gray-700">Q3: {rotation.quarters.Q3}</p>
                             </div>
                           )}
                           {rotation.quarters.Q4 && (
-                            <div className="p-2 bg-white rounded border border-gray-200">
+                            <div className="p-3 bg-white rounded border border-gray-200">
                               <p className="font-medium text-gray-700">Q4: {rotation.quarters.Q4}</p>
                             </div>
                           )}

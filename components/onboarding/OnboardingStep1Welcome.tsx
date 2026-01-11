@@ -24,7 +24,7 @@ export function OnboardingStep1Welcome({ onNext }: OnboardingStep1WelcomeProps) 
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">
+        <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
           🌱 Benvenuto in OrtoMio!
         </h3>
         <p className="text-gray-600">

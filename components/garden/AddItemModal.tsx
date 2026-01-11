@@ -66,7 +66,7 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-            <h2 className="text-xl font-bold">
+            <h2 className="text-lg md:text-xl font-bold">
               {selectedOption === 'plant' ? 'Nuova Pianta' : 'Nuovo Task'}
             </h2>
             <button
@@ -106,7 +106,7 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
       <div className="bg-white rounded-3xl w-full max-w-[500px] shadow-xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900">➕ Aggiungi</h2>
+          <h2 className="text-lg md:text-xl font-semibold text-gray-900">➕ Aggiungi</h2>
           <button
             onClick={onClose}
             className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
@@ -121,7 +121,7 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
           <p className="text-[15px] text-gray-600 mb-5">Cosa vuoi aggiungere?</p>
 
           {/* Action Grid */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* Prima riga: Nuova Pianta e Semenzaio */}
             <button
               onClick={() => handleOptionSelect('plant')}
@@ -154,7 +154,7 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
           </div>
 
           {/* Seconda riga: Task e Raccolto */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <button
               onClick={() => handleOptionSelect('task')}
               className={`flex flex-col items-center justify-center p-6 bg-gray-50 rounded-2xl border-2 transition-all ${
@@ -188,10 +188,10 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
 
           {/* Suggestions Section */}
           <div className="bg-gray-50 rounded-2xl p-5 mb-5">
-            <div className="flex items-center gap-2 mb-4 text-sm font-medium text-gray-700">
+            <div className="flex items-center gap-3 mb-4 text-sm font-medium text-gray-700">
               🌡️ Suggerimenti per la tua zona
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {suggestions.map((suggestion) => (
                 <button
                   key={suggestion.name}
@@ -199,7 +199,7 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
                     router.push(`/app/pianifica?plant=${encodeURIComponent(suggestion.name)}&from=suggestion`)
                     onClose()
                   }}
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-gray-200 rounded-full text-sm hover:bg-green-50 hover:border-green-300 transition-all"
+                  className="flex items-center gap-3.5 px-4 py-2.5 bg-white border border-gray-200 rounded-full text-sm hover:bg-green-50 hover:border-green-300 transition-all"
                 >
                   <span className="text-lg">{suggestion.emoji}</span>
                   <span>{suggestion.name}</span>
@@ -214,7 +214,7 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
                   router.push('/app/semenzaio?action=create')
                   onClose()
                 }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-50 border border-orange-200 rounded-xl text-sm font-medium text-orange-700 hover:bg-orange-100 transition-all"
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-orange-50 border border-orange-200 rounded-xl text-sm font-medium text-orange-700 hover:bg-orange-100 transition-all"
               >
                 <span className="text-lg">🌰</span>
                 <span>Vai al Semenzaio</span>
@@ -228,7 +228,7 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
               onClick={handleAIDiagnosis}
               className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-gradient-to-r from-purple-100 to-purple-50 border-2 border-dashed border-purple-300 rounded-xl text-[15px] font-medium text-purple-600 hover:bg-purple-100 hover:border-solid transition-all"
             >
-              <span className="text-2xl">📸</span>
+              <span className="text-xl md:text-2xl">📸</span>
               <span>Scatta foto per diagnosi AI</span>
               {!isPro && (
                 <span className="bg-purple-500 text-white text-[10px] px-2 py-0.5 rounded font-semibold">

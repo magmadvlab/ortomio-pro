@@ -39,11 +39,11 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
                   <Leaf size={32} />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold mb-1">{crop.commonName}</h2>
+                  <h2 className="text-xl md:text-2xl font-bold mb-1">{crop.commonName}</h2>
                   {crop.scientificName && (
                     <p className="text-sm opacity-90 italic">{crop.scientificName}</p>
                   )}
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-3 mt-2">
                     {crop.family && (
                       <span className="px-2 py-1 text-xs font-medium rounded-full bg-white/20 backdrop-blur">
                         {crop.family}
@@ -59,7 +59,7 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
               </div>
               <button
                 onClick={onClose}
-                className="text-white/80 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10"
+                className="text-white/80 hover:text-white transition-colors p-3 rounded-lg hover:bg-white/10"
               >
                 <X size={24} />
               </button>
@@ -104,10 +104,10 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Fase di Germinazione</h3>
 
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Temperature */}
                   <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border border-orange-200">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-3 mb-2">
                       <Thermometer className="text-orange-600" size={20} />
                       <h4 className="font-semibold text-gray-900">Temperatura</h4>
                     </div>
@@ -133,7 +133,7 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
 
                   {/* Timing */}
                   <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-3 mb-2">
                       <Calendar className="text-blue-600" size={20} />
                       <h4 className="font-semibold text-gray-900">Tempistiche</h4>
                     </div>
@@ -151,7 +151,7 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
                         <span className="font-semibold">{crop.germination.sowingDepth} cm</span>
                       </div>
                       {crop.germination.preSoak && (
-                        <div className="flex items-center gap-2 text-sm text-blue-700">
+                        <div className="flex items-center gap-3 text-sm text-blue-700">
                           <Info size={14} />
                           <span>Richiede ammollo preventivo</span>
                         </div>
@@ -163,7 +163,7 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
                 {/* Instructions */}
                 {crop.germination.coveringInstructions && (
                   <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-3">
                       <Info className="text-blue-600 flex-shrink-0 mt-0.5" size={18} />
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-1">Istruzioni Copertura</h4>
@@ -176,7 +176,7 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
                 {/* Moisture Check */}
                 {crop.germination.soilMoistureCheck && (
                   <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-3">
                       <Droplets className="text-blue-600 flex-shrink-0 mt-0.5" size={18} />
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-1">Controllo Umidità</h4>
@@ -189,7 +189,7 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
                 {/* Alternative Method */}
                 {crop.germination.alternativeMethod && (
                   <div className="bg-green-50 rounded-xl p-4 border border-green-200">
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-3">
                       <CheckCircle className="text-green-600 flex-shrink-0 mt-0.5" size={18} />
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-2">
@@ -200,7 +200,7 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
                         </p>
                         <div className="space-y-1">
                           {crop.germination.alternativeMethod.instructions?.map((instruction, idx) => (
-                            <div key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                            <div key={idx} className="flex items-start gap-3 text-sm text-gray-700">
                               <span className="text-green-600 font-semibold">{idx + 1}.</span>
                               <span>{instruction}</span>
                             </div>
@@ -218,11 +218,11 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Cura del Semenzaio</h3>
 
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Light */}
-                  <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-4 border border-yellow-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Sun className="text-yellow-600" size={20} />
+                  <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-4 border border-yellow-full max-w-sm">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Sun className="text-yellow-full max-w-sm" size={20} />
                       <h4 className="font-semibold text-gray-900">Luce</h4>
                     </div>
                     <div className="space-y-2">
@@ -238,7 +238,7 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
 
                   {/* Temperature */}
                   <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-3 mb-2">
                       <Thermometer className="text-blue-600" size={20} />
                       <h4 className="font-semibold text-gray-900">Temperatura</h4>
                     </div>
@@ -251,7 +251,7 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
                 {/* Watering */}
                 {crop.seedlingCare.watering && (
                   <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-3">
                       <Droplets className="text-blue-600 flex-shrink-0 mt-0.5" size={18} />
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-1">Irrigazione</h4>
@@ -267,7 +267,7 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
                 {/* Warning */}
                 {crop.seedlingCare.warning && (
                   <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-3">
                       <AlertCircle className="text-amber-600 flex-shrink-0 mt-0.5" size={18} />
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-1">Attenzione</h4>
@@ -284,10 +284,10 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Trapianto in Orto</h3>
 
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Timing */}
                   <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-3 mb-2">
                       <Calendar className="text-green-600" size={20} />
                       <h4 className="font-semibold text-gray-900">Quando</h4>
                     </div>
@@ -304,7 +304,7 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
 
                   {/* Spacing */}
                   <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-3 mb-2">
                       <ArrowRight className="text-purple-600" size={20} />
                       <h4 className="font-semibold text-gray-900">Spaziatura</h4>
                     </div>
@@ -317,7 +317,7 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
                 {/* Soil Requirements */}
                 {crop.transplanting.soilRequirements && (
                   <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-3">
                       <Leaf className="text-gray-600 flex-shrink-0 mt-0.5" size={18} />
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-1">Terreno</h4>
@@ -330,7 +330,7 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
                 {/* Bury Stem */}
                 {crop.transplanting.buryStem && crop.transplanting.buryStemInstructions && (
                   <div className="bg-green-50 rounded-xl p-4 border border-green-200">
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-3">
                       <CheckCircle className="text-green-600 flex-shrink-0 mt-0.5" size={18} />
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-1">Interramento Fusto</h4>
@@ -350,7 +350,7 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
                 {/* Hardening */}
                 {crop.hardening && (
                   <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-200">
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-3">
                       <Sun className="text-indigo-600 flex-shrink-0 mt-0.5" size={18} />
                       <div className="w-full">
                         <h4 className="font-semibold text-gray-900 mb-2">Acclimatamento</h4>
@@ -379,27 +379,27 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
                 {crop.requiredTools && (
                   <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
                     <h4 className="font-semibold text-gray-900 mb-3">Attrezzi Necessari</h4>
-                    <div className="grid md:grid-cols-2 gap-2">
+                    <div className="grid md:grid-cols-1 md:grid-cols-2 gap-3">
                       {crop.requiredTools.seedTray && (
-                        <div className="flex items-center gap-2 text-sm">
+                        <div className="flex items-center gap-3 text-sm">
                           <CheckCircle size={16} className="text-green-600" />
                           <span>Vassoio semenzaio</span>
                         </div>
                       )}
                       {crop.requiredTools.seedSoil && (
-                        <div className="flex items-center gap-2 text-sm">
+                        <div className="flex items-center gap-3 text-sm">
                           <CheckCircle size={16} className="text-green-600" />
                           <span>Terriccio da semina</span>
                         </div>
                       )}
                       {crop.requiredTools.heatingMat && (
-                        <div className="flex items-center gap-2 text-sm">
+                        <div className="flex items-center gap-3 text-sm">
                           <CheckCircle size={16} className="text-green-600" />
                           <span>Tappetino riscaldante</span>
                         </div>
                       )}
                       {crop.requiredTools.sprayer && (
-                        <div className="flex items-center gap-2 text-sm">
+                        <div className="flex items-center gap-3 text-sm">
                           <CheckCircle size={16} className="text-green-600" />
                           <span>Nebulizzatore</span>
                         </div>

@@ -168,7 +168,7 @@ const BulkOperationModal: React.FC<BulkOperationModalProps> = ({
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Icon className={`text-${operationInfo.color}-600`} size={24} />
-            <h3 className="text-xl font-bold text-gray-900">
+            <h3 className="text-lg md:text-xl font-bold text-gray-900">
               {operationInfo.title}
             </h3>
           </div>
@@ -184,17 +184,17 @@ const BulkOperationModal: React.FC<BulkOperationModalProps> = ({
           {/* Statistiche Selezione */}
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <h4 className="font-semibold text-gray-900 mb-3">Piante Selezionate</h4>
-            <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
               <div>
-                <p className="text-2xl font-bold text-blue-600">{selectedPlants.length}</p>
+                <p className="text-xl md:text-2xl font-bold text-blue-600">{selectedPlants.length}</p>
                 <p className="text-sm text-gray-600">Totali</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-green-600">{healthyPlants}</p>
+                <p className="text-xl md:text-2xl font-bold text-green-600">{healthyPlants}</p>
                 <p className="text-sm text-gray-600">Sane</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-orange-600">{problemPlants}</p>
+                <p className="text-xl md:text-2xl font-bold text-orange-600">{problemPlants}</p>
                 <p className="text-sm text-gray-600">Problemi</p>
               </div>
             </div>
@@ -207,7 +207,7 @@ const BulkOperationModal: React.FC<BulkOperationModalProps> = ({
 
           {/* Form Fields */}
           {operationType !== 'health' && (
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {operationInfo.placeholder}
@@ -220,7 +220,7 @@ const BulkOperationModal: React.FC<BulkOperationModalProps> = ({
                     ...formData,
                     quantityPerPlant: e.target.value
                   })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                   placeholder={operationInfo.defaultQuantity}
                   required
                 />
@@ -236,7 +236,7 @@ const BulkOperationModal: React.FC<BulkOperationModalProps> = ({
                     ...formData,
                     unit: e.target.value
                   })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                   required
                 >
                   <option value="">{operationInfo.defaultUnit}</option>
@@ -277,7 +277,7 @@ const BulkOperationModal: React.FC<BulkOperationModalProps> = ({
                   ...formData,
                   productName: e.target.value
                 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 placeholder={operationType === 'fertilizing' ? 'es. NPK 10-10-10' : 'es. Fungicida Rame'}
               />
             </div>
@@ -286,7 +286,7 @@ const BulkOperationModal: React.FC<BulkOperationModalProps> = ({
           {/* Photo Strategy */}
           <div className="mb-6">
             <h4 className="font-semibold text-gray-900 mb-3">Strategia Foto</h4>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {(['none', 'sample', 'problems', 'all'] as const).map((strategy) => {
                 const strategyInfo = getPhotoStrategy();
                 const isRecommended = strategy === 'sample' && selectedPlants.length > 20 && selectedPlants.length <= 500;
@@ -366,7 +366,7 @@ const BulkOperationModal: React.FC<BulkOperationModalProps> = ({
                   <p className="text-sm font-medium text-gray-700 mb-2">
                     Foto caricate ({photos.length})
                   </p>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     {photos.map((photo, index) => (
                       <div key={index} className="relative">
                         <img
@@ -377,7 +377,7 @@ const BulkOperationModal: React.FC<BulkOperationModalProps> = ({
                         <button
                           type="button"
                           onClick={() => removePhoto(index)}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                          className="absolute -top-3 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
                         >
                           ×
                         </button>
@@ -401,7 +401,7 @@ const BulkOperationModal: React.FC<BulkOperationModalProps> = ({
                 notes: e.target.value
               })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               placeholder="Note sull'operazione..."
             />
           </div>

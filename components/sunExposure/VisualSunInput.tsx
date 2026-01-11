@@ -56,11 +56,11 @@ const VisualSunInput: React.FC<VisualSunInputProps> = ({
   }> = ({ label, value, onChange, icon }) => {
     return (
       <div className="space-y-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {icon}
           <label className="text-sm font-medium text-gray-700">{label}</label>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <input
             type="range"
             min="1"
@@ -69,7 +69,7 @@ const VisualSunInput: React.FC<VisualSunInputProps> = ({
             onChange={(e) => onChange(parseInt(e.target.value))}
             className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600"
           />
-          <div className="flex gap-1 w-24">
+          <div className="flex gap-3 w-24">
             {[1, 2, 3, 4, 5].map((level) => (
               <div
                 key={level}
@@ -99,7 +99,7 @@ const VisualSunInput: React.FC<VisualSunInputProps> = ({
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
-      <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+      <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-3">
         <Sun size={16} />
         Esposizione Solare
       </h3>
@@ -109,7 +109,7 @@ const VisualSunInput: React.FC<VisualSunInputProps> = ({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           📍 Dove si trova questo punto?
         </label>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {(
             [
               { value: 'campo', label: 'Pieno campo', icon: <Home size={20} /> },
@@ -126,7 +126,7 @@ const VisualSunInput: React.FC<VisualSunInputProps> = ({
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
-              <div className="flex flex-col items-center gap-1">
+              <div className="flex flex-col items-center gap-3">
                 {option.icon}
                 <span className="text-xs font-medium text-gray-700">
                   {option.label}
@@ -147,7 +147,7 @@ const VisualSunInput: React.FC<VisualSunInputProps> = ({
             label="Mattino"
             value={data.morningSun}
             onChange={(value) => handleChange({ morningSun: value })}
-            icon={<Sun size={16} className="text-yellow-500" />}
+            icon={<Sun size={16} className="text-yellow-full max-w-sm" />}
           />
           <SunSlider
             label="Mezzogiorno"
@@ -169,7 +169,7 @@ const VisualSunInput: React.FC<VisualSunInputProps> = ({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           🧱 Ci sono ostacoli?
         </label>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           {[
             { id: 'edificio_sud', label: 'Edificio a Sud', icon: <Building2 size={16} /> },
             { id: 'edificio_est', label: 'Edificio a Est', icon: <Building2 size={16} /> },

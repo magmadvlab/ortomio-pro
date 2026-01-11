@@ -72,7 +72,7 @@ export function ConsumerDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
       {/* Header migliorato */}
       <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-green-900 mb-1">
+        <h1 className="text-xl md:text-2xl sm:text-3xl font-bold text-green-900 mb-1">
           🌱 Benvenuto nel tuo Orto!
         </h1>
         <p className="text-green-700 text-sm sm:text-base">
@@ -82,7 +82,7 @@ export function ConsumerDashboard() {
       
       <main className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
         {/* Widget in grid */}
-        <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+        <div className="grid md:grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <WeatherWidget 
             latitude={DEFAULT_COORDS.latitude}
             longitude={DEFAULT_COORDS.longitude}
@@ -97,19 +97,19 @@ export function ConsumerDashboard() {
               <p className="text-orange-100 text-sm font-medium mb-1">Resa Totale (Stimata)</p>
               <p className="text-4xl font-bold">0.0 kg</p>
             </div>
-            <div className="bg-white/20 rounded-lg p-2">
+            <div className="bg-white/20 rounded-lg p-3">
               <Sparkles className="text-white" size={24} />
             </div>
           </div>
-          <div className="flex gap-2 mt-4">
+          <div className="flex gap-3 mt-4">
             <button className="bg-white text-orange-600 px-4 py-2 rounded-lg font-semibold text-sm">
               TUTTI
             </button>
-            <button className="bg-white/20 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-1">
+            <button className="bg-white/20 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-3">
               <Sun size={16} />
               ESTIVO
             </button>
-            <button className="bg-white/20 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-1">
+            <button className="bg-white/20 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-3">
               <Snowflake size={16} />
               INVERNALE
             </button>
@@ -118,11 +118,11 @@ export function ConsumerDashboard() {
         
         {/* Ricette suggerite - Card migliorate */}
         <section>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-lg md:text-xl sm:text-xl md:text-2xl font-bold text-gray-900 mb-4 flex items-center gap-3">
             <ChefHat className="text-orange-500" size={24} />
             Ricette per i tuoi raccolti
           </h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
               <div className="aspect-video bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg mb-3 flex items-center justify-center">
                 <ChefHat className="text-orange-500" size={32} />
@@ -148,14 +148,14 @@ export function ConsumerDashboard() {
         
         {/* Guide - Card migliorate */}
         <section>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-lg md:text-xl sm:text-xl md:text-2xl font-bold text-gray-900 mb-4 flex items-center gap-3">
             <Book className="text-blue-500" size={24} />
             Guide Utili
           </h2>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
               <div className="flex items-start gap-3">
-                <div className="bg-blue-100 rounded-lg p-2">
+                <div className="bg-blue-100 rounded-lg p-3">
                   <Book className="text-blue-600" size={20} />
                 </div>
                 <div className="flex-1">
@@ -166,7 +166,7 @@ export function ConsumerDashboard() {
             </div>
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
               <div className="flex items-start gap-3">
-                <div className="bg-green-100 rounded-lg p-2">
+                <div className="bg-green-100 rounded-lg p-3">
                   <Leaf className="text-green-600" size={20} />
                 </div>
                 <div className="flex-1">

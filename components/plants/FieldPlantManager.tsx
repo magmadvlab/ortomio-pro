@@ -113,11 +113,11 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-col md:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <TreePine className="text-green-600" size={28} />
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Gestione Piante Individuali</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Gestione Piante Individuali</h2>
             <p className="text-gray-600">
               {plants.length > 0 
                 ? `${plants.length} piante tracciate individualmente`
@@ -129,7 +129,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
         
         <div className="flex items-center gap-3">
           {/* View Toggle */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
+          <div className="flex bg-gray-100 rounded-lg p-3">
             <button
               onClick={() => setView('grid')}
               className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -164,7 +164,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
           
           <button
             onClick={() => setShowWizard(true)}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-3"
           >
             <Plus size={20} />
             Crea Campo
@@ -174,7 +174,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
 
       {/* Empty State */}
       {plants.length === 0 && (
-        <div className="bg-white rounded-lg shadow-md p-12 text-center">
+        <div className="bg-white rounded-lg shadow-md p-32 text-center">
           <TreePine className="mx-auto text-gray-400 mb-4" size={48} />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Nessuna pianta tracciata individualmente
@@ -184,7 +184,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
           </p>
           <button
             onClick={() => setShowWizard(true)}
-            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 mx-auto"
+            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-3 mx-auto"
           >
             <Calculator size={20} />
             Configura Campo Automatico
@@ -200,7 +200,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Calculator className="text-green-600" size={24} />
-                <h3 className="text-xl font-bold text-gray-900">
+                <h3 className="text-lg md:text-xl font-bold text-gray-900">
                   Configuratore Campo Automatico
                 </h3>
               </div>
@@ -213,7 +213,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
             </div>
 
             <div className="p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Configurazione */}
                 <div className="space-y-6">
                   <h4 className="text-lg font-semibold text-gray-900">Configurazione</h4>
@@ -222,7 +222,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
                   <div className="space-y-4">
                     <h5 className="font-medium text-gray-700">Dimensioni Campo</h5>
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Numero Filari
@@ -236,7 +236,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
                             ...wizardConfig,
                             rowCount: parseInt(e.target.value) || 1
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                         />
                       </div>
                       
@@ -254,12 +254,12 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
                             ...wizardConfig,
                             rowLengthMeters: parseFloat(e.target.value) || 1
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                         />
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Distanza Piante (cm)
@@ -273,7 +273,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
                             ...wizardConfig,
                             plantSpacingCm: parseInt(e.target.value) || 30
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                         />
                       </div>
                       
@@ -290,7 +290,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
                             ...wizardConfig,
                             rowSpacingCm: parseInt(e.target.value) || 150
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                         />
                       </div>
                     </div>
@@ -300,7 +300,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
                   <div className="space-y-4">
                     <h5 className="font-medium text-gray-700">Coltura</h5>
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Pianta
@@ -312,7 +312,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
                             ...wizardConfig,
                             plantName: e.target.value
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                           placeholder="es. Pomodoro"
                         />
                       </div>
@@ -328,13 +328,13 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
                             ...wizardConfig,
                             variety: e.target.value
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                           placeholder="es. San Marzano"
                         />
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Data Piantagione
@@ -346,7 +346,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
                             ...wizardConfig,
                             plantingDate: e.target.value
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                         />
                       </div>
                       
@@ -361,7 +361,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
                             ...wizardConfig,
                             zoneName: e.target.value
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                           placeholder="es. Campo Principale"
                         />
                       </div>
@@ -407,7 +407,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
                   {/* Validazione */}
                   {validationErrors.length > 0 && (
                     <div className="bg-red-50 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-3 mb-2">
                         <AlertTriangle className="text-red-600" size={20} />
                         <h5 className="font-medium text-red-900">Errori Configurazione</h5>
                       </div>
@@ -421,7 +421,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
 
                   {validationErrors.length === 0 && (
                     <div className="bg-green-50 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-3 mb-2">
                         <CheckCircle className="text-green-600" size={20} />
                         <h5 className="font-medium text-green-900">Configurazione Valida</h5>
                       </div>
@@ -455,7 +455,7 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
                 <button
                   onClick={handleCreateField}
                   disabled={validationErrors.length > 0}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-3"
                 >
                   <TreePine size={20} />
                   Crea Campo ({calculatedConfig.totalPlants} piante)

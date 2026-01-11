@@ -274,7 +274,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
         <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Filari • {bed.name}</h2>
+              <h2 className="text-lg md:text-xl font-bold text-gray-900">Filari • {bed.name}</h2>
               <p className="text-sm text-gray-600">Configurati: {configuredCount}/{rows.length}</p>
             </div>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -283,21 +283,21 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
           </div>
 
           <div className="p-6 space-y-6">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => {
                   setShowBulk(true)
                   setShowForm(false)
                   setEditing(null)
                 }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center gap-2"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center gap-3"
               >
                 <Layers size={18} />
                 Crea Multipli
               </button>
               <button
                 onClick={startNew}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 flex items-center gap-2"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 flex items-center gap-3"
               >
                 <Plus size={18} />
                 Nuovo Filare
@@ -313,7 +313,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Numero filari</label>
                     <input
@@ -321,7 +321,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                       min={1}
                       value={bulkForm.count}
                       onChange={(e) => setBulkForm((p) => ({ ...p, count: parseInt(e.target.value) || 0 }))}
-                      className="w-full p-2 border rounded-lg"
+                      className="w-full p-3 border rounded-lg"
                     />
                   </div>
                   <div>
@@ -329,7 +329,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                     <input
                       value={bulkForm.prefix}
                       onChange={(e) => setBulkForm((p) => ({ ...p, prefix: e.target.value }))}
-                      className="w-full p-2 border rounded-lg"
+                      className="w-full p-3 border rounded-lg"
                     />
                   </div>
                   <div>
@@ -339,7 +339,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                       min={1}
                       value={bulkForm.startNumber}
                       onChange={(e) => setBulkForm((p) => ({ ...p, startNumber: parseInt(e.target.value) || 0 }))}
-                      className="w-full p-2 border rounded-lg"
+                      className="w-full p-3 border rounded-lg"
                     />
                   </div>
 
@@ -351,7 +351,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                       step={0.1}
                       value={bulkForm.lengthMeters}
                       onChange={(e) => setBulkForm((p) => ({ ...p, lengthMeters: parseFloat(e.target.value) || 0 }))}
-                      className="w-full p-2 border rounded-lg"
+                      className="w-full p-3 border rounded-lg"
                     />
                   </div>
 
@@ -360,7 +360,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                     <select
                       value={bulkForm.lineType}
                       onChange={(e) => setBulkForm((p) => ({ ...p, lineType: e.target.value as IrrigationLineType }))}
-                      className="w-full p-2 border rounded-lg"
+                      className="w-full p-3 border rounded-lg"
                     >
                       <option value="Dripline">Ala gocciolante</option>
                       <option value="PipeWithDrippers">Tubo con gocciolatori</option>
@@ -375,14 +375,14 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                       min={0}
                       value={bulkForm.pipeDiameterMm || ''}
                       onChange={(e) => setBulkForm((p) => ({ ...p, pipeDiameterMm: parseFloat(e.target.value) || undefined }))}
-                      className="w-full p-2 border rounded-lg"
+                      className="w-full p-3 border rounded-lg"
                     />
                   </div>
                 </div>
 
                 <div className="mt-4">
                   <label className="block text-xs font-semibold text-gray-700 mb-2">Modalità portata</label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     <button
                       type="button"
                       onClick={() => setBulkForm((p) => ({ ...p, mode: 'per_emitter' }))}
@@ -405,7 +405,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                 </div>
 
                 {bulkForm.mode === 'per_meter' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                  <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Portata per metro (L/h/m)</label>
                       <input
@@ -414,12 +414,12 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                         step={0.01}
                         value={bulkForm.flowRatePerMeterLph || ''}
                         onChange={(e) => setBulkForm((p) => ({ ...p, flowRatePerMeterLph: parseFloat(e.target.value) || undefined }))}
-                        className="w-full p-2 border rounded-lg"
+                        className="w-full p-3 border rounded-lg"
                       />
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                  <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Distanza emettitori (cm)</label>
                       <input
@@ -428,7 +428,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                         step={1}
                         value={bulkForm.emitterSpacingCm || ''}
                         onChange={(e) => setBulkForm((p) => ({ ...p, emitterSpacingCm: parseFloat(e.target.value) || undefined }))}
-                        className="w-full p-2 border rounded-lg"
+                        className="w-full p-3 border rounded-lg"
                       />
                     </div>
                     <div>
@@ -439,13 +439,13 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                         step={0.1}
                         value={bulkForm.emitterFlowRateLph || ''}
                         onChange={(e) => setBulkForm((p) => ({ ...p, emitterFlowRateLph: parseFloat(e.target.value) || undefined }))}
-                        className="w-full p-2 border rounded-lg"
+                        className="w-full p-3 border rounded-lg"
                       />
                     </div>
                   </div>
                 )}
 
-                <div className="mt-4 flex justify-end gap-2">
+                <div className="mt-4 flex justify-end gap-3">
                   <button
                     onClick={() => setShowBulk(false)}
                     className="px-4 py-2 border border-gray-200 rounded-lg font-semibold text-gray-700 hover:bg-gray-50"
@@ -477,13 +477,13 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Nome</label>
                     <input
                       value={rowForm.name}
                       onChange={(e) => setRowForm((p) => ({ ...p, name: e.target.value }))}
-                      className="w-full p-2 border rounded-lg"
+                      className="w-full p-3 border rounded-lg"
                     />
                   </div>
                   <div>
@@ -498,7 +498,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                           rowNumber: e.target.value === '' ? undefined : parseInt(e.target.value) || undefined,
                         }))
                       }
-                      className="w-full p-2 border rounded-lg"
+                      className="w-full p-3 border rounded-lg"
                     />
                   </div>
                   <div>
@@ -509,7 +509,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                       step={0.1}
                       value={rowForm.lengthMeters}
                       onChange={(e) => setRowForm((p) => ({ ...p, lengthMeters: parseFloat(e.target.value) || 0 }))}
-                      className="w-full p-2 border rounded-lg"
+                      className="w-full p-3 border rounded-lg"
                     />
                   </div>
 
@@ -518,7 +518,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                     <select
                       value={rowForm.lineType}
                       onChange={(e) => setRowForm((p) => ({ ...p, lineType: e.target.value as IrrigationLineType }))}
-                      className="w-full p-2 border rounded-lg"
+                      className="w-full p-3 border rounded-lg"
                     >
                       <option value="Dripline">Ala gocciolante</option>
                       <option value="PipeWithDrippers">Tubo con gocciolatori</option>
@@ -533,7 +533,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                       min={0}
                       value={rowForm.pipeDiameterMm || ''}
                       onChange={(e) => setRowForm((p) => ({ ...p, pipeDiameterMm: parseFloat(e.target.value) || undefined }))}
-                      className="w-full p-2 border rounded-lg"
+                      className="w-full p-3 border rounded-lg"
                     />
                   </div>
 
@@ -542,14 +542,14 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                     <input
                       value={rowForm.notes || ''}
                       onChange={(e) => setRowForm((p) => ({ ...p, notes: e.target.value }))}
-                      className="w-full p-2 border rounded-lg"
+                      className="w-full p-3 border rounded-lg"
                     />
                   </div>
                 </div>
 
                 <div className="mt-4">
                   <label className="block text-xs font-semibold text-gray-700 mb-2">Modalità portata</label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     <button
                       type="button"
                       onClick={() => setRowForm((p) => ({ ...p, mode: 'per_emitter' }))}
@@ -572,7 +572,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                 </div>
 
                 {rowForm.mode === 'per_meter' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                  <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Portata per metro (L/h/m)</label>
                       <input
@@ -581,12 +581,12 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                         step={0.01}
                         value={rowForm.flowRatePerMeterLph || ''}
                         onChange={(e) => setRowForm((p) => ({ ...p, flowRatePerMeterLph: parseFloat(e.target.value) || undefined }))}
-                        className="w-full p-2 border rounded-lg"
+                        className="w-full p-3 border rounded-lg"
                       />
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                  <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Distanza emettitori (cm)</label>
                       <input
@@ -595,7 +595,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                         step={1}
                         value={rowForm.emitterSpacingCm || ''}
                         onChange={(e) => setRowForm((p) => ({ ...p, emitterSpacingCm: parseFloat(e.target.value) || undefined }))}
-                        className="w-full p-2 border rounded-lg"
+                        className="w-full p-3 border rounded-lg"
                       />
                     </div>
                     <div>
@@ -606,13 +606,13 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                         step={0.1}
                         value={rowForm.emitterFlowRateLph || ''}
                         onChange={(e) => setRowForm((p) => ({ ...p, emitterFlowRateLph: parseFloat(e.target.value) || undefined }))}
-                        className="w-full p-2 border rounded-lg"
+                        className="w-full p-3 border rounded-lg"
                       />
                     </div>
                   </div>
                 )}
 
-                <div className="mt-4 flex justify-end gap-2">
+                <div className="mt-4 flex justify-end gap-3">
                   <button
                     onClick={() => {
                       setShowForm(false)
@@ -636,8 +636,8 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
               <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
                 <h3 className="font-bold text-gray-900">Elenco filari</h3>
                 {rows.length === 0 ? (
-                  <div className="text-sm text-gray-600 flex items-center gap-2">
-                    <AlertTriangle size={16} className="text-yellow-600" />
+                  <div className="text-sm text-gray-600 flex items-center gap-3">
+                    <AlertTriangle size={16} className="text-yellow-full max-w-sm" />
                     Nessun filare creato
                   </div>
                 ) : (
@@ -659,7 +659,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                     return (
                       <div key={r.id} className="p-4 flex items-start justify-between gap-4">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex items-center gap-3 flex-wrap">
                             <div className="font-semibold text-gray-900">{r.name}</div>
                             <span className={`text-xs px-2 py-0.5 rounded font-semibold ${ok ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-800'}`}>
                               {ok ? 'Irrigazione configurata' : 'Config mancante'}
@@ -670,24 +670,24 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
                             )}
                           </div>
                           {!ok && (
-                            <div className="mt-2 text-xs text-yellow-800 flex items-center gap-1">
+                            <div className="mt-2 text-xs text-yellow-full max-w-sm flex items-center gap-3">
                               <AlertTriangle size={14} />
                               Configura passo/portata oppure portata per metro.
                             </div>
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <button
                             onClick={() => startEdit(r)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                            className="p-3 text-blue-600 hover:bg-blue-50 rounded"
                             title="Modifica"
                           >
                             <Edit2 size={18} />
                           </button>
                           <button
                             onClick={() => deleteRow(r)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded"
+                            className="p-3 text-red-600 hover:bg-red-50 rounded"
                             title="Elimina"
                           >
                             <Trash2 size={18} />

@@ -75,13 +75,13 @@ const FertilizerInventory: React.FC<FertilizerInventoryProps> = ({ garden }) => 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-3">
           <Package size={20} />
           Inventario Fertilizzanti
         </h3>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm"
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-3 text-sm"
         >
           <Plus size={16} />
           Aggiungi Prodotto
@@ -96,7 +96,7 @@ const FertilizerInventory: React.FC<FertilizerInventoryProps> = ({ garden }) => 
             .map((alert, idx) => (
               <div
                 key={idx}
-                className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2"
+                className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-3"
               >
                 <AlertTriangle size={18} className="text-red-600 mt-0.5" />
                 <div className="flex-1">
@@ -132,7 +132,7 @@ const FertilizerInventory: React.FC<FertilizerInventoryProps> = ({ garden }) => 
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <h4 className="font-medium text-gray-800">{item.productName}</h4>
                     <span className="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-600">
                       {item.category}
@@ -148,7 +148,7 @@ const FertilizerInventory: React.FC<FertilizerInventoryProps> = ({ garden }) => 
                       </span>
                     )}
                     {item.expiryDate && (
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center gap-3">
                         <Calendar size={14} />
                         Scadenza: {item.expiryDate.toLocaleDateString('it-IT')}
                       </span>
@@ -201,7 +201,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ onAdd, onCancel }) => {
         <select
           value={selectedProductId}
           onChange={(e) => setSelectedProductId(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
           required
         >
           <option value="">Seleziona prodotto...</option>
@@ -220,7 +220,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ onAdd, onCancel }) => {
           step="0.1"
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
           placeholder="Es. 10"
           required
         />
@@ -233,7 +233,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ onAdd, onCancel }) => {
           step="0.01"
           value={cost}
           onChange={(e) => setCost(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
           placeholder="Opzionale"
         />
       </div>
@@ -244,11 +244,11 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ onAdd, onCancel }) => {
           type="date"
           value={expiryDate}
           onChange={(e) => setExpiryDate(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
         />
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <button
           type="submit"
           className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"

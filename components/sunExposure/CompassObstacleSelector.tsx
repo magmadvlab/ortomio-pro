@@ -163,7 +163,7 @@ export function CompassObstacleSelector({
     <div className="space-y-6">
       {/* Info Box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-3">
           <Info className="text-blue-600 flex-shrink-0 mt-0.5" size={18} />
           <div className="text-sm text-blue-900">
             <p className="font-semibold mb-1">Modalità Avanzata - Compass Selector</p>
@@ -175,7 +175,7 @@ export function CompassObstacleSelector({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Compass Selector */}
         <div className="space-y-4">
           <h3 className="font-semibold text-gray-900">🧭 Seleziona Direzione</h3>
@@ -332,7 +332,7 @@ export function CompassObstacleSelector({
 
           {/* Valore azimuth */}
           <div className="text-center">
-            <p className="text-2xl font-bold text-blue-600">
+            <p className="text-xl md:text-2xl font-bold text-blue-600">
               {selectedAzimuth}° {getCardinalDirection(selectedAzimuth)}
             </p>
             <p className="text-sm text-gray-600">Azimuth selezionato</p>
@@ -348,7 +348,7 @@ export function CompassObstacleSelector({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Tipo Ostacolo
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {[
                 { value: 'Building', label: 'Edificio', icon: <Building2 size={16} /> },
                 { value: 'Tree', label: 'Albero', icon: <TreeDeciduous size={16} /> },
@@ -383,7 +383,7 @@ export function CompassObstacleSelector({
               step="0.5"
               value={currentInput.heightMeters}
               onChange={(e) => setCurrentInput({ ...currentInput, heightMeters: parseFloat(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <p className="text-xs text-gray-500 mt-1">
               Edificio ~3m/piano, albero medio ~8m, montagna ~100m+
@@ -402,7 +402,7 @@ export function CompassObstacleSelector({
               step="1"
               value={currentInput.distanceMeters}
               onChange={(e) => setCurrentInput({ ...currentInput, distanceMeters: parseFloat(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <p className="text-xs text-gray-500 mt-1">
               Stima la distanza orizzontale dall'orto all'ostacolo
@@ -427,7 +427,7 @@ export function CompassObstacleSelector({
           {/* Pulsante Aggiungi */}
           <button
             onClick={addObstacle}
-            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 font-medium transition-colors"
+            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-3 font-medium transition-colors"
           >
             <Plus size={20} />
             Aggiungi Ostacolo
@@ -465,7 +465,7 @@ export function CompassObstacleSelector({
                 </div>
                 <button
                   onClick={() => removeObstacle(index)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <Trash2 size={16} />
                 </button>

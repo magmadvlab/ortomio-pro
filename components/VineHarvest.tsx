@@ -50,7 +50,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
     <div className="space-y-4">
       {/* Vendemmia */}
       <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-        <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+        <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-3">
           <Wine className="text-purple-600" size={18} />
           Vendemmia
         </h4>
@@ -66,7 +66,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
               step="0.1"
               value={grapeQty || ''}
               onChange={(e) => onUpdate({ grapeQuantity: parseFloat(e.target.value) || 0 })}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
             />
           </div>
 
@@ -74,7 +74,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
             <label className="block text-sm font-semibold text-gray-700 mb-1">
               Gradi Brix al Momento Raccolta
             </label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <input
                 type="number"
                 min="0"
@@ -82,7 +82,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
                 step="0.1"
                 value={brixAtHarvest || ''}
                 onChange={(e) => onUpdate({ brixAtHarvest: parseFloat(e.target.value) || 0 })}
-                className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
               />
               <span className="text-gray-600">°Brix</span>
               {brixTarget > 0 && (
@@ -92,7 +92,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
               )}
             </div>
             {isReady && (
-              <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+              <p className="text-xs text-green-600 mt-1 flex items-center gap-3">
                 <CheckCircle size={12} />
                 Brix target raggiunto!
               </p>
@@ -107,7 +107,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
               type="date"
               value={harvestData.harvestDate || new Date().toISOString().split('T')[0]}
               onChange={(e) => onUpdate({ harvestDate: e.target.value })}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
             />
           </div>
 
@@ -118,7 +118,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
             <select
               value={harvestData.harvestMethod || 'Manual'}
               onChange={(e) => onUpdate({ harvestMethod: e.target.value as any })}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
             >
               <option value="Manual">Manuale</option>
               <option value="Mechanical">Meccanico</option>
@@ -130,7 +130,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
       {/* Stima Vino */}
       {grapeQty > 0 && (
         <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-2">
             <TrendingUp className="text-blue-600" size={18} />
             <span className="font-semibold text-blue-800">Stima Vino Atteso</span>
           </div>
@@ -145,12 +145,12 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
       {/* Vinificazione */}
       <div className="p-4 bg-red-50 rounded-lg border-2 border-red-300">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+          <h4 className="font-semibold text-gray-800 flex items-center gap-3">
             <Wine className="text-red-600" size={18} />
             Vinificazione
           </h4>
           {isUrgent && (
-            <div className="flex items-center gap-1 text-red-600">
+            <div className="flex items-center gap-3 text-red-600">
               <AlertCircle size={16} />
               <span className="text-xs font-semibold">URGENTE</span>
             </div>
@@ -169,7 +169,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
         <button
           type="button"
           onClick={() => setShowWinemaking(!showWinemaking)}
-          className="w-full p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+          className="w-full p-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
         >
           {showWinemaking ? 'Nascondi' : 'Registra Vinificazione'}
         </button>
@@ -184,7 +184,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
                 type="date"
                 value={harvestData.winemakingDate || new Date().toISOString().split('T')[0]}
                 onChange={(e) => onUpdate({ winemakingDate: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
 
@@ -195,7 +195,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
               <select
                 value={harvestData.wineType || 'Red'}
                 onChange={(e) => onUpdate({ wineType: e.target.value as any })}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               >
                 <option value="Red">Rosso</option>
                 <option value="White">Bianco</option>
@@ -214,7 +214,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
                 step="0.1"
                 value={harvestData.wineProduced || ''}
                 onChange={(e) => onUpdate({ wineProduced: parseFloat(e.target.value) || 0 })}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
 
@@ -236,7 +236,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
                         alcohol: parseFloat(e.target.value) || 0
                       } as WineAnalysis
                     })}
-                    className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full p-3 border border-gray-300 rounded-lg text-sm"
                     placeholder="12.0"
                   />
                 </div>
@@ -253,7 +253,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
                         acidity: parseFloat(e.target.value) || 0
                       } as WineAnalysis
                     })}
-                    className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full p-3 border border-gray-300 rounded-lg text-sm"
                     placeholder="5.0"
                   />
                 </div>
@@ -271,7 +271,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
                         pH: parseFloat(e.target.value) || 0
                       } as WineAnalysis
                     })}
-                    className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full p-3 border border-gray-300 rounded-lg text-sm"
                     placeholder="3.5"
                   />
                 </div>
@@ -286,7 +286,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
                 type="date"
                 value={(harvestData as any).bottlingDate || ''}
                 onChange={(e) => onUpdate({ bottlingDate: e.target.value } as any)}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
 
@@ -299,7 +299,7 @@ const VineHarvest: React.FC<VineHarvestProps> = ({ harvestData, brixTarget, onUp
                 min="0"
                 value={(harvestData as any).bottlesProduced || ''}
                 onChange={(e) => onUpdate({ bottlesProduced: parseInt(e.target.value) || 0 } as any)}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
           </div>

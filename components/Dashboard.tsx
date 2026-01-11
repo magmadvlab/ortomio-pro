@@ -520,24 +520,24 @@ const Dashboard: React.FC<DashboardProps> = ({
         />
       )}
       <div className="p-4 sm:p-6 pb-32 max-w-2xl mx-auto space-y-4 sm:space-y-6">
-      <header className="mt-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+      <header className="mt-2 flex flex-col sm:flex-col md:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
         <div className="relative">
              {/* GARDEN SWITCHER */}
              <button 
                 onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
-                className="flex items-center gap-2 text-green-900 font-extrabold text-xl sm:text-2xl hover:opacity-80 transition-opacity"
+                className="flex items-center gap-3 text-green-900 font-extrabold text-lg md:text-xl sm:text-xl md:text-2xl hover:opacity-80 transition-opacity"
              >
                  {activeGarden?.name || 'Seleziona Orto'}
                  <ChevronDown size={24} className={`transition-transform ${isSwitcherOpen ? 'rotate-180' : ''}`}/>
              </button>
-             <div className="flex items-center gap-2 flex-wrap">
-               <p className="text-green-700 text-sm flex items-center gap-1">
+             <div className="flex items-center gap-3 flex-wrap">
+               <p className="text-green-700 text-sm flex items-center gap-3">
                  {activeGarden?.coordinates ? <><MapPin size={12}/> Localizzato</> : 'Posizione sconosciuta'}
              </p>
 
              {isSwitcherOpen && (
                  <div className="absolute top-full left-0 mt-2 bg-white rounded-xl shadow-xl border border-green-100 z-50 w-64 overflow-hidden animate-in fade-in zoom-in-95">
-                     <div className="p-2">
+                     <div className="p-3">
                          <p className="text-xs font-bold text-gray-400 uppercase px-2 py-1">I tuoi Orti</p>
                          {gardens.map(g => (
                              <button 
@@ -551,7 +551,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                          <div className="h-px bg-gray-100 my-1"></div>
                          <button 
                             onClick={() => { setIsCreatingNew(true); setIsEditingSettings(true); setIsSwitcherOpen(false); }}
-                            className="w-full text-left px-3 py-2 rounded-lg text-sm font-bold text-green-600 hover:bg-green-50 flex items-center gap-2"
+                            className="w-full text-left px-4 py-3 text-base rounded-lg text-sm font-bold text-green-600 hover:bg-green-50 flex items-center gap-3"
                          >
                              <Plus size={16}/> Aggiungi Nuovo Orto
                          </button>
@@ -562,7 +562,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
         <button 
             onClick={() => { setIsCreatingNew(false); setIsEditingSettings(!isEditingSettings); }}
-            className="p-2 bg-white rounded-xl shadow-sm border border-green-100 text-green-700 hover:bg-green-50"
+            className="p-3 bg-white rounded-xl shadow-sm border border-green-100 text-green-700 hover:bg-green-50"
         >
             <Settings size={20} />
         </button>
@@ -573,7 +573,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 sm:p-6">
               <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xl w-full max-w-sm animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
                   <div className="flex justify-between items-center mb-4">
-                      <h2 className="text-xl font-bold text-green-900">{isCreatingNew ? 'Nuovo Orto' : 'Configurazione Orto'}</h2>
+                      <h2 className="text-lg md:text-xl font-bold text-green-900">{isCreatingNew ? 'Nuovo Orto' : 'Configurazione Orto'}</h2>
                       <button onClick={() => setIsEditingSettings(false)}><Settings size={20} className="text-gray-400"/></button>
                   </div>
                   
@@ -586,7 +586,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none mt-1"
                             />
                         </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="text-xs font-bold text-gray-500 uppercase">Dimensioni (mq)</label>
                             <input 
@@ -623,14 +623,14 @@ const Dashboard: React.FC<DashboardProps> = ({
                       {!isCreatingNew && (
                            <button 
                                 onClick={updateLocation}
-                                className="w-full py-2 bg-blue-50 text-blue-700 rounded-xl font-bold border border-blue-100 flex items-center justify-center gap-2 text-sm"
+                                className="w-full py-2 bg-blue-50 text-blue-700 rounded-xl font-bold border border-blue-100 flex items-center justify-center gap-3 text-sm"
                             >
                                 <MapPin size={16}/> Aggiorna Posizione GPS (Qui)
                             </button>
                       )}
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                       {!isCreatingNew && (
                           <button 
                             onClick={() => {
@@ -644,7 +644,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       )}
                       <button 
                         onClick={handleSaveGarden}
-                        className="flex-1 py-3 min-h-[44px] bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 shadow-md flex items-center justify-center gap-2 transition-all duration-200"
+                        className="flex-1 py-3 min-h-[44px] bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 shadow-md flex items-center justify-center gap-3 transition-all duration-200"
                       >
                           <Save size={18} />
                           {isCreatingNew ? 'Crea Orto' : 'Salva Modifiche'}
@@ -658,14 +658,14 @@ const Dashboard: React.FC<DashboardProps> = ({
       {activeGarden && !isEditingSettings && (
           <div className="bg-green-50/50 p-4 rounded-xl border border-dashed border-green-200 flex flex-wrap gap-4 justify-between items-center text-sm">
               <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  <span className="text-green-800 flex items-center gap-1"><Settings size={14}/> <b>{activeGarden.sizeSqMeters} m²</b></span>
-                  {activeGarden.soilPh && <span className="text-green-800 flex items-center gap-1"><FlaskConical size={14}/> pH <b>{activeGarden.soilPh}</b></span>}
-                  {activeGarden.soilType && <span className="text-green-800 flex items-center gap-1"><Shovel size={14}/> <b>{getSoilLabel(activeGarden.soilType)}</b></span>}
+                  <span className="text-green-800 flex items-center gap-3"><Settings size={14}/> <b>{activeGarden.sizeSqMeters} m²</b></span>
+                  {activeGarden.soilPh && <span className="text-green-800 flex items-center gap-3"><FlaskConical size={14}/> pH <b>{activeGarden.soilPh}</b></span>}
+                  {activeGarden.soilType && <span className="text-green-800 flex items-center gap-3"><Shovel size={14}/> <b>{getSoilLabel(activeGarden.soilType)}</b></span>}
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-3 flex-shrink-0">
                   <button
                       onClick={() => setShowStructuresEditor(true)}
-                      className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 flex items-center gap-1.5 transition-colors"
+                      className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 flex items-center gap-3.5 transition-colors"
                       title="Modifica strutture dell'orto"
                   >
                       <Grid size={14} />
@@ -679,13 +679,13 @@ const Dashboard: React.FC<DashboardProps> = ({
       {/* Dynamic Weather Widget */}
       <div className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden min-h-[140px] flex items-center">
         {weatherLoading ? (
-             <div className="flex items-center gap-2 w-full justify-center opacity-80">
+             <div className="flex items-center gap-3 w-full justify-center opacity-80">
                  <Loader2 className="animate-spin" size={24} />
                  <span>Recupero meteo per {activeGarden?.name}...</span>
              </div>
         ) : weatherError ? (
             <div className="relative z-10 w-full flex flex-col items-center text-center opacity-80">
-                <AlertCircle size={32} className="mb-2 text-yellow-300" />
+                <AlertCircle size={32} className="mb-2 text-yellow-full max-w-sm" />
                 <p className="font-bold text-sm sm:text-base">Posizione non disponibile</p>
                 <p className="text-xs mt-1 px-2">Imposta la posizione nelle impostazioni dell'orto per ricevere previsioni meteo.</p>
             </div>
@@ -697,19 +697,19 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <div className="relative z-10 w-full">
                         <div className="flex justify-between items-start">
                             <div>
-                                <h2 className="text-lg font-semibold opacity-90 mb-1 flex items-center gap-2">
+                                <h2 className="text-lg font-semibold opacity-90 mb-1 flex items-center gap-3">
                                     <MapPin size={16} /> Meteo: {activeGarden?.name}
                                 </h2>
                                 <div className="flex items-center gap-4 mt-2">
-                                    <WeatherIcon size={48} className="text-yellow-300 animate-pulse-slow" />
+                                    <WeatherIcon size={48} className="text-yellow-full max-w-sm animate-pulse-slow" />
                                     <div>
                                         <span className="text-5xl font-bold tracking-tighter">{weather.temp}°</span>
-                                        <span className="text-xl opacity-80">C</span>
+                                        <span className="text-lg md:text-xl opacity-80">C</span>
                                     </div>
                                 </div>
                             </div>
                             <div className="text-right mt-2">
-                                <p className="text-xl font-bold">{info.label}</p>
+                                <p className="text-lg md:text-xl font-bold">{info.label}</p>
                             </div>
                         </div>
                     </div>
@@ -754,7 +754,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       ) : dailyPlan && (
         <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-5 border-2 border-green-200 shadow-lg">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <h2 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-3">
               <CalendarCheck size={24} className="text-green-600" />
               Piano del Giorno
             </h2>
@@ -794,7 +794,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         <div className="mt-3">
                           <button
                             onClick={() => router.push(`/app/irrigation?gardenId=${activeGardenId}&wizard=design`)}
-                            className="px-3 py-2 rounded-lg bg-white text-red-700 border border-red-200 text-sm font-semibold hover:bg-red-50 transition"
+                            className="px-4 py-3 text-base rounded-lg bg-white text-red-700 border border-red-200 text-sm font-semibold hover:bg-red-50 transition"
                           >
                             Apri wizard “Progetta impianto”
                           </button>
@@ -841,8 +841,8 @@ const Dashboard: React.FC<DashboardProps> = ({
           {/* Solar Classification */}
           {dailyPlan.solarClassification && (
             <div className="mb-4">
-              <h3 className="text-sm font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">
-                <Sun size={16} className="text-yellow-500" />
+              <h3 className="text-sm font-bold text-gray-700 uppercase mb-2 flex items-center gap-3">
+                <Sun size={16} className="text-yellow-full max-w-sm" />
                 Classificazione Solare
               </h3>
               <SolarClassificationBadge classification={dailyPlan.solarClassification.classification} />
@@ -851,10 +851,10 @@ const Dashboard: React.FC<DashboardProps> = ({
               {dailyPlan.solarClassification.compatibilityAlerts.length > 0 && (
                 <div className="mt-3 space-y-2">
                   {dailyPlan.solarClassification.compatibilityAlerts.map((alert, idx) => (
-                    <div key={idx} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                      <p className="text-sm font-medium text-yellow-900">{alert.message}</p>
+                    <div key={idx} className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-3">
+                      <p className="text-sm font-medium text-yellow-full max-w-sm">{alert.message}</p>
                       {alert.action && (
-                        <p className="text-xs text-yellow-700 mt-1">{alert.action}</p>
+                        <p className="text-xs text-yellow-full max-w-sm mt-1">{alert.action}</p>
                       )}
                     </div>
                   ))}
@@ -867,9 +867,9 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <h4 className="text-xs font-semibold text-gray-600 uppercase mb-2">
                     Piante Consigliate per Tipo Orto
                   </h4>
-                  <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
                     {dailyPlan.solarClassification.optimizedSuggestions.slice(0, 3).map((suggestion, idx) => (
-                      <div key={idx} className="bg-white rounded-lg p-2 border border-gray-200 text-xs">
+                      <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200 text-xs">
                         <div className="font-medium text-gray-800">{suggestion.plantName}</div>
                         <div className="text-gray-600 mt-1">{suggestion.reason}</div>
                         <div className="text-gray-500 mt-1">
@@ -915,7 +915,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           {/* Nutrient Tasks */}
           {dailyPlan.nutrientTasks.length > 0 && (
             <div className="mb-4">
-              <h3 className="text-sm font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-gray-700 uppercase mb-2 flex items-center gap-3">
                 <FlaskConical size={14} />
                 Consigli Nutrizionali
               </h3>
@@ -937,11 +937,11 @@ const Dashboard: React.FC<DashboardProps> = ({
                             </div>
                           </div>
                           <div className="mt-2 space-y-1 text-xs">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               <span className="font-medium text-gray-700">Dosaggio:</span>
                               <span className="text-gray-900">{fertilizerRec.dosage.amount} {fertilizerRec.dosage.unit}{fertilizerRec.dosage.perSqm ? '/m²' : ''}</span>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               <span className="font-medium text-gray-700">Metodo:</span>
                               <span className="text-gray-900 capitalize">{fertilizerRec.method}</span>
                             </div>
@@ -958,7 +958,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           {/* Health Tasks */}
           {dailyPlan.healthTasks.length > 0 && (
             <div className="mb-4">
-              <h3 className="text-sm font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-gray-700 uppercase mb-2 flex items-center gap-3">
                 <Shovel size={14} />
                 Trattamenti Prevenzione
               </h3>
@@ -978,7 +978,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           {/* Irrigation Tasks */}
           {dailyPlan.irrigationTasks && dailyPlan.irrigationTasks.length > 0 && (
             <div className="mb-4">
-              <h3 className="text-sm font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-gray-700 uppercase mb-2 flex items-center gap-3">
                 <Droplets size={14} />
                 Irrigazione Zone
               </h3>
@@ -993,7 +993,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                           <p className="font-medium text-gray-800">{task.zoneName}</p>
                           <div className="mt-2 space-y-1 text-sm">
                             {showLitersOnly ? (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-3">
                                 <Droplets size={12} className="text-blue-600" />
                                 <span className="text-gray-700">
                                   <span className="font-semibold">{task.litersNeeded.toFixed(1)} L</span>
@@ -1001,7 +1001,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 </span>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-3">
                                 <Clock size={12} className="text-blue-600" />
                                 <span className="text-gray-700">
                                   <span className="font-semibold">{Math.round(task.durationMinutes)} min</span>
@@ -1010,13 +1010,13 @@ const Dashboard: React.FC<DashboardProps> = ({
                               </div>
                             )}
                             {task.weatherAdjustment && task.weatherAdjustment.action !== 'PROCEED' && (
-                              <div className="flex items-center gap-2 text-orange-700">
+                              <div className="flex items-center gap-3 text-orange-700">
                                 <AlertTriangle size={12} />
                                 <span className="text-xs">{task.weatherAdjustment.reason}</span>
                               </div>
                             )}
                             {task.fertigationInfo && task.fertigationInfo.shouldFertigate && (
-                              <div className="flex items-center gap-2 text-green-700">
+                              <div className="flex items-center gap-3 text-green-700">
                                 <FlaskConical size={12} />
                                 <span className="text-xs">
                                   Fertirrigazione: {task.fertigationInfo.totalDosage?.toFixed(1)} {task.fertigationInfo.unit} {task.fertigationInfo.productName}
@@ -1039,13 +1039,13 @@ const Dashboard: React.FC<DashboardProps> = ({
                       
                       {/* Pulsanti azione */}
                       {!showLitersOnly && (
-                        <div className="mt-3 flex gap-2">
+                        <div className="mt-3 flex gap-3">
                           <button
                             onClick={() => {
                               // TODO: Implementare timer
                               alert('Timer non ancora implementato');
                             }}
-                            className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 flex items-center justify-center gap-1"
+                            className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 flex items-center justify-center gap-3"
                           >
                             ⏱️ Avvia Timer
                           </button>
@@ -1065,7 +1065,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 }
                               }
                             }}
-                            className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 flex items-center justify-center gap-1"
+                            className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 flex items-center justify-center gap-3"
                           >
                             ✓ Segna fatto
                           </button>
@@ -1129,7 +1129,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="bg-gradient-to-br from-indigo-400 to-purple-600 rounded-2xl p-5 text-white shadow-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Moon size={32} className="text-yellow-200" />
+                <Moon size={32} className="text-yellow-full max-w-sm" />
                 <div>
                   <h3 className="text-lg font-bold">Fase Lunare</h3>
                   <p className="text-sm opacity-90">{moonName}</p>
@@ -1157,7 +1157,7 @@ const Dashboard: React.FC<DashboardProps> = ({
        * Il filtro viene inizializzato automaticamente in base al mese corrente,
        * ma l'utente può cambiarlo manualmente per pianificare attività future.
        */}
-      <div className="bg-white p-2 rounded-xl border border-gray-200 flex gap-2 shadow-sm">
+      <div className="bg-white p-3 rounded-xl border border-gray-200 flex gap-2 shadow-sm">
           <button onClick={() => setSeasonFilter('Summer')} className={`flex-1 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${seasonFilter === 'Summer' ? 'bg-yellow-100 text-yellow-800 shadow-sm' : 'text-gray-400 hover:bg-gray-50'}`}>
               <Sun size={18}/> Orto Estivo
           </button>
@@ -1266,7 +1266,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       {/* LIFECYCLE COACH SECTION */}
       {activeGarden && !showVacationMode && (
         <div>
-          <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-3">
             <Sparkles size={20} className="text-purple-600" />
             Coach delle Piante
           </h3>
@@ -1308,17 +1308,17 @@ const Dashboard: React.FC<DashboardProps> = ({
 
                     {/* Bottoni Sì/No per CHECK */}
                     {advice.type === 'CHECK' && advice.actionYes && advice.actionNo && (
-                      <div className="flex gap-2 mt-4">
+                      <div className="flex gap-3 mt-4">
                         <button
                           onClick={() => handleLifecycleResponse(task, true, advice)}
-                          className="flex-1 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 flex items-center justify-center gap-2"
+                          className="flex-1 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 flex items-center justify-center gap-3"
                         >
                           <CheckCircle size={18} />
                           Sì
                         </button>
                         <button
                           onClick={() => handleLifecycleResponse(task, false, advice)}
-                          className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 flex items-center justify-center gap-2"
+                          className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 flex items-center justify-center gap-3"
                         >
                           <XCircle size={18} />
                           No
@@ -1332,7 +1332,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         <p className="text-xs font-bold uppercase opacity-75 mb-2">Cosa fare:</p>
                         <ul className="space-y-1">
                           {advice.subTasks.map((subTask, idx) => (
-                            <li key={idx} className="text-sm flex items-start gap-2">
+                            <li key={idx} className="text-sm flex items-start gap-3">
                               <span className="text-green-600 mt-1">•</span>
                               <span>{subTask}</span>
                             </li>
@@ -1369,7 +1369,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       {/* Prossime Successioni */}
       {successionOpportunities.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-3">
             <Sparkles size={20} className="text-purple-600" />
             Prossime Successioni
           </h3>
@@ -1393,13 +1393,13 @@ const Dashboard: React.FC<DashboardProps> = ({
                   </div>
                   
                   <div className="bg-white/60 rounded-xl p-3 mb-3">
-                    <div className="flex items-center gap-2 text-sm">
+                    <div className="flex items-center gap-3 text-sm">
                       <CalendarCheck size={16} className="text-purple-600" />
                       <span className="font-medium text-gray-700">
                         Semina: <span className="font-bold text-purple-700">{startSowingStr}</span>
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm mt-2">
+                    <div className="flex items-center gap-3 text-sm mt-2">
                       <CheckCircle size={16} className="text-green-600" />
                       <span className="font-medium text-gray-700">
                         Trapianto: <span className="font-bold text-green-700">{transplantStr}</span>
@@ -1413,7 +1413,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       // This would require passing a callback or using navigation
                       console.log("Pianifica successione:", suggestion.plant.commonName);
                     }}
-                    className="w-full py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 flex items-center justify-center gap-2 text-sm"
+                    className="w-full py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 flex items-center justify-center gap-3 text-sm"
                   >
                     <Plus size={16} />
                     Pianifica Successione
@@ -1425,13 +1425,13 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-green-100 flex flex-col justify-between h-32 cursor-pointer hover:bg-green-50 hover:shadow-md transition-all duration-200 transform hover:scale-[1.02]" onClick={onNavigateToJournal}>
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-2">
                 <CalendarCheck size={20} />
             </div>
             <div>
-                <span className="text-2xl font-bold text-gray-800">{pendingTasks}</span>
+                <span className="text-xl md:text-2xl font-bold text-gray-800">{pendingTasks}</span>
                 <p className="text-xs text-gray-500 font-medium uppercase mt-1">Attività {seasonFilter === 'Summer' ? 'Estive' : 'Invernali'}</p>
             </div>
         </div>
@@ -1441,7 +1441,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <AlertTriangle size={20} />
             </div>
             <div>
-                <span className="text-2xl font-bold text-gray-800">{upcomingReminders.length}</span>
+                <span className="text-xl md:text-2xl font-bold text-gray-800">{upcomingReminders.length}</span>
                 <p className="text-xs text-gray-500 font-medium uppercase mt-1">Promemoria in scadenza</p>
             </div>
         </div>

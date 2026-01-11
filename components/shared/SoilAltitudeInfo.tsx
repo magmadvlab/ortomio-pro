@@ -60,13 +60,13 @@ const SoilAltitudeInfo: React.FC<SoilAltitudeInfoProps> = ({
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
-      <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+      <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-3">
         <Info size={16} />
         Informazioni Terreno e Altitudine
       </h3>
 
       {/* Tipo Terreno */}
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-3">
         <Layers size={16} className="text-gray-500 mt-0.5" />
         <div className="flex-1">
           <div className="text-sm font-medium text-gray-700">
@@ -82,7 +82,7 @@ const SoilAltitudeInfo: React.FC<SoilAltitudeInfoProps> = ({
 
       {/* Altitudine */}
       {altitudeMeters > 0 && (
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-3">
           <Mountain size={16} className="text-gray-500 mt-0.5" />
           <div className="flex-1">
             <div className="text-sm font-medium text-gray-700">
@@ -100,11 +100,11 @@ const SoilAltitudeInfo: React.FC<SoilAltitudeInfoProps> = ({
       {/* Compatibilità Pianta */}
       {plantName && soilCompatibility && (
         <div className="mt-3 pt-3 border-t border-gray-200">
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-3">
             {soilCompatibility.compatible ? (
               <CheckCircle size={16} className="text-green-600 mt-0.5" />
             ) : (
-              <AlertTriangle size={16} className="text-yellow-600 mt-0.5" />
+              <AlertTriangle size={16} className="text-yellow-full max-w-sm mt-0.5" />
             )}
             <div className="flex-1">
               <div className={`text-sm font-medium ${

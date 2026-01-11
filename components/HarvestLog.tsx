@@ -255,7 +255,7 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-6">
       <header className="flex justify-between items-center">
         <div>
-            <h1 className="text-2xl font-bold text-orange-700 flex items-center gap-2">
+            <h1 className="text-xl md:text-2xl font-bold text-orange-700 flex items-center gap-3">
                 <ShoppingBasket size={28}/> Il Mio Raccolto
             </h1>
             <p className="text-orange-600 text-sm">Statistiche e registro produttività.</p>
@@ -267,14 +267,14 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
           <div className="flex justify-between items-start mb-4">
               <div>
                   <p className="opacity-90 text-sm font-medium">Resa Totale (Stimata)</p>
-                  <p className="text-4xl font-bold">{totalYieldAll.toFixed(1)} <span className="text-xl">kg</span></p>
+                  <p className="text-4xl font-bold">{totalYieldAll.toFixed(1)} <span className="text-lg md:text-xl">kg</span></p>
               </div>
-              <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+              <div className="bg-white/20 p-3 rounded-lg backdrop-blur-sm">
                   <BarChart3 size={24} />
               </div>
           </div>
           
-          <div className="flex bg-black/10 p-1 rounded-xl">
+          <div className="flex bg-black/10 p-3 rounded-xl">
               <button 
                 onClick={() => setFilterSeason('All')}
                 className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${filterSeason === 'All' ? 'bg-white text-orange-600 shadow-sm' : 'text-orange-100 hover:bg-white/10'}`}
@@ -298,7 +298,7 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
 
       {/* Active Crop Quick Harvest */}
       <div>
-          <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+          <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-3">
               <PlusCircle size={18} className="text-green-600"/> Aggiungi Raccolto
           </h2>
           {activeTasks.length === 0 ? (
@@ -320,7 +320,7 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
                           } as GardenTask;
                           setSelectedTaskForHarvest(manualTask);
                       }}
-                      className="w-full py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                      className="w-full py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-3"
                   >
                       <PlusCircle size={20} />
                       Aggiungi Raccolto Manuale
@@ -337,12 +337,12 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
                           >
                               <div className="flex justify-between items-start mb-2">
                                   <div className="font-bold text-gray-800 truncate pr-2">{task.plantName}</div>
-                                  <div className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                  <div className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded flex items-center gap-3">
                                       {getLocationIcon(task.locationType)}
                                   </div>
                               </div>
                               <p className="text-xs text-gray-500 truncate">{task.variety}</p>
-                              <div className="mt-2 text-xs font-medium text-green-600 flex items-center gap-1">
+                              <div className="mt-2 text-xs font-medium text-green-600 flex items-center gap-3">
                                   <Leaf size={12}/> {task.currentQuantity} piante
                               </div>
                           </button>
@@ -364,7 +364,7 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
                           } as GardenTask;
                           setSelectedTaskForHarvest(manualTask);
                       }}
-                      className="w-full py-3 bg-green-50 text-green-700 rounded-xl font-semibold hover:bg-green-100 transition-colors flex items-center justify-center gap-2 border border-green-200"
+                      className="w-full py-3 bg-green-50 text-green-700 rounded-xl font-semibold hover:bg-green-100 transition-colors flex items-center justify-center gap-3 border border-green-200"
                   >
                       <PlusCircle size={18} />
                       Aggiungi Raccolto Manuale
@@ -379,7 +379,7 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
                <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95">
                   <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-xl font-bold text-gray-800">
+                        <h3 className="text-lg md:text-xl font-bold text-gray-800">
                           {selectedTaskForHarvest.id === 'manual-harvest' 
                             ? 'Aggiungi Raccolto Manuale' 
                             : selectedTaskForHarvest.plantName}
@@ -416,24 +416,24 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
                                 value={harvestPlantName} 
                                 onChange={e => setHarvestPlantName(e.target.value)}
                                 placeholder="Es: Pomodoro, Zucchina..."
-                                className="w-full p-2 border border-gray-300 rounded-lg outline-none focus:border-orange-500"
+                                className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-orange-500"
                               />
                           </div>
                       )}
-                      <div className="flex gap-2">
+                      <div className="flex gap-3">
                           <div className="flex-1">
                               <label className="text-xs font-bold text-gray-500 uppercase">Quantità</label>
                               <input 
                                 required type="number" step="0.1" 
                                 value={harvestQty} onChange={e => setHarvestQty(e.target.value)}
-                                className="w-full p-2 border border-gray-300 rounded-lg outline-none focus:border-orange-500"
+                                className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-orange-500"
                               />
                           </div>
                           <div>
                               <label className="text-xs font-bold text-gray-500 uppercase">Unità</label>
                               <select 
                                 value={harvestUnit} onChange={e => setHarvestUnit(e.target.value as any)}
-                                className="w-full p-2 border border-gray-300 rounded-lg bg-white outline-none"
+                                className="w-full p-3 border border-gray-300 rounded-lg bg-white outline-none"
                               >
                                   <option value="kg">kg</option>
                                   <option value="g">g</option>
@@ -443,7 +443,7 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
                       </div>
                       <div>
                           <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Qualità</label>
-                          <div className="flex gap-2">
+                          <div className="flex gap-3">
                               {[1,2,3,4,5].map(s => (
                                   <button key={s} type="button" onClick={() => setHarvestRating(s)} className={`p-1 ${harvestRating >= s ? 'text-yellow-400' : 'text-gray-200'}`}>
                                       <Star fill="currentColor" size={24}/>
@@ -453,12 +453,12 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
                       </div>
                       <label className="block w-full p-3 border-2 border-dashed border-gray-300 rounded-xl text-center cursor-pointer hover:bg-gray-50">
                           <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} />
-                          {harvestPhoto ? <span className="text-green-600 font-bold text-sm">Foto caricata!</span> : <span className="text-gray-400 text-sm flex items-center justify-center gap-1"><Camera size={16}/> Aggiungi Foto</span>}
+                          {harvestPhoto ? <span className="text-green-600 font-bold text-sm">Foto caricata!</span> : <span className="text-gray-400 text-sm flex items-center justify-center gap-3"><Camera size={16}/> Aggiungi Foto</span>}
                       </label>
                       <button 
                         type="submit" 
                         disabled={loadingRecipes}
-                        className="w-full py-3 bg-orange-600 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="w-full py-3 bg-orange-600 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                       >
                         {loadingRecipes ? (
                           <>Caricamento ricette...</>
@@ -477,7 +477,7 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
               <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in zoom-in-95">
                   <div className="flex justify-between items-start mb-4">
                       <div>
-                          <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                          <h3 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-3">
                               <ChefHat size={24} className="text-orange-600" />
                               Ricette per {selectedTaskForHarvest?.plantName}
                           </h3>
@@ -517,7 +517,7 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
 
       {/* Crop Statistics Cards */}
       <div>
-          <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+          <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-3">
               <BarChart3 size={18} className="text-gray-600"/> Dettaglio Colture
           </h2>
           <div className="space-y-3">
@@ -544,21 +544,21 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
       {/* Economic Analysis */}
       {totalYieldAll > 0 && (
         <div className="bg-gradient-to-br from-green-50 to-emerald-100 p-5 rounded-2xl border-2 border-green-200 shadow-sm">
-          <h3 className="font-bold text-lg text-green-800 mb-4 flex items-center gap-2">
+          <h3 className="font-bold text-lg text-green-800 mb-4 flex items-center gap-3">
             <BarChart3 size={20} />
             Analisi Economica {filterSeason !== 'All' && `(${filterSeason})`}
           </h3>
           
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div className="bg-white p-4 rounded-xl shadow-sm">
               <p className="text-xs text-gray-500 uppercase mb-1 font-bold">Valore Generato</p>
-              <p className="text-2xl font-bold text-green-600">
+              <p className="text-xl md:text-2xl font-bold text-green-600">
                 €{economicData.totalValue.toFixed(2)}
               </p>
             </div>
             <div className="bg-white p-4 rounded-xl shadow-sm">
               <p className="text-xs text-gray-500 uppercase mb-1 font-bold">Costi Stimati</p>
-              <p className="text-2xl font-bold text-orange-600">
+              <p className="text-xl md:text-2xl font-bold text-orange-600">
                 €{economicData.estimatedCosts.toFixed(2)}
               </p>
             </div>

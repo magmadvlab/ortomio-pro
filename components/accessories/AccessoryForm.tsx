@@ -100,7 +100,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
           required
           placeholder="es. Paletti per pomodori"
         />
@@ -119,7 +119,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
             setNettingType('');
             setWireType('');
           }}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
           required
         >
           <option value="Support">Supporto</option>
@@ -137,7 +137,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
           <select
             value={supportType}
             onChange={(e) => setSupportType(e.target.value as SupportType)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
           >
             <option value="">Seleziona...</option>
             <option value="Stake">Paletto</option>
@@ -157,7 +157,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
           <select
             value={nettingType}
             onChange={(e) => setNettingType(e.target.value as NettingType)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
           >
             <option value="">Seleziona...</option>
             <option value="Shade">Ombreggiante</option>
@@ -176,7 +176,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
           <select
             value={wireType}
             onChange={(e) => setWireType(e.target.value as WireType)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
           >
             <option value="">Seleziona...</option>
             <option value="Steel">Acciaio</option>
@@ -192,7 +192,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
         <select
           value={material}
           onChange={(e) => setMaterial(e.target.value as AccessoryMaterial)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
           required
         >
           <option value="Wood">Legno</option>
@@ -206,7 +206,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
         </select>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Quantità
@@ -215,7 +215,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
             type="number"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
             min="1"
           />
         </div>
@@ -228,7 +228,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
               type="number"
               value={meshSize}
               onChange={(e) => setMeshSize(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="0.1"
               step="0.1"
             />
@@ -236,7 +236,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {(category === 'Support' || category === 'Structure') && (
           <>
             <div>
@@ -247,7 +247,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
                 type="number"
                 value={length}
                 onChange={(e) => setLength(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="0"
               />
             </div>
@@ -259,7 +259,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
                 type="number"
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="0"
               />
             </div>
@@ -271,7 +271,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
                 type="number"
                 value={diameter}
                 onChange={(e) => setDiameter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="0"
                 step="0.1"
               />
@@ -288,7 +288,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
                 type="number"
                 value={width}
                 onChange={(e) => setWidth(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="0"
               />
             </div>
@@ -300,7 +300,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
                 type="number"
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="0"
               />
             </div>
@@ -315,7 +315,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
               type="number"
               value={length}
               onChange={(e) => setLength(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               min="0"
             />
           </div>
@@ -330,12 +330,12 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
           type="text"
           value={usedFor}
           onChange={(e) => setUsedFor(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
           placeholder="es. Pomodori, Peperoni"
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Data Installazione
@@ -344,7 +344,7 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
             type="date"
             value={installationDate}
             onChange={(e) => setInstallationDate(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
           />
         </div>
         <div>
@@ -355,13 +355,13 @@ export const AccessoryForm: React.FC<AccessoryFormProps> = ({
             type="number"
             value={expectedLifespan}
             onChange={(e) => setExpectedLifespan(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
             min="1"
           />
         </div>
       </div>
 
-      <div className="flex gap-2 justify-end pt-4">
+      <div className="flex gap-3 justify-end pt-4">
         {onCancel && (
           <button
             type="button"

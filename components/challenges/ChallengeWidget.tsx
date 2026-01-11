@@ -70,7 +70,7 @@ const ChallengeWidget: React.FC<ChallengeWidgetProps> = ({
         </p>
         <Link
           href="/app/progress?tab=achievements"
-          className="mt-3 inline-block px-4 py-2 text-sm text-gray-700 hover:text-gray-900 underline flex items-center justify-center gap-1"
+          className="mt-3 inline-block px-4 py-2 text-sm text-gray-700 hover:text-gray-900 underline flex items-center justify-center gap-3"
         >
           Vedi tutte le challenge
           <ArrowRight size={14} />
@@ -181,11 +181,11 @@ const ChallengeWidget: React.FC<ChallengeWidgetProps> = ({
           {/* Header */}
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-purple-600 text-white rounded-full w-12 h-12 flex items-center justify-center text-2xl shrink-0">
+              <div className="bg-purple-600 text-white rounded-full w-12 h-12 flex items-center justify-center text-xl md:text-2xl shrink-0">
                 🎯
               </div>
               <div>
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-3 mb-1">
                   <span className={`px-2 py-1 rounded text-xs font-semibold ${
                     challenge.tipo === 'mondiale' ? 'bg-blue-100 text-blue-800' :
                     challenge.tipo === 'nazionale' ? 'bg-green-100 text-green-800' :
@@ -211,8 +211,8 @@ const ChallengeWidget: React.FC<ChallengeWidgetProps> = ({
               </div>
             </div>
             
-            <div className="flex flex-col items-end gap-1">
-              <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+            <div className="flex flex-col items-end gap-3">
+              <span className="bg-yellow-full max-w-sm text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-3">
                 <Trophy size={14} />
                 +{challenge.challenge.punti} punti
               </span>
@@ -224,7 +224,7 @@ const ChallengeWidget: React.FC<ChallengeWidgetProps> = ({
           
           {/* Titolo + Descrizione Challenge */}
           <div className="bg-white/70 rounded-lg p-4 border border-purple-200">
-            <h4 className="font-bold text-xl text-purple-900 mb-2">
+            <h4 className="font-bold text-lg md:text-xl text-purple-900 mb-2">
               {challenge.challenge.titolo}
             </h4>
             
@@ -272,7 +272,7 @@ const ChallengeWidget: React.FC<ChallengeWidgetProps> = ({
           
           {/* AZIONI CHECKLIST */}
           <div className="space-y-3">
-            <p className="font-semibold text-purple-900 flex items-center gap-2">
+            <p className="font-semibold text-purple-900 flex items-center gap-3">
               <CheckSquare size={18} />
               Completa queste azioni:
             </p>
@@ -329,7 +329,7 @@ const ChallengeWidget: React.FC<ChallengeWidgetProps> = ({
             <button
               disabled={!isAllCompleted || isSubmitting}
               onClick={handleComplete}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-lg py-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-lg py-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold flex items-center justify-center gap-3"
             >
               {isSubmitting ? (
                 <>
@@ -350,8 +350,8 @@ const ChallengeWidget: React.FC<ChallengeWidgetProps> = ({
           {/* Completed State */}
           {isCompleted && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">{challenge.challenge.badge.emoji}</span>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-xl md:text-2xl">{challenge.challenge.badge.emoji}</span>
                 <div>
                   <p className="font-semibold text-green-900">
                     Badge guadagnato: {challenge.challenge.badge.nome}
@@ -363,7 +363,7 @@ const ChallengeWidget: React.FC<ChallengeWidgetProps> = ({
               </div>
               <button
                 onClick={handleShare}
-                className="w-full mt-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                className="w-full mt-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-3"
               >
                 <Share2 size={16} />
                 Condividi su Social
@@ -373,7 +373,7 @@ const ChallengeWidget: React.FC<ChallengeWidgetProps> = ({
           
           {/* Hashtags */}
           {challenge.hashtag && challenge.hashtag.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-2">
+            <div className="flex flex-wrap gap-3 pt-2">
               {challenge.hashtag.map(tag => (
                 <span key={tag} className="px-2 py-1 bg-white/70 border border-purple-200 rounded text-xs text-purple-600">
                   #{tag}
@@ -387,17 +387,17 @@ const ChallengeWidget: React.FC<ChallengeWidgetProps> = ({
       {/* Celebration Modal (semplificato) */}
       {showCelebration && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowCelebration(false)}>
-          <div className="bg-white rounded-lg p-8 max-w-md mx-4 text-center" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-lg p-8 max-w-[90vw] md:max-w-md max-h-[90vh] overflow-y-auto mx-4 text-center" onClick={(e) => e.stopPropagation()}>
             <div className="text-6xl mb-4 animate-bounce">
               {challenge.challenge.badge.emoji}
             </div>
-            <h3 className="text-2xl font-bold text-purple-900 mb-2">
+            <h3 className="text-xl md:text-2xl font-bold text-purple-900 mb-2">
               Challenge Completata!
             </h3>
             <p className="text-lg text-purple-700 mb-4">
               Hai guadagnato il badge <strong>{challenge.challenge.badge.nome}</strong>
             </p>
-            <p className="text-2xl font-bold text-yellow-600 mb-4">
+            <p className="text-xl md:text-2xl font-bold text-yellow-full max-w-sm mb-4">
               +{challenge.challenge.punti + (photo ? 50 : 0)} punti!
             </p>
             <button
@@ -443,8 +443,8 @@ function ActionChecklistItem({
           className="mt-1 w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
         />
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xl">{azione.emoji}</span>
+          <div className="flex items-center gap-3 mb-1">
+            <span className="text-lg md:text-xl">{azione.emoji}</span>
             <p className={`font-medium ${completed ? 'text-green-800 line-through' : 'text-purple-900'}`}>
               {azione.azione}
             </p>
@@ -497,7 +497,7 @@ function PhotoUploadBox({
 }) {
   return (
     <div className="bg-white/70 rounded-lg p-4 border border-purple-200">
-      <p className="font-semibold text-purple-900 text-sm mb-2 flex items-center gap-2">
+      <p className="font-semibold text-purple-900 text-sm mb-2 flex items-center gap-3">
         <Camera size={18} />
         <span>Foto (opzionale, +50 punti bonus)</span>
       </p>

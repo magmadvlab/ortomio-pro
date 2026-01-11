@@ -42,8 +42,8 @@ const FertilizerRecommendationView: React.FC<FertilizerRecommendationProps> = ({
 
   if (!recommendation) {
     return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <p className="text-sm text-yellow-800">Nessun prodotto disponibile per questo fabbisogno</p>
+      <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-4">
+        <p className="text-sm text-yellow-full max-w-sm">Nessun prodotto disponibile per questo fabbisogno</p>
       </div>
     );
   }
@@ -75,7 +75,7 @@ const FertilizerRecommendationView: React.FC<FertilizerRecommendationProps> = ({
 
       {/* Prodotto Consigliato */}
       <div className="bg-gray-50 rounded-lg p-3">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-3 mb-2">
           <CheckCircle size={16} className="text-green-600" />
           <span className="font-medium text-gray-800">{dosage.product.name}</span>
         </div>
@@ -83,7 +83,7 @@ const FertilizerRecommendationView: React.FC<FertilizerRecommendationProps> = ({
       </div>
 
       {/* Dosaggio */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <div className="text-xs text-gray-600">Dosaggio</div>
           <div className="font-semibold text-gray-800">
@@ -104,7 +104,7 @@ const FertilizerRecommendationView: React.FC<FertilizerRecommendationProps> = ({
       </div>
 
       {/* Timing */}
-      <div className="flex items-center gap-2 text-sm text-gray-600">
+      <div className="flex items-center gap-3 text-sm text-gray-600">
         <Calendar size={14} />
         <span>
           Applicare: {dosage.timing.toLocaleDateString('it-IT', { month: 'long', day: 'numeric' })}
@@ -113,7 +113,7 @@ const FertilizerRecommendationView: React.FC<FertilizerRecommendationProps> = ({
 
       {/* Costo */}
       {dosage.estimatedCost && (
-        <div className="flex items-center gap-2 text-sm text-gray-600">
+        <div className="flex items-center gap-3 text-sm text-gray-600">
           <DollarSign size={14} />
           <span>Costo stimato: €{dosage.estimatedCost.toFixed(2)}</span>
         </div>
@@ -121,12 +121,12 @@ const FertilizerRecommendationView: React.FC<FertilizerRecommendationProps> = ({
 
       {/* Warnings */}
       {dosage.warnings && dosage.warnings.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-          <div className="flex items-start gap-2">
-            <AlertTriangle size={16} className="text-yellow-600 mt-0.5" />
+        <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-3">
+          <div className="flex items-start gap-3">
+            <AlertTriangle size={16} className="text-yellow-full max-w-sm mt-0.5" />
             <div className="flex-1">
-              <div className="text-xs font-medium text-yellow-800 mb-1">Avvertenze</div>
-              <ul className="text-xs text-yellow-700 space-y-1">
+              <div className="text-xs font-medium text-yellow-full max-w-sm mb-1">Avvertenze</div>
+              <ul className="text-xs text-yellow-full max-w-sm space-y-1">
                 {dosage.warnings.map((warning, idx) => (
                   <li key={idx}>• {warning}</li>
                 ))}

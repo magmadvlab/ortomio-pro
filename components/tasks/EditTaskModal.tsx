@@ -100,7 +100,7 @@ export function EditTaskModal({ task, isOpen, onClose, onTaskUpdated }: EditTask
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-3">
               <Edit3 className="text-blue-600" size={24} />
               Modifica Task
             </h2>
@@ -115,7 +115,7 @@ export function EditTaskModal({ task, isOpen, onClose, onTaskUpdated }: EditTask
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Informazioni Base */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-4 flex items-center gap-2">
+              <h3 className="font-semibold text-blue-900 mb-4 flex items-center gap-3">
                 <FileText size={16} />
                 Informazioni Base
               </h3>
@@ -129,7 +129,7 @@ export function EditTaskModal({ task, isOpen, onClose, onTaskUpdated }: EditTask
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -141,12 +141,12 @@ export function EditTaskModal({ task, isOpen, onClose, onTaskUpdated }: EditTask
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows={3}
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Data programmata
@@ -155,7 +155,7 @@ export function EditTaskModal({ task, isOpen, onClose, onTaskUpdated }: EditTask
                       type="date"
                       value={formData.scheduledDate}
                       onChange={(e) => setFormData(prev => ({ ...prev, scheduledDate: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
@@ -166,7 +166,7 @@ export function EditTaskModal({ task, isOpen, onClose, onTaskUpdated }: EditTask
                     <select
                       value={formData.priority}
                       onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value as any }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="Low">Bassa</option>
                       <option value="Medium">Media</option>
@@ -183,7 +183,7 @@ export function EditTaskModal({ task, isOpen, onClose, onTaskUpdated }: EditTask
                 <h3 className="font-semibold text-green-900 mb-4">Informazioni Pianta</h3>
                 
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Nome pianta
@@ -192,7 +192,7 @@ export function EditTaskModal({ task, isOpen, onClose, onTaskUpdated }: EditTask
                         type="text"
                         value={formData.plantName}
                         onChange={(e) => setFormData(prev => ({ ...prev, plantName: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                         placeholder="es. Pomodoro"
                       />
                     </div>
@@ -205,7 +205,7 @@ export function EditTaskModal({ task, isOpen, onClose, onTaskUpdated }: EditTask
                         type="text"
                         value={formData.variety}
                         onChange={(e) => setFormData(prev => ({ ...prev, variety: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                         placeholder="es. San Marzano"
                       />
                     </div>
@@ -220,7 +220,7 @@ export function EditTaskModal({ task, isOpen, onClose, onTaskUpdated }: EditTask
                       min="1"
                       value={formData.quantity}
                       onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
                   </div>
                 </div>
@@ -229,7 +229,7 @@ export function EditTaskModal({ task, isOpen, onClose, onTaskUpdated }: EditTask
 
             {/* Posizione */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-3">
                 <MapPin size={16} />
                 Posizione
               </h3>
@@ -243,12 +243,12 @@ export function EditTaskModal({ task, isOpen, onClose, onTaskUpdated }: EditTask
                     type="text"
                     value={formData.locationType}
                     onChange={(e) => setFormData(prev => ({ ...prev, locationType: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
                     placeholder="es. Aiuola, Serra, Vaso"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Nome aiuola
@@ -257,7 +257,7 @@ export function EditTaskModal({ task, isOpen, onClose, onTaskUpdated }: EditTask
                       type="text"
                       value={formData.bedName}
                       onChange={(e) => setFormData(prev => ({ ...prev, bedName: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
                       placeholder="es. Aiuola Nord"
                     />
                   </div>
@@ -270,7 +270,7 @@ export function EditTaskModal({ task, isOpen, onClose, onTaskUpdated }: EditTask
                       type="text"
                       value={formData.rowName}
                       onChange={(e) => setFormData(prev => ({ ...prev, rowName: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
                       placeholder="es. Filare 1"
                     />
                   </div>
@@ -286,7 +286,7 @@ export function EditTaskModal({ task, isOpen, onClose, onTaskUpdated }: EditTask
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows={4}
                 placeholder="Note, osservazioni, promemoria..."
               />

@@ -182,7 +182,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
           <div className="flex items-center gap-3">
             <Target className="text-green-600" size={24} />
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Ottimizzazione Costi</h2>
+              <h2 className="text-lg md:text-xl font-bold text-gray-900">Ottimizzazione Costi</h2>
               <p className="text-sm text-gray-600">{prescriptionMap.name}</p>
             </div>
           </div>
@@ -203,7 +203,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                 <div className="space-y-4">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <DollarSign className="text-green-600" size={16} />
                         <span className="text-sm font-medium text-gray-700">Minimizza Costi</span>
                       </div>
@@ -222,7 +222,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                   
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <TrendingUp className="text-blue-600" size={16} />
                         <span className="text-sm font-medium text-gray-700">Massimizza Resa</span>
                       </div>
@@ -241,7 +241,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                   
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <Leaf className="text-green-600" size={16} />
                         <span className="text-sm font-medium text-gray-700">Minimizza Impatto</span>
                       </div>
@@ -260,7 +260,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                   
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <Zap className="text-orange-600" size={16} />
                         <span className="text-sm font-medium text-gray-700">Massimizza Efficienza</span>
                       </div>
@@ -303,7 +303,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                         maxBudget: e.target.value ? parseFloat(e.target.value) : undefined 
                       }))}
                       placeholder="Nessun limite"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     />
                   </div>
                   
@@ -320,7 +320,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                         minYieldTarget: e.target.value ? parseFloat(e.target.value) : undefined 
                       }))}
                       placeholder="Nessun limite"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     />
                   </div>
                   
@@ -336,7 +336,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                         maxEnvironmentalImpact: e.target.value ? parseFloat(e.target.value) : undefined 
                       }))}
                       placeholder="Nessun limite"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     />
                   </div>
                 </div>
@@ -375,7 +375,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                 <button
                   onClick={handleStartOptimization}
                   disabled={optimizing}
-                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-3"
                 >
                   {optimizing ? (
                     <>
@@ -393,7 +393,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                 <button
                   onClick={handleRunFullOptimization}
                   disabled={optimizing}
-                  className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-3"
                 >
                   <Target size={16} />
                   Ottimizzazione Completa
@@ -408,7 +408,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
             {realTimeStatus && (
               <div className="p-4 bg-blue-50 border-b border-blue-200">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                     <span className="font-medium text-blue-900">Ottimizzazione in corso</span>
                   </div>
@@ -424,7 +424,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                   ></div>
                 </div>
                 
-                <div className="grid grid-cols-4 gap-4 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <div className="text-blue-600">Costo</div>
                     <div className="font-bold text-blue-900">€{realTimeStatus.currentBestSolution.cost}</div>
@@ -479,7 +479,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                 {activeTab === 'results' && (
                   <div className="space-y-6">
                     {/* Comparison Summary */}
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <h4 className="font-medium text-gray-900 mb-3">Configurazione Originale</h4>
                         <div className="space-y-2 text-sm">
@@ -528,27 +528,27 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                     {/* Improvements */}
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <h4 className="font-medium text-blue-900 mb-3">Miglioramenti Ottenuti</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-blue-700">
+                          <div className="text-xl md:text-2xl font-bold text-blue-700">
                             {optimizationResult.improvements.costReduction >= 0 ? '-' : '+'}{Math.abs(optimizationResult.improvements.costReduction).toFixed(1)}%
                           </div>
                           <div className="text-sm text-blue-600">Riduzione Costi</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-green-700">
+                          <div className="text-xl md:text-2xl font-bold text-green-700">
                             +{optimizationResult.improvements.yieldIncrease.toFixed(1)}%
                           </div>
                           <div className="text-sm text-green-600">Aumento Resa</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-purple-700">
+                          <div className="text-xl md:text-2xl font-bold text-purple-700">
                             +{optimizationResult.improvements.environmentalImprovement.toFixed(1)}%
                           </div>
                           <div className="text-sm text-purple-600">Miglioramento Ambientale</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-orange-700">
+                          <div className="text-xl md:text-2xl font-bold text-orange-700">
                             {optimizationResult.improvements.roi.toFixed(0)}%
                           </div>
                           <div className="text-sm text-orange-600">ROI</div>
@@ -564,7 +564,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                           <div key={index} className="border border-gray-200 rounded-lg p-3">
                             <div className="flex items-center justify-between mb-2">
                               <span className="font-medium text-gray-900">Zona {zone.zoneId}</span>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-3">
                                 <span className="text-sm text-gray-600">
                                   {zone.originalRate} → {zone.optimizedRate.toFixed(1)}
                                 </span>
@@ -575,7 +575,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                               </div>
                             </div>
                             <p className="text-sm text-gray-600 mb-2">{zone.rationale}</p>
-                            <div className="grid grid-cols-3 gap-2 text-xs">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                               <div>
                                 <span className="text-gray-500">Costo:</span>
                                 <span className={`ml-1 font-medium ${
@@ -613,21 +613,21 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                     <h3 className="text-lg font-semibold text-gray-900">Piano di Implementazione</h3>
                     
                     {/* Implementation Summary */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="bg-blue-50 p-4 rounded-lg text-center">
-                        <div className="text-2xl font-bold text-blue-700">
+                        <div className="text-xl md:text-2xl font-bold text-blue-700">
                           €{optimizationResult.implementationPlan.totalImplementationCost}
                         </div>
                         <div className="text-sm text-blue-600">Costo Implementazione</div>
                       </div>
                       <div className="bg-green-50 p-4 rounded-lg text-center">
-                        <div className="text-2xl font-bold text-green-700">
+                        <div className="text-xl md:text-2xl font-bold text-green-700">
                           {optimizationResult.implementationPlan.paybackPeriod}
                         </div>
                         <div className="text-sm text-green-600">Mesi Payback</div>
                       </div>
                       <div className="bg-purple-50 p-4 rounded-lg text-center">
-                        <div className="text-2xl font-bold text-purple-700">
+                        <div className="text-xl md:text-2xl font-bold text-purple-700">
                           {optimizationResult.implementationPlan.phases.length}
                         </div>
                         <div className="text-sm text-purple-600">Fasi</div>
@@ -667,14 +667,14 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                     {/* Risk Assessment */}
                     {optimizationResult.implementationPlan.riskAssessment.length > 0 && (
                       <div className="bg-yellow-50 p-4 rounded-lg">
-                        <div className="flex items-center gap-2 mb-3">
-                          <AlertTriangle className="text-yellow-600" size={20} />
-                          <h4 className="font-medium text-yellow-900">Valutazione Rischi</h4>
+                        <div className="flex items-center gap-3 mb-3">
+                          <AlertTriangle className="text-yellow-full max-w-sm" size={20} />
+                          <h4 className="font-medium text-yellow-full max-w-sm">Valutazione Rischi</h4>
                         </div>
-                        <ul className="text-sm text-yellow-700 space-y-1">
+                        <ul className="text-sm text-yellow-full max-w-sm space-y-1">
                           {optimizationResult.implementationPlan.riskAssessment.map((risk, index) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <span className="text-yellow-500 mt-1">⚠</span>
+                            <li key={index} className="flex items-start gap-3">
+                              <span className="text-yellow-full max-w-sm mt-1">⚠</span>
                               {risk}
                             </li>
                           ))}
@@ -700,9 +700,9 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                             </span>
                           </div>
                           
-                          <div className="grid grid-cols-5 gap-2 text-xs">
+                          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs">
                             {analysis.scenarios.map((scenario, idx) => (
-                              <div key={idx} className="text-center p-2 bg-gray-50 rounded">
+                              <div key={idx} className="text-center p-3 bg-gray-50 rounded">
                                 <div className="font-medium text-gray-900">
                                   {scenario.change >= 0 ? '+' : ''}{scenario.change}%
                                 </div>
@@ -728,7 +728,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                       // TODO: Implement export functionality
                       alert('Export ottimizzazione - funzionalità in sviluppo');
                     }}
-                    className="bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                    className="bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-3"
                   >
                     <Download size={16} />
                     Esporta Risultati

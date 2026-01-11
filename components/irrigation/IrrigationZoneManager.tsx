@@ -84,13 +84,13 @@ export const IrrigationZoneManager: React.FC<IrrigationZoneManagerProps> = ({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Droplets size={24} className="text-blue-600" />
-          <h2 className="text-2xl font-bold text-gray-800">Gestione Zone Irrigue</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800">Gestione Zone Irrigue</h2>
         </div>
         <button
           onClick={() => setShowWizard(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex items-center gap-2"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex items-center gap-3"
         >
           <Plus size={20} />
           Nuova Zona
@@ -131,7 +131,7 @@ export const IrrigationZoneManager: React.FC<IrrigationZoneManagerProps> = ({
                   </div>
 
                   <div>
-                    <label className="flex items-center gap-2 mb-2">
+                    <label className="flex items-center gap-3 mb-2">
                       <input
                         type="checkbox"
                         checked={editingComponents}
@@ -143,11 +143,11 @@ export const IrrigationZoneManager: React.FC<IrrigationZoneManagerProps> = ({
                     {editingComponents && (
                       <div className="mt-2 space-y-2">
                         {components.map(comp => (
-                          <div key={comp.id} className="p-3 bg-gray-50 rounded-lg flex items-center gap-2">
+                          <div key={comp.id} className="p-3 bg-gray-50 rounded-lg flex items-center gap-3">
                             <select
                               value={comp.type}
                               onChange={(e) => handleComponentUpdate(comp.id, { type: e.target.value as any })}
-                              className="flex-1 p-2 border rounded"
+                              className="flex-1 p-3 border rounded"
                             >
                               <option value="Dripline">Ala Gocciolante</option>
                               <option value="Dripper">Gocciolatore</option>
@@ -160,14 +160,14 @@ export const IrrigationZoneManager: React.FC<IrrigationZoneManagerProps> = ({
                                   placeholder="Metri"
                                   value={comp.lengthMeters || ''}
                                   onChange={(e) => handleComponentUpdate(comp.id, { lengthMeters: parseFloat(e.target.value) || 0 })}
-                                  className="w-24 p-2 border rounded"
+                                  className="w-24 p-3 border rounded"
                                 />
                                 <input
                                   type="number"
                                   placeholder="L/h per metro"
                                   value={comp.flowRatePerMeterLph || ''}
                                   onChange={(e) => handleComponentUpdate(comp.id, { flowRatePerMeterLph: parseFloat(e.target.value) || 0 })}
-                                  className="w-32 p-2 border rounded"
+                                  className="w-32 p-3 border rounded"
                                 />
                               </>
                             )}
@@ -178,20 +178,20 @@ export const IrrigationZoneManager: React.FC<IrrigationZoneManagerProps> = ({
                                   placeholder="Quantità"
                                   value={comp.quantity || ''}
                                   onChange={(e) => handleComponentUpdate(comp.id, { quantity: parseInt(e.target.value) || 0 })}
-                                  className="w-24 p-2 border rounded"
+                                  className="w-24 p-3 border rounded"
                                 />
                                 <input
                                   type="number"
                                   placeholder="L/h per unità"
                                   value={comp.flowRateLph || ''}
                                   onChange={(e) => handleComponentUpdate(comp.id, { flowRateLph: parseFloat(e.target.value) || 0 })}
-                                  className="w-32 p-2 border rounded"
+                                  className="w-32 p-3 border rounded"
                                 />
                               </>
                             )}
                             <button
                               onClick={() => handleComponentDelete(comp.id)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded"
+                              className="p-3 text-red-600 hover:bg-red-50 rounded"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -217,7 +217,7 @@ export const IrrigationZoneManager: React.FC<IrrigationZoneManagerProps> = ({
                   <div className="flex gap-3">
                     <button
                       onClick={handleSave}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-3"
                     >
                       <Save size={18} />
                       Salva
@@ -243,10 +243,10 @@ export const IrrigationZoneManager: React.FC<IrrigationZoneManagerProps> = ({
                         {getMethodLabel(zone.method)} • {zone.flowRateLph} L/h
                       </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                       <button
                         onClick={() => handleEdit(zone)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                        className="p-3 text-blue-600 hover:bg-blue-50 rounded-lg"
                       >
                         <Edit size={18} />
                       </button>
@@ -256,14 +256,14 @@ export const IrrigationZoneManager: React.FC<IrrigationZoneManagerProps> = ({
                             onZoneDelete(zone.id);
                           }
                         }}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                        className="p-3 text-red-600 hover:bg-red-50 rounded-lg"
                       >
                         <Trash2 size={18} />
                       </button>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-gray-500">Aiuole associate:</span>
                       <span className="ml-2 font-semibold">{zone.bedIds.length}</span>

@@ -132,13 +132,13 @@ export default function SeedlingDashboard({
   return (
     <div className="space-y-6">
       {/* Header con statistiche */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Batch Attivi</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.active}</p>
+                <p className="text-xl md:text-2xl font-bold text-blue-600">{stats.active}</p>
               </div>
               <Sprout className="w-8 h-8 text-blue-500" />
             </div>
@@ -150,7 +150,7 @@ export default function SeedlingDashboard({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Pronti</p>
-                <p className="text-2xl font-bold text-green-600">{stats.ready}</p>
+                <p className="text-xl md:text-2xl font-bold text-green-600">{stats.ready}</p>
               </div>
               <CheckCircle className="w-8 h-8 text-green-500" />
             </div>
@@ -162,7 +162,7 @@ export default function SeedlingDashboard({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Piantine Totali</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.totalSeedlings}</p>
+                <p className="text-xl md:text-2xl font-bold text-orange-600">{stats.totalSeedlings}</p>
               </div>
               <Sprout className="w-8 h-8 text-orange-500" />
             </div>
@@ -174,7 +174,7 @@ export default function SeedlingDashboard({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Sopravvivenza</p>
-                <p className="text-2xl font-bold text-purple-600">{stats.averageSurvival.toFixed(0)}%</p>
+                <p className="text-xl md:text-2xl font-bold text-purple-600">{stats.averageSurvival.toFixed(0)}%</p>
               </div>
               <TrendingUp className="w-8 h-8 text-purple-500" />
             </div>
@@ -186,16 +186,16 @@ export default function SeedlingDashboard({
       {alerts.length > 0 && (
         <Card className="border-orange-200 bg-orange-50">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-orange-800">
+            <CardTitle className="flex items-center gap-3 text-orange-800">
               <Bell className="w-5 h-5" />
               Promemoria e Avvisi ({alerts.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {alerts.slice(0, 3).map((alert, index) => (
-              <div key={index} className="flex items-center gap-3 p-2 bg-white rounded border">
+              <div key={index} className="flex items-center gap-3 p-3 bg-white rounded border">
                 {alert.type === 'ready' && <CheckCircle className="w-4 h-4 text-green-500" />}
-                {alert.type === 'delayed' && <Clock className="w-4 h-4 text-yellow-500" />}
+                {alert.type === 'delayed' && <Clock className="w-4 h-4 text-yellow-full max-w-sm" />}
                 {alert.type === 'survival' && <AlertCircle className="w-4 h-4 text-red-500" />}
                 <span className="text-sm flex-1">{alert.message}</span>
                 <Badge variant="outline" className={
@@ -215,10 +215,10 @@ export default function SeedlingDashboard({
       )}
 
       {/* Controlli */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex gap-2 flex-1">
+      <div className="flex flex-col sm:flex-col md:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex gap-3 flex-1">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-3/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
               placeholder="Cerca per pianta o varietà..."
               value={searchTerm}
@@ -230,7 +230,7 @@ export default function SeedlingDashboard({
           <select
             value={filterPhase}
             onChange={(e) => setFilterPhase(e.target.value)}
-            className="px-3 py-2 border rounded-md text-sm"
+            className="px-4 py-3 text-base border rounded-md text-sm"
           >
             <option value="all">Tutte le fasi</option>
             <option value="germination">Germinazione</option>
@@ -241,7 +241,7 @@ export default function SeedlingDashboard({
           </select>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <Button
             variant={viewMode === 'grid' ? 'primary' : 'outline'}
             size="sm"
@@ -260,7 +260,7 @@ export default function SeedlingDashboard({
           <Button 
             onClick={() => setShowCreateForm(true)}
             disabled={batches.length >= maxBatches}
-            className="gap-2"
+            className="gap-3"
           >
             <Plus className="w-4 h-4" />
             Nuovo Batch
@@ -272,7 +272,7 @@ export default function SeedlingDashboard({
       {batches.length >= maxBatches && (
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <AlertCircle className="w-4 h-4 text-blue-600" />
               <span className="text-sm text-blue-800">
                 Hai raggiunto il limite di {maxBatches} batch per la versione gratuita. 
@@ -313,7 +313,7 @@ export default function SeedlingDashboard({
                 }
               </p>
               {!searchTerm && filterPhase === 'all' && (
-                <Button onClick={() => setShowCreateForm(true)} className="gap-2">
+                <Button onClick={() => setShowCreateForm(true)} className="gap-3">
                   <Plus className="w-4 h-4" />
                   Crea Primo Batch
                 </Button>
@@ -353,7 +353,7 @@ export default function SeedlingDashboard({
 
       {activeTab === 'completed' && (
         <div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {batches
               .filter(b => b.currentPhase === 'transplanted')
               .map((batch) => (
@@ -369,11 +369,11 @@ export default function SeedlingDashboard({
 
       {activeTab === 'analytics' && (
         <div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
             {/* Grafico sopravvivenza */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-3">
                   <BarChart3 className="w-5 h-5" />
                   Tasso di Sopravvivenza
                 </CardTitle>
@@ -407,7 +407,7 @@ export default function SeedlingDashboard({
             {/* Tempi di crescita */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-3">
                   <Clock className="w-5 h-5" />
                   Tempi di Crescita
                 </CardTitle>
@@ -415,7 +415,7 @@ export default function SeedlingDashboard({
               <CardContent>
                 <div className="space-y-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-xl md:text-2xl font-bold text-blue-600">
                       {Math.round(
                         batches
                           .filter(b => b.actualTransplantDate)
@@ -429,7 +429,7 @@ export default function SeedlingDashboard({
                   </div>
                   
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-xl md:text-2xl font-bold text-green-600">
                       {stats.averageSurvival.toFixed(1)}%
                     </div>
                     <div className="text-sm text-gray-600">Sopravvivenza media</div>
@@ -451,7 +451,7 @@ export default function SeedlingDashboard({
             <p className="text-gray-600">
               Form per creare nuovo batch di semenzaio...
             </p>
-            <div className="flex gap-2 mt-4">
+            <div className="flex gap-3 mt-4">
               <Button onClick={() => setShowCreateForm(false)} variant="outline">
                 Annulla
               </Button>

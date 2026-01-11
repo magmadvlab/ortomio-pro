@@ -27,7 +27,7 @@ export function QuickDiagnosis({ garden, tasks }: QuickDiagnosisProps) {
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-center gap-3 mb-4">
         <Sparkles className="text-purple-600" size={24} />
-        <h2 className="text-xl font-bold text-gray-900">Diagnosi Rapida</h2>
+        <h2 className="text-lg md:text-xl font-bold text-gray-900">Diagnosi Rapida</h2>
       </div>
       
       <p className="text-sm text-gray-600 mb-4">
@@ -43,7 +43,7 @@ export function QuickDiagnosis({ garden, tasks }: QuickDiagnosisProps) {
                 const task = activePlants.find(t => t.id === e.target.value)
                 setSelectedTask(task || null)
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
             >
               <option value="">Seleziona una pianta...</option>
               {activePlants.map(task => (
@@ -62,7 +62,7 @@ export function QuickDiagnosis({ garden, tasks }: QuickDiagnosisProps) {
               setShowDiagnosis(true)
             }}
             disabled={activePlants.length > 1 && !selectedTask}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Camera size={20} />
             <span>Scatta Foto per Diagnosi</span>

@@ -43,7 +43,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
 
   if (consultations.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-12 text-center">
+      <div className="bg-white rounded-lg shadow-md p-32 text-center">
         <MessageSquare className="mx-auto text-gray-400 mb-4" size={48} />
         <p className="text-gray-600 mb-2">Nessuna consultazione registrata</p>
         <p className="text-sm text-gray-500">
@@ -79,7 +79,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                 </div>
                 
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-3">
                     <Calendar size={14} />
                     <span>
                       {format(new Date(consultation.date), 'dd MMMM yyyy', { locale: it })}
@@ -95,7 +95,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
               {onEdit && (
                 <button
                   onClick={() => onEdit(consultation)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                  className="p-3 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                   title="Modifica consultazione"
                 >
                   <Edit2 size={18} />
@@ -105,7 +105,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
 
             {consultation.advice && consultation.advice.length > 0 && (
               <div className="mb-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-3">
                   <AlertCircle size={14} />
                   Consigli Ricevuti
                 </h4>
@@ -128,7 +128,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                       <div className="text-sm text-gray-800 mb-2">
                         {advice.recommendation}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <span className={`px-2 py-1 rounded text-xs ${getPriorityColor(advice.priority)}`}>
                           {advice.priority}
                         </span>
@@ -146,7 +146,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
 
             {consultation.notes && (
               <div className="mb-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-3">
                   <FileText size={14} />
                   Note
                 </h4>
@@ -161,7 +161,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">
                   Allegati ({consultation.attachments.length})
                 </h4>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3">
                   {consultation.attachments.map((attachment, idx) => (
                     <a
                       key={idx}

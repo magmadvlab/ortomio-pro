@@ -41,7 +41,7 @@ export function IrrigationZoneList({ zones, onEditZone, onDeleteZone, onWaterZon
 
   if (zones.length === 0) {
     return (
-      <Card className="p-12 text-center">
+      <Card className="p-32 text-center">
         <div className="text-gray-400 mb-3">
           <Droplets size={48} className="mx-auto" />
         </div>
@@ -52,7 +52,7 @@ export function IrrigationZoneList({ zones, onEditZone, onDeleteZone, onWaterZon
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       {zones.map((zone) => {
         const status = getWateringStatus(zone)
         const plants = Array.isArray(zone.plantTypes) ? zone.plantTypes : []
@@ -94,7 +94,7 @@ export function IrrigationZoneList({ zones, onEditZone, onDeleteZone, onWaterZon
                 </div>
                 <div className="flex-1">
                   <h4 className="text-lg font-semibold text-gray-900 mb-1">{zone.name}</h4>
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <span className="text-xs font-medium text-gray-600">
                       {methodLabels[zone.method]}
                     </span>
@@ -116,10 +116,10 @@ export function IrrigationZoneList({ zones, onEditZone, onDeleteZone, onWaterZon
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {hasArea && (
                   <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-3 mb-1">
                       <MapPin className="text-gray-400" size={14} />
                       <span className="text-xs text-gray-600">Area</span>
                     </div>
@@ -128,7 +128,7 @@ export function IrrigationZoneList({ zones, onEditZone, onDeleteZone, onWaterZon
                 )}
 
                 <div className="bg-gray-50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-3 mb-1">
                     <Droplets className="text-blue-400" size={14} />
                     <span className="text-xs text-gray-600">Portata</span>
                   </div>
@@ -137,7 +137,7 @@ export function IrrigationZoneList({ zones, onEditZone, onDeleteZone, onWaterZon
 
                 {canComputeMinutesPer5mm && (
                   <div className="bg-gray-50 rounded-lg p-3 col-span-2">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-3 mb-1">
                       <Clock className="text-purple-400" size={14} />
                       <span className="text-xs text-gray-600">Durata per 5mm</span>
                     </div>
@@ -152,7 +152,7 @@ export function IrrigationZoneList({ zones, onEditZone, onDeleteZone, onWaterZon
               {plants.length > 0 && (
                 <div>
                   <div className="text-xs font-medium text-gray-600 mb-2">Piante</div>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-3.5">
                     {plants.slice(0, 4).map((plant, idx) => (
                       <span
                         key={idx}
@@ -172,7 +172,7 @@ export function IrrigationZoneList({ zones, onEditZone, onDeleteZone, onWaterZon
 
               {/* Schedule */}
               {zone.schedule && (
-                <div className="text-xs text-gray-500 bg-purple-50 p-2 rounded">
+                <div className="text-xs text-gray-500 bg-purple-50 p-3 rounded">
                   <div className="font-medium text-purple-700 mb-1">Programmazione</div>
                   {zone.schedule.days?.join(', ')} alle {zone.schedule.time} per {zone.schedule.duration} min
                 </div>
@@ -180,7 +180,7 @@ export function IrrigationZoneList({ zones, onEditZone, onDeleteZone, onWaterZon
             </div>
 
             {/* Actions */}
-            <div className="p-6 pt-0 flex gap-2">
+            <div className="p-6 pt-0 flex gap-3">
               <Button
                 onClick={() => onWaterZone(zone)}
                 size="sm"

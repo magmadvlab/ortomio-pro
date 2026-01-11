@@ -90,17 +90,17 @@ export function DeleteGardenConfirm({ gardenName, onConfirm, onCancel }: DeleteG
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-red-100 rounded-lg">
+            <div className="p-3 bg-red-100 rounded-lg">
               <AlertTriangle className="text-red-600" size={24} />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">
+            <h2 className="text-lg md:text-xl font-bold text-gray-900">
               Conferma Eliminazione
             </h2>
           </div>
           <button
             onClick={onCancel}
             disabled={isDeleting}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            className="p-3 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
           >
             <X size={20} />
           </button>
@@ -122,7 +122,7 @@ export function DeleteGardenConfirm({ gardenName, onConfirm, onCancel }: DeleteG
 
               {/* Password Input */}
               <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Lock className="absolute left-3 top-3/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
               type={showPassword ? 'text' : 'password'}
               value={password}
@@ -143,7 +143,7 @@ export function DeleteGardenConfirm({ gardenName, onConfirm, onCancel }: DeleteG
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-3/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
               disabled={isDeleting}
             >
               {showPassword ? '👁️' : '👁️‍🗨️'}
@@ -172,7 +172,7 @@ export function DeleteGardenConfirm({ gardenName, onConfirm, onCancel }: DeleteG
           <button
             onClick={handleDelete}
             disabled={isDeleting || (requiresPassword && !password.trim())}
-            className="flex-1 py-3 px-4 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 py-3 px-4 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
           >
             {isDeleting ? (
               <>

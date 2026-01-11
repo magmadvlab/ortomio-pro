@@ -67,7 +67,7 @@ const RainHistoryWidget: React.FC<RainHistoryWidgetProps> = ({ history, gardenNa
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-200">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-3 mb-4">
         <CloudRain size={20} className="text-blue-600" />
         <h3 className="text-lg font-bold text-gray-800">
           Precipitazioni Ultimi {history.totalDays} Giorni
@@ -75,21 +75,21 @@ const RainHistoryWidget: React.FC<RainHistoryWidgetProps> = ({ history, gardenNa
       </div>
 
       {/* Statistiche principali */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-3 mb-1">
             <Droplets size={18} className="text-blue-600" />
             <p className="text-sm text-gray-600">Pioggia Totale</p>
           </div>
-          <p className="text-2xl font-bold text-blue-800">{history.totalRainfall.toFixed(1)} mm</p>
+          <p className="text-xl md:text-2xl font-bold text-blue-800">{history.totalRainfall.toFixed(1)} mm</p>
         </div>
 
         <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-3 mb-1">
             <TrendingUp size={18} className="text-green-600" />
             <p className="text-sm text-gray-600">Acqua Effettiva</p>
           </div>
-          <p className="text-2xl font-bold text-green-800">{history.totalEffectiveWater.toFixed(1)} mm</p>
+          <p className="text-xl md:text-2xl font-bold text-green-800">{history.totalEffectiveWater.toFixed(1)} mm</p>
         </div>
       </div>
 
@@ -97,7 +97,7 @@ const RainHistoryWidget: React.FC<RainHistoryWidgetProps> = ({ history, gardenNa
       {history.days.length > 0 ? (
         <div className="mb-4">
           <p className="text-xs font-semibold text-gray-600 mb-2">Distribuzione Giornaliera</p>
-          <div className="flex items-end gap-2 h-32">
+          <div className="flex items-end gap-3 h-32">
             {history.days.map((day, idx) => {
               const maxRain = Math.max(...history.days.map(d => d.precipitationMM), 1);
               const height = (day.precipitationMM / maxRain) * 100;

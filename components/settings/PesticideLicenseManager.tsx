@@ -178,7 +178,7 @@ export default function PesticideLicenseManager({ userId, onSave }: PesticideLic
             <option value="classic">Chimici Classici (richiede patentino)</option>
             <option value="mixed">Misti (bio e chimici)</option>
           </select>
-          <div className="mt-2 flex items-start gap-2 text-sm text-gray-600">
+          <div className="mt-2 flex items-start gap-3 text-sm text-gray-600">
             <Info size={16} className="mt-0.5 flex-shrink-0" />
             <span>
               {preferredType === 'organic' && 'Verranno suggeriti solo prodotti biologici approvati.'}
@@ -189,14 +189,14 @@ export default function PesticideLicenseManager({ userId, onSave }: PesticideLic
         </div>
 
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
             <AlertCircle size={16} />
             <span>{error}</span>
           </div>
         )}
 
         {success && (
-          <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 text-green-700">
             <CheckCircle size={16} />
             <span>Profilo salvato con successo!</span>
           </div>

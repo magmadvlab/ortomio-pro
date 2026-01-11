@@ -69,7 +69,7 @@ export function DayView({ currentDate, tasks, onDateChange, onTaskClick }: DayVi
           <ChevronLeft size={20} />
         </Button>
         <div className="text-center">
-          <h3 className="text-xl font-bold text-gray-900">
+          <h3 className="text-lg md:text-xl font-bold text-gray-900">
             {format(currentDate, 'EEEE d MMMM yyyy', { locale: it })}
           </h3>
           {isToday(currentDate) && (
@@ -87,7 +87,7 @@ export function DayView({ currentDate, tasks, onDateChange, onTaskClick }: DayVi
           {sortedTimes.map((time) => (
             <Card key={time} variant="default" className="p-4">
               <div className="flex items-start gap-4">
-                <div className="flex items-center gap-2 min-w-[80px]">
+                <div className="flex items-center gap-3 min-w-[80px]">
                   <Clock size={18} className="text-gray-400" />
                   <span className="font-semibold text-gray-700">{time}</span>
                 </div>
@@ -98,8 +98,8 @@ export function DayView({ currentDate, tasks, onDateChange, onTaskClick }: DayVi
                       onClick={() => onTaskClick?.(task)}
                       className="w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">{getTaskIcon(task.taskType)}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg md:text-xl">{getTaskIcon(task.taskType)}</span>
                         <div className="flex-1">
                           <p className="font-medium text-gray-900">
                             {task.plantName} {task.variety && `(${task.variety})`}

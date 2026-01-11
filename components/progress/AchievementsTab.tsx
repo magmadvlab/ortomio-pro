@@ -50,10 +50,10 @@ export function AchievementsTab() {
   return (
     <div className="space-y-6">
       {/* Livello Attuale */}
-      <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl border-2 border-yellow-200 p-6">
+      <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl border-2 border-yellow-full max-w-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">{levelName}</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">{levelName}</h2>
             <p className="text-sm text-gray-600 mt-1">Livello {currentLevel}</p>
           </div>
           <div className="text-right">
@@ -70,7 +70,7 @@ export function AchievementsTab() {
           </div>
           <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
             <div
-              className="bg-gradient-to-r from-yellow-400 to-orange-500 h-full transition-all duration-500 rounded-full"
+              className="bg-gradient-to-r from-yellow-full max-w-sm to-orange-500 h-full transition-all duration-500 rounded-full"
               style={{ width: `${levelProgress}%` }}
             />
           </div>
@@ -78,7 +78,7 @@ export function AchievementsTab() {
         
         {/* Streak Info */}
         {streak.current > 0 && (
-          <div className="mt-4 flex items-center gap-2 text-sm">
+          <div className="mt-4 flex items-center gap-3 text-sm">
             <TrendingUp size={16} className="text-orange-600" />
             <span className="text-gray-700">
               <strong>{streak.current}</strong> giorni di attività consecutiva
@@ -108,11 +108,11 @@ export function AchievementsTab() {
             <p className="text-sm text-gray-400 mt-1">Completa attività per sbloccare badge!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {badges.map((badge, idx) => (
               <div
                 key={idx}
-                className="flex flex-col items-center p-4 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg border border-yellow-200 hover:shadow-md transition-all duration-200 relative group"
+                className="flex flex-col items-center p-4 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg border border-yellow-full max-w-sm hover:shadow-md transition-all duration-200 relative group"
               >
                 <div className="text-4xl mb-2">{badge.emoji || '🏆'}</div>
                 <div className="text-xs font-medium text-gray-700 text-center">
@@ -125,7 +125,7 @@ export function AchievementsTab() {
                 )}
                 
                 {/* Share Button - Appare al hover */}
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <div className="absolute top-3 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <ShareButton
                     content={{
                       type: 'achievement',
@@ -154,7 +154,7 @@ export function AchievementsTab() {
 
       {/* Prossimi Obiettivi */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-3">
           <Target size={20} className="text-green-600" />
           Prossimi Obiettivi
         </h3>

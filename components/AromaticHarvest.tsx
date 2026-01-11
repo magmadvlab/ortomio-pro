@@ -31,7 +31,7 @@ const AromaticHarvest: React.FC<AromaticHarvestProps> = ({ harvestData, onUpdate
     <div className="space-y-4">
       {/* Raccolta Erbe */}
       <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-        <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+        <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-3">
           <Leaf className="text-green-600" size={18} />
           Raccolta Erbe Aromatiche
         </h4>
@@ -44,7 +44,7 @@ const AromaticHarvest: React.FC<AromaticHarvestProps> = ({ harvestData, onUpdate
             <select
               value={harvestData.harvestPart || 'Leaves'}
               onChange={(e) => onUpdate({ harvestPart: e.target.value as any })}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             >
               <option value="Leaves">Foglie</option>
               <option value="Flowers">Fiori</option>
@@ -61,7 +61,7 @@ const AromaticHarvest: React.FC<AromaticHarvestProps> = ({ harvestData, onUpdate
             <select
               value={(harvestData as any).harvestTiming || 'BeforeFlowering'}
               onChange={(e) => onUpdate({ harvestTiming: e.target.value as any } as any)}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             >
               <option value="BeforeFlowering">Prima della Fioritura (massimo aroma)</option>
               <option value="DuringFlowering">Durante la Fioritura</option>
@@ -79,7 +79,7 @@ const AromaticHarvest: React.FC<AromaticHarvestProps> = ({ harvestData, onUpdate
               step="0.1"
               value={(harvestData as any).quantity ?? ''}
               onChange={(e) => onUpdate({ quantity: parseFloat(e.target.value) || 0 } as any)}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             />
           </div>
         </div>
@@ -88,13 +88,13 @@ const AromaticHarvest: React.FC<AromaticHarvestProps> = ({ harvestData, onUpdate
       {/* Essiccazione */}
       <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-300">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+          <h4 className="font-semibold text-gray-800 flex items-center gap-3">
             <Droplets className="text-blue-600" size={18} />
             Essiccazione
           </h4>
         </div>
 
-        <label className="flex items-center gap-2 mb-3 cursor-pointer">
+        <label className="flex items-center gap-3 mb-3 cursor-pointer">
           <input
             type="checkbox"
             checked={harvestData.requiresDrying || false}
@@ -116,7 +116,7 @@ const AromaticHarvest: React.FC<AromaticHarvestProps> = ({ harvestData, onUpdate
               <select
                 value={harvestData.dryingMethod || 'Air'}
                 onChange={(e) => onUpdate({ dryingMethod: e.target.value as any })}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 <option value="Air">Aria (naturale)</option>
                 <option value="Dehydrator">Essiccatore</option>
@@ -143,7 +143,7 @@ const AromaticHarvest: React.FC<AromaticHarvestProps> = ({ harvestData, onUpdate
       {/* Oli Essenziali (opzionale) */}
       {harvestData.harvestPart === 'Leaves' || harvestData.harvestPart === 'Flowers' ? (
         <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-          <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-3">
             <Droplets className="text-purple-600" size={18} />
             Estrazione Oli Essenziali (Opzionale)
           </h4>
@@ -157,7 +157,7 @@ const AromaticHarvest: React.FC<AromaticHarvestProps> = ({ harvestData, onUpdate
               step="0.1"
               value={harvestData.essentialOilExtracted || ''}
               onChange={(e) => onUpdate({ essentialOilExtracted: parseFloat(e.target.value) || 0 })}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
               placeholder="0.0"
             />
             <p className="text-xs text-gray-500 mt-1">

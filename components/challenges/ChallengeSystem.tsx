@@ -112,9 +112,9 @@ export function ChallengeSystem() {
     <div className="space-y-6">
       {/* Beginner Path */}
       <Card variant="elevated" className="p-6">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-3 mb-4">
           <Trophy className="text-ortomio-green-600" size={24} />
-          <h2 className="text-xl font-bold text-gray-900">PERCORSO PRINCIPIANTE</h2>
+          <h2 className="text-lg md:text-xl font-bold text-gray-900">PERCORSO PRINCIPIANTE</h2>
         </div>
         
         <div className="mb-4">
@@ -156,14 +156,14 @@ export function ChallengeSystem() {
 
       {/* Seasonal Challenges */}
       <Card variant="elevated" className="p-6">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-3 mb-4">
           <Star className="text-orange-500" size={24} />
-          <h2 className="text-xl font-bold text-gray-900">SFIDE STAGIONALI</h2>
+          <h2 className="text-lg md:text-xl font-bold text-gray-900">SFIDE STAGIONALI</h2>
         </div>
         
         <p className="text-sm text-gray-600 mb-4">🌸 Primavera 2024</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-4">
           {seasonalChallenges.map((challenge) => (
             <Card key={challenge.id} variant="default" className="p-4 text-center relative group">
               <div className="text-3xl mb-2">{challenge.icon}</div>
@@ -194,12 +194,12 @@ export function ChallengeSystem() {
 
       {/* Achievements */}
       <Card variant="elevated" className="p-6">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-3 mb-4">
           <Award className="text-purple-500" size={24} />
-          <h2 className="text-xl font-bold text-gray-900">BADGE SBLOCCATI</h2>
+          <h2 className="text-lg md:text-xl font-bold text-gray-900">BADGE SBLOCCATI</h2>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
           {unlockedAchievements.map((achievement) => (
             <AchievementBadge 
               key={achievement.id} 

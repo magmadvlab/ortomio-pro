@@ -75,7 +75,7 @@ export default function PlantingWindowSuggestions({
       </div>
 
       {/* Lista finestre */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
         {plantingWindows.map((window, idx) => (
           <div
             key={idx}
@@ -87,8 +87,8 @@ export default function PlantingWindowSuggestions({
             }`}
           >
             <div className="flex items-start justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">{getCategoryIcon(window.category)}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xl md:text-2xl">{getCategoryIcon(window.category)}</span>
                 <div>
                   <h4 className="font-semibold text-gray-900">{window.category}</h4>
                   <p className="text-xs text-gray-600">{window.reason}</p>
@@ -97,17 +97,17 @@ export default function PlantingWindowSuggestions({
             </div>
 
             <div className="mt-3 space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-gray-700">
+              <div className="flex items-center gap-3 text-gray-700">
                 <Calendar size={14} />
                 <span>
                   {formatDate(window.startDate)} - {formatDate(window.endDate)}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-gray-700">
+              <div className="flex items-center gap-3 text-gray-700">
                 {window.method === 'Seed' ? <Sprout size={14} /> : <Sprout size={14} />}
                 <span>{window.method === 'Seed' ? 'Semina' : 'Trapianto'}</span>
               </div>
-              <div className="flex items-center gap-2 text-gray-700">
+              <div className="flex items-center gap-3 text-gray-700">
                 <CheckCircle size={14} />
                 <span>{window.cycles} ciclo{window.cycles > 1 ? 'i' : ''} possibili</span>
               </div>
@@ -115,7 +115,7 @@ export default function PlantingWindowSuggestions({
 
             <div className="mt-3 pt-3 border-t border-gray-200">
               <p className="text-xs font-medium text-gray-700 mb-1">Piante consigliate:</p>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-3">
                 {window.recommendedPlants.slice(0, 3).map((plant, pIdx) => (
                   <span
                     key={pIdx}
@@ -142,7 +142,7 @@ export default function PlantingWindowSuggestions({
             <h4 className="text-md font-semibold text-gray-900">
               Piante Consigliate per {selectedWindow.category}
             </h4>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <button
                 onClick={() => setSelectedMethod('Seed')}
                 className={`px-3 py-1 rounded text-sm transition-colors ${
@@ -168,7 +168,7 @@ export default function PlantingWindowSuggestions({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
             {filteredSuggestions
               .filter(s => s.method === selectedMethod)
               .map((suggestion, idx) => (
@@ -186,14 +186,14 @@ export default function PlantingWindowSuggestions({
                   <p className="text-sm text-gray-600 mb-3">{suggestion.reason}</p>
 
                   <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-gray-700">
+                    <div className="flex items-center gap-3 text-gray-700">
                       <Calendar size={14} />
                       <span>
                         {formatDate(suggestion.plantingWindow.start)} -{' '}
                         {formatDate(suggestion.plantingWindow.end)}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-700">
+                    <div className="flex items-center gap-3 text-gray-700">
                       <Info size={14} />
                       <span>
                         Adattabilità: {(suggestion.suitabilityScore * 100).toFixed(0)}%
@@ -214,7 +214,7 @@ export default function PlantingWindowSuggestions({
 
       {/* Informazioni aggiuntive */}
       <div className="mt-6 pt-6 border-t border-gray-200">
-        <div className="flex items-start gap-2 text-sm text-gray-600">
+        <div className="flex items-start gap-3 text-sm text-gray-600">
           <Info size={16} className="mt-0.5 flex-shrink-0" />
           <div>
             <p className="font-medium text-gray-900 mb-1">Come funziona:</p>

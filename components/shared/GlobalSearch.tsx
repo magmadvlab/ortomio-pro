@@ -109,7 +109,7 @@ const GlobalSearch: React.FC = () => {
       case 'harvest':
         return <Package size={16} className="text-green-600" />;
       case 'seed':
-        return <Sprout size={16} className="text-yellow-600" />;
+        return <Sprout size={16} className="text-yellow-full max-w-sm" />;
       case 'garden':
         return <Home size={16} className="text-purple-600" />;
       case 'treatment':
@@ -164,7 +164,7 @@ const GlobalSearch: React.FC = () => {
         />
         <Search
           size={18}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          className="absolute left-3 top-3/2 -translate-y-1/2 text-gray-400"
         />
         {query && (
           <button
@@ -174,7 +174,7 @@ const GlobalSearch: React.FC = () => {
               setResults([]);
               setShowResults(false);
             }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded transition-colors"
+            className="absolute right-3 top-3/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded transition-colors"
           >
             <X size={16} className="text-gray-400" />
           </button>
@@ -189,10 +189,10 @@ const GlobalSearch: React.FC = () => {
               <Loader2 size={24} className="animate-spin text-green-600" />
             </div>
           ) : results.length > 0 ? (
-            <div className="p-2">
+            <div className="p-3">
               {Object.entries(groupedResults).map(([type, typeResults]) => (
                 <div key={type} className="mb-4">
-                  <h4 className="px-3 py-2 text-xs font-bold text-gray-500 uppercase">
+                  <h4 className="px-4 py-3 text-base text-xs font-bold text-gray-500 uppercase">
                     {getTypeLabel(type as SearchResult['type'])} ({typeResults.length})
                   </h4>
                   <div className="space-y-1">
@@ -200,7 +200,7 @@ const GlobalSearch: React.FC = () => {
                       <button
                         key={result.id}
                         onClick={() => handleResultClick(result)}
-                        className="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg transition-colors flex items-start gap-3"
+                        className="w-full text-left px-4 py-3 text-base hover:bg-green-50 rounded-lg transition-colors flex items-start gap-3"
                       >
                         <div className="mt-0.5">{getTypeIcon(result.type)}</div>
                         <div className="flex-1 min-w-0">

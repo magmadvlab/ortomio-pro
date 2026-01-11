@@ -23,7 +23,7 @@ export const AeroponicMonitorWidget: React.FC<AeroponicMonitorWidgetProps> = ({
   return (
     <div className="bg-white p-4 rounded-2xl shadow-lg border border-gray-200">
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Wind size={20} className="text-purple-600" />
           <h3 className="text-lg font-bold text-gray-800">Monitoraggio Aeroponica</h3>
         </div>
@@ -67,8 +67,8 @@ export const AeroponicMonitorWidget: React.FC<AeroponicMonitorWidgetProps> = ({
         </div>
 
         {needsCleaning && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
-            <div className="text-sm text-yellow-800">
+          <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-3">
+            <div className="text-sm text-yellow-full max-w-sm">
               ⚠️ Pulizia ugelli necessaria ({daysSinceLastClean} giorni dall'ultima pulizia)
             </div>
           </div>

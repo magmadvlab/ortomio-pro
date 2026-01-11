@@ -112,7 +112,7 @@ export function HealthDashboard({ garden, tasks }: HealthDashboardProps) {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-4 sticky top-0 z-10 relative -mx-4 -mt-4 mb-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">💚 Salute Orto</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">💚 Salute Orto</h1>
           <ContextualTip
             id="health-intro"
             title="Monitora la salute del tuo orto"
@@ -128,7 +128,7 @@ export function HealthDashboard({ garden, tasks }: HealthDashboardProps) {
           <div className="flex items-center justify-between mb-3">
             <div>
               <h3 className="text-sm font-medium opacity-90">Condizioni Oggi</h3>
-              <p className="text-2xl font-bold">{weather.condition}</p>
+              <p className="text-xl md:text-2xl font-bold">{weather.condition}</p>
             </div>
             <div className="text-right">
               <div className="text-4xl font-bold">{weather.temp.toFixed(0)}°</div>
@@ -163,7 +163,7 @@ export function HealthDashboard({ garden, tasks }: HealthDashboardProps) {
         <div className="flex items-center justify-center mb-4">
           <div className="text-center">
             <div className="text-6xl mb-2">{generalStatus.emoji}</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-1">STATO GENERALE</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">STATO GENERALE</h2>
             <p className={`text-lg font-semibold ${
               generalStatus.color === 'green' ? 'text-green-600' :
               generalStatus.color === 'yellow' ? 'text-yellow-600' :
@@ -182,7 +182,7 @@ export function HealthDashboard({ garden, tasks }: HealthDashboardProps) {
       {healthAlerts.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-3">
               <Activity className="text-red-500" size={24} />
               Alert Automatici
               <span className="ml-2 px-2 py-1 bg-red-100 text-red-700 text-sm rounded-full">
@@ -239,9 +239,9 @@ export function HealthDashboard({ garden, tasks }: HealthDashboardProps) {
       {/* RICHIEDE ATTENZIONE */}
       {(criticalAlerts.length > 0 || highAlerts.length > 0) && (
         <div className="bg-white rounded-xl border-2 border-orange-200 p-6">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-3 mb-4">
             <AlertTriangle className="text-orange-600" size={24} />
-            <h2 className="text-xl font-bold text-orange-900">
+            <h2 className="text-lg md:text-xl font-bold text-orange-900">
               ⚠️ RICHIEDE ATTENZIONE ({needsAttentionCount})
             </h2>
           </div>
@@ -274,7 +274,7 @@ export function HealthDashboard({ garden, tasks }: HealthDashboardProps) {
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-2 mt-4">
+                <div className="flex gap-3 mt-4">
                   <button className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
                     Segna come risolto
                   </button>
@@ -294,16 +294,16 @@ export function HealthDashboard({ garden, tasks }: HealthDashboardProps) {
       {/* IN SALUTE */}
       {healthyCount > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
+          <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4">
             ✅ IN SALUTE ({healthyCount})
             </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {activePlants.slice(0, healthyCount).map((task, idx) => (
               <div
                 key={idx}
                 className="flex flex-col items-center p-3 bg-green-50 rounded-lg border border-green-200"
               >
-                <div className="text-2xl mb-1">
+                <div className="text-xl md:text-2xl mb-1">
                   {task.plantName === 'Pomodoro' ? '🍅' :
                    task.plantName === 'Lattuga' ? '🥬' :
                    task.plantName === 'Basilico' ? '🌿' :
@@ -327,7 +327,7 @@ export function HealthDashboard({ garden, tasks }: HealthDashboardProps) {
       <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200 p-6">
         <div className="flex items-center gap-3 mb-4">
           <Camera className="text-purple-600" size={24} />
-          <h2 className="text-xl font-bold text-gray-900">📸 HAI UN DUBBIO?</h2>
+          <h2 className="text-lg md:text-xl font-bold text-gray-900">📸 HAI UN DUBBIO?</h2>
         </div>
         <p className="text-gray-700 mb-4">
           Scatta una foto e la nostra AI analizzerà la pianta per te

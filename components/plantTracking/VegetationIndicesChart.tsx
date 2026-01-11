@@ -84,7 +84,7 @@ export const VegetationIndicesChart: React.FC<VegetationIndicesChartProps> = ({
   if (indices.length === 0) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="flex items-center gap-2 text-gray-600">
+        <div className="flex items-center gap-3 text-gray-600">
           <Info size={20} />
           <p>Nessun indice vegetativo disponibile. Gli indici vengono calcolati automaticamente quando carichi una foto.</p>
         </div>
@@ -98,7 +98,7 @@ export const VegetationIndicesChart: React.FC<VegetationIndicesChartProps> = ({
       {latestIndices && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h4 className="text-lg font-semibold mb-4">Indici Correnti</h4>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-4 gap-4">
             {latestIndices.ndvi !== undefined && (
               <div className={`p-4 rounded-lg border-2 ${
                 latestIndices.ndvi >= optimalValues.ndvi.optimal 
@@ -112,10 +112,10 @@ export const VegetationIndicesChart: React.FC<VegetationIndicesChartProps> = ({
                   {latestIndices.ndvi >= optimalValues.ndvi.optimal ? (
                     <CheckCircle size={16} className="text-green-600" />
                   ) : (
-                    <AlertTriangle size={16} className="text-yellow-600" />
+                    <AlertTriangle size={16} className="text-yellow-full max-w-sm" />
                   )}
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{latestIndices.ndvi.toFixed(3)}</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900">{latestIndices.ndvi.toFixed(3)}</p>
                 <p className="text-xs text-gray-600 mt-1">
                   Ottimale: {optimalValues.ndvi.optimal}
                 </p>
@@ -135,10 +135,10 @@ export const VegetationIndicesChart: React.FC<VegetationIndicesChartProps> = ({
                   {latestIndices.evi >= optimalValues.evi.optimal ? (
                     <CheckCircle size={16} className="text-green-600" />
                   ) : (
-                    <AlertTriangle size={16} className="text-yellow-600" />
+                    <AlertTriangle size={16} className="text-yellow-full max-w-sm" />
                   )}
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{latestIndices.evi.toFixed(3)}</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900">{latestIndices.evi.toFixed(3)}</p>
                 <p className="text-xs text-gray-600 mt-1">
                   Ottimale: {optimalValues.evi.optimal}
                 </p>
@@ -158,10 +158,10 @@ export const VegetationIndicesChart: React.FC<VegetationIndicesChartProps> = ({
                   {latestIndices.lai >= optimalValues.lai.optimal ? (
                     <CheckCircle size={16} className="text-green-600" />
                   ) : (
-                    <AlertTriangle size={16} className="text-yellow-600" />
+                    <AlertTriangle size={16} className="text-yellow-full max-w-sm" />
                   )}
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{latestIndices.lai.toFixed(2)}</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900">{latestIndices.lai.toFixed(2)}</p>
                 <p className="text-xs text-gray-600 mt-1">
                   Ottimale: {optimalValues.lai.optimal}
                 </p>
@@ -181,10 +181,10 @@ export const VegetationIndicesChart: React.FC<VegetationIndicesChartProps> = ({
                   {latestIndices.chlorophyllIndex >= optimalValues.chlorophyllIndex.optimal ? (
                     <CheckCircle size={16} className="text-green-600" />
                   ) : (
-                    <AlertTriangle size={16} className="text-yellow-600" />
+                    <AlertTriangle size={16} className="text-yellow-full max-w-sm" />
                   )}
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{latestIndices.chlorophyllIndex.toFixed(2)}</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900">{latestIndices.chlorophyllIndex.toFixed(2)}</p>
                 <p className="text-xs text-gray-600 mt-1">
                   Ottimale: {optimalValues.chlorophyllIndex.optimal}
                 </p>
@@ -196,12 +196,12 @@ export const VegetationIndicesChart: React.FC<VegetationIndicesChartProps> = ({
 
       {/* Alerts */}
       {thresholds && !thresholds.isHealthy && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle size={20} className="text-yellow-600" />
-            <h4 className="text-lg font-semibold text-yellow-800">Avvisi</h4>
+        <div className="bg-yellow-50 border-l-4 border-yellow-full max-w-sm p-4 rounded-lg">
+          <div className="flex items-center gap-3 mb-2">
+            <AlertTriangle size={20} className="text-yellow-full max-w-sm" />
+            <h4 className="text-lg font-semibold text-yellow-full max-w-sm">Avvisi</h4>
           </div>
-          <ul className="list-disc list-inside text-sm text-yellow-700">
+          <ul className="list-disc list-inside text-sm text-yellow-full max-w-sm">
             {thresholds.alerts.map((alert, i) => (
               <li key={i}>{alert}</li>
             ))}
@@ -214,7 +214,7 @@ export const VegetationIndicesChart: React.FC<VegetationIndicesChartProps> = ({
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-lg font-semibold">Trend Indici Vegetativi</h4>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <select
                 value={selectedIndex}
                 onChange={(e) => setSelectedIndex(e.target.value as any)}
@@ -260,7 +260,7 @@ export const VegetationIndicesChart: React.FC<VegetationIndicesChartProps> = ({
 
           {/* Info Box */}
           <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-3">
               <Info size={16} className="text-blue-600 mt-0.5" />
               <div className="text-sm text-blue-800">
                 <p className="font-medium mb-1">Cosa significano questi indici?</p>

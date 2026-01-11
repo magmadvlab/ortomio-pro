@@ -167,7 +167,7 @@ const BackupSettings: React.FC<BackupSettingsProps> = ({
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-3">
         <FileText size={20} className="text-blue-600" />
         Backup e Sincronizzazione
       </h3>
@@ -191,7 +191,7 @@ const BackupSettings: React.FC<BackupSettingsProps> = ({
           </div>
           <div className="flex items-center justify-between mt-2">
             <span className="text-sm font-medium text-gray-700">Backup Cloud</span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {cloudBackups.length > 0 ? (
                 <>
                   <Cloud size={16} className="text-green-600" />
@@ -207,7 +207,7 @@ const BackupSettings: React.FC<BackupSettingsProps> = ({
           </div>
           {lastSync && (
             <div className="mt-2 pt-2 border-t border-gray-200">
-              <div className="flex items-center gap-2 text-xs text-gray-500">
+              <div className="flex items-center gap-3 text-xs text-gray-500">
                 <Clock size={12} />
                 Ultima sincronizzazione: {format(lastSync, 'dd/MM/yyyy HH:mm', { locale: it })}
               </div>
@@ -227,7 +227,7 @@ const BackupSettings: React.FC<BackupSettingsProps> = ({
             <button
               onClick={handleManualBackup}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -256,7 +256,7 @@ const BackupSettings: React.FC<BackupSettingsProps> = ({
             <button
               onClick={handleCloudSync}
               disabled={syncing}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {syncing ? (
                 <>
@@ -284,7 +284,7 @@ const BackupSettings: React.FC<BackupSettingsProps> = ({
             </div>
             <button
               onClick={handleExport}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              className="flex items-center gap-3 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
               <Download size={18} />
               <span>Esporta</span>
@@ -305,7 +305,7 @@ const BackupSettings: React.FC<BackupSettingsProps> = ({
                 .map((backup) => (
                   <div
                     key={backup.id}
-                    className="flex items-center justify-between p-2 bg-white rounded border border-gray-200"
+                    className="flex items-center justify-between p-3 bg-white rounded border border-gray-200"
                   >
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-800">
@@ -331,7 +331,7 @@ const BackupSettings: React.FC<BackupSettingsProps> = ({
         {/* Cloud Backups List */}
         {cloudBackups.length > 0 && (
           <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-            <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-3">
               <Cloud size={18} className="text-green-600" />
               Backup Cloud Disponibili
             </h4>
@@ -339,7 +339,7 @@ const BackupSettings: React.FC<BackupSettingsProps> = ({
               {cloudBackups.slice(0, 5).map((backup, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-2 bg-white rounded border border-green-200"
+                  className="flex items-center justify-between p-3 bg-white rounded border border-green-200"
                 >
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-800">

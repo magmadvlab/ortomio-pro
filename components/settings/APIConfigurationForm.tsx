@@ -217,7 +217,7 @@ export default function APIConfigurationForm() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+        <h2 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-3">
           <Key size={24} />
           Configurazioni API
         </h2>
@@ -229,14 +229,14 @@ export default function APIConfigurationForm() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+        <h2 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-3">
           <Key size={24} />
           Configurazioni API
         </h2>
         {!showAddForm && (
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className="flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
             <Plus size={20} />
             Aggiungi Configurazione
@@ -383,7 +383,7 @@ export default function APIConfigurationForm() {
             </div>
           )}
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <input
               type="checkbox"
               id="is_default"
@@ -433,7 +433,7 @@ export default function APIConfigurationForm() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-3 mb-1">
                       <h4 className="font-semibold text-gray-900">{config.provider_name}</h4>
                       {config.is_default && (
                         <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
@@ -455,17 +455,17 @@ export default function APIConfigurationForm() {
                       </p>
                     )}
                     {config.last_error && (
-                      <div className="flex items-center gap-2 mt-2 text-xs text-red-600">
+                      <div className="flex items-center gap-3 mt-2 text-xs text-red-600">
                         <AlertCircle size={14} />
                         <span>Ultimo errore: {config.last_error}</span>
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     <button
                       onClick={() => handleTest(config.id!)}
                       disabled={testing === config.id}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50"
+                      className="p-3 text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50"
                       title="Testa configurazione"
                     >
                       {testing === config.id ? (
@@ -476,14 +476,14 @@ export default function APIConfigurationForm() {
                     </button>
                     <button
                       onClick={() => startEdit(config)}
-                      className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg"
+                      className="p-3 text-gray-600 hover:bg-gray-50 rounded-lg"
                       title="Modifica"
                     >
                       <Key size={18} />
                     </button>
                     <button
                       onClick={() => handleDelete(config.id!)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                      className="p-3 text-red-600 hover:bg-red-50 rounded-lg"
                       title="Elimina"
                     >
                       <Trash2 size={18} />

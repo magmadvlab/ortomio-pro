@@ -177,7 +177,7 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
       case 'compliant': return <CheckCircle className="h-5 w-5 text-green-600" />
       case 'non_compliant': return <XCircle className="h-5 w-5 text-red-600" />
       case 'not_applicable': return <MinusCircle className="h-5 w-5 text-gray-600" />
-      case 'pending': return <Clock className="h-5 w-5 text-yellow-600" />
+      case 'pending': return <Clock className="h-5 w-5 text-yellow-full max-w-sm" />
       default: return <Clock className="h-5 w-5 text-gray-400" />
     }
   }
@@ -221,7 +221,7 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
           <div className="flex items-center gap-3">
             <FileText className="h-8 w-8 text-blue-600" />
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900">
                 Autocontrollo GlobalG.A.P. (AF 2.2)
               </h1>
               <p className="text-gray-600">
@@ -232,7 +232,7 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
           <div className="flex gap-3">
             <button
               onClick={handleExportCSV}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              className="flex items-center gap-3 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
             >
               <Download size={16} />
               Export CSV
@@ -240,7 +240,7 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              className="flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
             >
               <Save size={16} />
               {saving ? 'Salvando...' : 'Salva'}
@@ -249,18 +249,18 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
         </div>
 
         {/* Assessment Info */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Data Valutazione
             </label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Calendar className="h-4 w-4 text-gray-400" />
               <input
                 type="date"
                 value={assessment.assessment_date || ''}
                 onChange={(e) => setAssessment(prev => ({ ...prev, assessment_date: e.target.value }))}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="flex-1 px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -268,14 +268,14 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Nome Valutatore
             </label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <User className="h-4 w-4 text-gray-400" />
               <input
                 type="text"
                 value={assessment.assessor_name || ''}
                 onChange={(e) => setAssessment(prev => ({ ...prev, assessor_name: e.target.value }))}
                 placeholder="Nome e cognome"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="flex-1 px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -288,7 +288,7 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
               value={assessment.assessor_role || ''}
               onChange={(e) => setAssessment(prev => ({ ...prev, assessor_role: e.target.value }))}
               placeholder="es. Responsabile Qualità"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -297,7 +297,7 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
         <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 border border-blue-200">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-semibold text-gray-900">Progresso Complessivo</h3>
-            <span className="text-2xl font-bold text-green-600">
+            <span className="text-xl md:text-2xl font-bold text-green-600">
               {compliancePercentage.toFixed(1)}%
             </span>
           </div>
@@ -307,7 +307,7 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
               style={{ width: `${compliancePercentage}%` }}
             ></div>
           </div>
-          <div className="grid grid-cols-4 gap-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
             <div className="text-center">
               <div className="text-green-600 font-semibold">{overallStats.compliant}</div>
               <div className="text-gray-600">Conformi</div>
@@ -321,7 +321,7 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
               <div className="text-gray-600">N/A</div>
             </div>
             <div className="text-center">
-              <div className="text-yellow-600 font-semibold">{overallStats.pending}</div>
+              <div className="text-yellow-full max-w-sm font-semibold">{overallStats.pending}</div>
               <div className="text-gray-600">In Sospeso</div>
             </div>
           </div>
@@ -362,7 +362,7 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
         <div className="p-6">
           {assessment.checklist_data && assessment.checklist_data[activeSection] && (
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
+              <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4">
                 {activeSection} - {assessment.checklist_data[activeSection].name}
               </h2>
               
@@ -377,7 +377,7 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
                         {getStatusIcon(point.status)}
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold text-gray-900">{point.id}</h3>
                           <select
                             value={point.status}
@@ -394,7 +394,7 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
                         </div>
                         <p className="text-gray-700 mb-3">{point.description}</p>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">
                               Commenti/Note
@@ -406,7 +406,7 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
                               })}
                               placeholder="Aggiungi commenti, evidenze osservate o note..."
                               rows={2}
-                              className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full px-4 py-3 text-base border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                           </div>
                           <div>
@@ -420,7 +420,7 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
                                 evidence: e.target.value 
                               })}
                               placeholder="Riferimenti a documenti, foto, registri..."
-                              className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full px-4 py-3 text-base border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                           </div>
                         </div>
@@ -437,7 +437,7 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
                               })}
                               placeholder="Descrivi l'azione correttiva necessaria per risolvere la non conformità..."
                               rows={2}
-                              className="w-full px-3 py-2 border border-red-300 rounded text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                              className="w-full px-4 py-3 text-base border border-red-300 rounded text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
                             />
                           </div>
                         )}
@@ -454,7 +454,7 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
       {/* Non-Compliant Summary */}
       {overallStats.nonCompliant > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-3 mb-4">
             <AlertTriangle className="h-6 w-6 text-red-600" />
             <h3 className="text-lg font-semibold text-red-900">
               Punti Non Conformi ({overallStats.nonCompliant})
@@ -468,7 +468,7 @@ export default function SelfAssessmentForm({ gardenId, assessmentId, onSave }: S
               section.points
                 .filter(point => point.status === 'non_compliant')
                 .map(point => (
-                  <div key={point.id} className="flex items-center gap-2 text-red-800 text-sm">
+                  <div key={point.id} className="flex items-center gap-3 text-red-800 text-sm">
                     <XCircle className="h-4 w-4" />
                     <span className="font-medium">{point.id}</span>
                     <span>-</span>

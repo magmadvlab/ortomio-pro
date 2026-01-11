@@ -66,16 +66,16 @@ export function GardenSelectorCard({
               
               {/* Stats Row */}
               <div className="flex items-center gap-4 mt-1">
-                <div className="flex items-center gap-1 text-xs text-gray-600">
+                <div className="flex items-center gap-3 text-xs text-gray-600">
                   <Sprout size={14} />
                   <span>{stats.activePlants} piante</span>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-gray-600">
+                <div className="flex items-center gap-3 text-xs text-gray-600">
                   <Calendar size={14} />
                   <span>{stats.todayTasks} task oggi</span>
                 </div>
                 {stats.avgSunHours && (
-                  <div className="flex items-center gap-1 text-xs text-gray-600">
+                  <div className="flex items-center gap-3 text-xs text-gray-600">
                     <Sun size={14} />
                     <span>{stats.avgSunHours}h sole</span>
                   </div>
@@ -84,7 +84,7 @@ export function GardenSelectorCard({
               
               {/* Location */}
               {activeGarden.coordinates && (
-                <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
                   <MapPin size={12} />
                   <span>Localizzato</span>
                 </div>
@@ -155,7 +155,7 @@ export function GardenSelectorCard({
                   onAddGarden()
                   setIsOpen(false)
                 }}
-                className="w-full text-left px-4 py-3 hover:bg-green-50 text-green-600 font-semibold flex items-center gap-2 transition-colors"
+                className="w-full text-left px-4 py-3 hover:bg-green-50 text-green-600 font-semibold flex items-center gap-3 transition-colors"
               >
                 <Plus size={16} />
                 Aggiungi Nuovo Orto

@@ -65,7 +65,7 @@ export function OnboardingStep4Location({ initialValue, onNext, onBack }: Onboar
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">
+        <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
           Dimensioni e Localizzazione
         </h3>
         <p className="text-gray-600">
@@ -78,7 +78,7 @@ export function OnboardingStep4Location({ initialValue, onNext, onBack }: Onboar
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Coordinate
           </label>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <Input
               type="number"
               step="any"

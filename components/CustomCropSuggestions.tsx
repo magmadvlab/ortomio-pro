@@ -20,7 +20,7 @@ const CustomCropSuggestions: React.FC<CustomCropSuggestionsProps> = ({ crop, sho
       return <span className="px-2 py-0.5 text-xs font-semibold bg-green-100 text-green-700 rounded-full">Alta</span>;
     }
     if (confidence >= 0.4) {
-      return <span className="px-2 py-0.5 text-xs font-semibold bg-yellow-100 text-yellow-700 rounded-full">Media</span>;
+      return <span className="px-2 py-0.5 text-xs font-semibold bg-yellow-full max-w-sm text-yellow-700 rounded-full">Media</span>;
     }
     return <span className="px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-700 rounded-full">Bassa</span>;
   };
@@ -30,7 +30,7 @@ const CustomCropSuggestions: React.FC<CustomCropSuggestionsProps> = ({ crop, sho
       (!suggestions.treatments || suggestions.treatments.length === 0)) {
     return (
       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-3">
           <Info className="text-gray-400 mt-0.5" size={16} />
           <div>
             <p className="text-sm text-gray-600">
@@ -99,7 +99,7 @@ const CustomCropSuggestions: React.FC<CustomCropSuggestionsProps> = ({ crop, sho
               <div className="text-sm font-semibold text-purple-900 mb-2">Lavorazioni che Hanno Funzionato</div>
               <ul className="space-y-1">
                 {suggestions.works.map((work, idx) => (
-                  <li key={idx} className="text-sm text-purple-700 flex items-start gap-2">
+                  <li key={idx} className="text-sm text-purple-700 flex items-start gap-3">
                     <span className="text-purple-400 mt-1">•</span>
                     <span>{work}</span>
                   </li>
@@ -119,7 +119,7 @@ const CustomCropSuggestions: React.FC<CustomCropSuggestionsProps> = ({ crop, sho
               <div className="text-sm font-semibold text-orange-900 mb-2">Trattamenti che Hanno Risolto Problemi</div>
               <ul className="space-y-1">
                 {suggestions.treatments.map((treatment, idx) => (
-                  <li key={idx} className="text-sm text-orange-700 flex items-start gap-2">
+                  <li key={idx} className="text-sm text-orange-700 flex items-start gap-3">
                     <span className="text-orange-400 mt-1">•</span>
                     <span>{treatment}</span>
                   </li>
@@ -139,7 +139,7 @@ const CustomCropSuggestions: React.FC<CustomCropSuggestionsProps> = ({ crop, sho
               <div className="text-sm font-semibold text-red-900 mb-2">Problemi Ricorrenti</div>
               <ul className="space-y-1">
                 {suggestions.problems.map((problem, idx) => (
-                  <li key={idx} className="text-sm text-red-700 flex items-start gap-2">
+                  <li key={idx} className="text-sm text-red-700 flex items-start gap-3">
                     <span className="text-red-400 mt-1">•</span>
                     <span>{problem}</span>
                   </li>

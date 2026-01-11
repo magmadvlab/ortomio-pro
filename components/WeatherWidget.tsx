@@ -136,7 +136,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
       return <CloudRain size={20} className="text-gray-500" />;
     }
     if (code === 0 || code === 1) {
-      return <Sun size={20} className="text-yellow-500" />;
+      return <Sun size={20} className="text-yellow-full max-w-sm" />;
     }
     return <Cloud size={20} className="text-gray-400" />;
   };
@@ -173,8 +173,8 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
 
   if (!can('advancedWeather')) {
     return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
-        <p className="text-yellow-800">Previsioni meteo avanzate disponibili solo in versione Pro</p>
+      <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-4 text-center">
+        <p className="text-yellow-full max-w-sm">Previsioni meteo avanzate disponibili solo in versione Pro</p>
       </div>
     );
   }
@@ -198,7 +198,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-3 mb-4">
         <Cloud size={20} className="text-blue-600" />
         <h3 className="text-lg font-bold text-gray-800">Previsioni 7 Giorni</h3>
       </div>
@@ -230,7 +230,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
       )}
 
       {/* Forecast Grid */}
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
         {forecast.slice(0, 7).map((day, idx) => {
           // Usa la data reale dall'API invece di calcolarla
           const date = day.date ? new Date(day.date) : new Date();
@@ -258,7 +258,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                   {day.tempMin?.toFixed(0)}°
                 </div>
                 {day.rainForecastMm > 0 && (
-                  <div className="text-xs text-blue-600 mt-1 flex items-center justify-center gap-1">
+                  <div className="text-xs text-blue-600 mt-1 flex items-center justify-center gap-3">
                     <Droplets size={12} />
                     {day.rainForecastMm.toFixed(1)}mm
                   </div>
@@ -273,18 +273,18 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
       {forecast.length > 0 && (
         <div className="mt-4 pt-4 border-t border-gray-200">
           <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <ThermometerSun size={16} className="text-orange-500" />
               <span>Ora: {forecast[0].temp.toFixed(1)}°C</span>
             </div>
             {forecast[0].humidity && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Droplets size={16} className="text-blue-500" />
                 <span>Umidità: {forecast[0].humidity}%</span>
               </div>
             )}
             {forecast[0].windSpeed && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Wind size={16} className="text-gray-500" />
                 <span>Vento: {forecast[0].windSpeed.toFixed(0)} km/h</span>
               </div>
@@ -296,13 +296,13 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
       {/* Garden Location Selector */}
       {gardensWithCoordinates.length > 1 && (
         <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-3 mb-3">
             <MapPin size={16} className="text-gray-500" />
             <p className="text-sm text-gray-600 font-medium">Meteo per:</p>
           </div>
           
           {/* Desktop: Bottoni */}
-          <div className="hidden md:flex gap-2 flex-wrap">
+          <div className="hidden md:flex gap-3 flex-wrap">
             {gardensWithCoordinates.map(garden => (
               <button
                 key={garden.id}
@@ -336,7 +336,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
           
           {/* Coordinate info */}
           {selectedGarden && (
-            <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+            <div className="mt-2 text-xs text-gray-500 flex items-center gap-3">
               <MapPin size={12} />
               <span>
                 {selectedGarden.coordinates?.latitude.toFixed(3)}, {selectedGarden.coordinates?.longitude.toFixed(3)}

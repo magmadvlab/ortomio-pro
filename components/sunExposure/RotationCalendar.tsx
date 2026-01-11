@@ -103,7 +103,7 @@ const RotationCalendar: React.FC<RotationCalendarProps> = ({
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
       {pointName && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Calendar size={18} className="text-gray-600" />
           <h3 className="text-lg font-bold text-gray-800">{pointName} - Piano Annuale</h3>
         </div>
@@ -150,7 +150,7 @@ const RotationCalendar: React.FC<RotationCalendarProps> = ({
         {(['Estivo', 'Primaverile', 'Autunnale', 'FogliaEstiva'] as RotationPlan['categoria'][]).map((cat) => {
           if (!rotation.some((r) => r.categoria === cat)) return null;
           return (
-            <div key={cat} className="flex items-center gap-2">
+            <div key={cat} className="flex items-center gap-3">
               <div className={`w-4 h-4 rounded ${getCategoryColor(cat)}`} />
               <span className="text-xs text-gray-600">{getCategoryLabel(cat)}</span>
             </div>
@@ -159,7 +159,7 @@ const RotationCalendar: React.FC<RotationCalendarProps> = ({
       </div>
 
       {/* Statistiche */}
-      <div className="grid grid-cols-3 gap-4 pt-2 border-t border-gray-200 text-sm">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-gray-200 text-sm">
         <div>
           <div className="text-gray-500">Raccolti previsti</div>
           <div className="font-bold text-gray-800">{rotation.length} cicli</div>

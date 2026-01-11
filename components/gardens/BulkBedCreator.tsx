@@ -216,10 +216,10 @@ export const BulkBedCreator: React.FC<BulkBedCreatorProps> = ({
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 max-w-4xl mx-auto max-h-[90vh] overflow-y-auto">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-800">Aggiungi Elementi Multipli</h2>
+        <h2 className="text-lg md:text-xl font-bold text-gray-800">Aggiungi Elementi Multipli</h2>
         <button
           onClick={onCancel}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
         >
           <X size={20} />
         </button>
@@ -234,14 +234,14 @@ export const BulkBedCreator: React.FC<BulkBedCreatorProps> = ({
               {series.length > 1 && (
                 <button
                   onClick={() => removeSeries(s.id)}
-                  className="p-1 text-red-600 hover:bg-red-50 rounded"
+                  className="p-3 text-red-600 hover:bg-red-50 rounded"
                 >
                   <Trash2 size={16} />
                 </button>
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Tipo */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -250,7 +250,7 @@ export const BulkBedCreator: React.FC<BulkBedCreatorProps> = ({
                 <select
                   value={s.bedType}
                   onChange={(e) => updateSeries(s.id, { bedType: e.target.value as BedType })}
-                  className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
+                  className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
                 >
                   <option value="Pot">Vaso</option>
                   <option value="RaisedBed">Cassone/Letto rialzato</option>
@@ -267,7 +267,7 @@ export const BulkBedCreator: React.FC<BulkBedCreatorProps> = ({
                 <select
                   value={s.shape}
                   onChange={(e) => updateSeries(s.id, { shape: e.target.value as BedShape })}
-                  className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
+                  className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
                 >
                   <option value="Circle">Circolare</option>
                   <option value="Rectangle">Rettangolare</option>
@@ -285,7 +285,7 @@ export const BulkBedCreator: React.FC<BulkBedCreatorProps> = ({
                   onChange={(e) => updateSeries(s.id, { quantity: parseInt(e.target.value) || 1 })}
                   min="1"
                   max="100"
-                  className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
+                  className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
                 />
                 {errors[`series_${index}_quantity`] && (
                   <p className="text-red-500 text-xs mt-1">{errors[`series_${index}_quantity`]}</p>
@@ -302,7 +302,7 @@ export const BulkBedCreator: React.FC<BulkBedCreatorProps> = ({
                   value={s.baseName}
                   onChange={(e) => updateSeries(s.id, { baseName: e.target.value })}
                   placeholder={`Es: ${getBedTypeLabel(s.bedType)} Piccolo`}
-                  className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
+                  className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Genererà: "{s.baseName || getBedTypeLabel(s.bedType)} 1", "{s.baseName || getBedTypeLabel(s.bedType)} 2", ecc.
@@ -322,7 +322,7 @@ export const BulkBedCreator: React.FC<BulkBedCreatorProps> = ({
                     placeholder="Es: 29"
                     min="1"
                     step="1"
-                    className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
                   />
                   {errors[`series_${index}_diameter`] && (
                     <p className="text-red-500 text-xs mt-1">{errors[`series_${index}_diameter`]}</p>
@@ -346,7 +346,7 @@ export const BulkBedCreator: React.FC<BulkBedCreatorProps> = ({
                       placeholder="Es: 30"
                       min="1"
                       step="1"
-                      className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
                     />
                     {errors[`series_${index}_length`] && (
                       <p className="text-red-500 text-xs mt-1">{errors[`series_${index}_length`]}</p>
@@ -363,7 +363,7 @@ export const BulkBedCreator: React.FC<BulkBedCreatorProps> = ({
                       placeholder="Es: 30"
                       min="1"
                       step="1"
-                      className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
                     />
                     {errors[`series_${index}_width`] && (
                       <p className="text-red-500 text-xs mt-1">{errors[`series_${index}_width`]}</p>
@@ -381,7 +381,7 @@ export const BulkBedCreator: React.FC<BulkBedCreatorProps> = ({
                         placeholder="Es: 40"
                         min="1"
                         step="1"
-                        className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
+                        className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
                       />
                     </div>
                   )}
@@ -396,7 +396,7 @@ export const BulkBedCreator: React.FC<BulkBedCreatorProps> = ({
               {/* Associazione struttura (se esistono serre) */}
               {existingStructures.length > 0 && (
                 <div className="col-span-2 space-y-2">
-                  <label className="flex items-center gap-2">
+                  <label className="flex items-center gap-3">
                     <input
                       type="checkbox"
                       checked={s.isCovered || false}
@@ -414,7 +414,7 @@ export const BulkBedCreator: React.FC<BulkBedCreatorProps> = ({
                     <select
                       value={s.structureId || ''}
                       onChange={(e) => updateSeries(s.id, { structureId: e.target.value })}
-                      className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500"
                     >
                       <option value="">Seleziona struttura...</option>
                       {existingStructures.map(st => (
@@ -431,7 +431,7 @@ export const BulkBedCreator: React.FC<BulkBedCreatorProps> = ({
         {/* Aggiungi Altra Serie */}
         <button
           onClick={addSeries}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-green-500 hover:text-green-600 transition-colors"
+          className="w-full flex items-center justify-center gap-3 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-green-500 hover:text-green-600 transition-colors"
         >
           <Plus size={18} />
           Aggiungi Altra Serie
@@ -485,7 +485,7 @@ export const BulkBedCreator: React.FC<BulkBedCreatorProps> = ({
           </button>
           <button
             onClick={handleCreate}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
+            className="flex-1 flex items-center justify-center gap-3 px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
           >
             <CheckCircle size={18} />
             Crea Tutti ({preview.length} elementi)

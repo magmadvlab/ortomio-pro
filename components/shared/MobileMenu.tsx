@@ -273,17 +273,17 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">🌱 OrtoMio</h2>
+            <h2 className="text-lg sm:text-lg md:text-xl font-bold text-gray-900">🌱 OrtoMio</h2>
             <p className="text-xs text-gray-500 mt-1">
               {safeTier === 'PRO' ? 'PRO Professional' : safeTier === 'PLUS' ? 'PLUS' : 'FREE'}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-3 rounded-lg hover:bg-gray-100 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Chiudi menu"
           >
-            <X size={24} className="text-gray-600" />
+            <X size={20} className="text-gray-600" />
           </button>
         </div>
 
@@ -292,19 +292,19 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
           <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
             <button
               onClick={() => setIsGardenSelectorOpen(!isGardenSelectorOpen)}
-              className="w-full text-left"
+              className="w-full text-left min-h-[44px] flex items-center"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between w-full">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-3 mb-1">
                     <Home size={18} className="text-green-600" />
-                    <h3 className="font-bold text-gray-900">{activeGarden.name}</h3>
+                    <h3 className="font-bold text-gray-900 text-sm sm:text-base">{activeGarden.name}</h3>
                     <ChevronDown 
                       size={16} 
                       className={`text-gray-500 transition-transform ${isGardenSelectorOpen ? 'rotate-180' : ''}`}
                     />
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-gray-600">
+                  <div className="flex flex-col sm:flex-col md:flex-row sm:items-center gap-3 sm:gap-4 text-xs text-gray-600">
                     <span>🌱 {activePlantsCount} piante</span>
                     <span>📋 {todayTasksCount} task oggi</span>
                   </div>
@@ -313,7 +313,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             </button>
             
             {isGardenSelectorOpen && gardens.length > 1 && (
-              <div className="mt-3 space-y-1 animate-in slide-in-from-top-2">
+              <div className="mt-3 space-y-1 animate-in slide-in-from-top-3">
                 {gardens.map((garden) => (
                   <button
                     key={garden.id}
@@ -322,14 +322,14 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                       setIsGardenSelectorOpen(false)
                       handleLinkClick('/app')
                     }}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm ${
+                    className={`w-full text-left px-3 py-3 rounded-lg text-sm min-h-[44px] flex items-center ${
                       garden.id === activeGarden.id
                         ? 'bg-green-100 text-green-900 font-medium'
                         : 'bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    <Home size={14} className="inline mr-2" />
-                    {garden.name}
+                    <Home size={16} className="inline mr-2 flex-shrink-0" />
+                    <span className="truncate">{garden.name}</span>
                   </button>
                 ))}
               </div>
@@ -338,8 +338,8 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
         )}
 
         {/* Menu Content - Scrollable */}
-        <div className="overflow-y-auto h-[calc(100vh-80px)] pb-20">
-          <nav className="p-4 space-y-6">
+        <div className="overflow-y-auto h-[calc(100vh-140px)] pb-4">
+          <nav className="p-4 space-y-4 sm:space-y-6">
             {menuGroups.map((group) => {
               if (!isGroupAvailable(group)) return null
 
@@ -353,7 +353,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                   {/* Group Header */}
                   <button
                     onClick={() => group.collapsible && toggleGroup(group.title)}
-                    className={`w-full flex items-center justify-between px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider transition-colors ${
+                    className={`w-full flex items-center justify-between px-2 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider transition-colors min-h-[44px] ${
                       group.collapsible ? 'cursor-pointer hover:text-gray-700' : ''
                     }`}
                   >
@@ -377,16 +377,16 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                           <button
                             key={item.path}
                             onClick={() => handleLinkClick(item.path)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left ${
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left min-h-[44px] ${
                               isActive
                                 ? 'bg-gray-100 text-gray-900 font-semibold'
                                 : 'text-gray-700 hover:bg-gray-50'
                             }`}
                           >
-                            <Icon size={20} />
-                            <span className="flex-1">{item.label}</span>
+                            <Icon size={20} className="flex-shrink-0" />
+                            <span className="flex-1 text-sm sm:text-base truncate">{item.label}</span>
                             {item.badge && (
-                              <span className="text-xs bg-gray-600 text-white px-2 py-0.5 rounded">
+                              <span className="text-xs bg-gray-600 text-white px-2 py-1 rounded flex-shrink-0">
                                 {item.badge}
                               </span>
                             )}

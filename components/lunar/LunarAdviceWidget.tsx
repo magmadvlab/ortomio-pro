@@ -59,7 +59,7 @@ export function LunarAdviceWidget({
           </div>
           <div className="flex-1">
             <div className="text-sm opacity-90 mb-1">Fase Lunare Oggi</div>
-            <div className="text-2xl font-bold mb-1">{currentMoon.name}</div>
+            <div className="text-xl md:text-2xl font-bold mb-1">{currentMoon.name}</div>
             <div className="text-sm opacity-80">
               {currentMoon.isWaxing ? 'Luna Crescente' : 'Luna Calante'}
               {' • '}
@@ -81,10 +81,10 @@ export function LunarAdviceWidget({
       <div className="p-6 space-y-4">
         {/* Operazioni ideali oggi */}
         <div>
-          <div className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          <div className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-3">
             ✅ Ideale oggi per:
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {idealOperations.map((op, idx) => (
               <span
                 key={idx}

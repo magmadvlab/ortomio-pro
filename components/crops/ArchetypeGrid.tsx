@@ -57,7 +57,7 @@ export const ArchetypeGrid: React.FC<ArchetypeGridProps> = ({
         <div className="flex items-center gap-3 mb-4">
           <button
             onClick={handleBack}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
             aria-label="Indietro"
           >
             <ChevronLeft size={20} className="text-gray-600" />
@@ -69,7 +69,7 @@ export const ArchetypeGrid: React.FC<ArchetypeGridProps> = ({
       )}
       
       {/* Griglia responsive: 3 colonne mobile, 4 desktop */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 sm:grid-cols-4 gap-3 sm:gap-4">
         {archetypesToShow.map((archetype) => (
           <button
             key={archetype.id}
@@ -88,7 +88,7 @@ export const ArchetypeGrid: React.FC<ArchetypeGridProps> = ({
             {/* Mostra esempi sotto l'etichetta */}
             {archetype.examples && archetype.examples.length > 0 && (
               <div className="mt-1 px-2">
-                <p className="text-[10px] sm:text-xs text-gray-500 text-center leading-tight line-clamp-2">
+                <p className="text-[10px] sm:text-xs text-gray-500 text-center leading-tight line-clamp-3">
                   {archetype.examples.slice(0, 4).join(', ')}
                   {archetype.examples.length > 4 && '...'}
                 </p>

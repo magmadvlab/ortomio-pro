@@ -164,7 +164,7 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-6">
       <header className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-green-800 flex items-center gap-2">
+          <h1 className="text-xl md:text-2xl font-bold text-green-800 flex items-center gap-3">
             <Package size={24} />
             Banca dei Semi
           </h1>
@@ -172,7 +172,7 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
         </div>
         <button
           onClick={() => setIsAdding(!isAdding)}
-          className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+          className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:bg-green-700 transition-colors flex items-center gap-3"
         >
           {isAdding ? <X size={18}/> : <><Plus size={18}/> Aggiungi</>}
         </button>
@@ -197,7 +197,7 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
       )}
 
       {/* Filters */}
-      <div className="bg-white p-3 rounded-xl border border-gray-200 flex gap-2 flex-wrap">
+      <div className="bg-white p-3 rounded-xl border border-gray-200 flex gap-3 flex-wrap">
         <button
           onClick={() => setFilter('all')}
           className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
@@ -237,7 +237,7 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
 
       {/* Search */}
       <div className="relative">
-        <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        <Search size={18} className="absolute left-3 top-3/2 transform -translate-y-1/2 text-gray-400" />
         <input
           type="text"
           placeholder="Cerca per varietà o specie..."
@@ -287,7 +287,7 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
                 className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Acquisto</label>
                 <input
@@ -330,7 +330,7 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
                   Inserisci quantità: numero esatto (100), range (10-1000), approssimato (~50), o testo (Molti)
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
                     Categoria Scorta {newPacket.quantityDisplay ? '(calcolata automaticamente)' : ''}
@@ -352,7 +352,7 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
                   </select>
                 </div>
                 <div className="flex items-end">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={newPacket.isOpen}
@@ -364,7 +364,7 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
                 </div>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <button
                 onClick={() => setIsAdding(false)}
                 className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-xl font-bold"
@@ -402,7 +402,7 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
                       type="text"
                       value={packet.varietyName}
                       onChange={(e) => handleUpdate(packet.id, { varietyName: e.target.value })}
-                      className="w-full p-2 border border-gray-300 rounded-lg"
+                      className="w-full p-3 border border-gray-300 rounded-lg"
                     />
                     <div className="space-y-2">
                       <input
@@ -410,7 +410,7 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
                         placeholder="Anno scadenza"
                         value={packet.expiryYear}
                         onChange={(e) => handleUpdate(packet.id, { expiryYear: parseInt(e.target.value) || currentYear })}
-                        className="w-full p-2 border border-gray-300 rounded-lg"
+                        className="w-full p-3 border border-gray-300 rounded-lg"
                       />
                       <input
                         type="text"
@@ -432,7 +432,7 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
                               : packet.quantityRemaining
                           });
                         }}
-                        className="w-full p-2 border border-gray-300 rounded-lg"
+                        className="w-full p-3 border border-gray-300 rounded-lg"
                       />
                       {(packet.initialQuantity || packet.quantityDisplay) && (
                         <p className="text-xs text-gray-500">
@@ -447,7 +447,7 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
                         </p>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                       <button
                         onClick={() => setEditingId(null)}
                         className="flex-1 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-bold"
@@ -463,22 +463,22 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
                         <h3 className="font-bold text-lg text-gray-800">{packet.speciesName}</h3>
                         <p className="text-sm text-gray-600 italic">{packet.varietyName}</p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-3">
                         <button
                           onClick={() => setEditingId(packet.id)}
-                          className="p-2 text-gray-400 hover:text-blue-600"
+                          className="p-3 text-gray-400 hover:text-blue-600"
                         >
                           <Edit2 size={16} />
                         </button>
                         <button
                           onClick={() => handleDelete(packet.id)}
-                          className="p-2 text-gray-400 hover:text-red-600"
+                          className="p-3 text-gray-400 hover:text-red-600"
                         >
                           <Trash2 size={16} />
                         </button>
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-2 mt-3">
+                    <div className="flex flex-wrap gap-3 mt-3">
                       <span className={`text-xs font-bold px-2 py-1 rounded ${getQuantityColor(packet.quantityRemaining)}`}>
                         {packet.quantityRemaining === 'High' ? 'Alta' : 
                          packet.quantityRemaining === 'Medium' ? 'Media' :

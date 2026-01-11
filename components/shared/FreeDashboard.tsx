@@ -57,7 +57,7 @@ export function FreeDashboard() {
       <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <h1 className="text-xl md:text-2xl sm:text-3xl font-bold text-gray-900">
               {activeGarden?.name || 'Il Mio Orto'}
             </h1>
             <p className="text-sm text-gray-500 mt-1">
@@ -75,10 +75,10 @@ export function FreeDashboard() {
       
       <main className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
         {gardens.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 sm:p-12 text-center">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 sm:p-32 text-center">
             <div className="max-w-md mx-auto">
               <Home className="mx-auto mb-6 text-green-500" size={64} />
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
+              <h2 className="text-xl md:text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
                 Crea il tuo primo orto
               </h2>
               <p className="text-gray-600 mb-8 text-lg">
@@ -102,19 +102,19 @@ export function FreeDashboard() {
                   <p className="text-orange-100 text-sm font-medium mb-1">Resa Totale (Stimata)</p>
                   <p className="text-4xl font-bold">0.0 kg</p>
                 </div>
-                <div className="bg-white/20 rounded-lg p-2">
+                <div className="bg-white/20 rounded-lg p-3">
                   <Sparkles className="text-white" size={24} />
                 </div>
               </div>
-              <div className="flex gap-2 mt-4">
+              <div className="flex gap-3 mt-4">
                 <button className="bg-white text-orange-600 px-4 py-2 rounded-lg font-semibold text-sm">
                   TUTTI
                 </button>
-                <button className="bg-white/20 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-1">
+                <button className="bg-white/20 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-3">
                   <Sun size={16} />
                   ESTIVO
                 </button>
-                <button className="bg-white/20 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-1">
+                <button className="bg-white/20 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-3">
                   <Snowflake size={16} />
                   INVERNALE
                 </button>
@@ -124,7 +124,7 @@ export function FreeDashboard() {
             {/* Sezione Aggiungi Raccolto */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
               <div className="flex items-center gap-3 mb-2">
-                <div className="bg-green-100 rounded-lg p-2">
+                <div className="bg-green-100 rounded-lg p-3">
                   <Plus className="text-green-600" size={20} />
                 </div>
                 <h3 className="font-semibold text-gray-900">Aggiungi Raccolto a...</h3>
@@ -146,7 +146,7 @@ export function FreeDashboard() {
 
             {/* Widget Funzionalità Free */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4 flex items-center gap-3">
                 <Leaf className="text-green-500" size={24} />
                 Le tue funzionalità Free
               </h2>
@@ -156,7 +156,7 @@ export function FreeDashboard() {
                   <span>1 Orto</span>
                 </div>
                 <div className="flex items-center text-gray-700">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full mr-3"></div>
+                  <div className="w-2 h-2 bg-yellow-full max-w-sm rounded-full mr-3"></div>
                   <span>Wizard consigli pre-generati</span>
                 </div>
                 <div className="flex items-center text-gray-500">
@@ -173,20 +173,20 @@ export function FreeDashboard() {
             </div>
 
             {/* Card AI Credits - Stile migliorato */}
-            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl shadow-sm border-2 border-yellow-200 p-6">
+            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl shadow-sm border-2 border-yellow-full max-w-sm p-6">
               <div className="flex items-start gap-4">
-                <div className="bg-yellow-500 rounded-full p-3">
+                <div className="bg-yellow-full max-w-sm rounded-full p-3">
                   <Sparkles className="text-white" size={24} />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">
+                  <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-2">
                     🎁 3 AI Credits Gratuiti!
                   </h2>
                   <p className="text-gray-700 mb-4">
                     Usa i tuoi crediti per provare la potenza dell'AI di OrtoMio e ricevere diagnosi personalizzate.
                   </p>
                   <Link href="/app/advice">
-                    <Button className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                    <Button className="bg-yellow-full max-w-sm hover:bg-yellow-700 text-white">
                       Inizia la tua prima richiesta AI
                     </Button>
                   </Link>

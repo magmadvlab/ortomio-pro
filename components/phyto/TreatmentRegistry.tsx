@@ -90,14 +90,14 @@ const TreatmentRegistry: React.FC<TreatmentRegistryProps> = ({ garden, userTier 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-3">
           <Calendar size={20} />
           Registro Trattamenti
         </h3>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             onClick={() => handleExport('csv')}
-            className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm"
+            className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-3 text-sm"
           >
             <Download size={14} />
             Esporta CSV
@@ -107,16 +107,16 @@ const TreatmentRegistry: React.FC<TreatmentRegistryProps> = ({ garden, userTier 
 
       {/* Active Safety Intervals */}
       {activeIntervals.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle size={18} className="text-yellow-600" />
-            <span className="font-semibold text-yellow-800">
+        <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-4">
+          <div className="flex items-center gap-3 mb-2">
+            <AlertTriangle size={18} className="text-yellow-full max-w-sm" />
+            <span className="font-semibold text-yellow-full max-w-sm">
               {activeIntervals.length} Trattamenti in Periodo Carenza
             </span>
           </div>
           <div className="space-y-2">
             {activeIntervals.map((record) => (
-              <div key={record.id} className="text-sm text-yellow-700">
+              <div key={record.id} className="text-sm text-yellow-full max-w-sm">
                 {record.plantName} - {record.productName} - Fine carenza:{' '}
                 {record.safetyIntervalEndDate.toLocaleDateString('it-IT')}
               </div>
@@ -126,31 +126,31 @@ const TreatmentRegistry: React.FC<TreatmentRegistryProps> = ({ garden, userTier 
       )}
 
       {/* Filtri */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">Filtra per Pianta</label>
           <input
             type="text"
             value={filterPlant}
             onChange={(e) => setFilterPlant(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
             placeholder="Es. Pomodoro"
           />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">Periodo</label>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <input
               type="date"
               value={dateRange.start}
               onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="flex-1 px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
             />
             <input
               type="date"
               value={dateRange.end}
               onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="flex-1 px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
             />
           </div>
         </div>
@@ -183,7 +183,7 @@ const TreatmentRegistry: React.FC<TreatmentRegistryProps> = ({ garden, userTier 
                       {record.treatmentDate.toLocaleDateString('it-IT')}
                     </div>
                     {isActive && (
-                      <div className="flex items-center gap-1 text-xs text-yellow-700 mt-1">
+                      <div className="flex items-center gap-3 text-xs text-yellow-full max-w-sm mt-1">
                         <AlertTriangle size={12} />
                         <span>Carenza attiva</span>
                       </div>

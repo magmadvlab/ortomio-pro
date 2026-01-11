@@ -59,7 +59,7 @@ const VarietySelector: React.FC<VarietySelectorProps> = ({
         <h3 className="text-lg font-bold text-gray-800 mb-2">Seleziona Varietà</h3>
         
         {/* Filters */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={() => setFilter('all')}
             className={`px-3 py-1 text-xs rounded-lg border transition-colors ${
@@ -131,10 +131,10 @@ const VarietySelector: React.FC<VarietySelectorProps> = ({
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-3 mb-1">
                       <h4 className="font-bold text-gray-800">{variety.name}</h4>
                       {isRecommended && (
-                        <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="bg-yellow-full max-w-sm text-yellow-800 text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-3">
                           <CheckCircle size={12} />
                           Consigliata
                         </span>
@@ -155,9 +155,9 @@ const VarietySelector: React.FC<VarietySelectorProps> = ({
                 </div>
 
                 {/* Variety Details */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
                   {/* Cold Hardiness */}
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-3 text-sm">
                     <Snowflake size={16} className="text-blue-500" />
                     <div>
                       <div className="text-xs text-gray-500">Resistenza freddo</div>
@@ -166,7 +166,7 @@ const VarietySelector: React.FC<VarietySelectorProps> = ({
                   </div>
 
                   {/* Heat Tolerance */}
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-3 text-sm">
                     <Flame size={16} className="text-orange-500" />
                     <div>
                       <div className="text-xs text-gray-500">Tolleranza caldo</div>
@@ -176,7 +176,7 @@ const VarietySelector: React.FC<VarietySelectorProps> = ({
 
                   {/* Container Friendly */}
                   {variety.containerFriendly && (
-                    <div className="flex items-center gap-2 text-sm">
+                    <div className="flex items-center gap-3 text-sm">
                       <Container size={16} className="text-green-500" />
                       <div>
                         <div className="text-xs text-gray-500">Vaso</div>
@@ -186,7 +186,7 @@ const VarietySelector: React.FC<VarietySelectorProps> = ({
                   )}
 
                   {/* Maturity Years */}
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-3 text-sm">
                     <Calendar size={16} className="text-purple-500" />
                     <div>
                       <div className="text-xs text-gray-500">Maturità</div>
@@ -201,7 +201,7 @@ const VarietySelector: React.FC<VarietySelectorProps> = ({
                 {variety.bestUsdaZones.length > 0 && (
                   <div className="mt-2 pt-2 border-t border-gray-200">
                     <div className="text-xs text-gray-500 mb-1">Climi ideali:</div>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-3">
                       {variety.bestUsdaZones.map((zone, idx) => {
                         // Converti numero zona in formato stringa (es. 9 -> '9a', 10 -> '10a')
                         const zoneStr = zone.toString();
@@ -231,7 +231,7 @@ const VarietySelector: React.FC<VarietySelectorProps> = ({
                 {variety.harvestMonths.length > 0 && (
                   <div className="mt-2 pt-2 border-t border-gray-200">
                     <div className="text-xs text-gray-500 mb-1">Mesi di raccolta:</div>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-3">
                       {variety.harvestMonths.map((month, idx) => {
                         const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
                         return (

@@ -162,7 +162,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+          <h3 className="text-lg md:text-xl font-semibold text-gray-900 flex items-center gap-3">
             <FileText size={24} />
             Analisi Suolo
             {zone && <span className="text-sm font-normal text-gray-600">- {zone.name}</span>}
@@ -192,7 +192,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
       {/* Form */}
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Data Analisi *
@@ -202,7 +202,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                 required
                 value={formData.analysisDate || ''}
                 onChange={(e) => setFormData({ ...formData, analysisDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
 
@@ -213,7 +213,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
               <select
                 value={formData.analysisType || 'basic'}
                 onChange={(e) => setFormData({ ...formData, analysisType: e.target.value as any })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               >
                 <option value="basic">Base</option>
                 <option value="complete">Completa</option>
@@ -229,7 +229,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                 type="text"
                 value={formData.labName || ''}
                 onChange={(e) => setFormData({ ...formData, labName: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="Nome laboratorio"
               />
             </div>
@@ -238,7 +238,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
           {/* Macro-nutrienti */}
           <div className="border-t pt-4">
             <h4 className="text-lg font-semibold mb-4">Macro-nutrienti (mg/kg)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Azoto (N)
@@ -248,7 +248,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                   step="0.01"
                   value={formData.nitrogenN || ''}
                   onChange={(e) => setFormData({ ...formData, nitrogenN: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -260,7 +260,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                   step="0.01"
                   value={formData.phosphorusP || ''}
                   onChange={(e) => setFormData({ ...formData, phosphorusP: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -272,7 +272,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                   step="0.01"
                   value={formData.potassiumK || ''}
                   onChange={(e) => setFormData({ ...formData, potassiumK: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -281,7 +281,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
           {/* Micro-nutrienti */}
           <div className="border-t pt-4">
             <h4 className="text-lg font-semibold mb-4">Micro-nutrienti (mg/kg)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Ferro (Fe)
@@ -291,7 +291,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                   step="0.01"
                   value={formData.ironFe || ''}
                   onChange={(e) => setFormData({ ...formData, ironFe: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -303,7 +303,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                   step="0.01"
                   value={formData.manganeseMn || ''}
                   onChange={(e) => setFormData({ ...formData, manganeseMn: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -315,7 +315,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                   step="0.01"
                   value={formData.zincZn || ''}
                   onChange={(e) => setFormData({ ...formData, zincZn: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -327,7 +327,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                   step="0.01"
                   value={formData.copperCu || ''}
                   onChange={(e) => setFormData({ ...formData, copperCu: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -339,7 +339,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                   step="0.01"
                   value={formData.boronB || ''}
                   onChange={(e) => setFormData({ ...formData, boronB: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -348,7 +348,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
           {/* Proprietà fisico-chimiche */}
           <div className="border-t pt-4">
             <h4 className="text-lg font-semibold mb-4">Proprietà Fisico-Chimiche</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   pH
@@ -360,7 +360,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                   step="0.1"
                   value={formData.ph || ''}
                   onChange={(e) => setFormData({ ...formData, ph: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -372,7 +372,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                   step="0.01"
                   value={formData.organicMatterPercent || ''}
                   onChange={(e) => setFormData({ ...formData, organicMatterPercent: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -384,7 +384,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                   step="0.01"
                   value={formData.organicCarbonPercent || ''}
                   onChange={(e) => setFormData({ ...formData, organicCarbonPercent: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -396,7 +396,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                   step="0.01"
                   value={formData.cec || ''}
                   onChange={(e) => setFormData({ ...formData, cec: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -405,7 +405,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
           {/* Texture */}
           <div className="border-t pt-4">
             <h4 className="text-lg font-semibold mb-4">Texture (%)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Sabbia (%)
@@ -415,7 +415,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                   step="0.01"
                   value={formData.sandPercent || ''}
                   onChange={(e) => setFormData({ ...formData, sandPercent: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -427,7 +427,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                   step="0.01"
                   value={formData.siltPercent || ''}
                   onChange={(e) => setFormData({ ...formData, siltPercent: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -439,7 +439,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                   step="0.01"
                   value={formData.clayPercent || ''}
                   onChange={(e) => setFormData({ ...formData, clayPercent: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -453,17 +453,17 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
             <textarea
               value={formData.notes || ''}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               rows={3}
               placeholder="Note aggiuntive sull'analisi..."
             />
           </div>
 
-          <div className="flex items-center gap-2 pt-4">
+          <div className="flex items-center gap-3 pt-4">
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
             >
               <Save size={16} />
               {loading ? 'Salvataggio...' : editingAnalysis ? 'Aggiorna' : 'Salva Analisi'}
@@ -484,15 +484,15 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
 
       {/* Latest Analysis Recommendations */}
       {latestAnalysis && latestAnalysis.recommendations && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
-          <h4 className="text-lg font-semibold text-yellow-800 mb-2 flex items-center gap-2">
+        <div className="bg-yellow-50 border-l-4 border-yellow-full max-w-sm p-4 rounded-lg">
+          <h4 className="text-lg font-semibold text-yellow-full max-w-sm mb-2 flex items-center gap-3">
             <AlertTriangle size={20} />
             Raccomandazioni
           </h4>
           {latestAnalysis.recommendations.deficiencies.length > 0 && (
             <div className="mb-3">
-              <p className="text-sm font-medium text-yellow-800 mb-1">Carenze rilevate:</p>
-              <ul className="list-disc list-inside text-sm text-yellow-700">
+              <p className="text-sm font-medium text-yellow-full max-w-sm mb-1">Carenze rilevate:</p>
+              <ul className="list-disc list-inside text-sm text-yellow-full max-w-sm">
                 {latestAnalysis.recommendations.deficiencies.map((def, i) => (
                   <li key={i}>{def}</li>
                 ))}
@@ -501,10 +501,10 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
           )}
           {latestAnalysis.recommendations.suggestedFertilizers.length > 0 && (
             <div>
-              <p className="text-sm font-medium text-yellow-800 mb-1">Fertilizzanti suggeriti:</p>
+              <p className="text-sm font-medium text-yellow-full max-w-sm mb-1">Fertilizzanti suggeriti:</p>
               <ul className="space-y-1">
                 {latestAnalysis.recommendations.suggestedFertilizers.map((fert, i) => (
-                  <li key={i} className="text-sm text-yellow-700">
+                  <li key={i} className="text-sm text-yellow-full max-w-sm">
                     <span className="font-medium">{fert.product}</span>: {fert.dosage} {fert.unit} - {fert.reason}
                   </li>
                 ))}
@@ -544,7 +544,7 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
               >
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-3 mb-1">
                     <Calendar size={16} className="text-gray-500" />
                     <span className="font-medium text-gray-900">
                       {new Date(analysis.analysisDate).toLocaleDateString('it-IT')}
@@ -560,16 +560,16 @@ export const SoilAnalysisForm: React.FC<SoilAnalysisFormProps> = ({
                     {analysis.ph && <span>pH: {analysis.ph.toFixed(1)}</span>}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <button
                     onClick={() => handleEdit(analysis)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                    className="p-3 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                   >
                     Modifica
                   </button>
                   <button
                     onClick={() => handleDelete(analysis.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                    className="p-3 text-red-600 hover:bg-red-50 rounded transition-colors"
                   >
                     Elimina
                   </button>

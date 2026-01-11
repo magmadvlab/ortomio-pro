@@ -57,7 +57,7 @@ const TraditionalCropsWidget: React.FC<TraditionalCropsWidgetProps> = ({
                 <Droplets size={24} />
               </div>
               <div className="text-left">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <div className="font-bold text-gray-900">Olive</div>
                   <span className="px-2 py-0.5 text-xs font-bold bg-red-100 text-red-700 rounded-full border border-red-200">
                     ITALIANO
@@ -80,7 +80,7 @@ const TraditionalCropsWidget: React.FC<TraditionalCropsWidgetProps> = ({
                 <Wine size={24} />
               </div>
               <div className="text-left">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <div className="font-bold text-gray-900">Vite</div>
                   <span className="px-2 py-0.5 text-xs font-bold bg-red-100 text-red-700 rounded-full border border-red-200">
                     ITALIANO

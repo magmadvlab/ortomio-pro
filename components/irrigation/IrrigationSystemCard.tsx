@@ -48,12 +48,12 @@ export function IrrigationSystemCard({ system, onEdit, onDelete }: IrrigationSys
           <div className="flex items-center gap-3">
             <div className="text-4xl">{typeIcons[systemType]}</div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900">{system.name}</h3>
+              <h3 className="text-lg md:text-xl font-bold text-gray-900">{system.name}</h3>
               <p className="text-sm text-gray-600">{typeLabels[systemType]}</p>
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <Button onClick={onEdit} variant="outline" size="sm">
               <Edit size={16} className="mr-1" />
               Modifica
@@ -67,10 +67,10 @@ export function IrrigationSystemCard({ system, onEdit, onDelete }: IrrigationSys
 
       {/* Body */}
       <div className="p-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-3 gap-4">
           {/* Fonte Acqua */}
           {system.waterSource && (
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-3">
               <Factory className="text-blue-500 flex-shrink-0 mt-0.5" size={18} />
               <div>
                 <p className="text-xs text-gray-500">Fonte Acqua</p>
@@ -83,7 +83,7 @@ export function IrrigationSystemCard({ system, onEdit, onDelete }: IrrigationSys
 
           {/* Pressione */}
           {system.pressureBar && (
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-3">
               <Gauge className="text-orange-500 flex-shrink-0 mt-0.5" size={18} />
               <div>
                 <p className="text-xs text-gray-500">Pressione</p>
@@ -95,7 +95,7 @@ export function IrrigationSystemCard({ system, onEdit, onDelete }: IrrigationSys
           )}
 
           {/* Timer */}
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-3">
             <Clock className={`flex-shrink-0 mt-0.5 ${system.hasTimer ? 'text-green-500' : 'text-gray-300'}`} size={18} />
             <div>
               <p className="text-xs text-gray-500">Timer</p>
@@ -106,7 +106,7 @@ export function IrrigationSystemCard({ system, onEdit, onDelete }: IrrigationSys
           </div>
 
           {/* Valvole */}
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-3">
             <Zap className={`flex-shrink-0 mt-0.5 ${system.hasValve ? 'text-purple-500' : 'text-gray-300'}`} size={18} />
             <div>
               <p className="text-xs text-gray-500">Valvole Smart</p>

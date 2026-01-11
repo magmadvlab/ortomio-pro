@@ -158,7 +158,7 @@ export function SimplifiedPlantingForm({
         <div className="flex items-center gap-4">
           <button
             onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
-            className="w-11 h-11 border-2 border-gray-200 rounded-xl bg-white hover:border-ortomio-green-500 hover:bg-ortomio-green-50 transition-all text-xl font-semibold text-gray-700"
+            className="w-11 h-11 border-2 border-gray-200 rounded-xl bg-white hover:border-ortomio-green-500 hover:bg-ortomio-green-50 transition-all text-lg md:text-xl font-semibold text-gray-700"
           >
             −
           </button>
@@ -168,7 +168,7 @@ export function SimplifiedPlantingForm({
           </div>
           <button
             onClick={() => onQuantityChange(quantity + 1)}
-            className="w-11 h-11 border-2 border-gray-200 rounded-xl bg-white hover:border-ortomio-green-500 hover:bg-ortomio-green-50 transition-all text-xl font-semibold text-gray-700"
+            className="w-11 h-11 border-2 border-gray-200 rounded-xl bg-white hover:border-ortomio-green-500 hover:bg-ortomio-green-50 transition-all text-lg md:text-xl font-semibold text-gray-700"
           >
             +
           </button>
@@ -180,7 +180,7 @@ export function SimplifiedPlantingForm({
         <Button
           onClick={onSubmit}
           disabled={isLoading}
-          className="w-full py-4 bg-gradient-to-r from-ortomio-green-500 to-ortomio-green-600 text-white rounded-xl font-semibold text-base hover:from-ortomio-green-600 hover:to-ortomio-green-700 shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+          className="w-full py-4 bg-gradient-to-r from-ortomio-green-500 to-ortomio-green-600 text-white rounded-xl font-semibold text-base hover:from-ortomio-green-600 hover:to-ortomio-green-700 shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-3"
         >
           <Sprout size={20} />
           Aggiungi al Piano

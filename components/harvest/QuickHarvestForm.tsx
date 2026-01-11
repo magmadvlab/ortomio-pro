@@ -94,7 +94,7 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
       <div className="bg-white rounded-3xl w-full max-w-[480px] shadow-xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900">🛒 Registra Raccolto</h2>
+          <h2 className="text-lg md:text-xl font-semibold text-gray-900">🛒 Registra Raccolto</h2>
           <button
             onClick={onSkip}
             className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
@@ -140,7 +140,7 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
               <button
                 type="button"
                 onClick={() => adjustQuantity(-0.5)}
-                className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-colors text-2xl font-light"
+                className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-colors text-xl md:text-2xl font-light"
                 aria-label="Diminuisci"
               >
                 −
@@ -166,7 +166,7 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
               <button
                 type="button"
                 onClick={() => adjustQuantity(0.5)}
-                className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-colors text-2xl font-light"
+                className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-colors text-xl md:text-2xl font-light"
                 aria-label="Aumenta"
               >
                 +
@@ -179,7 +179,7 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Qualità
             </label>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               {qualityOptions.map((option) => (
                 <button
                   key={option.value}
@@ -191,7 +191,7 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
                       : 'border-transparent hover:bg-green-50'
                   }`}
                 >
-                  <div className="text-2xl mb-1">{option.emoji}</div>
+                  <div className="text-xl md:text-2xl mb-1">{option.emoji}</div>
                   <div className="text-xs font-medium text-gray-700">{option.label}</div>
                 </button>
               ))}
@@ -209,7 +209,7 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
                 <button
                   type="button"
                   onClick={() => setPhoto(null)}
-                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors"
+                  className="absolute top-3 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors"
                 >
                   <X size={16} />
                 </button>

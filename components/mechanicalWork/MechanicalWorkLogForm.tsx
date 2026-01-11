@@ -134,7 +134,7 @@ export function MechanicalWorkLogForm({
         <select
           value={formData.workType || ''}
           onChange={e => setFormData({ ...formData, workType: e.target.value as WorkType })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5 focus:ring-2 focus:ring-green-500 focus:border-transparent"
           required
         >
           <option value="">Seleziona tipo lavorazione</option>
@@ -148,7 +148,7 @@ export function MechanicalWorkLogForm({
 
       {/* DOVE - Zone/Aiuole/File */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-3 mb-3">
           <Layers size={18} className="text-blue-600" />
           <h3 className="font-semibold text-gray-900">Dove (opzionale)</h3>
         </div>
@@ -165,11 +165,11 @@ export function MechanicalWorkLogForm({
               <label className="text-xs font-semibold text-gray-700 mb-2 block">
                 Aiuole
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {beds.map(bed => (
                   <label
                     key={bed.id}
-                    className="flex items-center gap-2 p-2 border border-gray-300 rounded-lg hover:bg-blue-50 cursor-pointer"
+                    className="flex items-center gap-3 p-2 border border-gray-300 rounded-lg hover:bg-blue-50 cursor-pointer"
                   >
                     <input
                       type="checkbox"
@@ -196,11 +196,11 @@ export function MechanicalWorkLogForm({
               <label className="text-xs font-semibold text-gray-700 mb-2 block">
                 File
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {rows.map(row => (
                   <label
                     key={row.id}
-                    className="flex items-center gap-2 p-2 border border-gray-300 rounded-lg hover:bg-blue-50 cursor-pointer"
+                    className="flex items-center gap-3 p-2 border border-gray-300 rounded-lg hover:bg-blue-50 cursor-pointer"
                   >
                     <input
                       type="checkbox"
@@ -242,7 +242,7 @@ export function MechanicalWorkLogForm({
         <select
           value={formData.equipmentType || ''}
           onChange={e => setFormData({ ...formData, equipmentType: e.target.value as EquipmentType })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5 focus:ring-2 focus:ring-green-500 focus:border-transparent"
           required
         >
           <option value="">Seleziona attrezzatura</option>
@@ -260,7 +260,7 @@ export function MechanicalWorkLogForm({
             placeholder="es. Aratro a versoio, Fresa rotativa"
             value={formData.equipmentAttachment || ''}
             onChange={e => setFormData({ ...formData, equipmentAttachment: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 mt-2"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5 mt-2"
           />
         )}
       </div>
@@ -275,13 +275,13 @@ export function MechanicalWorkLogForm({
           type="date"
           value={formData.workDate || ''}
           onChange={e => setFormData({ ...formData, workDate: e.target.value })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5 focus:ring-2 focus:ring-green-500 focus:border-transparent"
           required
         />
       </div>
 
       {/* AREA E PROFONDITÀ */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
             <MapPin size={16} className="inline mr-1.5" />
@@ -292,7 +292,7 @@ export function MechanicalWorkLogForm({
             step="0.1"
             value={formData.areaCoveredSqm || ''}
             onChange={e => setFormData({ ...formData, areaCoveredSqm: parseFloat(e.target.value) })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2.5"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5"
             placeholder="es. 500"
           />
         </div>
@@ -305,7 +305,7 @@ export function MechanicalWorkLogForm({
             type="number"
             value={formData.depthCm || ''}
             onChange={e => setFormData({ ...formData, depthCm: parseInt(e.target.value) })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2.5"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5"
             placeholder="es. 30"
           />
           <p className="text-xs text-gray-500 mt-1">
@@ -315,7 +315,7 @@ export function MechanicalWorkLogForm({
       </div>
 
       {/* DURATA E COSTO */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
             <Clock size={16} className="inline mr-1.5" />
@@ -325,7 +325,7 @@ export function MechanicalWorkLogForm({
             type="number"
             value={formData.durationMinutes || ''}
             onChange={e => setFormData({ ...formData, durationMinutes: parseInt(e.target.value) })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2.5"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5"
             placeholder="es. 120"
           />
         </div>
@@ -340,7 +340,7 @@ export function MechanicalWorkLogForm({
             step="0.01"
             value={formData.cost || ''}
             onChange={e => setFormData({ ...formData, cost: parseFloat(e.target.value) })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2.5"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5"
             placeholder="es. 50.00"
           />
           <p className="text-xs text-gray-500 mt-1">
@@ -359,7 +359,7 @@ export function MechanicalWorkLogForm({
           type="text"
           value={formData.operatorName || ''}
           onChange={e => setFormData({ ...formData, operatorName: e.target.value })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2.5"
+          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5"
           placeholder="Nome operatore o azienda"
         />
       </div>
@@ -370,7 +370,7 @@ export function MechanicalWorkLogForm({
           <CloudRain size={16} className="inline mr-1.5" />
           Condizioni Meteo
         </label>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="text-xs text-gray-600">Temperatura (°C)</label>
             <input
@@ -434,7 +434,7 @@ export function MechanicalWorkLogForm({
         <textarea
           value={formData.notes || ''}
           onChange={e => setFormData({ ...formData, notes: e.target.value })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5 focus:ring-2 focus:ring-green-500 focus:border-transparent"
           rows={3}
           placeholder="es. Terreno in buone condizioni, rimosse molte erbacce..."
         />

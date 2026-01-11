@@ -76,7 +76,7 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             pH *
@@ -85,7 +85,7 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
             type="number"
             value={ph}
             onChange={(e) => setPh(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
             required
             step="0.1"
             min="0"
@@ -104,7 +104,7 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
                 type="number"
                 value={ec}
                 onChange={(e) => setEc(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 required
                 step="0.1"
                 min="0"
@@ -120,7 +120,7 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
                 type="number"
                 value={waterTemperature}
                 onChange={(e) => setWaterTemperature(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 step="0.1"
                 min="10"
                 max="35"
@@ -134,7 +134,7 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
                 type="number"
                 value={reservoirVolume}
                 onChange={(e) => setReservoirVolume(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 min="0"
                 step="0.1"
               />
@@ -150,7 +150,7 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
                 type="number"
                 value={ammonia}
                 onChange={(e) => setAmmonia(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 required
                 step="0.1"
                 min="0"
@@ -166,7 +166,7 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
                 type="number"
                 value={nitrite}
                 onChange={(e) => setNitrite(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 required
                 step="0.1"
                 min="0"
@@ -182,7 +182,7 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
                 type="number"
                 value={nitrate}
                 onChange={(e) => setNitrate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 required
                 min="0"
                 max="150"
@@ -197,7 +197,7 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
                 type="number"
                 value={waterTemperature}
                 onChange={(e) => setWaterTemperature(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 step="0.1"
                 min="15"
                 max="35"
@@ -211,7 +211,7 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
                 type="number"
                 value={dissolvedOxygen}
                 onChange={(e) => setDissolvedOxygen(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 step="0.1"
                 min="0"
                 max="15"
@@ -228,13 +228,13 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
           rows={3}
           placeholder="Note aggiuntive sulla lettura..."
         />
       </div>
 
-      <div className="flex gap-2 justify-end pt-4">
+      <div className="flex gap-3 justify-end pt-4">
         {onCancel && (
           <button
             type="button"
@@ -247,7 +247,7 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-3"
         >
           <Save size={18} />
           {loading ? 'Salvataggio...' : 'Salva Lettura'}

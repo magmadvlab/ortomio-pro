@@ -117,13 +117,13 @@ export const OpenFieldSizeConfig: React.FC<OpenFieldSizeConfigProps> = ({
         </label>
 
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-          <p className="text-sm text-gray-700 flex items-start gap-2">
+          <p className="text-sm text-gray-700 flex items-start gap-3">
             <Info size={16} className="text-blue-600 mt-0.5 flex-shrink-0" />
             Inserisci la superficie totale del tuo campo aperto.
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <input
             type="number"
             value={size}
@@ -164,7 +164,7 @@ export const OpenFieldSizeConfig: React.FC<OpenFieldSizeConfigProps> = ({
           onClick={() => setShowRowConfig(!showRowConfig)}
           className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between"
         >
-          <span className="font-medium text-gray-900 flex items-center gap-2">
+          <span className="font-medium text-gray-900 flex items-center gap-3">
             {showRowConfig ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
             Configurazione Filari (Opzionale)
           </span>
@@ -173,7 +173,7 @@ export const OpenFieldSizeConfig: React.FC<OpenFieldSizeConfigProps> = ({
         {showRowConfig && (
           <div className="p-4 space-y-4">
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-gray-700 flex items-start gap-2">
+              <p className="text-sm text-gray-700 flex items-start gap-3">
                 <Info size={16} className="text-blue-600 mt-0.5 flex-shrink-0" />
                 Specifica numero e dimensioni filari. Potrai personalizzare le distanze tra file quando pianterai le colture.
               </p>

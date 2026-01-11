@@ -52,7 +52,7 @@ export const FertilizationSuggestion: React.FC<FertilizationSuggestionProps> = (
   return (
     <div className={`rounded-lg border-2 p-4 ${priorityColors[suggestion.priority]} ${className}`}>
       <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <FlaskConical size={20} />
           <h3 className="font-semibold">
             Fertilizzazione Consigliata: {plantName}
@@ -69,7 +69,7 @@ export const FertilizationSuggestion: React.FC<FertilizationSuggestionProps> = (
         {suggestion.reason}
       </p>
 
-      <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3 text-sm">
         <div>
           <p className="font-medium mb-1">Nutrienti:</p>
           <div className="space-y-1">
@@ -110,7 +110,7 @@ export const FertilizationSuggestion: React.FC<FertilizationSuggestionProps> = (
 
       <button
         onClick={handleAddFertilizationTask}
-        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white border-2 border-current rounded-lg hover:bg-opacity-80 transition-colors font-medium text-sm"
+        className="w-full flex items-center justify-center gap-3 px-4 py-2 bg-white border-2 border-current rounded-lg hover:bg-opacity-80 transition-colors font-medium text-sm"
       >
         <Plus size={16} />
         Aggiungi Task Fertilizzazione

@@ -105,7 +105,7 @@ export function CompassCalibrator({
       <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Compass className="text-blue-600" size={24} />
             <h3 className="text-lg font-bold text-gray-900">
               Calibra il Nord nella foto
@@ -113,7 +113,7 @@ export function CompassCalibrator({
           </div>
           <button
             onClick={onCancel}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <X size={20} />
           </button>
@@ -121,7 +121,7 @@ export function CompassCalibrator({
 
         {/* Istruzioni */}
         <div className="p-4 bg-blue-50 border-b border-blue-200">
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-3">
             <AlertCircle className="text-blue-600 flex-shrink-0 mt-0.5" size={18} />
             <div className="text-sm text-blue-900">
               <p className="font-semibold mb-1">Come calibrare:</p>
@@ -272,13 +272,13 @@ export function CompassCalibrator({
             <div className="flex items-center justify-between">
               <button
                 onClick={handleReset}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 flex items-center gap-2 transition-colors"
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 flex items-center gap-3 transition-colors"
               >
                 <RotateCcw size={16} />
                 Reset
               </button>
               
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
                   onClick={onCancel}
                   className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
@@ -287,7 +287,7 @@ export function CompassCalibrator({
                 </button>
                 <button
                   onClick={() => onConfirm(northOffset)}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-colors"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-3 transition-colors"
                 >
                   <Check size={16} />
                   Conferma

@@ -125,7 +125,7 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
   return (
     <div className="bg-white rounded-lg shadow-md p-6 border-2 border-green-200">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-900">
+        <h2 className="text-lg md:text-xl font-bold text-gray-900">
           {consultation ? 'Modifica Consultazione' : 'Nuova Consultazione'}
         </h2>
         <button
@@ -156,7 +156,7 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
           </select>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Data Consultazione *
@@ -229,7 +229,7 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
           <button
             type="button"
             onClick={addAdvice}
-            className="mb-2 flex items-center gap-2 px-3 py-1 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
+            className="mb-2 flex items-center gap-3 px-3 py-1 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
           >
             <Plus size={16} />
             Aggiungi Consiglio
@@ -284,7 +284,7 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs text-gray-600 mb-1">Priorità</label>
                       <select

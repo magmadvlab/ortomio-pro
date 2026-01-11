@@ -168,45 +168,47 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Header con Data e Ora */}
-      <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 border-b border-gray-100">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-green-50 to-blue-50 p-3 sm:p-4 border-b border-gray-100">
+        <div className="flex flex-col sm:flex-col md:flex-row sm:items-center sm:justify-between gap-3 sm:gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
-              <Calendar size={20} className="text-white" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-600 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Calendar size={16} className="sm:hidden text-white" />
+              <Calendar size={20} className="hidden sm:block text-white" />
             </div>
-            <div>
-              <h3 className="font-bold text-gray-800 capitalize">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-bold text-gray-800 capitalize text-sm sm:text-base truncate">
                 {formatDate(currentTime)}
               </h3>
-              <p className="text-sm text-gray-600 flex items-center gap-1">
-                <Clock size={14} />
-                {formatTime(currentTime)} • Report in tempo reale
+              <p className="text-xs sm:text-sm text-gray-600 flex items-center gap-3">
+                <Clock size={12} className="sm:hidden" />
+                <Clock size={14} className="hidden sm:block" />
+                <span className="truncate">{formatTime(currentTime)} • Report in tempo reale</span>
               </p>
             </div>
           </div>
-          <div className={`px-3 py-1 rounded-full text-sm font-medium ${getHealthColor(gardenStats.healthScore)}`}>
+          <div className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium flex-shrink-0 ${getHealthColor(gardenStats.healthScore)}`}>
             {gardenStats.healthScore}% Salute
           </div>
         </div>
       </div>
 
       {/* Statistiche Rapide */}
-      <div className="p-4 border-b border-gray-100">
-        <div className="grid grid-cols-4 gap-3">
-          <div className="text-center">
-            <div className="text-lg font-bold text-green-600">{gardenStats.plantsCount}</div>
+      <div className="p-3 sm:p-4 border-b border-gray-100">
+        <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3">
+          <div className="text-center p-3 sm:p-0">
+            <div className="text-base sm:text-lg font-bold text-green-600">{gardenStats.plantsCount}</div>
             <div className="text-xs text-gray-500">Piante</div>
           </div>
-          <div className="text-center">
-            <div className="text-lg font-bold text-blue-600">{gardenStats.tasksToday}</div>
+          <div className="text-center p-3 sm:p-0">
+            <div className="text-base sm:text-lg font-bold text-blue-600">{gardenStats.tasksToday}</div>
             <div className="text-xs text-gray-500">Task oggi</div>
           </div>
-          <div className="text-center">
-            <div className="text-lg font-bold text-orange-600">{gardenStats.wateringNeeded}</div>
+          <div className="text-center p-3 sm:p-0">
+            <div className="text-base sm:text-lg font-bold text-orange-600">{gardenStats.wateringNeeded}</div>
             <div className="text-xs text-gray-500">Da innaffiare</div>
           </div>
-          <div className="text-center">
-            <div className="text-lg font-bold text-purple-600">{gardenStats.harvestReady}</div>
+          <div className="text-center p-3 sm:p-0">
+            <div className="text-base sm:text-lg font-bold text-purple-600">{gardenStats.harvestReady}</div>
             <div className="text-xs text-gray-500">Da raccogliere</div>
           </div>
         </div>
@@ -214,9 +216,9 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
 
       {/* Alert Urgenti */}
       {gardenStats.tasksOverdue > 0 && (
-        <div className="p-4 bg-red-50 border-b border-red-100">
-          <div className="flex items-center gap-2 text-red-700">
-            <AlertCircle size={16} />
+        <div className="p-3 sm:p-4 bg-red-50 border-b border-red-100">
+          <div className="flex items-center gap-3 text-red-700">
+            <AlertCircle size={16} className="flex-shrink-0" />
             <span className="text-sm font-medium">
               {gardenStats.tasksOverdue} task in ritardo richiedono attenzione
             </span>
@@ -225,29 +227,31 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
       )}
 
       {/* Task Suggeriti Dinamici */}
-      <div className="p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles size={16} className="text-purple-600" />
-          <h4 className="font-semibold text-gray-800">Suggerimenti per Oggi</h4>
+      <div className="p-3 sm:p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <Sparkles size={16} className="text-purple-600 flex-shrink-0" />
+          <h4 className="font-semibold text-gray-800 text-sm sm:text-base">Suggerimenti per Oggi</h4>
         </div>
         
         <div className="space-y-2">
           {suggestedTasks.map((task) => (
             <div
               key={task.id}
-              className={`p-3 rounded-lg border-l-4 cursor-pointer hover:shadow-sm transition-shadow ${getPriorityColor(task.priority)}`}
+              className={`p-3 rounded-lg border-l-4 cursor-pointer hover:shadow-sm transition-shadow min-h-[44px] ${getPriorityColor(task.priority)}`}
               onClick={() => onTaskClick?.(task.id)}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{task.icon}</span>
-                    <span className="font-medium text-gray-800 text-sm">{task.title}</span>
-                    <span className="text-xs text-gray-500">~{task.estimatedMinutes}min</span>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col sm:flex-col md:flex-row sm:items-center gap-3 sm:gap-3 mb-1">
+                    <div className="flex items-center gap-3">
+                      <span className="text-base sm:text-lg flex-shrink-0">{task.icon}</span>
+                      <span className="font-medium text-gray-800 text-sm truncate">{task.title}</span>
+                    </div>
+                    <span className="text-xs text-gray-500 flex-shrink-0">~{task.estimatedMinutes}min</span>
                   </div>
-                  <p className="text-xs text-gray-600">{task.description}</p>
+                  <p className="text-xs text-gray-600 line-clamp-3">{task.description}</p>
                 </div>
-                <ArrowRight size={14} className="text-gray-400 mt-1" />
+                <ArrowRight size={14} className="text-gray-400 mt-1 flex-shrink-0" />
               </div>
             </div>
           ))}
@@ -255,14 +259,15 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
 
         {suggestedTasks.length === 0 && (
           <div className="text-center py-4 text-gray-500">
-            <CheckCircle size={24} className="mx-auto mb-2 text-green-500" />
+            <CheckCircle size={20} className="sm:hidden mx-auto mb-2 text-green-500" />
+            <CheckCircle size={24} className="hidden sm:block mx-auto mb-2 text-green-500" />
             <p className="text-sm">Tutto sotto controllo! 🌱</p>
           </div>
         )}
       </div>
 
       {/* Footer con Prossimo Aggiornamento */}
-      <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
+      <div className="px-3 sm:px-4 py-2 bg-gray-50 border-t border-gray-100">
         <p className="text-xs text-gray-500 text-center">
           Prossimo aggiornamento: {formatTime(new Date(currentTime.getTime() + 60000))}
         </p>

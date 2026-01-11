@@ -97,7 +97,7 @@ const PlantCalendar: React.FC<{ sowing: string, transplant: string, harvest: str
   if (!mounted) {
     return (
       <div className="bg-white p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
-        <h4 className="font-bold text-gray-700 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
+        <h4 className="font-bold text-gray-700 mb-3 flex items-center gap-3 text-sm uppercase tracking-wider">
           <Calendar size={16}/> Calendario Colturale
         </h4>
         <div className="h-32 flex items-center justify-center text-gray-400">
@@ -109,11 +109,11 @@ const PlantCalendar: React.FC<{ sowing: string, transplant: string, harvest: str
 
     return (
         <div className="bg-white p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
-            <h4 className="font-bold text-gray-700 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
+            <h4 className="font-bold text-gray-700 mb-3 flex items-center gap-3 text-sm uppercase tracking-wider">
                 <Calendar size={16}/> Calendario Colturale
             </h4>
             
-            <div className="mb-1 grid grid-cols-12 gap-1">
+            <div className="mb-1 grid grid-cols-1 md:grid-cols-12 gap-3">
                  {monthLabels.map((m, i) => (
                     <div key={i} className={`text-[10px] text-center font-bold ${i === currentMonth ? "text-green-600 underline scale-110" : "text-gray-400"}`}>
                         {m}
@@ -123,8 +123,8 @@ const PlantCalendar: React.FC<{ sowing: string, transplant: string, harvest: str
 
             <div className="space-y-1.5">
                 {/* Sowing Row */}
-                <div className="flex items-center gap-2">
-                    <div className="grid grid-cols-12 gap-1 flex-1 h-2.5">
+                <div className="flex items-center gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 flex-1 h-2.5">
                         {monthLabels.map((_, i) => (
                             <div key={i} className={`rounded-sm ${activeSowing.includes(i) ? 'bg-orange-400' : 'bg-gray-100'}`}></div>
                         ))}
@@ -132,8 +132,8 @@ const PlantCalendar: React.FC<{ sowing: string, transplant: string, harvest: str
                 </div>
                 
                 {/* Transplant Row */}
-                <div className="flex items-center gap-2">
-                     <div className="grid grid-cols-12 gap-1 flex-1 h-2.5">
+                <div className="flex items-center gap-3">
+                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3 flex-1 h-2.5">
                         {monthLabels.map((_, i) => (
                             <div key={i} className={`rounded-sm ${activeTransplant.includes(i) ? 'bg-green-500' : 'bg-gray-100'}`}></div>
                         ))}
@@ -141,8 +141,8 @@ const PlantCalendar: React.FC<{ sowing: string, transplant: string, harvest: str
                 </div>
 
                 {/* Harvest Row */}
-                <div className="flex items-center gap-2">
-                     <div className="grid grid-cols-12 gap-1 flex-1 h-2.5">
+                <div className="flex items-center gap-3">
+                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3 flex-1 h-2.5">
                         {monthLabels.map((_, i) => (
                             <div key={i} className={`rounded-sm ${activeHarvest.includes(i) ? 'bg-yellow-400' : 'bg-gray-100'}`}></div>
                         ))}
@@ -151,9 +151,9 @@ const PlantCalendar: React.FC<{ sowing: string, transplant: string, harvest: str
             </div>
 
             <div className="flex gap-4 mt-3 justify-center text-[10px] text-gray-500 font-medium border-t border-gray-100 pt-2">
-                <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-orange-400"></div> Semina</span>
-                <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-500"></div> Trapianto</span>
-                <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-yellow-400"></div> Raccolta</span>
+                <span className="flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-orange-400"></div> Semina</span>
+                <span className="flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-green-500"></div> Trapianto</span>
+                <span className="flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-yellow-full max-w-sm"></div> Raccolta</span>
             </div>
         </div>
     );
@@ -887,14 +887,14 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
             {/* Bottone principale AI Planning */}
             <button
               onClick={() => setShowAIWizard(true)}
-              className="relative px-4 py-2 bg-gradient-to-r from-purple-600 via-blue-600 to-green-600 text-white rounded-lg hover:from-purple-700 hover:via-blue-700 hover:to-green-700 transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 animate-pulse"
+              className="relative px-4 py-2 bg-gradient-to-r from-purple-600 via-blue-600 to-green-600 text-white rounded-lg hover:from-purple-700 hover:via-blue-700 hover:to-green-700 transition-all duration-200 flex items-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-105 animate-pulse"
             >
               <Bot size={20} className="animate-bounce" />
               <span className="font-medium">🤖 Pianifica con AI</span>
               <Sparkles size={16} className="opacity-80 animate-spin" />
               
               {/* Badge NEW */}
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold animate-bounce">
+              <span className="absolute -top-3 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold animate-bounce">
                 NEW
               </span>
             </button>
@@ -903,7 +903,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
       </header>
 
       {/* Main Layout - Two Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-[1fr_400px] gap-8">
         {/* Left Column */}
         <div className="space-y-6">
 
@@ -938,13 +938,13 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
           {/* SEARCH SECTION - PRIMARY */}
           <div className="bg-white p-6 rounded-2xl shadow-lg border border-green-200">
-        <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+        <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-3">
             <Search size={20} className="text-green-600"/>
             Cerca Specie o Varietà
         </h2>
         
         {/* Visual Category Filters */}
-        <div className="mb-4 flex flex-wrap gap-2">
+        <div className="mb-4 flex flex-wrap gap-3">
           <button
             onClick={() => setSelectedVisualCategory('all')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -1010,7 +1010,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
         {/* Search Box */}
         <form onSubmit={handleSpecificSearch} className="relative">
             <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-ortomio-green-500 focus-within:bg-white transition-all">
-                <span className="text-xl">🔍</span>
+                <span className="text-lg md:text-xl">🔍</span>
                 <input 
                     type="text" 
                     value={searchQuery}
@@ -1021,7 +1021,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                 <button 
                     type="submit"
                     disabled={searchLoading}
-                    className="bg-ortomio-green-500 p-2 rounded-lg text-white hover:bg-ortomio-green-600 shadow-md transition-all disabled:opacity-50"
+                    className="bg-ortomio-green-500 p-3 rounded-lg text-white hover:bg-ortomio-green-600 shadow-md transition-all disabled:opacity-50"
                 >
                     {searchLoading ? <Loader2 size={20} className="animate-spin" /> : <ArrowRight size={20} />}
                 </button>
@@ -1032,7 +1032,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
         <div className="mt-4">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Popolari in questo periodo:</h4>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <button 
                 onClick={() => {
                   // Mostra piante estive
@@ -1115,7 +1115,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
           {error && (
               <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
-                  <p className="text-sm text-red-800 font-medium flex items-center gap-2">
+                  <p className="text-sm text-red-800 font-medium flex items-center gap-3">
                       <AlertTriangle size={16} className="text-red-600"/>
                       {error}
                   </p>
@@ -1127,7 +1127,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
           {tasks.filter(t => t.aiGenerated).length > 0 && (
             <div className="bg-gradient-to-r from-blue-50 to-green-50 p-6 rounded-2xl border border-blue-200">
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <Bot size={24} className="text-blue-600" />
                   <div>
                     <h2 className="text-lg font-bold text-blue-800">Task Generati da AI</h2>
@@ -1136,7 +1136,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <AIActionButton
                     context={{
                       component: 'planner',
@@ -1150,7 +1150,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
               
               <div className="space-y-3">
                 {/* Fasi AI */}
-                <div className="flex flex-wrap gap-2 mb-3">
+                <div className="flex flex-wrap gap-3 mb-3">
                   {Array.from(new Set(tasks.filter(t => t.aiGenerated).map(t => t.planPhase))).map(phase => (
                     <span key={phase} className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
                       Fase {phase}
@@ -1172,7 +1172,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                             <p className="text-sm text-gray-600">
                               {task.taskType} • {new Date(task.date).toLocaleDateString('it-IT')}
                             </p>
-                            <div className="flex items-center gap-2 mt-1">
+                            <div className="flex items-center gap-3 mt-1">
                               <Bot size={12} className="text-blue-500" />
                               <span className="text-xs text-blue-600 font-medium">Generato da AI</span>
                               {task.planPhase && (
@@ -1194,7 +1194,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                       
                       {task.notes && (
                         <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                          <p className="text-sm text-gray-700 line-clamp-2">{task.notes}</p>
+                          <p className="text-sm text-gray-700 line-clamp-3">{task.notes}</p>
                         </div>
                       )}
                     </div>
@@ -1216,13 +1216,13 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
       {isPro && (
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-200">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-3">
               <Sparkles size={20} className="text-purple-600"/>
               Colture Specializzate
             </h2>
             <button
               onClick={() => setShowCustomCropForm(true)}
-              className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+              className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-3"
             >
               <PlusCircle size={16} />
               Aggiungi Coltura Personalizzata
@@ -1258,7 +1258,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                 setSelectedCropCategory(e.target.value as 'all' | SpecializedCropType);
                 setSelectedSpecializedCrop(null);
               }}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
             >
               <option value="all">Tutte</option>
               <option value="FruitTree">Alberi da Frutto</option>
@@ -1319,7 +1319,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
       )}
 
         {!garden.coordinates && (
-             <p className="text-xs text-orange-500 mt-2 flex items-center gap-1">
+             <p className="text-xs text-orange-500 mt-2 flex items-center gap-3">
                 <MapPin size={12}/> Configura la posizione dell'orto per date più precise.
              </p>
         )}
@@ -1339,7 +1339,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                   <div className="flex-1">
                     <h2 className="text-3xl font-bold mb-1">{specificResult.name}</h2>
                     <p className="text-white/90 text-sm mb-3">{specificResult.variety || 'Solanaceae'}</p>
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-3 flex-wrap">
                       <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold">☀️ Pieno sole</span>
                       <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold">💧 Media</span>
                       <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold">⏱️ 80-100 giorni</span>
@@ -1430,7 +1430,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                       if (availableSeeds.length > 0 || expiringSeeds.length > 0) {
                         return (
                           <div className="mt-3 bg-white p-3 rounded-lg border border-green-50">
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-3 mb-2">
                               <Package size={16} className="text-green-600" />
                               <span className="text-sm font-bold text-gray-700">Semi Disponibili:</span>
                             </div>
@@ -1471,7 +1471,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                 {/* ADVANCED SOIL ANALYSIS */}
                 {soilAnalysis && (soilAnalysis.hasData || specificResult.soil) && (
                     <div className={`mb-6 p-5 rounded-xl border-2 ${soilAnalysis.phStatus === 'good' ? 'bg-white border-green-100' : 'bg-white border-yellow-100'}`}>
-                        <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2 text-sm uppercase">
+                        <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-3 text-sm uppercase">
                             <FlaskConical size={18} className="text-purple-600"/> Analisi Compatibilità Suolo
                         </h4>
                         
@@ -1491,7 +1491,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                                                 {soilAnalysis.phMsg}
                                             </p>
                                             {soilAnalysis.phAdvice && (
-                                                <p className="text-xs text-gray-600 mt-1 bg-yellow-50 p-2 rounded border border-yellow-100">
+                                                <p className="text-xs text-gray-600 mt-1 bg-yellow-50 p-3 rounded border border-yellow-full max-w-sm">
                                                     💡 <b>Correzione:</b> {soilAnalysis.phAdvice}
                                                 </p>
                                             )}
@@ -1500,7 +1500,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                                     
                                     {garden?.soilType && (
                                         <div className="flex items-start gap-3 border-t border-gray-100 pt-3">
-                                            <div className="p-1.5 rounded-full bg-blue-100 text-blue-600">
+                                            <div className="p-3.5 rounded-full bg-blue-100 text-blue-600">
                                                 <Layers size={16}/>
                                             </div>
                                             <div>
@@ -1510,7 +1510,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                                     )}
                                 </div>
                              ) : (
-                                 <p className="text-xs text-gray-500 italic flex items-center gap-1">
+                                 <p className="text-xs text-gray-500 italic flex items-center gap-3">
                                      <Info size={12}/> Configura il pH e il tipo di terra nella Dashboard per un'analisi dettagliata.
                                  </p>
                              )}
@@ -1519,10 +1519,10 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                 )}
 
                 {/* Technical Data: Irrigation & Fertilizer */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                     <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 shadow-sm">
-                        <h4 className="flex items-center gap-2 font-bold text-blue-800 mb-3 text-sm uppercase justify-between">
-                            <span className="flex items-center gap-2"><Droplets size={16} /> Piano Irrigazione</span>
+                        <h4 className="flex items-center gap-3 font-bold text-blue-800 mb-3 text-sm uppercase justify-between">
+                            <span className="flex items-center gap-3"><Droplets size={16} /> Piano Irrigazione</span>
                             <Edit3 size={14} className="opacity-50" />
                         </h4>
                         <div className="space-y-3">
@@ -1532,7 +1532,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                                     type="text"
                                     value={customIrrigationFreq}
                                     onChange={(e) => setCustomIrrigationFreq(e.target.value)}
-                                    className="w-full text-sm p-2 rounded-lg border border-blue-200 text-blue-900 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                    className="w-full text-sm p-3 rounded-lg border border-blue-200 text-blue-900 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                                     placeholder="Es. Ogni 2 giorni"
                                 />
                             </div>
@@ -1542,7 +1542,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                                     type="text"
                                     value={customIrrigationMethod}
                                     onChange={(e) => setCustomIrrigationMethod(e.target.value)}
-                                    className="w-full text-sm p-2 rounded-lg border border-blue-200 text-blue-900 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                    className="w-full text-sm p-3 rounded-lg border border-blue-200 text-blue-900 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                                     placeholder="Es. A goccia"
                                 />
                             </div>
@@ -1550,12 +1550,12 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                     </div>
 
                     <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 relative overflow-hidden">
-                        <h4 className="flex items-center gap-2 font-bold text-purple-800 mb-3 text-sm uppercase">
+                        <h4 className="flex items-center gap-3 font-bold text-purple-800 mb-3 text-sm uppercase">
                             <FlaskConical size={16} /> Nutrizione
                         </h4>
                         
                         {fertRecommendation && garden?.soilType && (
-                            <div className="mb-3 bg-white/60 p-2 rounded-lg border border-purple-100 flex items-start gap-2">
+                            <div className="mb-3 bg-white/60 p-3 rounded-lg border border-purple-100 flex items-start gap-2">
                                 <Sparkles size={14} className="text-purple-600 mt-0.5 shrink-0"/>
                                 <div className="text-xs">
                                     <span className="font-bold text-purple-800 block">{fertRecommendation.label}</span>
@@ -1573,7 +1573,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                                     </div>
                                     {fertRecommendation?.type === 'Organic' && garden?.soilType && <CheckCircle size={16} className="text-purple-600 shrink-0"/>}
                                 </div>
-                                <div className="flex items-center gap-2 text-purple-700 mt-2 text-xs">
+                                <div className="flex items-center gap-3 text-purple-700 mt-2 text-xs">
                                     <Scale size={14} className="shrink-0" />
                                     <span>{specificResult.fertilizer.organicDosageGm2} g/m²</span>
                                     {garden?.sizeSqMeters && (
@@ -1592,7 +1592,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                                     </div>
                                      {fertRecommendation?.type === 'Classic' && garden?.soilType && <CheckCircle size={16} className="text-purple-600 shrink-0"/>}
                                 </div>
-                                <div className="flex items-center gap-2 text-purple-700 mt-2 text-xs">
+                                <div className="flex items-center gap-3 text-purple-700 mt-2 text-xs">
                                     <Scale size={14} className="shrink-0" />
                                     <span>{specificResult.fertilizer.classicDosageGm2} g/m²</span>
                                     {garden?.sizeSqMeters && (
@@ -1605,10 +1605,10 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
                             {specificResult.fertilizer.scheduleDays && specificResult.fertilizer.scheduleDays.length > 0 && (
                                  <div className="pt-2 border-t border-purple-200 mt-1">
-                                    <p className="text-xs text-purple-800 font-bold mb-1 flex items-center gap-1">
+                                    <p className="text-xs text-purple-800 font-bold mb-1 flex items-center gap-3">
                                         <Clock size={12}/> Programma Concimazione:
                                     </p>
-                                    <div className="flex flex-wrap gap-1">
+                                    <div className="flex flex-wrap gap-3">
                                         {specificResult.fertilizer.scheduleDays.map(d => (
                                             <span key={d} className="bg-white text-purple-800 text-[10px] px-1.5 py-0.5 rounded border border-purple-200 shadow-sm font-mono">
                                                 +{d} gg
@@ -1679,14 +1679,14 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
                 {/* Advanced Settings: Succession & Reminders - Hidden by default, show in collapsible section */}
                 <details className="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6">
-                     <summary className="font-bold text-gray-700 mb-3 text-sm uppercase flex items-center gap-2 cursor-pointer">
+                     <summary className="font-bold text-gray-700 mb-3 text-sm uppercase flex items-center gap-3 cursor-pointer">
                         <Settings size={16}/> Opzioni Avanzate
                      </summary>
 
                      {/* Quantity and Location (New) */}
-                     <div className="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-gray-200">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pb-4 border-b border-gray-200">
                         <div>
-                             <label className="text-xs font-bold text-gray-600 flex items-center gap-1 mb-2">
+                             <label className="text-xs font-bold text-gray-600 flex items-center gap-3 mb-2">
                                 <Sprout size={14}/> QUANTE PIANTE?
                              </label>
                              <input 
@@ -1694,14 +1694,14 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                                 min="1" 
                                 value={plantingQuantity}
                                 onChange={(e) => setPlantingQuantity(parseInt(e.target.value) || 1)}
-                                className="w-full p-2 rounded-lg border border-gray-300 font-bold text-gray-800 text-center"
+                                className="w-full p-3 rounded-lg border border-gray-300 font-bold text-gray-800 text-center"
                              />
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-gray-600 flex items-center gap-1 mb-2">
+                            <label className="text-xs font-bold text-gray-600 flex items-center gap-3 mb-2">
                                 <MapPin size={14}/> DOVE?
                              </label>
-                             <div className="flex gap-2 flex-wrap">
+                             <div className="flex gap-3 flex-wrap">
                                  <button 
                                     onClick={() => setLocationType('Pot')}
                                     className={`flex-1 py-2 rounded-lg border flex items-center justify-center ${locationType === 'Pot' ? 'bg-orange-100 border-orange-400 text-orange-800' : 'bg-white border-gray-300'}`}
@@ -1822,10 +1822,10 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                         </div>
                      </div>
 
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <div className="flex items-center justify-between mb-2">
-                                <label className="text-xs font-bold text-gray-600 flex items-center gap-1">
+                                <label className="text-xs font-bold text-gray-600 flex items-center gap-3">
                                     <Layers size={14}/> SCAGLIONAMENTO (Lotti)
                                 </label>
                                 {numBatches > 1 && <span className="text-xs text-green-600 font-bold">{numBatches} lotti</span>}
@@ -1847,7 +1847,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                                 {numBatches > 1 && (
                                     <div className="mt-3 pt-2 border-t border-gray-100 space-y-2">
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-1 text-xs text-gray-600">
+                                            <div className="flex items-center gap-3 text-xs text-gray-600">
                                                 <span>Intervallo:</span>
                                                 <input 
                                                     type="number" 
@@ -1881,7 +1881,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                                             const advice = calculateStaggeredPlanting(masterSheet);
                                             if (advice.recommended && advice.benefits.length > 0) {
                                               return (
-                                                <div className="bg-green-50 rounded p-2 text-[10px] text-green-700 border border-green-200">
+                                                <div className="bg-green-50 rounded p-3 text-[10px] text-green-700 border border-green-200">
                                                   <p className="font-bold mb-1">💡 Benefici:</p>
                                                   <ul className="list-disc list-inside space-y-0.5">
                                                     {advice.benefits.map((benefit, idx) => (
@@ -1916,7 +1916,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                      </div>
                 </details>
 
-                <div className="flex gap-2 mb-4 bg-orange-50 p-2 rounded text-xs text-orange-800 border border-orange-100">
+                <div className="flex gap-3 mb-4 bg-orange-50 p-2 rounded text-xs text-orange-800 border border-orange-100">
                     <Gauge size={16} />
                     <span><b>Raccolta:</b> {specificResult.harvest.visualSigns} {specificResult.harvest.minBrix ? `(Ideal >${specificResult.harvest.minBrix}° Brix)` : ''}</span>
                 </div>
@@ -1930,8 +1930,8 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                   
                   return (
                     <div className={`mb-4 p-3 rounded-xl border ${moonCheck.ideal ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'}`}>
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-2xl">{moonEmoji}</span>
+                      <div className="flex items-center gap-3 text-sm">
+                        <span className="text-xl md:text-2xl">{moonEmoji}</span>
                         <div>
                           <span className="font-bold text-gray-800">Luna {moonInfo.name}</span>
                           <p className="text-xs text-gray-600">{moonCheck.reason}</p>
@@ -1953,7 +1953,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                 {/* Selezione Zona di Coltivazione */}
                 {beds.length > 0 && (
                   <div className="mb-4 bg-white p-4 rounded-xl border-2 border-blue-100">
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-3">
                       <LayoutGrid size={16} className="text-blue-600" />
                       Zona di coltivazione
                     </label>
@@ -2010,7 +2010,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                                 ? 'bg-red-50 border border-red-200 text-red-800' 
                                 : 'bg-yellow-50 border border-yellow-200 text-yellow-800'
                             }`}>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-3">
                                 <AlertTriangle size={14} />
                                 <span>
                                   Questo letto è {calc.occupancyPercentage.toFixed(0)}% occupato.
@@ -2027,18 +2027,18 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                 )}
 
                 <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Scegli come iniziare:</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-white p-4 rounded-xl border-2 border-orange-100 hover:border-orange-300 transition-all shadow-sm flex flex-col justify-between">
                         <div>
-                            <div className="flex items-center gap-2 mb-3 text-orange-700">
+                            <div className="flex items-center gap-3 mb-3 text-orange-700">
                                 <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
                                     <span className="text-lg">🌰</span>
                                 </div>
                                 <span className="font-bold">Dal Seme</span>
                             </div>
                             
-                            <div className="flex items-center gap-2 mb-3 text-sm">
-                                <label className="flex items-center gap-1 cursor-pointer">
+                            <div className="flex items-center gap-3 mb-3 text-sm">
+                                <label className="flex items-center gap-3 cursor-pointer">
                                     <input 
                                         type="checkbox" 
                                         checked={isIndoorSeed} 
@@ -2051,13 +2051,13 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
                             {isIndoorSeed && specificResult.indoor && (
                                 <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 mb-3 text-xs space-y-2">
-                                    <div className="flex items-center gap-2 text-orange-800">
+                                    <div className="flex items-center gap-3 text-orange-800">
                                         <Sun size={14}/> <span>Luce: <b>{specificResult.indoor.lightHours}h</b>/giorno</span>
                                     </div>
-                                    <div className="flex items-center gap-2 text-orange-800">
+                                    <div className="flex items-center gap-3 text-orange-800">
                                         <Thermometer size={14}/> <span>Temp: <b>{specificResult.indoor.germinationTemp}</b></span>
                                     </div>
-                                    <div className="flex items-center gap-2 text-orange-800">
+                                    <div className="flex items-center gap-3 text-orange-800">
                                         <Clock size={14}/> <span>Trapianto tra: <b>{specificResult.indoor.transplantSize}</b></span>
                                     </div>
                                 </div>
@@ -2081,7 +2081,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
                     <div className="bg-white p-4 rounded-xl border-2 border-green-100 hover:border-green-300 transition-all shadow-sm flex flex-col justify-between">
                         <div>
-                            <div className="flex items-center gap-2 mb-3 text-green-700">
+                            <div className="flex items-center gap-3 mb-3 text-green-700">
                                 <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
                                     <Leaf size={18} />
                                 </div>
@@ -2105,7 +2105,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                 {specificResult.guide && (
                     <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-4">
                         <div className="bg-gradient-to-r from-green-50 to-blue-50 p-5 rounded-xl border-2 border-green-200">
-                            <h3 className="font-bold text-xl text-green-900 mb-2 flex items-center gap-2">
+                            <h3 className="font-bold text-lg md:text-xl text-green-900 mb-2 flex items-center gap-3">
                                 <Sparkles size={24} className="text-green-600"/>
                                 Guida Completa "For Dummies"
                             </h3>
@@ -2114,7 +2114,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
                         {/* GUIDA SEMINA PASSO-PASSO */}
                         <div className="bg-white p-5 rounded-xl border-2 border-orange-100 shadow-sm">
-                            <h4 className="font-bold text-orange-900 mb-4 flex items-center gap-2 text-lg">
+                            <h4 className="font-bold text-orange-900 mb-4 flex items-center gap-3 text-lg">
                                 <Sprout size={20} className="text-orange-600"/>
                                 Guida Semina Passo-Passo
                             </h4>
@@ -2132,7 +2132,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
                         {/* GUIDA TRAPIANTO */}
                         <div className="bg-white p-5 rounded-xl border-2 border-green-100 shadow-sm">
-                            <h4 className="font-bold text-green-900 mb-4 flex items-center gap-2 text-lg">
+                            <h4 className="font-bold text-green-900 mb-4 flex items-center gap-3 text-lg">
                                 <ArrowRight size={20} className="text-green-600"/>
                                 Guida Trapianto
                             </h4>
@@ -2150,7 +2150,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
                         {/* CONSIGLI PER LA CURA */}
                         <div className="bg-white p-5 rounded-xl border-2 border-blue-100 shadow-sm">
-                            <h4 className="font-bold text-blue-900 mb-4 flex items-center gap-2 text-lg">
+                            <h4 className="font-bold text-blue-900 mb-4 flex items-center gap-3 text-lg">
                                 <Droplets size={20} className="text-blue-600"/>
                                 Consigli per la Cura
                             </h4>
@@ -2167,7 +2167,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                         {/* ERRORI COMUNI */}
                         {specificResult.guide.commonMistakes && specificResult.guide.commonMistakes.length > 0 && (
                             <div className="bg-white p-5 rounded-xl border-2 border-red-100 shadow-sm">
-                                <h4 className="font-bold text-red-900 mb-4 flex items-center gap-2 text-lg">
+                                <h4 className="font-bold text-red-900 mb-4 flex items-center gap-3 text-lg">
                                     <AlertTriangle size={20} className="text-red-600"/>
                                     Errori Comuni da Evitare
                                 </h4>
@@ -2184,7 +2184,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
                         {/* GUIDA RACCOLTA */}
                         <div className="bg-white p-5 rounded-xl border-2 border-purple-100 shadow-sm">
-                            <h4 className="font-bold text-purple-900 mb-4 flex items-center gap-2 text-lg">
+                            <h4 className="font-bold text-purple-900 mb-4 flex items-center gap-3 text-lg">
                                 <Calendar size={20} className="text-purple-600"/>
                                 Guida Raccolta
                             </h4>
@@ -2197,17 +2197,17 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
       {/* Alert dal Director */}
       {dailyPlan && dailyPlan.urgentAlerts && dailyPlan.urgentAlerts.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-          <h3 className="font-bold text-yellow-900 flex items-center gap-2 mb-3">
-            <AlertTriangle size={20} className="text-yellow-600" />
+        <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-xl p-4 mb-6">
+          <h3 className="font-bold text-yellow-full max-w-sm flex items-center gap-3 mb-3">
+            <AlertTriangle size={20} className="text-yellow-full max-w-sm" />
             Avvisi Importanti
           </h3>
           <div className="space-y-2">
             {dailyPlan.urgentAlerts.slice(0, 3).map((alert, idx) => (
-              <div key={idx} className="bg-white rounded-lg p-3 border border-yellow-200">
-                <p className="text-sm font-medium text-yellow-900">{alert.message}</p>
+              <div key={idx} className="bg-white rounded-lg p-3 border border-yellow-full max-w-sm">
+                <p className="text-sm font-medium text-yellow-full max-w-sm">{alert.message}</p>
                 {alert.action && (
-                  <p className="text-xs text-yellow-700 mt-1">{alert.action}</p>
+                  <p className="text-xs text-yellow-full max-w-sm mt-1">{alert.action}</p>
                 )}
               </div>
             ))}
@@ -2220,8 +2220,8 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
         <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-bold text-green-900 flex items-center gap-2">
-                <Sun size={20} className="text-yellow-500" />
+              <h3 className="font-bold text-green-900 flex items-center gap-3">
+                <Sun size={20} className="text-yellow-full max-w-sm" />
                 Suggerimenti per Tipo di Orto
               </h3>
               <p className="text-sm text-green-700 mt-1">
@@ -2232,7 +2232,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
             <button
               onClick={loadSeasonalPlantSuggestions}
               disabled={loadingSeasonalSuggestions}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
             >
               {loadingSeasonalSuggestions ? (
                 <>
@@ -2250,7 +2250,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
           {gardenClassification && (
             <div className="mb-4 p-3 bg-white rounded-lg border border-green-200">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <span className="text-lg">
                   {gardenClassification.type === 'Estivo' && '🌞'}
                   {gardenClassification.type === 'NonEstivo' && '🌱'}
@@ -2292,7 +2292,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                         <h4 className="font-semibold text-gray-900">{suggestion.plantName}</h4>
                         <p className="text-sm text-gray-600 mt-1">{suggestion.reason}</p>
                         <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-3">
                             <Calendar size={12} />
                             {(() => {
                               // Usa array statico per evitare problemi di hydration SSR
@@ -2306,7 +2306,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                               return `${formatDate(displayStartDate)} - ${formatDate(adjustedWindow.endDate)}`;
                             })()}
                           </span>
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-3">
                             {selectedMethod === 'Seed' ? <Sprout size={12} /> : <Sprout size={12} />}
                             {selectedMethod === 'Seed' ? 'Semina' : 'Trapianto'}
                           </span>
@@ -2314,7 +2314,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                             {(suggestion.suitabilityScore * 100).toFixed(0)}% adatto
                           </span>
                         </div>
-                        <div className="mt-3 flex items-center gap-2">
+                        <div className="mt-3 flex items-center gap-3">
                           <span className="text-xs text-gray-600">Metodo:</span>
                           <button
                             onClick={(e) => {
@@ -2401,7 +2401,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
         <div className="pt-4">
             <div className="flex justify-between items-end mb-4">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-800">Suggeriti per Oggi</h2>
+                    <h2 className="text-lg md:text-xl font-bold text-gray-800">Suggeriti per Oggi</h2>
                     <p className="text-sm text-gray-500">Ideali per il clima attuale.</p>
                 </div>
                 <button onClick={handleGetSuggestions} className="text-xs text-green-600 font-medium hover:bg-green-50 px-2 py-1 rounded">
@@ -2426,12 +2426,12 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                         
                         <p className="text-gray-600 text-sm mb-4">{plant.description}</p>
                         
-                        <div className="grid grid-cols-2 gap-3 mb-4">
-                            <div className="bg-gray-50 p-2 rounded border border-gray-100">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                            <div className="bg-gray-50 p-3 rounded border border-gray-100">
                                 <span className="text-gray-400 block text-[10px] uppercase font-bold">Finestra Semina</span>
                                 <span className="text-sm font-semibold text-gray-700">{plant.plantingWindow}</span>
                             </div>
-                            <div className="bg-gray-50 p-2 rounded border border-gray-100">
+                            <div className="bg-gray-50 p-3 rounded border border-gray-100">
                                 <span className="text-gray-400 block text-[10px] uppercase font-bold">Raccolta</span>
                                 <span className="text-sm font-semibold text-gray-700">{plant.harvestTime}</span>
                             </div>
@@ -2439,7 +2439,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
                         <button 
                             onClick={() => onAddToJournal(plant.name, `Suggerito per: ${plant.plantingWindow}`, '', 'Seed', todayStr, 'Sowing', undefined)}
-                            className="w-full py-2 bg-green-50 text-green-700 rounded-lg font-bold text-sm hover:bg-green-100 flex items-center justify-center gap-2"
+                            className="w-full py-2 bg-green-50 text-green-700 rounded-lg font-bold text-sm hover:bg-green-100 flex items-center justify-center gap-3"
                         >
                             <PlusCircle size={16} />
                             Aggiungi al Diario

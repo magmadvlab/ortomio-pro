@@ -115,7 +115,7 @@ const PlantingWizard: React.FC<PlantingWizardProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-green-800">
+          <h2 className="text-lg md:text-xl font-bold text-green-800">
             Aggiungi {plantName} al Diario
           </h2>
           <button
@@ -166,7 +166,7 @@ const PlantingWizard: React.FC<PlantingWizardProps> = ({
           {step === 1 && (
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-gray-800">Come vuoi partire?</h3>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <button
                   onClick={() => setMethod('Seed')}
                   className={`p-4 rounded-xl border-2 transition-all ${
@@ -235,7 +235,7 @@ const PlantingWizard: React.FC<PlantingWizardProps> = ({
           {step === 2 && (
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-gray-800">Per quale orto?</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   onClick={() => setSeason('Summer')}
                   className={`p-6 rounded-xl border-2 transition-all ${
@@ -321,7 +321,7 @@ const PlantingWizard: React.FC<PlantingWizardProps> = ({
                   Data semina/trapianto
                 </label>
                 <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                  <Calendar className="absolute left-3 top-3/2 -translate-y-1/2 text-gray-400" size={20} />
                   <input
                     type="date"
                     value={date}
@@ -393,7 +393,7 @@ const PlantingWizard: React.FC<PlantingWizardProps> = ({
           )}
           <button
             onClick={handleNext}
-            className="flex-1 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+            className="flex-1 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-3"
           >
             {step === 4 ? 'Aggiungi al Diario' : 'Avanti'}
             {step < 4 && <ArrowRight size={18} />}

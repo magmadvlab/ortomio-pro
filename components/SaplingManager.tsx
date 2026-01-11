@@ -162,10 +162,10 @@ const SaplingManager: React.FC<SaplingManagerProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-col md:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
           <TreePine size={24} className="text-green-600" />
-          <h2 className="text-2xl font-bold text-gray-800">Gestione Alberelli</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800">Gestione Alberelli</h2>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {!isPro && (
@@ -224,7 +224,7 @@ const SaplingManager: React.FC<SaplingManagerProps> = ({
                 ))}
               </select>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold mb-2">Varietà (opzionale)</label>
                 <input
@@ -244,7 +244,7 @@ const SaplingManager: React.FC<SaplingManagerProps> = ({
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold mb-2">Quantità</label>
                 <input
@@ -267,7 +267,7 @@ const SaplingManager: React.FC<SaplingManagerProps> = ({
               </div>
             </div>
             {(newBatch.saplingType === 'FruitTree' || newBatch.saplingType === 'Vine') && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold mb-2">Portinnesto (opzionale)</label>
                   <input
@@ -322,40 +322,40 @@ const SaplingManager: React.FC<SaplingManagerProps> = ({
             
             return (
               <div key={batch.id} className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-shadow">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                <div className="flex flex-col sm:flex-col md:flex-row sm:items-center justify-between gap-4 mb-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-bold text-lg">{batch.plantName}</h3>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPhaseColor(batch.phase)}`}>
                         {getPhaseLabel(batch.phase)}
                       </span>
                     </div>
                     <div className="text-sm text-gray-600 space-y-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <span className="font-semibold">Tipo:</span>
                         <span>{getTypeLabel(batch.saplingType)}</span>
                       </div>
                       {batch.variety && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <span className="font-semibold">Varietà:</span>
                           <span>{batch.variety}</span>
                         </div>
                       )}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <MapPin size={14} />
                         <span>{batch.location}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <span className="font-semibold">Quantità:</span>
                         <span>{String(batch.currentQuantity || batch.quantity)}/{String(batch.quantity)}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-3">
                     {!batch.plantingDate && batch.phase === 'Purchased' && (
                       <button
                         onClick={() => handleRecordPlanting(batch)}
-                        className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"
+                        className="px-4 py-3 text-base bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"
                       >
                         Registra Messa a Dimora
                       </button>
@@ -363,13 +363,13 @@ const SaplingManager: React.FC<SaplingManagerProps> = ({
                     {readyCheck.ready && !batch.specializedCropId && (
                       <button
                         onClick={() => handleCreateOrchard(batch)}
-                        className="px-3 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700"
+                        className="px-4 py-3 text-base bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700"
                       >
                         Crea Impianto
                       </button>
                     )}
                     {batch.specializedCropId && (
-                      <div className="px-3 py-2 bg-green-100 text-green-800 rounded-lg text-sm font-semibold text-center">
+                      <div className="px-4 py-3 text-base bg-green-100 text-green-800 rounded-lg text-sm font-semibold text-center">
                         Impianto Creato
                       </div>
                     )}
@@ -378,7 +378,7 @@ const SaplingManager: React.FC<SaplingManagerProps> = ({
 
                 {timeline.nextPhase && (
                   <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                    <div className="flex items-center gap-2 text-sm">
+                    <div className="flex items-center gap-3 text-sm">
                       <Clock size={16} className="text-blue-600" />
                       <span className="text-blue-800">
                         Prossima fase: <strong>{getPhaseLabel(timeline.nextPhase)}</strong>
@@ -393,7 +393,7 @@ const SaplingManager: React.FC<SaplingManagerProps> = ({
                 {readyCheck.warnings && readyCheck.warnings.length > 0 && (
                   <div className="mb-4 p-3 bg-orange-50 rounded-lg">
                     {readyCheck.warnings.map((warning, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-sm text-orange-800">
+                      <div key={idx} className="flex items-center gap-3 text-sm text-orange-800">
                         <AlertCircle size={16} />
                         <span>{warning}</span>
                       </div>
@@ -402,7 +402,7 @@ const SaplingManager: React.FC<SaplingManagerProps> = ({
                 )}
 
                 <div className="flex items-center gap-4 pt-4 border-t border-gray-200">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <label className="flex items-center gap-3 text-sm cursor-pointer">
                     <Camera size={16} className="text-gray-600" />
                     <span className="text-gray-600">Foto</span>
                     <input

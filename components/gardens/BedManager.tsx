@@ -271,7 +271,7 @@ export const BedManager: React.FC<BedManagerProps> = ({
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+        <h2 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-3">
           <Grid size={24} />
           Gestione Zone di Coltivazione
         </h2>
@@ -286,21 +286,21 @@ export const BedManager: React.FC<BedManagerProps> = ({
       </div>
 
       {/* Statistiche */}
-      <div className="grid grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
         <div className="bg-green-50 p-3 rounded-lg">
-          <div className="text-2xl font-bold text-green-600">{byType.RaisedBed}</div>
+          <div className="text-xl md:text-2xl font-bold text-green-600">{byType.RaisedBed}</div>
           <div className="text-xs text-gray-600">Cassoni</div>
         </div>
         <div className="bg-blue-50 p-3 rounded-lg">
-          <div className="text-2xl font-bold text-blue-600">{byType.Container}</div>
+          <div className="text-xl md:text-2xl font-bold text-blue-600">{byType.Container}</div>
           <div className="text-xs text-gray-600">Contenitori</div>
         </div>
         <div className="bg-purple-50 p-3 rounded-lg">
-          <div className="text-2xl font-bold text-purple-600">{byType.Pot}</div>
+          <div className="text-xl md:text-2xl font-bold text-purple-600">{byType.Pot}</div>
           <div className="text-xs text-gray-600">Vasi</div>
         </div>
         <div className="bg-orange-50 p-3 rounded-lg">
-          <div className="text-2xl font-bold text-orange-600">{byType.Greenhouse + byType.Hydroponic}</div>
+          <div className="text-xl md:text-2xl font-bold text-orange-600">{byType.Greenhouse + byType.Hydroponic}</div>
           <div className="text-xs text-gray-600">Strutture</div>
         </div>
       </div>
@@ -326,7 +326,7 @@ export const BedManager: React.FC<BedManagerProps> = ({
       )}
 
       {/* Filtri */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
         <span className="text-sm font-medium text-gray-700">Filtra:</span>
         <select
           value={filterType}
@@ -344,17 +344,17 @@ export const BedManager: React.FC<BedManagerProps> = ({
           <option value="Aeroponic">Aeroponico</option>
           <option value="Indoor">Indoor</option>
         </select>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-3">
           <button
             onClick={handleBulkAdd}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="flex items-center gap-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Layers size={18} />
             Aggiungi Multipli
           </button>
           <button
             onClick={handleNew}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className="flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
             <Plus size={18} />
             Nuovo Letto
@@ -391,7 +391,7 @@ export const BedManager: React.FC<BedManagerProps> = ({
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <h3 className="font-semibold text-gray-800">{bed.name}</h3>
                       <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
                         {getBedTypeLabel(bed.bedType)}
@@ -474,36 +474,36 @@ export const BedManager: React.FC<BedManagerProps> = ({
                     </div>
 
                     {isFull && (
-                      <div className="mt-2 flex items-center gap-1 text-xs text-red-700">
+                      <div className="mt-2 flex items-center gap-3 text-xs text-red-700">
                         <AlertTriangle size={14} />
                         <span>Letto pieno! Considera di aggiungere un nuovo letto.</span>
                       </div>
                     )}
                     {isAlmostFull && !isFull && (
-                      <div className="mt-2 flex items-center gap-1 text-xs text-yellow-700">
+                      <div className="mt-2 flex items-center gap-3 text-xs text-yellow-full max-w-sm">
                         <AlertTriangle size={14} />
                         <span>Letto quasi pieno.</span>
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 ml-4">
+                  <div className="flex items-center gap-3 ml-4">
                     <button
                       onClick={() => setRowsModalBed(bed)}
-                      className="p-2 text-gray-700 hover:bg-gray-50 rounded"
+                      className="p-3 text-gray-700 hover:bg-gray-50 rounded"
                       title="Gestisci Filari"
                     >
                       <Layers size={18} />
                     </button>
                     <button
                       onClick={() => handleEdit(bed)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                      className="p-3 text-blue-600 hover:bg-blue-50 rounded"
                       title="Modifica"
                     >
                       <Edit2 size={18} />
                     </button>
                     <button
                       onClick={() => handleDelete(bed.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded"
+                      className="p-3 text-red-600 hover:bg-red-50 rounded"
                       title="Elimina"
                     >
                       <Trash2 size={18} />

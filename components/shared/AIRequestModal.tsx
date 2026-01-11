@@ -24,14 +24,14 @@ export function AIRequestModal({ type, onConfirm, onCancel, credits }: AIRequest
   if (remaining < cost) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+        <div className="bg-white rounded-lg p-6 max-w-[90vw] md:max-w-md max-h-[90vh] overflow-y-auto mx-4">
           <div className="text-center space-y-4">
             <div className="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto">
               <Zap className="text-red-600" size={32} />
             </div>
             
             <div>
-              <h3 className="text-xl font-bold text-gray-900">
+              <h3 className="text-lg md:text-xl font-bold text-gray-900">
                 Credits insufficienti
               </h3>
               <p className="text-gray-600 mt-2">
@@ -70,7 +70,7 @@ export function AIRequestModal({ type, onConfirm, onCancel, credits }: AIRequest
   
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+      <div className="bg-white rounded-lg p-6 max-w-[90vw] md:max-w-md max-h-[90vh] overflow-y-auto mx-4">
         <div className="space-y-4">
           <div className="flex items-start gap-4">
             <div className="bg-green-100 rounded-full w-12 h-12 flex items-center justify-center flex-shrink-0">
@@ -78,7 +78,7 @@ export function AIRequestModal({ type, onConfirm, onCancel, credits }: AIRequest
             </div>
             
             <div className="flex-1">
-              <h3 className="text-xl font-bold text-gray-900">
+              <h3 className="text-lg md:text-xl font-bold text-gray-900">
                 Conferma richiesta AI
               </h3>
               <p className="text-gray-600 mt-1">
@@ -94,14 +94,14 @@ export function AIRequestModal({ type, onConfirm, onCancel, credits }: AIRequest
             </button>
           </div>
           
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-4">
             <div className="flex items-center justify-between">
-              <span className="text-lg font-semibold text-yellow-900">
+              <span className="text-lg font-semibold text-yellow-full max-w-sm">
                 Costo:
               </span>
-              <div className="flex items-center gap-2">
-                <Zap className="text-yellow-600" size={20} />
-                <span className="text-2xl font-bold text-yellow-900">
+              <div className="flex items-center gap-3">
+                <Zap className="text-yellow-full max-w-sm" size={20} />
+                <span className="text-xl md:text-2xl font-bold text-yellow-full max-w-sm">
                   {cost} credit{cost > 1 ? 's' : ''}
                 </span>
               </div>

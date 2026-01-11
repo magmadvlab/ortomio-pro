@@ -92,7 +92,7 @@ export function IrrigationZonesWidget({ garden, tasks, onOpenManager }: Irrigati
   if (loading) {
     return (
       <div className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl p-5 text-white shadow-lg">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Droplets size={24} className="text-blue-100" />
           <div>
             <h3 className="font-bold text-lg">Zone Irrigue</h3>
@@ -123,7 +123,7 @@ export function IrrigationZonesWidget({ garden, tasks, onOpenManager }: Irrigati
             </div>
             <button
               onClick={() => setShowWizard(true)}
-              className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-colors flex items-center gap-2"
+              className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-colors flex items-center gap-3"
             >
               <Plus size={16} />
               Nuova
@@ -139,18 +139,18 @@ export function IrrigationZonesWidget({ garden, tasks, onOpenManager }: Irrigati
           ) : (
             <div className="mt-4 space-y-2">
               <div className="flex items-center gap-4">
-                <div className="bg-white/20 rounded-lg px-3 py-2">
-                  <p className="text-2xl font-bold">{zones.length}</p>
+                <div className="bg-white/20 rounded-lg px-4 py-3 text-base">
+                  <p className="text-xl md:text-2xl font-bold">{zones.length}</p>
                   <p className="text-xs opacity-90">Zone</p>
                 </div>
                 {activeSchedules.length > 0 && (
                   <>
-                    <div className="bg-white/20 rounded-lg px-3 py-2">
-                      <p className="text-2xl font-bold">{Math.round(totalMinutes)}</p>
+                    <div className="bg-white/20 rounded-lg px-4 py-3 text-base">
+                      <p className="text-xl md:text-2xl font-bold">{Math.round(totalMinutes)}</p>
                       <p className="text-xs opacity-90">Minuti</p>
                     </div>
-                    <div className="bg-white/20 rounded-lg px-3 py-2">
-                      <p className="text-2xl font-bold">{Math.round(totalLiters)}</p>
+                    <div className="bg-white/20 rounded-lg px-4 py-3 text-base">
+                      <p className="text-xl md:text-2xl font-bold">{Math.round(totalLiters)}</p>
                       <p className="text-xs opacity-90">Litri</p>
                     </div>
                   </>
@@ -167,13 +167,13 @@ export function IrrigationZonesWidget({ garden, tasks, onOpenManager }: Irrigati
                     return (
                       <div 
                         key={schedule.zoneId} 
-                        className="bg-white/10 rounded-lg p-2 flex items-center justify-between text-sm"
+                        className="bg-white/10 rounded-lg p-3 flex items-center justify-between text-sm"
                       >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <Droplets size={14} />
                           <span className="font-medium">{schedule.zoneName}</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           {schedule.weatherAdjustment?.action === 'CANCEL' ? (
                             <span className="text-xs opacity-75">Sospesa</span>
                           ) : (

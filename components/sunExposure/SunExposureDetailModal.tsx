@@ -197,8 +197,8 @@ export function SunExposureDetailModal({ garden, onClose }: SunExposureDetailMod
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-3">
-            <Sun className="text-yellow-500" size={24} />
-            <h2 className="text-xl font-bold text-gray-900">Esposizione Solare Dettagliata</h2>
+            <Sun className="text-yellow-full max-w-sm" size={24} />
+            <h2 className="text-lg md:text-xl font-bold text-gray-900">Esposizione Solare Dettagliata</h2>
             <InfoTooltip
               content="Visualizza l'esposizione solare del tuo orto mese per mese, il periodo ottimale per coltivare e suggerimenti basati sulle ore di sole disponibili."
               size="sm"
@@ -253,7 +253,7 @@ export function SunExposureDetailModal({ garden, onClose }: SunExposureDetailMod
 
               {/* Calcolo Giorno Specifico */}
               <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-3 mb-3">
                   <Calendar className="text-gray-600" size={20} />
                   <h3 className="font-semibold text-gray-900">Calcola Ore di Sole per un Giorno Specifico</h3>
                   <InfoTooltip
@@ -271,7 +271,7 @@ export function SunExposureDetailModal({ garden, onClose }: SunExposureDetailMod
                   {loadingDate ? (
                     <Loader2 className="animate-spin text-gray-400" size={20} />
                   ) : selectedDateHours !== null ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <span className="text-gray-700">Ore di sole:</span>
                       <span className={`text-xl font-bold ${getExposureType(selectedDateHours).color}`}>
                         {selectedDateHours.toFixed(1)}h
@@ -316,7 +316,7 @@ export function SunExposureDetailModal({ garden, onClose }: SunExposureDetailMod
                       <h3 className="font-semibold text-blue-900 mb-2">Suggerimenti Colture</h3>
                       <ul className="space-y-1">
                         {recommendations.map((rec, idx) => (
-                          <li key={idx} className="text-sm text-blue-800 flex items-start gap-2">
+                          <li key={idx} className="text-sm text-blue-800 flex items-start gap-3">
                             <span className="text-blue-600 mt-1">•</span>
                             <span>{rec}</span>
                           </li>

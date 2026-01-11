@@ -90,22 +90,22 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
   return (
     <div className="p-4 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-col md:flex-col md:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-gray-800">📅 Calendario</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={handlePrevMonth}
-            className="p-2 rounded-lg hover:bg-green-100 transition-colors"
+            className="p-3 rounded-lg hover:bg-green-100 transition-colors"
             aria-label="Mese precedente"
           >
             ←
           </button>
-          <h2 className="text-xl font-semibold text-gray-700 min-w-[200px] text-center">
+          <h2 className="text-lg md:text-lg md:text-xl font-semibold text-gray-700 min-w-[200px] text-center">
             {format(currentMonth, 'MMMM yyyy', { locale: it })}
           </h2>
           <button
             onClick={handleNextMonth}
-            className="p-2 rounded-lg hover:bg-green-100 transition-colors"
+            className="p-3 rounded-lg hover:bg-green-100 transition-colors"
             aria-label="Mese successivo"
           >
             →
@@ -126,7 +126,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
       {/* Calendario Mensile */}
       <div className="bg-white rounded-lg shadow-md p-4">
         {/* Intestazioni giorni */}
-        <div className="grid grid-cols-7 gap-2 mb-2">
+        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-7 gap-3 mb-2">
           {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map(day => (
             <div key={day} className="text-center text-sm font-semibold text-gray-600 py-2">
               {day}
@@ -135,7 +135,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
         </div>
         
         {/* Griglia giorni */}
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-7 gap-3">
           {days.map(day => {
             const isCurrentMonth = isSameMonth(day, currentMonth);
             const isDayToday = isToday(day);
@@ -173,7 +173,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
               >
                 {/* Numero giorno */}
                 <div className="flex items-start justify-between mb-1">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-3">
                   <span className={`
                     text-lg font-semibold
                       ${isDayToday ? 'text-green-600 font-bold' : 'text-gray-900'}
@@ -197,7 +197,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
                   </div>
                   
                   {/* Icone eventi */}
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-3">
                     {eventoGiorno && (
                       <span className="text-sm" title={eventoGiorno.name}>
                         {eventoGiorno.emoji}
@@ -265,7 +265,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
       {/* Pannello Dettagli Giorno Selezionato */}
       <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-bold text-gray-800 capitalize">
+          <h3 className="text-lg md:text-lg md:text-xl font-bold text-gray-800 capitalize">
           {format(selectedDate, 'EEEE d MMMM yyyy', { locale: it })}
         </h3>
           {isToday(selectedDate) && (
@@ -318,7 +318,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
             {dettiOggi.map((detto, idx) => (
               <div key={idx} className="mb-3 last:mb-0">
                 <blockquote className="relative pl-6">
-                  <div className="text-3xl text-amber-300 absolute -top-1 -left-1 select-none">"</div>
+                  <div className="text-3xl text-amber-300 absolute -top-3 -left-1 select-none">"</div>
                   <p className="text-lg font-serif italic text-amber-900 leading-relaxed">
                     {detto.detto}
                   </p>
@@ -479,7 +479,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
                         nutrientAdvice.elementFocus === 'K' ? 'bg-orange-50 border-orange-200' :
                         'bg-purple-50 border-purple-200'
                       }`}>
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-3 mb-2">
                           <FlaskConical size={16} className={
                             nutrientAdvice.elementFocus === 'N' ? 'text-green-600' :
                             nutrientAdvice.elementFocus === 'P' ? 'text-blue-600' :
@@ -487,7 +487,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
                             'text-purple-600'
                           } />
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               <span className={`text-xs font-bold px-2 py-0.5 rounded ${
                                 nutrientAdvice.elementFocus === 'N' ? 'bg-green-100 text-green-700' :
                                 nutrientAdvice.elementFocus === 'P' ? 'bg-blue-100 text-blue-700' :
@@ -521,14 +521,14 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
                         healthAdvice.priority === 'Medium' ? 'bg-orange-50 border-orange-200' :
                         'bg-yellow-50 border-yellow-200'
                       }`}>
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-3 mb-2">
                           <Shield size={16} className={
                             healthAdvice.priority === 'High' ? 'text-red-600' :
                             healthAdvice.priority === 'Medium' ? 'text-orange-600' :
                             'text-yellow-600'
                           } />
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               <span className={`text-xs font-bold px-2 py-0.5 rounded ${
                                 healthAdvice.priority === 'High' ? 'bg-red-100 text-red-700' :
                                 healthAdvice.priority === 'Medium' ? 'bg-orange-100 text-orange-700' :
@@ -574,7 +574,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
                   <p className="text-sm text-purple-700 italic">{challengeOggi.challenge.sottotitolo}</p>
                 )}
               </div>
-              <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+              <span className="bg-yellow-full max-w-sm text-white px-3 py-1 rounded-full text-sm font-semibold">
                 +{challengeOggi.challenge.punti} punti
               </span>
             </div>
@@ -586,8 +586,8 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
                 <p className="font-semibold text-purple-900 text-sm">Azioni da completare:</p>
                 {challengeOggi.challenge.azioni.map((azione, idx) => (
                   <div key={idx} className="bg-white/70 rounded-lg p-3 border border-purple-200">
-                    <div className="flex items-start gap-2">
-                      <span className="text-xl">{azione.emoji}</span>
+                    <div className="flex items-start gap-3">
+                      <span className="text-lg md:text-lg md:text-xl">{azione.emoji}</span>
                       <div className="flex-1">
                         <p className="font-medium text-purple-900">{azione.azione}</p>
                         <p className="text-xs text-purple-700 mt-1">{azione.perche}</p>
@@ -621,7 +621,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
       {showCompletionDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Completa Task Suggerito</h3>
+            <h3 className="text-lg md:text-lg md:text-xl font-bold text-gray-900 mb-4">Completa Task Suggerito</h3>
             <p className="text-gray-700 mb-2">
               <strong>{showCompletionDialog.task.plantName}</strong> - {showCompletionDialog.task.taskType}
             </p>

@@ -158,7 +158,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {getIcon()}
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">
               {getTitle()}
             </h2>
           </div>
@@ -179,7 +179,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
               
               {orchardType === 'orchard' && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 gap-4">
                     {fruitTreeCategories.map(category => (
                       <button
                         key={category.id}
@@ -196,7 +196,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                           {category.examples.slice(0, 3).join(', ')}
                           {category.examples.length > 3 && '...'}
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
                           <Info size={12} />
                           <span>{category.botanicalFamily}</span>
                         </div>
@@ -368,7 +368,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
               <div className="flex justify-between mt-6">
                 <button
                   onClick={onCancel}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-3"
                 >
                   <ArrowLeft size={18} />
                   Annulla
@@ -380,7 +380,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                     (orchardType === 'oliveGrove' && !oliveType) ||
                     (orchardType === 'vineyard' && !vineType)
                   }
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-3"
                 >
                   Avanti
                   <ArrowRight size={18} />
@@ -396,7 +396,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
               
               {/* Data Impianto */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-3">
                   <Calendar size={16} />
                   Data Impianto (opzionale)
                 </label>
@@ -433,7 +433,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Sesto di Impianto (opzionale)
                   </label>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs text-gray-600 mb-1">Distanza tra piante (m)</label>
                       <input
@@ -460,7 +460,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                     </div>
                   </div>
                   {plantSpacing && rowSpacing && (
-                    <p className="mt-2 text-xs text-gray-600 bg-blue-50 p-2 rounded">
+                    <p className="mt-2 text-xs text-gray-600 bg-blue-50 p-3 rounded">
                       Densità calcolata: ~{Math.round(10000 / (parseFloat(plantSpacing) * parseFloat(rowSpacing)))} piante/ha
                     </p>
                   )}
@@ -525,8 +525,8 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
               {/* Tips Contestuali per Categoria Frutteto */}
               {orchardType === 'orchard' && fruitCategory && (
                 <div className="mb-6">
-                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Lightbulb size={18} className="text-yellow-600" />
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-3">
+                    <Lightbulb size={18} className="text-yellow-full max-w-sm" />
                     Suggerimenti per {getCategoryInfo(fruitCategory)?.label}
                   </h4>
                   <div className="space-y-3">
@@ -548,8 +548,8 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                               <Icon className={iconColor} size={20} />
                             </div>
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xl">{tip.icon}</span>
+                              <div className="flex items-center gap-3 mb-1">
+                                <span className="text-lg md:text-xl">{tip.icon}</span>
                                 <h5 className="font-medium text-gray-900">{tip.title}</h5>
                               </div>
                               <p className="text-sm text-gray-700">{tip.description}</p>
@@ -563,7 +563,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                   {/* Raccomandazioni pH specifiche per categoria */}
                   {getCategoryRecommendations(fruitCategory) && (
                     <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-3">
                         <Info className="text-purple-600 flex-shrink-0 mt-0.5" size={16} />
                         <div className="text-sm">
                           <span className="font-medium text-purple-900">pH Ideale:</span>{' '}
@@ -636,7 +636,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
               <div className="flex justify-between mt-6">
                 <button
                   onClick={() => setStep('category')}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-3"
                 >
                   <ArrowLeft size={18} />
                   Indietro
@@ -644,7 +644,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                 <button
                   onClick={handleComplete}
                   disabled={isSaving}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-3"
                 >
                   {isSaving ? 'Salvataggio...' : 'Crea'}
                   <ArrowRight size={18} />

@@ -68,7 +68,7 @@ const SoilInferenceWizard: React.FC<SoilInferenceWizardProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-800">
               Analisi Terreno da Piante Spontanee
             </h2>
             <button
@@ -102,7 +102,7 @@ const SoilInferenceWizard: React.FC<SoilInferenceWizardProps> = ({
                         setPhoto(null);
                         setPhotoPreview(null);
                       }}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                      className="absolute top-3 right-2 bg-red-500 text-white rounded-full p-3 hover:bg-red-600"
                     >
                       <X size={14} />
                     </button>
@@ -134,7 +134,7 @@ const SoilInferenceWizard: React.FC<SoilInferenceWizardProps> = ({
                 <p className="text-sm font-medium text-gray-700 mb-3">
                   Seleziona le piante spontanee che vedi nel tuo terreno:
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
                   {soilIndicators.map((indicator) => (
                     <label
                       key={indicator.name}
@@ -199,7 +199,7 @@ const SoilInferenceWizard: React.FC<SoilInferenceWizardProps> = ({
               </div>
 
               {/* Dettagli inferenza */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {inference.estimatedPH && (
                   <div className="bg-gray-50 p-3 rounded-lg">
                     <p className="text-xs text-gray-600 mb-1">pH Stimato</p>
@@ -235,7 +235,7 @@ const SoilInferenceWizard: React.FC<SoilInferenceWizardProps> = ({
               {/* Evidenza */}
               <div className="bg-gray-50 p-3 rounded-lg">
                 <p className="text-xs font-semibold text-gray-600 mb-2">Piante osservate:</p>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3">
                   {inference.evidence.map((plant, idx) => (
                     <span key={idx} className="px-2 py-1 bg-white rounded border border-gray-200 text-xs text-gray-700">
                       {plant}

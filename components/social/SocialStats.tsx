@@ -61,7 +61,7 @@ export function SocialStats() {
   if (stats.total === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-3 mb-4">
           <Share2 size={20} className="text-blue-600" />
           <h3 className="text-lg font-bold text-gray-900">Condivisioni Social</h3>
         </div>
@@ -74,9 +74,9 @@ export function SocialStats() {
           <p className="text-gray-600 text-sm mb-4">
             Condividi i tuoi traguardi sui social per ispirare altri coltivatori
           </p>
-          <div className="flex justify-center gap-2">
+          <div className="flex justify-center gap-3">
             {Object.entries(platformEmojis).map(([platform, emoji]) => (
-              <span key={platform} className="text-2xl opacity-50">
+              <span key={platform} className="text-xl md:text-2xl opacity-50">
                 {emoji}
               </span>
             ))}
@@ -89,22 +89,22 @@ export function SocialStats() {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Share2 size={20} className="text-blue-600" />
           <h3 className="text-lg font-bold text-gray-900">Condivisioni Social</h3>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
+          <div className="text-xl md:text-2xl font-bold text-blue-600">{stats.total}</div>
           <div className="text-xs text-gray-500">condivisioni totali</div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Piattaforma Preferita */}
         {mostUsedPlatform && (
           <div className="bg-blue-50 rounded-lg p-4 text-center">
-            <div className="text-2xl mb-2">
+            <div className="text-xl md:text-2xl mb-2">
               {platformEmojis[mostUsedPlatform[0]] || '📱'}
             </div>
             <div className="text-sm font-medium text-blue-900 capitalize">
@@ -119,7 +119,7 @@ export function SocialStats() {
         {/* Tipo Più Condiviso */}
         {mostSharedType && (
           <div className="bg-green-50 rounded-lg p-4 text-center">
-            <div className="text-2xl mb-2">
+            <div className="text-xl md:text-2xl mb-2">
               {typeEmojis[mostSharedType[0]] || '🌟'}
             </div>
             <div className="text-sm font-medium text-green-900 capitalize">
@@ -144,11 +144,11 @@ export function SocialStats() {
               .sort(([,a], [,b]) => b - a)
               .map(([platform, count]) => (
                 <div key={platform} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <span className="text-lg">{platformEmojis[platform] || '📱'}</span>
                     <span className="text-sm text-gray-700 capitalize">{platform}</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <div className="w-16 bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-blue-500 h-2 rounded-full" 
@@ -172,7 +172,7 @@ export function SocialStats() {
           <div className="space-y-2">
             {stats.recent.slice(0, 3).map((share, index) => (
               <div key={index} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <span>{platformEmojis[share.platform] || '📱'}</span>
                   <span className="text-gray-600">
                     {share.contentType === 'achievement' ? 'Traguardo' :
@@ -195,7 +195,7 @@ export function SocialStats() {
 
       {/* Engagement Tips */}
       <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-3 mb-2">
           <Heart size={16} className="text-purple-600" />
           <span className="text-sm font-medium text-purple-900">Suggerimento</span>
         </div>

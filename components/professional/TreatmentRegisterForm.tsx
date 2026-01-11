@@ -127,7 +127,7 @@ export function TreatmentRegisterForm({
           type="text"
           value={formData.cropName || ''}
           onChange={e => setFormData({ ...formData, cropName: e.target.value })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="es. Pomodoro, Insalata, ecc."
           required
         />
@@ -136,7 +136,7 @@ export function TreatmentRegisterForm({
       {/* Micro-zone: Dove */}
       {beds.length > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-3 mb-3">
             <Layers size={18} className="text-blue-600" />
             <h3 className="font-semibold text-gray-900">Dove (opzionale)</h3>
           </div>
@@ -149,7 +149,7 @@ export function TreatmentRegisterForm({
             <select
               value={selectedBed}
               onChange={(e) => setSelectedBed(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base text-sm focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Tutto l'orto</option>
               {beds.map(bed => (
@@ -167,7 +167,7 @@ export function TreatmentRegisterForm({
               <select
                 value={selectedRow}
                 onChange={(e) => setSelectedRow(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base text-sm focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Tutta l'aiuola</option>
                 {rows.map(row => (
@@ -189,7 +189,7 @@ export function TreatmentRegisterForm({
           type="date"
           value={formData.treatmentDate || ''}
           onChange={e => setFormData({ ...formData, treatmentDate: e.target.value })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500"
+          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5 focus:ring-2 focus:ring-blue-500"
           required
         />
       </div>
@@ -204,7 +204,7 @@ export function TreatmentRegisterForm({
           type="text"
           value={formData.productName || ''}
           onChange={e => setFormData({ ...formData, productName: e.target.value })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500"
+          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5 focus:ring-2 focus:ring-blue-500"
           placeholder="Nome commerciale prodotto"
           required
         />
@@ -219,31 +219,31 @@ export function TreatmentRegisterForm({
           type="text"
           value={formData.activeIngredient || ''}
           onChange={e => setFormData({ ...formData, activeIngredient: e.target.value })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2.5"
+          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5"
           placeholder="es. Rame, Zolfo, ecc."
         />
       </div>
 
       {/* Dosaggio e Area */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
             Dosaggio *
           </label>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <input
               type="number"
               step="0.01"
               value={formData.dosage || ''}
               onChange={e => setFormData({ ...formData, dosage: parseFloat(e.target.value) })}
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5"
+              className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-base.5"
               placeholder="0.00"
               required
             />
             <select
               value={formData.dosageUnit || 'ml'}
               onChange={e => setFormData({ ...formData, dosageUnit: e.target.value as any })}
-              className="border border-gray-300 rounded-lg px-3 py-2.5"
+              className="border border-gray-300 rounded-lg px-4 py-3 text-base.5"
             >
               <option value="ml">ml</option>
               <option value="L">L</option>
@@ -262,14 +262,14 @@ export function TreatmentRegisterForm({
             step="0.1"
             value={formData.areaTreated || ''}
             onChange={e => setFormData({ ...formData, areaTreated: parseFloat(e.target.value) })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2.5"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5"
             placeholder="es. 100"
           />
         </div>
       </div>
 
       {/* Metodo e Motivo */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
             Metodo Applicazione
@@ -277,7 +277,7 @@ export function TreatmentRegisterForm({
           <select
             value={formData.method || 'spray'}
             onChange={e => setFormData({ ...formData, method: e.target.value as any })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5 focus:ring-2 focus:ring-blue-500"
           >
             <option value="spray">Spray/Nebulizzazione</option>
             <option value="foliar">Fogliare</option>
@@ -293,7 +293,7 @@ export function TreatmentRegisterForm({
           <select
             value={formData.reason || 'preventive'}
             onChange={e => setFormData({ ...formData, reason: e.target.value as any })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5 focus:ring-2 focus:ring-blue-500"
           >
             <option value="preventive">Preventivo</option>
             <option value="curative">Curativo</option>
@@ -306,13 +306,13 @@ export function TreatmentRegisterForm({
 
       {/* Condizioni Meteo */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-3 mb-2">
           <AlertTriangle size={16} className="text-amber-600" />
           <label className="text-sm font-semibold text-gray-900">
             Condizioni Meteo
           </label>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="text-xs text-gray-600 block mb-1">Temperatura (°C)</label>
             <input
@@ -374,7 +374,7 @@ export function TreatmentRegisterForm({
           type="text"
           value={formData.operatorName || ''}
           onChange={e => setFormData({ ...formData, operatorName: e.target.value })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2.5"
+          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5"
           placeholder="Nome operatore"
         />
       </div>
@@ -387,7 +387,7 @@ export function TreatmentRegisterForm({
         <textarea
           value={formData.notes || ''}
           onChange={e => setFormData({ ...formData, notes: e.target.value })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500"
+          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5 focus:ring-2 focus:ring-blue-500"
           rows={3}
           placeholder="Osservazioni, parassiti rilevati, ecc..."
         />

@@ -145,7 +145,7 @@ export function ProfessionalSidebar() {
   return (
     <aside className="hidden lg:block w-64 bg-white border-r border-gray-200 min-h-screen p-4">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900">🌱 OrtoMio</h2>
+        <h2 className="text-lg md:text-xl font-bold text-gray-900">🌱 OrtoMio</h2>
         <p className="text-xs text-gray-500 mt-1">PRO Professional</p>
       </div>
       

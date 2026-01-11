@@ -80,14 +80,14 @@ export function UserOnboardingWizard({ onComplete, onCancel, allowSkip = false }
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-800">
               Benvenuto in OrtoMio
             </h2>
             <div className="flex items-center gap-3">
               {allowSkip && (
                 <button
                   onClick={handleSkip}
-                  className="text-sm text-gray-600 hover:text-gray-800 font-medium transition-colors flex items-center gap-1"
+                  className="text-sm text-gray-600 hover:text-gray-800 font-medium transition-colors flex items-center gap-3"
                 >
                   Salta per ora
                   <ArrowRight size={16} />

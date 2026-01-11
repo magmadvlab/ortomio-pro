@@ -162,14 +162,14 @@ export function AdvancedSunExposureWizard({
           ☀️ Come vuoi configurare l'esposizione solare?
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-4">
           {/* Modalità Semplice */}
           <button
             onClick={() => setMode('simple')}
             className="p-6 border-2 border-gray-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-left group"
           >
             <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+              <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
                 <Sliders className="text-blue-600" size={24} />
               </div>
               <h4 className="font-semibold text-gray-900">Modalità Semplice</h4>
@@ -192,7 +192,7 @@ export function AdvancedSunExposureWizard({
               CONSIGLIATO
             </div>
             <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-blue-200 rounded-lg group-hover:bg-blue-300 transition-colors">
+              <div className="p-3 bg-blue-200 rounded-lg group-hover:bg-blue-300 transition-colors">
                 <Compass className="text-blue-700" size={24} />
               </div>
               <h4 className="font-semibold text-gray-900">Modalità Avanzata</h4>
@@ -212,7 +212,7 @@ export function AdvancedSunExposureWizard({
             className="p-6 border-2 border-gray-300 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all text-left group"
           >
             <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+              <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
                 <Upload className="text-purple-600" size={24} />
               </div>
               <h4 className="font-semibold text-gray-900">Foto 360°</h4>
@@ -281,11 +281,11 @@ export function AdvancedSunExposureWizard({
             step="0.5"
             value={simpleMode.midday}
             onChange={(e) => setSimpleMode({ ...simpleMode, midday: parseFloat(e.target.value) })}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-yellow-500"
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-yellow-full max-w-sm"
           />
           <div className="flex justify-between text-xs text-gray-500 mt-1">
             <span>Niente</span>
-            <span className="font-semibold text-yellow-600">{simpleMode.midday} ore</span>
+            <span className="font-semibold text-yellow-full max-w-sm">{simpleMode.midday} ore</span>
             <span>Molto</span>
           </div>
         </div>
@@ -378,8 +378,8 @@ export function AdvancedSunExposureWizard({
         )}
 
         {obstacles.length === 0 && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-sm text-yellow-900">
+          <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-4">
+            <p className="text-sm text-yellow-full max-w-sm">
               ℹ️ Aggiungi almeno un ostacolo per calcolare le ore di sole con precisione scientifica.
             </p>
           </div>

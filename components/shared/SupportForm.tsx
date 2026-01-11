@@ -189,14 +189,14 @@ const SupportForm: React.FC = () => {
       </div>
 
       {submitStatus === 'success' && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-2">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
           <CheckCircle size={20} className="text-green-600" />
           <p className="text-green-800 font-medium">Messaggio inviato con successo! Ti risponderemo presto.</p>
         </div>
       )}
 
       {submitStatus === 'error' && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-2">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
           <AlertCircle size={20} className="text-red-600" />
           <p className="text-red-800 font-medium">Errore nell'invio. Riprova più tardi.</p>
         </div>
@@ -205,7 +205,7 @@ const SupportForm: React.FC = () => {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isSubmitting ? (
           <>

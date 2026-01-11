@@ -41,7 +41,7 @@ const RaspberryManagement: React.FC<RaspberryManagementProps> = ({ tasks, garden
       <div className="p-6 bg-white rounded-xl border border-gray-200">
         <div className="flex items-center gap-3 mb-4">
           <Package className="text-purple-500" size={24} />
-          <h3 className="text-xl font-bold text-gray-800">Gestione Lamponi</h3>
+          <h3 className="text-lg md:text-xl font-bold text-gray-800">Gestione Lamponi</h3>
         </div>
         <p className="text-gray-600">Nessuna coltura di lamponi attiva in questo orto.</p>
       </div>
@@ -74,7 +74,7 @@ const RaspberryManagement: React.FC<RaspberryManagementProps> = ({ tasks, garden
     <div className="p-6 bg-white rounded-xl border border-gray-200">
       <div className="flex items-center gap-3 mb-6">
         <Package className="text-purple-500" size={24} />
-        <h3 className="text-xl font-bold text-gray-800">Gestione Lamponi</h3>
+        <h3 className="text-lg md:text-xl font-bold text-gray-800">Gestione Lamponi</h3>
       </div>
 
       {/* Selettore Task */}
@@ -87,7 +87,7 @@ const RaspberryManagement: React.FC<RaspberryManagementProps> = ({ tasks, garden
               const task = raspberryTasks.find(t => t.id === e.target.value);
               if (task) setSelectedTask(task);
             }}
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
           >
             {raspberryTasks.map(task => (
               <option key={task.id} value={task.id}>
@@ -99,7 +99,7 @@ const RaspberryManagement: React.FC<RaspberryManagementProps> = ({ tasks, garden
       )}
 
       {/* Info Impianto */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
           <div className="text-sm text-gray-600 mb-1">Varietà</div>
           <div className="font-bold text-gray-800">{varietyTypeLabel}</div>
@@ -124,12 +124,12 @@ const RaspberryManagement: React.FC<RaspberryManagementProps> = ({ tasks, garden
 
       {/* Avviso Supporti */}
       {raspberryCrop.supportRequired && !currentTask.raspberryData?.supportInstalled && (
-        <div className="mb-6 p-4 bg-yellow-50 rounded-lg border-2 border-yellow-300">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertCircle className="text-yellow-600" size={20} />
-            <span className="font-semibold text-yellow-800">Supporti Non Installati</span>
+        <div className="mb-6 p-4 bg-yellow-50 rounded-lg border-2 border-yellow-full max-w-sm">
+          <div className="flex items-center gap-3 mb-2">
+            <AlertCircle className="text-yellow-full max-w-sm" size={20} />
+            <span className="font-semibold text-yellow-full max-w-sm">Supporti Non Installati</span>
           </div>
-          <p className="text-sm text-yellow-700">
+          <p className="text-sm text-yellow-full max-w-sm">
             Questa varietà richiede supporti (trelis) per sostenere le canne. Installa i supporti prima che le canne crescano troppo.
           </p>
         </div>
@@ -137,7 +137,7 @@ const RaspberryManagement: React.FC<RaspberryManagementProps> = ({ tasks, garden
 
       {/* Task Consigliati */}
       <div className="mb-6">
-        <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+        <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-3">
           <Calendar className="text-purple-500" size={20} />
           Task Consigliati
         </h4>
@@ -171,7 +171,7 @@ const RaspberryManagement: React.FC<RaspberryManagementProps> = ({ tasks, garden
               </div>
               <ul className="text-sm text-gray-700 space-y-1 mt-2">
                 {advice.instructions.map((inst, i) => (
-                  <li key={i} className="flex items-start gap-2">
+                  <li key={i} className="flex items-start gap-3">
                     <span className="text-purple-500 mt-1">•</span>
                     <span>{inst}</span>
                   </li>
@@ -184,7 +184,7 @@ const RaspberryManagement: React.FC<RaspberryManagementProps> = ({ tasks, garden
 
       {/* Info Gestione Canne */}
       <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-3">
           <Scissors className="text-blue-600" size={18} />
           Gestione Canne
         </h4>
@@ -216,7 +216,7 @@ const RaspberryManagement: React.FC<RaspberryManagementProps> = ({ tasks, garden
       {/* Stato Raccolta */}
       {isHarvestTime && (
         <div className="p-4 bg-green-50 rounded-lg border-2 border-green-300">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-2">
             <CheckCircle className="text-green-600" size={20} />
             <span className="font-semibold text-green-800">Periodo di Raccolta Attivo</span>
           </div>

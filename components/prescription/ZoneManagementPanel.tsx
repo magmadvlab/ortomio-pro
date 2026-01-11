@@ -148,16 +148,16 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
           <div className="flex items-center gap-3">
             <Layers className="text-green-600" size={24} />
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Gestione Zone</h2>
+              <h2 className="text-lg md:text-xl font-bold text-gray-900">Gestione Zone</h2>
               <p className="text-sm text-gray-600">{prescriptionMap.name}</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={handleValidateZones}
               disabled={loading}
-              className="px-3 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
+              className="px-4 py-3 text-base text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
             >
               <CheckCircle size={16} className="inline mr-2" />
               Valida
@@ -166,7 +166,7 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
             <button
               onClick={handleOptimizeZones}
               disabled={loading}
-              className="px-3 py-2 text-green-600 border border-green-300 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50"
+              className="px-4 py-3 text-base text-green-600 border border-green-300 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50"
             >
               <Target size={16} className="inline mr-2" />
               Ottimizza
@@ -221,9 +221,9 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
                   </div>
 
                   {/* Zone indicators */}
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-3 mt-2">
                     {zone.dataQuality < 60 && (
-                      <AlertTriangle size={14} className="text-yellow-500" />
+                      <AlertTriangle size={14} className="text-yellow-full max-w-sm" />
                     )}
                     {zone.areaSqm < 500 && (
                       <Target size={14} className="text-orange-500" />
@@ -245,18 +245,18 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">{selectedZone.zoneName}</h3>
-                    <div className="flex items-center gap-2">
-                      <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <button className="p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg">
                         <Eye size={16} />
                       </button>
-                      <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg">
+                      <button className="p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg">
                         <Settings size={16} />
                       </button>
                     </div>
                   </div>
 
                   {/* Zone Stats */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="bg-blue-50 p-3 rounded-lg">
                       <p className="text-sm text-blue-600">Area</p>
                       <p className="font-bold text-blue-700">{(selectedZone.areaSqm / 10000).toFixed(2)} ha</p>
@@ -308,7 +308,7 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
                     {/* Prescription Details */}
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <h4 className="font-medium text-gray-900 mb-3">Prescrizione</h4>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-gray-600">Dose applicazione:</span>
                           <span className="ml-2 font-medium">
@@ -333,7 +333,7 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
                     {/* Source Data */}
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <h4 className="font-medium text-gray-900 mb-3">Dati Sorgente</h4>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-gray-600">NDVI medio:</span>
                           <span className="ml-2 font-medium">{selectedZone.sourceData.avgNdvi?.toFixed(3) || 'N/A'}</span>
@@ -357,7 +357,7 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
                     {selectedZone.prescription.variableRate && (
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <h4 className="font-medium text-gray-900 mb-3">Dose Variabile</h4>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                           <div>
                             <span className="text-gray-600">Dose minima:</span>
                             <span className="ml-2 font-medium">
@@ -410,7 +410,7 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
                               <p className="text-sm text-green-700 font-medium mb-2">Motivazioni:</p>
                               <ul className="text-sm text-green-600 space-y-1">
                                 {zoneAnalysis.recommendations.reasoning.map((reason, index) => (
-                                  <li key={index} className="flex items-start gap-2">
+                                  <li key={index} className="flex items-start gap-3">
                                     <span className="text-green-500 mt-1">•</span>
                                     {reason}
                                   </li>
@@ -423,7 +423,7 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
                         {/* Risk Factors */}
                         {zoneAnalysis.riskFactors.length > 0 && (
                           <div className="bg-yellow-50 p-4 rounded-lg">
-                            <h4 className="font-medium text-yellow-900 mb-3">Fattori di Rischio</h4>
+                            <h4 className="font-medium text-yellow-full max-w-sm mb-3">Fattori di Rischio</h4>
                             <div className="space-y-3">
                               {zoneAnalysis.riskFactors.map((risk, index) => (
                                 <div key={index} className="flex items-start gap-3">
@@ -480,7 +480,7 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
                         L'ottimizzazione può ridurre il numero di zone mantenendo la precisione dell'applicazione.
                       </p>
                       
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-blue-700">Zone attuali:</span>
                           <span className="ml-2 font-bold text-blue-800">{zones.length}</span>
@@ -504,12 +504,12 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
 
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <h4 className="font-medium text-gray-900 mb-3">Azioni Zone</h4>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button className="flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <button className="flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
                           <Merge size={16} />
                           Unisci Zone
                         </button>
-                        <button className="flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
+                        <button className="flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
                           <Split size={16} />
                           Dividi Zona
                         </button>

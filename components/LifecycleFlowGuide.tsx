@@ -112,7 +112,7 @@ const LifecycleFlowGuide: React.FC<LifecycleFlowGuideProps> = ({
     <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
       <div className="mb-4">
         <h3 className="text-sm font-bold text-gray-700 uppercase mb-2">Ciclo Vitale</h3>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
           {phases.map((phase, index) => {
             const isPast = index < currentIndex;
             const isCurrent = index === currentIndex;
@@ -166,7 +166,7 @@ const LifecycleFlowGuide: React.FC<LifecycleFlowGuideProps> = ({
           </div>
           {task.expectedTransplantDate && (
             <div className="text-right">
-              <div className="flex items-center gap-1 text-xs text-gray-600">
+              <div className="flex items-center gap-3 text-xs text-gray-600">
                 <Calendar size={12} />
                 <span>Trapianto previsto: {new Date(task.expectedTransplantDate).toLocaleDateString('it-IT')}</span>
               </div>
@@ -177,7 +177,7 @@ const LifecycleFlowGuide: React.FC<LifecycleFlowGuideProps> = ({
       
       {/* Azioni suggerite */}
       {suggestedAction && (
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             onClick={handleAdvance}
             className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors"
@@ -197,7 +197,7 @@ const LifecycleFlowGuide: React.FC<LifecycleFlowGuideProps> = ({
       
       {/* Separazione operazione/fase */}
       <div className="mt-4 pt-4 border-t border-gray-200">
-        <div className="grid grid-cols-2 gap-3 text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
           <div>
             <span className="text-gray-500 font-semibold">Operazione:</span>
             <p className="text-gray-700 font-bold mt-1">{task.taskType}</p>

@@ -16,10 +16,10 @@ const NaiveComparison: React.FC<NaiveComparisonProps> = ({ comparison }) => {
     <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
       <h3 className="text-lg font-bold text-gray-800">Confronto Approcci</h3>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Approccio Naive */}
         <div className="border-2 border-red-200 rounded-lg p-4 bg-red-50">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-3 mb-3">
             <XCircle size={20} className="text-red-600" />
             <h4 className="font-bold text-red-900">Approccio Naive</h4>
           </div>
@@ -54,7 +54,7 @@ const NaiveComparison: React.FC<NaiveComparisonProps> = ({ comparison }) => {
               </span>
             </div>
             {comparison.naiveApproach.motivoFallimento && (
-              <div className="mt-2 p-2 bg-red-100 rounded text-xs text-red-800">
+              <div className="mt-2 p-3 bg-red-100 rounded text-xs text-red-800">
                 ⚠️ {comparison.naiveApproach.motivoFallimento}
               </div>
             )}
@@ -63,7 +63,7 @@ const NaiveComparison: React.FC<NaiveComparisonProps> = ({ comparison }) => {
 
         {/* Approccio Ottimizzato */}
         <div className="border-2 border-green-200 rounded-lg p-4 bg-green-50">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-3 mb-3">
             <CheckCircle size={20} className="text-green-600" />
             <h4 className="font-bold text-green-900">Approccio Ottimizzato</h4>
           </div>
@@ -93,7 +93,7 @@ const NaiveComparison: React.FC<NaiveComparisonProps> = ({ comparison }) => {
                 {comparison.optimizedApproach.risparmioAcqua}%
               </span>
             </div>
-            <div className="mt-2 p-2 bg-green-100 rounded text-xs text-green-800">
+            <div className="mt-2 p-3 bg-green-100 rounded text-xs text-green-800">
               ✓ {comparison.optimizedApproach.motivoSuccesso}
             </div>
           </div>
@@ -102,26 +102,26 @@ const NaiveComparison: React.FC<NaiveComparisonProps> = ({ comparison }) => {
 
       {/* Guadagni */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-3 mb-3">
           <TrendingUp size={20} className="text-blue-600" />
           <h4 className="font-bold text-blue-900">Guadagni con Approccio Ottimizzato</h4>
         </div>
         
-        <div className="grid grid-cols-3 gap-4 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-700">
+            <div className="text-xl md:text-2xl font-bold text-blue-700">
               +{comparison.guadagno.resaExtra} kg
             </div>
             <div className="text-gray-600 mt-1">Resa extra</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-700">
+            <div className="text-xl md:text-2xl font-bold text-blue-700">
               +{comparison.guadagno.cicliExtra}
             </div>
             <div className="text-gray-600 mt-1">Cicli extra</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-700">
+            <div className="text-xl md:text-2xl font-bold text-blue-700">
               -{comparison.guadagno.risparmioAcquaLitri} L
             </div>
             <div className="text-gray-600 mt-1">Risparmio acqua</div>

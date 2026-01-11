@@ -156,7 +156,7 @@ const GardenChat: React.FC<GardenChatProps> = ({
     <div className="flex flex-col h-full bg-white rounded-lg border border-gray-200 shadow-lg">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-green-50">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Bot size={20} className="text-green-600" />
           <h3 className="font-semibold text-gray-800">Assistente Orto</h3>
         </div>
@@ -194,7 +194,7 @@ const GardenChat: React.FC<GardenChatProps> = ({
             >
               <p className="text-sm whitespace-pre-wrap">{message.content}</p>
               {message.suggestions && message.suggestions.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="mt-2 flex flex-wrap gap-3">
                   {message.suggestions.map((suggestion, idx) => (
                     <button
                       key={idx}
@@ -236,7 +236,7 @@ const GardenChat: React.FC<GardenChatProps> = ({
 
       {/* Input */}
       <div className="border-t border-gray-200 p-4 bg-gray-50">
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <input
             ref={inputRef}
             type="text"
@@ -250,7 +250,7 @@ const GardenChat: React.FC<GardenChatProps> = ({
           <button
             onClick={handleSend}
             disabled={!input.trim() || isProcessing}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-3"
           >
             <Send size={16} />
           </button>

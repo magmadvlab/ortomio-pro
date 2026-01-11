@@ -405,7 +405,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
           <div className="flex items-center gap-3">
             <TreePine className="text-green-600" size={28} />
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Smart Plant Manager</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900">Smart Plant Manager</h2>
               <p className="text-gray-600">
                 {plants.length} piante • {filteredPlants.length} visualizzate
               </p>
@@ -413,7 +413,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
           </div>
           
           {/* View Mode Toggle */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
+          <div className="flex bg-gray-100 rounded-lg p-3">
             <button
               onClick={() => setViewMode('heatmap')}
               className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -448,12 +448,12 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
         </div>
 
         {/* Statistiche rapide con integrazione filari */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-6 gap-4 mb-6">
           <div className="bg-green-50 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-green-600">Sane</p>
-                <p className="text-xl font-bold text-green-700">
+                <p className="text-lg md:text-xl font-bold text-green-700">
                   {plants.filter(p => p.status === 'healthy').length}
                 </p>
               </div>
@@ -465,7 +465,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-orange-600">Malate</p>
-                <p className="text-xl font-bold text-orange-700">
+                <p className="text-lg md:text-xl font-bold text-orange-700">
                   {plants.filter(p => p.status === 'diseased').length}
                 </p>
               </div>
@@ -477,7 +477,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-blue-600">In Filari</p>
-                <p className="text-xl font-bold text-blue-700">
+                <p className="text-lg md:text-xl font-bold text-blue-700">
                   {syncStatistics?.plantsInRows || 0}
                 </p>
               </div>
@@ -488,12 +488,12 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
           <div className="bg-yellow-50 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-yellow-600">Senza Filare</p>
-                <p className="text-xl font-bold text-yellow-700">
+                <p className="text-sm text-yellow-full max-w-sm">Senza Filare</p>
+                <p className="text-lg md:text-xl font-bold text-yellow-full max-w-sm">
                   {syncStatistics?.plantsWithoutRows || 0}
                 </p>
               </div>
-              <Unlink className="text-yellow-600" size={24} />
+              <Unlink className="text-yellow-full max-w-sm" size={24} />
             </div>
           </div>
 
@@ -501,7 +501,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-purple-600">Selezionate</p>
-                <p className="text-xl font-bold text-purple-700">
+                <p className="text-lg md:text-xl font-bold text-purple-700">
                   {selection.plantIds.length}
                 </p>
               </div>
@@ -513,7 +513,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-indigo-600">Sync Rate</p>
-                <p className="text-xl font-bold text-indigo-700">
+                <p className="text-lg md:text-xl font-bold text-indigo-700">
                   {syncStatistics?.syncSuccessRate?.toFixed(0) || 0}%
                 </p>
               </div>
@@ -527,10 +527,10 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
       <div className="bg-white rounded-lg shadow-md p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Filtri e Selezione</h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-3 top-3/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
               placeholder="Cerca pianta (F1-P001, Pomodoro...)"
@@ -600,7 +600,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
         {/* Selection Mode */}
         <div className="mb-6">
           <h4 className="text-sm font-medium text-gray-700 mb-3">Modalità Selezione</h4>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-5 gap-3">
             {(['single', 'group', 'row', 'problems', 'healthy'] as SelectionMode[]).map((mode) => {
               const modeInfo = getSelectionModeInfo(mode);
               const Icon = modeInfo.icon;
@@ -645,7 +645,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
                   setSelectedOperation('watering');
                   setShowOperationModal(true);
                 }}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-3"
               >
                 <Droplets size={20} />
                 Irrigazione ({selection.plantIds.length})
@@ -656,7 +656,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
                   setSelectedOperation('fertilizing');
                   setShowOperationModal(true);
                 }}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-3"
               >
                 <Zap size={20} />
                 Fertilizzazione ({selection.plantIds.length})
@@ -667,7 +667,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
                   setSelectedOperation('treatment');
                   setShowOperationModal(true);
                 }}
-                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
+                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-3"
               >
                 <Scissors size={20} />
                 Trattamento ({selection.plantIds.length})
@@ -675,7 +675,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
               
               <button
                 onClick={() => setShowHealthModal(true)}
-                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-3"
               >
                 <Camera size={20} />
                 Aggiorna Salute ({selection.plantIds.length})
@@ -686,7 +686,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
             <div className="flex flex-wrap gap-3 pt-2 border-t border-gray-200">
               <button
                 onClick={() => setShowRowAssignment(true)}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-3"
               >
                 <Link size={20} />
                 Assegna a Filare ({selection.plantIds.length})
@@ -694,7 +694,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
               
               <button
                 onClick={handleRemovePlantsFromRow}
-                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-3"
               >
                 <Unlink size={20} />
                 Rimuovi da Filare ({selection.plantIds.length})
@@ -702,7 +702,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
 
               <button
                 onClick={() => setShowUnifiedOperationModal(true)}
-                className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2"
+                className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-3"
               >
                 <Layers size={20} />
                 Operazione Unificata ({selection.plantIds.length})
@@ -744,7 +744,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
             {/* Grid View */}
             {viewMode === 'grid' && (
               <div className="p-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {filteredPlants.slice(0, 50).map((plant) => (
                     <div
                       key={plant.id}
@@ -768,7 +768,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
                         <span className="text-sm font-medium">{plant.plantCode}</span>
                         {getStatusIcon(plant.status)}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <div className={`w-3 h-3 rounded-full ${getHealthColor(plant.healthScore)}`} />
                         <span className="text-xs text-gray-600">{plant.healthScore}%</span>
                       </div>
@@ -808,7 +808,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
                         <span className="text-sm text-gray-500">{plant.variety}</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <div className={`w-3 h-3 rounded-full ${getHealthColor(plant.healthScore)}`} />
                           <span className="text-sm">{plant.healthScore}%</span>
                         </div>
@@ -835,7 +835,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
       {/* Row Assignment Modal */}
       {showRowAssignment && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+          <div className="bg-white rounded-lg shadow-xl max-w-[90vw] md:max-w-md max-h-[90vh] overflow-y-auto w-full">
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Assegna Piante a Filare
@@ -852,7 +852,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
                 <select
                   value={selectedRowForAssignment}
                   onChange={(e) => setSelectedRowForAssignment(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Seleziona un filare...</option>
                   {availableRows.map(row => (
@@ -907,7 +907,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
                   <select
                     value={selectedOperation}
                     onChange={(e) => setSelectedOperation(e.target.value as any)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="watering">Irrigazione</option>
                     <option value="fertilizing">Fertilizzazione</option>
@@ -916,7 +916,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
                 </div>
 
                 <div className="bg-teal-50 border border-teal-200 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-3 mb-2">
                     <Layers className="text-teal-600" size={16} />
                     <span className="text-sm font-medium text-teal-800">Propagazione Automatica</span>
                   </div>

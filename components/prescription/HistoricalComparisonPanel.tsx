@@ -110,7 +110,7 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
           <div className="flex items-center gap-3">
             <BarChart3 className="text-blue-600" size={24} />
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Confronto Storico</h2>
+              <h2 className="text-lg md:text-xl font-bold text-gray-900">Confronto Storico</h2>
               <p className="text-sm text-gray-600">Analisi trend e performance nel tempo</p>
             </div>
           </div>
@@ -190,7 +190,7 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
               {/* Time Range */}
               <div>
                 <h4 className="font-medium text-gray-900 mb-3">Periodo Analisi</h4>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Data Inizio
@@ -199,7 +199,7 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
                       type="date"
                       value={timeRange.startDate}
                       onChange={(e) => setTimeRange(prev => ({ ...prev, startDate: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
@@ -210,7 +210,7 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
                       type="date"
                       value={timeRange.endDate}
                       onChange={(e) => setTimeRange(prev => ({ ...prev, endDate: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -250,7 +250,7 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
               <button
                 onClick={handleRunComparison}
                 disabled={loading || selectedMaps.length < 2}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-3"
               >
                 {loading ? (
                   <>
@@ -301,11 +301,11 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
                   <div className="space-y-6">
                     <h3 className="text-lg font-semibold text-gray-900">Trend Temporali</h3>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
                       {comparisonResult.temporalTrends.map((trend, index) => (
                         <div key={index} className="bg-gray-50 p-4 rounded-lg">
                           <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               {getTrendIcon(trend.trend)}
                               <span className="font-medium text-gray-900">{trend.metric}</span>
                             </div>
@@ -356,7 +356,7 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
                             </div>
                           </div>
                           
-                          <div className="grid grid-cols-4 gap-4 mb-4">
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                             <div className="text-center">
                               <div className="text-sm text-gray-600">Applicazioni</div>
                               <div className="font-bold text-gray-900">{zone.evolution.length}</div>
@@ -386,7 +386,7 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
                               <h5 className="font-medium text-blue-900 mb-2">Raccomandazioni:</h5>
                               <ul className="text-sm text-blue-700 space-y-1">
                                 {zone.recommendations.map((rec, idx) => (
-                                  <li key={idx} className="flex items-start gap-2">
+                                  <li key={idx} className="flex items-start gap-3">
                                     <span className="text-blue-500 mt-1">•</span>
                                     {rec}
                                   </li>
@@ -404,7 +404,7 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
                   <div className="space-y-6">
                     <h3 className="text-lg font-semibold text-gray-900">Pattern Stagionali</h3>
                     
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
                       {comparisonResult.seasonalPatterns.map((pattern, index) => (
                         <div key={index} className="bg-gray-50 p-4 rounded-lg">
                           <div className="text-center mb-3">
@@ -457,16 +457,16 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
                   <div className="space-y-6">
                     <h3 className="text-lg font-semibold text-gray-900">Insights e Raccomandazioni</h3>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Key Findings */}
                       <div className="bg-blue-50 p-4 rounded-lg">
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-3 mb-3">
                           <CheckCircle className="text-blue-600" size={20} />
                           <h4 className="font-medium text-blue-900">Risultati Chiave</h4>
                         </div>
                         <ul className="text-sm text-blue-700 space-y-2">
                           {comparisonResult.insights.keyFindings.map((finding, index) => (
-                            <li key={index} className="flex items-start gap-2">
+                            <li key={index} className="flex items-start gap-3">
                               <span className="text-blue-500 mt-1">•</span>
                               {finding}
                             </li>
@@ -476,13 +476,13 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
 
                       {/* Recommendations */}
                       <div className="bg-green-50 p-4 rounded-lg">
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-3 mb-3">
                           <Target className="text-green-600" size={20} />
                           <h4 className="font-medium text-green-900">Raccomandazioni</h4>
                         </div>
                         <ul className="text-sm text-green-700 space-y-2">
                           {comparisonResult.insights.recommendations.map((rec, index) => (
-                            <li key={index} className="flex items-start gap-2">
+                            <li key={index} className="flex items-start gap-3">
                               <span className="text-green-500 mt-1">•</span>
                               {rec}
                             </li>
@@ -493,14 +493,14 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
                       {/* Risk Factors */}
                       {comparisonResult.insights.riskFactors.length > 0 && (
                         <div className="bg-yellow-50 p-4 rounded-lg">
-                          <div className="flex items-center gap-2 mb-3">
-                            <AlertTriangle className="text-yellow-600" size={20} />
-                            <h4 className="font-medium text-yellow-900">Fattori di Rischio</h4>
+                          <div className="flex items-center gap-3 mb-3">
+                            <AlertTriangle className="text-yellow-full max-w-sm" size={20} />
+                            <h4 className="font-medium text-yellow-full max-w-sm">Fattori di Rischio</h4>
                           </div>
-                          <ul className="text-sm text-yellow-700 space-y-2">
+                          <ul className="text-sm text-yellow-full max-w-sm space-y-2">
                             {comparisonResult.insights.riskFactors.map((risk, index) => (
-                              <li key={index} className="flex items-start gap-2">
-                                <span className="text-yellow-500 mt-1">⚠</span>
+                              <li key={index} className="flex items-start gap-3">
+                                <span className="text-yellow-full max-w-sm mt-1">⚠</span>
                                 {risk}
                               </li>
                             ))}
@@ -510,13 +510,13 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
 
                       {/* Opportunities */}
                       <div className="bg-purple-50 p-4 rounded-lg">
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-3 mb-3">
                           <Zap className="text-purple-600" size={20} />
                           <h4 className="font-medium text-purple-900">Opportunità</h4>
                         </div>
                         <ul className="text-sm text-purple-700 space-y-2">
                           {comparisonResult.insights.opportunities.map((opp, index) => (
-                            <li key={index} className="flex items-start gap-2">
+                            <li key={index} className="flex items-start gap-3">
                               <span className="text-purple-500 mt-1">•</span>
                               {opp}
                             </li>
@@ -528,11 +528,11 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
                     {/* Next Actions */}
                     {comparisonResult.insights.nextActions.length > 0 && (
                       <div className="bg-gray-50 p-4 rounded-lg">
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-3 mb-3">
                           <Clock className="text-gray-600" size={20} />
                           <h4 className="font-medium text-gray-900">Prossime Azioni</h4>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-3">
                           {comparisonResult.insights.nextActions.map((action, index) => (
                             <div key={index} className="flex items-center gap-3 p-3 bg-white rounded-lg border">
                               <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">
@@ -554,7 +554,7 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
                       // TODO: Implement export functionality
                       alert('Export report - funzionalità in sviluppo');
                     }}
-                    className="bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                    className="bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-3"
                   >
                     <Download size={16} />
                     Esporta Report

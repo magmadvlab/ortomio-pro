@@ -23,11 +23,11 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, showBack, show
     <div className="bg-white border-b border-green-200 px-4 py-4">
       <div className="max-w-7xl mx-auto flex items-center gap-4">
         {(showBack || showHome) && (
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             {showBack && (
               <button
                 onClick={() => router.back()}
-                className="p-2 hover:bg-green-50 rounded-lg transition-colors"
+                className="p-3 hover:bg-green-50 rounded-lg transition-colors"
                 title="Indietro"
               >
                 <ArrowLeft size={20} className="text-green-700" />
@@ -36,7 +36,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, showBack, show
             {showHome && (
               <button
                 onClick={() => router.push('/app')}
-                className="p-2 hover:bg-green-50 rounded-lg transition-colors"
+                className="p-3 hover:bg-green-50 rounded-lg transition-colors"
                 title="Home"
               >
                 <Home size={20} className="text-green-700" />
@@ -45,7 +45,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, showBack, show
           </div>
         )}
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-green-900">{title}</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-green-900">{title}</h1>
           {subtitle && <p className="text-sm text-green-600 mt-1">{subtitle}</p>}
         </div>
       </div>

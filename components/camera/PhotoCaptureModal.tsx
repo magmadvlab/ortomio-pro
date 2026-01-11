@@ -152,7 +152,7 @@ export function PhotoCaptureModal({
       <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[95vh] overflow-y-auto">
         <div className="p-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-3">
               <Camera className="text-purple-600" size={24} />
               Scatta Foto
             </h2>
@@ -195,7 +195,7 @@ export function PhotoCaptureModal({
                   <div className="flex flex-col gap-3">
                     <button
                       onClick={startCamera}
-                      className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+                      className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center justify-center gap-3"
                     >
                       <Camera size={20} />
                       Usa Fotocamera
@@ -203,7 +203,7 @@ export function PhotoCaptureModal({
                     
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-3"
                     >
                       <Upload size={20} />
                       Carica da Galleria
@@ -242,7 +242,7 @@ export function PhotoCaptureModal({
                     type="text"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="es. Aiuola Nord, Filare 3..."
                   />
                 </div>
@@ -254,7 +254,7 @@ export function PhotoCaptureModal({
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     rows={3}
                     placeholder="Descrivi cosa vedi nella foto..."
                   />
@@ -265,7 +265,7 @@ export function PhotoCaptureModal({
               <div className="flex gap-3">
                 <button
                   onClick={retakePhoto}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-3"
                 >
                   <RotateCcw size={16} />
                   Rifai
@@ -273,7 +273,7 @@ export function PhotoCaptureModal({
                 <button
                   onClick={savePhoto}
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 >
                   <Check size={16} />
                   {saving ? 'Salvando...' : 'Salva'}

@@ -93,7 +93,7 @@ export function AutoSyncSettings() {
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-3">
             <RefreshCw size={20} />
             Sincronizzazione Automatica
           </h3>
@@ -133,7 +133,7 @@ export function AutoSyncSettings() {
             <option value="disabled">Disabilitato</option>
           </select>
           
-          <div className="flex items-start gap-2 text-xs text-gray-500 mt-2">
+          <div className="flex items-start gap-3 text-xs text-gray-500 mt-2">
             <Clock size={14} className="mt-0.5 flex-shrink-0" />
             <span>
               La sincronizzazione automatica avviene in background e non interferisce 

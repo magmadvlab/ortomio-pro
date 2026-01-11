@@ -157,7 +157,7 @@ const AgronomistManager: React.FC<AgronomistManagerProps> = ({ onSelectAgronomis
   return (
     <div className="bg-white p-6 rounded-xl border border-gray-200">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-bold text-gray-800">Agronomi di Fiducia</h3>
+        <h3 className="text-lg md:text-xl font-bold text-gray-800">Agronomi di Fiducia</h3>
         <button
           onClick={() => {
             setIsAdding(true);
@@ -172,7 +172,7 @@ const AgronomistManager: React.FC<AgronomistManagerProps> = ({ onSelectAgronomis
               consultationFrequency: 'OnDemand',
             });
           }}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-3"
         >
           <Plus size={18} />
           Aggiungi
@@ -203,19 +203,19 @@ const AgronomistManager: React.FC<AgronomistManagerProps> = ({ onSelectAgronomis
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                 placeholder="Nome agronomo"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                   placeholder="email@example.com"
                 />
               </div>
@@ -226,7 +226,7 @@ const AgronomistManager: React.FC<AgronomistManagerProps> = ({ onSelectAgronomis
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
                   placeholder="+39 123 456 7890"
                 />
               </div>
@@ -237,7 +237,7 @@ const AgronomistManager: React.FC<AgronomistManagerProps> = ({ onSelectAgronomis
               <select
                 value={formData.preferredContactMethod}
                 onChange={(e) => setFormData({ ...formData, preferredContactMethod: e.target.value as any })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               >
                 <option value="Email">Email</option>
                 <option value="Phone">Telefono</option>
@@ -245,7 +245,7 @@ const AgronomistManager: React.FC<AgronomistManagerProps> = ({ onSelectAgronomis
               </select>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <button
                 onClick={handleSave}
                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -278,20 +278,20 @@ const AgronomistManager: React.FC<AgronomistManagerProps> = ({ onSelectAgronomis
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-3 mb-2">
                     <User size={20} className="text-green-600" />
                     <h4 className="font-semibold text-gray-800">{agronomist.name}</h4>
                   </div>
                   
                   <div className="space-y-1 text-sm text-gray-600">
                     {agronomist.email && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <Mail size={14} />
                         <span>{agronomist.email}</span>
                       </div>
                     )}
                     {agronomist.phone && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <Phone size={14} />
                         <span>{agronomist.phone}</span>
                       </div>
@@ -305,13 +305,13 @@ const AgronomistManager: React.FC<AgronomistManagerProps> = ({ onSelectAgronomis
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       startEdit(agronomist);
                     }}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                    className="p-3 text-blue-600 hover:bg-blue-50 rounded"
                   >
                     <Edit2 size={16} />
                   </button>
@@ -320,7 +320,7 @@ const AgronomistManager: React.FC<AgronomistManagerProps> = ({ onSelectAgronomis
                       e.stopPropagation();
                       handleDelete(agronomist.id);
                     }}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded"
+                    className="p-3 text-red-600 hover:bg-red-50 rounded"
                   >
                     <Trash2 size={16} />
                   </button>

@@ -188,15 +188,15 @@ export function TaskCard({
         </div>
 
         {/* Meta Info */}
-        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mb-2">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mb-2">
           {task.nextDueDate && (
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-3">
               <Clock size={12} />
               {getTimeLabel(task.nextDueDate)}
             </span>
           )}
           {task.locationType && (
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-3">
               <MapPin size={12} />
               {getLocationLabel(task.locationType)}
             </span>
@@ -205,7 +205,7 @@ export function TaskCard({
 
         {/* Tip */}
         {showSuggestions && !task.completed && getWeatherSuggestion() && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-2 mb-3">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
             <p className="text-xs text-green-700">
               {getWeatherSuggestion()}
             </p>
@@ -214,7 +214,7 @@ export function TaskCard({
 
         {/* Actions */}
         {!task.completed && (
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               onClick={handleComplete}
               className="flex-1 px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600 transition-colors"
@@ -249,7 +249,7 @@ export function TaskCard({
         {/* Checkbox Grande Tap-Friendly */}
         <button
           onClick={handleComplete}
-          className="mt-1 flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors"
+          className="mt-1 flex-shrink-0 p-3 hover:bg-gray-100 rounded transition-colors"
           aria-label={task.completed ? 'Segna come non completato' : 'Segna come completato'}
         >
           {task.completed ? (
@@ -261,7 +261,7 @@ export function TaskCard({
 
         {/* Task Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-start justify-between gap-3 mb-2">
             <div className="flex-1">
               <h3 className="font-bold text-gray-900 text-lg mb-1">
                 {task.plantName}
@@ -280,7 +280,7 @@ export function TaskCard({
             <div className="relative flex-shrink-0">
               <button
                 onClick={() => setShowActions(!showActions)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
                 aria-label="Azioni"
               >
                 <MoreVertical size={18} className="text-gray-500" />
@@ -299,7 +299,7 @@ export function TaskCard({
                           onReschedule(task.id)
                           setShowActions(false)
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                       >
                         <Clock size={16} />
                         Rimanda
@@ -311,7 +311,7 @@ export function TaskCard({
                           onEdit(task)
                           setShowActions(false)
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                       >
                         Modifica
                       </button>
@@ -322,7 +322,7 @@ export function TaskCard({
                           onDelete(task.id)
                           setShowActions(false)
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"
                       >
                         <X size={16} />
                         Elimina
@@ -337,19 +337,19 @@ export function TaskCard({
           {/* Info Contestuali Inline */}
           <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 mb-3">
             {task.nextDueDate && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-3">
                 <Clock size={14} />
                 <span className="font-medium">{getTimeLabel(task.nextDueDate)}</span>
               </div>
             )}
             {task.date && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-3">
                 <Calendar size={14} />
                 <span>{format(parseISO(task.date), 'dd MMM yyyy', { locale: it })}</span>
               </div>
             )}
             {task.locationType && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-3">
                 <MapPin size={14} />
                 <span>{getLocationLabel(task.locationType)}</span>
               </div>
@@ -358,7 +358,7 @@ export function TaskCard({
 
           {/* Suggerimenti Smart */}
           {showSuggestions && !task.completed && getWeatherSuggestion() && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-3">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
               <p className="text-xs text-blue-700 font-medium">
                 {getWeatherSuggestion()}
               </p>
@@ -374,10 +374,10 @@ export function TaskCard({
 
           {/* Azioni Chiare */}
           {!task.completed && (
-            <div className="flex gap-2 mt-4">
+            <div className="flex gap-3 mt-4">
               <button
                 onClick={handleComplete}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-3"
               >
                 <CheckCircle2 size={16} />
                 Fatto
@@ -385,7 +385,7 @@ export function TaskCard({
               {onReschedule && (
                 <button
                   onClick={() => onReschedule(task.id)}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-2"
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-3"
                 >
                   <Clock size={16} />
                   Rimanda

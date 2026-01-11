@@ -55,9 +55,9 @@ export function ContextualTip({
 
   return (
     <div className={`absolute ${positionClasses[position]} z-50 animate-in fade-in slide-in-from-bottom-2`}>
-      <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg border-2 border-yellow-300 shadow-xl p-4 max-w-xs">
+      <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg border-2 border-yellow-full max-w-sm shadow-xl p-4 max-w-xs">
         <div className="flex items-start gap-3 mb-2">
-          <Lightbulb size={20} className="text-yellow-600 flex-shrink-0 mt-0.5" />
+          <Lightbulb size={20} className="text-yellow-full max-w-sm flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <h4 className="font-bold text-gray-900 text-sm mb-1">{title}</h4>
             <p className="text-xs text-gray-700">{message}</p>
@@ -71,8 +71,8 @@ export function ContextualTip({
           </button>
         </div>
         
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-yellow-200">
-          <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+        <div className="flex items-center gap-3 mt-3 pt-3 border-t border-yellow-full max-w-sm">
+          <label className="flex items-center gap-3 text-xs text-gray-600 cursor-pointer">
             <input
               type="checkbox"
               onChange={(e) => {
@@ -80,7 +80,7 @@ export function ContextualTip({
                   handleDismiss(true)
                 }
               }}
-              className="w-3 h-3 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500"
+              className="w-3 h-3 rounded border-gray-300 text-yellow-full max-w-sm focus:ring-yellow-500"
             />
             <span>Non mostrare più questo suggerimento</span>
           </label>

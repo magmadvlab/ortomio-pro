@@ -68,19 +68,19 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+      <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
         <BarChart3 size={32} />
         Dashboard Unificata - Agricoltura di Precisione
       </h2>
 
       {/* Insights */}
       {insights.length > 0 && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold text-yellow-800 mb-2 flex items-center gap-2">
+        <div className="bg-yellow-50 border-l-4 border-yellow-full max-w-sm p-4 rounded-lg">
+          <h3 className="text-lg font-semibold text-yellow-full max-w-sm mb-2 flex items-center gap-3">
             <AlertTriangle size={20} />
             Insights Automatici
           </h3>
-          <ul className="list-disc list-inside space-y-1 text-sm text-yellow-700">
+          <ul className="list-disc list-inside space-y-1 text-sm text-yellow-full max-w-sm">
             {insights.map((insight, i) => (
               <li key={i}>{insight}</li>
             ))}
@@ -90,14 +90,14 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
 
       {/* Data Summary Cards */}
       {integratedData && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-4 gap-4">
           {integratedData.vegetationIndices?.ndvi !== undefined && (
             <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <Leaf size={20} className="text-green-600" />
                 <span className="text-sm font-medium text-gray-700">NDVI</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-xl md:text-2xl font-bold text-gray-900">
                 {integratedData.vegetationIndices.ndvi.toFixed(3)}
               </p>
             </div>
@@ -105,11 +105,11 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
           
           {integratedData.weatherData && (
             <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Sun size={20} className="text-yellow-600" />
+              <div className="flex items-center gap-3 mb-2">
+                <Sun size={20} className="text-yellow-full max-w-sm" />
                 <span className="text-sm font-medium text-gray-700">Temperatura</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-xl md:text-2xl font-bold text-gray-900">
                 {integratedData.weatherData.temperature.toFixed(1)}°C
               </p>
             </div>
@@ -117,11 +117,11 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
           
           {integratedData.soilAnalysis?.ph !== undefined && (
             <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <Droplets size={20} className="text-blue-600" />
                 <span className="text-sm font-medium text-gray-700">pH Suolo</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-xl md:text-2xl font-bold text-gray-900">
                 {integratedData.soilAnalysis.ph.toFixed(1)}
               </p>
             </div>
@@ -129,11 +129,11 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
           
           {integratedData.photoAnalysis && (
             <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-3 mb-2">
                 <TrendingUp size={20} className="text-purple-600" />
                 <span className="text-sm font-medium text-gray-700">Salute</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-xl md:text-2xl font-bold text-gray-900">
                 {Math.round(integratedData.photoAnalysis.healthScore * 100)}%
               </p>
             </div>

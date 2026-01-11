@@ -150,10 +150,10 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-col md:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
           <Sprout size={24} className="text-green-600" />
-          <h2 className="text-2xl font-bold text-gray-800">Gestione Semenzai</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800">Gestione Semenzai</h2>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {!isPro && (
@@ -212,7 +212,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
                 ))}
               </select>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold mb-2">Varietà (opzionale)</label>
                 <input
@@ -232,7 +232,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold mb-2">Quantità</label>
                 <input
@@ -256,7 +256,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
                 </select>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-col sm:flex-col md:flex-row gap-3">
               <button
                 onClick={handleCreateBatch}
                 disabled={!newBatch.plantName || !canCreateBatch}
@@ -293,7 +293,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
                 ))}
               </select>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold mb-2">Varietà (opzionale)</label>
                 <input
@@ -313,7 +313,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold mb-2">Quantità</label>
                 <input
@@ -344,7 +344,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
                 placeholder="Note aggiuntive..."
               />
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-col sm:flex-col md:flex-row gap-3">
               <button
                 onClick={handleCreatePurchasedBatch}
                 disabled={!newPurchasedBatch.plantName || !canCreateBatch}
@@ -384,8 +384,8 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
               <div key={batch.id} className="bg-white p-4 sm:p-6 rounded-xl border-2 border-green-100">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-xl font-bold text-gray-800">{batch.plantName}</h3>
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-lg md:text-xl font-bold text-gray-800">{batch.plantName}</h3>
                       {batch.source === 'nursery' && (
                         <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
                           🏪 Acquistate
@@ -401,7 +401,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
                     {batch.source === 'nursery' && batch.nurseryName && (
                       <p className="text-xs text-gray-500 mt-1">Vivaio: {batch.nurseryName}</p>
                     )}
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-3 mt-2">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${getPhaseColor(batch.phase)}`}>
                         {getPhaseLabel(batch.phase)}
                       </span>
@@ -412,12 +412,12 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-600">Sopravvissute</p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <input
                         type="number"
                         min="0"
                         max={batch.quantity}
-                        className="w-16 p-1 border rounded text-center font-bold"
+                        className="w-16 p-3 border rounded text-center font-bold"
                         value={batch.currentQuantity || batch.quantity}
                         onChange={(e) => {
                           const updated = updateSurvivalCount(batch, parseInt(e.target.value) || 0);
@@ -431,7 +431,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
 
                 {/* Timeline */}
                 <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-3 mb-3">
                     <Clock size={16} className="text-gray-600" />
                     <h4 className="font-bold text-gray-700">Timeline</h4>
                   </div>
@@ -472,7 +472,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
                 {/* Alert */}
                 {hardeningCheck.shouldStart && (
                   <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <AlertCircle size={18} className="text-orange-600" />
                       <p className="text-sm font-bold text-orange-800">Inizia Hardening</p>
                     </div>
@@ -491,7 +491,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
 
                 {transplantCheck.ready && (
                   <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <CheckCircle size={18} className="text-purple-600" />
                       <p className="text-sm font-bold text-purple-800">Pronto al Trapianto</p>
                     </div>
@@ -515,7 +515,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
                       </span>
                     )}
                   </div>
-                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                     {batch.photoLog?.map((photo, idx) => (
                       <div key={idx} className="relative shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden border">
                         <img src={photo.image} alt={`Progress ${idx + 1}`} className="w-full h-full object-cover" />

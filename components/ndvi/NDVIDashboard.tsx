@@ -97,13 +97,13 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
               <Satellite className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Analisi Satellitare NDVI</h2>
+              <h2 className="text-lg md:text-xl font-bold text-gray-900">Analisi Satellitare NDVI</h2>
               <p className="text-sm text-gray-500">Monitoraggio vegetazione da satellite</p>
             </div>
           </div>
           <button
             onClick={loadNDVIData}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+            className="flex items-center gap-3 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             Aggiorna
@@ -112,7 +112,7 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
 
         {/* Overview Cards */}
         {ndviData && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-600">NDVI Medio</span>
@@ -201,9 +201,9 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
               {/* Stress Indicators */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Indicatori di Stress</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-4">
                   <div className={`p-4 rounded-lg border ${ndviData.analysis.stress_indicators.water_stress ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-3 mb-2">
                       <Droplets className={`w-5 h-5 ${ndviData.analysis.stress_indicators.water_stress ? 'text-red-600' : 'text-green-600'}`} />
                       <span className="font-medium">Stress Idrico</span>
                     </div>
@@ -213,7 +213,7 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
                   </div>
 
                   <div className={`p-4 rounded-lg border ${ndviData.analysis.stress_indicators.nutrient_deficiency ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'}`}>
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-3 mb-2">
                       <Leaf className={`w-5 h-5 ${ndviData.analysis.stress_indicators.nutrient_deficiency ? 'text-orange-600' : 'text-green-600'}`} />
                       <span className="font-medium">Carenza Nutrizionale</span>
                     </div>
@@ -223,7 +223,7 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
                   </div>
 
                   <div className={`p-4 rounded-lg border ${ndviData.analysis.stress_indicators.disease_risk ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-3 mb-2">
                       <AlertTriangle className={`w-5 h-5 ${ndviData.analysis.stress_indicators.disease_risk ? 'text-red-600' : 'text-green-600'}`} />
                       <span className="font-medium">Rischio Malattie</span>
                     </div>
@@ -240,7 +240,7 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <ul className="space-y-2">
                     {ndviData.analysis.recommendations.map((rec, index) => (
-                      <li key={index} className="flex items-start gap-2 text-blue-800">
+                      <li key={index} className="flex items-start gap-3 text-blue-800">
                         <div className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
                         <span className="text-sm">{rec}</span>
                       </li>
@@ -256,7 +256,7 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">Mappa NDVI Interattiva</h3>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-3 text-sm text-gray-600">
                   <Satellite className="w-4 h-4" />
                   <span>Sentinel-2 • 10m • OrtoMio WMS</span>
                 </div>
@@ -289,7 +289,7 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900">Analisi per Zone</h3>
               {zones.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
                   {zones.map(zone => (
                     <div key={zone.zone_id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                       <div className="flex items-center justify-between mb-3">
@@ -318,7 +318,7 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
                           <div className="flex h-2 bg-gray-200 rounded-full overflow-hidden">
                             <div className="bg-green-600" style={{ width: `${zone.health_distribution.excellent}%` }}></div>
                             <div className="bg-green-400" style={{ width: `${zone.health_distribution.good}%` }}></div>
-                            <div className="bg-yellow-400" style={{ width: `${zone.health_distribution.moderate}%` }}></div>
+                            <div className="bg-yellow-full max-w-sm" style={{ width: `${zone.health_distribution.moderate}%` }}></div>
                             <div className="bg-orange-400" style={{ width: `${zone.health_distribution.poor}%` }}></div>
                             <div className="bg-red-500" style={{ width: `${zone.health_distribution.critical}%` }}></div>
                           </div>
@@ -346,7 +346,7 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
               <h3 className="text-lg font-semibold text-gray-900">Trend Storico NDVI</h3>
               {trend.length > 0 ? (
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="h-64 flex items-end justify-between gap-1">
+                  <div className="h-64 flex items-end justify-between gap-3">
                     {trend.map((point, index) => (
                       <div key={index} className="flex flex-col items-center flex-1">
                         <div
@@ -384,7 +384,7 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
                   {stressAreas.map((area, index) => (
                     <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-4">
                       <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <AlertTriangle className="w-5 h-5 text-red-600" />
                           <span className="font-semibold text-red-900">
                             Stress {area.stress_type === 'water' ? 'Idrico' : 
@@ -411,7 +411,7 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
                         <span className="text-sm font-medium text-gray-700 block mb-2">Raccomandazioni:</span>
                         <ul className="space-y-1">
                           {area.recommendations.map((rec: string, recIndex: number) => (
-                            <li key={recIndex} className="flex items-start gap-2 text-sm text-gray-700">
+                            <li key={recIndex} className="flex items-start gap-3 text-sm text-gray-700">
                               <div className="w-1.5 h-1.5 bg-red-600 rounded-full mt-2 flex-shrink-0"></div>
                               <span>{rec}</span>
                             </li>

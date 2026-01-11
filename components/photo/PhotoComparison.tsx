@@ -30,7 +30,7 @@ export function PhotoComparison({
         Confronto Crescita
       </h3>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Before */}
         <div className="space-y-2">
           <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
@@ -41,7 +41,7 @@ export function PhotoComparison({
             />
           </div>
           <div className="text-center">
-            <div className="flex items-center justify-center gap-1 text-sm text-gray-600">
+            <div className="flex items-center justify-center gap-3 text-sm text-gray-600">
               <Calendar size={14} />
               {format(beforePhoto.date, 'd MMM yyyy', { locale: it })}
             </div>
@@ -64,7 +64,7 @@ export function PhotoComparison({
             />
           </div>
           <div className="text-center">
-            <div className="flex items-center justify-center gap-1 text-sm text-gray-600">
+            <div className="flex items-center justify-center gap-3 text-sm text-gray-600">
               <Calendar size={14} />
               {format(afterPhoto.date, 'd MMM yyyy', { locale: it })}
             </div>

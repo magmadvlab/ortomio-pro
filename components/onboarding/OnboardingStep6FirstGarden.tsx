@@ -28,7 +28,7 @@ export function OnboardingStep6FirstGarden({ onboardingData, onNext, onBack }: O
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">
+        <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
           Prepariamoci a creare il tuo primo spazio
         </h3>
         <p className="text-gray-600">

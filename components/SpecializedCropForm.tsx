@@ -136,7 +136,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
                 min="1"
                 value={formData.treeAge || 1}
                 onChange={(e) => setFormData({ ...formData, treeAge: parseInt(e.target.value) || 1 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               />
             </div>
             <div>
@@ -148,7 +148,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
                 value={formData.rootstock || ''}
                 onChange={(e) => setFormData({ ...formData, rootstock: e.target.value })}
                 placeholder="Es. M9, M26"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               />
             </div>
           </>
@@ -164,7 +164,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
               <select
                 value={formData.varietyType}
                 onChange={(e) => setFormData({ ...formData, varietyType: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               >
                 <option value="June-bearing">June-bearing (produzione concentrata)</option>
                 <option value="Ever-bearing">Ever-bearing (produzione continua)</option>
@@ -178,7 +178,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
               <select
                 value={formData.plantingSystem}
                 onChange={(e) => setFormData({ ...formData, plantingSystem: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               >
                 <option value="Matted Row">Matted Row</option>
                 <option value="Spaced Row">Spaced Row</option>
@@ -198,7 +198,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
               <select
                 value={formData.varietyType}
                 onChange={(e) => setFormData({ ...formData, varietyType: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               >
                 <option value="Oil">Da Olio</option>
                 <option value="Table">Da Tavola</option>
@@ -212,7 +212,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
               <select
                 value={formData.harvestMethod}
                 onChange={(e) => setFormData({ ...formData, harvestMethod: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               >
                 <option value="Manual">Manuale</option>
                 <option value="Mechanical">Meccanico</option>
@@ -232,7 +232,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
               <select
                 value={formData.varietyType}
                 onChange={(e) => setFormData({ ...formData, varietyType: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
               >
                 <option value="Wine">Da Vino</option>
                 <option value="Table">Da Tavola</option>
@@ -246,7 +246,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
               <select
                 value={formData.trainingSystem}
                 onChange={(e) => setFormData({ ...formData, trainingSystem: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
               >
                 <option value="Guyot">Guyot</option>
                 <option value="Cordon">Cordon</option>
@@ -264,7 +264,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
                 max="26"
                 value={formData.brixTarget || 22}
                 onChange={(e) => setFormData({ ...formData, brixTarget: parseInt(e.target.value) || 22 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
               />
             </div>
           </>
@@ -274,7 +274,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
         return (
           <>
             <div>
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-3">
                 <input
                   type="checkbox"
                   checked={formData.greenhouseRequired}
@@ -302,7 +302,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
               <select
                 value={formData.harvestType}
                 onChange={(e) => setFormData({ ...formData, harvestType: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               >
                 <option value="Leaves">Foglie</option>
                 <option value="Flowers">Fiori</option>
@@ -318,7 +318,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
               <select
                 value={formData.harvestTiming}
                 onChange={(e) => setFormData({ ...formData, harvestTiming: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               >
                 <option value="BeforeFlowering">Prima della fioritura</option>
                 <option value="DuringFlowering">Durante la fioritura</option>
@@ -332,7 +332,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
               <select
                 value={formData.multiplicationMethod}
                 onChange={(e) => setFormData({ ...formData, multiplicationMethod: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               >
                 <option value="Seed">Seme</option>
                 <option value="Cutting">Talea</option>
@@ -353,7 +353,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
               <select
                 value={formData.varietyType}
                 onChange={(e) => setFormData({ ...formData, varietyType: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
               >
                 <option value="Summer-bearing">Summer-bearing (Estiva)</option>
                 <option value="Ever-bearing">Ever-bearing (Rifiorente)</option>
@@ -367,7 +367,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
               <select
                 value={formData.canesType}
                 onChange={(e) => setFormData({ ...formData, canesType: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
               >
                 <option value="Floricane">Floricane (canne dell'anno precedente)</option>
                 <option value="Primocane">Primocane (canne dell'anno)</option>
@@ -380,7 +380,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
               <select
                 value={formData.trainingSystem}
                 onChange={(e) => setFormData({ ...formData, trainingSystem: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
               >
                 <option value="Trellis">Trelis</option>
                 <option value="Free-standing">Libero</option>
@@ -414,8 +414,8 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           {getIcon()}
-          <div className="flex items-center gap-2">
-            <h3 className="text-xl font-bold text-gray-800">
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg md:text-xl font-bold text-gray-800">
               Aggiungi {masterSheet.commonName}
             </h3>
             {isTraditional && (
@@ -437,7 +437,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
             type="text"
             value={formData.plantName}
             onChange={(e) => setFormData({ ...formData, plantName: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             required
           />
         </div>
@@ -450,7 +450,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
             type="text"
             value={formData.variety}
             onChange={(e) => setFormData({ ...formData, variety: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
           />
         </div>
 
@@ -462,7 +462,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
             type="date"
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             required
           />
         </div>
@@ -483,7 +483,7 @@ const SpecializedCropForm: React.FC<SpecializedCropFormProps> = ({
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
           />
         </div>
 

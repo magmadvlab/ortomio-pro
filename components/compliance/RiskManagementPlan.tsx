@@ -209,7 +209,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
           <div className="flex items-center gap-3">
             <Shield className="h-8 w-8 text-orange-600" />
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900">
                 Piano Gestione Rischi Sito (AF 1.2.2)
               </h1>
               <p className="text-gray-600">
@@ -220,7 +220,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
           <div className="flex gap-3">
             <button
               onClick={exportPDF}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              className="flex items-center gap-3 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
             >
               <Download size={16} />
               Export PDF
@@ -228,7 +228,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              className="flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
             >
               <Save size={16} />
               {saving ? 'Salvando...' : 'Salva Piano'}
@@ -237,7 +237,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
         </div>
 
         {/* Plan Info */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Nome Piano
@@ -246,20 +246,20 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
               type="text"
               value={plan.plan_name || ''}
               onChange={(e) => setPlan(prev => ({ ...prev, plan_name: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Data Valutazione Rischi
             </label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Calendar className="h-4 w-4 text-gray-400" />
               <input
                 type="date"
                 value={plan.risk_assessment_date || ''}
                 onChange={(e) => setPlan(prev => ({ ...prev, risk_assessment_date: e.target.value }))}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="flex-1 px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -267,14 +267,14 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Responsabile Piano
             </label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <User className="h-4 w-4 text-gray-400" />
               <input
                 type="text"
                 value={plan.responsible_person || ''}
                 onChange={(e) => setPlan(prev => ({ ...prev, responsible_person: e.target.value }))}
                 placeholder="Nome responsabile"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="flex-1 px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -286,7 +286,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
               type="date"
               value={plan.next_review_date || ''}
               onChange={(e) => setPlan(prev => ({ ...prev, next_review_date: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -331,7 +331,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
                 </h3>
                 <button
                   onClick={addRisk}
-                  className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                  className="flex items-center gap-3 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
                 >
                   <Plus size={16} />
                   Aggiungi Rischio
@@ -359,16 +359,16 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
                       <h4 className="font-semibold mb-2">{risk.description}</h4>
                       <p className="text-sm opacity-75">Fonte: {risk.source}</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                       <button
                         onClick={() => setEditingRisk(risk)}
-                        className="p-2 text-gray-600 hover:text-gray-900 hover:bg-white hover:bg-opacity-50 rounded"
+                        className="p-3 text-gray-600 hover:text-gray-900 hover:bg-white hover:bg-opacity-50 rounded"
                       >
                         <Edit size={16} />
                       </button>
                       <button
                         onClick={() => deleteRisk(risk.id)}
-                        className="p-2 text-red-600 hover:text-red-900 hover:bg-white hover:bg-opacity-50 rounded"
+                        className="p-3 text-red-600 hover:text-red-900 hover:bg-white hover:bg-opacity-50 rounded"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -409,7 +409,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
                       {!procedure && (
                         <button
                           onClick={() => addProcedure(risk.id)}
-                          className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                          className="flex items-center gap-3 px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
                         >
                           <Plus size={14} />
                           Aggiungi Procedura
@@ -424,7 +424,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
                             <p className="text-sm text-green-800 mb-2">
                               <strong>Procedura:</strong> {procedure.procedure_description}
                             </p>
-                            <div className="grid grid-cols-2 gap-4 text-xs text-green-700">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-green-700">
                               <div>
                                 <strong>Responsabile:</strong> {procedure.responsible_person}
                               </div>
@@ -441,15 +441,15 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
                           </div>
                           <button
                             onClick={() => setEditingProcedure(procedure)}
-                            className="p-1 text-green-600 hover:text-green-900 hover:bg-green-100 rounded"
+                            className="p-3 text-green-600 hover:text-green-900 hover:bg-green-100 rounded"
                           >
                             <Edit size={14} />
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-                        <p className="text-sm text-yellow-800">
+                      <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded p-3">
+                        <p className="text-sm text-yellow-full max-w-sm">
                           ⚠️ Nessuna procedura di controllo definita per questo rischio
                         </p>
                       </div>
@@ -508,7 +508,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
             </h3>
             
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Categoria
@@ -516,7 +516,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
                   <select
                     value={editingRisk.category}
                     onChange={(e) => setEditingRisk(prev => prev ? { ...prev, category: e.target.value as any } : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   >
                     <option value="environmental">Ambientale</option>
                     <option value="contamination">Contaminazione</option>
@@ -533,7 +533,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
                     type="text"
                     value={editingRisk.source}
                     onChange={(e) => setEditingRisk(prev => prev ? { ...prev, source: e.target.value } : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -546,11 +546,11 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
                   value={editingRisk.description}
                   onChange={(e) => setEditingRisk(prev => prev ? { ...prev, description: e.target.value } : null)}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Gravità
@@ -567,7 +567,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
                         risk_score: severityScore * probabilityScore 
                       } : null)
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   >
                     <option value="low">Bassa</option>
                     <option value="medium">Media</option>
@@ -591,7 +591,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
                         risk_score: severityScore * probabilityScore 
                       } : null)
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   >
                     <option value="unlikely">Improbabile</option>
                     <option value="possible">Possibile</option>
@@ -646,11 +646,11 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
                   value={editingProcedure.procedure_description}
                   onChange={(e) => setEditingProcedure(prev => prev ? { ...prev, procedure_description: e.target.value } : null)}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Responsabile
@@ -659,7 +659,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
                     type="text"
                     value={editingProcedure.responsible_person}
                     onChange={(e) => setEditingProcedure(prev => prev ? { ...prev, responsible_person: e.target.value } : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -670,7 +670,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
                     type="date"
                     value={editingProcedure.implementation_date}
                     onChange={(e) => setEditingProcedure(prev => prev ? { ...prev, implementation_date: e.target.value } : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -682,7 +682,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
                 <select
                   value={editingProcedure.monitoring_frequency}
                   onChange={(e) => setEditingProcedure(prev => prev ? { ...prev, monitoring_frequency: e.target.value as any } : null)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
                   <option value="daily">Giornaliera</option>
                   <option value="weekly">Settimanale</option>
@@ -703,7 +703,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
                     effectiveness_indicators: e.target.value.split('\n').filter(line => line.trim()) 
                   } : null)}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
 
@@ -718,7 +718,7 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
                     documentation_required: e.target.value.split('\n').filter(line => line.trim()) 
                   } : null)}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
             </div>

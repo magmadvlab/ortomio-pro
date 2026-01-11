@@ -52,7 +52,7 @@ export const AccessoriesWidget: React.FC<AccessoriesWidgetProps> = ({
   return (
     <div className="bg-white p-4 rounded-2xl shadow-lg border border-gray-200">
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Package size={20} className="text-green-600" />
           <h3 className="text-lg font-bold text-gray-800">Accessori</h3>
         </div>
@@ -72,27 +72,27 @@ export const AccessoriesWidget: React.FC<AccessoriesWidgetProps> = ({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-4 gap-2 mb-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
             <div className="text-center">
-              <div className="text-xl font-bold text-blue-600">{byCategory.Support}</div>
+              <div className="text-lg md:text-xl font-bold text-blue-600">{byCategory.Support}</div>
               <div className="text-xs text-gray-600">Supporti</div>
             </div>
             <div className="text-center">
-              <div className="text-xl font-bold text-green-600">{byCategory.Netting}</div>
+              <div className="text-lg md:text-xl font-bold text-green-600">{byCategory.Netting}</div>
               <div className="text-xs text-gray-600">Reti</div>
             </div>
             <div className="text-center">
-              <div className="text-xl font-bold text-yellow-600">{byCategory.Wire}</div>
+              <div className="text-lg md:text-xl font-bold text-yellow-full max-w-sm">{byCategory.Wire}</div>
               <div className="text-xs text-gray-600">Fili</div>
             </div>
             <div className="text-center">
-              <div className="text-xl font-bold text-purple-600">{byCategory.Structure}</div>
+              <div className="text-lg md:text-xl font-bold text-purple-600">{byCategory.Structure}</div>
               <div className="text-xs text-gray-600">Strutture</div>
             </div>
           </div>
 
           {needsReplacement.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-2 flex items-center gap-2">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
               <AlertTriangle size={16} className="text-red-600" />
               <span className="text-sm text-red-800">
                 {needsReplacement.length} da sostituire

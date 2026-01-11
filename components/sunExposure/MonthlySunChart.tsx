@@ -86,7 +86,7 @@ export function MonthlySunChart({ data, optimalPeriod, className = '' }: Monthly
 
   return (
     <div className={className}>
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-3 mb-4">
         <h3 className="text-lg font-semibold text-gray-900">Ore di Sole Mensili</h3>
         <InfoTooltip
           content="Questo grafico mostra le ore medie di sole diretto per ogni mese dell'anno. Il periodo ottimale (evidenziato in verde) indica i mesi con almeno 6 ore di sole, ideali per la maggior parte delle colture."
@@ -253,12 +253,12 @@ export function MonthlySunChart({ data, optimalPeriod, className = '' }: Monthly
 
         {/* Legenda */}
         <div className="flex items-center justify-center gap-6 mt-4 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
+          <div className="flex items-center gap-3">
+            <div className="w-4 h-4 bg-yellow-full max-w-sm rounded-full"></div>
             <span className="text-gray-700">Ore di sole</span>
           </div>
           {optimalMonths.length > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="w-4 h-4 bg-green-500 rounded-full"></div>
               <span className="text-gray-700">Periodo ottimale</span>
             </div>

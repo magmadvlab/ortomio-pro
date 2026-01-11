@@ -317,23 +317,23 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
         {/* Header */}
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
           <div>
-            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <h2 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-3">
               <MapPin size={24} />
               Visual Garden Planner - {garden.name}
             </h2>
             <p className="text-sm text-gray-500">Trascina le piante per posizionarle</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {/* Toolbar */}
             <button
               onClick={() => setZoom(prev => Math.min(2, prev + 0.1))}
-              className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+              className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200"
             >
               <ZoomIn size={18} />
             </button>
             <button
               onClick={() => setZoom(prev => Math.max(0.5, prev - 0.1))}
-              className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+              className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200"
             >
               <ZoomOut size={18} />
             </button>
@@ -402,7 +402,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
             {onClose && (
               <button
                 onClick={onClose}
-                className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+                className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200"
               >
                 <X size={18} />
               </button>
@@ -412,10 +412,10 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
 
         {/* Placement Advice Banner */}
         {placementAdvice && draggingTaskId && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mx-4 mt-2">
-            <div className="flex items-center gap-2">
-              <AlertTriangle size={18} className="text-yellow-600" />
-              <p className="text-sm text-yellow-800 font-medium">{placementAdvice}</p>
+          <div className="bg-yellow-50 border-l-4 border-yellow-full max-w-sm p-3 mx-4 mt-2">
+            <div className="flex items-center gap-3">
+              <AlertTriangle size={18} className="text-yellow-full max-w-sm" />
+              <p className="text-sm text-yellow-full max-w-sm font-medium">{placementAdvice}</p>
             </div>
           </div>
         )}
@@ -1236,7 +1236,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
           ) : (
             <div className="w-full h-full flex items-center justify-center border border-gray-300 bg-white rounded-lg min-h-[400px]">
               <div className="text-center p-8">
-                <AlertTriangle size={48} className="mx-auto mb-4 text-yellow-500" />
+                <AlertTriangle size={48} className="mx-auto mb-4 text-yellow-full max-w-sm" />
                 <p className="text-lg font-semibold text-gray-700 mb-2">
                   Dimensioni orto non valide
                 </p>
@@ -1283,14 +1283,14 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
               </div>
             </div>
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {activeTasks
                 .filter(t => !t.gridPosition)
                 .map(task => (
                   <button
                     key={task.id}
                     onClick={() => handleAddToGrid(task)}
-                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 flex items-center gap-2"
+                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 flex items-center gap-3"
                   >
                     <Move size={14} />
                     {task.plantName || 'Pianta senza nome'}
@@ -1310,7 +1310,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
           return collisions.length > 0;
         }) && (
           <div className="border-t border-red-200 bg-red-50 p-3">
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-3">
               <AlertTriangle size={20} className="text-red-600 flex-shrink-0" />
               <div className="text-sm">
                 <p className="font-bold text-red-900 mb-1">Collisioni rilevate!</p>

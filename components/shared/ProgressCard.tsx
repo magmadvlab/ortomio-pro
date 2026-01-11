@@ -121,7 +121,7 @@ export function ProgressCard({ tasks, gardenId }: ProgressCardProps) {
   return (
     <Link href="/app/progress?tab=achievements" className="block">
       <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
-        <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-3">
           <Trophy className="text-amber-500" size={18} />
           Prossimo Traguardo
         </h3>

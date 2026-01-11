@@ -24,7 +24,7 @@ export function PlantLifecycleTimeline({
 
   return (
     <Card variant="default" className="p-6">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-3 mb-4">
         <Calendar className="text-ortomio-green-600" size={20} />
         <h4 className="font-bold text-gray-700 text-sm uppercase tracking-wider">
           Ciclo Colturale
@@ -32,7 +32,7 @@ export function PlantLifecycleTimeline({
       </div>
 
       {/* Month Labels */}
-      <div className="mb-2 grid grid-cols-12 gap-1">
+      <div className="mb-2 grid grid-cols-1 md:grid-cols-12 gap-3">
         {monthLabels.map((label, idx) => (
           <div
             key={idx}
@@ -51,11 +51,11 @@ export function PlantLifecycleTimeline({
       <div className="space-y-3">
         {/* Sowing Row */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 min-w-[100px]">
+          <div className="flex items-center gap-3 min-w-[100px]">
             <Sprout size={16} className="text-orange-500" />
             <span className="text-xs text-gray-600">Semina</span>
           </div>
-          <div className="grid grid-cols-12 gap-1 flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 flex-1">
             {monthLabels.map((_, idx) => (
               <div
                 key={idx}
@@ -76,11 +76,11 @@ export function PlantLifecycleTimeline({
 
         {/* Transplant Row */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 min-w-[100px]">
+          <div className="flex items-center gap-3 min-w-[100px]">
             <Leaf size={16} className="text-green-500" />
             <span className="text-xs text-gray-600">Trapianto</span>
           </div>
-          <div className="grid grid-cols-12 gap-1 flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 flex-1">
             {monthLabels.map((_, idx) => (
               <div
                 key={idx}
@@ -101,11 +101,11 @@ export function PlantLifecycleTimeline({
 
         {/* Harvest Row */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 min-w-[100px]">
+          <div className="flex items-center gap-3 min-w-[100px]">
             <ShoppingBasket size={16} className="text-red-500" />
             <span className="text-xs text-gray-600">Raccolto</span>
           </div>
-          <div className="grid grid-cols-12 gap-1 flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 flex-1">
             {monthLabels.map((_, idx) => (
               <div
                 key={idx}
@@ -128,15 +128,15 @@ export function PlantLifecycleTimeline({
       {/* Legend */}
       <div className="mt-4 pt-4 border-t border-gray-200">
         <div className="flex items-center justify-center gap-4 text-xs text-gray-600">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-3">
             <div className="w-3 h-3 bg-orange-400 rounded" />
             <span>Semina</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-3">
             <div className="w-3 h-3 bg-green-500 rounded" />
             <span>Trapianto</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-3">
             <div className="w-3 h-3 bg-red-500 rounded" />
             <span>Raccolto</span>
           </div>

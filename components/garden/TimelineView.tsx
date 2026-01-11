@@ -179,23 +179,23 @@ export function TimelineView({ garden, tasks, onUpdateTask }: TimelineViewProps)
     <div className="space-y-4">
       {/* Timeline Header */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+        <div className="flex flex-col sm:flex-col md:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Timeline Coltivazioni</h2>
           {/* Legenda Migliorata */}
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <div className="flex items-center gap-2 px-2 py-1 bg-green-50 rounded">
+            <div className="flex items-center gap-3 px-2 py-1 bg-green-50 rounded">
               <div className="w-4 h-4 rounded bg-green-500"></div>
               <span className="text-gray-700 font-medium">Semina</span>
             </div>
-            <div className="flex items-center gap-2 px-2 py-1 bg-blue-50 rounded">
+            <div className="flex items-center gap-3 px-2 py-1 bg-blue-50 rounded">
               <div className="w-4 h-4 rounded bg-blue-500"></div>
               <span className="text-gray-700 font-medium">Crescita</span>
             </div>
-            <div className="flex items-center gap-2 px-2 py-1 bg-orange-50 rounded">
+            <div className="flex items-center gap-3 px-2 py-1 bg-orange-50 rounded">
               <div className="w-4 h-4 rounded bg-orange-500"></div>
               <span className="text-gray-700 font-medium">Raccolta</span>
             </div>
-            <div className="flex items-center gap-2 px-2 py-1 bg-gray-100 rounded">
+            <div className="flex items-center gap-3 px-2 py-1 bg-gray-100 rounded">
               <div className="w-4 h-4 rounded bg-gray-400 border-2 border-gray-600"></div>
               <span className="text-gray-700 font-medium">Completato</span>
             </div>
@@ -285,20 +285,20 @@ export function TimelineView({ garden, tasks, onUpdateTask }: TimelineViewProps)
       {/* Legenda Completa in Fondo */}
       <div className="bg-gradient-to-r from-green-50 via-blue-50 to-orange-50 rounded-xl border border-gray-200 p-4">
         <h3 className="text-sm font-bold text-gray-700 uppercase mb-3">Legenda</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <div className="flex items-center gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div className="flex items-center gap-3">
             <div className="w-4 h-4 rounded bg-green-500"></div>
             <span className="text-gray-700"><strong>Semina</strong> - Inizio coltivazione</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div className="w-4 h-4 rounded bg-blue-500"></div>
             <span className="text-gray-700"><strong>Crescita</strong> - Trapianto e sviluppo</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div className="w-4 h-4 rounded bg-orange-500"></div>
             <span className="text-gray-700"><strong>Raccolta</strong> - Finestra raccolta</span>
               </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div className="w-4 h-4 rounded bg-gray-400 border-2 border-gray-600"></div>
             <span className="text-gray-700"><strong>Completato</strong> - Attività conclusa</span>
             </div>

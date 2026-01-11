@@ -164,10 +164,10 @@ export function HarvestRegistrationModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-2xl max-w-[90vw] md:max-w-md max-h-[90vh] overflow-y-auto w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-3">
               <ShoppingBasket className="text-orange-600" size={24} />
               Registra Raccolto
             </h2>
@@ -202,7 +202,7 @@ export function HarvestRegistrationModal({
                 <select
                   value={selectedTaskId}
                   onChange={(e) => setSelectedTaskId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
                 >
                   <option value="">Seleziona una pianta...</option>
@@ -223,7 +223,7 @@ export function HarvestRegistrationModal({
               </div>
 
               {/* Quantità */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Quantità *
@@ -234,7 +234,7 @@ export function HarvestRegistrationModal({
                     min="0.1"
                     value={quantity || ''}
                     onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                     placeholder="0.0"
                     required
                   />
@@ -246,7 +246,7 @@ export function HarvestRegistrationModal({
                   <select
                     value={unit}
                     onChange={(e) => setUnit(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
                     <option value="kg">kg</option>
                     <option value="g">g</option>
@@ -262,7 +262,7 @@ export function HarvestRegistrationModal({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Qualità (1-10)
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <input
                     type="range"
                     min="1"
@@ -287,7 +287,7 @@ export function HarvestRegistrationModal({
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   rows={3}
                   placeholder="Colore, sapore, problemi riscontrati..."
                 />

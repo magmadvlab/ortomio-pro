@@ -127,7 +127,7 @@ const PruningWizard: React.FC<PruningWizardProps> = ({ task, onComplete, onCance
       <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-3">
               <Scissors className="text-green-500" size={24} />
               Wizard Potatura
             </h2>
@@ -166,7 +166,7 @@ const PruningWizard: React.FC<PruningWizardProps> = ({ task, onComplete, onCance
           {/* Step 1: Seleziona Tipo Potatura */}
           {step === 1 && (
             <div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Tipo di Potatura</h3>
+              <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">Tipo di Potatura</h3>
               <div className="space-y-3">
                 <label className="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50">
                   <input
@@ -223,7 +223,7 @@ const PruningWizard: React.FC<PruningWizardProps> = ({ task, onComplete, onCance
           {/* Step 2: Stagione */}
           {step === 2 && (
             <div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Stagione</h3>
+              <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">Stagione</h3>
               <div className="space-y-3">
                 <label className="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50">
                   <input
@@ -264,12 +264,12 @@ const PruningWizard: React.FC<PruningWizardProps> = ({ task, onComplete, onCance
           {/* Step 3: Guida Tecnica */}
           {step === 3 && (
             <div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Guida Tecnica</h3>
+              <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">Guida Tecnica</h3>
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 mb-4">
                 <h4 className="font-semibold text-gray-800 mb-2">Istruzioni per {pruningType}</h4>
                 <ul className="space-y-2 text-sm text-gray-700">
                   {getPruningInstructions().map((inst, i) => (
-                    <li key={i} className="flex items-start gap-2">
+                    <li key={i} className="flex items-start gap-3">
                       <span className="text-blue-500 mt-1">•</span>
                       <span>{inst}</span>
                     </li>
@@ -285,7 +285,7 @@ const PruningWizard: React.FC<PruningWizardProps> = ({ task, onComplete, onCance
                   value={technique}
                   onChange={(e) => setTechnique(e.target.value)}
                   placeholder="es. Guyot renewal, Thinning cuts, etc."
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -294,7 +294,7 @@ const PruningWizard: React.FC<PruningWizardProps> = ({ task, onComplete, onCance
           {/* Step 4: Foto e Note */}
           {step === 4 && (
             <div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Documentazione</h3>
+              <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">Documentazione</h3>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -305,10 +305,10 @@ const PruningWizard: React.FC<PruningWizardProps> = ({ task, onComplete, onCance
                     accept="image/*"
                     capture="environment"
                     onChange={handleImageUpload}
-                    className="w-full p-2 border border-gray-300 rounded-lg"
+                    className="w-full p-3 border border-gray-300 rounded-lg"
                   />
                   {photos.length > 0 && (
-                    <div className="mt-3 grid grid-cols-3 gap-2">
+                    <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
                       {photos.map((photo, i) => (
                         <img
                           key={i}
@@ -329,7 +329,7 @@ const PruningWizard: React.FC<PruningWizardProps> = ({ task, onComplete, onCance
                     onChange={(e) => setNotes(e.target.value)}
                     rows={4}
                     placeholder="Note sulla potatura, osservazioni, difficoltà incontrate..."
-                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -339,7 +339,7 @@ const PruningWizard: React.FC<PruningWizardProps> = ({ task, onComplete, onCance
           {/* Step 5: Conferma */}
           {step === 5 && (
             <div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Riepilogo</h3>
+              <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">Riepilogo</h3>
               <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-2">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Pianta:</span>
@@ -377,7 +377,7 @@ const PruningWizard: React.FC<PruningWizardProps> = ({ task, onComplete, onCance
           <div className="flex justify-between mt-6">
             <button
               onClick={() => step > 1 ? setStep(step - 1) : onCancel()}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-3"
             >
               <ChevronLeft size={18} />
               {step === 1 ? 'Annulla' : 'Indietro'}
@@ -385,7 +385,7 @@ const PruningWizard: React.FC<PruningWizardProps> = ({ task, onComplete, onCance
             {step < 5 ? (
               <button
                 onClick={() => setStep(step + 1)}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center gap-2"
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center gap-3"
               >
                 Avanti
                 <ChevronRight size={18} />
@@ -393,7 +393,7 @@ const PruningWizard: React.FC<PruningWizardProps> = ({ task, onComplete, onCance
             ) : (
               <button
                 onClick={handleSubmit}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center gap-2"
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center gap-3"
               >
                 <CheckCircle size={18} />
                 Conferma Potatura

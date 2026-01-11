@@ -83,7 +83,7 @@ export const GreenhouseConfigForm: React.FC<GreenhouseConfigFormProps> = ({
         <select
           value={structureType}
           onChange={(e) => setStructureType(e.target.value as GreenhouseStructureType)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
         >
           <option value="Arched">Archetti</option>
           <option value="Tunnel">Tunnel</option>
@@ -100,7 +100,7 @@ export const GreenhouseConfigForm: React.FC<GreenhouseConfigFormProps> = ({
         <select
           value={coveringType}
           onChange={(e) => setCoveringType(e.target.value as GreenhouseCoveringType)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
         >
           <option value="Polyethylene">Polietilene</option>
           <option value="Polycarbonate">Policarbonato</option>
@@ -119,7 +119,7 @@ export const GreenhouseConfigForm: React.FC<GreenhouseConfigFormProps> = ({
             type="number"
             value={coveringThickness}
             onChange={(e) => setCoveringThickness(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
             placeholder="150"
             min="50"
             max="300"
@@ -127,7 +127,7 @@ export const GreenhouseConfigForm: React.FC<GreenhouseConfigFormProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Spaziatura Archetti (cm)
@@ -137,7 +137,7 @@ export const GreenhouseConfigForm: React.FC<GreenhouseConfigFormProps> = ({
             type="number"
             value={archSpacing}
             onChange={(e) => setArchSpacing(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
             placeholder="100"
             min="50"
             max="200"
@@ -153,7 +153,7 @@ export const GreenhouseConfigForm: React.FC<GreenhouseConfigFormProps> = ({
             type="number"
             value={archHeight}
             onChange={(e) => setArchHeight(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
             placeholder="200"
             min="100"
             max="400"
@@ -169,7 +169,7 @@ export const GreenhouseConfigForm: React.FC<GreenhouseConfigFormProps> = ({
         <select
           value={archMaterial}
           onChange={(e) => setArchMaterial(e.target.value as ArchMaterial)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
         >
           <option value="Steel">Acciaio</option>
           <option value="Aluminum">Alluminio</option>
@@ -178,9 +178,9 @@ export const GreenhouseConfigForm: React.FC<GreenhouseConfigFormProps> = ({
         </select>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-3">
             <input
               type="checkbox"
               checked={hasVentilation}
@@ -193,7 +193,7 @@ export const GreenhouseConfigForm: React.FC<GreenhouseConfigFormProps> = ({
         </div>
 
         <div>
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-3">
             <input
               type="checkbox"
               checked={hasHeating}
@@ -207,7 +207,7 @@ export const GreenhouseConfigForm: React.FC<GreenhouseConfigFormProps> = ({
       </div>
 
       {hasHeating && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Temperatura Minima (°C)
@@ -217,7 +217,7 @@ export const GreenhouseConfigForm: React.FC<GreenhouseConfigFormProps> = ({
               type="number"
               value={minTemp}
               onChange={(e) => setMinTemp(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               placeholder="5"
               min="-10"
               max="20"
@@ -233,7 +233,7 @@ export const GreenhouseConfigForm: React.FC<GreenhouseConfigFormProps> = ({
               type="number"
               value={maxTemp}
               onChange={(e) => setMaxTemp(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
               placeholder="35"
               min="20"
               max="50"
@@ -242,7 +242,7 @@ export const GreenhouseConfigForm: React.FC<GreenhouseConfigFormProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Larghezza (cm)
@@ -252,7 +252,7 @@ export const GreenhouseConfigForm: React.FC<GreenhouseConfigFormProps> = ({
             type="number"
             value={width}
             onChange={(e) => setWidth(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
             placeholder="300"
             min="50"
           />
@@ -267,7 +267,7 @@ export const GreenhouseConfigForm: React.FC<GreenhouseConfigFormProps> = ({
             type="number"
             value={length}
             onChange={(e) => setLength(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
             placeholder="600"
             min="50"
           />
@@ -282,14 +282,14 @@ export const GreenhouseConfigForm: React.FC<GreenhouseConfigFormProps> = ({
             type="number"
             value={height}
             onChange={(e) => setHeight(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
             placeholder="250"
             min="100"
           />
         </div>
       </div>
 
-      <div className="flex gap-2 justify-end pt-4">
+      <div className="flex gap-3 justify-end pt-4">
         {onCancel && (
           <button
             type="button"

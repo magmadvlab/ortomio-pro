@@ -187,7 +187,7 @@ export default function SeedingProgressCard({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-3">
               {batch.source === 'home' ? <Sprout className="w-5 h-5" /> : <Sprout className="w-5 h-5" />}
               {batch.plantName}
             </CardTitle>
@@ -227,18 +227,18 @@ export default function SeedingProgressCard({
         <Card className={`border-${currentPhaseData?.color}-200 bg-${currentPhaseData?.color}-50`}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 {currentPhaseData?.icon}
                 <h4 className="font-semibold">{currentPhaseData?.name}</h4>
               </div>
               {nextPhaseData && (
-                <Button size="sm" onClick={handlePhaseAdvance} className="gap-1">
+                <Button size="sm" onClick={handlePhaseAdvance} className="gap-3">
                   Avanza a {nextPhaseData.name}
                   <ArrowRight className="w-3 h-3" />
                 </Button>
               )}
               {batch.currentPhase === 'ready' && onTransplant && (
-                <Button size="sm" onClick={() => onTransplant(batch.id)} className="gap-1">
+                <Button size="sm" onClick={() => onTransplant(batch.id)} className="gap-3">
                   Trapianta Ora
                   <CheckCircle className="w-3 h-3" />
                 </Button>
@@ -248,16 +248,16 @@ export default function SeedingProgressCard({
             <p className="text-sm text-gray-700 mb-3">{currentPhaseData?.description}</p>
 
             {/* Condizioni ambientali */}
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              <div className="flex items-center gap-1 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+              <div className="flex items-center gap-3 text-xs">
                 <Thermometer className="w-3 h-3" />
                 {currentPhaseData?.conditions.temp}
               </div>
-              <div className="flex items-center gap-1 text-xs">
+              <div className="flex items-center gap-3 text-xs">
                 <Droplets className="w-3 h-3" />
                 {currentPhaseData?.conditions.humidity}
               </div>
-              <div className="flex items-center gap-1 text-xs">
+              <div className="flex items-center gap-3 text-xs">
                 <Sun className="w-3 h-3" />
                 {currentPhaseData?.conditions.light}
               </div>
@@ -268,7 +268,7 @@ export default function SeedingProgressCard({
               <p className="text-xs font-medium text-gray-700 mb-1">Attività da svolgere:</p>
               <ul className="text-xs text-gray-600 space-y-1">
                 {currentPhaseData?.tasks.map((task, index) => (
-                  <li key={index} className="flex items-center gap-1">
+                  <li key={index} className="flex items-center gap-3">
                     <div className="w-1 h-1 bg-gray-400 rounded-full" />
                     {task}
                   </li>
@@ -281,7 +281,7 @@ export default function SeedingProgressCard({
         {/* Timeline fasi */}
         <div>
           <h5 className="font-medium mb-2">Timeline Crescita</h5>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {phases.slice(0, -1).map((phase, index) => (
               <React.Fragment key={phase.id}>
                 <div className={`flex flex-col items-center gap-1 ${
@@ -316,14 +316,14 @@ export default function SeedingProgressCard({
         <div>
           <div className="flex items-center justify-between mb-2">
             <h5 className="font-medium">Foto Progresso</h5>
-            <Button size="sm" variant="outline" onClick={() => setIsAddingPhoto(true)} className="gap-1">
+            <Button size="sm" variant="outline" onClick={() => setIsAddingPhoto(true)} className="gap-3">
               <Camera className="w-3 h-3" />
               Aggiungi Foto
             </Button>
           </div>
           
           {batch.photos.length > 0 ? (
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               {batch.photos.slice(-4).map((photo) => (
                 <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
                   <img 
@@ -331,7 +331,7 @@ export default function SeedingProgressCard({
                     alt={`Progresso ${photo.phase}`}
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1">
+                  <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-3">
                     {photo.phase}
                   </div>
                 </div>
@@ -365,7 +365,7 @@ export default function SeedingProgressCard({
             onChange={(e) => setNewNotes(e.target.value)}
             onBlur={() => onNotesUpdate?.(batch.id, newNotes)}
             placeholder="Aggiungi note sulla crescita, problemi riscontrati, osservazioni..."
-            className="w-full p-2 border rounded-md text-sm resize-none"
+            className="w-full p-3 border rounded-md text-sm resize-none"
             rows={3}
           />
         </div>
@@ -374,7 +374,7 @@ export default function SeedingProgressCard({
         {daysUntilTransplant <= 3 && batch.currentPhase === 'ready' && (
           <Card className="border-orange-200 bg-orange-50">
             <CardContent className="p-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Bell className="w-4 h-4 text-orange-600" />
                 <span className="text-sm font-medium text-orange-800">
                   Promemoria: Le piantine sono pronte per il trapianto!
@@ -387,7 +387,7 @@ export default function SeedingProgressCard({
         {survivalRate < 60 && (
           <Card className="border-red-200 bg-red-50">
             <CardContent className="p-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <AlertCircle className="w-4 h-4 text-red-600" />
                 <span className="text-sm font-medium text-red-800">
                   Attenzione: Tasso di sopravvivenza basso ({survivalRate.toFixed(0)}%)
