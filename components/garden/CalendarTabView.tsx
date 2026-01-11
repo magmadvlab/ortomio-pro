@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Garden, GardenTask } from '@/types'
-import CalendarAlmanac from '@/components/CalendarAlmanac'
+import IntegratedCalendarWithChallenges from '@/components/calendar/IntegratedCalendarWithChallenges'
 
 interface CalendarTabViewProps {
   garden: Garden
@@ -17,12 +17,19 @@ export function CalendarTabView({
   onUpdateTask,
   onDateClick 
 }: CalendarTabViewProps) {
+  const handleChallengeComplete = (challenge: any) => {
+    // Handle challenge completion - could integrate with user progress system
+    console.log('Challenge completed:', challenge)
+    // You could add XP tracking, badge unlocking, etc. here
+  }
+
   return (
     <div className="space-y-4">
-      <CalendarAlmanac
+      <IntegratedCalendarWithChallenges
         tasks={tasks}
+        onTaskUpdate={onUpdateTask}
+        onChallengeComplete={handleChallengeComplete}
         onDateClick={onDateClick}
-        onUpdateTask={onUpdateTask}
       />
     </div>
   )

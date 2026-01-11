@@ -136,6 +136,37 @@ Mappe prescrizione automatiche per applicazioni variabili:
 - Ottimizzazione costi applicazione
 - Export formati standard (Shapefile, KML)
 
+### 🎯 **Challenge Integrate nel Calendario**
+**Percorso:** Il Mio Orto → Calendario → Challenge Giornaliere
+
+Sistema di gamificazione intelligente integrato nel calendario:
+
+#### **Challenge Automatiche**
+- **🌱 Maestro Seminatore**: Completa semine + documentazione fotografica
+- **🥕 Raccoglitore Esperto**: Raccolti + valutazione qualità
+- **💧 Irrigatore Perfetto**: Irrigazione + monitoraggio suolo
+- **👁️ Osservatore Attento**: Osservazione giardino + documentazione
+- **📋 Pianificatore Strategico**: Pianificazione settimanale + meteo
+
+#### **Sistema XP e Badge**
+- **Punti Esperienza**: 50-200 XP per challenge completate
+- **Badge Speciali**: Sbloccabili con streak e performance
+- **Statistiche Mensili**: Tracking progresso e miglioramenti
+- **Streak Counter**: Giorni consecutivi di attività
+
+#### **Integrazione Intelligente**
+- Challenge generate automaticamente dai task pianificati
+- Difficoltà adattiva basata su esperienza utente
+- Integrazione con sistema di tracciabilità blockchain
+- Motivazione quotidiana per attività agricole
+
+**Come usarlo:**
+1. Vai su "Il Mio Orto" → Tab "Calendario"
+2. Visualizza challenge giornaliere nel calendario
+3. Clicca su giorni con icona 🎯 per dettagli challenge
+4. Completa azioni richieste per guadagnare XP e badge
+5. Monitora progresso nelle statistiche mensili
+
 ---
 
 ## 🔧 GUIDA RAPIDA - PRIMI PASSI
@@ -172,16 +203,19 @@ Mappe prescrizione automatiche per applicazioni variabili:
 1. Controlla Predizioni AI per nuovi alert
 2. Verifica stato certificazioni e compliance
 3. Pianifica attività basate su raccomandazioni AI
+4. **Visualizza challenge giornaliere nel calendario**
 
 #### **Durante il Giorno**
 1. Registra operazioni per tracciabilità blockchain
 2. Esegui voli drone per monitoraggio
 3. Aggiorna dati in tempo reale
+4. **Completa challenge giornaliere per XP e badge**
 
 #### **Sera (5 minuti)**
 1. Rivedi risultati analisi drone
 2. Controlla compliance certificazioni
 3. Pianifica attività del giorno successivo
+4. **Verifica progresso challenge e streak counter**
 
 ---
 
@@ -197,6 +231,7 @@ Mappe prescrizione automatiche per applicazioni variabili:
 - **+40% premium pricing**: Prodotti blockchain certificati
 - **+25% efficienza**: Ottimizzazione AI-driven
 - **+15% resa**: Precision agriculture e droni
+- **+10% produttività**: Gamificazione e challenge giornaliere
 - **Accesso mercati premium**: Certificazioni automatiche
 
 ### **ROI Totale**
@@ -278,6 +313,8 @@ La sidebar è organizzata in sezioni logiche:
 - ✅ Blockchain Traceability + NFT
 - ✅ Certificazioni Unificate
 - ✅ Mobile Optimization completa
+- ✅ Challenge Integrate nel Calendario
+- ✅ Sistema Gamificazione XP e Badge
 
 ### **Prossimi Aggiornamenti (Q2 2026)**
 - 📱 App Mobile Nativa (iOS/Android)

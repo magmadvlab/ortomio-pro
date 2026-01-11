@@ -9,7 +9,6 @@ import {
   BarChart3,
   FlaskConical,
   Database,
-  Trophy,
   Tractor,
   Wifi,
   BookOpen,
