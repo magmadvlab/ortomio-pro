@@ -5,6 +5,7 @@ import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { Garden, GardenTask } from '@/types'
 import { BarChart3, Sprout, CheckCircle, Calendar, TrendingUp } from 'lucide-react'
+import { SocialStats } from '@/components/social/SocialStats'
 
 export function StatsTab() {
   const { storageProvider } = useStorage()
@@ -138,6 +139,9 @@ export function StatsTab() {
             })}
         </div>
       </div>
+
+      {/* Statistiche Social */}
+      <SocialStats />
 
       {/* Sezione PRO */}
       {isPro && (

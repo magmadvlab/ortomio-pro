@@ -5,6 +5,7 @@ import { Trophy, Award, Target, TrendingUp } from 'lucide-react'
 import { getUserBadges, getBadgeStats } from '@/lib/challenges/badgeSystem'
 import { getStreak } from '@/lib/challenges/streakCalculator'
 import { ChallengeSystem } from '@/components/challenges/ChallengeSystem'
+import { ShareButton } from '@/components/social/ShareButton'
 import { useAuth } from '@/packages/core/hooks/useAuth'
 
 export function AchievementsTab() {
@@ -111,7 +112,7 @@ export function AchievementsTab() {
             {badges.map((badge, idx) => (
               <div
                 key={idx}
-                className="flex flex-col items-center p-4 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg border border-yellow-200 hover:shadow-md transition-shadow"
+                className="flex flex-col items-center p-4 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg border border-yellow-200 hover:shadow-md transition-all duration-200 relative group"
               >
                 <div className="text-4xl mb-2">{badge.emoji || '🏆'}</div>
                 <div className="text-xs font-medium text-gray-700 text-center">
@@ -122,6 +123,29 @@ export function AchievementsTab() {
                     {new Date(badge.date).toLocaleDateString('it-IT', { month: 'short', day: 'numeric' })}
                   </div>
                 )}
+                
+                {/* Share Button - Appare al hover */}
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <ShareButton
+                    content={{
+                      type: 'achievement',
+                      title: badge.name || 'Badge Sbloccato',
+                      description: `Ho sbloccato il badge "${badge.name}" in OrtoMio!`,
+                      stats: {
+                        level: currentLevel,
+                        xp: totalXP,
+                        streak: streak.current
+                      },
+                      badge: {
+                        emoji: badge.emoji || '🏆',
+                        name: badge.name || 'Badge',
+                        rarity: 'common'
+                      }
+                    }}
+                    variant="icon-only"
+                    className="shadow-md"
+                  />
+                </div>
               </div>
             ))}
           </div>

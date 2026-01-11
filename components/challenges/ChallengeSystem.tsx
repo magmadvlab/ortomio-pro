@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Trophy, Award, Star } from 'lucide-react'
+import { Trophy, Award, Star, Share2 } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { AchievementBadge } from './AchievementBadge'
 import { ProgressTracker } from './ProgressTracker'
+import { ShareButton, useShareableChallenge } from '@/components/social/ShareButton'
 
 interface Challenge {
   id: string
@@ -15,6 +16,8 @@ interface Challenge {
   unit: string
   icon: string
   category: 'beginner' | 'seasonal' | 'advanced'
+  completed?: boolean
+  completedAt?: Date
 }
 
 interface Achievement {
@@ -30,6 +33,7 @@ interface Achievement {
 export function ChallengeSystem() {
   const [challenges, setChallenges] = useState<Challenge[]>([])
   const [achievements, setAchievements] = useState<Achievement[]>([])
+  const [userStats, setUserStats] = useState({ level: 3, xp: 2450, streak: 7 })
 
   useEffect(() => {
     // Load challenges and achievements from storage
@@ -44,6 +48,8 @@ export function ChallengeSystem() {
         unit: 'semina',
         icon: '🌱',
         category: 'beginner',
+        completed: true,
+        completedAt: new Date('2024-01-15')
       },
       {
         id: 'spring-2024',
@@ -123,14 +129,27 @@ export function ChallengeSystem() {
 
         <div className="space-y-3">
           {beginnerChallenges.map((challenge) => (
-            <ProgressTracker
-              key={challenge.id}
-              title={challenge.title}
-              progress={(challenge.progress / challenge.target) * 100}
-              current={challenge.progress}
-              target={challenge.target}
-              unit={challenge.unit}
-            />
+            <div key={challenge.id} className="flex items-center justify-between">
+              <div className="flex-1">
+                <ProgressTracker
+                  title={challenge.title}
+                  progress={(challenge.progress / challenge.target) * 100}
+                  current={challenge.progress}
+                  target={challenge.target}
+                  unit={challenge.unit}
+                />
+              </div>
+              
+              {/* Share Button per challenge completate */}
+              {challenge.completed && (
+                <div className="ml-4">
+                  <ShareButton
+                    content={useShareableChallenge(challenge, userStats)}
+                    variant="compact"
+                  />
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </Card>
@@ -146,18 +165,28 @@ export function ChallengeSystem() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {seasonalChallenges.map((challenge) => (
-            <Card key={challenge.id} variant="default" className="p-4 text-center">
+            <Card key={challenge.id} variant="default" className="p-4 text-center relative group">
               <div className="text-3xl mb-2">{challenge.icon}</div>
               <h4 className="font-semibold text-gray-900 mb-1">{challenge.title}</h4>
               <div className="text-sm text-gray-600 mb-2">
                 {challenge.progress} / {challenge.target} {challenge.unit}
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
                 <div
                   className="bg-orange-500 h-2 rounded-full"
                   style={{ width: `${(challenge.progress / challenge.target) * 100}%` }}
                 />
               </div>
+              
+              {/* Share Button - Appare al hover se completata */}
+              {challenge.completed && (
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <ShareButton
+                    content={useShareableChallenge(challenge, userStats)}
+                    variant="compact"
+                  />
+                </div>
+              )}
             </Card>
           ))}
         </div>
@@ -172,10 +201,20 @@ export function ChallengeSystem() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {unlockedAchievements.map((achievement) => (
-            <AchievementBadge key={achievement.id} {...achievement} />
+            <AchievementBadge 
+              key={achievement.id} 
+              {...achievement} 
+              userStats={userStats}
+              showShareButton={true}
+            />
           ))}
           {lockedAchievements.map((achievement) => (
-            <AchievementBadge key={achievement.id} {...achievement} />
+            <AchievementBadge 
+              key={achievement.id} 
+              {...achievement} 
+              userStats={userStats}
+              showShareButton={false}
+            />
           ))}
         </div>
       </Card>
