@@ -152,24 +152,48 @@ function OverviewTab() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <Target className="text-green-600" size={20} />
-            Challenge Giornaliere
+            Challenge Integrate
           </h3>
           <a 
             href="/app/planner" 
-            className="text-sm text-green-600 hover:text-green-700 font-medium"
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
           >
-            Vedi nel Calendario →
+            Vai al Calendario →
           </a>
         </div>
         
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
           <p className="text-sm text-green-800">
-            💡 <strong>Suggerimento:</strong> Le challenge sono integrate con il tuo calendario. 
-            Completa le attività pianificate per sbloccare automaticamente i badge!
+            🎯 <strong>Novità:</strong> Le challenge sono ora completamente integrate nel calendario! 
+            Ogni giorno ha challenge personalizzate basate sui tuoi task pianificati.
           </p>
         </div>
         
-        <ChallengeSystem />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-center">
+            <div className="text-2xl mb-2">🎯</div>
+            <h4 className="font-semibold text-purple-900">Challenge Intelligenti</h4>
+            <p className="text-sm text-purple-700 mt-1">
+              Generate automaticamente dai tuoi task
+            </p>
+          </div>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+            <div className="text-2xl mb-2">📅</div>
+            <h4 className="font-semibold text-blue-900">Calendario Unificato</h4>
+            <p className="text-sm text-blue-700 mt-1">
+              Task e challenge in un'unica vista
+            </p>
+          </div>
+          
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+            <div className="text-2xl mb-2">⚡</div>
+            <h4 className="font-semibold text-yellow-900">XP Automatici</h4>
+            <p className="text-sm text-yellow-700 mt-1">
+              Guadagna XP completando task e challenge
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Weekly Overview */}

@@ -1,10 +1,10 @@
 {
-  "timestamp": "2026-01-11T14:45:07.034Z",
+  "timestamp": "2026-01-11T15:11:54.324Z",
   "summary": {
-    "score": 86.65178571428571,
+    "score": 86.47577092511013,
     "classification": "🟡 BUONO",
-    "totalIssues": 299,
-    "totalFiles": 224,
+    "totalIssues": 307,
+    "totalFiles": 227,
     "needsWork": false
   },
   "components": [
@@ -433,6 +433,20 @@
       "score": 90
     },
     {
+      "file": "components/calendar/IntegratedCalendarWithChallenges.tsx",
+      "issues": [
+        "⚠️ Possibili touch target troppo piccoli (<44px)",
+        "⚠️ Possibili touch target troppo piccoli (<44px)",
+        "⚠️ Possibili larghezze fisse che potrebbero causare overflow"
+      ],
+      "recommendations": [
+        "Usare padding minimo p-3 e icone size={20} o maggiori",
+        "Usare padding minimo p-3 e icone size={20} o maggiori",
+        "Usare larghezze relative o max-width responsive"
+      ],
+      "score": 70
+    },
+    {
       "file": "components/challenges/AchievementBadge.tsx",
       "issues": [
         "❌ Mancano classi responsive Tailwind",
@@ -523,6 +537,18 @@
         "Aggiungere breakpoint responsive (sm:, md:, lg:)"
       ],
       "score": 90
+    },
+    {
+      "file": "components/examples/MobileModalExamples.tsx",
+      "issues": [
+        "⚠️ Input potrebbero essere troppo piccoli per mobile",
+        "⚠️ Modal potrebbero non essere ottimizzati per mobile"
+      ],
+      "recommendations": [
+        "Usare text-base o text-lg per input mobile-friendly",
+        "Aggiungere max-height e scroll per modal mobile"
+      ],
+      "score": 80
     },
     {
       "file": "components/garden/CalendarTabView.tsx",
@@ -1205,6 +1231,18 @@
       "score": 90
     },
     {
+      "file": "components/shared/MobileOptimizedModal.tsx",
+      "issues": [
+        "⚠️ Possibili touch target troppo piccoli (<44px)",
+        "⚠️ Possibili larghezze fisse che potrebbero causare overflow"
+      ],
+      "recommendations": [
+        "Usare padding minimo p-3 e icone size={20} o maggiori",
+        "Usare larghezze relative o max-width responsive"
+      ],
+      "score": 80
+    },
+    {
       "file": "components/shared/ProFeatureGate.tsx",
       "issues": [
         "❌ Mancano classi responsive Tailwind"
@@ -1793,12 +1831,14 @@
     {
       "file": "app/(dashboard)/app/planner/page.tsx",
       "issues": [
+        "⚠️ Possibili touch target troppo piccoli (<44px)",
         "⚠️ Possibili touch target troppo piccoli (<44px)"
       ],
       "recommendations": [
+        "Usare padding minimo p-3 e icone size={20} o maggiori",
         "Usare padding minimo p-3 e icone size={20} o maggiori"
       ],
-      "score": 90
+      "score": 80
     },
     {
       "file": "app/(dashboard)/app/plants/page.tsx",
@@ -2450,6 +2490,9 @@
     "⚠️ Possibili larghezze fisse che potrebbero causare overflow",
     "❌ Mancano classi responsive Tailwind",
     "❌ Mancano classi responsive Tailwind",
+    "⚠️ Possibili touch target troppo piccoli (<44px)",
+    "⚠️ Possibili touch target troppo piccoli (<44px)",
+    "⚠️ Possibili larghezze fisse che potrebbero causare overflow",
     "❌ Mancano classi responsive Tailwind",
     "⚠️ Possibili larghezze fisse che potrebbero causare overflow",
     "⚠️ Possibili larghezze fisse che potrebbero causare overflow",
@@ -2460,6 +2503,8 @@
     "⚠️ Possibili larghezze fisse che potrebbero causare overflow",
     "⚠️ Possibili larghezze fisse che potrebbero causare overflow",
     "❌ Mancano classi responsive Tailwind",
+    "⚠️ Input potrebbero essere troppo piccoli per mobile",
+    "⚠️ Modal potrebbero non essere ottimizzati per mobile",
     "❌ Mancano classi responsive Tailwind",
     "⚠️ Possibili larghezze fisse che potrebbero causare overflow",
     "⚠️ Modal potrebbero non essere ottimizzati per mobile",
@@ -2536,6 +2581,8 @@
     "❌ Mancano classi responsive Tailwind",
     "⚠️ Possibili larghezze fisse che potrebbero causare overflow",
     "❌ Menu mobile non implementato correttamente",
+    "⚠️ Possibili touch target troppo piccoli (<44px)",
+    "⚠️ Possibili larghezze fisse che potrebbero causare overflow",
     "❌ Mancano classi responsive Tailwind",
     "❌ Mancano classi responsive Tailwind",
     "⚠️ Possibili larghezze fisse che potrebbero causare overflow",
@@ -2624,6 +2671,7 @@
     "⚠️ Possibili touch target troppo piccoli (<44px)",
     "⚠️ Possibili larghezze fisse che potrebbero causare overflow",
     "⚠️ Modal potrebbero non essere ottimizzati per mobile",
+    "⚠️ Possibili touch target troppo piccoli (<44px)",
     "⚠️ Possibili touch target troppo piccoli (<44px)",
     "⚠️ Possibili touch target troppo piccoli (<44px)",
     "⚠️ Possibili touch target troppo piccoli (<44px)",
@@ -2751,6 +2799,9 @@
     "Usare larghezze relative o max-width responsive",
     "Aggiungere breakpoint responsive (sm:, md:, lg:)",
     "Aggiungere breakpoint responsive (sm:, md:, lg:)",
+    "Usare padding minimo p-3 e icone size={20} o maggiori",
+    "Usare padding minimo p-3 e icone size={20} o maggiori",
+    "Usare larghezze relative o max-width responsive",
     "Aggiungere breakpoint responsive (sm:, md:, lg:)",
     "Usare larghezze relative o max-width responsive",
     "Usare larghezze relative o max-width responsive",
@@ -2761,6 +2812,8 @@
     "Usare larghezze relative o max-width responsive",
     "Usare larghezze relative o max-width responsive",
     "Aggiungere breakpoint responsive (sm:, md:, lg:)",
+    "Usare text-base o text-lg per input mobile-friendly",
+    "Aggiungere max-height e scroll per modal mobile",
     "Aggiungere breakpoint responsive (sm:, md:, lg:)",
     "Usare larghezze relative o max-width responsive",
     "Aggiungere max-height e scroll per modal mobile",
@@ -2837,6 +2890,8 @@
     "Aggiungere breakpoint responsive (sm:, md:, lg:)",
     "Usare larghezze relative o max-width responsive",
     "Implementare toggle mobile con md:hidden/lg:block",
+    "Usare padding minimo p-3 e icone size={20} o maggiori",
+    "Usare larghezze relative o max-width responsive",
     "Aggiungere breakpoint responsive (sm:, md:, lg:)",
     "Aggiungere breakpoint responsive (sm:, md:, lg:)",
     "Usare larghezze relative o max-width responsive",
@@ -2925,6 +2980,7 @@
     "Usare padding minimo p-3 e icone size={20} o maggiori",
     "Usare larghezze relative o max-width responsive",
     "Aggiungere max-height e scroll per modal mobile",
+    "Usare padding minimo p-3 e icone size={20} o maggiori",
     "Usare padding minimo p-3 e icone size={20} o maggiori",
     "Usare padding minimo p-3 e icone size={20} o maggiori",
     "Usare padding minimo p-3 e icone size={20} o maggiori",

@@ -1,0 +1,88 @@
+{
+  "timestamp": "2026-01-11T15:11:46.665Z",
+  "totalFilesProcessed": 9,
+  "filesFixed": 9,
+  "errors": 0,
+  "fixedFiles": [
+    {
+      "file": "components/calendar/IntegratedCalendarWithChallenges.tsx",
+      "backup": "components/calendar/IntegratedCalendarWithChallenges.tsx.backup",
+      "fixes": [
+        "responsiveSize",
+        "responsivePadding",
+        "mobileMaxHeight"
+      ]
+    },
+    {
+      "file": "components/shared/HomeDashboard.tsx",
+      "backup": "components/shared/HomeDashboard.tsx.backup",
+      "fixes": [
+        "responsiveSize",
+        "responsivePadding",
+        "mobileMaxHeight"
+      ]
+    },
+    {
+      "file": "components/ai/AIPlanningWizard.tsx",
+      "backup": "components/ai/AIPlanningWizard.tsx.backup",
+      "fixes": [
+        "responsiveSize",
+        "responsivePadding",
+        "mobileMaxHeight"
+      ]
+    },
+    {
+      "file": "components/ai/PlanPreviewModal.tsx",
+      "backup": "components/ai/PlanPreviewModal.tsx.backup",
+      "fixes": [
+        "responsiveSize",
+        "responsivePadding",
+        "mobileMaxHeight"
+      ]
+    },
+    {
+      "file": "components/shared/HarvestPromptModal.tsx",
+      "backup": "components/shared/HarvestPromptModal.tsx.backup",
+      "fixes": [
+        "responsivePadding",
+        "mobileMaxHeight"
+      ]
+    },
+    {
+      "file": "components/shared/AIRequestModal.tsx",
+      "backup": "components/shared/AIRequestModal.tsx.backup",
+      "fixes": [
+        "responsivePadding",
+        "mobileMaxHeight"
+      ]
+    },
+    {
+      "file": "components/plants/SmartPlantManager.tsx",
+      "backup": "components/plants/SmartPlantManager.tsx.backup",
+      "fixes": [
+        "responsiveSize",
+        "responsivePadding",
+        "mobileMaxHeight"
+      ]
+    },
+    {
+      "file": "components/plants/FieldPlantManager.tsx",
+      "backup": "components/plants/FieldPlantManager.tsx.backup",
+      "fixes": [
+        "responsiveSize",
+        "responsivePadding",
+        "mobileMaxHeight"
+      ]
+    },
+    {
+      "file": "components/onboarding/OnboardingBanner.tsx",
+      "backup": "components/onboarding/OnboardingBanner.tsx.backup",
+      "fixes": [
+        "responsiveSize",
+        "responsivePadding",
+        "mobileMaxHeight"
+      ]
+    }
+  ],
+  "errorFiles": []
+}

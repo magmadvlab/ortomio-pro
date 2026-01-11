@@ -1,0 +1,1477 @@
+{
+  "timestamp": "2026-01-11T15:08:10.248Z",
+  "totalFiles": 75,
+  "totalIssues": 272,
+  "issuesByType": {
+    "fixedWidth": 66,
+    "noPadding": 501,
+    "smallButtons": 598,
+    "lowZIndex": 111,
+    "noOverflow": 10
+  },
+  "files": [
+    {
+      "path": "components/Advice.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 2
+        },
+        {
+          "type": "noPadding",
+          "matches": 17
+        },
+        {
+          "type": "smallButtons",
+          "matches": 12
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/CalendarAlmanac.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 12
+        },
+        {
+          "type": "smallButtons",
+          "matches": 10
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/Dashboard.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 13
+        },
+        {
+          "type": "smallButtons",
+          "matches": 14
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 4
+        }
+      ]
+    },
+    {
+      "path": "components/GardenOnboarding.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 11
+        },
+        {
+          "type": "smallButtons",
+          "matches": 16
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/GardenTypeWizard.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 6
+        },
+        {
+          "type": "smallButtons",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/HarvestLog.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 2
+        },
+        {
+          "type": "noPadding",
+          "matches": 9
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/Journal.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 13
+        },
+        {
+          "type": "smallButtons",
+          "matches": 16
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 5
+        }
+      ]
+    },
+    {
+      "path": "components/PlantingWizard.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 9
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/PruningWizard.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 8
+        },
+        {
+          "type": "smallButtons",
+          "matches": 3
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/SoilInferenceWizard.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 3
+        },
+        {
+          "type": "smallButtons",
+          "matches": 5
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/UpgradePrompt.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/VisualGardenPlanner.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 4
+        },
+        {
+          "type": "smallButtons",
+          "matches": 1
+        },
+        {
+          "type": "noOverflow",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/ai/AIPlanningWizard.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 2
+        },
+        {
+          "type": "noPadding",
+          "matches": 16
+        },
+        {
+          "type": "smallButtons",
+          "matches": 12
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/ai/PlanPreviewModal.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 9
+        },
+        {
+          "type": "smallButtons",
+          "matches": 13
+        },
+        {
+          "type": "noOverflow",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/calendar/IntegratedCalendarWithChallenges.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 11
+        },
+        {
+          "type": "smallButtons",
+          "matches": 8
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/camera/PhotoCaptureModal.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 2
+        },
+        {
+          "type": "smallButtons",
+          "matches": 6
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/challenges/ChallengeWidget.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 4
+        },
+        {
+          "type": "smallButtons",
+          "matches": 7
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/compliance/RiskManagementPlan.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 2
+        },
+        {
+          "type": "noPadding",
+          "matches": 8
+        },
+        {
+          "type": "smallButtons",
+          "matches": 26
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/crops/AddCropWizard.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 5
+        },
+        {
+          "type": "smallButtons",
+          "matches": 18
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/crops/AddWoodyCropWizard.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 5
+        },
+        {
+          "type": "smallButtons",
+          "matches": 8
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/crops/CreateOrchardWizard.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 6
+        },
+        {
+          "type": "smallButtons",
+          "matches": 18
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/fertilizer/FertilizerApplicationModal.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 2
+        },
+        {
+          "type": "smallButtons",
+          "matches": 11
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/garden/AddItemModal.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 6
+        },
+        {
+          "type": "smallButtons",
+          "matches": 5
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/garden/ListView.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 7
+        },
+        {
+          "type": "smallButtons",
+          "matches": 8
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/garden/ManualTaskModal.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 1
+        },
+        {
+          "type": "smallButtons",
+          "matches": 5
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/garden/PlantsView.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 7
+        },
+        {
+          "type": "smallButtons",
+          "matches": 9
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/gardens/AddStructureModal.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 4
+        },
+        {
+          "type": "smallButtons",
+          "matches": 4
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/gardens/GardenStructuresEditor.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 2
+        },
+        {
+          "type": "smallButtons",
+          "matches": 4
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/gardens/RowManagerModal.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 5
+        },
+        {
+          "type": "smallButtons",
+          "matches": 13
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/guide/CropDetailModal.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 21
+        },
+        {
+          "type": "smallButtons",
+          "matches": 4
+        },
+        {
+          "type": "noOverflow",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/harvest/HarvestRegistrationModal.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 1
+        },
+        {
+          "type": "smallButtons",
+          "matches": 6
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/harvest/QuickHarvestForm.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 4
+        },
+        {
+          "type": "smallButtons",
+          "matches": 3
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/irrigation/IrrigationSystemModal.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 5
+        },
+        {
+          "type": "smallButtons",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/irrigation/IrrigationSystemWizard.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 4
+        },
+        {
+          "type": "smallButtons",
+          "matches": 4
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/irrigation/IrrigationZoneEditModal.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 4
+        },
+        {
+          "type": "smallButtons",
+          "matches": 2
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/irrigation/IrrigationZoneWizard.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 8
+        },
+        {
+          "type": "smallButtons",
+          "matches": 6
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/irrigation/WateringLogForm.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 5
+        },
+        {
+          "type": "smallButtons",
+          "matches": 3
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/irrigation/WateringLogFormWithFieldRows.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 4
+        },
+        {
+          "type": "smallButtons",
+          "matches": 4
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/onboarding/OnboardingBanner.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 2
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/onboarding/UserOnboardingWizard.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/plants/BulkOperationModal.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 5
+        },
+        {
+          "type": "smallButtons",
+          "matches": 8
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/plants/FieldPlantManager.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 10
+        },
+        {
+          "type": "smallButtons",
+          "matches": 16
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/plants/SmartPlantManager.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 13
+        },
+        {
+          "type": "smallButtons",
+          "matches": 20
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/prescription/CostOptimizationPanel.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 14
+        },
+        {
+          "type": "smallButtons",
+          "matches": 4
+        },
+        {
+          "type": "noOverflow",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/prescription/HistoricalComparisonPanel.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 12
+        },
+        {
+          "type": "smallButtons",
+          "matches": 4
+        },
+        {
+          "type": "noOverflow",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/prescription/MapExportModal.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 11
+        },
+        {
+          "type": "smallButtons",
+          "matches": 8
+        },
+        {
+          "type": "noOverflow",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/prescription/PrescriptionMapsDashboard.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 14
+        },
+        {
+          "type": "smallButtons",
+          "matches": 13
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/prescription/PrescriptionMapsDashboard_Mobile.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 14
+        },
+        {
+          "type": "smallButtons",
+          "matches": 2
+        },
+        {
+          "type": "noOverflow",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/prescription/ZoneManagementPanel.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 16
+        },
+        {
+          "type": "smallButtons",
+          "matches": 4
+        },
+        {
+          "type": "noOverflow",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/settings/GardenEditModal.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 18
+        },
+        {
+          "type": "smallButtons",
+          "matches": 57
+        },
+        {
+          "type": "noOverflow",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/shared/AIRequestModal.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 3
+        },
+        {
+          "type": "smallButtons",
+          "matches": 4
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/shared/AuthStatus.tsx",
+      "issues": [
+        {
+          "type": "smallButtons",
+          "matches": 6
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/shared/DeleteGardenConfirm.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/shared/GlobalQuickActions.tsx",
+      "issues": [
+        {
+          "type": "smallButtons",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/shared/HarvestPromptModal.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 2
+        },
+        {
+          "type": "smallButtons",
+          "matches": 7
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/shared/HomeDashboard.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 8
+        },
+        {
+          "type": "noPadding",
+          "matches": 26
+        },
+        {
+          "type": "smallButtons",
+          "matches": 7
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 8
+        }
+      ]
+    },
+    {
+      "path": "components/shared/InfoTooltip.tsx",
+      "issues": [
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/shared/MobileMenu.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 4
+        },
+        {
+          "type": "smallButtons",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/shared/QuickActions.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 2
+        },
+        {
+          "type": "smallButtons",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/shared/SaplingReadyWidget.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 2
+        },
+        {
+          "type": "smallButtons",
+          "matches": 5
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 3
+        }
+      ]
+    },
+    {
+      "path": "components/shared/SeedlingReadyWidget.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 2
+        },
+        {
+          "type": "smallButtons",
+          "matches": 3
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 3
+        }
+      ]
+    },
+    {
+      "path": "components/shared/TaskCard.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 3
+        },
+        {
+          "type": "smallButtons",
+          "matches": 7
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/shared/UpgradeCard.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 2
+        },
+        {
+          "type": "smallButtons",
+          "matches": 3
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/social/PhotoCapture.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 2
+        },
+        {
+          "type": "smallButtons",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/social/SocialShareModal.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 3
+        },
+        {
+          "type": "smallButtons",
+          "matches": 6
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/sunExposure/CompassCalibrator.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 5
+        },
+        {
+          "type": "smallButtons",
+          "matches": 3
+        },
+        {
+          "type": "noOverflow",
+          "matches": 1
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/sunExposure/ObstacleManager.tsx",
+      "issues": [
+        {
+          "type": "noPadding",
+          "matches": 3
+        },
+        {
+          "type": "smallButtons",
+          "matches": 10
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/sunExposure/SunExposureDetailModal.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 6
+        },
+        {
+          "type": "smallButtons",
+          "matches": 2
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "components/tasks/EditTaskModal.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 7
+        },
+        {
+          "type": "smallButtons",
+          "matches": 13
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "components/ui/Dialog.tsx",
+      "issues": [
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "app/(dashboard)/app/challenges/[id]/page.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 2
+        },
+        {
+          "type": "noPadding",
+          "matches": 5
+        },
+        {
+          "type": "smallButtons",
+          "matches": 8
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "app/(dashboard)/app/mechanical-work/page.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 2
+        },
+        {
+          "type": "noPadding",
+          "matches": 6
+        },
+        {
+          "type": "smallButtons",
+          "matches": 32
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "app/(dashboard)/app/nutrition/page.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 3
+        },
+        {
+          "type": "noPadding",
+          "matches": 11
+        },
+        {
+          "type": "smallButtons",
+          "matches": 38
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "path": "app/(dashboard)/app/page.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 1
+        },
+        {
+          "type": "noPadding",
+          "matches": 3
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "path": "app/(dashboard)/app/semenzaio/page.tsx",
+      "issues": [
+        {
+          "type": "fixedWidth",
+          "matches": 2
+        },
+        {
+          "type": "noPadding",
+          "matches": 11
+        },
+        {
+          "type": "smallButtons",
+          "matches": 18
+        },
+        {
+          "type": "lowZIndex",
+          "matches": 1
+        }
+      ]
+    }
+  ]
+}

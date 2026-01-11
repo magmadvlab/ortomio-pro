@@ -44,7 +44,7 @@ export function OnboardingBanner({ onDismiss, onComplete }: OnboardingBannerProp
     <>
       {/* Banner */}
       <Card className="mb-6 border-2 border-green-500 bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 shadow-lg">
-        <div className="p-4 sm:p-4 sm:p-6 relative">
+        <div className="p-4 sm:p-6 relative">
           {/* Close button */}
           <button
             onClick={handleDismiss}
@@ -117,9 +117,9 @@ export function OnboardingBanner({ onDismiss, onComplete }: OnboardingBannerProp
 
       {/* Garden Onboarding Modal */}
       {wizardOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 sm:p-4 sm:p-6">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-[95vw] sm:max-w-[95vw] sm:max-w-3xl w-full max-h-[95vh] sm:max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-            <div className="p-4 sm:p-4 sm:p-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 sm:p-6">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-[95vw] sm:max-w-3xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl md:text-2xl font-bold text-gray-900">
                   Configura il tuo primo orto

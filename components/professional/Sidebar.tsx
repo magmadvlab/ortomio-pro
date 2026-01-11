@@ -27,6 +27,10 @@ import {
   Bot,
   Satellite,
   Map,
+  Target,
+  Brain,
+  Drone,
+  Link2,
 } from 'lucide-react'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { useEffect } from 'react'
@@ -43,7 +47,10 @@ const menuItems = [
   { icon: Droplets, label: 'Irrigazione', path: '/app/irrigation', tier: 'PRO', badge: 'PRO' },
   { icon: FlaskConical, label: 'Nutrizione & Trattamenti', path: '/app/nutrition', tier: 'PRO', badge: 'PRO' },
   { icon: Tractor, label: 'Lavorazioni', path: '/app/mechanical-work', tier: 'PRO', badge: 'PRO' },
-  { icon: Shield, label: 'GlobalG.A.P.', path: '/app/compliance', tier: 'PRO', badge: 'PRO' },
+  { icon: Shield, label: 'Certificazioni', path: '/app/certifications', tier: 'PRO', badge: 'PRO' },
+  { icon: Brain, label: 'Predizioni AI', path: '/app/ai-predictions', tier: 'PRO', badge: 'NEW' },
+  { icon: Drone, label: 'Operazioni Drone', path: '/app/drone-operations', tier: 'PRO', badge: 'NEW' },
+  { icon: Link2, label: 'Blockchain', path: '/app/blockchain-traceability', tier: 'PRO', badge: 'NEW' },
   { icon: Satellite, label: 'NDVI Satellitare', path: '/app/ndvi', tier: 'PRO', badge: 'NEW' },
   { icon: Map, label: 'Prescription Maps', path: '/app/prescription-maps', tier: 'PRO', badge: 'NEW' },
   { icon: BarChart3, label: 'Analytics', path: '/app/analytics', tier: 'PRO', badge: 'PRO' },
@@ -94,7 +101,7 @@ export function ProfessionalSidebar() {
       tier: 'PRO',
       collapsible: true,
       items: allMenuItems.filter(item =>
-        ['Irrigazione', 'Nutrizione & Trattamenti', 'Lavorazioni', 'GlobalG.A.P.'].includes(item.label)
+        ['Irrigazione', 'Nutrizione & Trattamenti', 'Lavorazioni', 'Certificazioni'].includes(item.label)
       )
     },
     {
@@ -102,7 +109,7 @@ export function ProfessionalSidebar() {
       tier: 'PRO',
       collapsible: true,
       items: allMenuItems.filter(item =>
-        ['NDVI Satellitare', 'Prescription Maps', 'Analytics', 'Smart Hub', 'Export'].includes(item.label)
+        ['Predizioni AI', 'Operazioni Drone', 'Blockchain', 'NDVI Satellitare', 'Prescription Maps', 'Analytics', 'Smart Hub', 'Export'].includes(item.label)
       )
     },
     {

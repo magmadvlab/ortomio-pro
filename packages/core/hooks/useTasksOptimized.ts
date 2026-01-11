@@ -32,6 +32,8 @@ export interface UseTasksOptimizedReturn {
   loadMore: () => Promise<void>;
   hasMore: boolean;
   totalCount: number;
+  updateTask: (task: GardenTask) => Promise<void>;
+  deleteTask: (taskId: string) => Promise<void>;
 }
 
 const DEFAULT_OPTIONS: UseTasksOptimizedOptions = {
@@ -119,6 +121,29 @@ export function useTasksOptimized(
     await loadTasks(true);
   }, [hasMore, loading, loadTasks]);
 
+  const updateTask = useCallback(async (task: GardenTask) => {
+    try {
+      await storageProvider.updateTask(task.id, task);
+      // Aggiorna il task nella lista locale
+      setTasks(prev => prev.map(t => t.id === task.id ? task : t));
+    } catch (err: any) {
+      console.error('Error updating task:', err);
+      setError(err.message || 'Errore nell\'aggiornamento del task');
+    }
+  }, [storageProvider]);
+
+  const deleteTask = useCallback(async (taskId: string) => {
+    try {
+      await storageProvider.deleteTask(taskId);
+      // Rimuovi il task dalla lista locale
+      setTasks(prev => prev.filter(t => t.id !== taskId));
+      setTotalCount(prev => prev - 1);
+    } catch (err: any) {
+      console.error('Error deleting task:', err);
+      setError(err.message || 'Errore nell\'eliminazione del task');
+    }
+  }, [storageProvider]);
+
   // Load iniziale
   useEffect(() => {
     loadTasks(false);
@@ -143,6 +168,8 @@ export function useTasksOptimized(
     loadMore,
     hasMore,
     totalCount,
+    updateTask,
+    deleteTask,
   };
 }
 

@@ -418,7 +418,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         />
       </header>
 
-      <main className="p-4 lg:p-4 sm:p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
+      <main className="p-4 lg:p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
         {/* Top Row: Garden Card + Weather Card */}
         <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Garden Card */}
@@ -677,7 +677,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
       {/* Modals */}
       {showSeedInventory && activeGarden && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-[95vw] sm:max-w-2xl w-full max-h-[95vh] sm:max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
               <h2 className="text-lg md:text-xl font-bold">Banca dei Semi</h2>
               <button
@@ -696,7 +696,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
 
       {showSeedlingManager && activeGarden && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-[95vw] sm:max-w-4xl w-full max-h-[95vh] sm:max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
               <h2 className="text-lg md:text-xl font-bold">Gestione Semenzai</h2>
               <button
@@ -728,7 +728,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
 
       {showSaplingManager && activeGarden && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-[95vw] sm:max-w-4xl w-full max-h-[95vh] sm:max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
               <h2 className="text-lg md:text-xl font-bold">Gestione Alberelli</h2>
               <button
@@ -808,7 +808,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
 
       {showVacationMode && activeGarden && onUpdateGarden && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-[95vw] sm:max-w-2xl w-full max-h-[95vh] sm:max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
               <h2 className="text-lg md:text-xl font-bold">Modalità Vacanza</h2>
               <button
@@ -832,7 +832,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
       {/* Specialized Crop Management Modals */}
       {showSpecializedCropManagement && activeGarden && tasks && onUpdateTask && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-[95vw] sm:max-w-4xl w-full max-h-[95vh] sm:max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
               <h2 className="text-lg md:text-xl font-bold">
                 {showSpecializedCropManagement === 'FruitTree' && 'Gestione Alberi da Frutto'}
@@ -850,7 +850,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                 <X size={24} />
               </button>
             </div>
-            <div className="p-4 sm:p-4 sm:p-6">
+            <div className="p-4 sm:p-6">
               {showSpecializedCropManagement === 'FruitTree' && (
                 <FruitTreeManagement
                   tasks={tasks}
@@ -887,7 +887,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                 />
               )}
               {showSpecializedCropManagement === 'Olive' && (
-                <div className="p-4 sm:p-4 sm:p-6 bg-white rounded-lg border border-gray-200">
+                <div className="p-4 sm:p-6 bg-white rounded-lg border border-gray-200">
                   <div className="flex items-center gap-3 mb-4">
                     <Droplets className="text-yellow-full max-w-sm" size={24} />
                     <h3 className="text-lg md:text-xl font-bold text-gray-800">Gestione Olivi</h3>
@@ -907,7 +907,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                 </div>
               )}
               {showSpecializedCropManagement === 'Vine' && (
-                <div className="p-4 sm:p-4 sm:p-6 bg-white rounded-lg border border-gray-200">
+                <div className="p-4 sm:p-6 bg-white rounded-lg border border-gray-200">
                   <div className="flex items-center gap-3 mb-4">
                     <Package className="text-purple-500" size={24} />
                     <h3 className="text-lg md:text-xl font-bold text-gray-800">Gestione Viti</h3>
@@ -934,7 +934,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
       {/* Irrigation Zone Manager Modal */}
       {showIrrigationManager && activeGarden && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-[95vw] sm:max-w-4xl w-full max-h-[95vh] sm:max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
               <h2 className="text-lg md:text-xl font-bold">Gestione Zone Irrigue</h2>
               <button
@@ -994,7 +994,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
       {/* Reading Form Modal */}
       {showReadingForm && activeGarden && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-[95vw] sm:max-w-2xl w-full max-h-[95vh] sm:max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
               <h2 className="text-lg md:text-xl font-bold">
                 {showReadingForm === 'hydroponic' ? 'Registra Lettura Idroponica' : 

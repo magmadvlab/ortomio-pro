@@ -1,0 +1,773 @@
+/**
+ * Integrated Calendar with Challenges
+ * Sistema calendario completamente integrato con challenge giornaliere
+ * Le challenge diventano parte attiva del workflow quotidiano
+ */
+
+import React, { useState, useEffect } from 'react'
+import { 
+  format, 
+  startOfMonth, 
+  endOfMonth, 
+  eachDayOfInterval, 
+  startOfWeek, 
+  endOfWeek, 
+  isSameMonth, 
+  isSameDay, 
+  isToday, 
+  addMonths, 
+  subMonths, 
+  parseISO 
+} from 'date-fns'
+import { it } from 'date-fns/locale'
+import { 
+  Calendar, 
+  Target, 
+  Trophy, 
+  CheckCircle, 
+  Clock, 
+  Star, 
+  Zap, 
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  Award,
+  TrendingUp
+} from 'lucide-react'
+import { GardenTask } from '../../types'
+import { getDettiForDate } from '../../data/dettiContadini'
+import { getChallengeForDate } from '../../data/giornateSpeciali'
+import { getSeasonalEventForDate } from '../../logic/seasonalEvents'
+import { calculateMoonPhase } from '../../logic/lunarCalendar'
+import MobileOptimizedModal from '../shared/MobileOptimizedModal'
+
+interface DailyChallenge {
+  id: string
+  date: string
+  title: string
+  description: string
+  type: 'task' | 'photo' | 'harvest' | 'learning' | 'social'
+  difficulty: 'easy' | 'medium' | 'hard'
+  xp: number
+  badge?: {
+    emoji: string
+    name: string
+  }
+  actions: {
+    id: string
+    description: string
+    completed: boolean
+    linkedTaskId?: string
+  }[]
+  completed: boolean
+  completedAt?: string
+}
+
+interface CalendarDay {
+  date: Date
+  isCurrentMonth: boolean
+  isToday: boolean
+  isSelected: boolean
+  tasks: GardenTask[]
+  challenge?: DailyChallenge
+  events: {
+    seasonal?: any
+    lunar?: any
+    saying?: any
+  }
+  stats: {
+    tasksCompleted: number
+    tasksTotal: number
+    challengeCompleted: boolean
+    xpEarned: number
+  }
+}
+
+interface IntegratedCalendarProps {
+  tasks?: GardenTask[]
+  onTaskUpdate?: (task: GardenTask) => void
+  onChallengeComplete?: (challenge: DailyChallenge) => void
+  onDateClick?: (date: Date) => void
+}
+
+export default function IntegratedCalendarWithChallenges({
+  tasks = [],
+  onTaskUpdate,
+  onChallengeComplete,
+  onDateClick
+}: IntegratedCalendarProps) {
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date())
+  const [challenges, setChallenges] = useState<DailyChallenge[]>([])
+  const [showChallengeModal, setShowChallengeModal] = useState(false)
+  const [selectedChallenge, setSelectedChallenge] = useState<DailyChallenge | null>(null)
+
+  // Genera challenge giornaliere intelligenti
+  useEffect(() => {
+    generateDailyChallenges()
+  }, [tasks, currentMonth])
+
+  const generateDailyChallenges = () => {
+    const monthStart = startOfMonth(currentMonth)
+    const monthEnd = endOfMonth(currentMonth)
+    const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
+    
+    const newChallenges: DailyChallenge[] = days.map(day => {
+      const dayTasks = tasks.filter(t => {
+        const taskDate = t.suggestedDate ? parseISO(t.suggestedDate) : parseISO(t.date)
+        return isSameDay(taskDate, day)
+      })
+
+      // Challenge intelligente basata sui task del giorno
+      return generateSmartChallenge(day, dayTasks)
+    })
+
+    setChallenges(newChallenges)
+  }
+
+  const generateSmartChallenge = (date: Date, dayTasks: GardenTask[]): DailyChallenge => {
+    const dateStr = format(date, 'yyyy-MM-dd')
+    const dayOfWeek = format(date, 'EEEE', { locale: it })
+    
+    // Challenge basate sui task esistenti
+    if (dayTasks.length > 0) {
+      const hasWatering = dayTasks.some(t => t.taskType === 'Watering')
+      const hasSowing = dayTasks.some(t => t.taskType === 'Sowing')
+      const hasHarvest = dayTasks.some(t => t.taskType === 'Harvest')
+
+      if (hasSowing) {
+        return {
+          id: `sowing-${dateStr}`,
+          date: dateStr,
+          title: '🌱 Maestro Seminatore',
+          description: 'Completa tutte le semine pianificate e scatta una foto del progresso',
+          type: 'task',
+          difficulty: 'medium',
+          xp: 150,
+          badge: { emoji: '🌱', name: 'Seminatore del Giorno' },
+          actions: [
+            {
+              id: 'complete-sowings',
+              description: `Completa ${dayTasks.filter(t => t.taskType === 'Sowing').length} semine`,
+              completed: false,
+              linkedTaskId: dayTasks.find(t => t.taskType === 'Sowing')?.id
+            },
+            {
+              id: 'photo-progress',
+              description: 'Scatta foto del terreno preparato',
+              completed: false
+            },
+            {
+              id: 'log-notes',
+              description: 'Aggiungi note sulla varietà seminata',
+              completed: false
+            }
+          ],
+          completed: false
+        }
+      }
+
+      if (hasHarvest) {
+        return {
+          id: `harvest-${dateStr}`,
+          date: dateStr,
+          title: '🥕 Raccoglitore Esperto',
+          description: 'Raccogli tutto quello che è pronto e registra peso e qualità',
+          type: 'harvest',
+          difficulty: 'easy',
+          xp: 100,
+          badge: { emoji: '🥕', name: 'Raccoglitore del Giorno' },
+          actions: [
+            {
+              id: 'complete-harvests',
+              description: `Completa ${dayTasks.filter(t => t.taskType === 'Harvest').length} raccolti`,
+              completed: false
+            },
+            {
+              id: 'weigh-produce',
+              description: 'Pesa e registra il raccolto',
+              completed: false
+            },
+            {
+              id: 'quality-check',
+              description: 'Valuta la qualità del prodotto',
+              completed: false
+            }
+          ],
+          completed: false
+        }
+      }
+
+      if (hasWatering) {
+        return {
+          id: `watering-${dateStr}`,
+          date: dateStr,
+          title: '💧 Irrigatore Perfetto',
+          description: 'Completa l\'irrigazione e monitora l\'umidità del suolo',
+          type: 'task',
+          difficulty: 'easy',
+          xp: 75,
+          actions: [
+            {
+              id: 'complete-watering',
+              description: 'Completa tutte le irrigazioni',
+              completed: false
+            },
+            {
+              id: 'check-soil',
+              description: 'Controlla umidità del suolo',
+              completed: false
+            }
+          ],
+          completed: false
+        }
+      }
+    }
+
+    // Challenge generiche per giorni senza task
+    const genericChallenges = [
+      {
+        id: `observation-${dateStr}`,
+        title: '👁️ Osservatore Attento',
+        description: 'Fai un giro dell\'orto e documenta lo stato delle piante',
+        type: 'learning' as const,
+        difficulty: 'easy' as const,
+        xp: 50,
+        actions: [
+          { id: 'garden-walk', description: 'Fai un giro completo dell\'orto', completed: false },
+          { id: 'take-photos', description: 'Scatta 3 foto di piante diverse', completed: false },
+          { id: 'note-changes', description: 'Annota cambiamenti osservati', completed: false }
+        ]
+      },
+      {
+        id: `planning-${dateStr}`,
+        title: '📋 Pianificatore Strategico',
+        description: 'Pianifica le attività della prossima settimana',
+        type: 'task' as const,
+        difficulty: 'medium' as const,
+        xp: 100,
+        actions: [
+          { id: 'review-calendar', description: 'Rivedi il calendario della settimana', completed: false },
+          { id: 'add-tasks', description: 'Aggiungi 2 nuovi task', completed: false },
+          { id: 'check-weather', description: 'Controlla previsioni meteo', completed: false }
+        ]
+      }
+    ]
+
+    const randomChallenge = genericChallenges[Math.floor(Math.random() * genericChallenges.length)]
+    
+    return {
+      ...randomChallenge,
+      date: dateStr,
+      completed: false
+    }
+  }
+
+  // Calcola giorni del calendario
+  const monthStart = startOfMonth(currentMonth)
+  const monthEnd = endOfMonth(currentMonth)
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 })
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
+  const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
+
+  // Prepara dati per ogni giorno
+  const calendarDays: CalendarDay[] = days.map(day => {
+    const dayTasks = tasks.filter(t => {
+      const taskDate = t.suggestedDate ? parseISO(t.suggestedDate) : parseISO(t.date)
+      return isSameDay(taskDate, day)
+    })
+
+    const dayChallenge = challenges.find(c => isSameDay(parseISO(c.date), day))
+    
+    const tasksCompleted = dayTasks.filter(t => t.completed).length
+    const tasksTotal = dayTasks.length
+    const challengeCompleted = dayChallenge?.completed || false
+    
+    let xpEarned = tasksCompleted * 25 // 25 XP per task
+    if (challengeCompleted) xpEarned += dayChallenge?.xp || 0
+
+    return {
+      date: day,
+      isCurrentMonth: isSameMonth(day, currentMonth),
+      isToday: isToday(day),
+      isSelected: isSameDay(day, selectedDate),
+      tasks: dayTasks,
+      challenge: dayChallenge,
+      events: {
+        seasonal: getSeasonalEventForDate(day),
+        lunar: calculateMoonPhase(day),
+        saying: getDettiForDate(day)[0]
+      },
+      stats: {
+        tasksCompleted,
+        tasksTotal,
+        challengeCompleted,
+        xpEarned
+      }
+    }
+  })
+
+  const handleDateClick = (day: CalendarDay) => {
+    setSelectedDate(day.date)
+    if (onDateClick) onDateClick(day.date)
+  }
+
+  const handleChallengeClick = (challenge: DailyChallenge) => {
+    setSelectedChallenge(challenge)
+    setShowChallengeModal(true)
+  }
+
+  const handleChallengeActionComplete = (challengeId: string, actionId: string) => {
+    setChallenges(prev => prev.map(challenge => {
+      if (challenge.id === challengeId) {
+        const updatedActions = challenge.actions.map(action => 
+          action.id === actionId ? { ...action, completed: true } : action
+        )
+        
+        const allCompleted = updatedActions.every(action => action.completed)
+        
+        const updatedChallenge = {
+          ...challenge,
+          actions: updatedActions,
+          completed: allCompleted,
+          completedAt: allCompleted ? new Date().toISOString() : undefined
+        }
+
+        if (allCompleted && onChallengeComplete) {
+          onChallengeComplete(updatedChallenge)
+        }
+
+        return updatedChallenge
+      }
+      return challenge
+    }))
+  }
+
+  const selectedDay = calendarDays.find(day => day.isSelected)
+
+  return (
+    <div className="space-y-6">
+      {/* Header con navigazione */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Calendar className="text-green-600" size={28} />
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+            Calendario Integrato
+          </h1>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          
+          <h2 className="text-xl font-semibold text-gray-700 min-w-[200px] text-center capitalize">
+            {format(currentMonth, 'MMMM yyyy', { locale: it })}
+          </h2>
+          
+          <button
+            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <ChevronRight size={20} />
+          </button>
+          
+          <button
+            onClick={() => {
+              const today = new Date()
+              setCurrentMonth(today)
+              setSelectedDate(today)
+            }}
+            className="px-4 py-2 min-h-[44px] touch-manipulation bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Oggi
+          </button>
+        </div>
+      </div>
+
+      {/* Statistiche mensili */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="text-green-600" size={20} />
+            <div>
+              <p className="text-sm text-green-600">Task Completati</p>
+              <p className="text-xl font-bold text-green-700">
+                {calendarDays.reduce((sum, day) => sum + day.stats.tasksCompleted, 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <Target className="text-purple-600" size={20} />
+            <div>
+              <p className="text-sm text-purple-600">Challenge Completate</p>
+              <p className="text-xl font-bold text-purple-700">
+                {calendarDays.filter(day => day.stats.challengeCompleted).length}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <Star className="text-yellow-600" size={20} />
+            <div>
+              <p className="text-sm text-yellow-600">XP Guadagnati</p>
+              <p className="text-xl font-bold text-yellow-700">
+                {calendarDays.reduce((sum, day) => sum + day.stats.xpEarned, 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <TrendingUp className="text-blue-600" size={20} />
+            <div>
+              <p className="text-sm text-blue-600">Streak Attuale</p>
+              <p className="text-xl font-bold text-blue-700">7 giorni</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Griglia calendario */}
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+        {/* Intestazioni giorni */}
+        <div className="grid grid-cols-7 gap-2 mb-4">
+          {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map(day => (
+            <div key={day} className="text-center text-sm font-semibold text-gray-600 py-2">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        {/* Giorni del calendario */}
+        <div className="grid grid-cols-7 gap-2">
+          {calendarDays.map((day, index) => (
+            <div
+              key={index}
+              onClick={() => handleDateClick(day)}
+              className={`
+                min-h-[120px] p-3 rounded-lg border-2 cursor-pointer transition-all
+                hover:border-green-500 hover:shadow-md
+                ${day.isSelected ? 'border-green-600 bg-green-50 shadow-md' : 'border-gray-200 bg-white'}
+                ${day.isToday && !day.isSelected ? 'ring-2 ring-green-500 border-green-400' : ''}
+                ${!day.isCurrentMonth ? 'opacity-40' : ''}
+              `}
+            >
+              {/* Header giorno */}
+              <div className="flex items-center justify-between mb-2">
+                <span className={`
+                  text-lg font-semibold
+                  ${day.isToday ? 'text-green-600 font-bold' : 'text-gray-900'}
+                `}>
+                  {format(day.date, 'd')}
+                </span>
+                
+                {/* Indicatori */}
+                <div className="flex items-center gap-1">
+                  {day.challenge && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleChallengeClick(day.challenge!)
+                      }}
+                      className={`
+                        text-xs p-1 rounded-full
+                        ${day.stats.challengeCompleted 
+                          ? 'bg-green-500 text-white' 
+                          : 'bg-purple-500 text-white hover:bg-purple-600'
+                        }
+                      `}
+                    >
+                      🎯
+                    </button>
+                  )}
+                  
+                  {day.events.seasonal && (
+                    <span className="text-xs" title={day.events.seasonal.name}>
+                      {day.events.seasonal.emoji}
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              {/* Task del giorno */}
+              {day.stats.tasksTotal > 0 && (
+                <div className="mb-2">
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="text-gray-600">Task</span>
+                    <span className="font-semibold">
+                      {day.stats.tasksCompleted}/{day.stats.tasksTotal}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-1.5">
+                    <div
+                      className="bg-green-500 h-1.5 rounded-full transition-all"
+                      style={{ 
+                        width: `${day.stats.tasksTotal > 0 ? (day.stats.tasksCompleted / day.stats.tasksTotal) * 100 : 0}%` 
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Challenge del giorno */}
+              {day.challenge && (
+                <div className="text-xs">
+                  <div className={`
+                    px-2 py-1 min-h-[44px] touch-manipulation rounded text-center font-medium
+                    ${day.stats.challengeCompleted 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-purple-100 text-purple-700'
+                    }
+                  `}>
+                    {day.stats.challengeCompleted ? '✅ Completata' : '🎯 Challenge'}
+                  </div>
+                </div>
+              )}
+              
+              {/* XP guadagnati */}
+              {day.stats.xpEarned > 0 && (
+                <div className="text-xs text-center mt-1">
+                  <span className="bg-yellow-100 text-yellow-700 px-2 py-0 min-h-[44px] touch-manipulation.5 rounded-full font-medium">
+                    +{day.stats.xpEarned} XP
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Pannello dettagli giorno selezionato */}
+      {selectedDay && (
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gray-900 capitalize">
+              {format(selectedDay.date, 'EEEE d MMMM yyyy', { locale: it })}
+            </h3>
+            {selectedDay.isToday && (
+              <span className="px-3 py-1 min-h-[44px] touch-manipulation bg-green-100 text-green-700 rounded-full text-sm font-semibold">
+                Oggi
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Task del giorno */}
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <CheckCircle size={20} className="text-green-600" />
+                Task Pianificati ({selectedDay.stats.tasksCompleted}/{selectedDay.stats.tasksTotal})
+              </h4>
+              
+              {selectedDay.tasks.length === 0 ? (
+                <div className="text-center py-6 text-gray-500">
+                  <p>Nessun task pianificato</p>
+                  <button className="mt-2 text-green-600 hover:text-green-700 font-medium">
+                    + Aggiungi Task
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {selectedDay.tasks.map(task => (
+                    <div
+                      key={task.id}
+                      className={`
+                        p-3 rounded-lg border
+                        ${task.completed 
+                          ? 'bg-green-50 border-green-200' 
+                          : 'bg-gray-50 border-gray-200'
+                        }
+                      `}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className={`font-medium ${task.completed ? 'line-through text-gray-600' : 'text-gray-900'}`}>
+                            {task.plantName} - {task.taskType}
+                          </p>
+                          {task.notes && (
+                            <p className="text-xs text-gray-600 mt-1">{task.notes}</p>
+                          )}
+                        </div>
+                        {!task.completed && (
+                          <button
+                            onClick={() => onTaskUpdate?.({ ...task, completed: true })}
+                            className="px-3 py-1 min-h-[44px] touch-manipulation bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                          >
+                            Completa
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Challenge del giorno */}
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Target size={20} className="text-purple-600" />
+                Challenge del Giorno
+              </h4>
+              
+              {selectedDay.challenge ? (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h5 className="font-bold text-purple-900">{selectedDay.challenge.title}</h5>
+                      <p className="text-sm text-purple-700 mt-1">{selectedDay.challenge.description}</p>
+                    </div>
+                    <span className="bg-yellow-500 text-white px-2 py-1 min-h-[44px] touch-manipulation rounded-full text-xs font-bold">
+                      +{selectedDay.challenge.xp} XP
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {selectedDay.challenge.actions.map(action => (
+                      <div
+                        key={action.id}
+                        className={`
+                          flex items-center justify-between p-2 rounded
+                          ${action.completed ? 'bg-green-100' : 'bg-white'}
+                        `}
+                      >
+                        <span className={`text-sm ${action.completed ? 'line-through text-gray-600' : 'text-gray-900'}`}>
+                          {action.description}
+                        </span>
+                        {!action.completed ? (
+                          <button
+                            onClick={() => handleChallengeActionComplete(selectedDay.challenge!.id, action.id)}
+                            className="px-2 py-1 min-h-[44px] touch-manipulation bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                          >
+                            Fatto
+                          </button>
+                        ) : (
+                          <CheckCircle size={16} className="text-green-600" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {selectedDay.challenge.completed && (
+                    <div className="mt-3 p-2 bg-green-100 rounded text-center">
+                      <span className="text-green-700 font-semibold">🎉 Challenge Completata!</span>
+                      {selectedDay.challenge.badge && (
+                        <p className="text-xs text-green-600 mt-1">
+                          Badge sbloccato: {selectedDay.challenge.badge.emoji} {selectedDay.challenge.badge.name}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <Target size={32} className="mx-auto text-gray-300 mb-2" />
+                  <p>Nessuna challenge per oggi</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Eventi speciali */}
+          {(selectedDay.events.seasonal || selectedDay.events.saying) && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h4 className="font-semibold text-gray-900 mb-3">Eventi del Giorno</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {selectedDay.events.seasonal && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-2xl">{selectedDay.events.seasonal.emoji}</span>
+                      <h5 className="font-semibold text-blue-900">{selectedDay.events.seasonal.name}</h5>
+                    </div>
+                    <p className="text-sm text-blue-700">{selectedDay.events.seasonal.description}</p>
+                  </div>
+                )}
+                
+                {selectedDay.events.saying && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <h5 className="font-semibold text-amber-900 mb-2">💬 Detto Contadino</h5>
+                    <blockquote className="text-sm italic text-amber-800">
+                      "{selectedDay.events.saying.detto}"
+                    </blockquote>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal Challenge */}
+      {showChallengeModal && selectedChallenge && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 sm:p-6">
+          <div className="bg-white rounded-xl shadow-xl max-w-[95vw] sm:max-w-md w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="p-4 sm:p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{selectedChallenge.title}</h3>
+                  <p className="text-sm text-gray-600 mt-1">{selectedChallenge.description}</p>
+                </div>
+                <button
+                  onClick={() => setShowChallengeModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                {selectedChallenge.actions.map(action => (
+                  <div
+                    key={action.id}
+                    className={`
+                      flex items-center justify-between p-3 rounded-lg border
+                      ${action.completed ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}
+                    `}
+                  >
+                    <span className={`${action.completed ? 'line-through text-gray-600' : 'text-gray-900'}`}>
+                      {action.description}
+                    </span>
+                    {!action.completed ? (
+                      <button
+                        onClick={() => {
+                          handleChallengeActionComplete(selectedChallenge.id, action.id)
+                        }}
+                        className="px-3 py-1 min-h-[44px] touch-manipulation bg-purple-600 text-white text-sm rounded hover:bg-purple-700"
+                      >
+                        Completa
+                      </button>
+                    ) : (
+                      <CheckCircle size={20} className="text-green-600" />
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-6 flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  Ricompensa: <span className="font-semibold text-yellow-600">+{selectedChallenge.xp} XP</span>
+                </div>
+                {selectedChallenge.completed && (
+                  <div className="text-sm text-green-600 font-semibold">
+                    🎉 Completata!
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

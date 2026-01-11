@@ -162,7 +162,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
         { icon: Droplets, label: 'Irrigazione', path: '/app/irrigation', tier: 'all' },
         { icon: FlaskConical, label: 'Nutrizione & Trattamenti', path: '/app/nutrition', tier: 'all' },
         { icon: Tractor, label: 'Lavorazioni', path: '/app/mechanical-work', tier: 'all' },
-        { icon: Shield, label: 'GlobalG.A.P.', path: '/app/compliance', tier: 'all' },
+        { icon: Shield, label: 'Certificazioni', path: '/app/certifications', tier: 'all' },
       ]
     },
     {

@@ -277,7 +277,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
 
             <div className="max-w-4xl mx-auto space-y-8">
               {/* Sezione Analisi Immagini AI */}
-              <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 sm:p-4 sm:p-6 rounded-xl border border-blue-200">
+              <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 sm:p-6 rounded-xl border border-blue-200">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
                   <Camera size={20} />
                   Analisi AI con Immagini (Opzionale)
@@ -587,7 +587,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
             </div>
 
             {/* Timeline Preview */}
-            <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-4 sm:p-6">
+            <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
                 <Calendar size={20} />
                 Timeline Scaglionamento
@@ -661,8 +661,8 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-[95vw] sm:max-w-4xl w-full max-h-[95vh] sm:max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-        <div className="p-4 sm:p-4 sm:p-6">
+      <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+        <div className="p-4 sm:p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
