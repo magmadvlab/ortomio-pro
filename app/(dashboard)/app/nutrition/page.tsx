@@ -106,6 +106,42 @@ export default function NutritionPage() {
   const [rowNameById, setRowNameById] = useState<Record<string, string>>({})
   const [fieldRowNameById, setFieldRowNameById] = useState<Record<string, string>>({}) // Nuovo: per field rows
 
+  // Form states
+  const [treatmentForm, setTreatmentForm] = useState({
+    crop_name: '',
+    treatment_date: format(new Date(), 'yyyy-MM-dd'),
+    product_name: '',
+    active_ingredient: '',
+    dosage: undefined as number | undefined,
+    dosage_unit: 'ml',
+    method: 'spray',
+    reason: 'preventive',
+    treatment_type: 'conventional', // Default tradizionale
+    organic_approved: false,
+    registration_number: '',
+    pre_harvest_interval_days: undefined as number | undefined,
+    notes: ''
+  })
+
+  const [fertilizationForm, setFertilizationForm] = useState({
+    application_date: format(new Date(), 'yyyy-MM-dd'),
+    product_name: '',
+    dosage_amount: undefined as number | undefined,
+    dosage_unit: 'g',
+    area_sqm: undefined as number | undefined,
+    method: 'surface',
+    notes: '',
+    next_application_date: '',
+    fertilizer_type: 'organic', // Default organico
+
+    area_mode: 'area',
+    pot_count: undefined as number | undefined,
+    pot_shape: 'round' as 'round' | 'rect',
+    pot_length_cm: undefined as number | undefined,
+    pot_width_cm: undefined as number | undefined,
+    pot_diameter_cm: undefined as number | undefined
+  })
+
   // Nuovo state per filtri Bio/Tradizionale
   const filteredTreatments = useMemo(() => {
     if (activeFilter === 'all') return treatments
@@ -300,6 +336,191 @@ export default function NutritionPage() {
         )}
 
         <DatabaseConnectionStatus />
+
+        {/* Treatment Modal */}
+        {showTreatmentForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <div className="flex items-center gap-2">
+                  <FlaskConical size={18} className="text-blue-700" />
+                  <h3 className="font-bold text-gray-900">Nuovo trattamento</h3>
+                </div>
+                <button onClick={() => setShowTreatmentForm(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form className="p-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Coltura</label>
+                    <input
+                      type="text"
+                      value={treatmentForm.crop_name}
+                      onChange={(e) => setTreatmentForm(prev => ({ ...prev, crop_name: e.target.value }))}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Data</label>
+                    <input
+                      type="date"
+                      value={treatmentForm.treatment_date}
+                      onChange={(e) => setTreatmentForm(prev => ({ ...prev, treatment_date: e.target.value }))}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Prodotto</label>
+                    <input
+                      type="text"
+                      value={treatmentForm.product_name}
+                      onChange={(e) => setTreatmentForm(prev => ({ ...prev, product_name: e.target.value }))}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Tipo trattamento</label>
+                    <select
+                      value={treatmentForm.treatment_type}
+                      onChange={(e) => setTreatmentForm(prev => ({ ...prev, treatment_type: e.target.value as any }))}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                    >
+                      <option value="conventional">Tradizionale</option>
+                      <option value="organic">Biologico</option>
+                      <option value="integrated">Integrato</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-700">Note</label>
+                  <textarea
+                    value={treatmentForm.notes}
+                    onChange={(e) => setTreatmentForm(prev => ({ ...prev, notes: e.target.value }))}
+                    className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowTreatmentForm(false)}
+                    className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-semibold hover:bg-gray-50"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
+                  >
+                    Salva
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Fertilization Modal */}
+        {showFertilizationForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <div className="flex items-center gap-2">
+                  <Package size={18} className="text-green-700" />
+                  <h3 className="font-bold text-gray-900">Nuova fertilizzazione</h3>
+                </div>
+                <button onClick={() => setShowFertilizationForm(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form className="p-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Data</label>
+                    <input
+                      type="date"
+                      value={fertilizationForm.application_date}
+                      onChange={(e) => setFertilizationForm(prev => ({ ...prev, application_date: e.target.value }))}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Prodotto</label>
+                    <input
+                      type="text"
+                      value={fertilizationForm.product_name}
+                      onChange={(e) => setFertilizationForm(prev => ({ ...prev, product_name: e.target.value }))}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Tipo fertilizzante</label>
+                    <select
+                      value={fertilizationForm.fertilizer_type}
+                      onChange={(e) => setFertilizationForm(prev => ({ ...prev, fertilizer_type: e.target.value as any }))}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                    >
+                      <option value="organic">Organico</option>
+                      <option value="mineral">Minerale</option>
+                      <option value="chemical">Chimico</option>
+                      <option value="mixed">Misto</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Metodo applicazione</label>
+                    <select
+                      value={fertilizationForm.method}
+                      onChange={(e) => setFertilizationForm(prev => ({ ...prev, method: e.target.value as any }))}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                    >
+                      <option value="surface">Superficie</option>
+                      <option value="incorporated">Interrato</option>
+                      <option value="fertigation">Fertirrigazione</option>
+                      <option value="foliar">Fogliare</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-700">Note</label>
+                  <textarea
+                    value={fertilizationForm.notes}
+                    onChange={(e) => setFertilizationForm(prev => ({ ...prev, notes: e.target.value }))}
+                    className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowFertilizationForm(false)}
+                    className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-semibold hover:bg-gray-50"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-3 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700"
+                  >
+                    Salva
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </ProFeatureGate>
   )
