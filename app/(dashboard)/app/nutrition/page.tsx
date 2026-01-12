@@ -13,7 +13,7 @@ import { calculateNutrientNeeds } from '@/logic/nutrientEngine'
 import { calculateFertigationPlan } from '@/logic/fertigationEngine'
 import { calculateFertilizerDosage, suggestFertilizerProduct } from '@/logic/fertilizerEngine'
 import { allFertilizers, type FertilizerProduct } from '@/data/fertilizers'
-import type { FertilizerApplicationLogDB, GardenTask, PlantMasterSheet, TreatmentRecordDB } from '@/types'
+import { NutritionStatsWidget } from '@/components/nutrition/NutritionStatsWidget'
 import type { GardenBed } from '@/types/gardenBed'
 import type { GardenRow } from '@/types'
 
@@ -31,6 +31,9 @@ interface FertilizationFormState {
   method?: 'incorporated' | 'surface' | 'fertigation' | 'foliar'
   notes?: string
   next_application_date?: string
+
+  // ⭐ Nuovo campo per tipo fertilizzante
+  fertilizer_type?: 'organic' | 'mineral' | 'chemical' | 'mixed' | 'corrective' | 'microelement'
 
   area_mode?: FertilizationAreaMode
   pot_shape?: PotShape
@@ -50,6 +53,13 @@ interface TreatmentFormState {
   area_treated?: number
   method?: 'spray' | 'soil' | 'seed' | 'foliar'
   reason?: 'preventive' | 'curative' | 'pest_control' | 'disease_control' | 'nutrient'
+  
+  // ⭐ Nuovi campi per Bio/Tradizionale
+  treatment_type?: 'organic' | 'conventional' | 'integrated'
+  organic_approved?: boolean
+  registration_number?: string
+  pre_harvest_interval_days?: number
+  
   operator_name?: string
   notes?: string
   weather_conditions?: {
@@ -69,6 +79,9 @@ export default function NutritionPage() {
   const [gardens, setGardens] = useState<any[]>([])
   const [selectedGardenId, setSelectedGardenId] = useState<string>('')
   const [loading, setLoading] = useState(true)
+
+  // ⭐ Nuovo state per filtri Bio/Tradizionale
+  const [activeFilter, setActiveFilter] = useState<'all' | 'organic' | 'conventional'>('all')
 
   const [tasks, setTasks] = useState<GardenTask[]>([])
   const [treatments, setTreatments] = useState<TreatmentRecordDB[]>([])
@@ -101,6 +114,10 @@ export default function NutritionPage() {
     area_treated: undefined,
     method: 'spray',
     reason: 'preventive',
+    treatment_type: 'conventional', // Default tradizionale
+    organic_approved: false,
+    registration_number: '',
+    pre_harvest_interval_days: undefined,
     operator_name: '',
     notes: '',
     weather_conditions: {},
@@ -115,6 +132,7 @@ export default function NutritionPage() {
     method: 'surface',
     notes: '',
     next_application_date: '',
+    fertilizer_type: 'organic', // Default organico
 
     area_mode: 'area',
     pot_shape: 'round',
@@ -491,6 +509,13 @@ export default function NutritionPage() {
         area_treated: treatmentForm.area_treated ? parseFloat(String(treatmentForm.area_treated)) : undefined,
         method: treatmentForm.method,
         reason: treatmentForm.reason,
+        
+        // ⭐ Nuovi campi Bio/Tradizionale
+        treatment_type: treatmentForm.treatment_type,
+        organic_approved: treatmentForm.organic_approved,
+        registration_number: treatmentForm.registration_number || undefined,
+        pre_harvest_interval_days: treatmentForm.pre_harvest_interval_days,
+        
         weather_conditions: treatmentForm.weather_conditions,
         operator_name: treatmentForm.operator_name,
         notes: treatmentForm.notes,
@@ -511,6 +536,10 @@ export default function NutritionPage() {
         area_treated: undefined,
         method: 'spray',
         reason: 'preventive',
+        treatment_type: 'conventional',
+        organic_approved: false,
+        registration_number: '',
+        pre_harvest_interval_days: undefined,
         operator_name: '',
         notes: '',
         weather_conditions: {},
@@ -584,10 +613,11 @@ export default function NutritionPage() {
           fieldRowId: selectedFieldRowId || null, // Nuovo: supporto field rows
           fertilizerProductId: 'manual',
           fertilizerProductName: fertilizationForm.product_name,
+          fertilizerType: fertilizationForm.fertilizer_type || 'organic', // ⭐ Nuovo campo
           dosageAmount: Number(totalDosage.toFixed(4)),
           dosageUnit: fertilizationForm.dosage_unit || 'g',
           applicationDate: fertilizationForm.application_date,
-          method: fertilizationForm.method || 'foliar',
+          method: fertilizationForm.method || 'surface',
           areaSqm: Number(effectiveAreaSqm.toFixed(4)),
           notes: mergedNotes,
           nextApplicationDate: fertilizationForm.next_application_date || null,
@@ -609,6 +639,7 @@ export default function NutritionPage() {
         method: 'surface',
         notes: '',
         next_application_date: '',
+        fertilizer_type: 'organic',
 
         area_mode: 'area',
         pot_shape: 'round',
@@ -636,6 +667,29 @@ export default function NutritionPage() {
     const count = typeof fertilizationForm.pot_count === 'number' && fertilizationForm.pot_count > 0 ? fertilizationForm.pot_count : 1
     return totalDosagePreview / count
   }, [fertilizationForm.area_mode, fertilizationForm.pot_count, totalDosagePreview])
+
+  // ⭐ Filtri per Bio/Tradizionale
+  const filteredTreatments = useMemo(() => {
+    if (activeFilter === 'all') return treatments
+    if (activeFilter === 'organic') {
+      return treatments.filter(t => t.treatment_type === 'organic' || t.organic_approved)
+    }
+    if (activeFilter === 'conventional') {
+      return treatments.filter(t => t.treatment_type === 'conventional' || (!t.treatment_type && !t.organic_approved))
+    }
+    return treatments
+  }, [treatments, activeFilter])
+
+  const filteredFertilizers = useMemo(() => {
+    if (activeFilter === 'all') return fertilizerLogs
+    if (activeFilter === 'organic') {
+      return fertilizerLogs.filter(f => f.fertilizerType === 'organic')
+    }
+    if (activeFilter === 'conventional') {
+      return fertilizerLogs.filter(f => f.fertilizerType === 'chemical' || f.fertilizerType === 'mineral' || (!f.fertilizerType))
+    }
+    return fertilizerLogs
+  }, [fertilizerLogs, activeFilter])
 
   return (
     <ProFeatureGate feature="Nutrizione & Trattamenti" requiredTier="PRO">
@@ -770,21 +824,81 @@ export default function NutritionPage() {
             </div>
           </div>
         ) : activeTab === 'history' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="space-y-4">
+            {/* ⭐ Filtri Bio/Tradizionale */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="text-sm font-semibold text-gray-700">Filtri:</div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setActiveFilter('all')}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                      activeFilter === 'all' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Tutti
+                  </button>
+                  <button
+                    onClick={() => setActiveFilter('organic')}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                      activeFilter === 'organic' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'
+                    }`}
+                  >
+                    🌱 Solo Bio
+                  </button>
+                  <button
+                    onClick={() => setActiveFilter('conventional')}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                      activeFilter === 'conventional' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                    }`}
+                  >
+                    🧪 Solo Tradizionale
+                  </button>
+                </div>
+                <div className="ml-auto text-xs text-gray-500">
+                  {filteredTreatments.length} trattamenti · {filteredFertilizers.length} fertilizzazioni
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Calendar size={18} className="text-green-700" />
                 <h2 className="text-lg font-bold text-gray-900">Fertilizzazioni</h2>
               </div>
 
-              {fertilizerLogs.length === 0 ? (
-                <p className="text-sm text-gray-600">Nessuna fertilizzazione registrata.</p>
+              {filteredFertilizers.length === 0 ? (
+                <p className="text-sm text-gray-600">
+                  {activeFilter === 'all' ? 'Nessuna fertilizzazione registrata.' : 
+                   activeFilter === 'organic' ? 'Nessuna fertilizzazione biologica registrata.' :
+                   'Nessuna fertilizzazione tradizionale registrata.'}
+                </p>
               ) : (
                 <div className="space-y-3">
-                  {fertilizerLogs.slice(0, 50).map((l) => (
+                  {filteredFertilizers.slice(0, 50).map((l) => (
                     <div key={l.id} className="border border-gray-200 rounded-lg p-3">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="font-semibold text-gray-900">{l.fertilizerProductName || '—'}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-semibold text-gray-900">{l.fertilizerProductName || '—'}</div>
+                          {/* ⭐ Badge per tipo fertilizzante */}
+                          {l.fertilizerType && (
+                            <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
+                              l.fertilizerType === 'organic' 
+                                ? 'bg-green-100 text-green-800' 
+                                : l.fertilizerType === 'mineral'
+                                ? 'bg-blue-100 text-blue-800'
+                                : l.fertilizerType === 'mixed'
+                                ? 'bg-purple-100 text-purple-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {l.fertilizerType === 'organic' ? '🌱 Organico' : 
+                               l.fertilizerType === 'mineral' ? '⚡ Minerale' : 
+                               l.fertilizerType === 'mixed' ? '🔄 Misto' :
+                               l.fertilizerType === 'chemical' ? '🧪 Chimico' : '📦 Altro'}
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2">
                           <div className="text-xs text-gray-500">
                             {l.applicationDate ? format(new Date(l.applicationDate), 'd MMM yyyy', { locale: it }) : '—'}
@@ -846,14 +960,38 @@ export default function NutritionPage() {
                 <h2 className="text-lg font-bold text-gray-900">Trattamenti</h2>
               </div>
 
-              {treatments.length === 0 ? (
-                <p className="text-sm text-gray-600">Nessun trattamento registrato.</p>
+              {filteredTreatments.length === 0 ? (
+                <p className="text-sm text-gray-600">
+                  {activeFilter === 'all' ? 'Nessun trattamento registrato.' : 
+                   activeFilter === 'organic' ? 'Nessun trattamento biologico registrato.' :
+                   'Nessun trattamento tradizionale registrato.'}
+                </p>
               ) : (
                 <div className="space-y-3">
-                  {treatments.slice(0, 50).map((t) => (
+                  {filteredTreatments.slice(0, 50).map((t) => (
                     <div key={t.id} className="border border-gray-200 rounded-lg p-3">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="font-semibold text-gray-900">{t.product_name || '—'}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-semibold text-gray-900">{t.product_name || '—'}</div>
+                          {/* ⭐ Badge per tipo trattamento */}
+                          {t.treatment_type && (
+                            <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
+                              t.treatment_type === 'organic' 
+                                ? 'bg-green-100 text-green-800' 
+                                : t.treatment_type === 'integrated'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {t.treatment_type === 'organic' ? '🌱 Bio' : 
+                               t.treatment_type === 'integrated' ? '🔄 Integrato' : '🧪 Tradizionale'}
+                            </span>
+                          )}
+                          {t.organic_approved && (
+                            <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 font-semibold">
+                              ✓ Ammesso Bio
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-gray-500">
                           {t.treatment_date ? format(new Date(t.treatment_date), 'd MMM yyyy', { locale: it }) : '—'}
                         </div>
@@ -861,6 +999,7 @@ export default function NutritionPage() {
                       <div className="text-sm text-gray-700 mt-1">
                         {t.crop_name ? `Coltura: ${t.crop_name}` : ''}
                         {t.reason ? ` · Motivo: ${t.reason}` : ''}
+                        {t.pre_harvest_interval_days ? ` · Carenza: ${t.pre_harvest_interval_days}gg` : ''}
                       </div>
                       {(t as any).bed_id || (t as any).row_id || (t as any).field_row_id ? (
                         <div className="text-xs text-gray-600 mt-1">
@@ -872,6 +1011,7 @@ export default function NutritionPage() {
                       {t.dosage ? (
                         <div className="text-xs text-gray-600 mt-1">
                           Dose: {t.dosage} {t.dosage_unit || ''}
+                          {t.registration_number ? ` · Reg: ${t.registration_number}` : ''}
                         </div>
                       ) : null}
                       {t.notes ? <div className="text-xs text-gray-600 mt-2 whitespace-pre-line">{t.notes}</div> : null}
@@ -882,7 +1022,14 @@ export default function NutritionPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="space-y-4">
+            {/* ⭐ Widget Statistiche Bio/Tradizionale */}
+            <NutritionStatsWidget 
+              treatments={treatments} 
+              fertilizers={fertilizerLogs} 
+            />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Package size={18} className="text-green-700" />
@@ -1082,6 +1229,85 @@ export default function NutritionPage() {
                   </div>
                 </div>
 
+                {/* ⭐ Nuova sezione Bio/Tradizionale */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Tipo trattamento</label>
+                    <select
+                      value={treatmentForm.treatment_type || 'conventional'}
+                      onChange={(e) => setTreatmentForm((p) => ({ 
+                        ...p, 
+                        treatment_type: e.target.value as any,
+                        // Reset organic_approved se non è organic
+                        organic_approved: e.target.value === 'organic' ? p.organic_approved : false
+                      }))}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                    >
+                      <option value="conventional">🧪 Tradizionale</option>
+                      <option value="organic">🌱 Biologico</option>
+                      <option value="integrated">🔄 Integrato</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Ammesso Bio</label>
+                    <div className="mt-1 flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={treatmentForm.organic_approved || false}
+                        onChange={(e) => setTreatmentForm((p) => ({ ...p, organic_approved: e.target.checked }))}
+                        disabled={treatmentForm.treatment_type !== 'organic'}
+                        className="mr-2 rounded border-gray-300"
+                      />
+                      <span className="text-xs text-gray-600">
+                        {treatmentForm.treatment_type === 'organic' ? 'Prodotto ammesso' : 'Solo per bio'}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">N. Registrazione</label>
+                    <input
+                      value={treatmentForm.registration_number || ''}
+                      onChange={(e) => setTreatmentForm((p) => ({ ...p, registration_number: e.target.value }))}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                      placeholder="es. 12345"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Carenza (giorni)</label>
+                    <input
+                      type="number"
+                      value={treatmentForm.pre_harvest_interval_days ?? ''}
+                      onChange={(e) => setTreatmentForm((p) => ({ ...p, pre_harvest_interval_days: e.target.value ? Number(e.target.value) : undefined }))}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                {/* Alert per compatibilità certificazioni */}
+                {treatmentForm.treatment_type === 'conventional' && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <div className="flex items-start gap-2">
+                      <div className="text-yellow-600 mt-0.5">⚠️</div>
+                      <div className="text-xs text-yellow-800">
+                        <strong>Attenzione:</strong> Trattamento tradizionale. Verificare compatibilità con eventuali certificazioni biologiche.
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {treatmentForm.treatment_type === 'organic' && !treatmentForm.organic_approved && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <div className="flex items-start gap-2">
+                      <div className="text-red-600 mt-0.5">❌</div>
+                      <div className="text-xs text-red-800">
+                        <strong>Errore:</strong> Per trattamenti biologici è necessario confermare che il prodotto sia ammesso in agricoltura biologica.
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="text-xs font-semibold text-gray-700">Note</label>
                   <textarea
@@ -1202,6 +1428,38 @@ export default function NutritionPage() {
                       className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
                       required
                     />
+                  </div>
+                </div>
+
+                {/* ⭐ Nuova sezione per tipo fertilizzante */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Tipo fertilizzante</label>
+                    <select
+                      value={fertilizationForm.fertilizer_type || 'organic'}
+                      onChange={(e) => setFertilizationForm((p) => ({ ...p, fertilizer_type: e.target.value as any }))}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                    >
+                      <option value="organic">🌱 Organico</option>
+                      <option value="mineral">⚡ Minerale</option>
+                      <option value="chemical">🧪 Chimico</option>
+                      <option value="mixed">🔄 Misto</option>
+                      <option value="corrective">🔧 Correttivo</option>
+                      <option value="microelement">🔬 Microelementi</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Metodo applicazione</label>
+                    <select
+                      value={fertilizationForm.method || 'surface'}
+                      onChange={(e) => setFertilizationForm((p) => ({ ...p, method: e.target.value as any }))}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                    >
+                      <option value="surface">Superficie</option>
+                      <option value="incorporated">Interrato</option>
+                      <option value="fertigation">Fertirrigazione</option>
+                      <option value="foliar">Fogliare</option>
+                    </select>
                   </div>
                 </div>
 

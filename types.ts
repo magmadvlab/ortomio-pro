@@ -1692,6 +1692,14 @@ export interface TreatmentRecordDB {
   area_treated?: number
   method?: 'spray' | 'soil' | 'seed' | 'foliar'
   reason?: 'preventive' | 'curative' | 'pest_control' | 'disease_control' | 'nutrient'
+  
+  // ⭐ Nuovi campi per distinzione Bio/Tradizionale
+  treatment_type?: 'organic' | 'conventional' | 'integrated'
+  certification_compliance?: string[] // Certificazioni compatibili
+  organic_approved?: boolean // Ammesso in agricoltura biologica
+  registration_number?: string // Numero registrazione prodotto
+  pre_harvest_interval_days?: number // Tempo di carenza
+  
   weather_conditions?: {
     temp?: number
     humidity?: number
@@ -1768,7 +1776,7 @@ export interface FertilizerApplicationLogDB {
   // Prodotto
   fertilizerProductId: string
   fertilizerProductName: string
-  fertilizerType?: 'organic' | 'mineral' | 'corrective' | 'microelement' | null
+  fertilizerType?: 'organic' | 'mineral' | 'corrective' | 'microelement' | 'chemical' | 'mixed' | null
 
   // NPK
   npk?: { n: number; p: number; k: number } | null
