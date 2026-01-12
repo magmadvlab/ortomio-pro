@@ -5,8 +5,10 @@ import { useStorage } from '@/packages/core/hooks/useStorage'
 import { AICreditsWidget } from '@/components/shared/AICreditsWidget'
 import WeatherWidget from '@/components/WeatherWidget'
 import GardenOnboarding from '@/components/GardenOnboarding'
+import SmartRecipesWidget from '@/components/garden/SmartRecipesWidget'
 import { Garden } from '@/types'
 import { Sparkles, Sun, Snowflake, ChefHat, Book, Leaf } from 'lucide-react'
+import Link from 'next/link'
 
 // Placeholder - will be replaced with actual garden coordinates
 const DEFAULT_COORDS = { latitude: 40.5, longitude: 16.5 }
@@ -116,12 +118,20 @@ export function ConsumerDashboard() {
           </div>
         </div>
         
-        {/* Ricette suggerite - Card migliorate */}
+        {/* Ricette suggerite - Card migliorate con dati dinamici */}
         <section>
           <h2 className="text-lg md:text-xl sm:text-xl md:text-2xl font-bold text-gray-900 mb-4 flex items-center gap-3">
             <ChefHat className="text-orange-500" size={24} />
             Ricette per i tuoi raccolti
           </h2>
+          
+          {/* Widget ricette intelligente */}
+          <SmartRecipesWidget 
+            tasks={[]} // TODO: Passare i task reali dalla dashboard
+            className="mb-4"
+          />
+          
+          {/* Ricette statiche di fallback */}
           <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
               <div className="aspect-video bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg mb-3 flex items-center justify-center">
@@ -129,9 +139,12 @@ export function ConsumerDashboard() {
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Pesto di Basilico</h3>
               <p className="text-sm text-gray-600 mb-3">Una ricetta classica per valorizzare il tuo basilico appena raccolto.</p>
-              <button className="text-green-600 text-sm font-medium hover:text-green-700">
+              <Link 
+                href="/app/recipes"
+                className="text-green-600 text-sm font-medium hover:text-green-700 flex items-center gap-1"
+              >
                 Vedi ricetta →
-              </button>
+              </Link>
             </div>
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
               <div className="aspect-video bg-gradient-to-br from-green-100 to-green-200 rounded-lg mb-3 flex items-center justify-center">
@@ -139,9 +152,12 @@ export function ConsumerDashboard() {
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Insalata Mista</h3>
               <p className="text-sm text-gray-600 mb-3">Fresca e croccante con i tuoi raccolti dell'orto.</p>
-              <button className="text-green-600 text-sm font-medium hover:text-green-700">
+              <Link 
+                href="/app/recipes"
+                className="text-green-600 text-sm font-medium hover:text-green-700 flex items-center gap-1"
+              >
                 Vedi ricetta →
-              </button>
+              </Link>
             </div>
           </div>
         </section>

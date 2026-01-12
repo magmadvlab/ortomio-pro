@@ -26,7 +26,9 @@ import {
   Package,
   Bug,
   Thermometer,
-  X
+  X,
+  ChefHat,
+  Sparkles
 } from 'lucide-react'
 import { GardenTask } from '@/types'
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns'

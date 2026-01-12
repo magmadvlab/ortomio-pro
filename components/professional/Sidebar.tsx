@@ -48,12 +48,10 @@ const menuItems = [
   { icon: Tractor, label: 'Lavorazioni', path: '/app/mechanical-work', tier: 'PRO', badge: 'PRO' },
   { icon: Shield, label: 'Certificazioni', path: '/app/certifications', tier: 'PRO', badge: 'PRO' },
   { icon: Brain, label: 'Predizioni AI', path: '/app/ai-predictions', tier: 'PRO', badge: 'NEW' },
-  { icon: Drone, label: 'Operazioni Drone', path: '/app/drone-operations', tier: 'PRO', badge: 'NEW' },
-  { icon: Link2, label: 'Blockchain', path: '/app/blockchain-traceability', tier: 'PRO', badge: 'NEW' },
   { icon: Satellite, label: 'NDVI Satellitare', path: '/app/ndvi', tier: 'PRO', badge: 'NEW' },
   { icon: Map, label: 'Prescription Maps', path: '/app/prescription-maps', tier: 'PRO', badge: 'NEW' },
   { icon: BarChart3, label: 'Analytics', path: '/app/analytics', tier: 'PRO', badge: 'PRO' },
-  { icon: Wifi, label: 'Smart Hub', path: '/app/smart', tier: 'all' },
+  { icon: Wifi, label: 'Smart Hub', path: '/app/smart', tier: 'all', badge: 'NEW' },
   { icon: Database, label: 'Export', path: '/app/export', tier: 'PRO', badge: 'PRO' },
   { icon: BookOpen, label: 'Manuale Utente', path: '/app/help', tier: 'all' },
   { icon: Settings, label: 'Impostazioni', path: '/app/settings', tier: 'all' },
@@ -108,7 +106,7 @@ export function ProfessionalSidebar() {
       tier: 'PRO',
       collapsible: true,
       items: allMenuItems.filter(item =>
-        ['Predizioni AI', 'Operazioni Drone', 'Blockchain', 'NDVI Satellitare', 'Prescription Maps', 'Analytics', 'Smart Hub', 'Export'].includes(item.label)
+        ['Predizioni AI', 'NDVI Satellitare', 'Prescription Maps', 'Analytics', 'Smart Hub', 'Export'].includes(item.label)
       )
     },
     {

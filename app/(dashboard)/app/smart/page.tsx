@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import SmartHub from '@/components/SmartHub'
+import IntegratedSmartHub from '@/components/smart/IntegratedSmartHub'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { SmartDevice, Garden } from '@/types'
 
@@ -57,7 +57,10 @@ export default function SmartPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">Caricamento...</p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Caricamento Smart Hub...</p>
+        </div>
       </div>
     )
   }
@@ -74,13 +77,11 @@ export default function SmartPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <SmartHub
-        devices={devices}
-        garden={garden}
-        onToggleValve={handleToggleValve}
-        onUpdateDeviceSettings={handleUpdateDeviceSettings}
-      />
-    </div>
+    <IntegratedSmartHub
+      devices={devices}
+      garden={garden}
+      onToggleValve={handleToggleValve}
+      onUpdateDeviceSettings={handleUpdateDeviceSettings}
+    />
   )
 }

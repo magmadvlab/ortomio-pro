@@ -6,7 +6,9 @@ import { TimelineView } from './TimelineView'
 import { CalendarTabView } from './CalendarTabView'
 import { ListView } from './ListView'
 import ActivityRegistry from './ActivityRegistry'
-import { Calendar, List, GanttChart, Plus, Sprout, Settings, Grid3X3, X, Package, Leaf, Bot, FileText } from 'lucide-react'
+import TraceabilityWidget from './TraceabilityWidget'
+import SmartRecipesWidget from './SmartRecipesWidget'
+import { Calendar, List, GanttChart, Plus, Sprout, Settings, Grid3X3, X, Package, Leaf, Bot, FileText, Shield } from 'lucide-react'
 import { PlantsView } from './PlantsView'
 import { AddItemModal } from './AddItemModal'
 import { HarvestRegistrationModal } from '../harvest/HarvestRegistrationModal'
@@ -22,8 +24,8 @@ import Link from 'next/link'
 interface GardenViewProps {
   garden: Garden
   tasks: GardenTask[]
-  activeTab: 'timeline' | 'calendar' | 'plants' | 'harvest' | 'structure' | 'registry'
-  onTabChange: (tab: 'timeline' | 'calendar' | 'plants' | 'harvest' | 'structure' | 'registry') => void
+  activeTab: 'timeline' | 'calendar' | 'plants' | 'harvest' | 'structure' | 'registry' | 'traceability'
+  onTabChange: (tab: 'timeline' | 'calendar' | 'plants' | 'harvest' | 'structure' | 'registry' | 'traceability') => void
   onToggleTask: (id: string) => void
   onAddTask: (task: Omit<GardenTask, 'id' | 'completed' | 'gardenId'>) => void
   onDeleteTask: (id: string) => void
@@ -52,6 +54,7 @@ export function GardenView({
     { id: 'plants' as const, label: 'Piante & Vivaio', icon: Sprout },
     { id: 'harvest' as const, label: 'Raccolto', icon: Package },
     { id: 'registry' as const, label: 'Registro', icon: FileText },
+    { id: 'traceability' as const, label: 'Tracciabilità', icon: Shield },
     { id: 'structure' as const, label: 'Struttura', icon: Grid3X3 }
   ]
   
@@ -150,6 +153,12 @@ export function GardenView({
         
         {activeTab === 'timeline' && (
           <div className="space-y-6">
+            {/* Smart Recipes Widget - Appare solo se ci sono raccolti recenti */}
+            <SmartRecipesWidget 
+              tasks={tasks}
+              className="mb-6"
+            />
+            
             {/* AI Suggestions */}
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
               <div className="flex items-center justify-between">
@@ -407,6 +416,30 @@ export function GardenView({
               console.log('Export data requested')
             }}
           />
+        )}
+
+        {activeTab === 'traceability' && (
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900">🔗 Tracciabilità Prodotti</h2>
+                <p className="text-gray-600 mt-1">Traccia automaticamente ogni operazione per la trasparenza totale</p>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                <Shield size={16} />
+                Blockchain Attivo
+              </div>
+            </div>
+            
+            <TraceabilityWidget
+              garden={garden}
+              tasks={tasks}
+              onRecordActivity={(activity) => {
+                console.log('New traceability record:', activity)
+                // Qui potresti aggiornare lo stato o inviare al backend
+              }}
+            />
+          </div>
         )}
 
         {activeTab === 'structure' && (
