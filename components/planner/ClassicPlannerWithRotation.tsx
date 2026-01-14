@@ -409,7 +409,7 @@ export default function ClassicPlannerWithRotation() {
                   Posizione (Opzionale - per rotazione intelligente)
                 </label>
                 <LocationSelector
-                  gardenId={activeGarden.id}
+                  garden={activeGarden}
                   value={{
                     gardenId: selectedLocation.gardenId,
                     zoneId: selectedLocation.zoneId,
