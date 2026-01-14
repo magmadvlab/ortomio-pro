@@ -388,10 +388,12 @@ export default function PlantLifecycleManager({
             <div className="flex items-center gap-3">
               {/* Status pianta */}
               <div className={`px-3 py-1 rounded-full border ${
-                plant.status === 'healthy' ? 'text-green-600 bg-green-50 border-green-200' :
-                plant.status === 'warning' ? 'text-yellow-600 bg-yellow-50 border-yellow-200' :
-                plant.status === 'critical' ? 'text-red-600 bg-red-50 border-red-200' :
-                'text-gray-600 bg-gray-50 border-gray-200'
+                plant.status === 'healthy' && plant.healthScore >= 70 ? 'text-green-600 bg-green-50 border-green-200' :
+                plant.status === 'healthy' && plant.healthScore >= 40 ? 'text-yellow-600 bg-yellow-50 border-yellow-200' :
+                plant.status === 'healthy' && plant.healthScore < 40 ? 'text-red-600 bg-red-50 border-red-200' :
+                plant.status === 'diseased' ? 'text-orange-600 bg-orange-50 border-orange-200' :
+                plant.status === 'dead' ? 'text-gray-600 bg-gray-50 border-gray-200' :
+                'text-blue-600 bg-blue-50 border-blue-200'
               }`}>
                 <span className="text-sm font-medium">
                   {plant.status} • {plant.healthScore}/100

@@ -104,6 +104,7 @@ export interface PlantHarvest {
   // Quantità raccolta
   quantityKg: number;
   qualityGrade?: 'excellent' | 'good' | 'fair' | 'poor';
+  qualityScore?: number; // Numeric quality score (0-100)
   
   // Classificazione prodotto
   sizeCategory?: 'large' | 'medium' | 'small';
