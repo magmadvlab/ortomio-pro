@@ -43,7 +43,7 @@ export default function TreatmentCalendarIntegration({
     const task = treatmentTasks.find(t => t.id === taskId);
     if (!task?.metadata?.productCardId) return undefined;
     
-    return productCards.find(card => card.id === task.metadata.productCardId);
+    return productCards.find(card => card.id === task.metadata!.productCardId);
   };
 
   const getTaskIcon = (taskType: string) => {

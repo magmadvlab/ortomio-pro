@@ -924,6 +924,15 @@ export interface GardenTask {
       hasPHSensor: boolean;
     };
   };
+  
+  // Treatment/Fertilizer metadata
+  metadata?: {
+    productCardId?: string; // ID della scheda prodotto
+    productName?: string; // Nome del prodotto
+    applicationNumber?: number; // Numero applicazione (es. 1, 2, 3)
+    totalApplications?: number; // Totale applicazioni previste
+    [key: string]: any; // Estendibile per altri metadati
+  };
 }
 
 export interface GeoLocation {
