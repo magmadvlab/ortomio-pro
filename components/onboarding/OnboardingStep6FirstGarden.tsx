@@ -43,7 +43,7 @@ export function OnboardingStep6FirstGarden({ onboardingData, onNext, onBack }: O
         <Input
           type="text"
           value={gardenName}
-          onChange={(e) => setGardenName(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGardenName(e.target.value)}
           placeholder="Il Mio Orto"
           className="text-lg"
           autoFocus

@@ -84,14 +84,14 @@ export function OnboardingStep4Location({ initialValue, onNext, onBack }: Onboar
               step="any"
               placeholder="Latitudine"
               value={latitude}
-              onChange={(e) => setLatitude(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLatitude(e.target.value)}
             />
             <Input
               type="number"
               step="any"
               placeholder="Longitudine"
               value={longitude}
-              onChange={(e) => setLongitude(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLongitude(e.target.value)}
             />
           </div>
           <Button
@@ -123,7 +123,7 @@ export function OnboardingStep4Location({ initialValue, onNext, onBack }: Onboar
             type="number"
             placeholder="Altitudine"
             value={altitude}
-            onChange={(e) => setAltitude(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAltitude(e.target.value)}
           />
         </div>
       </div>

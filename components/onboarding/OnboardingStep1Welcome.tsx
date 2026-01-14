@@ -41,7 +41,7 @@ export function OnboardingStep1Welcome({ onNext }: OnboardingStep1WelcomeProps) 
             id="userName"
             type="text"
             value={userName}
-            onChange={(e) => setUserName(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserName(e.target.value)}
             placeholder="Il tuo nome"
             required
             className="text-lg"
