@@ -1,8 +1,8 @@
 # Vercel Build Fix - Dialog Component Errors
 
 **Date**: January 14, 2026  
-**Latest Commit**: `56b0d57`  
-**Status**: ✅ All Blocking Errors Fixed
+**Latest Commit**: `36b628d`  
+**Status**: ⏳ Building (should succeed - 13 errors fixed!)
 
 ## Build History
 
@@ -17,7 +17,57 @@
 
 ### Build 3 - Commit `56b0d57`
 **Fix**: Added explicit types to ALL event handlers in irrigation components
-**Status**: ⏳ Building (should succeed)
+**Error**: WateringHistory undefined handling
+**Status**: ❌ Failed
+
+### Build 4 - Commit `9a5eba8`
+**Fix**: Fixed WateringHistory undefined handling with fallback
+**Error**: Missing garden prop in InterventionWizard
+**Status**: ❌ Failed
+
+### Build 5 - Commit `9d987ac`
+**Fix**: Added missing garden prop to InterventionWizard
+**Error**: Implicit any in onboarding components
+**Status**: ❌ Failed
+
+### Build 6 - Commit `1c14e51`
+**Fix**: Fixed onboarding component event handlers
+**Error**: LocationSelector prop mismatch in ClassicPlannerWithRotation
+**Status**: ❌ Failed
+
+### Build 7 - Commit `f1bec02`
+**Fix**: Changed gardenId to garden in LocationSelector
+**Error**: Still had prop mismatch (value, onChange, showSections)
+**Status**: ❌ Failed
+
+### Build 8 - Commit `884f897`
+**Fix**: Corrected ALL LocationSelector props
+**Error**: Missing qualityScore property on PlantHarvest
+**Status**: ❌ Failed
+
+### Build 9 - Commit `c41f9e8`
+**Fix**: Added qualityScore to PlantHarvest and fixed status comparisons
+**Error**: Lucide icon type mismatch in GlobalQuickActions
+**Status**: ❌ Failed
+
+### Build 10 - Commit `81339e4`
+**Fix**: Used LucideIcon type for icon props
+**Error**: Same icon type error in QuickActions component
+**Status**: ❌ Failed
+
+### Build 11 - Commit `a5fbb13`
+**Fix**: Fixed QuickActions icon type
+**Error**: Possibly undefined recommendations.length
+**Status**: ❌ Failed
+
+### Build 12 - Commit `32898f9`
+**Fix**: Fixed possibly undefined recommendations array check
+**Error**: Missing userId property on Garden type
+**Status**: ❌ Failed
+
+### Build 13 - Commit `36b628d`
+**Fix**: Removed non-existent garden.userId references
+**Status**: ⏳ Building (should succeed!)
 
 ## Problem
 
@@ -91,6 +141,73 @@ Fixed 19+ implicit `any` type errors in irrigation components by adding explicit
 - ✅ `onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => ...}` for textarea elements
 - ✅ `onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => ...}` for keyboard events
 
+### Fix 3: WateringHistory Undefined Handling (Commit 9a5eba8)
+
+Fixed undefined handling in WateringHistory component:
+- `r.name` is `string | undefined` but rowsMap expects `string`
+- Added fallback: `r.name || 'Unnamed Row'`
+
+### Fix 4: Missing Garden Prop (Commit 9d987ac)
+
+Added missing garden prop to InterventionWizard:
+- NDVIDashboard and IntegratedSmartHub were missing required `garden` prop
+- Both components had garden available, just needed to pass it
+
+### Fix 5: Onboarding Event Handlers (Commit 1c14e51)
+
+Fixed implicit `any` errors in onboarding components:
+- Fixed 5 implicit `any` errors in OnboardingStep1Welcome, OnboardingStep4Location, OnboardingStep6FirstGarden
+- Added explicit event types
+
+### Fix 6: LocationSelector Props (Commit f1bec02)
+
+Fixed LocationSelector prop name:
+- Changed `gardenId={activeGarden.id}` to `garden={activeGarden}`
+- LocationSelector expects Garden object, not string ID
+
+### Fix 7: Complete LocationSelector Fix (Commit 884f897)
+
+Fixed ALL LocationSelector props in ClassicPlannerWithRotation:
+- Changed `value` prop to individual `selectedZoneId`, `selectedFieldRowId`, `selectedSectionId` props
+- Changed `onChange` to `onLocationChange` to match LocationSelector interface
+- Removed invalid `showSections` prop
+- Added explicit type annotation for location parameter
+
+### Fix 8: PlantHarvest Type and Status Comparisons (Commit c41f9e8)
+
+Fixed PlantHarvest type and PlantLifecycleManager status logic:
+- Added optional `qualityScore?: number` property to PlantHarvest interface
+- Fixed status comparisons in PlantLifecycleManager (removed invalid 'warning' and 'critical' checks)
+- Changed to use healthScore thresholds for visual status indicators
+- Valid status values: 'healthy', 'diseased', 'dead', 'harvested', 'transplanted'
+
+### Fix 9: Lucide Icon Type Compatibility (Commits 81339e4, a5fbb13)
+
+Fixed icon type mismatches in navigation and action components:
+- Changed icon type from `React.ComponentType<{ size?: number; className?: string }>` to `LucideIcon`
+- Fixed GlobalQuickActions icon type (commit 81339e4)
+- Fixed MobileBottomNav icon type (commit 81339e4)
+- Fixed QuickActions icon type (commit a5fbb13)
+- Imported `LucideIcon` type from lucide-react for proper type compatibility
+- Resolves ForwardRefExoticComponent type mismatch errors
+
+### Fix 10: Possibly Undefined Array Check (Commit 32898f9)
+
+Fixed possibly undefined recommendations array in InteractiveTrackingInterface:
+- Changed from `analytics?.aiInsights?.recommendations?.length > 0` to explicit existence check
+- Used `analytics?.aiInsights?.recommendations && analytics.aiInsights.recommendations.length > 0`
+- Removed redundant optional chaining in map function since we've already verified existence
+- Fixes TypeScript error TS18048 (possibly undefined)
+
+### Fix 11: Non-Existent Garden Property (Commit 36b628d)
+
+Fixed references to non-existent userId property on Garden type:
+- Removed `garden.userId` references in SmartTreatmentWizard
+- Changed to use placeholder 'current-user' directly
+- Updated TODO comments to clarify auth context is needed
+- Garden type doesn't have userId property - should come from auth context
+- Fixes TypeScript error TS2339 (property does not exist)
+
 ## Workflow Optimization
 
 Following the user's instruction, we now:
@@ -120,7 +237,17 @@ These are acceptable per user instruction: "Build warnings TypeScript non blocca
 
 - `29f1a10` - Fixed RowManagerModal null/undefined errors → ❌ Dialog onClose error
 - `2e2a2b3` - Fixed Dialog wrapper errors → ❌ Implicit any error  
-- `56b0d57` - Fixed all implicit any types in irrigation components → ⏳ Building
+- `56b0d57` - Fixed all implicit any types in irrigation components → ❌ WateringHistory undefined
+- `9a5eba8` - Fixed WateringHistory undefined handling → ❌ Missing garden prop
+- `9d987ac` - Added missing garden prop to InterventionWizard → ❌ Onboarding implicit any
+- `1c14e51` - Fixed onboarding component event handlers → ❌ LocationSelector prop mismatch
+- `f1bec02` - Changed gardenId to garden in LocationSelector → ❌ Still prop mismatch
+- `884f897` - Corrected ALL LocationSelector props → ❌ PlantHarvest qualityScore missing
+- `c41f9e8` - Added qualityScore and fixed status comparisons → ❌ Lucide icon type error
+- `81339e4` - Fixed Lucide icon types in GlobalQuickActions & MobileBottomNav → ❌ QuickActions icon error
+- `a5fbb13` - Fixed QuickActions icon type → ❌ Possibly undefined recommendations
+- `32898f9` - Fixed possibly undefined array check → ❌ Garden.userId doesn't exist
+- `36b628d` - Removed garden.userId references → ⏳ Building (13 fixes total!)
 
 ## All Fixes Applied
 

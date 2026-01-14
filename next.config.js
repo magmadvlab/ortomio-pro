@@ -2,12 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   
-  // Disabilita TypeScript e ESLint check durante build per velocizzare
+  // Disabilita TypeScript check durante build per velocizzare
   typescript: {
     ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
   
   images: {

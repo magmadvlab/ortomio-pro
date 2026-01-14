@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Tractor, Calendar, MapPin, Clock, Filter } from 'lucide-react'
 
-export default function MechanicalWorkPage() {
+function MechanicalWorkContent() {
   const searchParams = useSearchParams()
   const filter = searchParams?.get('filter')
   const [selectedFilter, setSelectedFilter] = useState(filter || 'all')
@@ -82,5 +82,20 @@ export default function MechanicalWorkPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function MechanicalWorkPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <Tractor className="w-12 h-12 text-gray-400 mx-auto mb-3 animate-pulse" />
+          <p className="text-gray-600">Caricamento...</p>
+        </div>
+      </div>
+    }>
+      <MechanicalWorkContent />
+    </Suspense>
   )
 }
