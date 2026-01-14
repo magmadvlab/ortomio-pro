@@ -95,7 +95,7 @@ export default function SmartTreatmentWizard({
         diseaseContext: searchData.diseaseContext || undefined,
         plantContext: searchData.plantContext || undefined,
         garden,
-        userId: garden.userId || 'current-user' // TODO: get from auth
+        userId: 'current-user' // TODO: get from auth context
       };
 
       // Genera o trova scheda prodotto
@@ -133,7 +133,7 @@ export default function SmartTreatmentWizard({
         diseaseContext: searchData.diseaseContext || undefined,
         plantContext: searchData.plantContext || undefined,
         garden,
-        userId: garden.userId || 'current-user',
+        userId: 'current-user', // TODO: get from auth context
         applicationArea: areaData,
         startDate: scheduleData.startDate,
         customFrequency: scheduleData.customFrequency,
