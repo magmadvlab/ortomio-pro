@@ -4,6 +4,7 @@ import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useState, useEffect } from 'react'
 import { Garden, GardenTask } from '@/types'
 import HomeDashboard from '@/components/shared/HomeDashboard'
+import SupabaseConnectionDebug from '@/components/debug/SupabaseConnectionDebug'
 
 export default function AppPage() {
   const { storageProvider } = useStorage()
@@ -98,12 +99,16 @@ export default function AppPage() {
 
   // Dashboard completa professionale
   return (
-    <HomeDashboard 
-      garden={activeGarden || undefined}
-      tasks={tasks}
-      onUpdateGarden={handleUpdateGarden}
-      onUpdateTask={handleUpdateTask}
-      onRefreshTasks={refreshTasks}
-    />
+    <>
+      <HomeDashboard 
+        garden={activeGarden || undefined}
+        tasks={tasks}
+        onUpdateGarden={handleUpdateGarden}
+        onUpdateTask={handleUpdateTask}
+        onRefreshTasks={refreshTasks}
+      />
+      {/* Debug component - rimuovere dopo fix */}
+      <SupabaseConnectionDebug />
+    </>
   )
 }
