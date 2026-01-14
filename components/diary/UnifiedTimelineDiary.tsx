@@ -44,7 +44,7 @@ interface UnifiedTimelineDiaryProps {
 interface DiaryEntry {
   id: string
   date: string
-  type: 'operation' | 'observation' | 'result' | 'issue'
+  type: 'operation' | 'observation' | 'result' | 'issue' | 'weather' | 'milestone' | 'ai_suggestion'
   category: string
   title: string
   description: string
