@@ -1,0 +1,45 @@
+# Exclude old/unused code folders from Vercel builds
+X_pro_edit/
+x_ortomio_free/
+ortomio/
+orto-mio/
+
+# Exclude test files
+__tests__/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+test-*.js
+test-*.cjs
+test-*.mjs
+test-*.html
+test-*.sql
+
+# Exclude documentation and logs
+*.md
+!README.md
+*.log
+build-*.log
+
+# Exclude database files
+database_backups/
+*.sql
+!supabase/migrations/*.sql
+
+# Exclude scripts
+scripts/
+analyze-*.js
+fix-*.js
+fix-*.mjs
+apply-*.mjs
+check-*.js
+mobile-*.js
+validate-*.js
+quick-*.sh
+backup_*.sh
+switch_*.sh
+sync_*.sh
+deploy_*.sh
+*.sh
+!supabase/**/*.sh

@@ -42,6 +42,8 @@
     "ortomio",
     "orto-mio",
     "__tests__",
+    "X_pro_edit",
+    "x_ortomio_free",
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",
