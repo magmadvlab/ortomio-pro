@@ -14,7 +14,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const loadGardens = async () => {
-      if (activeSection === 'data') {
+      if (activeSection === 'data' || activeSection === 'gardens') {
         setLoadingGardens(true)
         try {
           const loadedGardens = await storageProvider.getGardens()
@@ -30,8 +30,18 @@ export default function SettingsPage() {
     loadGardens()
   }, [activeSection, storageProvider])
 
+  // Check URL params for section
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const section = params.get('section')
+    if (section && sections.find(s => s.id === section)) {
+      setActiveSection(section)
+    }
+  }, [])
+
   const sections = [
     { id: 'profile', label: 'Profilo', icon: User },
+    { id: 'gardens', label: 'I Miei Orti', icon: MapPin },
     { id: 'notifications', label: 'Notifiche', icon: Bell },
     { id: 'security', label: 'Sicurezza', icon: Shield },
     { id: 'data', label: 'Dati', icon: Database },
@@ -77,6 +87,165 @@ export default function SettingsPage() {
         {/* Contenuto Principale */}
         <div className="lg:col-span-3">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            {activeSection === 'gardens' && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">I Miei Orti</h2>
+                <div className="space-y-6">
+                  {/* Lista Orti */}
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-medium text-green-900 flex items-center gap-2">
+                        <MapPin size={18} />
+                        Orti Configurati
+                      </h3>
+                      <Link
+                        href="/app/garden"
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors flex items-center gap-2"
+                      >
+                        <Plus size={16} />
+                        Nuovo Orto
+                      </Link>
+                    </div>
+                    
+                    {loadingGardens ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+                        <p className="text-sm text-gray-600 mt-2">Caricamento orti...</p>
+                      </div>
+                    ) : gardens.length === 0 ? (
+                      <div className="text-center py-8 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                        <MapPin size={48} className="mx-auto text-gray-400 mb-3" />
+                        <p className="text-gray-600 font-medium mb-2">Nessun orto configurato</p>
+                        <p className="text-sm text-gray-500 mb-4">Crea il tuo primo orto per iniziare</p>
+                        <Link
+                          href="/app/garden"
+                          className="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
+                        >
+                          <Plus size={18} />
+                          Crea Orto
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {gardens.map((garden) => (
+                          <div
+                            key={garden.id}
+                            className="bg-white p-4 rounded-lg border border-green-200 hover:border-green-400 transition-colors"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h4 className="font-semibold text-gray-900 text-lg">{garden.name}</h4>
+                                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">
+                                    {garden.gardenType || 'Orto'}
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                  <div className="flex items-center gap-2 text-gray-600">
+                                    <span className="font-medium">Dimensione:</span>
+                                    <span>{garden.sizeSqMeters || 0} m²</span>
+                                  </div>
+                                  {garden.coordinates && (
+                                    <div className="flex items-center gap-2 text-gray-600">
+                                      <MapPin size={14} />
+                                      <span className="text-xs">
+                                        {garden.coordinates.latitude.toFixed(4)}, {garden.coordinates.longitude.toFixed(4)}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {garden.location && (
+                                    <div className="flex items-center gap-2 text-gray-600 col-span-2">
+                                      <span className="font-medium">Località:</span>
+                                      <span>{garden.location}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 ml-4">
+                                <Link
+                                  href="/app/garden"
+                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                  title="Gestisci orto"
+                                >
+                                  <Edit size={18} />
+                                </Link>
+                                <button
+                                  onClick={async () => {
+                                    if (confirm(`Sei sicuro di voler eliminare "${garden.name}"?\n\nQuesta azione eliminerà anche tutti i dati associati (piante, task, raccolti, ecc.)`)) {
+                                      try {
+                                        await storageProvider.deleteGarden(garden.id)
+                                        setGardens(gardens.filter(g => g.id !== garden.id))
+                                      } catch (error) {
+                                        console.error('Error deleting garden:', error)
+                                        alert('Errore durante l\'eliminazione dell\'orto')
+                                      }
+                                    }
+                                  }}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Elimina orto"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tipi di Orto Disponibili */}
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h3 className="font-medium text-blue-900 mb-3">Tipi di Coltivazione Supportati</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="bg-white p-3 rounded-lg border border-blue-200 text-center">
+                        <div className="text-2xl mb-1">🌱</div>
+                        <p className="text-sm font-medium text-gray-900">Orto Domestico</p>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg border border-blue-200 text-center">
+                        <div className="text-2xl mb-1">🍎</div>
+                        <p className="text-sm font-medium text-gray-900">Frutteto</p>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg border border-blue-200 text-center">
+                        <div className="text-2xl mb-1">🫒</div>
+                        <p className="text-sm font-medium text-gray-900">Oliveto</p>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg border border-blue-200 text-center">
+                        <div className="text-2xl mb-1">🍇</div>
+                        <p className="text-sm font-medium text-gray-900">Vigneto</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-blue-700 mt-3">
+                      Ogni tipo di coltivazione ha funzionalità specifiche e consigli personalizzati
+                    </p>
+                  </div>
+
+                  {/* Guida Rapida */}
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <h3 className="font-medium text-gray-900 mb-3">Come Gestire i Tuoi Orti</h3>
+                    <ul className="space-y-2 text-sm text-gray-700">
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 font-bold">1.</span>
+                        <span>Clicca "Nuovo Orto" per creare un nuovo orto, frutteto, oliveto o vigneto</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 font-bold">2.</span>
+                        <span>Configura nome, dimensione, posizione GPS e tipo di coltivazione</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 font-bold">3.</span>
+                        <span>Usa il pulsante "Gestisci" per modificare le impostazioni dell'orto</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 font-bold">4.</span>
+                        <span>Vai alla dashboard principale per vedere e gestire le tue coltivazioni</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {activeSection === 'profile' && (
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Profilo Utente</h2>
@@ -171,89 +340,6 @@ export default function SettingsPage() {
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Gestione Dati</h2>
                 <div className="space-y-6">
-                  {/* Sezione Orti */}
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-medium text-green-900 flex items-center gap-2">
-                        <MapPin size={18} />
-                        I Tuoi Orti
-                      </h3>
-                      <Link
-                        href="/app/garden"
-                        className="bg-green-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-green-700 transition-colors flex items-center gap-2"
-                      >
-                        <Plus size={16} />
-                        Nuovo Orto
-                      </Link>
-                    </div>
-                    
-                    {loadingGardens ? (
-                      <div className="text-center py-4">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mx-auto"></div>
-                        <p className="text-sm text-gray-600 mt-2">Caricamento orti...</p>
-                      </div>
-                    ) : gardens.length === 0 ? (
-                      <div className="text-center py-4">
-                        <p className="text-sm text-gray-600 mb-2">Nessun orto trovato</p>
-                        <Link
-                          href="/app/garden"
-                          className="text-green-600 hover:text-green-700 text-sm font-medium"
-                        >
-                          Crea il tuo primo orto →
-                        </Link>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {gardens.map((garden) => (
-                          <div
-                            key={garden.id}
-                            className="bg-white p-3 rounded-lg border border-green-200 flex items-center justify-between"
-                          >
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900">{garden.name}</h4>
-                              <div className="flex items-center gap-4 mt-1">
-                                <p className="text-sm text-gray-600">
-                                  {garden.sizeSqMeters || 0} m²
-                                </p>
-                                {garden.coordinates && (
-                                  <p className="text-xs text-gray-500">
-                                    📍 {garden.coordinates.latitude.toFixed(4)}, {garden.coordinates.longitude.toFixed(4)}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Link
-                                href="/app/garden"
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                title="Modifica"
-                              >
-                                <Edit size={16} />
-                              </Link>
-                              <button
-                                onClick={async () => {
-                                  if (confirm(`Sei sicuro di voler eliminare "${garden.name}"?`)) {
-                                    try {
-                                      await storageProvider.deleteGarden(garden.id)
-                                      setGardens(gardens.filter(g => g.id !== garden.id))
-                                    } catch (error) {
-                                      console.error('Error deleting garden:', error)
-                                      alert('Errore durante l\'eliminazione dell\'orto')
-                                    }
-                                  }
-                                }}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Elimina"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
                   {/* Backup */}
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <h3 className="font-medium text-blue-900 mb-2">Backup Automatico</h3>
