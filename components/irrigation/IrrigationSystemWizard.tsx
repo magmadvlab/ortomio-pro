@@ -325,7 +325,7 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
                             'Zona prato, Aiuole perimetrali'
                           }`}
                           value={formData.location}
-                          onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                           autoFocus
                         />
                         <p className="text-xs text-gray-500 mt-1">
@@ -340,7 +340,7 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
                         <Input
                           placeholder="es. 50 mq, 200 piante, 15 filari"
                           value={formData.area}
-                          onChange={(e) => setFormData(prev => ({ ...prev, area: e.target.value }))}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, area: e.target.value }))}
                         />
                       </div>
 
@@ -351,7 +351,7 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
                         <Input
                           placeholder={`Lascia vuoto per auto-generare: "${cultivationConfigs[formData.cultivationType].label} ${formData.location}"`}
                           value={formData.name}
-                          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                         />
                       </div>
 
@@ -582,7 +582,7 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
                         min="0"
                         placeholder="es. 2.5"
                         value={formData.pressureBar || ''}
-                        onChange={(e) => setFormData(prev => ({
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({
                           ...prev,
                           pressureBar: parseFloat(e.target.value) || undefined
                         }))}

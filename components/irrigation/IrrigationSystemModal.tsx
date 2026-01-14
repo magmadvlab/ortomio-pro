@@ -107,7 +107,7 @@ export function IrrigationSystemModal({
             </label>
             <Input
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Es. Impianto Orto Principale"
             />
             {errors.name && (
@@ -171,7 +171,7 @@ export function IrrigationSystemModal({
               min="0"
               max="10"
               value={formData.pressureBar || ''}
-              onChange={(e) => setFormData({ ...formData, pressureBar: parseFloat(e.target.value) || 0 })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, pressureBar: parseFloat(e.target.value) || 0 })}
               placeholder="Es. 2.0"
             />
             {errors.pressureBar && (

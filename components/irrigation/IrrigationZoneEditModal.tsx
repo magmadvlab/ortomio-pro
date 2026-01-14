@@ -127,7 +127,7 @@ export function IrrigationZoneEditModal({
             </label>
             <Input
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Es. Aiuola Pomodori"
             />
             {errors.name && (
@@ -148,7 +148,7 @@ export function IrrigationZoneEditModal({
               step="0.1"
               min="0"
               value={formData.areaSqm || ''}
-              onChange={(e) => setFormData({ ...formData, areaSqm: parseFloat(e.target.value) || 0 })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, areaSqm: parseFloat(e.target.value) || 0 })}
               placeholder="Es. 15"
             />
             {errors.areaSqm && (
@@ -166,7 +166,7 @@ export function IrrigationZoneEditModal({
             </label>
             <Select
               value={formData.method}
-              onChange={(e) => setFormData({ ...formData, method: e.target.value as any })}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({ ...formData, method: e.target.value as any })}
             >
               <option value="Manual">Manuale</option>
               <option value="Hose">Tubo</option>
@@ -188,7 +188,7 @@ export function IrrigationZoneEditModal({
               step="0.1"
               min="0"
               value={formData.flowRateLph || ''}
-              onChange={(e) => setFormData({ ...formData, flowRateLph: parseFloat(e.target.value) || 0 })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, flowRateLph: parseFloat(e.target.value) || 0 })}
               placeholder="Es. 120"
             />
             {errors.flowRateLph && (
@@ -231,8 +231,8 @@ export function IrrigationZoneEditModal({
             <div className="flex gap-3 mb-3">
               <Input
                 value={plantInput}
-                onChange={(e) => setPlantInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addPlant())}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPlantInput(e.target.value)}
+                onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && (e.preventDefault(), addPlant())}
                 placeholder="Es. Pomodoro, Lattuga..."
               />
               <Button onClick={addPlant} variant="outline" size="sm">
@@ -264,7 +264,7 @@ export function IrrigationZoneEditModal({
             <input
               type="checkbox"
               checked={formData.isAutomated}
-              onChange={(e) => setFormData({ ...formData, isAutomated: e.target.checked })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, isAutomated: e.target.checked })}
               className="w-5 h-5 text-blue-600 rounded"
             />
             <div>
@@ -280,7 +280,7 @@ export function IrrigationZoneEditModal({
             </label>
             <textarea
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Aggiungi note su questa zona..."
               rows={3}
               className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"

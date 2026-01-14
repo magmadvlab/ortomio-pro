@@ -257,7 +257,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
               </label>
               <Select
                 value={formData.zoneId}
-                onChange={(e) => setFormData(prev => ({ ...prev, zoneId: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, zoneId: e.target.value }))}
                 required
                 disabled={!!preselectedZone}
               >
@@ -279,7 +279,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
                   </label>
                   <Select
                     value={formData.bedId}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, bedId: e.target.value }))}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData((prev) => ({ ...prev, bedId: e.target.value }))}
                     required
                   >
                     <option value="">Seleziona letto...</option>
@@ -331,7 +331,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
                               <input
                                 type="checkbox"
                                 checked={checked}
-                                onChange={(e) => {
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                   if (e.target.checked) {
                                     setSelectedRowIds((prev) => Array.from(new Set([...prev, r.id])))
                                   } else {
@@ -366,7 +366,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
                 <Input
                   type="date"
                   value={formData.date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, date: e.target.value }))}
                   required
                 />
               </div>
@@ -377,7 +377,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
                 <Input
                   type="time"
                   value={formData.time}
-                  onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, time: e.target.value }))}
                   required
                 />
               </div>
@@ -394,7 +394,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
                   step="0.1"
                   min="0"
                   value={formData.litersPerRow}
-                  onChange={(e) => setFormData(prev => ({ ...prev, litersPerRow: parseFloat(e.target.value) || 0 }))}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, litersPerRow: parseFloat(e.target.value) || 0 }))}
                   required
                 />
                 {selectedRowIds.length > 0 && (
@@ -435,7 +435,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
               </label>
               <Select
                 value={formData.method}
-                onChange={(e) => setFormData(prev => ({ ...prev, method: e.target.value as any }))}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, method: e.target.value as any }))}
               >
                 <option value="Manual">Manuale</option>
                 <option value="Automatic">Automatico</option>
@@ -454,7 +454,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
                   </label>
                   <Select
                     value={formData.weatherCondition}
-                    onChange={(e) => setFormData(prev => ({ ...prev, weatherCondition: e.target.value }))}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, weatherCondition: e.target.value }))}
                   >
                     <option value="">Non specificato</option>
                     <option value="Sunny">Soleggiato</option>
@@ -472,7 +472,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
                     step="0.1"
                     placeholder="es. 25.5"
                     value={formData.airTemperatureC || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, airTemperatureC: parseFloat(e.target.value) || undefined }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, airTemperatureC: parseFloat(e.target.value) || undefined }))}
                   />
                 </div>
               </div>
@@ -488,7 +488,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
                     max="100"
                     placeholder="es. 30"
                     value={formData.soilMoistureBefore || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, soilMoistureBefore: parseInt(e.target.value) || undefined }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, soilMoistureBefore: parseInt(e.target.value) || undefined }))}
                   />
                 </div>
                 <div>
@@ -501,7 +501,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
                     max="100"
                     placeholder="es. 80"
                     value={formData.soilMoistureAfter || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, soilMoistureAfter: parseInt(e.target.value) || undefined }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, soilMoistureAfter: parseInt(e.target.value) || undefined }))}
                   />
                 </div>
               </div>
@@ -517,7 +517,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
                 rows={3}
                 placeholder="Eventuali osservazioni..."
                 value={formData.notes}
-                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               />
             </div>
 
