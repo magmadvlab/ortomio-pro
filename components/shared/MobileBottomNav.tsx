@@ -9,10 +9,11 @@ import {
   Heart,
   BarChart3,
   Bot,
+  type LucideIcon,
 } from 'lucide-react'
 
 interface NavItem {
-  icon: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>
+  icon: LucideIcon
   label: string
   path: string
 }

@@ -1,13 +1,13 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Plus, X, Sprout, Camera, ShoppingBasket, Calendar } from 'lucide-react'
+import { Plus, X, Sprout, Camera, ShoppingBasket, Calendar, type LucideIcon } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 
 interface QuickAction {
   id: string
   label: string
-  icon: React.ComponentType<{ size?: number; className?: string }>
+  icon: LucideIcon
   color: string
   action: () => void
 }
