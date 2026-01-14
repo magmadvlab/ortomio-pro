@@ -202,20 +202,20 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
       if (editing) {
         await storageProvider.updateGardenRow(editing.id, {
           name: rowForm.name.trim(),
-          rowNumber: typeof rowForm.rowNumber === 'number' ? rowForm.rowNumber : null,
+          rowNumber: typeof rowForm.rowNumber === 'number' ? rowForm.rowNumber : undefined,
           lengthMeters: rowForm.lengthMeters,
           irrigationLine,
-          notes: rowForm.notes ? rowForm.notes : null,
+          notes: rowForm.notes ? rowForm.notes : undefined,
         })
       } else {
         await storageProvider.createGardenRow({
           gardenId: bed.gardenId,
           bedId: bed.id,
           name: rowForm.name.trim(),
-          rowNumber: typeof rowForm.rowNumber === 'number' ? rowForm.rowNumber : null,
+          rowNumber: typeof rowForm.rowNumber === 'number' ? rowForm.rowNumber : undefined,
           lengthMeters: rowForm.lengthMeters,
           irrigationLine,
-          notes: rowForm.notes ? rowForm.notes : null,
+          notes: rowForm.notes ? rowForm.notes : undefined,
         })
       }
 
@@ -256,7 +256,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
           rowNumber: n,
           lengthMeters: bulkForm.lengthMeters,
           irrigationLine,
-          notes: null,
+          notes: undefined,
         })
       })
 
@@ -269,8 +269,8 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
   }
 
   return (
-    <Dialog open={open} onClose={onClose}>
-      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <Dialog open={open}>
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
         <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <div>
