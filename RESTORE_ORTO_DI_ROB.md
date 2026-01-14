@@ -107,3 +107,77 @@ GROUP BY g.id, g.name;
 ---
 
 **Azione Immediata**: Verificare su Supabase Dashboard se l'orto esiste nel database remoto
+
+
+---
+
+## UPDATE: 14 Gennaio 2026 - 18:30
+
+### CRITICAL FINDING: The garden EXISTS in the database!
+
+**Debug component confirms** (commit 0219ddd):
+- ✅ URL: `https://qhmujoivfxftlrcrluaj.supabase.co` (correct)
+- ✅ API Key: Present
+- ✅ User: magmadvlab@gmail.com (logged in)
+- ✅ **Gardens: 1 found**
+- ✅ **Garden name: "orto di Rob"**
+
+**PROBLEM IDENTIFIED**: The issue is NOT in data retrieval, but in the UI rendering flow!
+
+### Root Cause Analysis
+
+The `HomeDashboard` component has its own internal state management that conflicts with the parent component:
+
+1. **Parent (`app/app/page.tsx`)**: Loads gardens and passes `garden` prop to `HomeDashboard`
+2. **Child (`HomeDashboard`)**: Has its own `activeGarden` state and loads gardens independently
+3. **Race condition**: If the child's `useEffect` runs before the prop is set, `activeGarden` stays `null`
+4. **Early return**: Component checks `if (!activeGarden)` and shows "Nessun giardino trovato"
+
+### Fix Applied (Commit ec4ef6c)
+
+Added proper prop synchronization and debug logging:
+
+1. **Sync garden prop to activeGarden state**:
+   ```typescript
+   useEffect(() => {
+     if (garden) {
+       console.log('🔄 Syncing activeGarden from prop:', garden.name, garden.id)
+       setActiveGarden(garden)
+     }
+   }, [garden])
+   ```
+
+2. **Prevent internal loading from overriding prop**:
+   ```typescript
+   if (loadedGardens.length > 0 && !activeGarden && !garden) {
+     setActiveGarden(loadedGardens[0])
+   }
+   ```
+
+3. **Added comprehensive console logging** to track the flow:
+   - Parent: `🔍 Loading gardens...` → `✅ Gardens loaded: X`
+   - Parent: `✅ Setting active garden: [name]`
+   - Child: `🏠 HomeDashboard render: gardenProp: [name]`
+   - Child: `🔄 Syncing activeGarden from prop: [name]`
+   - Child: `✅ HomeDashboard: Rendering with activeGarden: [name]`
+
+### Next Steps
+
+**User needs to**:
+1. Open the app at `/app` (main dashboard, NOT `/app/settings`)
+2. Open browser console (F12 → Console tab)
+3. Take screenshot showing:
+   - The page content (what's displayed)
+   - The console logs (all the 🔍 ✅ 🔄 messages)
+
+This will show us exactly where the flow breaks and if the fix resolved the issue.
+
+### Expected Outcome
+
+With the fix, the garden should now display correctly because:
+- The parent loads the garden from Supabase ✅
+- The parent passes it as a prop to HomeDashboard ✅
+- HomeDashboard syncs the prop to its internal state ✅
+- HomeDashboard renders the garden ✅
+
+If it still doesn't work, the console logs will show exactly where the chain breaks.
