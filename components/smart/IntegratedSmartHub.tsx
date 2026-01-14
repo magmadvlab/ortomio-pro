@@ -788,6 +788,7 @@ export default function IntegratedSmartHub({
           }}
           actionType={selectedAction}
           context={actionContext}
+          garden={garden}
           onInterventionCreated={handleInterventionCreated}
         />
       )}

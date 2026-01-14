@@ -521,6 +521,7 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
           }}
           actionType={selectedAction}
           context={actionContext}
+          garden={garden}
           onInterventionCreated={handleInterventionCreated}
         />
       )}
