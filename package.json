@@ -8,12 +8,12 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "dev": "next dev -H localhost -p 3002 --webpack",
+    "dev": "next dev -H localhost -p 3002",
     "dev:turbo": "next dev -H localhost -p 3002",
     "dev:next": "next dev -p 3002",
     "dev:port": "next dev -p",
-    "build": "next build --webpack",
-    "build:next": "next build --webpack",
+    "build": "next build",
+    "build:next": "next build",
     "start": "next start -p 3002",
     "start:next": "next start -p 3002",
     "type-check": "tsc --noEmit",
