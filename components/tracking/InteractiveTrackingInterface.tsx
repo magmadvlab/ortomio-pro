@@ -463,14 +463,14 @@ export default function InteractiveTrackingInterface({
               </div>
 
               {/* AI Suggestions */}
-              {analytics?.aiInsights?.recommendations?.length > 0 && (
+              {analytics?.aiInsights?.recommendations && analytics.aiInsights.recommendations.length > 0 && (
                 <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
                   <h3 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
                     <Zap className="text-purple-600" size={18} />
                     Suggerimenti AI
                   </h3>
                   <div className="space-y-2">
-                    {analytics?.aiInsights?.recommendations?.slice(0, 3).map((rec, index) => (
+                    {analytics.aiInsights.recommendations.slice(0, 3).map((rec, index) => (
                       <div key={index} className="flex items-start gap-3 p-3 bg-white rounded-lg">
                         <div className={`w-2 h-2 rounded-full mt-2 ${
                           rec.priority === 'high' ? 'bg-red-500' :
