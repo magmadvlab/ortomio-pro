@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react'
 import { PlantMasterSheet } from '@/types'
-import { Dialog } from '@/components/ui/Dialog'
 import {
   X,
   Sprout,
@@ -27,12 +26,13 @@ interface CropDetailModalProps {
 export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'germination' | 'seedling' | 'transplant' | 'care'>('germination')
 
+  if (!open) return null
+
   return (
-    <Dialog open={open} onClose={onClose}>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-6">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-6">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-white/20 rounded-xl backdrop-blur">
@@ -411,19 +411,18 @@ export function CropDetailModal({ crop, open, onClose }: CropDetailModalProps) {
             )}
           </div>
 
-          {/* Footer */}
-          <div className="border-t border-gray-200 p-4 bg-gray-50">
-            <div className="flex justify-end">
-              <button
-                onClick={onClose}
-                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition-colors"
-              >
-                Chiudi
-              </button>
-            </div>
+        {/* Footer */}
+        <div className="border-t border-gray-200 p-4 bg-gray-50">
+          <div className="flex justify-end">
+            <button
+              onClick={onClose}
+              className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition-colors"
+            >
+              Chiudi
+            </button>
           </div>
         </div>
       </div>
-    </Dialog>
+    </div>
   )
 }

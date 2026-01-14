@@ -231,10 +231,9 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
   const selectedConfig = formData.cultivationType ? cultivationConfigs[formData.cultivationType] : null
 
   return (
-    <Dialog open={true} onClose={onCancel}>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="border-b px-6 py-4 flex items-center justify-between">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={onCancel}>
+      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="border-b px-6 py-4 flex items-center justify-between">
             <div>
               <h2 className="text-lg md:text-xl font-bold text-gray-900">Nuovo Sistema Irrigazione</h2>
               <p className="text-sm text-gray-600">Step {step} di {totalSteps} - Configura il tuo impianto</p>
@@ -719,9 +718,8 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
                 </Button>
               )}
             </div>
-          </div>
         </div>
       </div>
-    </Dialog>
+    </div>
   )
 }

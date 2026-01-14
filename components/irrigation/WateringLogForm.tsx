@@ -240,10 +240,9 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
   }
 
   return (
-    <Dialog open={true} onClose={onCancel}>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={onCancel}>
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
             <h2 className="text-lg md:text-xl font-bold text-gray-900">Registra Irrigazione</h2>
             <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
               <X size={24} />
@@ -538,9 +537,8 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
                 {loading ? 'Salvataggio...' : 'Salva Irrigazione'}
               </Button>
             </div>
-          </form>
-        </div>
+        </form>
       </div>
-    </Dialog>
+    </div>
   )
 }
