@@ -1,14 +1,20 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function HomePage() {
   const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Redirect diretto all'app
-    router.push('/app')
+    // Semplice timeout per evitare loop immediato
+    const timer = setTimeout(() => {
+      console.log('Redirecting to /app...')
+      router.push('/app')
+    }, 1000)
+
+    return () => clearTimeout(timer)
   }, [router])
 
   return (
@@ -18,6 +24,7 @@ export default function HomePage() {
         <p className="text-gray-600 mb-6">Il tuo assistente intelligente per l'orto</p>
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
         <p className="text-sm text-gray-500 mt-4">Caricamento...</p>
+        <p className="text-xs text-gray-400 mt-2">Versione professionale - Build test</p>
       </div>
     </div>
   )

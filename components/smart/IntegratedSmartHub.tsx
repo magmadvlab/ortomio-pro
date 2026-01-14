@@ -30,6 +30,9 @@ import {
   MapPin
 } from 'lucide-react'
 import { SmartDevice, Garden } from '@/types'
+import ActionButton, { ActionContext } from '@/components/actions/ActionButton'
+import InterventionWizard, { InterventionData } from '@/components/actions/InterventionWizard'
+import { interventionService } from '@/services/interventionService'
 
 interface DroneFlightPlan {
   id: string
@@ -75,6 +78,11 @@ export default function IntegratedSmartHub({
   const [droneTab, setDroneTab] = useState<'flights' | 'results' | 'create'>('flights')
   const [creating, setCreating] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  // Action Buttons state
+  const [wizardOpen, setWizardOpen] = useState(false)
+  const [selectedAction, setSelectedAction] = useState<any>(null)
+  const [actionContext, setActionContext] = useState<ActionContext | null>(null)
 
   // Filter devices for current garden
   const gardenDevices = devices.filter(d => d.gardenId === garden.id)
@@ -273,6 +281,36 @@ export default function IntegratedSmartHub({
     }
   }
 
+  const handleActionSelected = (actionType: any, context: ActionContext) => {
+    setSelectedAction(actionType)
+    setActionContext(context)
+    setWizardOpen(true)
+  }
+
+  const handleInterventionCreated = async (intervention: InterventionData) => {
+    try {
+      await interventionService.createIntervention({
+        ...intervention,
+        gardenId: garden.id
+      })
+      
+      console.log('Intervento creato con successo:', intervention)
+      // Ricarica i dati se necessario
+      if (activeTab === 'drones') {
+        loadFlightPlans()
+      }
+    } catch (error) {
+      console.error('Errore nella creazione dell\'intervento:', error)
+    }
+  }
+
+  const getUrgencyFromDevice = (device: SmartDevice): 'low' | 'medium' | 'high' | 'critical' => {
+    if (device.moisture < 20) return 'critical'
+    if (device.moisture < 30) return 'high'
+    if (device.moisture < 50) return 'medium'
+    return 'low'
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
@@ -437,6 +475,36 @@ export default function IntegratedSmartHub({
                         <div className="mt-4 bg-purple-50 p-3 rounded-xl border border-purple-100 text-sm text-purple-900 animate-in fade-in">
                           <span className="font-bold flex items-center gap-3 mb-1"><Bot size={14}/> Consiglio AI:</span>
                           {aiAdvice[device.id]}
+                        </div>
+                      )}
+
+                      {/* Action Buttons per alert IoT critici */}
+                      {device.moisture < 40 && (
+                        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-semibold text-red-900 mb-1">Alert Sensore IoT</h4>
+                              <p className="text-sm text-red-800">
+                                Umidità critica: {device.moisture}%. {device.moisture < 20 ? 'Intervento urgente richiesto!' : 'Monitoraggio necessario.'}
+                              </p>
+                            </div>
+                            <ActionButton
+                              sourceType="iot"
+                              sourceData={{
+                                device: device,
+                                moisture: device.moisture,
+                                sessionLiters: device.sessionLiters,
+                                targetLiters: device.targetLiters,
+                                autoThreshold: device.autoThreshold,
+                                isValveOpen: device.isValveOpen
+                              }}
+                              zoneId={device.id}
+                              zoneName={device.name}
+                              urgency={getUrgencyFromDevice(device)}
+                              onActionSelected={handleActionSelected}
+                              size="sm"
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -708,6 +776,21 @@ export default function IntegratedSmartHub({
           </div>
         )}
       </div>
+
+      {/* Intervention Wizard */}
+      {wizardOpen && selectedAction && actionContext && (
+        <InterventionWizard
+          isOpen={wizardOpen}
+          onClose={() => {
+            setWizardOpen(false)
+            setSelectedAction(null)
+            setActionContext(null)
+          }}
+          actionType={selectedAction}
+          context={actionContext}
+          onInterventionCreated={handleInterventionCreated}
+        />
+      )}
     </div>
   )
 }

@@ -12,7 +12,7 @@ interface CalendarViewSwitcherProps {
 }
 
 export function CalendarViewSwitcher({ currentView, onViewChange }: CalendarViewSwitcherProps) {
-  const views: { id: CalendarView; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
+  const views: { id: CalendarView; label: string; icon: any }[] = [
     { id: 'day', label: 'Giorno', icon: Clock },
     { id: 'week', label: 'Settimana', icon: CalendarDays },
     { id: 'month', label: 'Mese', icon: Calendar },

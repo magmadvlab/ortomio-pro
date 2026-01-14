@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrtoMio Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f0f9ff;
+        }
+        .debug-box {
+            background: white;
+            border: 2px solid #10b981;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #dcfce7;
+            border-color: #16a34a;
+            color: #166534;
+        }
+        .error {
+            background: #fef2f2;
+            border-color: #dc2626;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-box success">
+        <h1>🔍 OrtoMio Debug - Static HTML</h1>
+        <p><strong>✅ SUCCESS:</strong> This static HTML page loads without any JavaScript or React.</p>
+        <p>If you can see this page without infinite loading, the problem is in the React/Next.js code.</p>
+    </div>
+    
+    <div class="debug-box">
+        <h2>Debug Information</h2>
+        <ul>
+            <li><strong>URL:</strong> <span id="url"></span></li>
+            <li><strong>User Agent:</strong> <span id="userAgent"></span></li>
+            <li><strong>Timestamp:</strong> <span id="timestamp"></span></li>
+        </ul>
+    </div>
+    
+    <div class="debug-box">
+        <h2>Next Steps</h2>
+        <ol>
+            <li>If this page loads fine, the issue is in React components</li>
+            <li>Try accessing <a href="/app">http://localhost:3002/app</a> again</li>
+            <li>Check browser console for JavaScript errors</li>
+            <li>Clear browser cache and cookies</li>
+        </ol>
+    </div>
+
+    <script>
+        document.getElementById('url').textContent = window.location.href;
+        document.getElementById('userAgent').textContent = navigator.userAgent;
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+        
+        console.log('🔍 DEBUG: Static HTML page loaded successfully');
+        console.log('URL:', window.location.href);
+        console.log('Timestamp:', new Date().toISOString());
+    </script>
+</body>
+</html>

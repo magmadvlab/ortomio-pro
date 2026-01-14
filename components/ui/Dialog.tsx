@@ -1,43 +1,67 @@
 'use client'
 
 import React from 'react'
+import { X } from 'lucide-react'
 
 interface DialogProps {
   children: React.ReactNode
   open?: boolean
-  onClose?: () => void
+  onOpenChange?: (open: boolean) => void
 }
 
-export function Dialog({ children, open = true, onClose }: DialogProps) {
+export function Dialog({ children, open = true, onOpenChange }: DialogProps) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" 
+      onClick={() => onOpenChange?.(false)}
+    >
+      <div 
+        className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4" 
+        onClick={(e) => e.stopPropagation()}
+      >
         {children}
       </div>
     </div>
   )
 }
 
+interface DialogContentProps {
+  children: React.ReactNode
+  className?: string
+}
 
+export function DialogContent({ children, className = '' }: DialogContentProps) {
+  return (
+    <div className={`p-6 ${className}`}>
+      {children}
+    </div>
+  )
+}
 
+interface DialogHeaderProps {
+  children: React.ReactNode
+  className?: string
+}
 
+export function DialogHeader({ children, className = '' }: DialogHeaderProps) {
+  return (
+    <div className={`pb-4 border-b border-gray-200 ${className}`}>
+      {children}
+    </div>
+  )
+}
 
+interface DialogTitleProps {
+  children: React.ReactNode
+  className?: string
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+export function DialogTitle({ children, className = '' }: DialogTitleProps) {
+  return (
+    <h2 className={`text-lg font-semibold text-gray-900 ${className}`}>
+      {children}
+    </h2>
+  )
+}

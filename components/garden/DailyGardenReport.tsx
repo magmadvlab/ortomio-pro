@@ -58,7 +58,7 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
   })
   const [suggestedTasks, setSuggestedTasks] = useState<SuggestedTask[]>([])
 
-  // Aggiorna l'ora ogni minuto
+  // Update time every minute
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date())
@@ -132,7 +132,7 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
         }
       ])
     })
-  }, [garden, tasks, currentTime])
+  }, [garden.id, tasks.length]) // Use stable dependencies
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('it-IT', {

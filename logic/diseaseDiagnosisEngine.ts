@@ -3,7 +3,7 @@
  * Analisi AI per diagnosi malattie tramite foto e matching contestuale
  */
 
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { diseaseDatabase, Disease, getDiseasesForPlant, getDiseasesForSeason } from '../data/diseaseDatabase';
 import { PlantMasterSheet, Garden } from '../types';
 import { Season, getSeasonForDate } from '../utils/seasonalAdjustment';
@@ -26,7 +26,7 @@ const getConditionFromCode = (code: number): string => {
 const apiKey = typeof window !== 'undefined'
   ? (process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY)
   : (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY);
-const genAI = apiKey ? new GoogleGenAI({ apiKey: apiKey }) : null;
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export interface DiseaseDiagnosis {
   disease: Disease;

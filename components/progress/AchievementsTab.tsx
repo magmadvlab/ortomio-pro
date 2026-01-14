@@ -5,7 +5,6 @@ import { Trophy, Award, Target, TrendingUp } from 'lucide-react'
 import { getUserBadges, getBadgeStats } from '@/lib/challenges/badgeSystem'
 import { getStreak } from '@/lib/challenges/streakCalculator'
 import { ChallengeSystem } from '@/components/challenges/ChallengeSystem'
-import { ShareButton } from '@/components/social/ShareButton'
 import { useAuth } from '@/packages/core/hooks/useAuth'
 import { checkAndAssignBadges, assignSeasonalBadges } from '@/lib/challenges/initialBadges'
 
@@ -177,29 +176,6 @@ export function AchievementsTab() {
                     {new Date(badge.earned_at).toLocaleDateString('it-IT', { month: 'short', day: 'numeric' })}
                   </div>
                 )}
-                
-                {/* Share Button - Appare al hover */}
-                <div className="absolute top-3 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <ShareButton
-                    content={{
-                      type: 'achievement',
-                      title: badge.nome || 'Badge Sbloccato',
-                      description: `Ho sbloccato il badge "${badge.nome}" in OrtoMio!`,
-                      stats: {
-                        level: currentLevel,
-                        xp: totalXP,
-                        streak: streak.current
-                      },
-                      badge: {
-                        emoji: badge.emoji || '🏆',
-                        name: badge.nome || 'Badge',
-                        rarity: 'common'
-                      }
-                    }}
-                    variant="icon-only"
-                    className="shadow-md"
-                  />
-                </div>
               </div>
             ))}
           </div>
@@ -253,11 +229,8 @@ export function AchievementsTab() {
         
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800">
-            💡 <strong>Suggerimento:</strong> Le challenge giornaliere sono ora integrate nella 
-            <a href="/app/progress?tab=overview" className="font-medium underline hover:text-blue-900 ml-1">
-              Panoramica
-            </a> 
-            insieme al calendario per una migliore esperienza utente.
+            💡 <strong>Modalità Professionale:</strong> Le challenge sono ora integrate nella sezione Operations 
+            per un'esperienza più focalizzata sui task operativi.
           </p>
         </div>
       </div>

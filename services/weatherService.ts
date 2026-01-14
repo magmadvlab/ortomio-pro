@@ -2,6 +2,10 @@ import { Garden } from '../types';
 import { getEffectiveTemperature, getEffectiveMinTemperature } from './sensorDataService';
 import { getWeatherForecastWithProvider } from './weatherProviderAdapter';
 
+// Cache per evitare troppe chiamate API
+const weatherCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minuti (aumentato da 10)
+
 export interface WeatherForecast {
   temp: number; // Temperatura corrente
   tempMin?: number; // Temperatura minima prevista
@@ -35,26 +39,50 @@ export const getWeatherForecast = async (
   lat: number,
   lng: number
 ): Promise<WeatherForecast | null> => {
+  const cacheKey = `current_${lat.toFixed(2)}_${lng.toFixed(2)}`;
+  const cached = weatherCache.get(cacheKey);
+  
+  // Usa cache se disponibile e non scaduto
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+
   try {
     const response = await fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,weathercode&timezone=auto`
     );
+    
+    if (!response.ok) {
+      console.error(`Weather API error: ${response.status} ${response.statusText}`);
+      // Ritorna cache scaduto se disponibile per evitare errori ripetuti
+      if (cached) {
+        console.warn('Using expired cache due to API error');
+        return cached.data;
+      }
+      return null;
+    }
+    
     const data = await response.json();
     
     if (data.current_weather && data.daily) {
-      return {
+      const result = {
         temp: data.current_weather.temperature,
         tempMin: data.daily.temperature_2m_min?.[0],
         tempMax: data.daily.temperature_2m_max?.[0],
         code: data.current_weather.weathercode,
         rainForecastMm: data.daily.precipitation_sum?.[0] || 0,
       };
+      
+      // Salva in cache
+      weatherCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      return result;
     }
     
     return null;
   } catch (error) {
     console.error("Weather fetch failed", error);
-    return null;
+    // Ritorna cache scaduto se disponibile
+    return cached ? cached.data : null;
   }
 };
 
@@ -66,10 +94,20 @@ export const getWeatherForecast7Days = async (
   lat: number,
   lng: number
 ): Promise<WeatherForecast[]> => {
+  const cacheKey = `forecast_${lat.toFixed(2)}_${lng.toFixed(2)}`;
+  const cached = weatherCache.get(cacheKey);
+  
+  // Usa cache se disponibile e non scaduto
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+
   try {
     // Prova prima provider personalizzato
     const customForecast = await getWeatherForecastWithProvider(lat, lng, 7);
     if (customForecast && customForecast.length > 0) {
+      // Salva in cache
+      weatherCache.set(cacheKey, { data: customForecast, timestamp: Date.now() });
       return customForecast;
     }
   } catch (error) {
@@ -84,13 +122,18 @@ export const getWeatherForecast7Days = async (
     
     if (!response.ok) {
       console.error(`Weather API error: ${response.status} ${response.statusText}`);
+      // Ritorna cache scaduto se disponibile per evitare errori ripetuti
+      if (cached) {
+        console.warn('Using expired cache due to API error');
+        return cached.data;
+      }
       return [];
     }
     
     const data = await response.json();
     
     if (data.daily && data.daily.time) {
-      return data.daily.time.map((date: string, i: number) => ({
+      const result = data.daily.time.map((date: string, i: number) => ({
         temp: (data.daily.temperature_2m_max[i] + data.daily.temperature_2m_min[i]) / 2,
         tempMin: data.daily.temperature_2m_min[i],
         tempMax: data.daily.temperature_2m_max[i],
@@ -100,12 +143,17 @@ export const getWeatherForecast7Days = async (
         humidity: undefined,
         windSpeed: undefined,
       }));
+      
+      // Salva in cache
+      weatherCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      return result;
     }
     
     return [];
   } catch (error) {
     console.error("Weather forecast 7 days failed", error);
-    return [];
+    // Ritorna cache scaduto se disponibile
+    return cached ? cached.data : [];
   }
 };
 

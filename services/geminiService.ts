@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type, Schema } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { PlantSuggestion, TreatmentAdvice, SpecificPlantInfo } from "../types";
 import { findSpecies, findVariety, getVarietyInfo, suggestVarieties } from "./plantDatabaseService";
 import { generateCompleteGuide, getVarietyInfo as getMasterVarietyInfo, findSpeciesFromVariety, generateCompleteGuideSync, getVarietyInfoSync, convertMasterSheetToSpecificInfo } from "./plantMasterService";
@@ -20,7 +20,7 @@ if (!isApiKeyConfigured()) {
   console.warn("Oppure configura una API key personalizzata nelle Impostazioni > API Keys");
 }
 
-const ai = apiKey ? new GoogleGenAI({ apiKey: apiKey }) : null;
+const ai = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 // Helper per verificare se l'API è disponibile (usa configurazione personalizzata se disponibile)
 const checkApiAvailable = (): boolean => {
@@ -56,43 +56,43 @@ const getActiveAIProvider = async () => {
 };
 
 // Schema for Plant Suggestions
-const plantSuggestionSchema: Schema = {
-  type: Type.ARRAY,
+const plantSuggestionSchema = {
+  type: "array",
   items: {
-    type: Type.OBJECT,
+    type: "object",
     properties: {
-      name: { type: Type.STRING, description: "Common name in Italian" },
-      scientificName: { type: Type.STRING },
-      description: { type: Type.STRING, description: "Brief description of why it is good for now" },
-      plantingWindow: { type: Type.STRING, description: "When to plant (e.g., 'Marzo - Aprile')" },
-      harvestTime: { type: Type.STRING, description: "Days to maturity or month of harvest" },
-      difficulty: { type: Type.STRING, enum: ["Easy", "Medium", "Hard"] },
-      waterNeeds: { type: Type.STRING, enum: ["Low", "Medium", "High"] },
+      name: { type: "string", description: "Common name in Italian" },
+      scientificName: { type: "string" },
+      description: { type: "string", description: "Brief description of why it is good for now" },
+      plantingWindow: { type: "string", description: "When to plant (e.g., 'Marzo - Aprile')" },
+      harvestTime: { type: "string", description: "Days to maturity or month of harvest" },
+      difficulty: { type: "string", enum: ["Easy", "Medium", "Hard"] },
+      waterNeeds: { type: "string", enum: ["Low", "Medium", "High"] },
     },
     required: ["name", "description", "plantingWindow", "difficulty"],
   },
 };
 
 // Schema for Treatment Advice (Updated for Severity and Structure)
-const treatmentAdviceSchema: Schema = {
-  type: Type.OBJECT,
+const treatmentAdviceSchema = {
+  type: "object",
   properties: {
-    problem: { type: Type.STRING, description: "Diagnosis name (e.g. 'Oidio', 'Carenza di Calcio')" },
-    description: { type: Type.STRING, description: "Detailed explanation of the visual symptoms and cause." },
-    symptoms: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of specific visual symptoms observed (e.g. 'Macchie nere', 'Foglie arricciate')." },
-    cause: { type: Type.STRING, description: "The underlying cause (e.g. 'Eccesso di umidità', 'Fungo', 'Mancanza di Azoto')." },
-    severity: { type: Type.STRING, enum: ["Low", "Medium", "High", "Critical"], description: "Estimated severity based on visual damage." },
-    immediateAction: { type: Type.STRING, description: "The most urgent action to take today." },
-    longTermCare: { type: Type.STRING, description: "Prevention and long term maintenance advice." },
+    problem: { type: "string", description: "Diagnosis name (e.g. 'Oidio', 'Carenza di Calcio')" },
+    description: { type: "string", description: "Detailed explanation of the visual symptoms and cause." },
+    symptoms: { type: "array", items: { type: "string" }, description: "List of specific visual symptoms observed (e.g. 'Macchie nere', 'Foglie arricciate')." },
+    cause: { type: "string", description: "The underlying cause (e.g. 'Eccesso di umidità', 'Fungo', 'Mancanza di Azoto')." },
+    severity: { type: "string", enum: ["Low", "Medium", "High", "Critical"], description: "Estimated severity based on visual damage." },
+    immediateAction: { type: "string", description: "The most urgent action to take today." },
+    longTermCare: { type: "string", description: "Prevention and long term maintenance advice." },
     steps: { 
-      type: Type.ARRAY, 
-      items: { type: Type.STRING },
+      type: "array", 
+      items: { type: "string" },
       description: "Step by step execution plan" 
     },
-    organic: { type: Type.BOOLEAN, description: "Is this an organic solution?" },
+    organic: { type: "boolean", description: "Is this an organic solution?" },
     products: { 
-      type: Type.ARRAY, 
-      items: { type: Type.STRING },
+      type: "array", 
+      items: { type: "string" },
       description: "List of specific products to buy/use (e.g., 'Olio di Neem', 'Rame')" 
     }
   },
@@ -100,99 +100,99 @@ const treatmentAdviceSchema: Schema = {
 };
 
 // Schema for Specific Plant Details
-const specificPlantSchema: Schema = {
-  type: Type.OBJECT,
+const specificPlantSchema = {
+  type: "object",
   properties: {
-    name: { type: Type.STRING },
-    variety: { type: Type.STRING },
-    seedSowingWindow: { type: Type.STRING, description: "Best time to sow seeds (e.g. 'Febbraio in semenzaio')" },
-    transplantWindow: { type: Type.STRING, description: "Best time to transplant/plant seedlings outdoors" },
-    harvestWindow: { type: Type.STRING },
-    successionIntervalDays: { type: Type.NUMBER, description: "Days between plantings for continuous harvest (e.g. 14 for lettuce). 0 if not applicable." },
-    notes: { type: Type.STRING, description: "Specific tips for this variety" },
+    name: { type: "string" },
+    variety: { type: "string" },
+    seedSowingWindow: { type: "string", description: "Best time to sow seeds (e.g. 'Febbraio in semenzaio')" },
+    transplantWindow: { type: "string", description: "Best time to transplant/plant seedlings outdoors" },
+    harvestWindow: { type: "string" },
+    successionIntervalDays: { type: "number", description: "Days between plantings for continuous harvest (e.g. 14 for lettuce). 0 if not applicable." },
+    notes: { type: "string", description: "Specific tips for this variety" },
     soil: {
-      type: Type.OBJECT,
+      type: "object",
       properties: {
-        phMin: { type: Type.NUMBER, description: "Minimum ideal pH" },
-        phMax: { type: Type.NUMBER, description: "Maximum ideal pH" },
-        typeDescription: { type: Type.STRING, description: "Description of ideal soil (e.g. 'Drenante, ricco di potassio')" }
+        phMin: { type: "number", description: "Minimum ideal pH" },
+        phMax: { type: "number", description: "Maximum ideal pH" },
+        typeDescription: { type: "string", description: "Description of ideal soil (e.g. 'Drenante, ricco di potassio')" }
       },
       required: ["phMin", "phMax", "typeDescription"]
     },
     harvest: {
-      type: Type.OBJECT,
+      type: "object",
       properties: {
-        minBrix: { type: Type.NUMBER, description: "Minimum Brix degree for optimal sweetness/maturity. Return 0 if not applicable/unknown." },
-        visualSigns: { type: Type.STRING, description: "Visual cues for harvest (e.g. 'Picciolo secco', 'Colore rosso intenso')" }
+        minBrix: { type: "number", description: "Minimum Brix degree for optimal sweetness/maturity. Return 0 if not applicable/unknown." },
+        visualSigns: { type: "string", description: "Visual cues for harvest (e.g. 'Picciolo secco', 'Colore rosso intenso')" }
       },
       required: ["visualSigns"]
     },
     indoor: {
-      type: Type.OBJECT,
+      type: "object",
       description: "Details for starting seeds indoors",
       properties: {
-        lightHours: { type: Type.NUMBER, description: "Recommended hours of light per day" },
-        germinationTemp: { type: Type.STRING, description: "Ideal temp range for germination" },
-        daysToGerminate: { type: Type.STRING, description: "Expected days to sprout" },
-        transplantSize: { type: Type.STRING, description: "Visual cue for when it is ready to transplant (e.g. '4 true leaves')" }
+        lightHours: { type: "number", description: "Recommended hours of light per day" },
+        germinationTemp: { type: "string", description: "Ideal temp range for germination" },
+        daysToGerminate: { type: "string", description: "Expected days to sprout" },
+        transplantSize: { type: "string", description: "Visual cue for when it is ready to transplant (e.g. '4 true leaves')" }
       },
       required: ["lightHours", "germinationTemp", "daysToGerminate", "transplantSize"]
     },
     irrigation: {
-      type: Type.OBJECT,
+      type: "object",
       properties: {
-        frequency: { type: Type.STRING, description: "Frequency (e.g. '2 volte a settimana')" },
-        method: { type: Type.STRING, description: "Method (e.g. 'A goccia', 'Scorrimento')" },
-        tips: { type: Type.STRING }
+        frequency: { type: "string", description: "Frequency (e.g. '2 volte a settimana')" },
+        method: { type: "string", description: "Method (e.g. 'A goccia', 'Scorrimento')" },
+        tips: { type: "string" }
       },
       required: ["frequency", "method"]
     },
     fertilizer: {
-      type: Type.OBJECT,
+      type: "object",
       properties: {
-        organicType: { type: Type.STRING, description: "Suggested organic fertilizer name" },
-        organicDosageGm2: { type: Type.NUMBER, description: "Dosage in grams per square meter" },
-        classicType: { type: Type.STRING, description: "Suggested classic/mineral fertilizer name" },
-        classicDosageGm2: { type: Type.NUMBER, description: "Dosage in grams per square meter" },
-        timing: { type: Type.STRING, description: "When to apply (e.g. 'Alla semina', 'In fioritura')" },
+        organicType: { type: "string", description: "Suggested organic fertilizer name" },
+        organicDosageGm2: { type: "number", description: "Dosage in grams per square meter" },
+        classicType: { type: "string", description: "Suggested classic/mineral fertilizer name" },
+        classicDosageGm2: { type: "number", description: "Dosage in grams per square meter" },
+        timing: { type: "string", description: "When to apply (e.g. 'Alla semina', 'In fioritura')" },
         scheduleDays: { 
-          type: Type.ARRAY, 
-          items: { type: Type.NUMBER }, 
+          type: "array", 
+          items: { type: "number" }, 
           description: "Array of days AFTER planting to apply fertilizer again. E.g. [20, 40] means fertilize 20 and 40 days after planting. Empty if none."
         }
       },
       required: ["organicType", "organicDosageGm2", "classicType", "classicDosageGm2", "timing"]
     },
     guide: {
-      type: Type.OBJECT,
+      type: "object",
       description: "Complete beginner-friendly guide with standardized step-by-step format",
       properties: {
         introduction: { 
-          type: Type.STRING, 
+          type: "string", 
           description: "Friendly introduction (2-3 sentences). Template: 'Il [nome pianta] è perfetto per i principianti perché [motivo 1]. [Motivo 2]. Con poche cure, otterrai [risultato atteso].'"
         },
         sowingSteps: { 
-          type: Type.ARRAY, 
-          items: { type: Type.STRING }, 
+          type: "array", 
+          items: { type: "string" }, 
           description: "EXACTLY 6 steps for sowing. Each step must start with 'Passo X:' and be 1-2 sentences. Format: 'Passo 1: [azione specifica con misurazioni]. Passo 2: [azione successiva].' Include depth, spacing, and timing."
         },
         transplantSteps: { 
-          type: Type.ARRAY, 
-          items: { type: Type.STRING }, 
+          type: "array", 
+          items: { type: "string" }, 
           description: "EXACTLY 5 steps for transplanting. Each step must start with 'Passo X:' and include visual cues. Format: 'Passo 1: [quando trapiantare - dimensione piantina]. Passo 2: [preparazione buca].'"
         },
         careTips: { 
-          type: Type.ARRAY, 
-          items: { type: Type.STRING }, 
+          type: "array", 
+          items: { type: "string" }, 
           description: "EXACTLY 6 weekly care tips. Each tip must be 1 sentence starting with action verb. Format: 'Controlla [cosa] ogni [quando].' or 'Innaffia [come] quando [condizione].'"
         },
         commonMistakes: { 
-          type: Type.ARRAY, 
-          items: { type: Type.STRING }, 
+          type: "array", 
+          items: { type: "string" }, 
           description: "EXACTLY 4 common mistakes. Format: 'Evita [errore] perché [conseguenza]. Invece [soluzione corretta].'"
         },
         harvestGuide: { 
-          type: Type.STRING, 
+          type: "string", 
           description: "Detailed harvest explanation (3-4 sentences). Template: 'Raccogli quando [segni visivi specifici]. [Come raccogliere - tecnica]. [Quando è il momento migliore della giornata]. [Come conservare].'"
         }
       },

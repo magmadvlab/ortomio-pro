@@ -3,7 +3,6 @@
 import React from 'react'
 import { Garden, GardenTask } from '@/types'
 import CalendarAlmanac from '@/components/CalendarAlmanac'
-import ChallengeSection from './ChallengeSection'
 
 interface CalendarTabViewProps {
   garden: Garden
@@ -18,12 +17,6 @@ export function CalendarTabView({
   onUpdateTask,
   onDateClick 
 }: CalendarTabViewProps) {
-  const handleChallengeComplete = (challenge: any) => {
-    // Handle challenge completion - could integrate with user progress system
-    console.log('Challenge completed:', challenge)
-    // You could add XP tracking, badge unlocking, etc. here
-  }
-
   return (
     <div className="space-y-6">
       {/* Calendario principale */}
@@ -33,12 +26,13 @@ export function CalendarTabView({
         onUpdateTask={onUpdateTask}
       />
       
-      {/* Sezione Challenge separata */}
-      <ChallengeSection
-        tasks={tasks}
-        onTaskUpdate={onUpdateTask}
-        onChallengeComplete={handleChallengeComplete}
-      />
+      {/* Nota: Challenge integrate nella vista Operations per professionisti */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-800">
+          💡 <strong>Modalità Professionale:</strong> Le challenge sono state spostate nella sezione Operations 
+          per un'esperienza più focalizzata sui task operativi.
+        </p>
+      </div>
     </div>
   )
 }

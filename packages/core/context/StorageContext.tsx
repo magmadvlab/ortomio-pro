@@ -78,15 +78,17 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
         if (isAuthenticated) {
           // Utente autenticato: usa SupabaseStorageProvider
           const supabaseProvider = getSupabaseStorageProvider();
-          if (supabaseProvider) {
+          if (supabaseProvider && storageProvider !== supabaseProvider) {
             setStorageProvider(supabaseProvider);
-          } else {
+          } else if (!supabaseProvider && storageProvider?.constructor.name !== 'LocalStorageProvider') {
             // Fallback a LocalStorage se Supabase non disponibile
             setStorageProvider(getLocalStorageProvider());
           }
         } else {
           // Utente non autenticato: usa LocalStorageProvider (già impostato)
-          setStorageProvider(getLocalStorageProvider());
+          if (storageProvider?.constructor.name !== 'LocalStorageProvider') {
+            setStorageProvider(getLocalStorageProvider());
+          }
         }
         
         setIsInitialized(true);

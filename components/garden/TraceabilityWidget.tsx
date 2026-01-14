@@ -38,6 +38,13 @@ interface ProductTrace {
   qualityScore: number
   certifications: string[]
   qrCode?: string
+  origin?: {
+    type: 'seed' | 'nursery_seedling'
+    cost: number
+    date: string
+    supplier?: string
+    nursery?: string
+  }
 }
 
 interface TraceabilityWidgetProps {
@@ -66,12 +73,18 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
         status: 'crescita',
         qualityScore: 92,
         certifications: ['Biologico', 'GlobalG.A.P.'],
+        origin: {
+          type: 'seed',
+          cost: 0.45,
+          date: '2026-01-05',
+          supplier: 'Franchi Sementi Bio'
+        },
         records: [
           {
             id: '1',
             date: '2026-01-05',
             type: 'semina',
-            description: 'Semi biologici certificati piantati in aiuola A',
+            description: 'Semi biologici certificati piantati in aiuola A - Origine: Semina diretta',
             verified: true,
             photos: []
           },
@@ -99,12 +112,18 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
         qualityScore: 88,
         certifications: ['Biologico'],
         qrCode: 'QR_LATTUGA_2026001',
+        origin: {
+          type: 'nursery_seedling',
+          cost: 2.20,
+          date: '2025-12-15',
+          nursery: 'Vivaio Verde Srl'
+        },
         records: [
           {
             id: '4',
             date: '2025-12-15',
             type: 'semina',
-            description: 'Semi biologici piantati in serra',
+            description: 'Piantine da vivaio trapiantate in serra - Origine: Vivaio Verde Srl',
             verified: true
           },
           {
@@ -246,7 +265,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
             </div>
 
             {/* Statistiche Rapide */}
-            <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-4 gap-4 mb-4">
               <div className="text-center">
                 <div className="text-lg font-bold text-green-600">{product.qualityScore}%</div>
                 <div className="text-xs text-gray-600">Qualità</div>
@@ -259,7 +278,49 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
                 <div className="text-lg font-bold text-purple-600">{product.certifications.length}</div>
                 <div className="text-xs text-gray-600">Certificazioni</div>
               </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-indigo-600">
+                  {product.origin?.type === 'seed' ? '🌰' : '🌱'}
+                </div>
+                <div className="text-xs text-gray-600">
+                  {product.origin?.type === 'seed' ? 'Da Seme' : 'Da Vivaio'}
+                </div>
+              </div>
             </div>
+
+            {/* Origin Info */}
+            {product.origin && (
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-3 mb-4">
+                <h5 className="text-sm font-medium text-indigo-900 mb-2 flex items-center gap-2">
+                  {product.origin.type === 'seed' ? '🌰' : '🌱'} 
+                  Origine: {product.origin.type === 'seed' ? 'Semina Diretta' : 'Trapianto Vivaio'}
+                </h5>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-gray-600">Costo iniziale:</span>
+                    <span className="ml-1 font-medium text-indigo-700">€{product.origin.cost.toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Data impianto:</span>
+                    <span className="ml-1 font-medium text-indigo-700">
+                      {new Date(product.origin.date).toLocaleDateString('it-IT')}
+                    </span>
+                  </div>
+                  {product.origin.supplier && (
+                    <div className="col-span-2">
+                      <span className="text-gray-600">Fornitore semi:</span>
+                      <span className="ml-1 font-medium text-indigo-700">{product.origin.supplier}</span>
+                    </div>
+                  )}
+                  {product.origin.nursery && (
+                    <div className="col-span-2">
+                      <span className="text-gray-600">Vivaio:</span>
+                      <span className="ml-1 font-medium text-indigo-700">{product.origin.nursery}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Certificazioni */}
             {product.certifications.length > 0 && (
@@ -442,6 +503,19 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
                 <p><strong>Varietà:</strong> {selectedProduct.variety}</p>
                 <p><strong>Qualità:</strong> {selectedProduct.qualityScore}%</p>
                 <p><strong>Certificazioni:</strong> {selectedProduct.certifications.join(', ')}</p>
+                {selectedProduct.origin && (
+                  <>
+                    <p><strong>Origine:</strong> {selectedProduct.origin.type === 'seed' ? '🌰 Semina Diretta' : '🌱 Trapianto Vivaio'}</p>
+                    <p><strong>Costo iniziale:</strong> €{selectedProduct.origin.cost.toFixed(2)}</p>
+                    <p><strong>Data impianto:</strong> {new Date(selectedProduct.origin.date).toLocaleDateString('it-IT')}</p>
+                    {selectedProduct.origin.supplier && (
+                      <p><strong>Fornitore semi:</strong> {selectedProduct.origin.supplier}</p>
+                    )}
+                    {selectedProduct.origin.nursery && (
+                      <p><strong>Vivaio:</strong> {selectedProduct.origin.nursery}</p>
+                    )}
+                  </>
+                )}
               </div>
 
               <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">

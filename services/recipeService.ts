@@ -1,10 +1,10 @@
-import { GoogleGenAI, Type, Schema } from "@google/genai";
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Support both Next.js and Vite environments
 const apiKey = typeof window !== 'undefined'
   ? (process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY)
   : (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY);
-const ai = apiKey ? new GoogleGenAI({ apiKey: apiKey }) : null;
+const ai = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export interface Recipe {
   name: string;
@@ -15,31 +15,31 @@ export interface Recipe {
 }
 
 // Schema per le ricette
-const recipeSchema: Schema = {
-  type: Type.ARRAY,
+const recipeSchema = {
+  type: "array",
   items: {
-    type: Type.OBJECT,
+    type: "object",
     properties: {
       name: { 
-        type: Type.STRING, 
+        type: "string", 
         description: "Nome della ricetta italiana tradizionale" 
       },
       ingredients: { 
-        type: Type.ARRAY, 
-        items: { type: Type.STRING },
+        type: "array", 
+        items: { type: "string" },
         description: "Lista degli ingredienti necessari (formato: 'quantità ingrediente')"
       },
       instructions: { 
-        type: Type.ARRAY, 
-        items: { type: Type.STRING },
+        type: "array", 
+        items: { type: "string" },
         description: "Procedimento passo-passo (massimo 6 passi, ognuno 1-2 frasi)"
       },
       servings: { 
-        type: Type.NUMBER, 
+        type: "number", 
         description: "Numero di porzioni (opzionale)" 
       },
       prepTime: { 
-        type: Type.STRING, 
+        type: "string", 
         description: "Tempo di preparazione (es. '30 minuti', '1 ora')" 
       }
     },

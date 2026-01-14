@@ -21,10 +21,12 @@ export async function readEXIF(file: File): Promise<EXIFData | null> {
     let EXIF: any;
     try {
       // Tentativo di import dinamico (se EXIF.js è installato)
-      EXIF = await import('exif-js');
-      // Se è un default export, estrai il default
-      if (EXIF.default) {
-        EXIF = EXIF.default;
+      // Usa eval per evitare errori di build quando il modulo non esiste
+      const exifModule = await eval('import("exif-js")').catch(() => null);
+      if (exifModule) {
+        EXIF = exifModule.default || exifModule;
+      } else {
+        throw new Error('EXIF.js not available');
       }
     } catch {
       // EXIF.js non disponibile, usa metodo alternativo

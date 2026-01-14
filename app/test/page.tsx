@@ -1,8 +1,9 @@
 export default function TestPage() {
   return (
-    <div style={{ padding: '20px', fontSize: '24px' }}>
-      <h1>Test Page</h1>
-      <p>Se vedi questo, Next.js funziona!</p>
+    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+      <h1 style={{ color: 'green' }}>🌱 Test Page - Funziona!</h1>
+      <p>Se vedi questa pagina, il server Next.js funziona correttamente.</p>
+      <p>Il problema è nel layout della dashboard.</p>
     </div>
   )
 }

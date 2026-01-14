@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type, Schema } from "@google/genai";
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { isApiKeyConfigured } from "./geminiService";
 import { findAltitudeByComune, findAltitudeByCoordinates } from "../data/italianComunesAltitude";
 
@@ -17,7 +17,7 @@ const getApiKey = () => {
 };
 
 const apiKey = getApiKey();
-const ai = apiKey ? new GoogleGenAI({ apiKey: apiKey }) : null;
+const ai = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export interface GeoClimateInfo {
   altitude: number; // Metri sul livello del mare
@@ -29,27 +29,27 @@ export interface GeoClimateInfo {
 }
 
 // Schema per risposta strutturata
-const geoClimateSchema: Schema = {
-  type: Type.OBJECT,
+const geoClimateSchema = {
+  type: "object",
   properties: {
     altitude: {
-      type: Type.NUMBER,
+      type: "number",
       description: "Altitudine media della zona in metri sul livello del mare"
     },
     delayFactorDays: {
-      type: Type.NUMBER,
+      type: "number",
       description: "Ritardo in giorni per semina pomodoro rispetto alla costa (es. 0 per costa, 20-30 per 500m, 50-70 per 1500m)"
     },
     minTempApril: {
-      type: Type.NUMBER,
+      type: "number",
       description: "Temperatura minima notturna prevista fine Aprile in gradi Celsius"
     },
     region: {
-      type: Type.STRING,
+      type: "string",
       description: "Regione o zona geografica identificata (es. 'Pianura Padana', 'Appennino Centrale')"
     },
     notes: {
-      type: Type.STRING,
+      type: "string",
       description: "Note aggiuntive sul clima locale"
     }
   },

@@ -5,7 +5,7 @@ import { useStorage } from '@/packages/core/hooks/useStorage'
 import { AICreditsWidget } from '@/components/shared/AICreditsWidget'
 import WeatherWidget from '@/components/WeatherWidget'
 import GardenOnboarding from '@/components/GardenOnboarding'
-import SmartRecipesWidget from '@/components/garden/SmartRecipesWidget'
+// import SmartRecipesWidget from '@/components/garden/SmartRecipesWidget'
 import { Garden } from '@/types'
 import { Sparkles, Sun, Snowflake, ChefHat, Book, Leaf } from 'lucide-react'
 import Link from 'next/link'
@@ -126,10 +126,10 @@ export function ConsumerDashboard() {
           </h2>
           
           {/* Widget ricette intelligente */}
-          <SmartRecipesWidget 
+          {/* <SmartRecipesWidget 
             tasks={[]} // TODO: Passare i task reali dalla dashboard
             className="mb-4"
-          />
+          /> */}
           
           {/* Ricette statiche di fallback */}
           <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

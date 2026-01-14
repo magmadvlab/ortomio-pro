@@ -9,8 +9,26 @@ const nextConfig = {
       },
     ],
   },
-  // TEMPORANEAMENTE DISABILITATO TURBOPACK PER DEBUG
-  // turbopack: {},
+  // Temporaneamente disabilitiamo Turbopack per evitare cache corruption
+  // experimental: {
+  //   turbo: {
+  //     rules: {
+  //       '*.css': {
+  //         loaders: ['@tailwindcss/postcss'],
+  //       },
+  //     },
+  //   },
+  // },
+  // Configurazione webpack per compatibilità
+  webpack: (config, { dev, isServer }) => {
+    if (dev && !isServer) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+      }
+    }
+    return config
+  },
 }
 
 // In sviluppo, esporta direttamente senza PWA

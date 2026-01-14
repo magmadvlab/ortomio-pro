@@ -38,8 +38,8 @@ const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
   { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
   { icon: Bot, label: '🤖 Planner AI', path: '/app/planner', tier: 'all', badge: 'NEW' },
+  { icon: Target, label: '📅 Planner Classico', path: '/app/planner-classic', tier: 'all' },
   { icon: Heart, label: 'Salute', path: '/app/advice', tier: 'all' },
-  { icon: BarChart3, label: 'Progressi', path: '/app/progress', tier: 'all' },
   { icon: TreePine, label: 'Frutteto', path: '/app/orchard', tier: 'PRO', badge: 'PRO' },
   { icon: CircleDot, label: 'Oliveto', path: '/app/olives', tier: 'PRO', badge: 'PRO' },
   { icon: Grape, label: 'Vigneto', path: '/app/vineyard', tier: 'PRO', badge: 'PRO' },
@@ -47,7 +47,6 @@ const menuItems = [
   { icon: FlaskConical, label: 'Nutrizione & Trattamenti', path: '/app/nutrition', tier: 'PRO', badge: 'PRO' },
   { icon: Tractor, label: 'Lavorazioni', path: '/app/mechanical-work', tier: 'PRO', badge: 'PRO' },
   { icon: Shield, label: 'Certificazioni', path: '/app/certifications', tier: 'PRO', badge: 'PRO' },
-  { icon: Brain, label: 'Predizioni AI', path: '/app/ai-predictions', tier: 'PRO', badge: 'NEW' },
   { icon: Satellite, label: 'NDVI Satellitare', path: '/app/ndvi', tier: 'PRO', badge: 'NEW' },
   { icon: Map, label: 'Prescription Maps', path: '/app/prescription-maps', tier: 'PRO', badge: 'NEW' },
   { icon: BarChart3, label: 'Analytics', path: '/app/analytics', tier: 'PRO', badge: 'PRO' },
@@ -80,7 +79,7 @@ export function ProfessionalSidebar() {
     {
       title: 'PRINCIPALE',
       items: allMenuItems.filter(item =>
-        ['Dashboard', 'Il Mio Orto', '🤖 Planner AI', 'Salute', 'Progressi'].includes(item.label)
+        ['Dashboard', 'Il Mio Orto', '🤖 Planner AI', '📅 Planner Classico', 'Salute'].includes(item.label)
       ),
       tier: 'all',
       collapsible: false
@@ -106,7 +105,7 @@ export function ProfessionalSidebar() {
       tier: 'PRO',
       collapsible: true,
       items: allMenuItems.filter(item =>
-        ['Predizioni AI', 'NDVI Satellitare', 'Prescription Maps', 'Analytics', 'Smart Hub', 'Export'].includes(item.label)
+        ['Predizioni AI', '🤝 AI Collaborativo', 'NDVI Satellitare', 'Prescription Maps', 'Analytics', 'Smart Hub', 'Export'].includes(item.label)
       )
     },
     {

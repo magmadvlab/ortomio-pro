@@ -48,9 +48,12 @@ import { QuickActions } from './QuickActions'
 import { GardenSelectorCard } from './GardenSelectorCard'
 import { TaskCard } from './TaskCard'
 import WeatherLunarWidget from '@/components/WeatherLunarWidget'
+import AISuggestionsWidget from '@/components/ai/AISuggestionsWidget'
 import { GardenCard } from './GardenCard'
 import { ProgressCard } from './ProgressCard'
 import { WeatherTaskWidget } from './WeatherTaskAlert'
+import TreatmentDashboardWidget from '@/components/treatments/TreatmentDashboardWidget'
+import IrrigationDashboardWidget from '@/components/irrigation/IrrigationDashboardWidget'
 import { isToday, isSameDay, addDays, parseISO, format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { Heart, ArrowRight, Sparkles } from 'lucide-react'
@@ -60,9 +63,10 @@ interface HomeDashboardProps {
   tasks?: GardenTask[]
   onUpdateGarden?: (garden: Garden) => void
   onUpdateTask?: (task: GardenTask) => void
+  onRefreshTasks?: () => Promise<void>
 }
 
-export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask }: HomeDashboardProps) {
+export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask, onRefreshTasks }: HomeDashboardProps) {
   const { storageProvider } = useStorage()
   const { tier, isPro } = useTier()
   const router = useRouter()
@@ -121,14 +125,16 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
   
   // States for new garden creation
   const [showGardenTypeWizard, setShowGardenTypeWizard] = useState(false)
-  // Memoizza tasks per evitare re-render inutili
-  const tasksMemo = React.useMemo(() => tasks || [], [tasks])
-  const [gardenTasks, setGardenTasks] = useState<GardenTask[]>(tasksMemo)
   
-  // Aggiorna gardenTasks solo se tasks cambia realmente
-  React.useEffect(() => {
-    setGardenTasks(tasksMemo)
-  }, [tasksMemo])
+  // Use tasks prop directly instead of local state to prevent infinite loops
+  const currentTasks = tasks || []
+
+  // Helper function to refresh tasks
+  const refreshTasks = React.useCallback(async () => {
+    if (onRefreshTasks) {
+      await onRefreshTasks()
+    }
+  }, [onRefreshTasks])
 
   useEffect(() => {
     const loadSeedlingBatches = async () => {
@@ -171,24 +177,6 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
     }
     loadGardens()
   }, [storageProvider])
-
-  // Load tasks when active garden changes
-  useEffect(() => {
-    const loadTasksForGarden = async () => {
-      if (activeGarden) {
-        try {
-          const loadedTasks = await storageProvider.getTasks(activeGarden.id)
-          setGardenTasks(loadedTasks || [])
-        } catch (error) {
-          console.error('Error loading tasks for garden:', error)
-          setGardenTasks([])
-        }
-      } else {
-        setGardenTasks([])
-      }
-    }
-    loadTasksForGarden()
-  }, [activeGarden, storageProvider])
 
   // Load irrigation zones when active garden changes
   useEffect(() => {
@@ -289,10 +277,10 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
   }, [activeGarden])
 
   const loadDailyPlan = React.useCallback(async () => {
-    if (!activeGarden || !gardenTasks) return
+    if (!activeGarden || !tasks) return
     setLoadingPlan(true)
     try {
-      const plan = await getDailyGardenPlan(activeGarden, gardenTasks, new Date(), undefined, undefined, seedlingBatches, storageProvider, seedPackets)
+      const plan = await getDailyGardenPlan(activeGarden, tasks, new Date(), undefined, undefined, seedlingBatches, storageProvider, seedPackets)
       setDailyPlan(plan)
     } catch (error) {
       // Gestisci silenziosamente l'errore (es. tabella irrigation_systems non esiste)
@@ -314,7 +302,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
     } finally {
       setLoadingPlan(false)
     }
-  }, [activeGarden, gardenTasks, seedlingBatches, storageProvider, seedPackets])
+  }, [activeGarden, tasks, seedlingBatches, storageProvider, seedPackets])
 
   const handleBaselineOption = async (promptId: string, option: any) => {
     if (!activeGarden) return
@@ -354,7 +342,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         await storageProvider.createTask(t)
       }
       const updatedTasks = await storageProvider.getTasks(activeGarden.id)
-      setGardenTasks(updatedTasks || [])
+      await refreshTasks()
     } catch (error) {
       console.error('Error applying baseline prompt option:', error)
       alert('Errore nella creazione del task. Riprova.')
@@ -362,11 +350,11 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
   }
 
   useEffect(() => {
-    if (activeGarden && gardenTasks) {
+    if (activeGarden && tasks) {
       // Carica daily plan quando cambiano batch o tasks
       loadDailyPlan()
     }
-  }, [activeGarden, gardenTasks, seedlingBatches, loadDailyPlan])
+  }, [activeGarden, tasks, seedlingBatches, loadDailyPlan])
 
   const fetchWeather = async (lat: number, lng: number) => {
     setWeatherLoading(true)
@@ -423,7 +411,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Garden Card */}
           {activeGarden && (
-            <GardenCard garden={activeGarden} tasks={gardenTasks} />
+            <GardenCard garden={activeGarden} tasks={currentTasks} />
           )}
 
           {/* Weather + Lunar Widget - Unified forecast with lunar advice */}
@@ -432,7 +420,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
               latitude={activeGarden.coordinates.latitude}
               longitude={activeGarden.coordinates.longitude}
               gardens={gardens}
-              activePlants={gardenTasks
+              activePlants={currentTasks
                 .filter(t => !t.completed && t.plantName)
                 .map(t => ({
                   plantName: t.plantName,
@@ -443,10 +431,19 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
           )}
       </div>
 
+        {/* AI Suggestions Widget - Suggerimenti urgenti */}
+        {activeGarden && (
+          <AISuggestionsWidget
+            maxItems={3}
+            priorities={['CRITICAL', 'HIGH']}
+            compact={true}
+          />
+        )}
+
         {/* COSA FARE OGGI */}
         {(() => {
           const today = new Date()
-          const todayTasks = gardenTasks.filter(t => {
+          const todayTasks = currentTasks.filter(t => {
             if (t.completed) return false
             const taskDate = t.nextDueDate ? parseISO(t.nextDueDate) : parseISO(t.date)
             return isSameDay(taskDate, today)
@@ -489,10 +486,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                           await onUpdateTask(updatedTask)
                         }
                         // Ricarica tasks
-                        if (activeGarden) {
-                          const updatedTasks = await storageProvider.getTasks(activeGarden.id)
-                          setGardenTasks(updatedTasks || [])
-                        }
+                        await refreshTasks()
                       }}
                       onReschedule={async (id) => {
                         const newDate = addDays(new Date(), 1)
@@ -504,10 +498,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                       onEdit={onUpdateTask}
                       onDelete={async (id) => {
                         await storageProvider.deleteTask(id)
-                        if (activeGarden) {
-                          const updatedTasks = await storageProvider.getTasks(activeGarden.id)
-                          setGardenTasks(updatedTasks || [])
-                        }
+                        await refreshTasks()
                       }}
                       onHarvest={async (harvestData) => {
                         await storageProvider.createHarvestLog({
@@ -518,10 +509,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                       onFertilize={async (fertData) => {
                         await storageProvider.createFertilizerApplicationLog(fertData)
                         // Ricarica tasks dopo fertilizzazione
-                        if (activeGarden) {
-                          const updatedTasks = await storageProvider.getTasks(activeGarden.id)
-                          setGardenTasks(updatedTasks || [])
-                        }
+                        await refreshTasks()
                       }}
                       showSuggestions={true}
                     />
@@ -536,11 +524,10 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
         {activeGarden && activeGarden.coordinates && (
           <WeatherTaskWidget
             garden={activeGarden}
-            tasks={gardenTasks}
+            tasks={currentTasks}
             onTaskUpdate={async (task) => {
               await storageProvider.updateTask(task.id, task)
-              const updatedTasks = await storageProvider.getTasks(activeGarden.id)
-              setGardenTasks(updatedTasks || [])
+              await refreshTasks()
             }}
           />
         )}
@@ -670,7 +657,47 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
 
         {/* Progress Card */}
         {activeGarden && (
-          <ProgressCard tasks={gardenTasks} gardenId={activeGarden.id} />
+          <ProgressCard tasks={currentTasks} gardenId={activeGarden.id} />
+        )}
+
+        {/* Sistema Trattamenti AI PRO */}
+        {activeGarden && (
+          <TreatmentDashboardWidget
+            garden={activeGarden}
+            tasks={currentTasks}
+            onCreateTasks={async (newTasks) => {
+              // Crea i task nel storage
+              for (const task of newTasks) {
+                await storageProvider.createTask(task)
+              }
+              // Ricarica i task
+              await refreshTasks()
+            }}
+            onUpdateTask={async (task) => {
+              await storageProvider.updateTask(task.id, task)
+              await refreshTasks()
+            }}
+          />
+        )}
+
+        {/* Sistema Irrigazione Intelligente PRO */}
+        {activeGarden && (
+          <IrrigationDashboardWidget
+            garden={activeGarden}
+            tasks={currentTasks}
+            onCreateTasks={async (newTasks) => {
+              // Crea i task nel storage
+              for (const task of newTasks) {
+                await storageProvider.createTask(task)
+              }
+              // Ricarica i task
+              await refreshTasks()
+            }}
+            onUpdateTask={async (task) => {
+              await storageProvider.updateTask(task.id, task)
+              await refreshTasks()
+            }}
+          />
         )}
       </main>
 
@@ -791,8 +818,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
                     await storageProvider.updateSaplingBatch(batch.id, updatedBatch)
                     
                     // Reload tasks and batches
-                    const updatedTasks = await storageProvider.getTasks(activeGarden.id)
-                    setGardenTasks(updatedTasks || [])
+                    await refreshTasks()
                     
                     alert(`Impianto specializzato creato con successo!\nPianta: ${batch.plantName}\nQuantità: ${batch.quantity} piante\nControlla il Diario per gestire il nuovo impianto.`)
                   } catch (error) {
@@ -1035,8 +1061,7 @@ export function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask
               setShowGardenTypeWizard(false)
               
               // Carica task per il nuovo giardino (saranno vuoti inizialmente)
-              const newGardenTasks = await storageProvider.getTasks(garden.id)
-              setGardenTasks(newGardenTasks || [])
+              await refreshTasks()
               
               if (onUpdateGarden) {
                 onUpdateGarden(garden)

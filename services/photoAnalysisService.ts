@@ -3,13 +3,13 @@
  * Uses Gemini Vision API to analyze garden photos for sun exposure, aspect direction, and plant health
  */
 
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Support both Next.js and Vite environments
 const apiKey = typeof window !== 'undefined'
   ? (process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY)
   : (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY);
-const genAI = apiKey ? new GoogleGenAI({ apiKey: apiKey }) : null;
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export interface SunExposureAnalysis {
   dailySunHours: number;

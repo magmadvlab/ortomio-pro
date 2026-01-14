@@ -1142,3 +1142,71 @@ Suggerisci miglioramenti per le prossime fasi considerando:
     }
   }
 }
+
+// Export functions needed by planner components
+export const getSeasonalSuggestions = async (lat: number, lng: number) => {
+  // Simple fallback implementation
+  return [
+    {
+      name: 'Lattuga',
+      description: 'Perfetta per semine invernali in serra o tunnel. Crescita rapida e raccolto continuo.',
+      plantingWindow: 'Gennaio - Marzo',
+      harvestTime: '30-45 giorni',
+      difficulty: 'Easy' as const,
+      waterNeeds: 'Medium' as const,
+      sunRequirement: 'Sole parziale',
+      spacing: '15-20 cm',
+      tips: ['Semina ogni 2 settimane per raccolto continuo', 'Proteggi dal gelo con tunnel']
+    },
+    {
+      name: 'Spinaci',
+      description: 'Resistenti al freddo, ideali per coltivazione invernale. Ricchi di ferro e vitamine.',
+      plantingWindow: 'Gennaio - Febbraio',
+      harvestTime: '40-50 giorni',
+      difficulty: 'Easy' as const,
+      waterNeeds: 'Medium' as const,
+      sunRequirement: 'Sole parziale',
+      spacing: '10-15 cm',
+      tips: ['Raccogli le foglie esterne per prolungare la produzione', 'Preferisce terreni ricchi di azoto']
+    }
+  ]
+}
+
+export const checkApiAvailableAsync = async () => {
+  // Simple check - in production would check actual API availability
+  return false // Return false to use fallback suggestions
+}
+
+export const getSpecificPlantDetails = async (plantName: string, lat: number, lng: number) => {
+  // Simple fallback implementation
+  return {
+    name: plantName,
+    description: `${plantName} è una coltura versatile adatta al clima italiano.`,
+    plantingInstructions: 'Semina in terreno ben preparato e drenato.',
+    careInstructions: 'Irrigazione regolare e concimazione bilanciata.',
+    harvestInstructions: 'Raccolta quando i frutti sono maturi.',
+    companionPlants: ['Basilico', 'Prezzemolo'],
+    spacing: {
+      betweenPlants: '30-50 cm',
+      betweenRows: '60-80 cm'
+    },
+    soil: {
+      phMin: 6.0,
+      phMax: 7.5,
+      typeDescription: 'Terreno fertile e ben drenato'
+    },
+    irrigation: {
+      frequency: 'Ogni 2-3 giorni',
+      method: 'A goccia o per aspersione'
+    },
+    fertilizer: {
+      organicType: 'Compost maturo',
+      organicDosageGm2: 300
+    },
+    harvest: {
+      visualSigns: 'Colore e consistenza ottimali',
+      minBrix: 8
+    },
+    variety: 'Varietà locale'
+  }
+}

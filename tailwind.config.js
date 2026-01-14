@@ -11,57 +11,45 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Primary Green Colors
+        // Primary Green Colors (definiti anche in @theme nel CSS)
         'ortomio-green': {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#22c55e',
-          600: '#16a34a',
-          700: '#15803d',
-          800: '#166534',
-          900: '#14532d',
+          50: 'var(--color-ortomio-green-50)',
+          100: 'var(--color-ortomio-green-100)',
+          200: 'var(--color-ortomio-green-200)',
+          300: 'var(--color-ortomio-green-300)',
+          400: 'var(--color-ortomio-green-400)',
+          500: 'var(--color-ortomio-green-500)',
+          600: 'var(--color-ortomio-green-600)',
+          700: 'var(--color-ortomio-green-700)',
+          800: 'var(--color-ortomio-green-800)',
+          900: 'var(--color-ortomio-green-900)',
         },
         // Earth/Terra Colors
         'ortomio-earth': {
-          50: '#faf5f0',
-          100: '#f5ebe0',
-          200: '#e8d4c0',
-          300: '#d4b896',
-          400: '#b8956a',
-          500: '#a67c52',
-          600: '#8b6543',
-          700: '#6b4423',
-          800: '#56351c',
-          900: '#462d18',
+          50: 'var(--color-ortomio-earth-50)',
+          100: 'var(--color-ortomio-earth-100)',
+          200: 'var(--color-ortomio-earth-200)',
+          300: 'var(--color-ortomio-earth-300)',
+          400: 'var(--color-ortomio-earth-400)',
+          500: 'var(--color-ortomio-earth-500)',
+          600: 'var(--color-ortomio-earth-600)',
+          700: 'var(--color-ortomio-earth-700)',
+          800: 'var(--color-ortomio-earth-800)',
+          900: 'var(--color-ortomio-earth-900)',
         },
         // Seasonal Colors
         'season': {
-          spring: '#84cc16',
-          summer: '#f59e0b',
-          autumn: '#dc2626',
-          winter: '#3b82f6',
+          spring: 'var(--color-season-spring)',
+          summer: 'var(--color-season-summer)',
+          autumn: 'var(--color-season-autumn)',
+          winter: 'var(--color-season-winter)',
         },
         // Semantic Colors
         'semantic': {
-          success: '#22c55e',
-          warning: '#f59e0b',
-          error: '#ef4444',
-          info: '#3b82f6',
-        },
-        // Background Colors
-        'bg': {
-          primary: '#ffffff',
-          secondary: '#f8fafc',
-          tertiary: '#f1f5f9',
-        },
-        // Text Colors
-        'text': {
-          primary: '#0f172a',
-          secondary: '#475569',
-          muted: '#94a3b8',
+          success: 'var(--color-semantic-success)',
+          warning: 'var(--color-semantic-warning)',
+          error: 'var(--color-semantic-error)',
+          info: 'var(--color-semantic-info)',
         },
       },
       fontFamily: {
@@ -86,6 +74,9 @@ export default {
         lg: '24px',
         xl: '32px',
         '2xl': '48px',
+      },
+      animation: {
+        'fade-in-up': 'fadeInUp 0.5s ease-out',
       },
     },
   },

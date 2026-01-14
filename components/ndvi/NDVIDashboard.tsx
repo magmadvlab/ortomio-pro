@@ -3,6 +3,9 @@ import { Garden } from '../../types';
 import { NDVISatelliteService, NDVIReading, NDVIZoneAnalysis } from '../../services/ndviSatelliteService';
 import SentinelHubStatus from './SentinelHubStatus';
 import NDVIMap from './NDVIMap';
+import ActionButton, { ActionContext } from '../actions/ActionButton';
+import InterventionWizard, { InterventionData } from '../actions/InterventionWizard';
+import { interventionService } from '../../services/interventionService';
 import { Satellite, TrendingUp, TrendingDown, Minus, AlertTriangle, Leaf, Droplets, Activity, RefreshCw, Calendar, MapPin } from 'lucide-react';
 
 interface NDVIDashboardProps {
@@ -17,6 +20,11 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
   const [stressAreas, setStressAreas] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'map' | 'zones' | 'trend' | 'stress'>('overview');
   const [apiConnected, setApiConnected] = useState<boolean>(false);
+  
+  // Wizard state
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [selectedAction, setSelectedAction] = useState<any>(null);
+  const [actionContext, setActionContext] = useState<ActionContext | null>(null);
 
   useEffect(() => {
     loadNDVIData();
@@ -71,6 +79,36 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
     if (recent > older + 0.05) return <TrendingUp className="w-4 h-4 text-green-600" />;
     if (recent < older - 0.05) return <TrendingDown className="w-4 h-4 text-red-600" />;
     return <Minus className="w-4 h-4 text-gray-600" />;
+  };
+
+  const handleActionSelected = (actionType: any, context: ActionContext) => {
+    setSelectedAction(actionType);
+    setActionContext(context);
+    setWizardOpen(true);
+  };
+
+  const handleInterventionCreated = async (intervention: InterventionData) => {
+    try {
+      await interventionService.createIntervention({
+        ...intervention,
+        gardenId: garden.id
+      });
+      
+      // Mostra notifica di successo
+      console.log('Intervento creato con successo:', intervention);
+      
+      // Ricarica i dati se necessario
+      loadNDVIData();
+    } catch (error) {
+      console.error('Errore nella creazione dell\'intervento:', error);
+    }
+  };
+
+  const getUrgencyFromNDVI = (ndvi: number): 'low' | 'medium' | 'high' | 'critical' => {
+    if (ndvi < 0.3) return 'critical';
+    if (ndvi < 0.5) return 'high';
+    if (ndvi < 0.7) return 'medium';
+    return 'low';
   };
 
   if (loading) {
@@ -294,7 +332,28 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
                     <div key={zone.zone_id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-semibold text-gray-900">{zone.zone_name}</h4>
-                        <span className="text-sm text-gray-500">{zone.area_hectares.toFixed(2)} ha</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-500">{zone.area_hectares.toFixed(2)} ha</span>
+                          
+                          {/* Action Button per zone con NDVI basso */}
+                          {zone.avg_ndvi < 0.6 && (
+                            <ActionButton
+                              sourceType="ndvi"
+                              sourceData={{
+                                ndvi_value: zone.avg_ndvi,
+                                min_ndvi: zone.min_ndvi,
+                                max_ndvi: zone.max_ndvi,
+                                health_distribution: zone.health_distribution,
+                                area_hectares: zone.area_hectares
+                              }}
+                              zoneId={zone.zone_id}
+                              zoneName={zone.zone_name}
+                              urgency={getUrgencyFromNDVI(zone.avg_ndvi)}
+                              onActionSelected={handleActionSelected}
+                              size="sm"
+                            />
+                          )}
+                        </div>
                       </div>
                       
                       <div className="space-y-3">
@@ -392,14 +451,33 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
                                    area.stress_type === 'disease' ? 'Fitosanitario' : 'Sconosciuto'}
                           </span>
                         </div>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          area.severity === 'high' ? 'bg-red-100 text-red-800' :
-                          area.severity === 'medium' ? 'bg-orange-100 text-orange-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {area.severity === 'high' ? 'Alto' : 
-                           area.severity === 'medium' ? 'Medio' : 'Basso'}
-                        </span>
+                        <div className="flex items-center gap-3">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            area.severity === 'high' ? 'bg-red-100 text-red-800' :
+                            area.severity === 'medium' ? 'bg-orange-100 text-orange-800' :
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {area.severity === 'high' ? 'Alto' : 
+                             area.severity === 'medium' ? 'Medio' : 'Basso'}
+                          </span>
+                          
+                          {/* Action Button per area di stress */}
+                          <ActionButton
+                            sourceType="ndvi"
+                            sourceData={{
+                              ndvi_value: area.avg_ndvi || 0.3,
+                              stress_type: area.stress_type,
+                              severity: area.severity,
+                              affected_area_m2: area.affected_area_m2,
+                              recommendations: area.recommendations
+                            }}
+                            zoneName={`Area Stress ${index + 1}`}
+                            urgency={area.severity === 'high' ? 'critical' : 
+                                    area.severity === 'medium' ? 'high' : 'medium'}
+                            onActionSelected={handleActionSelected}
+                            size="sm"
+                          />
+                        </div>
                       </div>
                       
                       <div className="mb-3">
@@ -431,6 +509,21 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
           )}
         </div>
       </div>
+
+      {/* Intervention Wizard */}
+      {wizardOpen && selectedAction && actionContext && (
+        <InterventionWizard
+          isOpen={wizardOpen}
+          onClose={() => {
+            setWizardOpen(false);
+            setSelectedAction(null);
+            setActionContext(null);
+          }}
+          actionType={selectedAction}
+          context={actionContext}
+          onInterventionCreated={handleInterventionCreated}
+        />
+      )}
     </div>
   );
 };

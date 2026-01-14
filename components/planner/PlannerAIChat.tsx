@@ -22,28 +22,36 @@ interface PlannerAIChatProps {
 }
 
 export default function PlannerAIChat({ garden, tasks, isOpen, onToggle }: PlannerAIChatProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      type: 'ai',
-      content: '👋 Ciao! Sono il tuo assistente AI per la pianificazione dell\'orto. Puoi chiedermi consigli su cosa piantare, quando seminare, come ottimizzare lo spazio o qualsiasi altra domanda sulla pianificazione agricola.',
-      timestamp: new Date(),
-      suggestions: [
-        'Cosa posso piantare questo mese?',
-        'Come ottimizzare lo spazio nel mio orto?',
-        'Quali piante stanno bene insieme?',
-        'Quando seminare i pomodori?'
-      ]
-    }
-  ])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [initialMessageLoaded, setInitialMessageLoaded] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [responseCache, setResponseCache] = useState<Map<string, any>>(new Map())
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
+
+  useEffect(() => {
+    if (isOpen && !initialMessageLoaded) {
+      // Carica messaggio iniziale solo quando necessario
+      setMessages([{
+        id: '1',
+        type: 'ai',
+        content: '👋 Ciao! Sono il tuo assistente AI per la pianificazione dell\'orto. Puoi chiedermi consigli su cosa piantare, quando seminare, come ottimizzare lo spazio o qualsiasi altra domanda sulla pianificazione agricola.',
+        timestamp: new Date(),
+        suggestions: [
+          'Cosa posso piantare questo mese?',
+          'Come ottimizzare lo spazio nel mio orto?',
+          'Quali piante stanno bene insieme?',
+          'Quando seminare i pomodori?'
+        ]
+      }])
+      setInitialMessageLoaded(true)
+    }
+  }, [isOpen, initialMessageLoaded])
 
   useEffect(() => {
     scrollToBottom()
@@ -71,10 +79,27 @@ export default function PlannerAIChat({ garden, tasks, isOpen, onToggle }: Plann
     setIsLoading(true)
 
     try {
-      // Simula chiamata API AI
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // Controlla cache per risposte immediate
+      const cacheKey = messageText.toLowerCase().trim()
+      if (responseCache.has(cacheKey)) {
+        const cachedResponse = responseCache.get(cacheKey)
+        const aiMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          type: 'ai',
+          content: cachedResponse.content,
+          timestamp: new Date(),
+          suggestions: cachedResponse.suggestions
+        }
+        setMessages(prev => [...prev, aiMessage])
+        setIsLoading(false)
+        return
+      }
       
+      // Genera risposta AI immediata (rimosso delay artificiale)
       const aiResponse = generateAIResponse(messageText, garden, tasks || [])
+      
+      // Salva in cache per future richieste
+      setResponseCache(prev => new Map(prev.set(cacheKey, aiResponse)))
       
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),

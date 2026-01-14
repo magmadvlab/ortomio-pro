@@ -42,7 +42,7 @@ import { calculateBedSpace } from '../logic/spaceCalculator';
 import AIPlanningWizard from './ai/AIPlanningWizard';
 import PlanPreviewModal from './ai/PlanPreviewModal';
 import AIActionButton from './ai/AIActionButton';
-import PlannerAIChat from './planner/PlannerAIChat';
+import PlannerAIChatFixed from './planner/PlannerAIChatFixed';
 import { ScalingPlan } from '../services/aiPlanningService';
 
 interface PlannerProps {
@@ -2546,7 +2546,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
       </div>
       
       {/* AI Chat */}
-      <PlannerAIChat
+      <PlannerAIChatFixed
         garden={garden}
         tasks={tasks}
         isOpen={showAIChat}

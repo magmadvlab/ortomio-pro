@@ -4,7 +4,7 @@
  * Usa configurazioni API personalizzate quando disponibili
  */
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getActiveAPIConfiguration, type AIServiceType } from './apiConfigurationService';
 
 // Fallback a variabili ambiente se non ci sono configurazioni personalizzate
@@ -30,7 +30,7 @@ export interface AIProvider {
  * Crea provider Gemini
  */
 function createGeminiProvider(apiKey: string, config?: any): AIProvider {
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenerativeAI(apiKey);
   const model = config?.model || 'gemini-2.5-flash';
 
   return {

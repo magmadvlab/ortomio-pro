@@ -5,7 +5,6 @@ import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { Garden, GardenTask } from '@/types'
 import { BarChart3, Sprout, CheckCircle, Calendar, TrendingUp } from 'lucide-react'
-import { SocialStats } from '@/components/social/SocialStats'
 
 export function StatsTab() {
   const { storageProvider } = useStorage()
@@ -140,8 +139,27 @@ export function StatsTab() {
         </div>
       </div>
 
-      {/* Statistiche Social */}
-      <SocialStats />
+      {/* Nota Professionale */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-3">
+          <TrendingUp size={20} className="text-blue-600" />
+          Modalità Professionale
+        </h3>
+        <p className="text-gray-600 mb-4">
+          Le funzionalità social sono state spostate in OrtoMio Free per mantenere 
+          il focus professionale su operazioni e produttività.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-white rounded-lg p-4 border border-blue-200">
+            <h4 className="font-semibold text-gray-900 mb-2">Focus Operativo</h4>
+            <p className="text-sm text-gray-600">Concentrati su task, compliance e risultati</p>
+          </div>
+          <div className="bg-white rounded-lg p-4 border border-blue-200">
+            <h4 className="font-semibold text-gray-900 mb-2">Analytics Avanzate</h4>
+            <p className="text-sm text-gray-600">Metriche professionali per ottimizzare la produzione</p>
+          </div>
+        </div>
+      </div>
 
       {/* Sezione PRO */}
       {isPro && (
