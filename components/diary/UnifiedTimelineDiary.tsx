@@ -89,7 +89,7 @@ export default function UnifiedTimelineDiary({
         category: filters.category !== 'all' ? filters.category as 'harvest' | 'analysis' | 'growth' | 'planning' | 'protection' | 'seeding' | 'care' : undefined
       })
       
-      setEntries(diaryEntries)
+      setEntries(diaryEntries as DiaryEntry[])
       
       // Estrai foto dalle entries
       const photoEntries = diaryEntries
