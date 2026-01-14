@@ -4,13 +4,16 @@ import { useState, useEffect } from 'react'
 import { Settings, User, Bell, Shield, Database, Palette, MapPin, Edit, Trash2, Plus } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
-import Link from 'next/link'
+import { GardenTypeWizard } from '@/components/GardenTypeWizard'
+import { GardenEditModal } from '@/components/settings/GardenEditModal'
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState('profile')
   const { storageProvider } = useStorage()
   const [gardens, setGardens] = useState<Garden[]>([])
   const [loadingGardens, setLoadingGardens] = useState(false)
+  const [showGardenWizard, setShowGardenWizard] = useState(false)
+  const [editingGarden, setEditingGarden] = useState<Garden | null>(null)
 
   useEffect(() => {
     const loadGardens = async () => {
@@ -29,6 +32,22 @@ export default function SettingsPage() {
     }
     loadGardens()
   }, [activeSection, storageProvider])
+
+  const handleGardenCreated = async (garden: Garden) => {
+    console.log('✅ Garden created:', garden)
+    setShowGardenWizard(false)
+    // Reload gardens list
+    const loadedGardens = await storageProvider.getGardens()
+    setGardens(loadedGardens)
+  }
+
+  const handleGardenEdited = async () => {
+    console.log('✅ Garden edited')
+    setEditingGarden(null)
+    // Reload gardens list
+    const loadedGardens = await storageProvider.getGardens()
+    setGardens(loadedGardens)
+  }
 
   // Check URL params for section
   useEffect(() => {
@@ -98,13 +117,13 @@ export default function SettingsPage() {
                         <MapPin size={18} />
                         Orti Configurati
                       </h3>
-                      <Link
-                        href="/app/garden"
+                      <button
+                        onClick={() => setShowGardenWizard(true)}
                         className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors flex items-center gap-2"
                       >
                         <Plus size={16} />
                         Nuovo Orto
-                      </Link>
+                      </button>
                     </div>
                     
                     {loadingGardens ? (
@@ -117,13 +136,13 @@ export default function SettingsPage() {
                         <MapPin size={48} className="mx-auto text-gray-400 mb-3" />
                         <p className="text-gray-600 font-medium mb-2">Nessun orto configurato</p>
                         <p className="text-sm text-gray-500 mb-4">Crea il tuo primo orto per iniziare</p>
-                        <Link
-                          href="/app/garden"
+                        <button
+                          onClick={() => setShowGardenWizard(true)}
                           className="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
                         >
                           <Plus size={18} />
                           Crea Orto
-                        </Link>
+                        </button>
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -162,13 +181,13 @@ export default function SettingsPage() {
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 ml-4">
-                                <Link
-                                  href="/app/garden"
+                                <button
+                                  onClick={() => setEditingGarden(garden)}
                                   className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                   title="Gestisci orto"
                                 >
                                   <Edit size={18} />
-                                </Link>
+                                </button>
                                 <button
                                   onClick={async () => {
                                     if (confirm(`Sei sicuro di voler eliminare "${garden.name}"?\n\nQuesta azione eliminerà anche tutti i dati associati (piante, task, raccolti, ecc.)`)) {
@@ -394,6 +413,24 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Garden Creation Wizard Modal */}
+      {showGardenWizard && (
+        <GardenTypeWizard
+          onComplete={handleGardenCreated}
+          onCancel={() => setShowGardenWizard(false)}
+        />
+      )}
+
+      {/* Garden Edit Modal */}
+      {editingGarden && (
+        <GardenEditModal
+          garden={editingGarden}
+          isOpen={true}
+          onClose={() => setEditingGarden(null)}
+          onSave={handleGardenEdited}
+        />
+      )}
     </div>
   )
 }
