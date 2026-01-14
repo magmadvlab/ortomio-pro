@@ -410,14 +410,17 @@ export default function ClassicPlannerWithRotation() {
                 </label>
                 <LocationSelector
                   garden={activeGarden}
-                  value={{
-                    gardenId: selectedLocation.gardenId,
-                    zoneId: selectedLocation.zoneId,
-                    fieldRowId: selectedLocation.fieldRowId,
-                    sectionId: selectedLocation.sectionId
+                  selectedZoneId={selectedLocation.zoneId}
+                  selectedFieldRowId={selectedLocation.fieldRowId}
+                  selectedSectionId={selectedLocation.sectionId}
+                  onLocationChange={(location: { zoneId?: string; zoneName?: string; fieldRowId?: string; fieldRowName?: string; sectionId?: string; sectionName?: string; fullLocationName: string }) => {
+                    setSelectedLocation({
+                      gardenId: activeGarden.id,
+                      zoneId: location.zoneId,
+                      fieldRowId: location.fieldRowId,
+                      sectionId: location.sectionId
+                    })
                   }}
-                  onChange={(location) => setSelectedLocation(location)}
-                  showSections={true}
                 />
               </div>
 
