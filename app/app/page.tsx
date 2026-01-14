@@ -16,19 +16,25 @@ export default function AppPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log('🔍 Loading gardens...')
         const loadedGardens = await storageProvider.getGardens()
+        console.log('✅ Gardens loaded:', loadedGardens.length, loadedGardens)
         setGardens(loadedGardens)
         
         if (loadedGardens.length > 0) {
           const firstGarden = loadedGardens[0]
+          console.log('✅ Setting active garden:', firstGarden.name, firstGarden.id)
           setActiveGarden(firstGarden)
           
           // Load tasks for the first garden
           const gardenTasks = await storageProvider.getTasks(firstGarden.id)
+          console.log('✅ Tasks loaded:', gardenTasks?.length || 0)
           setTasks(gardenTasks || [])
+        } else {
+          console.log('❌ No gardens found!')
         }
       } catch (error) {
-        console.error('Error loading data:', error)
+        console.error('❌ Error loading data:', error)
       } finally {
         setLoading(false)
       }
@@ -81,6 +87,7 @@ export default function AppPage() {
 
   // Se non ci sono giardini, mostra un messaggio per crearne uno
   if (gardens.length === 0) {
+    console.log('⚠️ Rendering: No gardens found, showing create garden message')
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center p-8">
@@ -96,6 +103,8 @@ export default function AppPage() {
       </div>
     )
   }
+
+  console.log('✅ Rendering dashboard with garden:', activeGarden?.name, 'Tasks:', tasks.length)
 
   // Dashboard completa professionale
   return (

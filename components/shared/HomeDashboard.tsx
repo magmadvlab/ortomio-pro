@@ -71,6 +71,12 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   const { tier, isPro } = useTier()
   const router = useRouter()
 
+  console.log('🏠 HomeDashboard render:', {
+    gardenProp: garden?.name || 'NO GARDEN PROP',
+    gardenId: garden?.id,
+    tasksCount: tasks.length
+  })
+
   const getBaselineDismissKey = (gardenId: string) => `ortomio_baseline_dismissed_${gardenId}`
   const getBaselineShowAllKey = (gardenId: string) => `ortomio_baseline_show_all_${gardenId}`
   const getBaselineDismissPrefKey = (gardenId: string) => `baseline_dismissed_${gardenId}`
@@ -101,6 +107,14 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(garden || null)
   const [isGardenSelectorOpen, setIsGardenSelectorOpen] = useState(false)
+
+  // Sync activeGarden with garden prop
+  useEffect(() => {
+    if (garden) {
+      console.log('🔄 Syncing activeGarden from prop:', garden.name, garden.id)
+      setActiveGarden(garden)
+    }
+  }, [garden])
   const [irrigationZones, setIrrigationZones] = useState<IrrigationZone[]>([])
   const [loadingIrrigationZones, setLoadingIrrigationZones] = useState(false)
   const [showSeedInventory, setShowSeedInventory] = useState(false)
@@ -166,17 +180,21 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   useEffect(() => {
     const loadGardens = async () => {
       try {
+        console.log('🔄 HomeDashboard: Loading gardens internally...')
         const loadedGardens = await storageProvider.getGardens()
+        console.log('✅ HomeDashboard: Gardens loaded:', loadedGardens.length)
         setGardens(loadedGardens)
-        if (loadedGardens.length > 0 && !activeGarden) {
+        // Only set activeGarden if we don't have one from props and none is set
+        if (loadedGardens.length > 0 && !activeGarden && !garden) {
+          console.log('✅ HomeDashboard: Setting first garden as active:', loadedGardens[0].name)
           setActiveGarden(loadedGardens[0])
         }
       } catch (error) {
-        console.error('Error loading gardens:', error)
+        console.error('❌ HomeDashboard: Error loading gardens:', error)
       }
     }
     loadGardens()
-  }, [storageProvider])
+  }, [storageProvider, garden])
 
   // Load irrigation zones when active garden changes
   useEffect(() => {
@@ -378,6 +396,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   }
 
   if (!activeGarden) {
+    console.log('⚠️ HomeDashboard: No activeGarden, showing create message. Gardens:', gardens.length)
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
@@ -389,6 +408,8 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
       </div>
     )
   }
+
+  console.log('✅ HomeDashboard: Rendering with activeGarden:', activeGarden.name, activeGarden.id)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 pb-20">
