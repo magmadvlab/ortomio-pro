@@ -67,7 +67,7 @@ export function WateringHistory({ logs }: WateringHistoryProps) {
               try {
                 const rows = await storageProvider.getGardenRows(bedId)
                 ;(rows || []).forEach((r) => {
-                  rowsMap[r.id] = r.name
+                  rowsMap[r.id] = r.name || 'Unnamed Row'
                 })
                 loadedRowBedIdsRef.current.add(bedId)
               } catch {
@@ -80,7 +80,7 @@ export function WateringHistory({ logs }: WateringHistoryProps) {
         if (rowIdsWithoutBed.length > 0) {
           const rows = await Promise.all(rowIdsWithoutBed.map((id) => storageProvider.getGardenRow(id)))
           rows.filter((r): r is GardenRow => Boolean(r)).forEach((r) => {
-            rowsMap[r.id] = r.name
+            rowsMap[r.id] = r.name || 'Unnamed Row'
           })
         }
 
