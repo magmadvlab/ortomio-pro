@@ -34,31 +34,12 @@ import { PhotoTimeline } from '@/components/photo/PhotoTimeline'
 import { PlantLifecycleTimeline } from '@/components/planner/PlantLifecycleTimeline'
 import DiaryPlannerIntegration from './DiaryPlannerIntegration'
 import { operationalDiaryService } from '@/services/operationalDiaryService'
+import { DiaryEntry } from './OperationalDiary'
 
 interface UnifiedTimelineDiaryProps {
   gardenId: string
   garden?: any
   tasks?: any[]
-}
-
-interface DiaryEntry {
-  id: string
-  date: string
-  type: 'operation' | 'observation' | 'result' | 'issue' | 'weather' | 'milestone' | 'ai_suggestion'
-  category: string
-  title: string
-  description: string
-  plantName?: string
-  location?: string
-  weather?: any
-  photos?: string[]
-  performance?: {
-    effectiveness: number
-    efficiency: number
-    quality: number
-  }
-  correlations?: string[]
-  aiInsights?: string[]
 }
 
 export default function UnifiedTimelineDiary({ 
@@ -99,7 +80,7 @@ export default function UnifiedTimelineDiary({
             id: `${entry.id}-${photoUrl}`,
             url: photoUrl,
             date: new Date(entry.date),
-            plantName: entry.plantName,
+            plantName: (entry as any).plantName || entry.operationData?.plantName,
             notes: entry.title
           }))
         )
@@ -138,13 +119,13 @@ export default function UnifiedTimelineDiary({
       .filter(entry => entry.type === 'operation')
       .map(entry => ({
         id: entry.id,
-        plantName: entry.plantName || 'Generico',
+        plantName: (entry as any).plantName || entry.operationData?.plantName || 'Generico',
         taskType: mapCategoryToTaskType(entry.category),
         date: entry.date,
         completed: entry.performance ? entry.performance.effectiveness > 80 : false,
         variety: '',
         description: entry.description
-      }))
+      })) as any
   }
 
   const mapCategoryToTaskType = (category: string) => {
@@ -162,7 +143,7 @@ export default function UnifiedTimelineDiary({
 
   // Ottieni piante uniche per lifecycle timeline
   const getUniqueePlants = () => {
-    const plants = [...new Set(entries.map(e => e.plantName).filter(Boolean))]
+    const plants = [...new Set(entries.map(e => (e as any).plantName || e.operationData?.plantName).filter(Boolean))]
     return plants.slice(0, 3) // Mostra solo le prime 3 piante
   }
 
@@ -252,7 +233,7 @@ export default function UnifiedTimelineDiary({
                       <p className="text-sm font-medium text-gray-900">{entry.title}</p>
                       <p className="text-xs text-gray-500">
                         {new Date(entry.date).toLocaleDateString('it-IT')}
-                        {entry.plantName && ` • ${entry.plantName}`}
+                        {(entry as any).plantName || entry.operationData?.plantName && ` • ${(entry as any).plantName || entry.operationData?.plantName}`}
                       </p>
                     </div>
                   </div>
