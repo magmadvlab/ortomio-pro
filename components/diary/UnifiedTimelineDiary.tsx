@@ -86,8 +86,7 @@ export default function UnifiedTimelineDiary({
       // Carica entries dal servizio esistente
       const diaryEntries = await operationalDiaryService.getEntries(gardenId, {
         dateRange: getDateRangeFromFilter(filters.dateRange),
-        category: filters.category !== 'all' ? filters.category as 'harvest' | 'analysis' | 'growth' | 'planning' | 'protection' | 'seeding' | 'care' : undefined,
-        plantName: filters.plantName !== 'all' ? filters.plantName : undefined
+        category: filters.category !== 'all' ? filters.category as 'harvest' | 'analysis' | 'growth' | 'planning' | 'protection' | 'seeding' | 'care' : undefined
       })
       
       setEntries(diaryEntries)
