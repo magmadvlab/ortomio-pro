@@ -4,7 +4,6 @@ import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useState, useEffect } from 'react'
 import { Garden, GardenTask } from '@/types'
 import HomeDashboard from '@/components/shared/HomeDashboard'
-import { UserOnboardingWizard, OnboardingData } from '@/components/onboarding/UserOnboardingWizard'
 
 export default function AppPage() {
   const { storageProvider } = useStorage()
@@ -12,7 +11,6 @@ export default function AppPage() {
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
   const [tasks, setTasks] = useState<GardenTask[]>([])
   const [loading, setLoading] = useState(true)
-  const [showOnboarding, setShowOnboarding] = useState(false)
 
   useEffect(() => {
     const loadData = async () => {
@@ -27,9 +25,6 @@ export default function AppPage() {
           // Load tasks for the first garden
           const gardenTasks = await storageProvider.getTasks(firstGarden.id)
           setTasks(gardenTasks || [])
-        } else {
-          // Nessun orto trovato - mostra wizard
-          setShowOnboarding(true)
         }
       } catch (error) {
         console.error('Error loading data:', error)
@@ -39,29 +34,6 @@ export default function AppPage() {
     }
     loadData()
   }, [storageProvider])
-
-  const handleOnboardingComplete = async (data: OnboardingData) => {
-    try {
-      // Crea il primo orto con i dati del wizard
-      const newGarden: Partial<Garden> = {
-        name: data.gardenName || 'Il mio orto',
-        type: data.gardenTypes?.[0] || 'orto',
-        location: data.location,
-        size: 0, // Da configurare dopo
-        notes: `Creato tramite wizard - Tipo utente: ${data.userType}`,
-      }
-      
-      const createdGarden = await storageProvider.createGarden(newGarden as Garden)
-      
-      // Ricarica i dati
-      const loadedGardens = await storageProvider.getGardens()
-      setGardens(loadedGardens)
-      setActiveGarden(createdGarden)
-      setShowOnboarding(false)
-    } catch (error) {
-      console.error('Error creating garden from onboarding:', error)
-    }
-  }
 
   const refreshTasks = async () => {
     if (activeGarden) {
@@ -106,13 +78,21 @@ export default function AppPage() {
     )
   }
 
-  // Se non ci sono giardini, mostra wizard di onboarding
-  if (gardens.length === 0 || showOnboarding) {
+  // Se non ci sono giardini, mostra un messaggio per crearne uno
+  if (gardens.length === 0) {
     return (
-      <UserOnboardingWizard
-        onComplete={handleOnboardingComplete}
-        allowSkip={false}
-      />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Benvenuto in OrtoMio PRO!</h2>
+          <p className="text-gray-600 mb-6">Crea il tuo primo orto per iniziare</p>
+          <a 
+            href="/app/garden" 
+            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Crea il tuo orto
+          </a>
+        </div>
+      </div>
     )
   }
 
