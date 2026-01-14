@@ -9,16 +9,8 @@ const nextConfig = {
       },
     ],
   },
-  // Temporaneamente disabilitiamo Turbopack per evitare cache corruption
-  // experimental: {
-  //   turbo: {
-  //     rules: {
-  //       '*.css': {
-  //         loaders: ['@tailwindcss/postcss'],
-  //       },
-  //     },
-  //   },
-  // },
+  // Configurazione Turbopack vuota per silenziare warning
+  turbopack: {},
   // Configurazione webpack per compatibilità
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer) {
