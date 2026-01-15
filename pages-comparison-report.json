@@ -1,0 +1,509 @@
+{
+  "timestamp": "2026-01-15T07:25:51.435Z",
+  "summary": {
+    "newAppPages": 17,
+    "oldAppPages": 39,
+    "onlyInNew": 1,
+    "onlyInOld": 23,
+    "inBoth": 16,
+    "identical": 0
+  },
+  "onlyInNew": [
+    "/planner-classic"
+  ],
+  "onlyInOld": [
+    "/admin",
+    "/agronomist",
+    "/ai-predictions",
+    "/almanacco",
+    "/blockchain-traceability",
+    "/calendar",
+    "/challenges",
+    "/challenges/[id]",
+    "/compliance",
+    "/drone-operations",
+    "/export",
+    "/guide",
+    "/harvest",
+    "/journal",
+    "/pianifica",
+    "/plants",
+    "/progress",
+    "/recipes",
+    "/search",
+    "/semenzaio",
+    "/solar-engine",
+    "/test-social",
+    "/treatments"
+  ],
+  "detailedAnalysis": [
+    {
+      "route": "/mechanical-work",
+      "newLines": 102,
+      "oldLines": 1026,
+      "linesDiff": -924,
+      "newImports": 3,
+      "oldImports": 9,
+      "newComponents": [
+        "Tractor",
+        "Filter",
+        "Calendar",
+        "Suspense",
+        "MechanicalWorkContent"
+      ],
+      "oldComponents": [
+        "MechanicalWork",
+        "TillageWork",
+        "Partial",
+        "WorkType",
+        "EquipmentType",
+        "ProFeatureGate",
+        "Tractor",
+        "MapPin",
+        "Settings",
+        "Plus",
+        "Calendar",
+        "Ruler",
+        "Wrench",
+        "FileText",
+        "X",
+        "AccessoriesManager"
+      ],
+      "identical": false
+    },
+    {
+      "route": "/certifications",
+      "newLines": 65,
+      "oldLines": 683,
+      "linesDiff": -618,
+      "newImports": 2,
+      "oldImports": 3,
+      "newComponents": [
+        "Garden",
+        "GlobalGapDashboard"
+      ],
+      "oldComponents": [
+        "CertificationOverview",
+        "Shield",
+        "CheckCircle",
+        "Clock",
+        "XCircle",
+        "AlertCircle",
+        "AlertTriangle",
+        "Award",
+        "Calendar",
+        "FileText",
+        "Users",
+        "BookOpen",
+        "GlobalGapDashboard",
+        "Leaf",
+        "DocumentManager",
+        "ComplianceChecklist",
+        "DeadlineManager",
+        "TrendingUp"
+      ],
+      "identical": false
+    },
+    {
+      "route": "/help",
+      "newLines": 167,
+      "oldLines": 689,
+      "linesDiff": -522,
+      "newImports": 3,
+      "oldImports": 3,
+      "newComponents": [
+        "BookOpen",
+        "Search",
+        "Link",
+        "ChevronRight",
+        "ExternalLink"
+      ],
+      "oldComponents": [
+        "BookOpen",
+        "Sprout",
+        "Droplets",
+        "Zap",
+        "AlertCircle",
+        "Layers",
+        "TreePine",
+        "MapPin",
+        "Calendar",
+        "BarChart3",
+        "HelpCircle",
+        "ChevronDown",
+        "ChevronRight",
+        "Sun",
+        "Link"
+      ],
+      "identical": false
+    },
+    {
+      "route": "/orchard",
+      "newLines": 23,
+      "oldLines": 457,
+      "linesDiff": -434,
+      "newImports": 2,
+      "oldImports": 14,
+      "newComponents": [],
+      "oldComponents": [
+        "Garden",
+        "GardenTask",
+        "ProFeatureGate",
+        "TreePine",
+        "Plus",
+        "Info",
+        "MapPin",
+        "Scissors",
+        "Link",
+        "LinkIcon",
+        "AlertCircle",
+        "Calendar",
+        "CreateOrchardWizard"
+      ],
+      "identical": false
+    },
+    {
+      "route": "/vineyard",
+      "newLines": 23,
+      "oldLines": 421,
+      "linesDiff": -398,
+      "newImports": 2,
+      "oldImports": 12,
+      "newComponents": [],
+      "oldComponents": [
+        "Garden",
+        "GardenTask",
+        "ProFeatureGate",
+        "Grape",
+        "Plus",
+        "MapPin",
+        "Info",
+        "Scissors",
+        "Link",
+        "LinkIcon",
+        "TrendingUp",
+        "Calendar",
+        "Wine",
+        "CreateOrchardWizard"
+      ],
+      "identical": false
+    },
+    {
+      "route": "/irrigation",
+      "newLines": 272,
+      "oldLines": 643,
+      "linesDiff": -371,
+      "newImports": 4,
+      "oldImports": 17,
+      "newComponents": [
+        "Garden",
+        "Droplets",
+        "MapPin",
+        "Clock",
+        "BarChart3",
+        "IrrigationAISuggestionsWidget",
+        "Icon",
+        "Play",
+        "Pause",
+        "Settings"
+      ],
+      "oldComponents": [
+        "IrrigationSystem",
+        "IrrigationZone",
+        "WateringLog",
+        "GardenBed",
+        "Omit",
+        "Card",
+        "Droplets",
+        "Button",
+        "Settings",
+        "FileText",
+        "Plus",
+        "IrrigationMetrics",
+        "IrrigationSystemCard",
+        "IrrigationZoneList",
+        "WateringHistory",
+        "ZoneBedRelationshipGuide",
+        "IrrigationZoneAnalytics",
+        "IrrigationZoneWizard",
+        "WateringLogFormWithFieldRows",
+        "IrrigationSystemModal",
+        "IrrigationZoneEditModal",
+        "Suspense",
+        "IrrigationContent"
+      ],
+      "identical": false
+    },
+    {
+      "route": "/nutrition",
+      "newLines": 162,
+      "oldLines": 527,
+      "linesDiff": -365,
+      "newImports": 5,
+      "oldImports": 14,
+      "newComponents": [
+        "Garden",
+        "FlaskConical",
+        "Icon",
+        "NutritionAISuggestionsWidget",
+        "NutritionStatsWidget",
+        "Plus",
+        "Droplets",
+        "Leaf",
+        "Calendar",
+        "BarChart3"
+      ],
+      "oldComponents": [
+        "TreatmentRecordDB",
+        "FertilizerApplicationLogDB",
+        "TabKey",
+        "GardenBed",
+        "GardenRow",
+        "Record",
+        "ProFeatureGate",
+        "Plus",
+        "FlaskConical",
+        "Package",
+        "NutritionStatsWidget",
+        "Droplet",
+        "DatabaseConnectionStatus",
+        "X"
+      ],
+      "identical": false
+    },
+    {
+      "route": "/olives",
+      "newLines": 23,
+      "oldLines": 379,
+      "linesDiff": -356,
+      "newImports": 2,
+      "oldImports": 12,
+      "newComponents": [],
+      "oldComponents": [
+        "Garden",
+        "GardenTask",
+        "ProFeatureGate",
+        "CircleDot",
+        "Plus",
+        "MapPin",
+        "Info",
+        "Scissors",
+        "Link",
+        "LinkIcon",
+        "Calendar",
+        "Droplets",
+        "CreateOrchardWizard"
+      ],
+      "identical": false
+    },
+    {
+      "route": "/planner",
+      "newLines": 425,
+      "oldLines": 130,
+      "linesDiff": 295,
+      "newImports": 6,
+      "oldImports": 5,
+      "newComponents": [
+        "Garden",
+        "GardenTask",
+        "Target",
+        "Icon",
+        "SmartPlanner",
+        "PlannerAISuggestions",
+        "TaskCalendar",
+        "TaskList",
+        "Activity",
+        "Clock",
+        "CheckCircle",
+        "TrendingUp",
+        "AlertTriangle"
+      ],
+      "oldComponents": [
+        "Bot",
+        "Sparkles",
+        "Calendar",
+        "Grid3X3",
+        "Target",
+        "IntegratedCalendarWithChallenges",
+        "Planner"
+      ],
+      "identical": false
+    },
+    {
+      "route": "/advice",
+      "newLines": 345,
+      "oldLines": 100,
+      "linesDiff": 245,
+      "newImports": 4,
+      "oldImports": 4,
+      "newComponents": [
+        "Garden",
+        "GardenTask",
+        "Heart",
+        "Icon",
+        "CropRotationPlanner",
+        "BiologicalControlDashboard",
+        "Recycle",
+        "Snowflake"
+      ],
+      "oldComponents": [
+        "Garden",
+        "GardenTask",
+        "Advice",
+        "Suspense",
+        "AdvicePageContent"
+      ],
+      "identical": false
+    },
+    {
+      "route": "/prescription-maps",
+      "newLines": 29,
+      "oldLines": 237,
+      "linesDiff": -208,
+      "newImports": 1,
+      "oldImports": 3,
+      "newComponents": [
+        "PrescriptionMapsDashboard"
+      ],
+      "oldComponents": [
+        "Map",
+        "Lock",
+        "Crown",
+        "PrescriptionMapsSimple"
+      ],
+      "identical": false
+    },
+    {
+      "route": "/ndvi",
+      "newLines": 40,
+      "oldLines": 183,
+      "linesDiff": -143,
+      "newImports": 1,
+      "oldImports": 4,
+      "newComponents": [
+        "NDVIDashboard"
+      ],
+      "oldComponents": [
+        "Garden",
+        "Satellite",
+        "MapPin",
+        "ChevronDown",
+        "NDVIDashboard"
+      ],
+      "identical": false
+    },
+    {
+      "route": "/analytics",
+      "newLines": 361,
+      "oldLines": 232,
+      "linesDiff": 129,
+      "newImports": 4,
+      "oldImports": 9,
+      "newComponents": [
+        "Garden",
+        "GardenTask",
+        "BarChart3",
+        "Icon",
+        "Euro",
+        "TrendingUp",
+        "DollarSign",
+        "Award",
+        "Clock",
+        "Zap",
+        "Target",
+        "Activity",
+        "Users",
+        "Leaf",
+        "Sun",
+        "Droplets",
+        "Shield"
+      ],
+      "oldComponents": [
+        "HarvestLogData",
+        "Garden",
+        "BarChart3",
+        "TrendingUp",
+        "HarvestAnalytics",
+        "ROISummary",
+        "AnalyticsTable",
+        "ProFeatureGate"
+      ],
+      "identical": false
+    },
+    {
+      "route": "/settings",
+      "newLines": 436,
+      "oldLines": 511,
+      "linesDiff": -75,
+      "newImports": 6,
+      "oldImports": 12,
+      "newComponents": [
+        "Garden",
+        "Settings",
+        "Icon",
+        "MapPin",
+        "Plus",
+        "Edit",
+        "Trash2",
+        "GardenTypeWizard",
+        "GardenEditModal"
+      ],
+      "oldComponents": [
+        "Settings",
+        "Icon",
+        "Crown",
+        "Link",
+        "GardenManager",
+        "Plane",
+        "VacationMode",
+        "NotificationPreferencesSection",
+        "APIConfigurationForm",
+        "Cloud",
+        "CloudSyncStatus",
+        "AutoSyncSettings",
+        "BackupSettings",
+        "Suspense",
+        "SettingsContent"
+      ],
+      "identical": false
+    },
+    {
+      "route": "/smart",
+      "newLines": 60,
+      "oldLines": 88,
+      "linesDiff": -28,
+      "newImports": 3,
+      "oldImports": 2,
+      "newComponents": [
+        "IntegratedSmartHub"
+      ],
+      "oldComponents": [
+        "SmartDevice",
+        "Garden",
+        "IntegratedSmartHub"
+      ],
+      "identical": false
+    },
+    {
+      "route": "/garden",
+      "newLines": 124,
+      "oldLines": 149,
+      "linesDiff": -25,
+      "newImports": 4,
+      "oldImports": 4,
+      "newComponents": [
+        "Garden",
+        "GardenTask",
+        "GardenView"
+      ],
+      "oldComponents": [
+        "Garden",
+        "GardenTask",
+        "GardenView",
+        "Suspense",
+        "GardenContent"
+      ],
+      "identical": false
+    }
+  ]
+}

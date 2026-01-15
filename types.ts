@@ -15,16 +15,21 @@ export interface GardenZone {
 export interface GardenRow {
   id: string;
   gardenId: string;
+  bedId: string; // ID dell'aiuola di appartenenza
   zoneId?: string; // Zona di appartenenza (opzionale)
   rowNumber: number; // Numero progressivo della fila
   name?: string; // Nome personalizzato (es. "Fila Pomodori")
-  length?: number; // Lunghezza in metri
+  length?: number; // Lunghezza in metri (deprecato, usa lengthMeters)
+  lengthMeters?: number; // Lunghezza in metri
   width?: number; // Larghezza in metri
   spacing?: number; // Distanza tra piante in cm
   maxPlants?: number; // Numero massimo di piante
   currentPlants?: number; // Numero attuale di piante
   plantType?: string; // Tipo di pianta principale
+  irrigationLine?: IrrigationLineConfig; // Configurazione linea irrigazione
   notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export enum Tab {
@@ -1854,19 +1859,6 @@ export interface IrrigationLineConfig {
   flowRatePerMeterLph?: number | null
 }
 
-export interface GardenRow {
-  id: string
-  gardenId: string
-  bedId: string
-  name: string
-  rowNumber?: number | null
-  lengthMeters: number
-  irrigationLine: IrrigationLineConfig
-  notes?: string | null
-  createdAt: string
-  updatedAt: string
-}
-
 // ============================================
 // TILLAGE ENGINE TYPES
 // ============================================
@@ -1884,7 +1876,6 @@ export type { TillageTool } from './data/tillageTools';
 export type {
   FieldRow,
   PlantingBatch,
-  GardenZone,
   FieldRowOccupancy,
   ScalarProductionCalendar
 } from './types/fieldRow';

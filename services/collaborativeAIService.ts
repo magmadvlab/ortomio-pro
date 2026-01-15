@@ -58,7 +58,7 @@ class CollaborativeAIService {
     filter?: SuggestionFilter
   ): Promise<AISuggestion[]> {
     try {
-      let query = supabase
+      let query = this.getClient()
         .from('ai_suggestions')
         .select('*')
         .eq('user_id', userId)
@@ -241,7 +241,7 @@ class CollaborativeAIService {
    */
   async getUserDecisions(userId: string, suggestionId?: string): Promise<UserDecision[]> {
     try {
-      let query = supabase
+      let query = this.getClient()
         .from('user_decisions')
         .select('*')
         .eq('user_id', userId)
@@ -366,7 +366,7 @@ class CollaborativeAIService {
     suggestionId?: string
   ): Promise<SuccessMetric[]> {
     try {
-      let query = supabase
+      let query = this.getClient()
         .from('success_metrics')
         .select('*')
         .eq('user_id', userId)

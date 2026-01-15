@@ -90,16 +90,24 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
   const [selectedOperation, setSelectedOperation] = useState<'watering' | 'fertilizing' | 'treatment' | 'health'>('watering');
 
   useEffect(() => {
-    loadPlants();
-    loadRowsAndMappings();
-    loadSyncStatistics();
-  }, [garden.id]);
+    if (garden?.id) {
+      loadPlants();
+      loadRowsAndMappings();
+      loadSyncStatistics();
+    }
+  }, [garden?.id]);
 
   useEffect(() => {
     applyFilters();
   }, [plants, searchTerm, statusFilter, healthFilter, rowFilter]);
 
   const loadPlants = async () => {
+    if (!garden?.id) {
+      setPlants([]);
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
       // TODO: Implementare caricamento dal storage provider
@@ -114,6 +122,12 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
   };
 
   const loadRowsAndMappings = async () => {
+    if (!garden?.id) {
+      setAvailableRows([]);
+      setPlantRowMappings([]);
+      return;
+    }
+    
     try {
       // Load available rows (garden rows + field rows)
       const [gardenRows, fieldRows] = await Promise.all([
@@ -139,6 +153,11 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
   };
 
   const loadSyncStatistics = async () => {
+    if (!garden?.id) {
+      setSyncStatistics(null);
+      return;
+    }
+    
     try {
       const stats = await plantRowSyncService.getSyncStatistics(garden.id);
       setSyncStatistics(stats);
@@ -392,6 +411,22 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Caricamento piante...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!garden) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <TreePine className="mx-auto text-gray-400 mb-4" size={48} />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Nessun orto selezionato
+          </h3>
+          <p className="text-gray-600">
+            Seleziona un orto per gestire le piante individuali
+          </p>
         </div>
       </div>
     );
