@@ -102,17 +102,24 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div 
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose()
+        }
+      }}
+    >
       <div className="bg-white rounded-3xl w-full max-w-[500px] shadow-xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
           <h2 className="text-lg md:text-xl font-semibold text-gray-900">➕ Aggiungi</h2>
           <button
             onClick={onClose}
-            className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+            className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors shadow-sm border border-gray-200"
             aria-label="Chiudi"
           >
-            <X size={18} className="text-gray-600" />
+            <X size={20} className="text-gray-700" />
           </button>
         </div>
 
@@ -226,7 +233,7 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
           <div className="pt-5 border-t border-gray-200">
             <button
               onClick={handleAIDiagnosis}
-              className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-gradient-to-r from-purple-100 to-purple-50 border-2 border-dashed border-purple-300 rounded-xl text-[15px] font-medium text-purple-600 hover:bg-purple-100 hover:border-solid transition-all"
+              className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-gradient-to-r from-purple-100 to-purple-50 border-2 border-dashed border-purple-300 rounded-xl text-[15px] font-medium text-purple-600 hover:bg-purple-100 hover:border-solid transition-all mb-4"
             >
               <span className="text-xl md:text-2xl">📸</span>
               <span>Scatta foto per diagnosi AI</span>
@@ -235,6 +242,14 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
                   PRO
                 </span>
               )}
+            </button>
+            
+            {/* Close Button Alternative */}
+            <button
+              onClick={onClose}
+              className="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              Chiudi
             </button>
           </div>
         </div>
