@@ -180,37 +180,39 @@ export default function SmartTreatmentWizard({
     const currentIndex = steps.findIndex(s => s.id === currentStep);
 
     return (
-      <div className="flex items-center justify-center mb-8">
-        {steps.map((step, index) => {
-          const Icon = step.icon;
-          const isActive = step.id === currentStep;
-          const isCompleted = index < currentIndex;
-          
-          return (
-            <React.Fragment key={step.id}>
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
-                isActive ? 'bg-green-100 text-green-700' :
-                isCompleted ? 'bg-gray-100 text-gray-600' :
-                'bg-gray-50 text-gray-400'
-              }`}>
-                <Icon size={16} />
-                <span className="text-sm font-medium">{step.label}</span>
-              </div>
-              {index < steps.length - 1 && (
-                <ArrowRight size={16} className="mx-2 text-gray-400" />
-              )}
-            </React.Fragment>
-          );
-        })}
+      <div className="flex items-center justify-center mb-6 md:mb-8 overflow-x-auto pb-2">
+        <div className="flex items-center gap-1 md:gap-2 min-w-max px-2">
+          {steps.map((step, index) => {
+            const Icon = step.icon;
+            const isActive = step.id === currentStep;
+            const isCompleted = index < currentIndex;
+            
+            return (
+              <React.Fragment key={step.id}>
+                <div className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 rounded-lg text-xs md:text-sm ${
+                  isActive ? 'bg-green-100 text-green-700' :
+                  isCompleted ? 'bg-gray-100 text-gray-600' :
+                  'bg-gray-50 text-gray-400'
+                }`}>
+                  <Icon size={14} className="md:w-4 md:h-4" />
+                  <span className="font-medium hidden sm:inline">{step.label}</span>
+                </div>
+                {index < steps.length - 1 && (
+                  <ArrowRight size={14} className="mx-1 md:mx-2 text-gray-400 flex-shrink-0" />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
       </div>
     );
   };
 
   const renderSearchStep = () => (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Ricerca Prodotto AI</h2>
-        <p className="text-gray-600">Trova il fertilizzante o trattamento perfetto per le tue esigenze</p>
+        <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">Ricerca Prodotto AI</h2>
+        <p className="text-sm md:text-base text-gray-600">Trova il fertilizzante o trattamento perfetto per le tue esigenze</p>
       </div>
 
       {/* Tipo prodotto */}
@@ -219,26 +221,26 @@ export default function SmartTreatmentWizard({
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => setSearchData(prev => ({ ...prev, type: 'fertilizer' }))}
-            className={`p-4 rounded-lg border-2 transition-all ${
+            className={`p-3 md:p-4 rounded-lg border-2 transition-all ${
               searchData.type === 'fertilizer'
                 ? 'border-green-500 bg-green-50 text-green-700'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >
-            <Leaf className="mx-auto mb-2" size={24} />
-            <div className="font-medium">Fertilizzante</div>
+            <Leaf className="mx-auto mb-2" size={20} />
+            <div className="font-medium text-sm md:text-base">Fertilizzante</div>
             <div className="text-xs text-gray-500">Nutrizione piante</div>
           </button>
           <button
             onClick={() => setSearchData(prev => ({ ...prev, type: 'treatment' }))}
-            className={`p-4 rounded-lg border-2 transition-all ${
+            className={`p-3 md:p-4 rounded-lg border-2 transition-all ${
               searchData.type === 'treatment'
                 ? 'border-amber-500 bg-amber-50 text-amber-700'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >
-            <Shield className="mx-auto mb-2" size={24} />
-            <div className="font-medium">Trattamento</div>
+            <Shield className="mx-auto mb-2" size={20} />
+            <div className="font-medium text-sm md:text-base">Trattamento</div>
             <div className="text-xs text-gray-500">Difesa fitosanitaria</div>
           </button>
         </div>
@@ -254,7 +256,7 @@ export default function SmartTreatmentWizard({
           value={searchData.productName}
           onChange={(e) => setSearchData(prev => ({ ...prev, productName: e.target.value }))}
           placeholder={searchData.type === 'fertilizer' ? 'es. NPK 10-10-10, Humus di lombrico' : 'es. Bacillus thuringiensis, Olio di neem'}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          className="w-full px-3 md:px-4 py-2 md:py-3 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
         />
       </div>
 
@@ -268,7 +270,7 @@ export default function SmartTreatmentWizard({
           value={searchData.plantContext}
           onChange={(e) => setSearchData(prev => ({ ...prev, plantContext: e.target.value }))}
           placeholder="es. Pomodori, Rose, Olivi"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          className="w-full px-3 md:px-4 py-2 md:py-3 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
         />
       </div>
 
@@ -283,26 +285,32 @@ export default function SmartTreatmentWizard({
             value={searchData.diseaseContext}
             onChange={(e) => setSearchData(prev => ({ ...prev, diseaseContext: e.target.value }))}
             placeholder="es. Afidi, Oidio, Peronospora"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full px-3 md:px-4 py-2 md:py-3 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
         </div>
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 md:p-4">
           <div className="flex items-center gap-2 text-red-700">
             <AlertTriangle size={16} />
-            <span className="font-medium">Errore</span>
+            <span className="font-medium text-sm md:text-base">Errore</span>
           </div>
           <p className="text-red-600 text-sm mt-1">{error}</p>
         </div>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+        <button
+          onClick={onClose}
+          className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg text-sm md:text-base order-2 sm:order-1"
+        >
+          Annulla
+        </button>
         <button
           onClick={handleSearch}
           disabled={loading || !searchData.productName.trim()}
-          className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-4 md:px-6 py-2 md:py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm md:text-base order-1 sm:order-2"
         >
           {loading ? (
             <>
@@ -354,57 +362,57 @@ export default function SmartTreatmentWizard({
   );
 
   const renderAreaStep = () => (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Area di Applicazione</h2>
-        <p className="text-gray-600">Specifica l'area per calcolare le quantità precise</p>
+        <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">Area di Applicazione</h2>
+        <p className="text-sm md:text-base text-gray-600">Specifica l'area per calcolare le quantità precise</p>
       </div>
 
       {/* Tipo area */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-3">Tipo di applicazione</label>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <button
             onClick={() => setAreaData(prev => ({ ...prev, type: 'field' }))}
-            className={`p-4 rounded-lg border-2 transition-all ${
+            className={`p-3 md:p-4 rounded-lg border-2 transition-all ${
               areaData.type === 'field'
                 ? 'border-green-500 bg-green-50 text-green-700'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >
-            <Target className="mx-auto mb-2" size={24} />
-            <div className="font-medium">Campo</div>
+            <Target className="mx-auto mb-2" size={20} />
+            <div className="font-medium text-sm md:text-base">Campo</div>
             <div className="text-xs text-gray-500">Area in m²</div>
           </button>
           <button
             onClick={() => setAreaData(prev => ({ ...prev, type: 'rows' }))}
-            className={`p-4 rounded-lg border-2 transition-all ${
+            className={`p-3 md:p-4 rounded-lg border-2 transition-all ${
               areaData.type === 'rows'
                 ? 'border-green-500 bg-green-50 text-green-700'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >
-            <div className="mx-auto mb-2 text-2xl">🌱</div>
-            <div className="font-medium">Filari</div>
+            <div className="mx-auto mb-2 text-xl md:text-2xl">🌱</div>
+            <div className="font-medium text-sm md:text-base">Filari</div>
             <div className="text-xs text-gray-500">Numero x lunghezza</div>
           </button>
           <button
             onClick={() => setAreaData(prev => ({ ...prev, type: 'individual_plants' }))}
-            className={`p-4 rounded-lg border-2 transition-all ${
+            className={`p-3 md:p-4 rounded-lg border-2 transition-all ${
               areaData.type === 'individual_plants'
                 ? 'border-green-500 bg-green-50 text-green-700'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >
-            <div className="mx-auto mb-2 text-2xl">🪴</div>
-            <div className="font-medium">Piante</div>
+            <div className="mx-auto mb-2 text-xl md:text-2xl">🪴</div>
+            <div className="font-medium text-sm md:text-base">Piante</div>
             <div className="text-xs text-gray-500">Numero piante</div>
           </button>
         </div>
       </div>
 
       {/* Parametri area */}
-      <div className="bg-gray-50 rounded-lg p-4">
+      <div className="bg-gray-50 rounded-lg p-3 md:p-4">
         {areaData.type === 'field' && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -414,13 +422,13 @@ export default function SmartTreatmentWizard({
               type="number"
               value={areaData.fieldSize}
               onChange={(e) => setAreaData(prev => ({ ...prev, fieldSize: parseInt(e.target.value) || 0 }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
           </div>
         )}
 
         {areaData.type === 'rows' && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Numero filari
@@ -429,7 +437,7 @@ export default function SmartTreatmentWizard({
                 type="number"
                 value={areaData.rowCount}
                 onChange={(e) => setAreaData(prev => ({ ...prev, rowCount: parseInt(e.target.value) || 0 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
             <div>
@@ -440,7 +448,7 @@ export default function SmartTreatmentWizard({
                 type="number"
                 value={areaData.rowLength}
                 onChange={(e) => setAreaData(prev => ({ ...prev, rowLength: parseInt(e.target.value) || 0 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -455,23 +463,23 @@ export default function SmartTreatmentWizard({
               type="number"
               value={areaData.plantCount}
               onChange={(e) => setAreaData(prev => ({ ...prev, plantCount: parseInt(e.target.value) || 0 }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
           </div>
         )}
       </div>
 
-      <div className="flex justify-between">
+      <div className="flex flex-col sm:flex-row justify-between gap-3">
         <button
           onClick={() => setCurrentStep('product')}
-          className="px-4 py-2 text-gray-600 hover:text-gray-800 flex items-center gap-2"
+          className="px-4 py-2 text-gray-600 hover:text-gray-800 flex items-center justify-center gap-2 border border-gray-300 rounded-lg text-sm md:text-base order-2 sm:order-1"
         >
           <ArrowLeft size={16} />
           Indietro
         </button>
         <button
           onClick={handleAreaNext}
-          className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 flex items-center gap-2"
+          className="px-4 md:px-6 py-2 md:py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 flex items-center justify-center gap-2 text-sm md:text-base order-1 sm:order-2"
         >
           <Calculator size={16} />
           Calcola Quantità
@@ -727,17 +735,48 @@ export default function SmartTreatmentWizard({
   );
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          {currentStep !== 'complete' && renderStepIndicator()}
-          
-          {currentStep === 'search' && renderSearchStep()}
-          {currentStep === 'product' && renderProductStep()}
-          {currentStep === 'area' && renderAreaStep()}
-          {currentStep === 'schedule' && renderScheduleStep()}
-          {currentStep === 'review' && renderReviewStep()}
-          {currentStep === 'complete' && renderCompleteStep()}
+    <div 
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 md:p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose()
+        }
+      }}
+    >
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[95vh] md:max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header with close button */}
+        <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-200 bg-white sticky top-0 z-10">
+          <h1 className="text-lg md:text-xl font-bold text-gray-900">
+            {currentStep === 'search' && '🔍 Ricerca Prodotto AI'}
+            {currentStep === 'product' && '📋 Scheda Prodotto'}
+            {currentStep === 'area' && '📍 Area Applicazione'}
+            {currentStep === 'schedule' && '📅 Programmazione'}
+            {currentStep === 'review' && '✅ Revisione Piano'}
+            {currentStep === 'complete' && '🎉 Completato'}
+          </h1>
+          <button
+            onClick={onClose}
+            className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors shadow-sm border border-gray-200"
+            aria-label="Chiudi"
+          >
+            <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4 md:p-6">
+            {currentStep !== 'complete' && renderStepIndicator()}
+            
+            {currentStep === 'search' && renderSearchStep()}
+            {currentStep === 'product' && renderProductStep()}
+            {currentStep === 'area' && renderAreaStep()}
+            {currentStep === 'schedule' && renderScheduleStep()}
+            {currentStep === 'review' && renderReviewStep()}
+            {currentStep === 'complete' && renderCompleteStep()}
+          </div>
         </div>
       </div>
     </div>
