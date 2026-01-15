@@ -222,11 +222,6 @@ Dopo un'analisi approfondita del codice sorgente, è emerso che:
    - **Descrizione**: Almanacco lunare e stagionale
    - **Azione**: Valutare se reintegrare
 
-8. **`/recipes`** - Ricette
-   - **Importanza**: MEDIA
-   - **Descrizione**: Ricette con prodotti dell'orto
-   - **Azione**: Valutare se reintegrare
-
 9. **`/guide`** - Guide
    - **Importanza**: MEDIA
    - **Descrizione**: Guide coltivazione (ora in `/help`?)
@@ -249,19 +244,7 @@ Dopo un'analisi approfondita del codice sorgente, è emerso che:
 
 ### 🟢 BASSE (Funzionalità secondarie)
 
-13. **`/challenges`** - Challenge
-    - **Importanza**: BASSA
-    - **Descrizione**: Sistema challenge gamification
-    - **Azione**: Valutare se gamification è priorità
 
-14. **`/challenges/[id]`** - Dettaglio Challenge
-    - **Importanza**: BASSA
-    - **Descrizione**: Pagina dettaglio singola challenge
-    - **Azione**: Dipende da reintegrazione challenge
-
-15. **`/test-social`** - Test Social
-    - **Importanza**: BASSA
-    - **Descrizione**: Pagina di test social sharing
     - **Azione**: Probabilmente non necessaria
 
 16. **`/solar-engine`** - Solar Engine

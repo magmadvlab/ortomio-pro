@@ -459,18 +459,55 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
   const currentArchetype = selectedArchetype ? getArchetypeById(selectedArchetype) : null;
   const currentProfile = selectedArchetype ? getDefaultProfile(selectedArchetype) : null;
   
+  // Handle backdrop click to close
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onCancel();
+    }
+  };
+
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCancel();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onCancel]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.paddingRight = `${scrollbarWidth}px`;
+
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4"
+      onClick={handleBackdropClick}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-2xl max-h-[95vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-          <div>
-            <h2 className="text-lg md:text-xl font-bold text-gray-800">Aggiungi Coltura</h2>
-            <p className="text-sm text-gray-500">{garden.name}</p>
+        <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center justify-between">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800 truncate">Aggiungi Coltura</h2>
+            <p className="text-sm text-gray-500 truncate">{garden.name}</p>
           </div>
           <button
             onClick={onCancel}
-            className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center ml-4"
             aria-label="Chiudi"
           >
             <X size={20} className="text-gray-500" />
@@ -478,7 +515,8 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
         </div>
         
         {/* Content */}
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          <div className="p-4 sm:p-6">
           {/* Step 0: Metodo di coltivazione */}
           {step === 'method' && (
             <div className="space-y-6">
@@ -487,18 +525,18 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                 <p className="text-gray-600 text-sm">Scegli il metodo di coltivazione più adatto</p>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 {/* Da Seme */}
                 <button
                   onClick={() => setCultivationMethod('seed')}
-                  className={`p-6 border-2 rounded-xl transition-all text-left ${
+                  className={`p-4 sm:p-6 border-2 rounded-xl transition-all text-left touch-manipulation ${
                     cultivationMethod === 'seed'
                       ? 'border-orange-500 bg-orange-50'
                       : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50'
                   }`}
                 >
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-xl md:text-2xl">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 rounded-full flex items-center justify-center text-lg sm:text-2xl">
                       🌰
                     </div>
                     <div>
@@ -529,14 +567,14 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                 {/* Da Piantina */}
                 <button
                   onClick={() => setCultivationMethod('seedling')}
-                  className={`p-6 border-2 rounded-xl transition-all text-left ${
+                  className={`p-4 sm:p-6 border-2 rounded-xl transition-all text-left touch-manipulation ${
                     cultivationMethod === 'seedling'
                       ? 'border-green-500 bg-green-50'
                       : 'border-gray-200 hover:border-green-300 hover:bg-green-50'
                   }`}
                 >
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-xl md:text-2xl">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center text-lg sm:text-2xl">
                       🌱
                     </div>
                     <div>
@@ -594,17 +632,17 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                 </div>
               )}
               
-              <div className="flex justify-between gap-3">
+              <div className="flex flex-col sm:flex-row justify-between gap-3">
                 <button
                   onClick={onCancel}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium"
+                  className="px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg font-medium touch-manipulation min-h-[44px]"
                 >
                   Annulla
                 </button>
                 <button
                   onClick={handleNext}
                   disabled={!cultivationMethod}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-3"
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-3 touch-manipulation min-h-[44px]"
                 >
                   {cultivationMethod === 'seed' ? 'Vai al Semenzaio' : 'Avanti'}
                   <ArrowRight size={18} />
@@ -626,7 +664,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                     value={plantName}
                     onChange={(e) => setPlantName(e.target.value)}
                     placeholder="Es: burattino, pomodoro, lattuga..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent pr-10"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent pr-10 text-base"
                     autoFocus
                   />
                   {searching && (
@@ -745,7 +783,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                           handleArchetypeChange(archetypeId);
                         }
                       }}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-base"
                     >
                       <option value="">Seleziona tipo coltura...</option>
                       {getAllArchetypes().map((archetype) => (
@@ -773,10 +811,10 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                 )}
               </div>
               
-              <div className="flex justify-between gap-3">
+              <div className="flex flex-col sm:flex-row justify-between gap-3">
                 <button
                   onClick={() => setStep('method')}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium flex items-center gap-3"
+                  className="px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg font-medium flex items-center justify-center gap-3 touch-manipulation min-h-[44px]"
                 >
                   <ArrowLeft size={18} />
                   Indietro
@@ -784,7 +822,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                 <button
                   onClick={handleNext}
                   disabled={!plantName.trim() || searching}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-3"
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-3 touch-manipulation min-h-[44px]"
                 >
                   Avanti
                   <ArrowRight size={18} />
@@ -804,12 +842,12 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Ambiente *
                   </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                     {(['Ground', 'RaisedBed', 'Pot', 'Greenhouse', 'HydroponicDrip', 'Indoor'] as GrowingLocation[]).map((loc) => (
                       <button
                         key={loc}
                         onClick={() => setLocationType(loc)}
-                        className={`p-3 rounded-lg border-2 text-sm font-medium transition-colors ${
+                        className={`p-2 sm:p-3 rounded-lg border-2 text-xs sm:text-sm font-medium transition-colors touch-manipulation min-h-[44px] ${
                           locationType === loc
                             ? 'border-green-500 bg-green-50 text-green-700'
                             : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
@@ -846,7 +884,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                     </div>
                   )}
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Area (m²)
@@ -861,7 +899,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                         placeholder="Es. 10"
                         min="0"
                         step="0.1"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-base"
                       />
                       {calculatedPlants !== null && calculatedPlants > 0 && spacingInfo && areaSqm && parseFloat(areaSqm) > 0 && (
                         <p className="text-xs text-green-600 mt-1">
@@ -882,7 +920,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                         }}
                         placeholder="Es. 20"
                         min="1"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-base"
                       />
                       {calculatedArea !== null && calculatedArea > 0 && spacingInfo && plantCount && parseInt(plantCount) > 0 && (
                         <p className="text-xs text-green-600 mt-1">
@@ -918,7 +956,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                   <select
                     value={irrigationMethod}
                     onChange={(e) => setIrrigationMethod(e.target.value as any)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-base"
                   >
                     <option value="Drip">Goccia a goccia</option>
                     <option value="Sprinkler">Aspersione</option>
@@ -941,7 +979,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                   <select
                     value={soilType}
                     onChange={(e) => setSoilType(e.target.value as any)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-base"
                   >
                     <option value="">Usa quello del giardino</option>
                     <option value="Clay">Argilloso</option>
@@ -975,17 +1013,17 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                 </button>
               </div>
               
-              <div className="flex justify-between gap-3">
+              <div className="flex flex-col sm:flex-row justify-between gap-3">
                 <button
                   onClick={() => setStep('name')}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium flex items-center gap-3"
+                  className="px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg font-medium flex items-center justify-center gap-3 touch-manipulation min-h-[44px]"
                 >
                   <ArrowLeft size={18} />
                   Indietro
                 </button>
                 <button
                   onClick={handleNext}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 flex items-center gap-3"
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 flex items-center justify-center gap-3 touch-manipulation min-h-[44px]"
                 >
                   {showAdvanced ? 'Avanti' : 'Completa'}
                   <ArrowRight size={18} />
@@ -1013,7 +1051,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                     placeholder="Es. 2.0"
                     min="0"
                     step="0.1"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-base"
                   />
                 </div>
                 
@@ -1054,17 +1092,17 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                 </div>
               </div>
               
-              <div className="flex justify-between gap-3">
+              <div className="flex flex-col sm:flex-row justify-between gap-3">
                 <button
                   onClick={() => setStep('setup')}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium flex items-center gap-3"
+                  className="px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg font-medium flex items-center justify-center gap-3 touch-manipulation min-h-[44px]"
                 >
                   <ArrowLeft size={18} />
                   Indietro
                 </button>
                 <button
                   onClick={handleComplete}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 flex items-center gap-3"
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 flex items-center justify-center gap-3 touch-manipulation min-h-[44px]"
                 >
                   Completa
                   <ArrowRight size={18} />

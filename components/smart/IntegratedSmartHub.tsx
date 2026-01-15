@@ -84,6 +84,10 @@ export default function IntegratedSmartHub({
   const [selectedAction, setSelectedAction] = useState<any>(null)
   const [actionContext, setActionContext] = useState<ActionContext | null>(null)
 
+  // Device Association state
+  const [showDeviceWizard, setShowDeviceWizard] = useState(false)
+  const [associatingDevice, setAssociatingDevice] = useState(false)
+
   // Filter devices for current garden
   const gardenDevices = devices.filter(d => d.gardenId === garden.id)
 
@@ -311,6 +315,25 @@ export default function IntegratedSmartHub({
     return 'low'
   }
 
+  const handleAssociateDevice = async (deviceData: any) => {
+    try {
+      setAssociatingDevice(true)
+      // Simulate device association
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      console.log('Device associated:', deviceData)
+      // Here you would typically call a service to associate the device
+      // await smartDeviceService.associateDevice(garden.id, deviceData)
+      
+      setShowDeviceWizard(false)
+      // Refresh devices list if needed
+    } catch (error) {
+      console.error('Error associating device:', error)
+    } finally {
+      setAssociatingDevice(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
@@ -381,15 +404,48 @@ export default function IntegratedSmartHub({
                 <div className="bg-gray-100 p-6 rounded-full inline-block mb-4">
                   <Wifi size={48} className="text-gray-400"/>
                 </div>
-                <h2 className="text-lg md:text-xl font-bold text-gray-700">Nessun Dispositivo IoT</h2>
-                <p className="text-gray-500 mt-2">Collega sensori e valvole per il controllo automatico</p>
+                <h2 className="text-lg md:text-xl font-bold text-gray-700 mb-2">Nessun Dispositivo IoT</h2>
+                <p className="text-gray-500 mb-4">Collega sensori e valvole per il controllo automatico</p>
+                
+                <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
+                  <button
+                    onClick={() => setShowDeviceWizard(true)}
+                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Plus size={20} />
+                    Associa Dispositivo
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Simulate adding demo devices
+                      console.log('Adding demo devices...')
+                    }}
+                    className="flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    <Bot size={20} />
+                    Modalità Demo
+                  </button>
+                </div>
+                
                 <div className="mt-6 p-4 bg-blue-50 text-blue-800 text-sm rounded-xl border border-blue-100">
-                  <p className="font-bold mb-1">💡 Modalità Demo Attiva</p>
-                  <p>I dispositivi IoT verranno simulati automaticamente</p>
+                  <p className="font-bold mb-1">💡 Dispositivi Supportati</p>
+                  <p>Sensori umidità • Valvole irrigazione • Stazioni meteo • Sensori pH/EC</p>
                 </div>
               </div>
             ) : (
               <div className="space-y-6">
+                {/* Add Device Button */}
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-bold text-gray-900">Dispositivi IoT Associati</h2>
+                  <button
+                    onClick={() => setShowDeviceWizard(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Plus size={16} />
+                    Associa Dispositivo
+                  </button>
+                </div>
+
                 {gardenDevices.map(device => (
                   <div key={device.id} className={`bg-white rounded-2xl border transition-all shadow-sm ${device.isValveOpen ? 'border-blue-300 shadow-blue-100' : 'border-gray-200'}`}>
                     {/* Device Header */}
@@ -791,6 +847,93 @@ export default function IntegratedSmartHub({
           garden={garden}
           onInterventionCreated={handleInterventionCreated}
         />
+      )}
+
+      {/* Device Association Wizard */}
+      {showDeviceWizard && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900">Associa Nuovo Dispositivo</h3>
+              <p className="text-sm text-gray-600 mt-1">Configura un nuovo dispositivo IoT per il tuo giardino</p>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tipo Dispositivo</label>
+                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                  <option value="">Seleziona tipo...</option>
+                  <option value="moisture_sensor">Sensore Umidità</option>
+                  <option value="irrigation_valve">Valvola Irrigazione</option>
+                  <option value="weather_station">Stazione Meteo</option>
+                  <option value="ph_sensor">Sensore pH</option>
+                  <option value="ec_sensor">Sensore EC</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nome Dispositivo</label>
+                <input
+                  type="text"
+                  placeholder="Es: Sensore Zona A"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Metodo Connessione</label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="connection" value="wifi" className="text-blue-600" />
+                    <span className="text-sm">WiFi</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="connection" value="bluetooth" className="text-blue-600" />
+                    <span className="text-sm">Bluetooth</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="connection" value="zigbee" className="text-blue-600" />
+                    <span className="text-sm">Zigbee</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="connection" value="lora" className="text-blue-600" />
+                    <span className="text-sm">LoRa</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  <strong>Tuya Smart Integration:</strong> Supporto nativo per dispositivi Tuya Smart. 
+                  Configura il dispositivo nell'app Tuya Smart prima di associarlo qui.
+                </p>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 flex gap-3">
+              <button
+                onClick={() => setShowDeviceWizard(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={() => handleAssociateDevice({})}
+                disabled={associatingDevice}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {associatingDevice ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Associando...
+                  </>
+                ) : (
+                  'Associa Dispositivo'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

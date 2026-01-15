@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, GitCompare, ExternalLink } from 'lucide-react'
+import { ArrowLeft, ChevronRight, GitCompare, ExternalLink } from 'lucide-react'
 
 export default function ComparePage() {
   const [selectedFeature, setSelectedFeature] = useState<string>('planner')
@@ -142,7 +142,7 @@ export default function ComparePage() {
                       Apri in nuova tab
                     </span>
                   </div>
-                  <ArrowRight size={20} className="text-gray-400" />
+                  <ChevronRight size={20} className="text-gray-400" />
                 </Link>
 
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
@@ -181,7 +181,7 @@ export default function ComparePage() {
                       Apri in nuova tab
                     </span>
                   </div>
-                  <ArrowRight size={20} className="text-gray-400" />
+                  <ChevronRight size={20} className="text-gray-400" />
                 </Link>
 
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">

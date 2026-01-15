@@ -30,6 +30,8 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
   const [completeOverview, setCompleteOverview] = useState<CompleteComplianceOverview | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'overview' | 'requirements' | 'actions'>('overview')
+  const [creatingDocument, setCreatingDocument] = useState<string | null>(null)
+  const [completingAction, setCompletingAction] = useState<string | null>(null)
 
   useEffect(() => {
     loadComplianceOverview()
@@ -77,6 +79,134 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
       URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Error exporting audit package:', error)
+    }
+  }
+
+  const handleCreateDocument = async (requirementId: string, documentType: string) => {
+    try {
+      setCreatingDocument(requirementId)
+      
+      // Simulate document creation
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // Create and download a template document
+      let content = ''
+      let filename = ''
+      
+      switch (requirementId) {
+        case 'AF1.2.2':
+          content = `PIANO DI GESTIONE RISCHI DEL SITO
+          
+Data: ${new Date().toLocaleDateString('it-IT')}
+Azienda: ${gardenId}
+
+1. IDENTIFICAZIONE DEI RISCHI
+- Rischi ambientali
+- Rischi per la sicurezza alimentare
+- Rischi per la salute dei lavoratori
+
+2. VALUTAZIONE DEI RISCHI
+- Probabilità di accadimento
+- Gravità delle conseguenze
+- Livello di rischio
+
+3. MISURE DI CONTROLLO
+- Misure preventive
+- Misure correttive
+- Responsabilità
+
+4. MONITORAGGIO E REVISIONE
+- Frequenza di controllo
+- Indicatori di performance
+- Aggiornamenti del piano
+
+Firma: _________________
+Data: _________________`
+          filename = 'Piano_Gestione_Rischi_Sito.txt'
+          break
+          
+        case 'AF9.1':
+          content = `PROCEDURA DI RITIRO PRODOTTI
+          
+Data: ${new Date().toLocaleDateString('it-IT')}
+Azienda: ${gardenId}
+
+1. SCOPO E CAMPO DI APPLICAZIONE
+Questa procedura definisce le modalità per gestire il ritiro di prodotti dal mercato.
+
+2. RESPONSABILITÀ
+- Responsabile qualità
+- Responsabile commerciale
+- Direzione aziendale
+
+3. PROCEDURA
+3.1 Identificazione del problema
+3.2 Valutazione del rischio
+3.3 Decisione di ritiro
+3.4 Comunicazione ai clienti
+3.5 Tracciabilità e recupero prodotti
+3.6 Smaltimento o correzione
+3.7 Verifica efficacia
+
+4. REGISTRAZIONI
+- Registro ritiri
+- Comunicazioni inviate
+- Prodotti recuperati
+
+5. TEST ANNUALE
+Data ultimo test: _________
+Risultato: _______________
+Prossimo test: ___________`
+          filename = 'Procedura_Ritiro_Prodotti.txt'
+          break
+          
+        default:
+          content = `DOCUMENTO GLOBALGAP ${requirementId}
+          
+Data: ${new Date().toLocaleDateString('it-IT')}
+Azienda: ${gardenId}
+
+Questo è un template per il requisito ${requirementId}.
+Personalizza questo documento secondo le tue esigenze specifiche.`
+          filename = `Documento_${requirementId.replace('.', '_')}.txt`
+      }
+      
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      // Refresh compliance overview
+      await loadComplianceOverview()
+      
+    } catch (error) {
+      console.error('Error creating document:', error)
+    } finally {
+      setCreatingDocument(null)
+    }
+  }
+
+  const handleCompleteAction = async (actionId: string) => {
+    try {
+      setCompletingAction(actionId)
+      
+      // Simulate action completion
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      console.log('Action completed:', actionId)
+      
+      // Refresh compliance overview
+      await loadComplianceOverview()
+      
+    } catch (error) {
+      console.error('Error completing action:', error)
+    } finally {
+      setCompletingAction(null)
     }
   }
 
@@ -391,8 +521,19 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
                       </p>
                     </div>
                     {requirement.status === 'missing' && (
-                      <button className="ml-4 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors">
-                        {requirement.action}
+                      <button 
+                        onClick={() => handleCreateDocument(requirement.id, requirement.action)}
+                        disabled={creatingDocument === requirement.id}
+                        className="ml-4 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {creatingDocument === requirement.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                            Creando...
+                          </>
+                        ) : (
+                          requirement.action
+                        )}
                       </button>
                     )}
                   </div>
@@ -450,8 +591,19 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
                             )}
                           </div>
                         </div>
-                        <button className="ml-4 px-3 py-1 bg-white border border-current rounded text-sm hover:bg-opacity-10 transition-colors">
-                          Inizia
+                        <button 
+                          onClick={() => handleCompleteAction(action.requirement_id)}
+                          disabled={completingAction === action.requirement_id}
+                          className="ml-4 px-3 py-1 bg-white border border-current rounded text-sm hover:bg-opacity-10 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {completingAction === action.requirement_id ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                              Completando...
+                            </>
+                          ) : (
+                            'Inizia'
+                          )}
                         </button>
                       </div>
                     </div>
