@@ -1111,8 +1111,9 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
             </div>
           )}
         </div>
+        </div>
       </div>
-      
+
       {/* Wizard Colture Legnose */}
       {showWoodyWizard && (
         <AddWoodyCropWizard

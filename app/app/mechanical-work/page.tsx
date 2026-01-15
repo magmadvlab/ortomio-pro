@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { Tractor, Calendar, MapPin, Settings, Plus, BarChart3, X, ArrowLeft, ArrowRight, Wrench, Cog, Clock } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
@@ -486,21 +486,6 @@ function MechanicalWorkContent() {
   )
 }
 
-export default function MechanicalWorkPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
-        <div className="text-center">
-          <Tractor className="w-12 h-12 text-gray-400 mx-auto mb-3 animate-pulse" />
-          <p className="text-gray-600">Caricamento...</p>
-        </div>
-      </div>
-    }>
-      <MechanicalWorkContent />
-    </Suspense>
-  )
-}
-
 // Mechanical Work Configuration Wizard Component
 interface MechanicalWorkWizardProps {
   gardens: Garden[]
@@ -636,10 +621,10 @@ function MechanicalWorkWizard({ gardens, equipment, onClose, onSave }: Mechanica
                             {(garden as any).location || 'Posizione non specificata'}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
-                            Tipo: {garden.type === 'vegetable' ? 'Orto' : 
-                                   garden.type === 'fruit' ? 'Frutteto' :
-                                   garden.type === 'olive' ? 'Uliveto' :
-                                   garden.type === 'vineyard' ? 'Vigneto' : 'Giardino'}
+                            Tipo: {(garden as any).type === 'vegetable' ? 'Orto' : 
+                                   (garden as any).type === 'fruit' ? 'Frutteto' :
+                                   (garden as any).type === 'olive' ? 'Uliveto' :
+                                   (garden as any).type === 'vineyard' ? 'Vigneto' : 'Giardino'}
                           </p>
                         </div>
                       </div>
