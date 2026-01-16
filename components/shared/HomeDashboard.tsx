@@ -293,33 +293,8 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     }
   }, [activeGarden])
 
-  const loadDailyPlan = React.useCallback(async () => {
-    if (!activeGarden || !tasks) return
-    setLoadingPlan(true)
-    try {
-      const plan = await getDailyGardenPlan(activeGarden, tasks, new Date(), undefined, undefined, seedlingBatches, storageProvider, seedPackets)
-      setDailyPlan(plan)
-    } catch (error) {
-      // Gestisci silenziosamente l'errore (es. tabella irrigation_systems non esiste)
-      // Il director continua comunque a funzionare senza irrigation tasks
-      console.warn('Error loading daily plan (continuing without irrigation tasks):', error)
-      // Imposta un piano vuoto per evitare loop
-      setDailyPlan({
-        date: new Date().toISOString().split('T')[0],
-        urgentAlerts: [],
-        lifecycleTasks: [],
-        nutrientTasks: [],
-        healthTasks: [],
-        climateWarnings: [],
-        baselinePrompts: [],
-        lunarAdvice: undefined,
-        priority: 'Low',
-        irrigationTasks: []
-      })
-    } finally {
-      setLoadingPlan(false)
-    }
-  }, [activeGarden, tasks, seedlingBatches, storageProvider, seedPackets])
+  // Removed useCallback to avoid dependency array issues
+  // Function is now defined inline in useEffect
 
   const handleBaselineOption = async (promptId: string, option: any) => {
     if (!activeGarden) return
@@ -367,11 +342,48 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   }
 
   useEffect(() => {
+    // Define loadDailyPlan inline to avoid dependency array issues
+    const loadDailyPlan = async () => {
+      if (!activeGarden || !tasks) return
+      setLoadingPlan(true)
+      try {
+        const plan = await getDailyGardenPlan(
+          activeGarden, 
+          tasks, 
+          new Date(), 
+          undefined, 
+          undefined, 
+          seedlingBatches || [], 
+          storageProvider, 
+          seedPackets || []
+        )
+        setDailyPlan(plan)
+      } catch (error) {
+        // Gestisci silenziosamente l'errore (es. tabella irrigation_systems non esiste)
+        // Il director continua comunque a funzionare senza irrigation tasks
+        console.warn('Error loading daily plan (continuing without irrigation tasks):', error)
+        // Imposta un piano vuoto per evitare loop
+        setDailyPlan({
+          date: new Date().toISOString().split('T')[0],
+          urgentAlerts: [],
+          lifecycleTasks: [],
+          nutrientTasks: [],
+          healthTasks: [],
+          climateWarnings: [],
+          baselinePrompts: [],
+          lunarAdvice: undefined,
+          priority: 'Low',
+          irrigationTasks: []
+        })
+      } finally {
+        setLoadingPlan(false)
+      }
+    }
+
     if (activeGarden && tasks) {
-      // Carica daily plan quando cambiano batch o tasks
       loadDailyPlan()
     }
-  }, [activeGarden, tasks, seedlingBatches, loadDailyPlan])
+  }, [activeGarden, tasks, seedlingBatches, seedPackets, storageProvider])
 
   const fetchWeather = async (lat: number, lng: number) => {
     setWeatherLoading(true)
