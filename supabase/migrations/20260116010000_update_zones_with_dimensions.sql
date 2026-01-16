@@ -76,12 +76,12 @@ SELECT
   COALESCE(AVG(fr.plant_spacing_cm), 0) as avg_plant_spacing,
   COUNT(DISTINCT frs.id) as section_count,
   g.name as garden_name,
-  g.location as garden_location
+  g.size_sqm as garden_size
 FROM garden_zones gz
 LEFT JOIN gardens g ON gz.garden_id = g.id
 LEFT JOIN field_rows fr ON fr.zone_id = gz.id AND fr.is_active = true
 LEFT JOIN field_row_sections frs ON frs.field_row_id = fr.id AND frs.is_active = true
-GROUP BY gz.id, g.name, g.location;
+GROUP BY gz.id, g.name, g.size_sqm;
 
 -- 9. Funzione per creare zone standard per un giardino
 CREATE OR REPLACE FUNCTION create_standard_zones_for_garden(p_garden_id UUID)
