@@ -1,13 +1,15 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { ChevronDown, MapPin, Grid, Rows, Scissors } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ChevronDown, MapPin, Grid, Rows, Scissors, Plus } from 'lucide-react'
 import { Garden } from '@/types'
+import { getSupabaseClient } from '@/config/supabase'
 
 interface Zone {
   id: string
   name: string
   description?: string
+  area_sqm?: number
 }
 
 interface FieldRow {
@@ -17,6 +19,7 @@ interface FieldRow {
   plant_spacing_cm?: number
   zone_id?: string
   zone_name?: string
+  row_number?: number
 }
 
 interface FieldRowSection {
@@ -63,74 +66,85 @@ export default function LocationSelector({
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  // Carica zone
+  // Carica zone dal database
   useEffect(() => {
     const loadZones = async () => {
+      if (!garden?.id) return
+      
       try {
         setLoading(true)
-        // Simula caricamento zone - sostituire con chiamata API reale
-        const mockZones: Zone[] = [
-          { id: 'zone-1', name: 'Zona Nord', description: 'Area settentrionale' },
-          { id: 'zone-2', name: 'Zona Sud', description: 'Area meridionale' },
-          { id: 'zone-3', name: 'Zona Est', description: 'Area orientale' },
-          { id: 'zone-4', name: 'Zona Ovest', description: 'Area occidentale' }
-        ]
-        setZones(mockZones)
+        const supabase = getSupabaseClient()
+        if (!supabase) return
+        
+        const { data, error } = await supabase
+          .from('garden_zones')
+          .select('id, name, description, area_sqm')
+          .eq('garden_id', garden.id)
+          .order('name')
+
+        if (error) throw error
+        setZones(data || [])
       } catch (error) {
         console.error('Errore caricamento zone:', error)
+        setZones([])
       } finally {
         setLoading(false)
       }
     }
 
-    if (garden?.id) {
-      loadZones()
-    }
+    loadZones()
   }, [garden?.id])
 
-  // Carica filari
+  // Carica filari dal database
   useEffect(() => {
     const loadFieldRows = async () => {
+      if (!garden?.id) return
+      
       try {
         setLoading(true)
-        // Simula caricamento filari - sostituire con chiamata API reale
-        const mockFieldRows: FieldRow[] = [
-          { 
-            id: 'row-1', 
-            name: 'Filare 1', 
-            length_meters: 100, 
-            plant_spacing_cm: 50,
-            zone_id: 'zone-1',
-            zone_name: 'Zona Nord'
-          },
-          { 
-            id: 'row-2', 
-            name: 'Filare 2', 
-            length_meters: 80, 
-            plant_spacing_cm: 40,
-            zone_id: 'zone-1',
-            zone_name: 'Zona Nord'
-          },
-          { 
-            id: 'row-3', 
-            name: 'Filare 3', 
-            length_meters: 120, 
-            plant_spacing_cm: 60,
-            zone_id: 'zone-2',
-            zone_name: 'Zona Sud'
-          }
-        ]
-        setFieldRows(mockFieldRows)
+        const supabase = getSupabaseClient()
+        if (!supabase) return
+        
+        const { data, error } = await supabase
+          .from('field_rows')
+          .select(`
+            id,
+            name,
+            length_meters,
+            plant_spacing_cm,
+            row_number,
+            zone_id,
+            garden_zones (
+              name
+            )
+          `)
+          .eq('garden_id', garden.id)
+          .order('row_number', { ascending: true, nullsFirst: false })
+          .order('name')
+
+        if (error) throw error
+        
+        // Trasforma i dati per includere zone_name
+        const transformedData = (data || []).map((row: any) => ({
+          id: row.id,
+          name: row.name,
+          length_meters: row.length_meters,
+          plant_spacing_cm: row.plant_spacing_cm,
+          row_number: row.row_number,
+          zone_id: row.zone_id,
+          zone_name: row.garden_zones?.name
+        }))
+        
+        setFieldRows(transformedData)
       } catch (error) {
         console.error('Errore caricamento filari:', error)
+        setFieldRows([])
       } finally {
         setLoading(false)
       }
     }
 
-    if (garden?.id) {
-      loadFieldRows()
-    }
+    loadFieldRows()
   }, [garden?.id])
 
   // Carica porzioni quando viene selezionato un filare
@@ -143,42 +157,21 @@ export default function LocationSelector({
 
       try {
         setLoading(true)
-        // Simula caricamento porzioni - sostituire con chiamata API reale
-        const mockSections: FieldRowSection[] = [
-          {
-            id: 'section-1',
-            field_row_id: selectedFieldRowId,
-            section_name: 'Inizio',
-            section_number: 1,
-            start_position_meters: 0,
-            end_position_meters: 33.33,
-            length_meters: 33.33,
-            plant_count: 67
-          },
-          {
-            id: 'section-2',
-            field_row_id: selectedFieldRowId,
-            section_name: 'Centro',
-            section_number: 2,
-            start_position_meters: 33.33,
-            end_position_meters: 66.66,
-            length_meters: 33.33,
-            plant_count: 67
-          },
-          {
-            id: 'section-3',
-            field_row_id: selectedFieldRowId,
-            section_name: 'Fine',
-            section_number: 3,
-            start_position_meters: 66.66,
-            end_position_meters: 100,
-            length_meters: 33.34,
-            plant_count: 67
-          }
-        ]
-        setSections(mockSections)
+        const supabase = getSupabaseClient()
+        if (!supabase) return
+        
+        const { data, error } = await supabase
+          .from('field_row_sections')
+          .select('*')
+          .eq('field_row_id', selectedFieldRowId)
+          .order('section_number', { ascending: true, nullsFirst: false })
+          .order('start_position_meters')
+
+        if (error) throw error
+        setSections(data || [])
       } catch (error) {
         console.error('Errore caricamento porzioni:', error)
+        setSections([])
       } finally {
         setLoading(false)
       }
@@ -271,53 +264,119 @@ export default function LocationSelector({
             </div>
           ) : (
             <div className="py-2">
-              {/* Zone */}
-              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b">
-                Zone
+              {/* Zone con dimensioni e filari */}
+              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b flex items-center justify-between">
+                <span>Zone</span>
+                {zones.length === 0 && (
+                  <button
+                    onClick={() => {
+                      setIsOpen(false)
+                      // TODO: Aprire modal creazione zona
+                      alert('Funzionalità creazione zone in arrivo. Per ora crea zone tramite Settings.')
+                    }}
+                    className="text-green-600 hover:text-green-700 flex items-center gap-1"
+                  >
+                    <Plus size={12} />
+                    <span className="text-xs normal-case">Crea zona</span>
+                  </button>
+                )}
               </div>
-              {zones.map((zone) => (
-                <button
-                  key={zone.id}
-                  onClick={() => handleZoneSelect(zone)}
-                  className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-3"
-                >
-                  <Grid size={16} className="text-blue-500" />
-                  <div>
-                    <div className="font-medium text-gray-900">{zone.name}</div>
-                    {zone.description && (
-                      <div className="text-xs text-gray-500">{zone.description}</div>
-                    )}
-                  </div>
-                </button>
-              ))}
-
-              {/* Filari */}
-              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-t mt-2">
-                Filari
-              </div>
-              {fieldRows.map((fieldRow) => (
-                <button
-                  key={fieldRow.id}
-                  onClick={() => handleFieldRowSelect(fieldRow)}
-                  className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-3"
-                >
-                  <Rows size={16} className="text-green-500" />
-                  <div>
-                    <div className="font-medium text-gray-900">
-                      {fieldRow.zone_name && (
-                        <span className="text-gray-500 text-sm">{fieldRow.zone_name} - </span>
+              
+              {zones.length === 0 ? (
+                <div className="px-3 py-4 text-sm text-gray-500 text-center">
+                  <p>Nessuna zona creata.</p>
+                  <p className="text-xs mt-1">Vai in Impostazioni per creare zone e filari.</p>
+                </div>
+              ) : (
+                zones.map((zone) => {
+                  const zoneFieldRows = fieldRows.filter(fr => fr.zone_id === zone.id)
+                  return (
+                    <div key={zone.id} className="border-b last:border-b-0">
+                      <button
+                        onClick={() => handleZoneSelect(zone)}
+                        className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-start gap-3"
+                      >
+                        <Grid size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900">{zone.name}</div>
+                          <div className="text-xs text-gray-500 space-y-0.5">
+                            {zone.area_sqm && (
+                              <div>📐 {zone.area_sqm} m²</div>
+                            )}
+                            {zone.description && (
+                              <div>{zone.description}</div>
+                            )}
+                            {zoneFieldRows.length > 0 && (
+                              <div className="text-green-600 font-medium">
+                                {zoneFieldRows.length} {zoneFieldRows.length === 1 ? 'filare' : 'filari'}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                      
+                      {/* Filari di questa zona */}
+                      {zoneFieldRows.length > 0 && (
+                        <div className="bg-gray-50 border-t">
+                          {zoneFieldRows.map((fieldRow) => (
+                            <button
+                              key={fieldRow.id}
+                              onClick={() => handleFieldRowSelect(fieldRow)}
+                              className="w-full px-3 py-2 pl-10 text-left hover:bg-gray-100 flex items-center gap-3 border-b last:border-b-0"
+                            >
+                              <Rows size={14} className="text-green-500 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-gray-900 text-sm">
+                                  {fieldRow.name}
+                                  {fieldRow.row_number && (
+                                    <span className="text-gray-400 ml-1">#{fieldRow.row_number}</span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  📏 {fieldRow.length_meters}m
+                                  {fieldRow.plant_spacing_cm && ` • Sesto ${fieldRow.plant_spacing_cm}cm`}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
                       )}
-                      {fieldRow.name}
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {fieldRow.length_meters}m
-                      {fieldRow.plant_spacing_cm && ` • Sesto ${fieldRow.plant_spacing_cm}cm`}
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  )
+                })
+              )}
 
-              {/* Porzioni di Filari */}
+              {/* Filari senza zona assegnata */}
+              {fieldRows.filter(fr => !fr.zone_id).length > 0 && (
+                <>
+                  <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-t mt-2">
+                    Filari senza zona
+                  </div>
+                  {fieldRows.filter(fr => !fr.zone_id).map((fieldRow) => (
+                    <button
+                      key={fieldRow.id}
+                      onClick={() => handleFieldRowSelect(fieldRow)}
+                      className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-3"
+                    >
+                      <Rows size={16} className="text-orange-500" />
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {fieldRow.name}
+                          {fieldRow.row_number && (
+                            <span className="text-gray-400 ml-1">#{fieldRow.row_number}</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {fieldRow.length_meters}m
+                          {fieldRow.plant_spacing_cm && ` • Sesto ${fieldRow.plant_spacing_cm}cm`}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </>
+              )}
+
+              {/* Porzioni di Filari (solo se un filare è selezionato) */}
               {selectedFieldRowId && sections.length > 0 && (
                 <>
                   <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-t mt-2">

@@ -6,7 +6,7 @@ interface SentinelHubStatusProps {
 }
 
 const SentinelHubStatus: React.FC<SentinelHubStatusProps> = ({ onStatusChange }) => {
-  const [status, setStatus] = useState<'checking' | 'connected' | 'simulated' | 'error'>('checking');
+  const [status, setStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
@@ -38,8 +38,8 @@ const SentinelHubStatus: React.FC<SentinelHubStatusProps> = ({ onStatusChange })
       const data = await response.json();
       
       if (data.simulated) {
-        setStatus('simulated');
-        setErrorMessage(data.error || 'Credenziali non configurate');
+        setStatus('error');
+        setErrorMessage('Credenziali Sentinel Hub non configurate. Contatta l\'amministratore per abilitare i dati satellitari reali.');
         onStatusChange?.(false);
       } else if (data.success) {
         setStatus('connected');
@@ -80,23 +80,23 @@ const SentinelHubStatus: React.FC<SentinelHubStatusProps> = ({ onStatusChange })
           label: 'Connesso a Sentinel Hub',
           description: 'Dati satellitari reali disponibili'
         };
-      case 'simulated':
-        return {
-          icon: Wifi,
-          color: 'text-yellow-600',
-          bgColor: 'bg-yellow-50',
-          borderColor: 'border-yellow-200',
-          label: 'Modalità Demo',
-          description: 'Usando dati simulati realistici'
-        };
       case 'error':
         return {
           icon: AlertCircle,
           color: 'text-red-600',
           bgColor: 'bg-red-50',
           borderColor: 'border-red-200',
-          label: 'Errore Connessione',
-          description: 'Fallback a dati simulati'
+          label: 'Credenziali Non Configurate',
+          description: 'Configura Sentinel Hub per dati reali'
+        };
+      default:
+        return {
+          icon: AlertCircle,
+          color: 'text-gray-600',
+          bgColor: 'bg-gray-50',
+          borderColor: 'border-gray-200',
+          label: 'Stato Sconosciuto',
+          description: 'Riprova la connessione'
         };
     }
   };
@@ -147,14 +147,19 @@ const SentinelHubStatus: React.FC<SentinelHubStatusProps> = ({ onStatusChange })
         </div>
       </div>
 
-      {/* Info aggiuntiva per modalità demo */}
-      {status === 'simulated' && (
-        <div className="mt-3 pt-3 border-t border-yellow-full max-w-sm">
+      {/* Info aggiuntiva per errore configurazione */}
+      {status === 'error' && (
+        <div className="mt-3 pt-3 border-t border-red-200">
           <div className="flex items-start gap-3">
-            <Satellite className="w-4 h-4 text-yellow-full max-w-sm mt-0.5 flex-shrink-0" />
-            <div className="text-xs text-yellow-full max-w-sm">
-              <p className="font-medium mb-1">Modalità Demo Attiva</p>
-              <p>I dati NDVI sono simulati ma realistici. Per dati satellitari reali, configura le credenziali Sentinel Hub nelle variabili d'ambiente.</p>
+            <Satellite className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+            <div className="text-xs text-red-700">
+              <p className="font-medium mb-1">Configurazione Richiesta</p>
+              <p className="mb-2">Per abilitare i dati satellitari reali Sentinel-2, configura le seguenti variabili d'ambiente:</p>
+              <ul className="list-disc list-inside space-y-1 font-mono text-[10px]">
+                <li>SENTINEL_HUB_CLIENT_ID</li>
+                <li>SENTINEL_HUB_CLIENT_SECRET</li>
+              </ul>
+              <p className="mt-2">Ottieni le credenziali gratuite su: <a href="https://www.sentinel-hub.com/" target="_blank" rel="noopener noreferrer" className="underline">sentinel-hub.com</a></p>
             </div>
           </div>
         </div>

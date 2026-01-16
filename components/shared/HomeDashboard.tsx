@@ -7,7 +7,8 @@ import { Garden, GardenTask } from '@/types'
 import { 
   ChevronDown, MapPin, Droplets, Moon, Sun, Snowflake, 
   Package, AlertTriangle, Calendar, Wrench, Info, Plus,
-  CheckCircle, X, Loader2, Cloud, CloudRain, ThermometerSun
+  CheckCircle, X, Loader2, Cloud, CloudRain, ThermometerSun,
+  Zap, Satellite, Map, BarChart3, ArrowRight
 } from 'lucide-react'
 import VacationMode from '@/components/VacationMode'
 import SeedInventory from '@/components/SeedInventory'
@@ -52,11 +53,9 @@ import AISuggestionsWidget from '@/components/ai/AISuggestionsWidget'
 import { GardenCard } from './GardenCard'
 import { ProgressCard } from './ProgressCard'
 import { WeatherTaskWidget } from './WeatherTaskAlert'
-import TreatmentDashboardWidget from '@/components/treatments/TreatmentDashboardWidget'
-import IrrigationDashboardWidget from '@/components/irrigation/IrrigationDashboardWidget'
 import { isToday, isSameDay, addDays, parseISO, format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { Heart, ArrowRight, Sparkles } from 'lucide-react'
+import { Heart, Sparkles } from 'lucide-react'
 
 interface HomeDashboardProps {
   garden?: Garden
@@ -681,45 +680,140 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
           <ProgressCard tasks={currentTasks} gardenId={activeGarden.id} />
         )}
 
-        {/* Sistema Trattamenti AI PRO */}
-        {activeGarden && (
-          <TreatmentDashboardWidget
-            garden={activeGarden}
-            tasks={currentTasks}
-            onCreateTasks={async (newTasks) => {
-              // Crea i task nel storage
-              for (const task of newTasks) {
-                await storageProvider.createTask(task)
-              }
-              // Ricarica i task
-              await refreshTasks()
-            }}
-            onUpdateTask={async (task) => {
-              await storageProvider.updateTask(task.id, task)
-              await refreshTasks()
-            }}
-          />
-        )}
+        {/* Link Rapidi alle Funzionalità Avanzate */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Trattamenti */}
+          <Link href="/app/nutrition">
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 p-6 hover:shadow-lg transition-all cursor-pointer group">
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Zap className="text-green-600" size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Trattamenti AI</h3>
+                  <p className="text-sm text-gray-600">Sistema intelligente</p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-700">
+                Gestione completa fertilizzanti e trattamenti con suggerimenti AI
+              </p>
+              <div className="mt-4 flex items-center text-green-600 font-medium text-sm">
+                Vai ai Trattamenti
+                <ArrowRight size={16} className="ml-2" />
+              </div>
+            </div>
+          </Link>
 
-        {/* Sistema Irrigazione Intelligente PRO */}
-        {activeGarden && (
-          <IrrigationDashboardWidget
-            garden={activeGarden}
-            tasks={currentTasks}
-            onCreateTasks={async (newTasks) => {
-              // Crea i task nel storage
-              for (const task of newTasks) {
-                await storageProvider.createTask(task)
-              }
-              // Ricarica i task
-              await refreshTasks()
-            }}
-            onUpdateTask={async (task) => {
-              await storageProvider.updateTask(task.id, task)
-              await refreshTasks()
-            }}
-          />
-        )}
+          {/* Irrigazione */}
+          <Link href="/app/irrigation">
+            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border-2 border-blue-200 p-6 hover:shadow-lg transition-all cursor-pointer group">
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Droplets className="text-blue-600" size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Irrigazione</h3>
+                  <p className="text-sm text-gray-600">Gestione intelligente</p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-700">
+                Sistema irrigazione con consigli meteo e ottimizzazione consumi
+              </p>
+              <div className="mt-4 flex items-center text-blue-600 font-medium text-sm">
+                Vai all'Irrigazione
+                <ArrowRight size={16} className="ml-2" />
+              </div>
+            </div>
+          </Link>
+
+          {/* NDVI Satellitare */}
+          <Link href="/app/ndvi">
+            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200 p-6 hover:shadow-lg transition-all cursor-pointer group">
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Satellite className="text-purple-600" size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">NDVI Satellitare</h3>
+                  <p className="text-sm text-gray-600">Monitoraggio da satellite</p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-700">
+                Analisi vegetazione con immagini satellitari Sentinel-2
+              </p>
+              <div className="mt-4 flex items-center text-purple-600 font-medium text-sm">
+                Vai all'Analisi NDVI
+                <ArrowRight size={16} className="ml-2" />
+              </div>
+            </div>
+          </Link>
+
+          {/* Mappe Prescrizione */}
+          <Link href="/app/prescription-maps">
+            <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl border-2 border-orange-200 p-6 hover:shadow-lg transition-all cursor-pointer group">
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Map className="text-orange-600" size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Mappe Prescrizione</h3>
+                  <p className="text-sm text-gray-600">Precision farming</p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-700">
+                Crea mappe a rateo variabile per trattori e macchinari
+              </p>
+              <div className="mt-4 flex items-center text-orange-600 font-medium text-sm">
+                Vai alle Mappe
+                <ArrowRight size={16} className="ml-2" />
+              </div>
+            </div>
+          </Link>
+
+          {/* Certificazioni */}
+          <Link href="/app/certifications">
+            <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-xl border-2 border-teal-200 p-6 hover:shadow-lg transition-all cursor-pointer group">
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <CheckCircle className="text-teal-600" size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Certificazioni</h3>
+                  <p className="text-sm text-gray-600">Bio, GlobalGAP, SQNPI</p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-700">
+                Gestione completa certificazioni con form e checklist
+              </p>
+              <div className="mt-4 flex items-center text-teal-600 font-medium text-sm">
+                Vai alle Certificazioni
+                <ArrowRight size={16} className="ml-2" />
+              </div>
+            </div>
+          </Link>
+
+          {/* Analytics */}
+          <Link href="/app/analytics">
+            <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-xl border-2 border-pink-200 p-6 hover:shadow-lg transition-all cursor-pointer group">
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <BarChart3 className="text-pink-600" size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Analytics</h3>
+                  <p className="text-sm text-gray-600">Statistiche e report</p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-700">
+                Dashboard completa con grafici, trend e previsioni
+              </p>
+              <div className="mt-4 flex items-center text-pink-600 font-medium text-sm">
+                Vai agli Analytics
+                <ArrowRight size={16} className="ml-2" />
+              </div>
+            </div>
+          </Link>
+        </div>
       </main>
 
       {/* Modals */}
