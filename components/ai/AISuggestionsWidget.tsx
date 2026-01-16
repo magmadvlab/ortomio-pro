@@ -6,7 +6,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { AlertTriangle, Lightbulb, CheckCircle, XCircle, Edit3, Eye } from 'lucide-react'
+import { AlertTriangle, Lightbulb, CheckCircle, XCircle, Edit3, Eye, ArrowRight } from 'lucide-react'
 import { useGarden } from '@/packages/core/hooks/useGarden'
 import { useAuth } from '@/packages/core/hooks/useAuth'
 import { collaborativeAIService } from '@/services/collaborativeAIService'
@@ -162,7 +162,8 @@ export default function AISuggestionsWidget({
           {suggestions.map((suggestion) => (
             <div
               key={suggestion.id}
-              className={`border rounded-lg p-4 transition-all ${
+              onClick={() => setExpandedId(expandedId === suggestion.id ? null : suggestion.id)}
+              className={`border rounded-lg p-4 transition-all cursor-pointer hover:shadow-md ${
                 expandedId === suggestion.id ? 'ring-2 ring-purple-200' : ''
               } ${getPriorityColor(suggestion.action_priority)}`}
             >
@@ -174,16 +175,21 @@ export default function AISuggestionsWidget({
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <h4 className="font-semibold text-sm line-clamp-1">
-                      {suggestion.title}
-                    </h4>
-                    <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${
-                      suggestion.action_priority === 'CRITICAL' ? 'bg-red-100 text-red-700' :
-                      suggestion.action_priority === 'HIGH' ? 'bg-orange-100 text-orange-700' :
-                      'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {suggestion.action_priority}
-                    </span>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-sm line-clamp-1">
+                        {suggestion.title}
+                      </h4>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${
+                        suggestion.action_priority === 'CRITICAL' ? 'bg-red-100 text-red-700' :
+                        suggestion.action_priority === 'HIGH' ? 'bg-orange-100 text-orange-700' :
+                        'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        {suggestion.action_priority}
+                      </span>
+                      <ArrowRight size={20} className="text-gray-400" />
+                    </div>
                   </div>
                   
                   <p className="text-xs text-gray-700 mt-1 line-clamp-2">
@@ -208,7 +214,10 @@ export default function AISuggestionsWidget({
                   {/* Azioni */}
                   <div className="flex items-center gap-2 mt-3">
                     <button
-                      onClick={() => handleAccept(suggestion.id)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleAccept(suggestion.id)
+                      }}
                       className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
                     >
                       <CheckCircle size={14} />
@@ -216,7 +225,10 @@ export default function AISuggestionsWidget({
                     </button>
                     
                     <button
-                      onClick={() => handleReject(suggestion.id)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleReject(suggestion.id)
+                      }}
                       className="flex items-center gap-1 px-3 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-colors"
                     >
                       <XCircle size={14} />
@@ -224,18 +236,14 @@ export default function AISuggestionsWidget({
                     </button>
                     
                     <button
-                      onClick={() => handleViewTransparency(suggestion)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewTransparency(suggestion)
+                      }}
                       className="flex items-center gap-1 px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700 transition-colors"
                     >
                       <Eye size={14} />
                       Dettagli
-                    </button>
-                    
-                    <button
-                      onClick={() => setExpandedId(expandedId === suggestion.id ? null : suggestion.id)}
-                      className="ml-auto text-xs text-gray-600 hover:text-gray-900"
-                    >
-                      {expandedId === suggestion.id ? 'Comprimi' : 'Espandi'}
                     </button>
                   </div>
                 </div>
