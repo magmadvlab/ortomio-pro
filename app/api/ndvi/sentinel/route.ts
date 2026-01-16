@@ -17,6 +17,10 @@ export async function POST(request: NextRequest) {
     const clientId = process.env.SH_CLIENT_ID;
     const clientSecret = process.env.SH_CLIENT_SECRET;
 
+    // Debug log (rimuovere in produzione)
+    console.log('[Sentinel Hub] Client ID presente:', clientId ? 'SI' : 'NO');
+    console.log('[Sentinel Hub] Client Secret presente:', clientSecret ? 'SI' : 'NO');
+
     if (!clientId || !clientSecret) {
       console.warn('Credenziali Sentinel Hub non configurate, usando dati simulati');
       return NextResponse.json({

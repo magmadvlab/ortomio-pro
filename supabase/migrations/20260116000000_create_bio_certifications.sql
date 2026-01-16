@@ -158,6 +158,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Drop trigger if exists to make migration idempotent
+DROP TRIGGER IF EXISTS auto_update_bio_compliance_score ON bio_certifications;
+
 CREATE TRIGGER auto_update_bio_compliance_score
   BEFORE INSERT OR UPDATE ON bio_certifications
   FOR EACH ROW
@@ -268,39 +271,44 @@ SELECT
 FROM bio_certifications bc
 LEFT JOIN gardens g ON bc.garden_id = g.id;
 
--- 8. Indici per performance
-CREATE INDEX idx_bio_certifications_garden ON bio_certifications(garden_id);
-CREATE INDEX idx_bio_certifications_status ON bio_certifications(status);
-CREATE INDEX idx_bio_certifications_expiry ON bio_certifications(expiry_date);
-CREATE INDEX idx_bio_certifications_score ON bio_certifications(compliance_score);
-CREATE INDEX idx_bio_cert_docs_certification ON bio_certification_documents(bio_certification_id);
-CREATE INDEX idx_bio_cert_docs_type ON bio_certification_documents(document_type);
-CREATE INDEX idx_bio_cert_inspections_certification ON bio_certification_inspections(bio_certification_id);
-CREATE INDEX idx_bio_cert_inspections_date ON bio_certification_inspections(inspection_date);
+-- 8. Indici per performance (idempotenti)
+CREATE INDEX IF NOT EXISTS idx_bio_certifications_garden ON bio_certifications(garden_id);
+CREATE INDEX IF NOT EXISTS idx_bio_certifications_status ON bio_certifications(status);
+CREATE INDEX IF NOT EXISTS idx_bio_certifications_expiry ON bio_certifications(expiry_date);
+CREATE INDEX IF NOT EXISTS idx_bio_certifications_score ON bio_certifications(compliance_score);
+CREATE INDEX IF NOT EXISTS idx_bio_cert_docs_certification ON bio_certification_documents(bio_certification_id);
+CREATE INDEX IF NOT EXISTS idx_bio_cert_docs_type ON bio_certification_documents(document_type);
+CREATE INDEX IF NOT EXISTS idx_bio_cert_inspections_certification ON bio_certification_inspections(bio_certification_id);
+CREATE INDEX IF NOT EXISTS idx_bio_cert_inspections_date ON bio_certification_inspections(inspection_date);
 
 -- 9. RLS Policies
 ALTER TABLE bio_certifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bio_certification_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bio_certification_inspections ENABLE ROW LEVEL SECURITY;
 
--- Policies per bio_certifications
+-- Policies per bio_certifications (idempotenti)
+DROP POLICY IF EXISTS "Users can view own bio certifications" ON bio_certifications;
 CREATE POLICY "Users can view own bio certifications"
   ON bio_certifications FOR SELECT
   USING (garden_id IN (SELECT id FROM gardens WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can insert own bio certifications" ON bio_certifications;
 CREATE POLICY "Users can insert own bio certifications"
   ON bio_certifications FOR INSERT
   WITH CHECK (garden_id IN (SELECT id FROM gardens WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can update own bio certifications" ON bio_certifications;
 CREATE POLICY "Users can update own bio certifications"
   ON bio_certifications FOR UPDATE
   USING (garden_id IN (SELECT id FROM gardens WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can delete own bio certifications" ON bio_certifications;
 CREATE POLICY "Users can delete own bio certifications"
   ON bio_certifications FOR DELETE
   USING (garden_id IN (SELECT id FROM gardens WHERE user_id = auth.uid()));
 
--- Policies per bio_certification_documents
+-- Policies per bio_certification_documents (idempotenti)
+DROP POLICY IF EXISTS "Users can view own bio certification documents" ON bio_certification_documents;
 CREATE POLICY "Users can view own bio certification documents"
   ON bio_certification_documents FOR SELECT
   USING (bio_certification_id IN (
@@ -309,6 +317,7 @@ CREATE POLICY "Users can view own bio certification documents"
     )
   ));
 
+DROP POLICY IF EXISTS "Users can insert own bio certification documents" ON bio_certification_documents;
 CREATE POLICY "Users can insert own bio certification documents"
   ON bio_certification_documents FOR INSERT
   WITH CHECK (bio_certification_id IN (
@@ -317,6 +326,7 @@ CREATE POLICY "Users can insert own bio certification documents"
     )
   ));
 
+DROP POLICY IF EXISTS "Users can update own bio certification documents" ON bio_certification_documents;
 CREATE POLICY "Users can update own bio certification documents"
   ON bio_certification_documents FOR UPDATE
   USING (bio_certification_id IN (
@@ -325,6 +335,7 @@ CREATE POLICY "Users can update own bio certification documents"
     )
   ));
 
+DROP POLICY IF EXISTS "Users can delete own bio certification documents" ON bio_certification_documents;
 CREATE POLICY "Users can delete own bio certification documents"
   ON bio_certification_documents FOR DELETE
   USING (bio_certification_id IN (
@@ -333,7 +344,8 @@ CREATE POLICY "Users can delete own bio certification documents"
     )
   ));
 
--- Policies per bio_certification_inspections
+-- Policies per bio_certification_inspections (idempotenti)
+DROP POLICY IF EXISTS "Users can view own bio certification inspections" ON bio_certification_inspections;
 CREATE POLICY "Users can view own bio certification inspections"
   ON bio_certification_inspections FOR SELECT
   USING (bio_certification_id IN (
@@ -342,6 +354,7 @@ CREATE POLICY "Users can view own bio certification inspections"
     )
   ));
 
+DROP POLICY IF EXISTS "Users can insert own bio certification inspections" ON bio_certification_inspections;
 CREATE POLICY "Users can insert own bio certification inspections"
   ON bio_certification_inspections FOR INSERT
   WITH CHECK (bio_certification_id IN (
@@ -350,6 +363,7 @@ CREATE POLICY "Users can insert own bio certification inspections"
     )
   ));
 
+DROP POLICY IF EXISTS "Users can update own bio certification inspections" ON bio_certification_inspections;
 CREATE POLICY "Users can update own bio certification inspections"
   ON bio_certification_inspections FOR UPDATE
   USING (bio_certification_id IN (
@@ -358,6 +372,7 @@ CREATE POLICY "Users can update own bio certification inspections"
     )
   ));
 
+DROP POLICY IF EXISTS "Users can delete own bio certification inspections" ON bio_certification_inspections;
 CREATE POLICY "Users can delete own bio certification inspections"
   ON bio_certification_inspections FOR DELETE
   USING (bio_certification_id IN (

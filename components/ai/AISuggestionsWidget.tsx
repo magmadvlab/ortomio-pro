@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react'
 import { AlertTriangle, Lightbulb, CheckCircle, XCircle, Edit3, Eye } from 'lucide-react'
 import { useGarden } from '@/packages/core/hooks/useGarden'
+import { useAuth } from '@/packages/core/hooks/useAuth'
 import { collaborativeAIService } from '@/services/collaborativeAIService'
 import AITransparencyPanel from './AITransparencyPanel'
 import type { AISuggestion, AITransparencyLog } from '@/types/aiFeedback'
@@ -26,6 +27,7 @@ export default function AISuggestionsWidget({
   compact = true
 }: AISuggestionsWidgetProps) {
   const { activeGarden } = useGarden()
+  const { user } = useAuth()
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -34,19 +36,17 @@ export default function AISuggestionsWidget({
   const [showTransparency, setShowTransparency] = useState(false)
 
   useEffect(() => {
-    if (activeGarden) {
+    if (activeGarden && user) {
       loadSuggestions()
     }
-  }, [activeGarden])
+  }, [activeGarden, user])
 
   const loadSuggestions = async () => {
-    if (!activeGarden) return
+    if (!activeGarden || !user) return
     
     try {
       setLoading(true)
-      // TODO: Get actual user ID from auth context
-      const userId = 'mock-user-id' // Temporary mock
-      const suggs = await collaborativeAIService.getSuggestions(userId, {
+      const suggs = await collaborativeAIService.getSuggestions(user.id, {
         statuses: ['PENDING'],
         priorities,
         types: types as any,
@@ -62,11 +62,10 @@ export default function AISuggestionsWidget({
   }
 
   const handleAccept = async (suggestionId: string) => {
-    if (!activeGarden) return
-    const userId = 'mock-user-id' // TODO: Get from auth context
+    if (!activeGarden || !user) return
     
     await collaborativeAIService.acceptSuggestion(
-      userId,
+      user.id,
       suggestionId,
       'Accettato dalla dashboard'
     )
@@ -75,14 +74,13 @@ export default function AISuggestionsWidget({
   }
 
   const handleReject = async (suggestionId: string) => {
-    if (!activeGarden) return
-    const userId = 'mock-user-id' // TODO: Get from auth context
+    if (!activeGarden || !user) return
     
     const reason = prompt('Perché rifiuti questo suggerimento?')
     if (!reason) return
     
     await collaborativeAIService.rejectSuggestion(
-      userId,
+      user.id,
       suggestionId,
       reason
     )
@@ -118,7 +116,7 @@ export default function AISuggestionsWidget({
     }
   }
 
-  if (!activeGarden) return null
+  if (!activeGarden || !user) return null
   
   if (loading) {
     return (

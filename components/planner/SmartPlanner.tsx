@@ -10,6 +10,8 @@ import { Garden, GardenTask } from '@/types'
 import { format, addDays, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { smartOperationsService, SmartOperation, WeatherData } from '@/services/smartOperationsService'
+import CalendarAlmanac from '@/components/CalendarAlmanac'
+import AlmanaccoWidget from '@/components/almanacco/AlmanaccoWidget'
 
 interface SmartPlannerProps {
   garden: Garden
@@ -31,7 +33,7 @@ export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlan
   const [weatherForecast, setWeatherForecast] = useState<WeatherData[]>([])
   const [showNewOperationForm, setShowNewOperationForm] = useState(false)
   const [selectedOperationType, setSelectedOperationType] = useState<string>('')
-  const [activeView, setActiveView] = useState<'calendar' | 'operations' | 'ai_suggestions'>('operations')
+  const [activeView, setActiveView] = useState<'calendar' | 'operations' | 'ai_suggestions' | 'almanacco'>('operations')
 
   // Carica previsioni meteo reali
   useEffect(() => {
@@ -136,6 +138,7 @@ export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlan
           {[
             { id: 'operations', label: 'Operazioni Smart', icon: Settings },
             { id: 'calendar', label: 'Calendario', icon: Calendar },
+            { id: 'almanacco', label: 'Almanacco', icon: Sun },
             { id: 'ai_suggestions', label: 'Suggerimenti AI', icon: Bot }
           ].map((tab) => {
             const Icon = tab.icon
@@ -295,19 +298,35 @@ export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlan
       {/* Vista Calendario */}
       {activeView === 'calendar' && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="text-center py-12">
-            <Calendar className="mx-auto text-gray-400 mb-4" size={48} />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Vista Calendario Smart</h3>
-            <p className="text-gray-600 mb-4">
-              La vista calendario per operazioni smart è in sviluppo. 
-              Usa il tab "Calendario" principale per gestire i task.
-            </p>
-            <button
-              onClick={() => setActiveView('operations')}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Torna alle Operazioni
-            </button>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Calendar className="text-green-600" size={20} />
+            Calendario Operazioni
+          </h3>
+          <CalendarAlmanac 
+            tasks={tasks}
+            onDateClick={(date) => {
+              // Quando clicchi su una data, apri il form per creare un'operazione
+              setShowNewOperationForm(true)
+            }}
+            onUpdateTask={(task) => {
+              // Aggiorna task se necessario
+              onTasksUpdate(tasks.map(t => t.id === task.id ? task : t))
+            }}
+          />
+        </div>
+      )}
+
+      {/* Vista Almanacco */}
+      {activeView === 'almanacco' && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Sun className="text-amber-600" size={20} />
+              Almanacco del Contadino
+            </h3>
+            <AlmanaccoWidget 
+              date={new Date()}
+            />
           </div>
         </div>
       )}
