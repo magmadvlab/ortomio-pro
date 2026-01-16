@@ -254,7 +254,6 @@ SELECT
   bc.*,
   get_bio_certification_readiness(bc.id) as readiness_status,
   g.name as garden_name,
-  g.size_sqm as garden_size,
   CASE 
     WHEN bc.expiry_date IS NOT NULL AND bc.expiry_date < CURRENT_DATE THEN true
     ELSE false
@@ -397,7 +396,7 @@ BEGIN
   ) VALUES (
     p_garden_id,
     COALESCE(garden_info.name, 'Azienda Agricola'),
-    COALESCE(garden_info.size_sqm / 10000.0, 0), -- Converti m² in ettari
+    COALESCE(garden_info.size_sq_meters / 10000.0, 0), -- Converti m² in ettari
     true,
     5.0,
     false,

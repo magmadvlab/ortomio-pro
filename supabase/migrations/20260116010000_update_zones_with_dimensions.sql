@@ -73,13 +73,12 @@ SELECT
   COUNT(DISTINCT fr.id) as field_row_count,
   COALESCE(SUM(fr.length_meters), 0) as total_row_length,
   COUNT(DISTINCT frs.id) as section_count,
-  g.name as garden_name,
-  g.size_sqm as garden_size
+  g.name as garden_name
 FROM garden_zones gz
 LEFT JOIN gardens g ON gz.garden_id = g.id
 LEFT JOIN field_rows fr ON fr.zone_id = gz.id AND fr.is_active = true
 LEFT JOIN field_row_sections frs ON frs.field_row_id = fr.id AND frs.is_active = true
-GROUP BY gz.id, g.name, g.size_sqm;
+GROUP BY gz.id, g.name;
 
 -- 9. Funzione per creare zone standard per un giardino
 CREATE OR REPLACE FUNCTION create_standard_zones_for_garden(p_garden_id UUID)
@@ -90,7 +89,7 @@ DECLARE
   zone_name TEXT;
 BEGIN
   -- Ottieni area giardino
-  SELECT size_sqm INTO garden_area FROM gardens WHERE id = p_garden_id;
+  SELECT size_sq_meters INTO garden_area FROM gardens WHERE id = p_garden_id;
   
   IF garden_area IS NULL THEN
     RAISE EXCEPTION 'Garden not found';

@@ -20,7 +20,7 @@ CREATE TRIGGER validate_section_overlap_trigger
   EXECUTE FUNCTION validate_section_overlap();
 
 -- 2. Fix vista bio_certifications_with_readiness
--- Rimuovi riferimento a g.location che non esiste
+-- Rimuovi riferimento a g.size_sqm che non esiste
 DROP VIEW IF EXISTS bio_certifications_with_readiness CASCADE;
 
 CREATE OR REPLACE VIEW bio_certifications_with_readiness AS
@@ -28,7 +28,6 @@ SELECT
   bc.*,
   get_bio_certification_readiness(bc.id) as readiness_status,
   g.name as garden_name,
-  g.size_sqm as garden_size,
   CASE 
     WHEN bc.expiry_date IS NOT NULL AND bc.expiry_date < CURRENT_DATE THEN true
     ELSE false
@@ -109,13 +108,12 @@ SELECT
   COALESCE(SUM(fr.plant_count), 0) as total_plant_count,
   COALESCE(AVG(fr.plant_spacing_cm), 0) as avg_plant_spacing,
   COUNT(DISTINCT frs.id) as section_count,
-  g.name as garden_name,
-  g.size_sqm as garden_size
+  g.name as garden_name
 FROM garden_zones gz
 LEFT JOIN gardens g ON gz.garden_id = g.id
 LEFT JOIN field_rows fr ON fr.zone_id = gz.id AND fr.is_active = true
 LEFT JOIN field_row_sections frs ON frs.field_row_id = fr.id AND frs.is_active = true
-GROUP BY gz.id, g.name, g.size_sqm;
+GROUP BY gz.id, g.name;
 
 -- 8. Aggiorna funzione calculate_zone_area_from_rows per gestire colonne mancanti
 CREATE OR REPLACE FUNCTION calculate_zone_area_from_rows(zone_id UUID)

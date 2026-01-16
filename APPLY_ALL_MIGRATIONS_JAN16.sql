@@ -196,7 +196,6 @@ SELECT
   bc.*,
   get_bio_certification_readiness(bc.id) as readiness_status,
   g.name as garden_name,
-  g.size_sqm as garden_size,
   CASE WHEN bc.expiry_date IS NOT NULL AND bc.expiry_date < CURRENT_DATE THEN true ELSE false END as is_expired,
   CASE WHEN bc.expiry_date IS NOT NULL AND bc.expiry_date < CURRENT_DATE + INTERVAL '90 days' THEN true ELSE false END as expires_soon,
   (SELECT COUNT(*) FROM bio_certification_documents WHERE bio_certification_id = bc.id) as document_count,
@@ -331,13 +330,12 @@ SELECT
   COUNT(DISTINCT fr.id) as field_row_count,
   COALESCE(SUM(fr.length_meters), 0) as total_row_length,
   COUNT(DISTINCT frs.id) as section_count,
-  g.name as garden_name,
-  g.size_sqm as garden_size
+  g.name as garden_name
 FROM garden_zones gz
 LEFT JOIN gardens g ON gz.garden_id = g.id
 LEFT JOIN field_rows fr ON fr.zone_id = gz.id AND fr.is_active = true
 LEFT JOIN field_row_sections frs ON frs.field_row_id = fr.id AND frs.is_active = true
-GROUP BY gz.id, g.name, g.size_sqm;
+GROUP BY gz.id, g.name;
 
 -- 5. Vista utilizzo area
 CREATE OR REPLACE VIEW garden_zones_area_usage AS
@@ -376,7 +374,7 @@ CREATE INDEX IF NOT EXISTS idx_garden_zones_sun ON garden_zones(sun_exposure);
 -- STEP 3: FIX ERRORI
 -- =====================================================
 
--- 1. Aggiungi colonne mancanti a field_rows
+-- 2. Ricrea vista garden_zones_with_stats con tutte le colonne
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'field_rows' AND column_name = 'plant_spacing_cm') THEN
@@ -390,7 +388,6 @@ BEGIN
   END IF;
 END $$;
 
--- 2. Ricrea vista garden_zones_with_stats con tutte le colonne
 DROP VIEW IF EXISTS garden_zones_with_stats CASCADE;
 CREATE OR REPLACE VIEW garden_zones_with_stats AS
 SELECT 
@@ -400,13 +397,12 @@ SELECT
   COALESCE(SUM(fr.plant_count), 0) as total_plant_count,
   COALESCE(AVG(fr.plant_spacing_cm), 0) as avg_plant_spacing,
   COUNT(DISTINCT frs.id) as section_count,
-  g.name as garden_name,
-  g.size_sqm as garden_size
+  g.name as garden_name
 FROM garden_zones gz
 LEFT JOIN gardens g ON gz.garden_id = g.id
 LEFT JOIN field_rows fr ON fr.zone_id = gz.id AND fr.is_active = true
 LEFT JOIN field_row_sections frs ON frs.field_row_id = fr.id AND frs.is_active = true
-GROUP BY gz.id, g.name, g.size_sqm;
+GROUP BY gz.id, g.name;
 
 -- =====================================================
 -- VERIFICA FINALE
