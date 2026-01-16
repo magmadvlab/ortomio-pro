@@ -151,7 +151,7 @@ export function ProfessionalSidebar() {
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-[60] p-2 bg-white rounded-lg shadow-lg border border-gray-200"
+        className="lg:hidden fixed top-3 left-3 z-[60] p-2.5 bg-white rounded-lg shadow-md border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-colors"
         aria-label="Toggle menu"
       >
         <svg
@@ -186,9 +186,30 @@ export function ProfessionalSidebar() {
         transform transition-transform duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div className="mb-6">
-          <h2 className="text-lg md:text-xl font-bold text-gray-900">🌱 OrtoMio</h2>
-          <p className="text-xs text-gray-500 mt-1">PRO Professional</p>
+        {/* Header con logo e close button su mobile */}
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg md:text-xl font-bold text-gray-900">🌱 OrtoMio</h2>
+            <p className="text-xs text-gray-500 mt-1">PRO Professional</p>
+          </div>
+          {/* Close button - solo mobile */}
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Chiudi menu"
+          >
+            <svg
+              className="w-5 h-5 text-gray-600"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
         
         <nav className="space-y-6">
