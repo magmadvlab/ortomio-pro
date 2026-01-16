@@ -16,6 +16,7 @@ import ZoneManagementPanel from './ZoneManagementPanel';
 import MapExportModal from './MapExportModal';
 import HistoricalComparisonPanel from './HistoricalComparisonPanel';
 import CostOptimizationPanel from './CostOptimizationPanel';
+import PrescriptionMapsIntro from './PrescriptionMapsIntro';
 import { 
   Map, 
   Plus, 
@@ -52,6 +53,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
   const [selectedMap, setSelectedMap] = useState<PrescriptionMap | null>(null);
   
   // Modal states
+  const [showIntro, setShowIntro] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showZoneManagement, setShowZoneManagement] = useState(false);
@@ -65,6 +67,12 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
   useEffect(() => {
     loadPrescriptionMaps();
     loadStats();
+    
+    // Show intro on first visit
+    const hasSeenIntro = localStorage.getItem('prescriptionMapsIntroSeen');
+    if (!hasSeenIntro) {
+      setShowIntro(true);
+    }
   }, [gardenId]);
 
   const loadPrescriptionMaps = async () => {
@@ -283,12 +291,20 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
             <p className="text-gray-600 mb-4">
               Crea la tua prima mappa prescrizione per iniziare con il precision farming
             </p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Crea Prima Mappa
-            </button>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setShowIntro(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                📚 Guida Introduttiva
+              </button>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Crea Prima Mappa
+              </button>
+            </div>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
@@ -410,6 +426,20 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
       )}
 
       {/* Modals */}
+      {showIntro && (
+        <PrescriptionMapsIntro
+          onClose={() => {
+            setShowIntro(false);
+            localStorage.setItem('prescriptionMapsIntroSeen', 'true');
+          }}
+          onCreateMap={() => {
+            setShowIntro(false);
+            localStorage.setItem('prescriptionMapsIntroSeen', 'true');
+            setShowCreateModal(true);
+          }}
+        />
+      )}
+
       {showCreateModal && (
         <CreatePrescriptionMapModal
           gardenId={gardenId}

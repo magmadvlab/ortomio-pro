@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
-import GlobalGapDashboard from '@/components/compliance/GlobalGapDashboard'
+import CertificationsDashboard from '@/components/certifications/CertificationsDashboard'
 
 export default function CertificationsPage() {
   const { storageProvider } = useStorage()
@@ -40,10 +40,6 @@ export default function CertificationsPage() {
   if (!activeGarden) {
     return (
       <div className="p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">🛡️ Certificazioni</h1>
-          <p className="text-gray-600 mt-1">Gestione certificazioni e compliance</p>
-        </div>
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p className="text-yellow-800">
             Nessun orto trovato. Crea un orto per gestire le certificazioni.
@@ -55,11 +51,7 @@ export default function CertificationsPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">🛡️ Certificazioni</h1>
-        <p className="text-gray-600 mt-1">Gestione certificazioni e compliance</p>
-      </div>
-      <GlobalGapDashboard gardenId={activeGarden.id} />
+      <CertificationsDashboard gardenId={activeGarden.id} />
     </div>
   )
 }
