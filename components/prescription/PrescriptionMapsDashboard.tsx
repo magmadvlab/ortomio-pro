@@ -432,7 +432,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
             setShowIntro(false);
             localStorage.setItem('prescriptionMapsIntroSeen', 'true');
           }}
-          onCreateMap={() => {
+          onStartWizard={() => {
             setShowIntro(false);
             localStorage.setItem('prescriptionMapsIntroSeen', 'true');
             setShowCreateModal(true);
