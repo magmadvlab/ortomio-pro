@@ -72,8 +72,6 @@ SELECT
   gz.*,
   COUNT(DISTINCT fr.id) as field_row_count,
   COALESCE(SUM(fr.length_meters), 0) as total_row_length,
-  COALESCE(SUM(fr.plant_count), 0) as total_plant_count,
-  COALESCE(AVG(fr.plant_spacing_cm), 0) as avg_plant_spacing,
   COUNT(DISTINCT frs.id) as section_count,
   g.name as garden_name,
   g.size_sqm as garden_size

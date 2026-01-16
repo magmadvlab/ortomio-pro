@@ -254,7 +254,7 @@ SELECT
   bc.*,
   get_bio_certification_readiness(bc.id) as readiness_status,
   g.name as garden_name,
-  g.location as garden_location,
+  g.size_sqm as garden_size,
   CASE 
     WHEN bc.expiry_date IS NOT NULL AND bc.expiry_date < CURRENT_DATE THEN true
     ELSE false
