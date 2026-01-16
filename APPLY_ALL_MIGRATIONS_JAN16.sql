@@ -272,6 +272,20 @@ CREATE POLICY "Users can delete own bio certification inspections" ON bio_certif
 -- STEP 2: ZONE CON DIMENSIONI
 -- =====================================================
 
+-- STEP 2.0: Aggiungi colonne a field_rows PRIMA di creare funzioni/viste che le usano
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'field_rows' AND column_name = 'row_width_meters') THEN
+    ALTER TABLE field_rows ADD COLUMN row_width_meters DECIMAL(5,2) DEFAULT 1.0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'field_rows' AND column_name = 'plant_spacing_cm') THEN
+    ALTER TABLE field_rows ADD COLUMN plant_spacing_cm INTEGER;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'field_rows' AND column_name = 'plant_count') THEN
+    ALTER TABLE field_rows ADD COLUMN plant_count INTEGER;
+  END IF;
+END $$;
+
 -- 1. Aggiungi colonne a garden_zones
 ALTER TABLE garden_zones ADD COLUMN IF NOT EXISTS area_sqm DECIMAL(10,2);
 ALTER TABLE garden_zones ADD COLUMN IF NOT EXISTS perimeter_meters DECIMAL(10,2);
@@ -373,21 +387,9 @@ CREATE INDEX IF NOT EXISTS idx_garden_zones_sun ON garden_zones(sun_exposure);
 -- =====================================================
 -- STEP 3: FIX ERRORI
 -- =====================================================
+-- NOTA: Le colonne field_rows sono già state aggiunte in Step 2.0
 
--- 2. Ricrea vista garden_zones_with_stats con tutte le colonne
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'field_rows' AND column_name = 'plant_spacing_cm') THEN
-    ALTER TABLE field_rows ADD COLUMN plant_spacing_cm INTEGER;
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'field_rows' AND column_name = 'row_width_meters') THEN
-    ALTER TABLE field_rows ADD COLUMN row_width_meters DECIMAL(5,2) DEFAULT 1.0;
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'field_rows' AND column_name = 'plant_count') THEN
-    ALTER TABLE field_rows ADD COLUMN plant_count INTEGER;
-  END IF;
-END $$;
-
+-- Ricrea vista garden_zones_with_stats con tutte le colonne
 DROP VIEW IF EXISTS garden_zones_with_stats CASCADE;
 CREATE OR REPLACE VIEW garden_zones_with_stats AS
 SELECT 

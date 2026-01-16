@@ -2,6 +2,7 @@
 -- FIX MIGRATION ERRORS
 -- =====================================================
 -- Risolve errori nelle migrazioni precedenti
+-- NOTA: Le colonne field_rows sono già state aggiunte in Step 2
 
 -- 1. Fix trigger già esistente per field_row_sections
 -- Drop e ricrea solo se necessario
@@ -42,62 +43,8 @@ SELECT
 FROM bio_certifications bc
 LEFT JOIN gardens g ON bc.garden_id = g.id;
 
--- 3. Fix vista garden_zones_with_stats
--- Rimuovi riferimento a fr.plant_spacing_cm che potrebbe non esistere
-DROP VIEW IF EXISTS garden_zones_with_stats CASCADE;
-
-CREATE OR REPLACE VIEW garden_zones_with_stats AS
-SELECT 
-  gz.*,
-  COUNT(DISTINCT fr.id) as field_row_count,
-  COALESCE(SUM(fr.length_meters), 0) as total_row_length,
-  COALESCE(SUM(fr.plant_count), 0) as total_plant_count,
-  COUNT(DISTINCT frs.id) as section_count,
-  g.name as garden_name,
-  g.size_sqm as garden_size
-FROM garden_zones gz
-LEFT JOIN gardens g ON gz.garden_id = g.id
-LEFT JOIN field_rows fr ON fr.zone_id = gz.id AND fr.is_active = true
-LEFT JOIN field_row_sections frs ON frs.field_row_id = fr.id AND frs.is_active = true
-GROUP BY gz.id, g.name, g.size_sqm;
-
--- 4. Verifica e aggiungi colonna plant_spacing_cm a field_rows se non esiste
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'field_rows' AND column_name = 'plant_spacing_cm'
-  ) THEN
-    ALTER TABLE field_rows ADD COLUMN plant_spacing_cm INTEGER;
-    COMMENT ON COLUMN field_rows.plant_spacing_cm IS 'Sesto di impianto in centimetri';
-  END IF;
-END $$;
-
--- 5. Verifica e aggiungi colonna row_width_meters a field_rows se non esiste
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'field_rows' AND column_name = 'row_width_meters'
-  ) THEN
-    ALTER TABLE field_rows ADD COLUMN row_width_meters DECIMAL(5,2) DEFAULT 1.0;
-    COMMENT ON COLUMN field_rows.row_width_meters IS 'Larghezza del filare in metri';
-  END IF;
-END $$;
-
--- 6. Verifica e aggiungi colonna plant_count a field_rows se non esiste
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'field_rows' AND column_name = 'plant_count'
-  ) THEN
-    ALTER TABLE field_rows ADD COLUMN plant_count INTEGER;
-    COMMENT ON COLUMN field_rows.plant_count IS 'Numero di piante nel filare';
-  END IF;
-END $$;
-
--- 7. Ricrea vista garden_zones_with_stats con tutte le colonne corrette
+-- 3. Ricrea vista garden_zones_with_stats con tutte le colonne
+-- Le colonne plant_spacing_cm, row_width_meters, plant_count sono già state aggiunte in Step 2
 DROP VIEW IF EXISTS garden_zones_with_stats CASCADE;
 
 CREATE OR REPLACE VIEW garden_zones_with_stats AS
@@ -115,47 +62,31 @@ LEFT JOIN field_rows fr ON fr.zone_id = gz.id AND fr.is_active = true
 LEFT JOIN field_row_sections frs ON frs.field_row_id = fr.id AND frs.is_active = true
 GROUP BY gz.id, g.name;
 
--- 8. Aggiorna funzione calculate_zone_area_from_rows per gestire colonne mancanti
+-- 4. Aggiorna funzione calculate_zone_area_from_rows per gestire colonne
+-- (già gestita in Step 2, ma ricrea per sicurezza)
 CREATE OR REPLACE FUNCTION calculate_zone_area_from_rows(zone_id UUID)
 RETURNS DECIMAL(10,2) AS $$
 DECLARE
   total_area DECIMAL(10,2);
-  has_row_width BOOLEAN;
 BEGIN
-  -- Verifica se esiste la colonna row_width_meters
-  SELECT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'field_rows' AND column_name = 'row_width_meters'
-  ) INTO has_row_width;
-  
-  IF has_row_width THEN
-    -- Calcola area totale sommando (lunghezza × larghezza) di tutti i filari
-    SELECT COALESCE(SUM(length_meters * COALESCE(row_width_meters, 1.0)), 0)
-    INTO total_area
-    FROM field_rows
-    WHERE zone_id = calculate_zone_area_from_rows.zone_id
-    AND is_active = true;
-  ELSE
-    -- Usa solo lunghezza se row_width_meters non esiste
-    SELECT COALESCE(SUM(length_meters), 0)
-    INTO total_area
-    FROM field_rows
-    WHERE zone_id = calculate_zone_area_from_rows.zone_id
-    AND is_active = true;
-  END IF;
+  -- Calcola area totale sommando (lunghezza × larghezza) di tutti i filari
+  SELECT COALESCE(SUM(length_meters * COALESCE(row_width_meters, 1.0)), 0)
+  INTO total_area
+  FROM field_rows
+  WHERE zone_id = calculate_zone_area_from_rows.zone_id
+  AND is_active = true;
   
   RETURN total_area;
 END;
 $$ LANGUAGE plpgsql;
 
--- 9. Aggiorna funzione validate_field_row_fits_in_zone per gestire colonne mancanti
+-- 5. Aggiorna funzione validate_field_row_fits_in_zone
 CREATE OR REPLACE FUNCTION validate_field_row_fits_in_zone()
 RETURNS TRIGGER AS $$
 DECLARE
   zone_area DECIMAL(10,2);
   total_rows_area DECIMAL(10,2);
   new_row_area DECIMAL(10,2);
-  has_row_width BOOLEAN;
 BEGIN
   -- Ottieni area zona
   SELECT area_sqm INTO zone_area 
@@ -167,34 +98,16 @@ BEGIN
     RETURN NEW;
   END IF;
   
-  -- Verifica se esiste la colonna row_width_meters
-  SELECT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'field_rows' AND column_name = 'row_width_meters'
-  ) INTO has_row_width;
+  -- Calcola area nuovo filare
+  new_row_area := NEW.length_meters * COALESCE(NEW.row_width_meters, 1.0);
   
-  IF has_row_width THEN
-    -- Calcola area nuovo filare
-    new_row_area := NEW.length_meters * COALESCE(NEW.row_width_meters, 1.0);
-    
-    -- Calcola area totale filari esistenti
-    SELECT COALESCE(SUM(length_meters * COALESCE(row_width_meters, 1.0)), 0)
-    INTO total_rows_area
-    FROM field_rows
-    WHERE zone_id = NEW.zone_id
-    AND id != COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::uuid)
-    AND is_active = true;
-  ELSE
-    -- Usa solo lunghezza
-    new_row_area := NEW.length_meters;
-    
-    SELECT COALESCE(SUM(length_meters), 0)
-    INTO total_rows_area
-    FROM field_rows
-    WHERE zone_id = NEW.zone_id
-    AND id != COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::uuid)
-    AND is_active = true;
-  END IF;
+  -- Calcola area totale filari esistenti
+  SELECT COALESCE(SUM(length_meters * COALESCE(row_width_meters, 1.0)), 0)
+  INTO total_rows_area
+  FROM field_rows
+  WHERE zone_id = NEW.zone_id
+  AND id != COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::uuid)
+  AND is_active = true;
   
   -- Verifica che non ecceda area zona (con margine 10%)
   IF (total_rows_area + new_row_area) > zone_area * 1.1 THEN
@@ -206,7 +119,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 10. Ricrea trigger con le funzioni aggiornate
+-- 6. Ricrea trigger con le funzioni aggiornate
 DROP TRIGGER IF EXISTS auto_update_zone_area_on_row_change ON field_rows;
 CREATE TRIGGER auto_update_zone_area_on_row_change
   AFTER INSERT OR UPDATE OR DELETE ON field_rows
@@ -219,13 +132,13 @@ CREATE TRIGGER validate_field_row_area
   FOR EACH ROW
   EXECUTE FUNCTION validate_field_row_fits_in_zone();
 
--- 11. Commenti per documentazione
-COMMENT ON VIEW bio_certifications_with_readiness IS 'Vista certificazioni BIO con readiness status e statistiche (fixed: rimosso g.location)';
-COMMENT ON VIEW garden_zones_with_stats IS 'Vista zone con statistiche filari e sezioni (fixed: gestione colonne opzionali)';
-COMMENT ON FUNCTION calculate_zone_area_from_rows(UUID) IS 'Calcola area zona da filari (fixed: gestione row_width_meters opzionale)';
-COMMENT ON FUNCTION validate_field_row_fits_in_zone() IS 'Valida che filari non eccedano area zona (fixed: gestione colonne opzionali)';
+-- 7. Commenti per documentazione
+COMMENT ON VIEW bio_certifications_with_readiness IS 'Vista certificazioni BIO con readiness status e statistiche (fixed: rimosso g.size_sqm)';
+COMMENT ON VIEW garden_zones_with_stats IS 'Vista zone con statistiche filari e sezioni (fixed: usa colonne aggiunte in Step 2)';
+COMMENT ON FUNCTION calculate_zone_area_from_rows(UUID) IS 'Calcola area zona da filari (usa row_width_meters)';
+COMMENT ON FUNCTION validate_field_row_fits_in_zone() IS 'Valida che filari non eccedano area zona';
 
--- 12. Verifica finale
+-- 8. Verifica finale
 DO $$
 BEGIN
   RAISE NOTICE 'Migration fix completata con successo';

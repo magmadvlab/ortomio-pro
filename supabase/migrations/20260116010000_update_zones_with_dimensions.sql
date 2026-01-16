@@ -3,6 +3,23 @@
 -- =====================================================
 -- Aggiorna garden_zones per includere dimensioni e migliora relazioni con field_rows
 
+-- STEP 0: Aggiungi colonne a field_rows PRIMA di creare funzioni/viste che le usano
+DO $
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'field_rows' AND column_name = 'row_width_meters') THEN
+    ALTER TABLE field_rows ADD COLUMN row_width_meters DECIMAL(5,2) DEFAULT 1.0;
+    COMMENT ON COLUMN field_rows.row_width_meters IS 'Larghezza del filare in metri';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'field_rows' AND column_name = 'plant_spacing_cm') THEN
+    ALTER TABLE field_rows ADD COLUMN plant_spacing_cm INTEGER;
+    COMMENT ON COLUMN field_rows.plant_spacing_cm IS 'Sesto di impianto in centimetri';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'field_rows' AND column_name = 'plant_count') THEN
+    ALTER TABLE field_rows ADD COLUMN plant_count INTEGER;
+    COMMENT ON COLUMN field_rows.plant_count IS 'Numero di piante nel filare';
+  END IF;
+END $;
+
 -- 1. Aggiungi colonna area_sqm se non esiste
 ALTER TABLE garden_zones ADD COLUMN IF NOT EXISTS area_sqm DECIMAL(10,2);
 
