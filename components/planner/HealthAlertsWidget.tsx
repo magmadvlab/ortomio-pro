@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Garden } from '@/types'
 import { plantHealthMonitoringService, HealthAlert } from '@/services/plantHealthMonitoringService'
 import { 
@@ -16,10 +17,10 @@ import {
 interface HealthAlertsWidgetProps {
   garden: Garden
   maxAlerts?: number
-  onViewAll?: () => void
 }
 
-export default function HealthAlertsWidget({ garden, maxAlerts = 3, onViewAll }: HealthAlertsWidgetProps) {
+export default function HealthAlertsWidget({ garden, maxAlerts = 3 }: HealthAlertsWidgetProps) {
+  const router = useRouter()
   const [alerts, setAlerts] = useState<HealthAlert[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -230,15 +231,13 @@ export default function HealthAlertsWidget({ garden, maxAlerts = 3, onViewAll }:
       </div>
 
       {/* View All Button */}
-      {onViewAll && (
-        <button
-          onClick={onViewAll}
-          className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 text-green-600 border border-green-200 rounded-lg hover:bg-green-50 transition-colors"
-        >
-          <span>Vedi Tutti gli Alert</span>
-          <ArrowRight size={16} />
-        </button>
-      )}
+      <button
+        onClick={() => router.push('/app/health')}
+        className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 text-green-600 border border-green-200 rounded-lg hover:bg-green-50 transition-colors"
+      >
+        <span>Vedi Monitoraggio Completo</span>
+        <ArrowRight size={16} />
+      </button>
     </div>
   )
 }

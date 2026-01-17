@@ -478,7 +478,6 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
           <HealthAlertsWidget
             garden={activeGarden}
             maxAlerts={3}
-            onViewAll={() => router.push('/app/planner?tab=health')}
           />
         )}
 

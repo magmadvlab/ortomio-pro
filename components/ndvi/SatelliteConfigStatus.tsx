@@ -242,19 +242,101 @@ export default function SatelliteConfigStatus() {
                 <p className="text-sm text-gray-600">
                   Esegui questo comando per configurare automaticamente le credenziali
                 </p>
+                <button
+                  onClick={() => {
+                    // Trigger automatic setup
+                    fetch('/api/ndvi/setup-credentials', { method: 'POST' })
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.success) {
+                          alert('Configurazione completata! Ricarica la pagina.')
+                          checkConfiguration()
+                        } else {
+                          alert('Errore durante la configurazione: ' + data.error)
+                        }
+                      })
+                      .catch(err => alert('Errore: ' + err.message))
+                  }}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Configura Automaticamente
+                </button>
               </div>
             </div>
 
             {/* Manual Setup */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <h5 className="font-medium text-gray-900 mb-3">Setup Manuale</h5>
-              <div className="space-y-2 text-sm">
-                <p className="text-gray-600">Aggiungi al file <code className="bg-gray-200 px-1 rounded">.env.local</code>:</p>
-                <div className="bg-gray-800 text-green-400 p-3 rounded font-mono text-xs space-y-1">
-                  <div>SH_CLIENT_ID=your_client_id_here</div>
-                  <div>SH_CLIENT_SECRET=your_client_secret_here</div>
-                  <div>SH_INSTANCE_ID=a9646191-f172-4e6e-a965-670c4a222898</div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Client ID
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Inserisci il tuo Client ID"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
                 </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Client Secret
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Inserisci il tuo Client Secret"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Instance ID
+                  </label>
+                  <input
+                    type="text"
+                    value="a9646191-f172-4e6e-a965-670c4a222898"
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                  />
+                </div>
+                
+                <button
+                  onClick={() => {
+                    // Save manual configuration
+                    const clientId = (document.querySelector('input[placeholder="Inserisci il tuo Client ID"]') as HTMLInputElement)?.value
+                    const clientSecret = (document.querySelector('input[placeholder="Inserisci il tuo Client Secret"]') as HTMLInputElement)?.value
+                    
+                    if (!clientId || !clientSecret) {
+                      alert('Inserisci Client ID e Client Secret')
+                      return
+                    }
+                    
+                    fetch('/api/ndvi/save-credentials', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        clientId,
+                        clientSecret,
+                        instanceId: 'a9646191-f172-4e6e-a965-670c4a222898'
+                      })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                      if (data.success) {
+                        alert('Credenziali salvate! Ricarica la pagina.')
+                        checkConfiguration()
+                      } else {
+                        alert('Errore durante il salvataggio: ' + data.error)
+                      }
+                    })
+                    .catch(err => alert('Errore: ' + err.message))
+                  }}
+                  className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  Salva Configurazione
+                </button>
               </div>
             </div>
 
