@@ -14,10 +14,11 @@ import {
   MapPin,
   Calendar,
   Ruler,
-  Seedling,
+  Sprout,
   Settings,
   AlertCircle,
-  Info
+  Info,
+  X
 } from 'lucide-react'
 
 interface OrchardWizardProps {
@@ -214,11 +215,11 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
   }
 
   const renderStepIndicator = () => (
-    <div className="flex items-center justify-center mb-8">
+    <div className="flex items-center justify-center mb-6 sm:mb-8 px-2">
       {Array.from({ length: wizardData.totalSteps }, (_, i) => (
         <React.Fragment key={i}>
           <div className={`
-            w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium
+            w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium
             ${i + 1 < wizardData.step 
               ? 'bg-green-600 text-white' 
               : i + 1 === wizardData.step 
@@ -226,11 +227,11 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
                 : 'bg-gray-200 text-gray-600'
             }
           `}>
-            {i + 1 < wizardData.step ? <Check size={16} /> : i + 1}
+            {i + 1 < wizardData.step ? <Check size={14} /> : i + 1}
           </div>
           {i < wizardData.totalSteps - 1 && (
             <div className={`
-              w-12 h-1 mx-2
+              w-8 sm:w-12 h-1 mx-1 sm:mx-2
               ${i + 1 < wizardData.step ? 'bg-green-600' : 'bg-gray-200'}
             `} />
           )}
@@ -241,10 +242,10 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
 
   const renderStep1 = () => (
     <div className="space-y-6">
-      <div className="text-center mb-8">
+      <div className="text-center mb-6 sm:mb-8">
         <TreePine className="mx-auto text-green-600 mb-4" size={48} />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Informazioni Base</h2>
-        <p className="text-gray-600">Iniziamo con le informazioni di base del tuo frutteto</p>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Informazioni Base</h2>
+        <p className="text-gray-600 text-sm sm:text-base">Iniziamo con le informazioni di base del tuo frutteto</p>
       </div>
 
       <div>
@@ -258,10 +259,11 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
             ...prev,
             basicInfo: { ...prev.basicInfo!, name: e.target.value }
           }))}
-          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${
+          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:ring-green-500 min-h-[44px] touch-manipulation ${
             errors.name ? 'border-red-500' : 'border-gray-300'
           }`}
           placeholder="es. Frutteto Nord, Meleto Principale..."
+          style={{ fontSize: '16px' }} // Prevent iOS zoom
         />
         {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
       </div>
@@ -276,9 +278,10 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
             ...prev,
             basicInfo: { ...prev.basicInfo!, description: e.target.value }
           }))}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 min-h-[44px] touch-manipulation"
           rows={3}
           placeholder="Descrizione del frutteto, note particolari..."
+          style={{ fontSize: '16px' }} // Prevent iOS zoom
         />
       </div>
 
@@ -286,7 +289,7 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
         <label className="block text-sm font-medium text-gray-700 mb-3">
           Tipo Frutteto *
         </label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {orchardTypes.map((type) => (
             <button
               key={type.value}
@@ -296,22 +299,22 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
                 basicInfo: { ...prev.basicInfo!, orchardType: type.value }
               }))}
               className={`
-                p-4 border-2 rounded-lg text-center transition-all
+                p-3 sm:p-4 border-2 rounded-lg text-center transition-all min-h-[60px] touch-manipulation
                 ${wizardData.basicInfo?.orchardType === type.value
                   ? 'border-green-500 bg-green-50 text-green-700'
                   : 'border-gray-200 hover:border-gray-300'
                 }
               `}
             >
-              <div className="text-2xl mb-2">{type.icon}</div>
-              <div className="text-sm font-medium">{type.label}</div>
+              <div className="text-xl sm:text-2xl mb-1 sm:mb-2">{type.icon}</div>
+              <div className="text-xs sm:text-sm font-medium">{type.label}</div>
             </button>
           ))}
         </div>
         {errors.orchardType && <p className="text-red-500 text-sm mt-1">{errors.orchardType}</p>}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Data Impianto
@@ -323,7 +326,8 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
               ...prev,
               basicInfo: { ...prev.basicInfo!, establishedDate: e.target.value }
             }))}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 min-h-[44px] touch-manipulation"
+            style={{ fontSize: '16px' }} // Prevent iOS zoom
           />
         </div>
 
@@ -338,9 +342,11 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
               ...prev,
               basicInfo: { ...prev.basicInfo!, totalAreaSqm: parseFloat(e.target.value) || 0 }
             }))}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 min-h-[44px] touch-manipulation"
             placeholder="0"
             min="0"
+            inputMode="numeric"
+            style={{ fontSize: '16px' }} // Prevent iOS zoom
           />
         </div>
       </div>
@@ -349,13 +355,13 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
 
   const renderStep2 = () => (
     <div className="space-y-6">
-      <div className="text-center mb-8">
+      <div className="text-center mb-6 sm:mb-8">
         <Ruler className="mx-auto text-blue-600 mb-4" size={48} />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Layout e Progettazione</h2>
-        <p className="text-gray-600">Configura le distanze e il sistema di allevamento</p>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Layout e Progettazione</h2>
+        <p className="text-gray-600 text-sm sm:text-base">Configura le distanze e il sistema di allevamento</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Distanza tra Filari (m) *
@@ -368,11 +374,13 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
               ...prev,
               layout: { ...prev.layout!, rowSpacingM: parseFloat(e.target.value) || 0 }
             }))}
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${
+            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:ring-green-500 min-h-[44px] touch-manipulation ${
               errors.rowSpacing ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="4.0"
             min="0.1"
+            inputMode="decimal"
+            style={{ fontSize: '16px' }} // Prevent iOS zoom
           />
           {errors.rowSpacing && <p className="text-red-500 text-sm mt-1">{errors.rowSpacing}</p>}
         </div>
@@ -389,11 +397,13 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
               ...prev,
               layout: { ...prev.layout!, treeSpacingM: parseFloat(e.target.value) || 0 }
             }))}
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${
+            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:ring-green-500 min-h-[44px] touch-manipulation ${
               errors.treeSpacing ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="3.0"
             min="0.1"
+            inputMode="decimal"
+            style={{ fontSize: '16px' }} // Prevent iOS zoom
           />
           {errors.treeSpacing && <p className="text-red-500 text-sm mt-1">{errors.treeSpacing}</p>}
         </div>
@@ -405,7 +415,7 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
         </label>
         <div className="space-y-3">
           {trainingSystemOptions.map((system) => (
-            <label key={system.value} className="flex items-start gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+            <label key={system.value} className="flex items-start gap-3 p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer min-h-[60px] touch-manipulation">
               <input
                 type="radio"
                 name="trainingSystem"
@@ -415,11 +425,11 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
                   ...prev,
                   layout: { ...prev.layout!, trainingSystem: e.target.value }
                 }))}
-                className="mt-1"
+                className="mt-1 w-4 h-4"
               />
-              <div>
-                <div className="font-medium text-gray-900">{system.label}</div>
-                <div className="text-sm text-gray-600">{system.description}</div>
+              <div className="flex-1">
+                <div className="font-medium text-gray-900 text-sm sm:text-base">{system.label}</div>
+                <div className="text-xs sm:text-sm text-gray-600 mt-1">{system.description}</div>
               </div>
             </label>
           ))}
@@ -436,7 +446,8 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
             ...prev,
             layout: { ...prev.layout!, irrigationSystem: e.target.value }
           }))}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 min-h-[44px] touch-manipulation"
+          style={{ fontSize: '16px' }} // Prevent iOS zoom
         >
           <option value="">Seleziona sistema irrigazione</option>
           <option value="drip">Goccia</option>
@@ -452,8 +463,8 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
           <div className="flex items-start gap-3">
             <Info className="text-blue-600 flex-shrink-0 mt-1" size={20} />
             <div>
-              <h4 className="font-medium text-blue-900 mb-2">Calcolo Densità</h4>
-              <div className="text-sm text-blue-800 space-y-1">
+              <h4 className="font-medium text-blue-900 mb-2 text-sm sm:text-base">Calcolo Densità</h4>
+              <div className="text-xs sm:text-sm text-blue-800 space-y-1">
                 <div>
                   Piante per ettaro: <strong>
                     {Math.round(10000 / (wizardData.layout.rowSpacingM * wizardData.layout.treeSpacingM))}
@@ -475,7 +486,7 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
   const renderStep3 = () => (
     <div className="space-y-6">
       <div className="text-center mb-8">
-        <Seedling className="mx-auto text-green-600 mb-4" size={48} />
+        <Sprout className="mx-auto text-green-600 mb-4" size={48} />
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Varietà e Portinnesti</h2>
         <p className="text-gray-600">Configura le varietà e i portinnesti del frutteto</p>
       </div>
@@ -496,7 +507,7 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
 
         {wizardData.varieties?.mainVarieties?.length === 0 ? (
           <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-            <Seedling className="mx-auto text-gray-400 mb-2" size={32} />
+            <Sprout className="mx-auto text-gray-400 mb-2" size={32} />
             <p className="text-gray-600">Nessuna varietà aggiunta</p>
             <button
               type="button"
@@ -900,16 +911,27 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
   )
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-2 sm:p-4">
+      <div className="bg-white rounded-lg sm:rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex-shrink-0 bg-gradient-to-r from-green-600 to-blue-600 text-white px-6 py-4">
-          <h1 className="text-2xl font-bold">Creazione Frutteto</h1>
-          <p className="text-green-100">Passo {wizardData.step} di {wizardData.totalSteps}</p>
+        <div className="flex-shrink-0 bg-gradient-to-r from-green-600 to-blue-600 text-white px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg sm:text-2xl font-bold">Creazione Frutteto</h1>
+              <p className="text-green-100 text-sm sm:text-base">Passo {wizardData.step} di {wizardData.totalSteps}</p>
+            </div>
+            <button
+              onClick={onCancel}
+              className="p-2 hover:bg-white/20 rounded-lg transition-colors sm:hidden"
+              aria-label="Chiudi"
+            >
+              <X size={20} className="text-white" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {renderStepIndicator()}
 
           {wizardData.step === 1 && renderStep1()}
@@ -920,44 +942,46 @@ export default function OrchardWizard({ gardenId, onComplete, onCancel }: Orchar
         </div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 bg-gray-50 px-6 py-4 flex justify-between">
-          <div className="flex gap-2">
-            <button
-              onClick={onCancel}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
-            >
-              Annulla
-            </button>
-            {wizardData.step > 1 && (
+        <div className="flex-shrink-0 bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 sm:justify-between">
+            <div className="flex gap-2 order-2 sm:order-1">
               <button
-                onClick={prevStep}
-                className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+                onClick={onCancel}
+                className="flex-1 sm:flex-none px-4 py-3 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors min-h-[44px] touch-manipulation"
               >
-                <ArrowLeft size={16} />
-                Indietro
+                Annulla
               </button>
-            )}
-          </div>
+              {wizardData.step > 1 && (
+                <button
+                  onClick={prevStep}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors min-h-[44px] touch-manipulation"
+                >
+                  <ArrowLeft size={20} />
+                  <span className="hidden sm:inline">Indietro</span>
+                </button>
+              )}
+            </div>
 
-          <div>
-            {wizardData.step < wizardData.totalSteps ? (
-              <button
-                onClick={nextStep}
-                className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                Avanti
-                <ArrowRight size={16} />
-              </button>
-            ) : (
-              <button
-                onClick={handleComplete}
-                disabled={loading}
-                className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-              >
-                {loading ? 'Creazione...' : 'Crea Frutteto'}
-                <Check size={16} />
-              </button>
-            )}
+            <div className="order-1 sm:order-2">
+              {wizardData.step < wizardData.totalSteps ? (
+                <button
+                  onClick={nextStep}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors min-h-[44px] touch-manipulation"
+                >
+                  Avanti
+                  <ArrowRight size={20} />
+                </button>
+              ) : (
+                <button
+                  onClick={handleComplete}
+                  disabled={loading}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 min-h-[44px] touch-manipulation"
+                >
+                  {loading ? 'Creazione...' : 'Crea Frutteto'}
+                  <Check size={20} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

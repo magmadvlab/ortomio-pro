@@ -14,11 +14,12 @@ import {
   MapPin,
   Calendar,
   Ruler,
-  Seedling,
+  Sprout,
   Settings,
   AlertCircle,
   Info,
-  Wine
+  Wine,
+  X
 } from 'lucide-react'
 
 interface VineyardWizardProps {
@@ -242,10 +243,10 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
       case 1:
         return (
           <div className="space-y-6">
-            <div className="text-center mb-8">
+            <div className="text-center mb-6 sm:mb-8">
               <Grape className="mx-auto text-purple-600 mb-4" size={48} />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Informazioni Base</h2>
-              <p className="text-gray-600">Configura le informazioni principali del tuo vigneto</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Informazioni Base</h2>
+              <p className="text-gray-600 text-sm sm:text-base">Configura le informazioni principali del tuo vigneto</p>
             </div>
 
             <div>
@@ -259,8 +260,9 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
                   ...prev,
                   basicInfo: { ...prev.basicInfo!, name: e.target.value }
                 }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 min-h-[44px] touch-manipulation"
                 placeholder="es. Vigneto del Sole"
+                style={{ fontSize: '16px' }} // Prevent iOS zoom
               />
               {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
             </div>
@@ -275,9 +277,10 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
                   ...prev,
                   basicInfo: { ...prev.basicInfo!, description: e.target.value }
                 }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 min-h-[44px] touch-manipulation"
                 rows={3}
                 placeholder="Descrizione del vigneto..."
+                style={{ fontSize: '16px' }} // Prevent iOS zoom
               />
             </div>
 
@@ -294,15 +297,15 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
                       ...prev,
                       basicInfo: { ...prev.basicInfo!, vineyardType: type.value }
                     }))}
-                    className={`p-4 border-2 rounded-lg text-left transition-colors ${
+                    className={`p-3 sm:p-4 border-2 rounded-lg text-left transition-colors min-h-[60px] touch-manipulation ${
                       wizardData.basicInfo?.vineyardType === type.value
                         ? 'border-purple-500 bg-purple-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">{type.icon}</span>
-                      <span className="font-medium">{type.label}</span>
+                      <span className="text-xl sm:text-2xl">{type.icon}</span>
+                      <span className="font-medium text-sm sm:text-base">{type.label}</span>
                     </div>
                   </button>
                 ))}
@@ -310,7 +313,7 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
               {errors.vineyardType && <p className="text-red-600 text-sm mt-1">{errors.vineyardType}</p>}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Data di Impianto
@@ -322,7 +325,8 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
                     ...prev,
                     basicInfo: { ...prev.basicInfo!, establishedDate: e.target.value }
                   }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 min-h-[44px] touch-manipulation"
+                  style={{ fontSize: '16px' }} // Prevent iOS zoom
                 />
               </div>
 
@@ -337,8 +341,10 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
                     ...prev,
                     basicInfo: { ...prev.basicInfo!, totalAreaSqm: parseFloat(e.target.value) || undefined }
                   }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 min-h-[44px] touch-manipulation"
                   placeholder="10000"
+                  inputMode="numeric"
+                  style={{ fontSize: '16px' }} // Prevent iOS zoom
                 />
               </div>
             </div>
@@ -348,13 +354,13 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
       case 2:
         return (
           <div className="space-y-6">
-            <div className="text-center mb-8">
+            <div className="text-center mb-6 sm:mb-8">
               <Ruler className="mx-auto text-purple-600 mb-4" size={48} />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Layout e Design</h2>
-              <p className="text-gray-600">Configura la disposizione e il sistema di allevamento</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Layout e Design</h2>
+              <p className="text-gray-600 text-sm sm:text-base">Configura la disposizione e il sistema di allevamento</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Distanza tra Filari (m) *
@@ -367,8 +373,10 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
                     ...prev,
                     layout: { ...prev.layout!, rowSpacingM: parseFloat(e.target.value) || 0 }
                   }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 min-h-[44px] touch-manipulation"
                   placeholder="2.5"
+                  inputMode="decimal"
+                  style={{ fontSize: '16px' }} // Prevent iOS zoom
                 />
                 {errors.rowSpacing && <p className="text-red-600 text-sm mt-1">{errors.rowSpacing}</p>}
               </div>
@@ -385,8 +393,10 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
                     ...prev,
                     layout: { ...prev.layout!, vineSpacingM: parseFloat(e.target.value) || 0 }
                   }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 min-h-[44px] touch-manipulation"
                   placeholder="1.2"
+                  inputMode="decimal"
+                  style={{ fontSize: '16px' }} // Prevent iOS zoom
                 />
                 {errors.vineSpacing && <p className="text-red-600 text-sm mt-1">{errors.vineSpacing}</p>}
               </div>
@@ -405,14 +415,14 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
                       ...prev,
                       layout: { ...prev.layout!, trainingSystem: system.value }
                     }))}
-                    className={`w-full p-4 border-2 rounded-lg text-left transition-colors ${
+                    className={`w-full p-3 sm:p-4 border-2 rounded-lg text-left transition-colors min-h-[60px] touch-manipulation ${
                       wizardData.layout?.trainingSystem === system.value
                         ? 'border-purple-500 bg-purple-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="font-medium text-gray-900">{system.label}</div>
-                    <div className="text-sm text-gray-600 mt-1">{system.description}</div>
+                    <div className="font-medium text-gray-900 text-sm sm:text-base">{system.label}</div>
+                    <div className="text-xs sm:text-sm text-gray-600 mt-1">{system.description}</div>
                   </button>
                 ))}
               </div>
@@ -428,7 +438,8 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
                   ...prev,
                   layout: { ...prev.layout!, irrigationSystem: e.target.value }
                 }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 min-h-[44px] touch-manipulation"
+                style={{ fontSize: '16px' }} // Prevent iOS zoom
               >
                 <option value="">Seleziona sistema</option>
                 <option value="drip">Goccia</option>
@@ -444,68 +455,73 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
       case 3:
         return (
           <div className="space-y-6">
-            <div className="text-center mb-8">
-              <Seedling className="mx-auto text-purple-600 mb-4" size={48} />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Varietà e Portinnesti</h2>
-              <p className="text-gray-600">Configura le varietà di uva e i portinnesti</p>
+            <div className="text-center mb-6 sm:mb-8">
+              <Sprout className="mx-auto text-purple-600 mb-4" size={48} />
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Varietà e Portinnesti</h2>
+              <p className="text-gray-600 text-sm sm:text-base">Configura le varietà di uva e i portinnesti</p>
             </div>
 
             {/* Varietà */}
             <div>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
                 <h3 className="text-lg font-semibold text-gray-900">Varietà di Uva *</h3>
                 <button
                   type="button"
                   onClick={addVariety}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 min-h-[44px] touch-manipulation"
                 >
-                  <Plus size={16} />
+                  <Plus size={20} />
                   Aggiungi Varietà
                 </button>
               </div>
 
               {wizardData.varieties?.mainVarieties?.map((variety, index) => (
-                <div key={index} className="p-4 border border-gray-200 rounded-lg mb-3">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Varietà
-                      </label>
-                      <select
-                        value={variety.variety}
-                        onChange={(e) => updateVariety(index, 'variety', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
-                      >
-                        <option value="">Seleziona varietà</option>
-                        {commonVarieties.map((v) => (
-                          <option key={v.name} value={v.name}>
-                            {v.name} ({v.type === 'red' ? 'Rosso' : v.type === 'white' ? 'Bianco' : 'Tavola'})
-                          </option>
-                        ))}
-                      </select>
+                <div key={index} className="p-3 sm:p-4 border border-gray-200 rounded-lg mb-3">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Varietà
+                        </label>
+                        <select
+                          value={variety.variety}
+                          onChange={(e) => updateVariety(index, 'variety', e.target.value)}
+                          className="w-full px-3 py-3 text-base border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 min-h-[44px] touch-manipulation"
+                          style={{ fontSize: '16px' }} // Prevent iOS zoom
+                        >
+                          <option value="">Seleziona varietà</option>
+                          {commonVarieties.map((v) => (
+                            <option key={v.name} value={v.name}>
+                              {v.name} ({v.type === 'red' ? 'Rosso' : v.type === 'white' ? 'Bianco' : 'Tavola'})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Percentuale (%)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={variety.percentage}
+                          onChange={(e) => updateVariety(index, 'percentage', parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-3 text-base border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 min-h-[44px] touch-manipulation"
+                          inputMode="numeric"
+                          style={{ fontSize: '16px' }} // Prevent iOS zoom
+                        />
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Percentuale (%)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={variety.percentage}
-                        onChange={(e) => updateVariety(index, 'percentage', parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-
-                    <div className="flex items-end">
+                    <div className="flex justify-end">
                       <button
                         type="button"
                         onClick={() => removeVariety(index)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded"
+                        className="p-2 text-red-600 hover:bg-red-50 rounded min-h-[44px] min-w-[44px] touch-manipulation"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={20} />
                       </button>
                     </div>
                   </div>
@@ -517,60 +533,65 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
 
             {/* Portinnesti */}
             <div>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
                 <h3 className="text-lg font-semibold text-gray-900">Portinnesti</h3>
                 <button
                   type="button"
                   onClick={addRootstock}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 min-h-[44px] touch-manipulation"
                 >
-                  <Plus size={16} />
+                  <Plus size={20} />
                   Aggiungi Portinnesto
                 </button>
               </div>
 
               {wizardData.varieties?.rootstockTypes?.map((rootstock, index) => (
-                <div key={index} className="p-4 border border-gray-200 rounded-lg mb-3">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Portinnesto
-                      </label>
-                      <select
-                        value={rootstock.rootstock}
-                        onChange={(e) => updateRootstock(index, 'rootstock', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
-                      >
-                        <option value="">Seleziona portinnesto</option>
-                        {commonRootstocks.map((r) => (
-                          <option key={r.name} value={r.name}>
-                            {r.name} - {r.soilType}
-                          </option>
-                        ))}
-                      </select>
+                <div key={index} className="p-3 sm:p-4 border border-gray-200 rounded-lg mb-3">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Portinnesto
+                        </label>
+                        <select
+                          value={rootstock.rootstock}
+                          onChange={(e) => updateRootstock(index, 'rootstock', e.target.value)}
+                          className="w-full px-3 py-3 text-base border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 min-h-[44px] touch-manipulation"
+                          style={{ fontSize: '16px' }} // Prevent iOS zoom
+                        >
+                          <option value="">Seleziona portinnesto</option>
+                          {commonRootstocks.map((r) => (
+                            <option key={r.name} value={r.name}>
+                              {r.name} - {r.soilType}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Percentuale (%)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={rootstock.percentage}
+                          onChange={(e) => updateRootstock(index, 'percentage', parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-3 text-base border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 min-h-[44px] touch-manipulation"
+                          inputMode="numeric"
+                          style={{ fontSize: '16px' }} // Prevent iOS zoom
+                        />
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Percentuale (%)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={rootstock.percentage}
-                        onChange={(e) => updateRootstock(index, 'percentage', parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-
-                    <div className="flex items-end">
+                    <div className="flex justify-end">
                       <button
                         type="button"
                         onClick={() => removeRootstock(index)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded"
+                        className="p-2 text-red-600 hover:bg-red-50 rounded min-h-[44px] min-w-[44px] touch-manipulation"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={20} />
                       </button>
                     </div>
                   </div>
@@ -583,10 +604,10 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
       case 4:
         return (
           <div className="space-y-6">
-            <div className="text-center mb-8">
+            <div className="text-center mb-6 sm:mb-8">
               <MapPin className="mx-auto text-purple-600 mb-4" size={48} />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Impianto Viti</h2>
-              <p className="text-gray-600">Configura il metodo di registrazione delle viti</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Impianto Viti</h2>
+              <p className="text-gray-600 text-sm sm:text-base">Configura il metodo di registrazione delle viti</p>
             </div>
 
             <div className="space-y-4">
@@ -601,14 +622,14 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
                       ...prev,
                       vines: { ...prev.vines!, plantingMethod: 'manual' }
                     }))}
-                    className={`w-full p-4 border-2 rounded-lg text-left transition-colors ${
+                    className={`w-full p-3 sm:p-4 border-2 rounded-lg text-left transition-colors min-h-[60px] touch-manipulation ${
                       wizardData.vines?.plantingMethod === 'manual'
                         ? 'border-purple-500 bg-purple-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="font-medium text-gray-900">Registrazione Manuale</div>
-                    <div className="text-sm text-gray-600 mt-1">
+                    <div className="font-medium text-gray-900 text-sm sm:text-base">Registrazione Manuale</div>
+                    <div className="text-xs sm:text-sm text-gray-600 mt-1">
                       Registra le viti una per una durante l'utilizzo dell'app
                     </div>
                   </button>
@@ -619,14 +640,14 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
                       ...prev,
                       vines: { ...prev.vines!, plantingMethod: 'bulk' }
                     }))}
-                    className={`w-full p-4 border-2 rounded-lg text-left transition-colors ${
+                    className={`w-full p-3 sm:p-4 border-2 rounded-lg text-left transition-colors min-h-[60px] touch-manipulation ${
                       wizardData.vines?.plantingMethod === 'bulk'
                         ? 'border-purple-500 bg-purple-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="font-medium text-gray-900">Creazione in Blocco</div>
-                    <div className="text-sm text-gray-600 mt-1">
+                    <div className="font-medium text-gray-900 text-sm sm:text-base">Creazione in Blocco</div>
+                    <div className="text-xs sm:text-sm text-gray-600 mt-1">
                       Crea automaticamente le viti basandosi sul layout del vigneto
                     </div>
                   </button>
@@ -638,11 +659,11 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
                   <div className="flex items-start gap-3">
                     <Info className="text-blue-600 flex-shrink-0 mt-1" size={20} />
                     <div>
-                      <h4 className="font-medium text-blue-900 mb-2">Creazione Automatica</h4>
-                      <p className="text-sm text-blue-800 mb-3">
+                      <h4 className="font-medium text-blue-900 mb-2 text-sm sm:text-base">Creazione Automatica</h4>
+                      <p className="text-xs sm:text-sm text-blue-800 mb-3">
                         Le viti verranno create automaticamente basandosi sui parametri del layout:
                       </p>
-                      <ul className="text-sm text-blue-800 space-y-1">
+                      <ul className="text-xs sm:text-sm text-blue-800 space-y-1">
                         <li>• Distanza tra filari: {wizardData.layout?.rowSpacingM}m</li>
                         <li>• Distanza tra viti: {wizardData.layout?.vineSpacingM}m</li>
                         <li>• Superficie: {wizardData.basicInfo?.totalAreaSqm}m²</li>
@@ -793,26 +814,27 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-2 sm:p-4">
+      <div className="bg-white rounded-lg sm:rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="flex-shrink-0 p-4 sm:p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Wine className="text-purple-600" size={24} />
-              <h1 className="text-xl font-bold text-gray-900">Nuovo Vigneto</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900">Nuovo Vigneto</h1>
             </div>
             <button
               onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Chiudi"
             >
-              ✕
+              <X size={20} className="text-gray-400" />
             </button>
           </div>
           
           {/* Progress Bar */}
           <div className="mt-4">
-            <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+            <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 mb-2">
               <span>Passo {wizardData.step} di {wizardData.totalSteps}</span>
               <span>{Math.round((wizardData.step / wizardData.totalSteps) * 100)}%</span>
             </div>
@@ -826,7 +848,7 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+        <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
           {renderStepContent()}
           
           {errors.general && (
@@ -840,44 +862,46 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-200 flex items-center justify-between">
-          <button
-            onClick={prevStep}
-            disabled={wizardData.step === 1}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ArrowLeft size={16} />
-            Indietro
-          </button>
+        <div className="flex-shrink-0 p-4 sm:p-6 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 sm:items-center sm:justify-between">
+            <button
+              onClick={prevStep}
+              disabled={wizardData.step === 1}
+              className="flex items-center justify-center gap-2 px-4 py-3 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] touch-manipulation order-2 sm:order-1"
+            >
+              <ArrowLeft size={20} />
+              <span className="hidden sm:inline">Indietro</span>
+            </button>
 
-          <div className="flex items-center gap-3">
-            {wizardData.step < wizardData.totalSteps ? (
-              <button
-                onClick={nextStep}
-                className="flex items-center gap-2 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-              >
-                Avanti
-                <ArrowRight size={16} />
-              </button>
-            ) : (
-              <button
-                onClick={handleComplete}
-                disabled={loading}
-                className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                    Creazione...
-                  </>
-                ) : (
-                  <>
-                    <Check size={16} />
-                    Completa
-                  </>
-                )}
-              </button>
-            )}
+            <div className="flex items-center gap-3 order-1 sm:order-2">
+              {wizardData.step < wizardData.totalSteps ? (
+                <button
+                  onClick={nextStep}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 min-h-[44px] touch-manipulation"
+                >
+                  Avanti
+                  <ArrowRight size={20} />
+                </button>
+              ) : (
+                <button
+                  onClick={handleComplete}
+                  disabled={loading}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 min-h-[44px] touch-manipulation"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                      Creazione...
+                    </>
+                  ) : (
+                    <>
+                      <Check size={20} />
+                      Completa
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

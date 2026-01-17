@@ -1,6 +1,23 @@
 import { Sapling, SaplingBatch, SaplingItem, SaplingPlanting, SaplingStats, SaplingFilters } from '@/types/sapling'
 import { getSupabaseClient } from '@/config/supabase'
 
+// Additional types for the missing functions
+export interface SaplingType {
+  id: string
+  name: string
+  category: 'fruit' | 'olive' | 'vine'
+  description?: string
+}
+
+export interface SaplingTimeline {
+  id: string
+  saplingId: string
+  date: string
+  event: string
+  description?: string
+  photos?: string[]
+}
+
 class SaplingService {
   async getSaplings(gardenId: string, filters?: SaplingFilters): Promise<Sapling[]> {
     try {
@@ -340,6 +357,148 @@ class SaplingService {
       notes: data.notes
     }
   }
+
+  // Additional methods for missing functions
+  async getSaplingTimeline(saplingId: string): Promise<SaplingTimeline[]> {
+    try {
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase
+        .from('sapling_timeline')
+        .select('*')
+        .eq('sapling_id', saplingId)
+        .order('date', { ascending: false })
+
+      if (error) throw error
+
+      return data?.map(item => ({
+        id: item.id,
+        saplingId: item.sapling_id,
+        date: item.date,
+        event: item.event,
+        description: item.description,
+        photos: item.photos || []
+      })) || []
+    } catch (error) {
+      console.error('Error fetching sapling timeline:', error)
+      return []
+    }
+  }
+
+  async addPhotoToLog(saplingId: string, photoUrl: string, description?: string): Promise<void> {
+    try {
+      const supabase = getSupabaseClient()
+      const { error } = await supabase
+        .from('sapling_timeline')
+        .insert([{
+          sapling_id: saplingId,
+          date: new Date().toISOString(),
+          event: 'photo_added',
+          description: description || 'Photo added',
+          photos: [photoUrl]
+        }])
+
+      if (error) throw error
+    } catch (error) {
+      console.error('Error adding photo to log:', error)
+      throw error
+    }
+  }
+
+  async updateSurvivalCount(batchId: string, survivingCount: number): Promise<void> {
+    try {
+      const supabase = getSupabaseClient()
+      const { error } = await supabase
+        .from('sapling_batches')
+        .update({ remaining_quantity: survivingCount })
+        .eq('id', batchId)
+
+      if (error) throw error
+    } catch (error) {
+      console.error('Error updating survival count:', error)
+      throw error
+    }
+  }
+
+  async updateSaplingPhase(saplingId: string, phase: string): Promise<void> {
+    try {
+      const supabase = getSupabaseClient()
+      const { error } = await supabase
+        .from('saplings')
+        .update({ status: phase })
+        .eq('id', saplingId)
+
+      if (error) throw error
+    } catch (error) {
+      console.error('Error updating sapling phase:', error)
+      throw error
+    }
+  }
+
+  async recordPlanting(saplingId: string, plantingData: any): Promise<void> {
+    try {
+      await this.plantSapling(saplingId, plantingData)
+    } catch (error) {
+      console.error('Error recording planting:', error)
+      throw error
+    }
+  }
+
+  async linkToSpecializedCrop(saplingId: string, cropType: string, cropId?: string): Promise<void> {
+    try {
+      const supabase = getSupabaseClient()
+      const { error } = await supabase
+        .from('saplings')
+        .update({ 
+          notes: `Linked to ${cropType}${cropId ? ` (ID: ${cropId})` : ''}`
+        })
+        .eq('id', saplingId)
+
+      if (error) throw error
+    } catch (error) {
+      console.error('Error linking to specialized crop:', error)
+      throw error
+    }
+  }
+
+  isReadyToOrchard(sapling: Sapling): boolean {
+    // Check if sapling is ready based on age, health, and status
+    if (sapling.status !== 'ready_to_plant') return false
+    
+    const purchaseDate = new Date(sapling.purchaseDate)
+    const now = new Date()
+    const ageInDays = Math.floor((now.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24))
+    
+    // Generally ready after 30-90 days depending on type
+    return ageInDays >= 30
+  }
 }
 
 export const saplingService = new SaplingService()
+
+// Export individual functions for backward compatibility
+export const createSaplingBatch = (batch: Omit<SaplingBatch, 'id' | 'saplings'>) => 
+  saplingService.createSaplingBatch(batch)
+
+export const getSaplingTimeline = (saplingId: string) => 
+  saplingService.getSaplingTimeline(saplingId)
+
+export const addPhotoToLog = (saplingId: string, photoUrl: string, description?: string) => 
+  saplingService.addPhotoToLog(saplingId, photoUrl, description)
+
+export const updateSurvivalCount = (batchId: string, survivingCount: number) => 
+  saplingService.updateSurvivalCount(batchId, survivingCount)
+
+export const updateSaplingPhase = (saplingId: string, phase: string) => 
+  saplingService.updateSaplingPhase(saplingId, phase)
+
+export const recordPlanting = (saplingId: string, plantingData: any) => 
+  saplingService.recordPlanting(saplingId, plantingData)
+
+export const linkToSpecializedCrop = (saplingId: string, cropType: string, cropId?: string) => 
+  saplingService.linkToSpecializedCrop(saplingId, cropType, cropId)
+
+export const isReadyToOrchard = (sapling: Sapling) => 
+  saplingService.isReadyToOrchard(sapling)
+
+// Export types
+export type { SaplingType, SaplingBatch, Sapling, SaplingTimeline }

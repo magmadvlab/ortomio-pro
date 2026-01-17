@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { BookOpen, Calendar, Filter, Download, Plus, Search, Clock, MapPin } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
-import { OperationalDiary } from '@/components/diary/OperationalDiary'
-import { UnifiedTimelineDiary } from '@/components/diary/UnifiedTimelineDiary'
+import OperationalDiary from '@/components/diary/OperationalDiary'
+import UnifiedTimelineDiary from '@/components/diary/UnifiedTimelineDiary'
 
 export default function DiaryPage() {
   const { storageProvider } = useStorage()

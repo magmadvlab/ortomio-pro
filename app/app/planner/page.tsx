@@ -4,12 +4,13 @@ import SmartPlanner from '@/components/planner/SmartPlanner'
 import TaskCalendar from '@/components/planner/TaskCalendar'
 import TaskList from '@/components/planner/TaskList'
 import PlannerAISuggestions from '@/components/planner/tabs/PlannerAISuggestions'
+import PlannerHealthSuggestions from '@/components/planner/tabs/PlannerHealthSuggestions'
 import CropRotationPlanner from '@/components/advice/CropRotationPlanner'
 import BiologicalControlDashboard from '@/components/advice/BiologicalControlDashboard'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useState, useEffect } from 'react'
 import { Garden, GardenTask } from '@/types'
-import { Calendar, Clock, Activity, Target, CheckCircle, AlertTriangle, TrendingUp, List, Lightbulb, RefreshCw, Bug } from 'lucide-react'
+import { Calendar, Clock, Activity, Target, CheckCircle, AlertTriangle, TrendingUp, List, Lightbulb, RefreshCw, Bug, Stethoscope } from 'lucide-react'
 import { isSameDay, addDays, parseISO, format } from 'date-fns'
 
 export default function PlannerPage() {
@@ -17,7 +18,7 @@ export default function PlannerPage() {
   const [gardens, setGardens] = useState<Garden[]>([])
   const [tasks, setTasks] = useState<GardenTask[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'planner' | 'calendar' | 'timeline' | 'list' | 'ai-suggestions' | 'rotation' | 'biological'>('planner')
+  const [activeTab, setActiveTab] = useState<'planner' | 'calendar' | 'timeline' | 'list' | 'ai-suggestions' | 'health-monitoring' | 'rotation' | 'biological'>('planner')
 
   useEffect(() => {
     const loadData = async () => {
@@ -153,6 +154,7 @@ export default function PlannerPage() {
           <nav className="-mb-px flex space-x-8">
             {[
               { id: 'planner', label: 'Planner AI', icon: Target },
+              { id: 'health-monitoring', label: '🩺 Salute Piante', icon: Stethoscope },
               { id: 'ai-suggestions', label: '💡 Suggerimenti AI', icon: Lightbulb },
               { id: 'rotation', label: '🔄 Rotazione Colture', icon: RefreshCw },
               { id: 'biological', label: '🐛 Controllo Biologico', icon: Bug },
@@ -186,6 +188,22 @@ export default function PlannerPage() {
           garden={defaultGarden}
           tasks={tasks}
           onTasksUpdate={handleTasksUpdate}
+        />
+      )}
+
+      {activeTab === 'health-monitoring' && (
+        <PlannerHealthSuggestions
+          garden={defaultGarden}
+          tasks={tasks}
+          onCreateTask={async (taskData) => {
+            try {
+              await storageProvider.createTask(taskData)
+              const updatedTasks = await storageProvider.getTasks()
+              setTasks(updatedTasks)
+            } catch (error) {
+              console.error('Error creating health task:', error)
+            }
+          }}
         />
       )}
 

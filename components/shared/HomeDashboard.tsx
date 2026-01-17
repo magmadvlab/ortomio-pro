@@ -50,6 +50,7 @@ import { GardenSelectorCard } from './GardenSelectorCard'
 import { TaskCard } from './TaskCard'
 import WeatherLunarWidget from '@/components/WeatherLunarWidget'
 import AISuggestionsWidget from '@/components/ai/AISuggestionsWidget'
+import HealthAlertsWidget from '@/components/planner/HealthAlertsWidget'
 import { GardenCard } from './GardenCard'
 import { ProgressCard } from './ProgressCard'
 import { WeatherTaskWidget } from './WeatherTaskAlert'
@@ -469,6 +470,15 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
             maxItems={3}
             priorities={['CRITICAL', 'HIGH']}
             compact={true}
+          />
+        )}
+
+        {/* Health Alerts Widget - Monitoraggio salute piante */}
+        {activeGarden && (
+          <HealthAlertsWidget
+            garden={activeGarden}
+            maxAlerts={3}
+            onViewAll={() => router.push('/app/planner?tab=health')}
           />
         )}
 

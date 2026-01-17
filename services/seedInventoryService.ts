@@ -324,3 +324,33 @@ class SeedInventoryService {
 }
 
 export const seedInventoryService = new SeedInventoryService()
+
+// Export individual functions for backward compatibility
+export const getSeedPackets = (gardenId: string, filters?: SeedSearchFilters) => 
+  seedInventoryService.getSeedPackets(gardenId, filters)
+
+export const addSeedPacket = (packet: Omit<SeedPacket, 'id'>) => 
+  seedInventoryService.addSeedPacket(packet)
+
+export const updateSeedPacket = (id: string, updates: Partial<SeedPacket>) => 
+  seedInventoryService.updateSeedPacket(id, updates)
+
+export const deleteSeedPacket = (id: string) => 
+  seedInventoryService.deleteSeedPacket(id)
+
+export const getExpiringSeeds = (gardenId: string, monthsAhead?: number) => 
+  seedInventoryService.getExpiringSeeds(gardenId, monthsAhead)
+
+export const getExpiredSeeds = (gardenId: string) => 
+  seedInventoryService.getExpiringSeeds(gardenId, 0) // Expired = 0 months ahead
+
+export const getLowStockSeeds = (gardenId: string) => 
+  seedInventoryService.getLowStockSeeds(gardenId)
+
+export const shouldShowJanuaryAlert = (): boolean => {
+  const now = new Date()
+  return now.getMonth() === 0 // January is month 0
+}
+
+// Export types
+export type { SeedPacket, SeedConsumption, SeedAlert, SeedInventoryStats, SeedSearchFilters }

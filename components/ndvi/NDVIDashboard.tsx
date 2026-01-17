@@ -6,7 +6,8 @@ import NDVIMap from './NDVIMap';
 import ActionButton, { ActionContext } from '../actions/ActionButton';
 import InterventionWizard, { InterventionData } from '../actions/InterventionWizard';
 import { interventionService } from '../../services/interventionService';
-import { Satellite, TrendingUp, TrendingDown, Minus, AlertTriangle, Leaf, Droplets, Activity, RefreshCw, Calendar, MapPin } from 'lucide-react';
+import { Satellite, TrendingUp, TrendingDown, Minus, AlertTriangle, Leaf, Droplets, Activity, RefreshCw, Calendar, MapPin, Settings } from 'lucide-react';
+import Link from 'next/link';
 
 interface NDVIDashboardProps {
   garden: Garden;
@@ -126,6 +127,27 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
     <div className="space-y-6">
       {/* Sentinel Hub Status */}
       <SentinelHubStatus onStatusChange={setApiConnected} />
+      
+      {/* Configuration Link */}
+      {!apiConnected && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Settings className="w-5 h-5 text-yellow-600" />
+              <div>
+                <p className="font-medium text-yellow-800">Configurazione Richiesta</p>
+                <p className="text-sm text-yellow-700">Configura le credenziali per dati satellitari reali</p>
+              </div>
+            </div>
+            <Link 
+              href="/app/satellite-config"
+              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium"
+            >
+              Configura Ora
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
