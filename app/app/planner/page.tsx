@@ -11,7 +11,7 @@ import MobileTabNavigation from '@/components/shared/MobileTabNavigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useState, useEffect } from 'react'
 import { Garden, GardenTask } from '@/types'
-import { Calendar, Clock, Activity, Target, CheckCircle, AlertTriangle, TrendingUp, List, Lightbulb, RefreshCw, Bug, Stethoscope } from 'lucide-react'
+import { Calendar, Clock, Activity, Target, CheckCircle, AlertTriangle, TrendingUp, List, Lightbulb, RefreshCw, Bug, Stethoscope, MapPin } from 'lucide-react'
 import { isSameDay, addDays, parseISO, format } from 'date-fns'
 
 export default function PlannerPage() {
@@ -149,15 +149,6 @@ export default function PlannerPage() {
     { id: 'calendar', label: 'Calendario', emoji: '📅', icon: Calendar },
     { id: 'list', label: 'Lista Task', emoji: '📋', icon: List, badge: tasks.filter(t => !t.completed).length },
     { id: 'timeline', label: 'Timeline', emoji: '📊', icon: Activity }
-  ]
-
-  // Configurazione tab per NDVI
-  const ndviTabs = [
-    { id: 'overview', label: 'Panoramica', emoji: '📊', icon: BarChart3 },
-    { id: 'map', label: 'Mappa NDVI', emoji: '🗺️', icon: Map },
-    { id: 'zones', label: 'Zone', emoji: '📍', icon: MapPin },
-    { id: 'trend', label: 'Trend Storico', emoji: '📈', icon: TrendingUp },
-    { id: 'stress', label: 'Aree Stress', emoji: '⚠️', icon: AlertTriangle, badge: stressAreas.length }
   ]
 
   return (

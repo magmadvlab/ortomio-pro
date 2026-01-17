@@ -7,7 +7,7 @@ import ActionButton, { ActionContext } from '../actions/ActionButton';
 import InterventionWizard, { InterventionData } from '../actions/InterventionWizard';
 import MobileTabNavigation from '../shared/MobileTabNavigation';
 import { interventionService } from '../../services/interventionService';
-import { Satellite, TrendingUp, TrendingDown, Minus, AlertTriangle, Leaf, Droplets, Activity, RefreshCw, Calendar, MapPin, Settings, BarChart3, Map } from 'lucide-react';
+import { Satellite, TrendingUp, TrendingDown, Minus, AlertTriangle, Leaf, Droplets, Activity, RefreshCw, Calendar, MapPin, Settings } from 'lucide-react';
 import Link from 'next/link';
 
 interface NDVIDashboardProps {

@@ -7,7 +7,7 @@ interface TabItem {
   id: string
   label: string
   emoji?: string
-  icon?: React.ComponentType<{ size?: number; className?: string }>
+  icon?: React.ComponentType<any>
   badge?: number
 }
 
