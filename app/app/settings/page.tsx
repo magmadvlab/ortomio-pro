@@ -6,6 +6,8 @@ import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
 import { GardenTypeWizard } from '@/components/GardenTypeWizard'
 import { GardenEditModal } from '@/components/settings/GardenEditModal'
+import APIKeysManager from '@/components/settings/APIKeysManager'
+import OrganizationManager from '@/components/settings/OrganizationManager'
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState('profile')
@@ -61,6 +63,8 @@ export default function SettingsPage() {
   const sections = [
     { id: 'profile', label: 'Profilo', icon: User },
     { id: 'gardens', label: 'I Miei Orti', icon: MapPin },
+    { id: 'apikeys', label: 'API Keys', icon: Settings },
+    { id: 'organization', label: 'Organizzazione', icon: Settings },
     { id: 'notifications', label: 'Notifiche', icon: Bell },
     { id: 'security', label: 'Sicurezza', icon: Shield },
     { id: 'data', label: 'Dati', icon: Database },
@@ -377,6 +381,18 @@ export default function SettingsPage() {
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeSection === 'apikeys' && (
+              <div>
+                <APIKeysManager />
+              </div>
+            )}
+
+            {activeSection === 'organization' && (
+              <div>
+                <OrganizationManager />
               </div>
             )}
 
