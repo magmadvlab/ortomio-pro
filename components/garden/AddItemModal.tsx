@@ -41,7 +41,7 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
       return
     }
     // Apri camera per diagnosi AI
-    router.push('/app/advice?action=diagnosis')
+    router.push('/app/health?action=diagnosis')
     onClose()
   }
 

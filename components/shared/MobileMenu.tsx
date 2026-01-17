@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { X, LayoutDashboard, Heart, BarChart3, FlaskConical, Tractor, TreePine, CircleDot, Grape, ChefHat, Database, Wifi, HelpCircle, Settings, Crown, Book, Sprout, ChevronDown, Home, Droplets, Satellite, Map, Shield, Target, Leaf } from 'lucide-react'
+import { X, LayoutDashboard, Heart, BarChart3, FlaskConical, Tractor, TreePine, CircleDot, Grape, ChefHat, Database, Wifi, HelpCircle, Settings, Crown, Book, Sprout, ChevronDown, Home, Droplets, Satellite, Map, Shield, Target, Leaf, Lightbulb } from 'lucide-react'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { AppTier } from '@/packages/core/config/tiers'
@@ -139,7 +139,8 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
         { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
         { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
         { icon: Leaf, label: 'Piante', path: '/app/plants', tier: 'all' },
-        { icon: Heart, label: 'Salute', path: '/app/advice', tier: 'all' },
+        { icon: Heart, label: 'Salute', path: '/app/health', tier: 'all' },
+        { icon: Lightbulb, label: 'Consigli AI', path: '/app/advice', tier: 'all' },
         { icon: BarChart3, label: 'Progressi', path: '/app/progress', tier: 'all' },
       ],
       tier: 'all'
@@ -196,7 +197,8 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
         { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
         { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
         { icon: Leaf, label: 'Piante', path: '/app/plants', tier: 'all' },
-        { icon: Heart, label: 'Salute', path: '/app/advice', tier: 'all' },
+        { icon: Heart, label: 'Salute', path: '/app/health', tier: 'all' },
+        { icon: Lightbulb, label: 'Consigli AI', path: '/app/advice', tier: 'all' },
         { icon: BarChart3, label: 'Progressi', path: '/app/progress', tier: 'all' },
       ],
       tier: 'all'
@@ -229,7 +231,8 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
         { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
         { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
         { icon: Leaf, label: 'Piante', path: '/app/plants', tier: 'all' },
-        { icon: Heart, label: 'Salute', path: '/app/advice', tier: 'all' },
+        { icon: Heart, label: 'Salute', path: '/app/health', tier: 'all' },
+        { icon: Lightbulb, label: 'Consigli AI', path: '/app/advice', tier: 'all' },
         { icon: BarChart3, label: 'Progressi', path: '/app/progress', tier: 'all' },
         { icon: Wifi, label: 'Smart Hub', path: '/app/smart', tier: 'all' },
       ],

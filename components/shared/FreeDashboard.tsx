@@ -185,7 +185,7 @@ export function FreeDashboard() {
                   <p className="text-gray-700 mb-4">
                     Usa i tuoi crediti per provare la potenza dell'AI di OrtoMio e ricevere diagnosi personalizzate.
                   </p>
-                  <Link href="/app/advice">
+                  <Link href="/app/health">
                     <Button className="bg-yellow-full max-w-sm hover:bg-yellow-700 text-white">
                       Inizia la tua prima richiesta AI
                     </Button>

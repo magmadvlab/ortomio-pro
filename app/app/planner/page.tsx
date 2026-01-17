@@ -4,14 +4,13 @@ import SmartPlanner from '@/components/planner/SmartPlanner'
 import TaskCalendar from '@/components/planner/TaskCalendar'
 import TaskList from '@/components/planner/TaskList'
 import PlannerAISuggestions from '@/components/planner/tabs/PlannerAISuggestions'
-import PlannerHealthSuggestions from '@/components/planner/tabs/PlannerHealthSuggestions'
 import CropRotationPlanner from '@/components/advice/CropRotationPlanner'
 import BiologicalControlDashboard from '@/components/advice/BiologicalControlDashboard'
 import MobileTabNavigation from '@/components/shared/MobileTabNavigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useState, useEffect } from 'react'
 import { Garden, GardenTask } from '@/types'
-import { Calendar, Clock, Activity, Target, CheckCircle, AlertTriangle, TrendingUp, List, Lightbulb, RefreshCw, Bug, Stethoscope, MapPin } from 'lucide-react'
+import { Calendar, Clock, Activity, Target, CheckCircle, AlertTriangle, TrendingUp, List, Lightbulb, RefreshCw, Bug } from 'lucide-react'
 import { isSameDay, addDays, parseISO, format } from 'date-fns'
 
 export default function PlannerPage() {
@@ -19,7 +18,7 @@ export default function PlannerPage() {
   const [gardens, setGardens] = useState<Garden[]>([])
   const [tasks, setTasks] = useState<GardenTask[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'planner' | 'calendar' | 'timeline' | 'list' | 'ai-suggestions' | 'health-monitoring' | 'rotation' | 'biological'>('planner')
+  const [activeTab, setActiveTab] = useState<'planner' | 'calendar' | 'timeline' | 'list' | 'ai-suggestions' | 'rotation' | 'biological'>('planner')
 
   useEffect(() => {
     const loadData = async () => {
@@ -142,7 +141,6 @@ export default function PlannerPage() {
   // Configurazione tab per il componente mobile
   const plannerTabs = [
     { id: 'planner', label: 'Planner AI', emoji: '🎯', icon: Target },
-    { id: 'health-monitoring', label: 'Salute Piante', emoji: '🩺', icon: Stethoscope, badge: upcomingTasks.length },
     { id: 'ai-suggestions', label: 'Suggerimenti AI', emoji: '💡', icon: Lightbulb },
     { id: 'rotation', label: 'Rotazione Colture', emoji: '🔄', icon: RefreshCw },
     { id: 'biological', label: 'Controllo Biologico', emoji: '🐛', icon: Bug },
@@ -175,22 +173,6 @@ export default function PlannerPage() {
           garden={defaultGarden}
           tasks={tasks}
           onTasksUpdate={handleTasksUpdate}
-        />
-      )}
-
-      {activeTab === 'health-monitoring' && (
-        <PlannerHealthSuggestions
-          garden={defaultGarden}
-          tasks={tasks}
-          onCreateTask={async (taskData) => {
-            try {
-              await storageProvider.createTask(taskData)
-              const updatedTasks = await storageProvider.getTasks()
-              setTasks(updatedTasks)
-            } catch (error) {
-              console.error('Error creating health task:', error)
-            }
-          }}
         />
       )}
 

@@ -24,7 +24,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/app' },
   { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden' },
   { icon: Leaf, label: 'Vivaio', path: '/app/semenzaio' },
-  { icon: Heart, label: 'Salute', path: '/app/advice' },
+  { icon: Heart, label: 'Salute', path: '/app/health' },
   { icon: BarChart3, label: 'Progressi', path: '/app/progress' },
   { icon: BookOpen, label: 'Guida Colture', path: '/app/guide' },
   { icon: HelpCircle, label: 'Aiuto', path: '/app/help' },

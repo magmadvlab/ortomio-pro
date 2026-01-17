@@ -66,7 +66,7 @@ export function QuickActions({
         if (onReportIssue) {
           onReportIssue()
         } else {
-          router.push('/app/advice')
+          router.push('/app/health')
         }
       },
       color: 'bg-blue-500 hover:bg-blue-600',

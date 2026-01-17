@@ -84,7 +84,7 @@ const GlobalSearch: React.FC = () => {
         router.push(`/app/gardens`);
         break;
       case 'treatment':
-        router.push(`/app/advice`);
+        router.push(`/app/health`);
         break;
       case 'mechanical':
         router.push(`/app/mechanical-work`);

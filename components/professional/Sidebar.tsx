@@ -30,6 +30,7 @@ import {
   Brain,
   Drone,
   Link2,
+  Lightbulb,
 } from 'lucide-react'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { useEffect } from 'react'
@@ -39,7 +40,8 @@ const menuItems = [
   { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
   { icon: Bot, label: '🤖 Planner AI', path: '/app/planner', tier: 'all', badge: 'NEW' },
   { icon: Target, label: '📅 Planner Classico', path: '/app/planner-classic', tier: 'all' },
-  { icon: Heart, label: 'Salute', path: '/app/advice', tier: 'all' },
+  { icon: Heart, label: 'Salute', path: '/app/health', tier: 'all' },
+  { icon: Lightbulb, label: 'Consigli AI', path: '/app/advice', tier: 'all' },
   { icon: TreePine, label: 'Frutteto', path: '/app/orchard', tier: 'PRO', badge: 'PRO' },
   { icon: CircleDot, label: 'Oliveto', path: '/app/olives', tier: 'PRO', badge: 'PRO' },
   { icon: Grape, label: 'Vigneto', path: '/app/vineyard', tier: 'PRO', badge: 'PRO' },
@@ -80,7 +82,7 @@ export function ProfessionalSidebar() {
     {
       title: 'PRINCIPALE',
       items: allMenuItems.filter(item =>
-        ['Dashboard', 'Il Mio Orto', '🤖 Planner AI', '📅 Planner Classico', 'Salute'].includes(item.label)
+        ['Dashboard', 'Il Mio Orto', '🤖 Planner AI', '📅 Planner Classico', 'Salute', 'Consigli AI'].includes(item.label)
       ),
       tier: 'all',
       collapsible: false

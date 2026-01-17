@@ -55,7 +55,7 @@ export function GlobalQuickActions() {
           icon: Camera,
           color: 'bg-purple-500',
           action: () => {
-            router.push('/app/advice')
+            router.push('/app/health')
             setIsOpen(false)
           }
         }
@@ -90,7 +90,7 @@ export function GlobalQuickActions() {
       icon: Camera,
       color: 'bg-purple-500',
       action: () => {
-        router.push('/app/advice')
+        router.push('/app/health')
         setIsOpen(false)
       }
     },

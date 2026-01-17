@@ -29,7 +29,7 @@ export function MobileBottomNav({ onMenuClick }: MobileBottomNavProps) {
     { icon: LayoutDashboard, label: 'Home', path: '/app' },
     { icon: Sprout, label: 'Orto', path: '/app/garden' },
     { icon: Bot, label: 'AI', path: '/app/planner' },
-    { icon: Heart, label: 'Salute', path: '/app/advice' },
+    { icon: Heart, label: 'Salute', path: '/app/health' },
     { icon: BarChart3, label: 'Progressi', path: '/app/progress' },
   ]
 

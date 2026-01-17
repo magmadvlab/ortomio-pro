@@ -15,6 +15,7 @@ import {
   Sprout,
   BarChart3,
   Leaf,
+  Lightbulb,
 } from 'lucide-react'
 import { useTier } from '@/packages/core/hooks/useTier'
 
@@ -22,7 +23,8 @@ const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
   { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
   { icon: Leaf, label: 'Vivaio', path: '/app/semenzaio', tier: 'all' },
-  { icon: Heart, label: 'Salute', path: '/app/advice', tier: 'all' },
+  { icon: Heart, label: 'Salute', path: '/app/health', tier: 'all' },
+  { icon: Lightbulb, label: 'Consigli AI', path: '/app/advice', tier: 'all' },
   { icon: BarChart3, label: 'Progressi', path: '/app/progress', tier: 'all' },
   { icon: ChefHat, label: 'Ricette', path: '/app/recipes', tier: 'PRO_CONSUMER', badge: 'PRO' },
   { icon: Book, label: 'Guide Premium', path: '/app/guides', tier: 'PRO_CONSUMER', badge: 'PRO' },
@@ -47,7 +49,7 @@ export function ConsumerSidebar() {
     {
       title: 'PRINCIPALE',
       items: menuItems.filter(item => 
-        ['Dashboard', 'Il Mio Orto', 'Vivaio', 'Salute', 'Progressi'].includes(item.label)
+        ['Dashboard', 'Il Mio Orto', 'Vivaio', 'Salute', 'Consigli AI', 'Progressi'].includes(item.label)
       ),
       tier: 'all',
       collapsible: false

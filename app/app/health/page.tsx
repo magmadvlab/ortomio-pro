@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { 
   Heart, 
   Camera, 
@@ -16,7 +16,16 @@ import {
   Plus,
   Filter,
   Download,
-  Share2
+  Share2,
+  Upload,
+  X,
+  RotateCcw,
+  Check,
+  FlaskConical,
+  Shield,
+  Loader2,
+  FileImage,
+  Activity
 } from 'lucide-react'
 import { plantHealthMonitoringService } from '@/services/plantHealthMonitoringService'
 
@@ -39,7 +48,7 @@ interface HealthAlert {
 }
 
 interface HealthAction {
-  type: 'photo_analysis' | 'agronomist_contact' | 'monitoring' | 'treatment'
+  type: 'photo_analysis' | 'agronomist_contact' | 'monitoring' | 'treatment' | 'intervention'
   title: string
   description: string
   priority: 'low' | 'medium' | 'high'
@@ -57,6 +66,23 @@ interface AgronomistModal {
   alert?: HealthAlert
 }
 
+interface DiagnosisResult {
+  confidence: number
+  diagnosis: string
+  recommendations: string[]
+  severity: 'low' | 'medium' | 'high'
+  treatmentUrgency: number
+  estimatedCost: number
+  organicTreatments: string[]
+  category: 'Fungal' | 'Bacterial' | 'Viral' | 'Pest' | 'Deficiency' | 'Environmental'
+  matchedSymptoms: string[]
+  contextMatch: {
+    season: boolean
+    plant: boolean
+    weather: boolean
+  }
+}
+
 export default function PlantHealthPage() {
   const [alerts, setAlerts] = useState<HealthAlert[]>([])
   const [loading, setLoading] = useState(true)
@@ -65,16 +91,132 @@ export default function PlantHealthPage() {
   const [photoModal, setPhotoModal] = useState<PhotoAnalysisModal>({ isOpen: false })
   const [agronomistModal, setAgronomistModal] = useState<AgronomistModal>({ isOpen: false })
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [weather, setWeather] = useState<{ temp: number; rainMm: number; condition: string } | null>(null)
+  
+  // Camera states
+  const [capturedImage, setCapturedImage] = useState<string | null>(null)
+  const [isCapturing, setIsCapturing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [notes, setNotes] = useState('')
+  const [location, setLocation] = useState('')
+  const [symptomsText, setSymptomsText] = useState('')
+  const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisResult | null>(null)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  
+  // Camera refs
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
 
   useEffect(() => {
     loadHealthAlerts()
+    loadWeather()
   }, [])
+
+  const loadWeather = async () => {
+    try {
+      // Simula caricamento meteo per Roma (coordinate di default)
+      const lat = 41.9028
+      const lon = 12.4964
+      
+      const response = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=precipitation_sum&timezone=auto`
+      )
+      const data = await response.json()
+      
+      if (data.current_weather && data.daily) {
+        const condition = data.current_weather.weathercode <= 3 ? 'Sereno' :
+                         data.current_weather.weathercode <= 48 ? 'Nuvoloso' :
+                         data.current_weather.weathercode <= 65 ? 'Pioggia' : 'Brutto'
+
+        setWeather({
+          temp: data.current_weather.temperature,
+          rainMm: data.daily.precipitation_sum[0] || 0,
+          condition
+        })
+      }
+    } catch (error) {
+      console.error('Weather fetch failed:', error)
+      // Fallback weather data
+      setWeather({
+        temp: 18,
+        rainMm: 0,
+        condition: 'Sereno'
+      })
+    }
+  }
+
+  // Camera functions
+  const startCamera = useCallback(async () => {
+    try {
+      setIsCapturing(true)
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment', // Usa camera posteriore se disponibile
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      })
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        streamRef.current = stream
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error)
+      alert('Impossibile accedere alla fotocamera. Verifica i permessi del browser.')
+      setIsCapturing(false)
+    }
+  }, [])
+
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
+    }
+    setIsCapturing(false)
+  }, [])
+
+  const capturePhoto = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return
+
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    const context = canvas.getContext('2d')
+
+    if (!context) return
+
+    // Imposta le dimensioni del canvas
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+
+    // Disegna il frame corrente del video sul canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+    // Converti in base64
+    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8)
+    setCapturedImage(imageDataUrl)
+    setSelectedFiles([]) // Clear file uploads when capturing
+    stopCamera()
+  }, [stopCamera])
+
+  const retakePhoto = () => {
+    setCapturedImage(null)
+    setSelectedFiles([])
+    startCamera()
+  }
 
   const loadHealthAlerts = async () => {
     try {
       setLoading(true)
       // Simula il caricamento degli alert di salute
-      const mockGarden = { id: 'garden-1', name: 'Orto Principale' }
+      const mockGarden = { 
+        id: 'garden-1', 
+        name: 'Orto Principale',
+        sizeSqMeters: 100,
+        createdAt: new Date().toISOString()
+      }
       const healthAlerts = await plantHealthMonitoringService.analyzeGardenHealth(mockGarden, [])
       setAlerts(healthAlerts)
     } catch (error) {
@@ -123,48 +265,134 @@ export default function PlantHealthPage() {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
     setSelectedFiles(files)
+    setCapturedImage(null) // Clear captured image when uploading files
   }
 
   const submitPhotoAnalysis = async () => {
-    if (!photoModal.alert || selectedFiles.length === 0) return
+    const hasPhoto = capturedImage || selectedFiles.length > 0
+    if (!photoModal.alert || (!hasPhoto && !symptomsText.trim())) {
+      alert('Carica una foto o descrivi i sintomi')
+      return
+    }
 
     try {
-      // Simula l'analisi AI delle foto
-      const analysisResult = {
-        confidence: 0.85,
-        diagnosis: 'Possibile peronospora su foglie',
+      setIsAnalyzing(true)
+      
+      // Simula analisi AI avanzata con risultati più realistici
+      const mockDiagnoses = [
+        {
+          diagnosis: 'Peronospora della vite',
+          confidence: 0.87,
+          category: 'Fungal' as const,
+          severity: 'high' as const,
+          symptoms: ['Macchie oleose su foglie', 'Muffa bianca pagina inferiore', 'Ingiallimento fogliare'],
+          treatments: ['Rame ossicloruro', 'Bicarbonato di potassio', 'Olio di neem'],
+          urgency: 3
+        },
+        {
+          diagnosis: 'Oidio (mal bianco)',
+          confidence: 0.73,
+          category: 'Fungal' as const,
+          severity: 'medium' as const,
+          symptoms: ['Patina bianca su foglie', 'Deformazione fogliare', 'Crescita stentata'],
+          treatments: ['Zolfo bagnabile', 'Bicarbonato di sodio', 'Latte diluito'],
+          urgency: 5
+        },
+        {
+          diagnosis: 'Carenza di azoto',
+          confidence: 0.65,
+          category: 'Deficiency' as const,
+          severity: 'low' as const,
+          symptoms: ['Ingiallimento foglie basali', 'Crescita rallentata', 'Foglie piccole'],
+          treatments: ['Concime organico', 'Compost maturo', 'Sangue di bue'],
+          urgency: 7
+        }
+      ]
+
+      const selectedDiagnosis = mockDiagnoses[Math.floor(Math.random() * mockDiagnoses.length)]
+      
+      const result: DiagnosisResult = {
+        confidence: selectedDiagnosis.confidence,
+        diagnosis: selectedDiagnosis.diagnosis,
         recommendations: [
-          'Trattamento fungicida preventivo',
+          `Trattamento con ${selectedDiagnosis.treatments[0]} ogni 7-10 giorni`,
           'Migliorare aerazione tra le piante',
-          'Ridurre irrigazione fogliare'
+          'Evitare irrigazione fogliare nelle ore serali',
+          'Rimuovere foglie infette e smaltirle',
+          'Monitorare evoluzione ogni 3 giorni'
         ],
-        severity: 'medium' as const
+        severity: selectedDiagnosis.severity,
+        treatmentUrgency: selectedDiagnosis.urgency,
+        estimatedCost: Math.floor(Math.random() * 40) + 15, // €15-55
+        organicTreatments: selectedDiagnosis.treatments,
+        category: selectedDiagnosis.category,
+        matchedSymptoms: selectedDiagnosis.symptoms,
+        contextMatch: {
+          season: true,
+          plant: true,
+          weather: weather?.rainMm ? weather.rainMm > 2 : false
+        }
       }
 
-      // Crea task automatico
+      setDiagnosisResult(result)
+
+      // Crea task automatico con dettagli completi
       const newTask = {
         id: `task-${Date.now()}`,
         gardenId: 'garden-1',
         plantName: photoModal.alert.plantName,
         taskType: 'Treatment',
         date: new Date().toISOString().split('T')[0],
-        notes: `AI Analysis: ${analysisResult.diagnosis}. Confidence: ${Math.round(analysisResult.confidence * 100)}%`,
+        notes: `🤖 DIAGNOSI AI: ${result.diagnosis}
+        
+📊 Analisi Dettagliata:
+• Confidenza: ${Math.round(result.confidence * 100)}%
+• Categoria: ${result.category}
+• Severità: ${result.severity.toUpperCase()}
+• Urgenza trattamento: ${result.treatmentUrgency} giorni
+
+🔍 Sintomi Identificati:
+${result.matchedSymptoms.map(s => `• ${s}`).join('\n')}
+
+🌿 Trattamenti Biologici Consigliati:
+${result.organicTreatments.map(t => `• ${t}`).join('\n')}
+
+📋 Piano di Intervento:
+${result.recommendations.map(r => `• ${r}`).join('\n')}
+
+💰 Costo stimato: €${result.estimatedCost}
+📸 Foto analizzate: ${hasPhoto ? (capturedImage ? '1 (fotocamera)' : selectedFiles.length) : '0'}
+📝 Note aggiuntive: ${notes || 'Nessuna'}
+📍 Posizione: ${location || 'Non specificata'}
+
+🌦️ Condizioni Meteo:
+• Temperatura: ${weather?.temp || 'N/A'}°C
+• Pioggia: ${weather?.rainMm || 0}mm
+• Condizioni: ${weather?.condition || 'N/A'}`,
         completed: false,
-        priority: analysisResult.severity
+        priority: result.severity,
+        estimatedDuration: result.severity === 'high' ? '45-90 minuti' : '30-60 minuti',
+        category: 'ai_health_analysis'
       }
 
-      console.log('Task creato automaticamente:', newTask)
+      console.log('Task AI creato automaticamente:', newTask)
       
+      // Reset form
       setPhotoModal({ isOpen: false })
       setSelectedFiles([])
+      setCapturedImage(null)
+      setNotes('')
+      setLocation('')
+      setSymptomsText('')
       
       // Ricarica gli alert
       await loadHealthAlerts()
       
-      alert('Analisi completata! Task creato automaticamente nel planner.')
     } catch (error) {
-      console.error('Error in photo analysis:', error)
-      alert('Errore durante l\'analisi. Riprova.')
+      console.error('Error in AI photo analysis:', error)
+      alert('Errore durante l\'analisi AI. Riprova.')
+    } finally {
+      setIsAnalyzing(false)
     }
   }
 
@@ -223,6 +451,17 @@ export default function PlantHealthPage() {
             </div>
             
             <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setPhotoModal({ isOpen: true, alert: { 
+                  id: 'quick-photo', 
+                  plantName: 'Diagnosi Rapida', 
+                  description: 'Scatta una foto per analisi AI immediata' 
+                } as any })}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              >
+                <Camera className="w-4 h-4" />
+                Scatta Foto
+              </button>
               <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 <Download className="w-4 h-4" />
                 Esporta Report
@@ -237,6 +476,41 @@ export default function PlantHealthPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Weather Widget */}
+        {weather && (
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white shadow-lg mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-sm font-medium opacity-90">Condizioni Oggi</h3>
+                <p className="text-xl md:text-2xl font-bold">{weather.condition}</p>
+              </div>
+              <div className="text-right">
+                <div className="text-4xl font-bold">{weather.temp.toFixed(0)}°</div>
+                <p className="text-xs opacity-90">Pioggia: {weather.rainMm}mm</p>
+              </div>
+            </div>
+
+            {/* Alert meteo proattivi */}
+            {weather.rainMm > 5 && (
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mt-3">
+                <p className="text-sm font-medium">⚠️ Pioggia prevista oggi</p>
+                <p className="text-xs opacity-90 mt-1">Evita irrigazione, controlla ristagni d'acqua</p>
+              </div>
+            )}
+            {weather.temp > 30 && (
+              <div className="bg-orange-500/30 backdrop-blur-sm rounded-lg p-3 mt-3">
+                <p className="text-sm font-medium">🌡️ Temperature elevate</p>
+                <p className="text-xs opacity-90 mt-1">Aumenta l'irrigazione, proteggi le piantine dal sole diretto</p>
+              </div>
+            )}
+            {weather.temp < 5 && (
+              <div className="bg-blue-500/30 backdrop-blur-sm rounded-lg p-3 mt-3">
+                <p className="text-sm font-medium">❄️ Rischio gelo</p>
+                <p className="text-xs opacity-90 mt-1">Proteggi le piante sensibili con teli o rientrale</p>
+              </div>
+            )}
+          </div>
+        )}
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 border border-gray-200">
@@ -445,18 +719,30 @@ export default function PlantHealthPage() {
         )}
       </div>
 
-      {/* Photo Analysis Modal */}
+      {/* Advanced Photo Analysis Modal with Camera */}
       {photoModal.isOpen && photoModal.alert && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[95vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Analisi AI con Foto</h3>
+                <h3 className="text-lg font-semibold flex items-center gap-3">
+                  <FlaskConical className="text-purple-600" size={24} />
+                  Diagnosi AI Avanzata
+                </h3>
                 <button
-                  onClick={() => setPhotoModal({ isOpen: false })}
+                  onClick={() => {
+                    setPhotoModal({ isOpen: false })
+                    stopCamera()
+                    setCapturedImage(null)
+                    setSelectedFiles([])
+                    setNotes('')
+                    setLocation('')
+                    setSymptomsText('')
+                    setDiagnosisResult(null)
+                  }}
                   className="text-gray-400 hover:text-gray-600"
                 >
-                  ✕
+                  <X size={24} />
                 </button>
               </div>
             </div>
@@ -467,50 +753,283 @@ export default function PlantHealthPage() {
                 <p className="text-gray-600">{photoModal.alert.description}</p>
               </div>
 
+              {/* Camera Section */}
+              {!capturedImage && selectedFiles.length === 0 ? (
+                <div className="space-y-4">
+                  {/* Camera View */}
+                  {isCapturing ? (
+                    <div className="relative">
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        className="w-full rounded-lg bg-black"
+                        style={{ maxHeight: '300px' }}
+                      />
+                      <div className="flex justify-center mt-4 gap-4">
+                        <button
+                          onClick={capturePhoto}
+                          className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center text-white hover:bg-purple-700 transition-colors shadow-lg"
+                        >
+                          <Camera size={24} />
+                        </button>
+                        <button
+                          onClick={stopCamera}
+                          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                        >
+                          Annulla
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 space-y-4">
+                      <div className="text-6xl mb-4">📷</div>
+                      <p className="text-gray-600 mb-6">
+                        Scatta una foto per diagnosi AI professionale
+                      </p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Scatta Foto */}
+                        <button
+                          onClick={startCamera}
+                          className="p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-400 transition-colors text-center"
+                        >
+                          <Camera className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                          <p className="text-sm font-medium text-gray-600">Scatta Foto</p>
+                          <p className="text-xs text-gray-400">Usa fotocamera</p>
+                        </button>
+                        
+                        {/* Carica da Galleria */}
+                        <label className="cursor-pointer">
+                          <div className="p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 transition-colors text-center">
+                            <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                            <p className="text-sm font-medium text-gray-600">Carica Immagine</p>
+                            <p className="text-xs text-gray-400">Da galleria</p>
+                          </div>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleFileUpload}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Preview */}
+                  <div className="relative">
+                    {capturedImage ? (
+                      <img
+                        src={capturedImage}
+                        alt="Foto catturata"
+                        className="w-full rounded-lg border-2 border-green-400"
+                        style={{ maxHeight: '300px', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      selectedFiles.map((file, index) => (
+                        <div key={index} className="relative">
+                          <img 
+                            src={URL.createObjectURL(file)} 
+                            alt={`Foto ${index + 1}`}
+                            className="w-full max-h-64 object-cover rounded-lg border-2 border-green-400"
+                          />
+                          <button
+                            onClick={() => setSelectedFiles(files => files.filter((_, i) => i !== index))}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                    
+                    <div className="flex gap-3 mt-4">
+                      <button
+                        onClick={() => {
+                          setCapturedImage(null)
+                          setSelectedFiles([])
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                      >
+                        <RotateCcw size={16} />
+                        Cambia Foto
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Form Dettagli */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Posizione (opzionale)
+                      </label>
+                      <input
+                        type="text"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="es. Aiuola Nord, Filare 3..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Note aggiuntive (opzionale)
+                      </label>
+                      <textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        rows={3}
+                        placeholder="Descrivi i sintomi che vedi: macchie, colore foglie, etc..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Descrizione Sintomi Alternativa */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Carica Foto (max 5)
+                  Oppure descrivi i sintomi testuali
                 </label>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                <textarea
+                  value={symptomsText}
+                  onChange={(e) => setSymptomsText(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  rows={3}
+                  placeholder="Es: Foglie con macchie gialle, muffa grigia sulla pagina inferiore..."
                 />
-                {selectedFiles.length > 0 && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    {selectedFiles.length} file selezionati
-                  </div>
-                )}
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h5 className="font-medium text-blue-900 mb-2">Come funziona l'analisi AI:</h5>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• Carica foto chiare delle foglie, frutti o parti problematiche</li>
-                  <li>• L'AI analizzerà automaticamente segni di malattie o parassiti</li>
-                  <li>• Riceverai diagnosi e raccomandazioni specifiche</li>
-                  <li>• Verrà creato automaticamente un task nel planner</li>
+              {/* Info AI */}
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <h5 className="font-medium text-purple-900 mb-2 flex items-center gap-2">
+                  <Shield size={16} />
+                  Diagnosi AI Professionale
+                </h5>
+                <ul className="text-sm text-purple-800 space-y-1">
+                  <li>• Analisi automatica di malattie, parassiti e carenze</li>
+                  <li>• Identificazione categoria (funghi, batteri, virus, carenze)</li>
+                  <li>• Piano di trattamento biologico personalizzato</li>
+                  <li>• Stima costi e tempistiche di intervento</li>
+                  <li>• Creazione automatica task nel planner</li>
+                  <li>• Possibilità consulto agronomo per casi complessi</li>
                 </ul>
               </div>
 
+              {/* Risultati Diagnosi */}
+              {diagnosisResult && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h5 className="font-bold text-blue-900 flex items-center gap-2">
+                      <FlaskConical size={16} />
+                      Risultati Analisi AI
+                    </h5>
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                      diagnosisResult.severity === 'high' ? 'bg-red-600 text-white' :
+                      diagnosisResult.severity === 'medium' ? 'bg-orange-600 text-white' :
+                      'bg-blue-600 text-white'
+                    }`}>
+                      {diagnosisResult.severity.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <h6 className="font-semibold text-gray-800 mb-1">🔍 Diagnosi:</h6>
+                      <p className="text-gray-700">{diagnosisResult.diagnosis}</p>
+                      <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                        <span>Confidenza: {Math.round(diagnosisResult.confidence * 100)}%</span>
+                        <span>Categoria: {diagnosisResult.category}</span>
+                        <span>Urgenza: {diagnosisResult.treatmentUrgency} giorni</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h6 className="font-semibold text-gray-800 mb-1">🎯 Sintomi Identificati:</h6>
+                      <div className="flex flex-wrap gap-2">
+                        {diagnosisResult.matchedSymptoms.map((symptom, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
+                            {symptom}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h6 className="font-semibold text-gray-800 mb-1">🌿 Trattamenti Biologici:</h6>
+                      <div className="flex flex-wrap gap-2">
+                        {diagnosisResult.organicTreatments.map((treatment, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
+                            {treatment}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h6 className="font-semibold text-gray-800 mb-1">📋 Raccomandazioni:</h6>
+                      <ul className="text-sm text-gray-700 space-y-1">
+                        {diagnosisResult.recommendations.slice(0, 3).map((rec, idx) => (
+                          <li key={idx}>• {rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="bg-white p-3 rounded border">
+                      <div className="flex justify-between items-center text-sm">
+                        <span>💰 Costo stimato: €{diagnosisResult.estimatedCost}</span>
+                        <span>⏱️ Durata: {diagnosisResult.severity === 'high' ? '45-90 min' : '30-60 min'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
               <div className="flex gap-3">
                 <button
-                  onClick={() => setPhotoModal({ isOpen: false })}
+                  onClick={() => {
+                    setPhotoModal({ isOpen: false })
+                    stopCamera()
+                    setCapturedImage(null)
+                    setSelectedFiles([])
+                    setNotes('')
+                    setLocation('')
+                    setSymptomsText('')
+                    setDiagnosisResult(null)
+                  }}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Annulla
                 </button>
                 <button
                   onClick={submitPhotoAnalysis}
-                  disabled={selectedFiles.length === 0}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  disabled={isAnalyzing || (!capturedImage && selectedFiles.length === 0 && !symptomsText.trim())}
+                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Avvia Analisi AI
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Analisi AI...
+                    </>
+                  ) : (
+                    <>
+                      <FileImage size={16} />
+                      Avvia Diagnosi AI
+                    </>
+                  )}
                 </button>
               </div>
             </div>
+
+            {/* Hidden canvas for photo capture */}
+            <canvas ref={canvasRef} className="hidden" />
           </div>
         </div>
       )}
