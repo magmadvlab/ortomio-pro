@@ -5,6 +5,8 @@ import { Droplets, Clock, MapPin, Settings, Play, Pause, BarChart3, Plus, X, Arr
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
 import IrrigationAISuggestionsWidget from '@/components/irrigation/IrrigationAISuggestionsWidget'
+import ProfessionalIrrigationDashboard from '@/components/irrigation/ProfessionalIrrigationDashboard'
+import IrrigationZoneManager from '@/components/irrigation/IrrigationZoneManager'
 import LocationSelector from '@/components/shared/LocationSelector'
 
 interface IrrigationConfig {
@@ -68,7 +70,7 @@ export default function IrrigationPage() {
     }
   }
 
-  const [activeTab, setActiveTab] = useState<'zones' | 'schedule' | 'monitoring' | 'settings'>('zones')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'zones' | 'systems' | 'analytics' | 'scheduler'>('dashboard')
 
   const irrigationZones = [
     {
@@ -191,10 +193,11 @@ export default function IrrigationPage() {
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
             {[
+              { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
               { id: 'zones', label: 'Zone', icon: MapPin },
-              { id: 'schedule', label: 'Programmazione', icon: Clock },
-              { id: 'monitoring', label: 'Monitoraggio', icon: BarChart3 },
-              { id: 'settings', label: 'Impostazioni', icon: Settings }
+              { id: 'systems', label: 'Sistemi', icon: Settings },
+              { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+              { id: 'scheduler', label: 'Programmazione', icon: Clock }
             ].map((tab) => {
               const Icon = tab.icon
               return (
@@ -217,203 +220,74 @@ export default function IrrigationPage() {
       </div>
 
       {/* Contenuto */}
-      {activeTab === 'zones' && (
-        <div className="space-y-6">
-          {/* Configured Irrigation Systems */}
-          {irrigationConfigs.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Sistemi Configurati</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                {irrigationConfigs.map((config) => (
-                  <div key={config.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-semibold text-gray-900">{config.gardenName}</h4>
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Configurato
-                      </span>
-                    </div>
-
-                    <div className="space-y-2 mb-4">
-                      <div className="text-sm">
-                        <span className="text-gray-600">Area:</span>{' '}
-                        <span className="font-medium">
-                          {config.sectionName || config.fieldRowName || config.zoneName || 'Intero giardino'}
-                        </span>
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-gray-600">Sistema:</span>{' '}
-                        <span className="font-medium">
-                          {config.irrigationType === 'drip' ? 'Goccia a Goccia' :
-                           config.irrigationType === 'sprinkler' ? 'Aspersione' :
-                           config.irrigationType === 'micro_sprinkler' ? 'Micro-aspersione' :
-                           config.irrigationType === 'flood' ? 'Scorrimento' : 'Manuale'}
-                        </span>
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-gray-600">Tubo:</span>{' '}
-                        <span className="font-medium">{config.tubeLength}m × {config.tubeDiameter}mm</span>
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-gray-600">Portata:</span>{' '}
-                        <span className="font-medium">{config.flowRate} L/min</span>
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-gray-600">Programmazione:</span>{' '}
-                        <span className="font-medium">
-                          {config.schedule.frequency === 'daily' ? 'Giornaliera' :
-                           config.schedule.frequency === 'every_2_days' ? 'Ogni 2 giorni' :
-                           config.schedule.frequency === 'every_3_days' ? 'Ogni 3 giorni' :
-                           config.schedule.frequency === 'weekly' ? 'Settimanale' : 'Personalizzata'}
-                        </span>
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-gray-600">Orari:</span>{' '}
-                        <span className="font-medium">{config.schedule.times.join(', ')}</span>
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-gray-600">Durata:</span>{' '}
-                        <span className="font-medium">{config.schedule.duration} min</span>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                        <Play size={16} />
-                        Avvia
-                      </button>
-                      <button className="flex-1 flex items-center justify-center gap-2 bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors">
-                        <Settings size={16} />
-                        Modifica
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Add New Configuration */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="text-center">
-              <Droplets className="mx-auto mb-4 text-blue-500" size={48} />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {irrigationConfigs.length === 0 ? 'Configura il tuo primo sistema di irrigazione' : 'Aggiungi nuovo sistema'}
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Imposta irrigazione per giardini, zone o filari specifici
-              </p>
-              <button 
-                onClick={() => setShowConfigWizard(true)}
-                className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors mx-auto"
-              >
-                <Plus size={20} />
-                Configura Irrigazione
-              </button>
-            </div>
-          </div>
-
-          {/* Demo Zones (if no configurations) */}
-          {irrigationConfigs.length === 0 && (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Zone Demo</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {irrigationZones.map((zone) => (
-                  <div key={zone.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-gray-900">{zone.name}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(zone.status)}`}>
-                        {getStatusLabel(zone.status)}
-                      </span>
-                    </div>
-
-                    <div className="space-y-3 mb-4">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Umidità Suolo:</span>
-                        <span className="font-medium">{zone.soilMoisture}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full"
-                          style={{ width: `${zone.soilMoisture}%` }}
-                        ></div>
-                      </div>
-                      
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Acqua Usata:</span>
-                        <span className="font-medium">{zone.waterUsed}L</span>
-                      </div>
-                      
-                      <div className="text-xs text-gray-500">
-                        <p>Ultima: {new Date(zone.lastWatering).toLocaleString('it-IT')}</p>
-                        <p>Prossima: {new Date(zone.nextWatering).toLocaleString('it-IT')}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                        <Play size={16} />
-                        Avvia
-                      </button>
-                      <button className="flex-1 flex items-center justify-center gap-2 bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors">
-                        <Pause size={16} />
-                        Pausa
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+      {activeTab === 'dashboard' && activeGarden && (
+        <ProfessionalIrrigationDashboard
+          garden={activeGarden}
+          onNavigateToZones={() => setActiveTab('zones')}
+          onNavigateToSystems={() => setActiveTab('systems')}
+          onNavigateToAnalytics={() => setActiveTab('analytics')}
+          onNavigateToScheduler={() => setActiveTab('scheduler')}
+        />
       )}
 
-      {activeTab === 'schedule' && (
+      {activeTab === 'zones' && activeGarden && (
+        <IrrigationZoneManager
+          garden={activeGarden}
+          onZoneSelect={(zone) => console.log('Zone selected:', zone)}
+          onSystemConfig={(zoneId) => {
+            console.log('Configure systems for zone:', zoneId)
+            setActiveTab('systems')
+          }}
+        />
+      )}
+
+      {activeTab === 'systems' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="text-center py-12">
-            <Clock className="mx-auto mb-4 text-blue-500" size={48} />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Programmazione Irrigazione</h2>
+            <Settings className="mx-auto mb-4 text-blue-500" size={48} />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Configurazione Sistemi</h2>
             <p className="text-gray-600 mb-6">
-              Configura orari e frequenza di irrigazione per ogni zona
+              Configura i sistemi di irrigazione per ogni zona
             </p>
-            <button 
-              onClick={() => setShowConfigWizard(true)}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Configura Programmazione
-            </button>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
+              <p className="text-sm text-blue-800">
+                🚧 Componente in sviluppo - Sarà disponibile nel prossimo aggiornamento
+              </p>
+            </div>
           </div>
         </div>
       )}
 
-      {activeTab === 'monitoring' && (
+      {activeTab === 'analytics' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="text-center py-12">
             <BarChart3 className="mx-auto mb-4 text-purple-500" size={48} />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Monitoraggio Avanzato</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Analytics Avanzate</h2>
             <p className="text-gray-600 mb-6">
-              Analizza consumi, efficienza e stato dell'irrigazione
+              Analizza consumi, efficienza e performance del sistema
             </p>
-            <button 
-              onClick={() => setShowAnalytics(true)}
-              className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              Visualizza Analytics
-            </button>
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 max-w-md mx-auto">
+              <p className="text-sm text-purple-800">
+                📊 Componente in sviluppo - Sarà disponibile nel prossimo aggiornamento
+              </p>
+            </div>
           </div>
         </div>
       )}
 
-      {activeTab === 'settings' && (
+      {activeTab === 'scheduler' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="text-center py-12">
-            <Settings className="mx-auto mb-4 text-gray-500" size={48} />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Impostazioni Sistema</h2>
+            <Clock className="mx-auto mb-4 text-green-500" size={48} />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Programmazione Automatica</h2>
             <p className="text-gray-600 mb-6">
-              Configura sensori, valvole e parametri del sistema
+              Configura orari e condizioni per l'irrigazione automatica
             </p>
-            <button className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors">
-              Apri Impostazioni
-            </button>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 max-w-md mx-auto">
+              <p className="text-sm text-green-800">
+                ⏰ Componente in sviluppo - Sarà disponibile nel prossimo aggiornamento
+              </p>
+            </div>
           </div>
         </div>
       )}

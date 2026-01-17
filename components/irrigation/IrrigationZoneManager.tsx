@@ -1,317 +1,600 @@
 'use client'
 
-import React, { useState } from 'react';
-import { IrrigationZone, IrrigationComponent, WateringMethod } from '@/types/irrigation';
-import { Garden } from '@/types';
-import { calculateZoneFlowRate, updateZoneFlowRateFromComponents } from '@/services/irrigationService';
-import { Droplets, Edit, Trash2, Plus, X, Save, Clock, AlertCircle } from 'lucide-react';
-import { IrrigationZoneWizard } from './IrrigationZoneWizard';
+import React, { useState, useEffect } from 'react'
+import { 
+  MapPin, 
+  Plus, 
+  Edit3, 
+  Trash2, 
+  Settings, 
+  Droplets,
+  AlertCircle,
+  CheckCircle,
+  X,
+  Save,
+  Eye,
+  Activity
+} from 'lucide-react'
+import { Garden } from '@/types'
+import { IrrigationZone, IrrigationSystem } from '@/types/irrigation'
+import { advancedIrrigationService } from '@/services/advancedIrrigationService'
 
 interface IrrigationZoneManagerProps {
-  garden: Garden;
-  zones: IrrigationZone[];
-  onZoneUpdate: (zone: IrrigationZone) => void;
-  onZoneDelete: (zoneId: string) => void;
-  onZoneCreate: (zone: IrrigationZone) => void;
+  garden: Garden
+  onZoneSelect?: (zone: IrrigationZone) => void
+  onSystemConfig?: (zoneId: string) => void
 }
 
-export const IrrigationZoneManager: React.FC<IrrigationZoneManagerProps> = ({
+interface ZoneFormData {
+  name: string
+  description: string
+  areaSqm: number
+  soilType: 'clay' | 'loam' | 'sand' | 'mixed'
+  slopePercentage: number
+  sunExposure: 'full' | 'partial' | 'shade'
+  drainageQuality: 'excellent' | 'good' | 'fair' | 'poor'
+  waterRetention: 'high' | 'medium' | 'low'
+  phLevel?: number
+  organicMatterPercentage?: number
+}
+
+const initialFormData: ZoneFormData = {
+  name: '',
+  description: '',
+  areaSqm: 0,
+  soilType: 'loam',
+  slopePercentage: 0,
+  sunExposure: 'full',
+  drainageQuality: 'good',
+  waterRetention: 'medium',
+  phLevel: undefined,
+  organicMatterPercentage: undefined
+}
+
+export default function IrrigationZoneManager({
   garden,
-  zones,
-  onZoneUpdate,
-  onZoneDelete,
-  onZoneCreate
-}) => {
-  const [editingZone, setEditingZone] = useState<IrrigationZone | null>(null);
-  const [showWizard, setShowWizard] = useState(false);
-  const [editingComponents, setEditingComponents] = useState(false);
-  const [components, setComponents] = useState<IrrigationComponent[]>([]);
+  onZoneSelect,
+  onSystemConfig
+}: IrrigationZoneManagerProps) {
+  const [zones, setZones] = useState<IrrigationZone[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [showForm, setShowForm] = useState(false)
+  const [editingZone, setEditingZone] = useState<IrrigationZone | null>(null)
+  const [formData, setFormData] = useState<ZoneFormData>(initialFormData)
+  const [saving, setSaving] = useState(false)
+  const [selectedZone, setSelectedZone] = useState<IrrigationZone | null>(null)
 
-  const handleEdit = (zone: IrrigationZone) => {
-    setEditingZone(zone);
-    setComponents([]); // TODO: Caricare componenti da storage
-  };
+  useEffect(() => {
+    loadZones()
+  }, [garden.id])
 
-  const handleSave = () => {
-    if (!editingZone) return;
-    
-    let updatedZone = { ...editingZone };
-    
-    // Se editing components, calcola portata
-    if (editingComponents && components.length > 0) {
-      updatedZone = updateZoneFlowRateFromComponents(editingZone, components);
+  const loadZones = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const zonesData = await advancedIrrigationService.getIrrigationZones(garden.id)
+      setZones(zonesData)
+    } catch (err) {
+      console.error('Error loading zones:', err)
+      setError('Errore nel caricamento delle zone')
+    } finally {
+      setLoading(false)
     }
-    
-    onZoneUpdate(updatedZone);
-    setEditingZone(null);
-    setEditingComponents(false);
-    setComponents([]);
-  };
+  }
 
-  const handleAddComponent = () => {
-    const newComponent: IrrigationComponent = {
-      id: crypto.randomUUID(),
-      zoneId: editingZone!.id,
-      type: 'Dripper',
-      quantity: 1,
-      flowRateLph: 4,
-      createdAt: new Date().toISOString()
-    };
-    setComponents([...components, newComponent]);
-  };
+  const handleCreateZone = () => {
+    setEditingZone(null)
+    setFormData(initialFormData)
+    setShowForm(true)
+  }
 
-  const handleComponentUpdate = (id: string, updates: Partial<IrrigationComponent>) => {
-    setComponents(components.map(c => c.id === id ? { ...c, ...updates } : c));
-  };
+  const handleEditZone = (zone: IrrigationZone) => {
+    setEditingZone(zone)
+    setFormData({
+      name: zone.name,
+      description: zone.description || '',
+      areaSqm: zone.areaSqm,
+      soilType: zone.soilType,
+      slopePercentage: zone.slopePercentage,
+      sunExposure: zone.sunExposure,
+      drainageQuality: zone.drainageQuality,
+      waterRetention: zone.waterRetention,
+      phLevel: zone.phLevel,
+      organicMatterPercentage: zone.organicMatterPercentage
+    })
+    setShowForm(true)
+  }
 
-  const handleComponentDelete = (id: string) => {
-    setComponents(components.filter(c => c.id !== id));
-  };
+  const handleDeleteZone = async (zone: IrrigationZone) => {
+    if (!confirm(`Sei sicuro di voler eliminare la zona "${zone.name}"?`)) {
+      return
+    }
 
-  const getMethodLabel = (method: WateringMethod) => {
+    try {
+      await advancedIrrigationService.deleteIrrigationZone(zone.id)
+      await loadZones()
+    } catch (err) {
+      console.error('Error deleting zone:', err)
+      setError('Errore nell\'eliminazione della zona')
+    }
+  }
+
+  const handleSaveZone = async () => {
+    if (!formData.name.trim()) {
+      setError('Il nome della zona è obbligatorio')
+      return
+    }
+
+    if (formData.areaSqm <= 0) {
+      setError('L\'area deve essere maggiore di 0')
+      return
+    }
+
+    try {
+      setSaving(true)
+      setError(null)
+
+      const zoneData = {
+        ...formData,
+        gardenId: garden.id,
+        isActive: true
+      }
+
+      if (editingZone) {
+        await advancedIrrigationService.updateIrrigationZone(editingZone.id, zoneData)
+      } else {
+        await advancedIrrigationService.createIrrigationZone(zoneData)
+      }
+
+      await loadZones()
+      setShowForm(false)
+      setEditingZone(null)
+      setFormData(initialFormData)
+    } catch (err) {
+      console.error('Error saving zone:', err)
+      setError('Errore nel salvataggio della zona')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleZoneClick = (zone: IrrigationZone) => {
+    setSelectedZone(zone)
+    onZoneSelect?.(zone)
+  }
+
+  const getSoilTypeLabel = (type: string) => {
     const labels = {
-      'Manual': 'Manuale',
-      'Hose': 'Tubo + Lancia',
-      'Dripline': 'Ala Gocciolante',
-      'Drippers': 'Gocciolatori',
-      'MicroSprinkler': 'Micro-Sprinkler',
-      'Sprinkler': 'Sprinkler',
-      'Mixed': 'Misto'
-    };
-    return labels[method];
-  };
+      clay: 'Argilloso',
+      loam: 'Franco',
+      sand: 'Sabbioso',
+      mixed: 'Misto'
+    }
+    return labels[type as keyof typeof labels] || type
+  }
+
+  const getSunExposureLabel = (exposure: string) => {
+    const labels = {
+      full: 'Pieno Sole',
+      partial: 'Parziale',
+      shade: 'Ombra'
+    }
+    return labels[exposure as keyof typeof labels] || exposure
+  }
+
+  const getDrainageLabel = (drainage: string) => {
+    const labels = {
+      excellent: 'Eccellente',
+      good: 'Buono',
+      fair: 'Discreto',
+      poor: 'Scarso'
+    }
+    return labels[drainage as keyof typeof labels] || drainage
+  }
+
+  const getWaterRetentionLabel = (retention: string) => {
+    const labels = {
+      high: 'Alta',
+      medium: 'Media',
+      low: 'Bassa'
+    }
+    return labels[retention as keyof typeof labels] || retention
+  }
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-gray-600">Caricamento zone...</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Droplets size={24} className="text-blue-600" />
-          <h2 className="text-xl md:text-2xl font-bold text-gray-800">Gestione Zone Irrigue</h2>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+            <MapPin className="text-blue-500" size={28} />
+            Gestione Zone Irrigazione
+          </h2>
+          <p className="text-gray-600 mt-1">Configura e gestisci le zone di irrigazione - {garden.name}</p>
         </div>
         <button
-          onClick={() => setShowWizard(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex items-center gap-3"
+          onClick={handleCreateZone}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus size={20} />
           Nuova Zona
         </button>
       </div>
 
-      {zones.length === 0 ? (
-        <div className="bg-gray-50 p-8 rounded-xl text-center">
-          <Droplets size={48} className="mx-auto mb-4 text-gray-400" />
-          <p className="text-gray-600">Nessuna zona configurata. Crea una nuova zona per iniziare!</p>
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <p className="text-red-800">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="ml-auto text-red-500 hover:text-red-700"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Zones Grid */}
+      {zones.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {zones.map((zone) => (
+            <div
+              key={zone.id}
+              className={`bg-white rounded-xl shadow-sm border-2 transition-all cursor-pointer ${
+                selectedZone?.id === zone.id
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
+              }`}
+              onClick={() => handleZoneClick(zone)}
+            >
+              <div className="p-6">
+                {/* Zone Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <MapPin className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{zone.name}</h3>
+                      <p className="text-sm text-gray-600">{zone.areaSqm} m²</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleEditZone(zone)
+                      }}
+                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Modifica Zona"
+                    >
+                      <Edit3 size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteZone(zone)
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Elimina Zona"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Zone Details */}
+                <div className="space-y-3 mb-4">
+                  {zone.description && (
+                    <p className="text-sm text-gray-600">{zone.description}</p>
+                  )}
+                  
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-500">Terreno:</span>
+                      <p className="font-medium">{getSoilTypeLabel(zone.soilType)}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Esposizione:</span>
+                      <p className="font-medium">{getSunExposureLabel(zone.sunExposure)}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Drenaggio:</span>
+                      <p className="font-medium">{getDrainageLabel(zone.drainageQuality)}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Ritenzione:</span>
+                      <p className="font-medium">{getWaterRetentionLabel(zone.waterRetention)}</p>
+                    </div>
+                  </div>
+
+                  {zone.slopePercentage > 0 && (
+                    <div className="text-sm">
+                      <span className="text-gray-500">Pendenza:</span>
+                      <span className="font-medium ml-1">{zone.slopePercentage}%</span>
+                    </div>
+                  )}
+
+                  {zone.phLevel && (
+                    <div className="text-sm">
+                      <span className="text-gray-500">pH:</span>
+                      <span className="font-medium ml-1">{zone.phLevel}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Systems Count */}
+                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Settings size={14} />
+                    <span>{zone.systems?.length || 0} sistemi configurati</span>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onSystemConfig?.(zone.id)
+                    }}
+                    className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  >
+                    <Settings size={14} />
+                    Sistemi
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
-        <div className="space-y-4">
-          {zones.map(zone => (
-            <div key={zone.id} className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-shadow">
-              {editingZone?.id === zone.id ? (
-                <div className="space-y-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MapPin className="w-8 h-8 text-blue-600" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">Nessuna Zona Configurata</h3>
+          <p className="text-gray-600 mb-6 max-w-md mx-auto">
+            Crea la tua prima zona di irrigazione per iniziare a gestire l'irrigazione del tuo giardino.
+          </p>
+          <button
+            onClick={handleCreateZone}
+            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mx-auto"
+          >
+            <Plus size={20} />
+            Crea Prima Zona
+          </button>
+        </div>
+      )}
+
+      {/* Zone Form Modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">
+                  {editingZone ? 'Modifica Zona' : 'Nuova Zona Irrigazione'}
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Configura i parametri della zona per ottimizzare l'irrigazione
+                </p>
+              </div>
+              <button
+                onClick={() => setShowForm(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Informazioni Base</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Nome Zona</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nome Zona *
+                    </label>
                     <input
                       type="text"
-                      value={editingZone.name}
-                      onChange={(e) => setEditingZone({ ...editingZone, name: e.target.value })}
-                      className="w-full p-3 border rounded-lg"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="es. Zona Pomodori"
                     />
                   </div>
-                  
+
                   <div>
-                    <label className="block text-sm font-medium mb-2">Portata (L/h)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Area (m²) *
+                    </label>
                     <input
                       type="number"
-                      value={editingZone.flowRateLph}
-                      onChange={(e) => setEditingZone({ ...editingZone, flowRateLph: parseFloat(e.target.value) || 0 })}
-                      className="w-full p-3 border rounded-lg"
+                      value={formData.areaSqm || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, areaSqm: parseFloat(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0"
                       min="0"
+                      step="0.1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Descrizione
+                  </label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows={3}
+                    placeholder="Descrizione opzionale della zona..."
+                  />
+                </div>
+              </div>
+
+              {/* Soil Characteristics */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Caratteristiche del Terreno</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tipo di Terreno
+                    </label>
+                    <select
+                      value={formData.soilType}
+                      onChange={(e) => setFormData(prev => ({ ...prev, soilType: e.target.value as any }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="clay">Argilloso</option>
+                      <option value="loam">Franco</option>
+                      <option value="sand">Sabbioso</option>
+                      <option value="mixed">Misto</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Esposizione Solare
+                    </label>
+                    <select
+                      value={formData.sunExposure}
+                      onChange={(e) => setFormData(prev => ({ ...prev, sunExposure: e.target.value as any }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="full">Pieno Sole</option>
+                      <option value="partial">Parziale</option>
+                      <option value="shade">Ombra</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Qualità Drenaggio
+                    </label>
+                    <select
+                      value={formData.drainageQuality}
+                      onChange={(e) => setFormData(prev => ({ ...prev, drainageQuality: e.target.value as any }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="excellent">Eccellente</option>
+                      <option value="good">Buono</option>
+                      <option value="fair">Discreto</option>
+                      <option value="poor">Scarso</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ritenzione Idrica
+                    </label>
+                    <select
+                      value={formData.waterRetention}
+                      onChange={(e) => setFormData(prev => ({ ...prev, waterRetention: e.target.value as any }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="high">Alta</option>
+                      <option value="medium">Media</option>
+                      <option value="low">Bassa</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Pendenza (%)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.slopePercentage || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, slopePercentage: parseFloat(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0"
+                      min="0"
+                      max="100"
                       step="0.1"
                     />
                   </div>
 
                   <div>
-                    <label className="flex items-center gap-3 mb-2">
-                      <input
-                        type="checkbox"
-                        checked={editingComponents}
-                        onChange={(e) => setEditingComponents(e.target.checked)}
-                      />
-                      <span>Calcola da componenti (Livello Pro)</span>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      pH del Terreno
                     </label>
-                    
-                    {editingComponents && (
-                      <div className="mt-2 space-y-2">
-                        {components.map(comp => (
-                          <div key={comp.id} className="p-3 bg-gray-50 rounded-lg flex items-center gap-3">
-                            <select
-                              value={comp.type}
-                              onChange={(e) => handleComponentUpdate(comp.id, { type: e.target.value as any })}
-                              className="flex-1 p-3 border rounded"
-                            >
-                              <option value="Dripline">Ala Gocciolante</option>
-                              <option value="Dripper">Gocciolatore</option>
-                              <option value="MicroSprinkler">Micro-Sprinkler</option>
-                            </select>
-                            {comp.type === 'Dripline' && (
-                              <>
-                                <input
-                                  type="number"
-                                  placeholder="Metri"
-                                  value={comp.lengthMeters || ''}
-                                  onChange={(e) => handleComponentUpdate(comp.id, { lengthMeters: parseFloat(e.target.value) || 0 })}
-                                  className="w-24 p-3 border rounded"
-                                />
-                                <input
-                                  type="number"
-                                  placeholder="L/h per metro"
-                                  value={comp.flowRatePerMeterLph || ''}
-                                  onChange={(e) => handleComponentUpdate(comp.id, { flowRatePerMeterLph: parseFloat(e.target.value) || 0 })}
-                                  className="w-32 p-3 border rounded"
-                                />
-                              </>
-                            )}
-                            {(comp.type === 'Dripper' || comp.type === 'MicroSprinkler') && (
-                              <>
-                                <input
-                                  type="number"
-                                  placeholder="Quantità"
-                                  value={comp.quantity || ''}
-                                  onChange={(e) => handleComponentUpdate(comp.id, { quantity: parseInt(e.target.value) || 0 })}
-                                  className="w-24 p-3 border rounded"
-                                />
-                                <input
-                                  type="number"
-                                  placeholder="L/h per unità"
-                                  value={comp.flowRateLph || ''}
-                                  onChange={(e) => handleComponentUpdate(comp.id, { flowRateLph: parseFloat(e.target.value) || 0 })}
-                                  className="w-32 p-3 border rounded"
-                                />
-                              </>
-                            )}
-                            <button
-                              onClick={() => handleComponentDelete(comp.id)}
-                              className="p-3 text-red-600 hover:bg-red-50 rounded"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        ))}
-                        <button
-                          onClick={handleAddComponent}
-                          className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 text-sm"
-                        >
-                          + Aggiungi Componente
-                        </button>
-                        {components.length > 0 && (
-                          <div className="p-3 bg-blue-50 rounded-lg">
-                            <p className="text-sm text-blue-800">
-                              Portata calcolata: <strong>{calculateZoneFlowRate(components).toFixed(1)} L/h</strong>
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleSave}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-3"
-                    >
-                      <Save size={18} />
-                      Salva
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditingZone(null);
-                        setEditingComponents(false);
-                        setComponents([]);
-                      }}
-                      className="px-4 py-2 border rounded-lg"
-                    >
-                      Annulla
-                    </button>
+                    <input
+                      type="number"
+                      value={formData.phLevel || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, phLevel: parseFloat(e.target.value) || undefined }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="7.0"
+                      min="0"
+                      max="14"
+                      step="0.1"
+                    />
                   </div>
                 </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="font-bold text-lg">{zone.name}</h3>
-                      <p className="text-sm text-gray-600">
-                        {getMethodLabel(zone.method)} • {zone.flowRateLph} L/h
-                      </p>
-                    </div>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => handleEdit(zone)}
-                        className="p-3 text-blue-600 hover:bg-blue-50 rounded-lg"
-                      >
-                        <Edit size={18} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Eliminare la zona "${zone.name}"?`)) {
-                            onZoneDelete(zone.id);
-                          }
-                        }}
-                        className="p-3 text-red-600 hover:bg-red-50 rounded-lg"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-500">Aiuole associate:</span>
-                      <span className="ml-2 font-semibold">{zone.bedIds.length}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Piante associate:</span>
-                      <span className="ml-2 font-semibold">{zone.plantTaskIds.length}</span>
-                    </div>
-                    {zone.valveId && (
-                      <div className="col-span-2">
-                        <span className="text-gray-500">Valvola Smart:</span>
-                        <span className="ml-2 font-semibold">{zone.valveId}</span>
-                      </div>
-                    )}
-                    {zone.calculatedFromComponents && (
-                      <div className="col-span-2">
-                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                          Portata calcolata da componenti
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {zone.notes && (
-                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-700">{zone.notes}</p>
-                    </div>
-                  )}
-                </>
-              )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Sostanza Organica (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.organicMatterPercentage || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, organicMatterPercentage: parseFloat(e.target.value) || undefined }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="3.0"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                  />
+                </div>
+              </div>
             </div>
-          ))}
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between p-6 border-t border-gray-200">
+              <button
+                onClick={() => setShowForm(false)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={handleSaveZone}
+                disabled={saving || !formData.name.trim() || formData.areaSqm <= 0}
+                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    {editingZone ? 'Aggiorna Zona' : 'Crea Zona'}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
-
-      {showWizard && (
-        <IrrigationZoneWizard
-          garden={garden}
-          beds={[]} // TODO: Caricare da storage
-          systemId={garden.id}
-          onComplete={(zone) => {
-            onZoneCreate(zone);
-            setShowWizard(false);
-          }}
-          onCancel={() => setShowWizard(false)}
-        />
-      )}
     </div>
-  );
-};
-
+  )
+}

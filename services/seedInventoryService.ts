@@ -1,410 +1,326 @@
-import { SeedPacket } from '../types';
+import { SeedPacket, SeedConsumption, SeedAlert, SeedInventoryStats, SeedSearchFilters } from '@/types/seedInventory'
+import { getSupabaseClient } from '@/config/supabase'
 
-const STORAGE_PREFIX = 'seedPackets_';
+class SeedInventoryService {
+  async getSeedPackets(gardenId: string, filters?: SeedSearchFilters): Promise<SeedPacket[]> {
+    try {
+      const supabase = getSupabaseClient()
+      let query = supabase
+        .from('seed_packets')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .order('created_at', { ascending: false })
 
-/**
- * Salva i semi in localStorage
- */
-const saveToStorage = (gardenId: string, packets: SeedPacket[]) => {
-  try {
-    localStorage.setItem(`${STORAGE_PREFIX}${gardenId}`, JSON.stringify(packets));
-  } catch (error) {
-    console.error('Error saving seed packets:', error);
-  }
-};
+      if (filters?.searchTerm) {
+        query = query.or(`variety_name.ilike.%${filters.searchTerm}%,species_name.ilike.%${filters.searchTerm}%,supplier.ilike.%${filters.searchTerm}%`)
+      }
 
-/**
- * Carica i semi da localStorage
- */
-const loadFromStorage = (gardenId: string): SeedPacket[] => {
-  try {
-    const stored = localStorage.getItem(`${STORAGE_PREFIX}${gardenId}`);
-    if (stored) {
-      return JSON.parse(stored) as SeedPacket[];
+      if (filters?.source && filters.source !== 'all') {
+        query = query.eq('source', filters.source)
+      }
+
+      if (filters?.isOpen !== undefined) {
+        query = query.eq('is_open', filters.isOpen)
+      }
+
+      if (filters?.expiryYear) {
+        query = query.eq('expiry_year', filters.expiryYear)
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+
+      return data?.map(this.mapFromDatabase) || []
+    } catch (error) {
+      console.error('Error fetching seed packets:', error)
+      return []
     }
-  } catch (error) {
-    console.error('Error loading seed packets:', error);
   }
-  return [];
-};
 
-/**
- * Aggiunge un nuovo pacchetto di semi
- */
-export const addSeedPacket = (packet: SeedPacket): void => {
-  const packets = loadFromStorage(packet.gardenId);
-  
-  // Se initialQuantity è specificato ma currentQuantity no, imposta currentQuantity = initialQuantity
-  const finalPacket: SeedPacket = {
-    ...packet,
-    currentQuantity: packet.currentQuantity !== undefined 
-      ? packet.currentQuantity 
-      : packet.initialQuantity,
-    // Calcola quantityRemaining se abbiamo quantità numerica
-    quantityRemaining: packet.initialQuantity !== undefined || packet.currentQuantity !== undefined
-      ? calculateQuantityRemaining(
-          packet.currentQuantity !== undefined ? packet.currentQuantity : packet.initialQuantity,
-          packet.initialQuantity
-        )
-      : packet.quantityRemaining || 'High'
-  };
-  
-  packets.push(finalPacket);
-  saveToStorage(packet.gardenId, packets);
-};
+  async addSeedPacket(packet: Omit<SeedPacket, 'id'>): Promise<SeedPacket> {
+    try {
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase
+        .from('seed_packets')
+        .insert([this.mapToDatabase(packet)])
+        .select()
+        .single()
 
-/**
- * Ottiene tutti i pacchetti di semi per un orto
- */
-export const getSeedPackets = (gardenId: string): SeedPacket[] => {
-  return loadFromStorage(gardenId);
-};
+      if (error) throw error
 
-/**
- * Aggiorna un pacchetto di semi esistente
- */
-export const updateSeedPacket = (gardenId: string, id: string, updates: Partial<SeedPacket>): void => {
-  const packets = loadFromStorage(gardenId);
-  const index = packets.findIndex(p => p.id === id);
-  if (index !== -1) {
-    const updated = { ...packets[index], ...updates };
-    
-    // Se currentQuantity o initialQuantity sono stati aggiornati, ricalcola quantityRemaining
-    if (updates.currentQuantity !== undefined || updates.initialQuantity !== undefined) {
-      updated.quantityRemaining = calculateQuantityRemaining(
-        updated.currentQuantity,
-        updated.initialQuantity
-      );
+      return this.mapFromDatabase(data)
+    } catch (error) {
+      console.error('Error adding seed packet:', error)
+      throw error
     }
-    
-    packets[index] = updated;
-    saveToStorage(gardenId, packets);
   }
-};
 
-/**
- * Elimina un pacchetto di semi
- */
-export const deleteSeedPacket = (gardenId: string, id: string): void => {
-  const packets = loadFromStorage(gardenId);
-  const filteredPackets = packets.filter(p => p.id !== id);
-  saveToStorage(gardenId, filteredPackets);
-};
+  async updateSeedPacket(id: string, updates: Partial<SeedPacket>): Promise<SeedPacket> {
+    try {
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase
+        .from('seed_packets')
+        .update(this.mapToDatabase(updates))
+        .eq('id', id)
+        .select()
+        .single()
 
-/**
- * Consuma semi dalla banca per una semina
- * Scala automaticamente la quantità e aggiorna lo stato
- */
-export const consumeSeedsForSowing = (
-  gardenId: string, 
-  varietyName: string, 
-  seedsUsed: number
-): { success: boolean; message: string; updatedPacket?: SeedPacket } => {
-  const packets = loadFromStorage(gardenId);
-  
-  // Trova il pacchetto corrispondente (per nome varietà)
-  const packetIndex = packets.findIndex(p => 
-    p.varietyName.toLowerCase() === varietyName.toLowerCase()
-  );
-  
-  if (packetIndex === -1) {
-    return {
-      success: false,
-      message: `Nessun pacchetto trovato per ${varietyName}. Aggiungi prima i semi alla banca.`
-    };
+      if (error) throw error
+
+      return this.mapFromDatabase(data)
+    } catch (error) {
+      console.error('Error updating seed packet:', error)
+      throw error
+    }
   }
-  
-  const packet = packets[packetIndex];
-  
-  // Verifica disponibilità
-  if (packet.quantityRemaining === 'Empty') {
-    return {
-      success: false,
-      message: `Pacchetto ${varietyName} vuoto. Acquista nuovi semi.`
-    };
+
+  async deleteSeedPacket(id: string): Promise<void> {
+    try {
+      const supabase = getSupabaseClient()
+      const { error } = await supabase
+        .from('seed_packets')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+    } catch (error) {
+      console.error('Error deleting seed packet:', error)
+      throw error
+    }
   }
-  
-  // Se abbiamo quantità numerica, scala esattamente
-  if (packet.currentQuantity !== undefined) {
-    if (packet.currentQuantity < seedsUsed) {
+
+  async consumeSeeds(consumption: Omit<SeedConsumption, 'id'>): Promise<SeedConsumption> {
+    try {
+      const supabase = getSupabaseClient()
+      // First, record the consumption
+      const { data: consumptionData, error: consumptionError } = await supabase
+        .from('seed_consumptions')
+        .insert([{
+          seed_packet_id: consumption.seedPacketId,
+          plant_name: consumption.plantName,
+          variety: consumption.variety,
+          quantity_used: consumption.quantityUsed,
+          date: consumption.date,
+          purpose: consumption.purpose,
+          notes: consumption.notes,
+          garden_id: consumption.gardenId
+        }])
+        .select()
+        .single()
+
+      if (consumptionError) throw consumptionError
+
+      // Then, update the seed packet quantity
+      await this.updateSeedQuantityAfterConsumption(consumption.seedPacketId, consumption.quantityUsed)
+
       return {
-        success: false,
-        message: `Semi insufficienti. Disponibili: ${packet.currentQuantity}, richiesti: ${seedsUsed}`
-      };
+        id: consumptionData.id,
+        seedPacketId: consumptionData.seed_packet_id,
+        plantName: consumptionData.plant_name,
+        variety: consumptionData.variety,
+        quantityUsed: consumptionData.quantity_used,
+        date: consumptionData.date,
+        purpose: consumptionData.purpose,
+        notes: consumptionData.notes,
+        gardenId: consumptionData.garden_id
+      }
+    } catch (error) {
+      console.error('Error consuming seeds:', error)
+      throw error
     }
-    
-    // Scala la quantità
-    const newQuantity = packet.currentQuantity - seedsUsed;
-    const updatedPacket = {
-      ...packet,
-      currentQuantity: newQuantity,
-      quantityRemaining: calculateQuantityRemaining(newQuantity, packet.initialQuantity),
-      isOpen: true // Marca come aperto dopo primo uso
-    };
-    
-    packets[packetIndex] = updatedPacket;
-    saveToStorage(gardenId, packets);
-    
+  }
+
+  async getAvailableSeedsForPlant(gardenId: string, plantName: string, variety?: string): Promise<SeedPacket[]> {
+    try {
+      const supabase = getSupabaseClient()
+      let query = supabase
+        .from('seed_packets')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .ilike('variety_name', `%${plantName}%`)
+        .neq('quantity_remaining', 'Empty')
+        .gte('expiry_year', new Date().getFullYear())
+
+      if (variety) {
+        query = query.ilike('species_name', `%${variety}%`)
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+
+      return data?.map(this.mapFromDatabase) || []
+    } catch (error) {
+      console.error('Error fetching available seeds:', error)
+      return []
+    }
+  }
+
+  async getExpiringSeeds(gardenId: string, monthsAhead: number = 12): Promise<SeedPacket[]> {
+    try {
+      const supabase = getSupabaseClient()
+      const targetYear = new Date().getFullYear() + Math.floor(monthsAhead / 12)
+      
+      const { data, error } = await supabase
+        .from('seed_packets')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .lte('expiry_year', targetYear)
+        .neq('quantity_remaining', 'Empty')
+
+      if (error) throw error
+
+      return data?.map(this.mapFromDatabase) || []
+    } catch (error) {
+      console.error('Error fetching expiring seeds:', error)
+      return []
+    }
+  }
+
+  async getLowStockSeeds(gardenId: string): Promise<SeedPacket[]> {
+    try {
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase
+        .from('seed_packets')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .in('quantity_remaining', ['Low', 'Empty'])
+
+      if (error) throw error
+
+      return data?.map(this.mapFromDatabase) || []
+    } catch (error) {
+      console.error('Error fetching low stock seeds:', error)
+      return []
+    }
+  }
+
+  async getInventoryStats(gardenId: string): Promise<SeedInventoryStats> {
+    try {
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase
+        .from('seed_packets')
+        .select('*')
+        .eq('garden_id', gardenId)
+
+      if (error) throw error
+
+      const packets = data || []
+      const currentYear = new Date().getFullYear()
+      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
+      return {
+        totalPackets: packets.length,
+        totalVarieties: new Set(packets.map(p => p.variety_name)).size,
+        expiringCount: packets.filter(p => p.expiry_year <= currentYear + 1).length,
+        lowStockCount: packets.filter(p => ['Low', 'Empty'].includes(p.quantity_remaining)).length,
+        expiredCount: packets.filter(p => p.expiry_year < currentYear).length,
+        recentlyAdded: packets.filter(p => new Date(p.created_at) > oneWeekAgo).length
+      }
+    } catch (error) {
+      console.error('Error fetching inventory stats:', error)
+      return {
+        totalPackets: 0,
+        totalVarieties: 0,
+        expiringCount: 0,
+        lowStockCount: 0,
+        expiredCount: 0,
+        recentlyAdded: 0
+      }
+    }
+  }
+
+  private async updateSeedQuantityAfterConsumption(seedPacketId: string, quantityUsed: number): Promise<void> {
+    try {
+      const supabase = getSupabaseClient()
+      // Get current packet
+      const { data: packet, error: fetchError } = await supabase
+        .from('seed_packets')
+        .select('*')
+        .eq('id', seedPacketId)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      // Calculate new quantity status
+      let newQuantityRemaining = packet.quantity_remaining
+      
+      // Simple logic: if we used seeds, reduce the status
+      if (quantityUsed > 0) {
+        switch (packet.quantity_remaining) {
+          case 'High':
+            newQuantityRemaining = quantityUsed > 50 ? 'Medium' : 'High'
+            break
+          case 'Medium':
+            newQuantityRemaining = quantityUsed > 20 ? 'Low' : 'Medium'
+            break
+          case 'Low':
+            newQuantityRemaining = quantityUsed > 5 ? 'Empty' : 'Low'
+            break
+        }
+      }
+
+      // Update the packet
+      const { error: updateError } = await supabase
+        .from('seed_packets')
+        .update({ 
+          quantity_remaining: newQuantityRemaining,
+          is_open: true // Mark as opened when seeds are consumed
+        })
+        .eq('id', seedPacketId)
+
+      if (updateError) throw updateError
+    } catch (error) {
+      console.error('Error updating seed quantity:', error)
+      throw error
+    }
+  }
+
+  private mapFromDatabase(data: any): SeedPacket {
     return {
-      success: true,
-      message: `Utilizzati ${seedsUsed} semi di ${varietyName}. Rimanenti: ${newQuantity}`,
-      updatedPacket
-    };
-  }
-  
-  // Se abbiamo solo quantità qualitativa, scala di categoria
-  let newQuantityRemaining: 'High' | 'Medium' | 'Low' | 'Empty' = packet.quantityRemaining;
-  if (seedsUsed > 50) {
-    // Semina grande, scala di molto
-    newQuantityRemaining = packet.quantityRemaining === 'High' ? 'Medium' : 
-                          packet.quantityRemaining === 'Medium' ? 'Low' : 'Empty';
-  } else if (seedsUsed > 20) {
-    // Semina media
-    newQuantityRemaining = packet.quantityRemaining === 'High' ? 'High' : 
-                          packet.quantityRemaining === 'Medium' ? 'Low' : 'Empty';
-  }
-  // Semina piccola (< 20 semi) non scala la categoria
-  
-  const updatedPacket = {
-    ...packet,
-    quantityRemaining: newQuantityRemaining,
-    isOpen: true
-  };
-  
-  packets[packetIndex] = updatedPacket;
-  saveToStorage(gardenId, packets);
-  
-  return {
-    success: true,
-    message: `Utilizzati ${seedsUsed} semi di ${varietyName}. Stato: ${newQuantityRemaining}`,
-    updatedPacket
-  };
-};
-
-/**
- * Ottiene i semi disponibili per una pianta specifica
- */
-export const getAvailableSeedsForPlant = (gardenId: string, plantName: string): SeedPacket[] => {
-  const packets = getSeedPackets(gardenId);
-  
-  return packets.filter(p => {
-    // Match esatto per nome varietà
-    if (p.varietyName.toLowerCase().includes(plantName.toLowerCase())) {
-      return true;
+      id: data.id,
+      varietyId: data.variety_id,
+      varietyName: data.variety_name,
+      speciesName: data.species_name,
+      purchaseDate: data.purchase_date,
+      expiryYear: data.expiry_year,
+      isOpen: data.is_open,
+      quantityRemaining: data.quantity_remaining,
+      source: data.source,
+      supplier: data.supplier,
+      notes: data.notes,
+      gardenId: data.garden_id,
+      initialQuantity: data.initial_quantity,
+      currentQuantity: data.current_quantity,
+      quantityDisplay: data.quantity_display,
+      quantityMin: data.quantity_min,
+      quantityMax: data.quantity_max,
+      quantityExact: data.quantity_exact
     }
-    
-    // Match per nome specie
-    if (p.speciesName.toLowerCase().includes(plantName.toLowerCase())) {
-      return true;
+  }
+
+  private mapToDatabase(packet: Partial<SeedPacket>): any {
+    return {
+      variety_id: packet.varietyId,
+      variety_name: packet.varietyName,
+      species_name: packet.speciesName,
+      purchase_date: packet.purchaseDate,
+      expiry_year: packet.expiryYear,
+      is_open: packet.isOpen,
+      quantity_remaining: packet.quantityRemaining,
+      source: packet.source,
+      supplier: packet.supplier,
+      notes: packet.notes,
+      garden_id: packet.gardenId,
+      initial_quantity: packet.initialQuantity,
+      current_quantity: packet.currentQuantity,
+      quantity_display: packet.quantityDisplay,
+      quantity_min: packet.quantityMin,
+      quantity_max: packet.quantityMax,
+      quantity_exact: packet.quantityExact
     }
-    
-    return false;
-  }).filter(p => p.quantityRemaining !== 'Empty'); // Solo pacchetti non vuoti
-};
-
-/**
- * Registra il risultato della germinazione
- * Collega semi piantati con piantine nate
- */
-export const recordGerminationResult = (
-  gardenId: string,
-  batchId: string,
-  seedsPlanted: number,
-  seedlingsGerminated: number,
-  varietyName: string
-): { germinationRate: number; efficiency: string } => {
-  const germinationRate = seedsPlanted > 0 ? (seedlingsGerminated / seedsPlanted) * 100 : 0;
-  
-  // Determina efficienza
-  let efficiency = 'Scarsa';
-  if (germinationRate >= 80) efficiency = 'Ottima';
-  else if (germinationRate >= 60) efficiency = 'Buona';
-  else if (germinationRate >= 40) efficiency = 'Media';
-  
-  // Salva statistiche germinazione (potrebbe essere salvato in localStorage o database)
-  const germinationStats = {
-    batchId,
-    varietyName,
-    seedsPlanted,
-    seedlingsGerminated,
-    germinationRate,
-    efficiency,
-    date: new Date().toISOString()
-  };
-  
-  // Salva in localStorage per ora (in futuro potrebbe andare in database)
-  const statsKey = `germinationStats_${gardenId}`;
-  const existingStats = JSON.parse(localStorage.getItem(statsKey) || '[]');
-  existingStats.push(germinationStats);
-  localStorage.setItem(statsKey, JSON.stringify(existingStats));
-  
-  return { germinationRate, efficiency };
-};
-
-/**
- * Ottiene le statistiche di germinazione per una varietà
- */
-export const getGerminationStatsForVariety = (gardenId: string, varietyName: string) => {
-  const statsKey = `germinationStats_${gardenId}`;
-  const allStats = JSON.parse(localStorage.getItem(statsKey) || '[]');
-  
-  const varietyStats = allStats.filter((stat: any) => 
-    stat.varietyName.toLowerCase() === varietyName.toLowerCase()
-  );
-  
-  if (varietyStats.length === 0) return null;
-  
-  // Calcola media
-  const totalSeeds = varietyStats.reduce((sum: number, stat: any) => sum + stat.seedsPlanted, 0);
-  const totalGerminated = varietyStats.reduce((sum: number, stat: any) => sum + stat.seedlingsGerminated, 0);
-  const averageRate = totalSeeds > 0 ? (totalGerminated / totalSeeds) * 100 : 0;
-  
-  return {
-    totalBatches: varietyStats.length,
-    totalSeeds,
-    totalGerminated,
-    averageRate,
-    lastBatch: varietyStats[varietyStats.length - 1]
-  };
-};
-
-/**
- * Ottiene i semi in scadenza (quest'anno o prossimo anno)
- */
-export const getExpiringSeeds = (gardenId: string, currentYear: number): SeedPacket[] => {
-  const packets = getSeedPackets(gardenId);
-  return packets.filter(p => 
-    p.expiryYear <= currentYear + 1 && 
-    p.quantityRemaining !== 'Empty'
-  ).sort((a, b) => a.expiryYear - b.expiryYear);
-};
-
-/**
- * Calcola quantityRemaining basato su currentQuantity
- */
-const calculateQuantityRemaining = (
-  currentQuantity?: number, 
-  initialQuantity?: number
-): SeedPacket['quantityRemaining'] => {
-  if (currentQuantity === undefined || currentQuantity === null) {
-    return 'High'; // Default se non specificato
   }
-  
-  if (currentQuantity === 0) return 'Empty';
-  
-  // Se abbiamo initialQuantity, calcola percentuale
-  if (initialQuantity && initialQuantity > 0) {
-    const percentage = (currentQuantity / initialQuantity) * 100;
-    if (percentage >= 75) return 'High';
-    if (percentage >= 50) return 'Medium';
-    if (percentage >= 25) return 'Low';
-    return 'Empty';
-  }
-  
-  // Fallback su valori assoluti
-  if (currentQuantity >= 50) return 'High';
-  if (currentQuantity >= 20) return 'Medium';
-  if (currentQuantity >= 1) return 'Low';
-  return 'Empty';
-};
+}
 
-/**
- * Ottiene i semi con quantità bassa
- */
-export const getLowStockSeeds = (gardenId: string): SeedPacket[] => {
-  const packets = getSeedPackets(gardenId);
-  return packets.filter(p => 
-    p.quantityRemaining === 'Low' || p.quantityRemaining === 'Medium'
-  );
-};
-
-/**
- * Usa semi per una semina (riduce la quantità numerica precisa)
- */
-export const useSeedForPlanting = (gardenId: string, packetId: string, quantity: number = 1): boolean => {
-  const packets = loadFromStorage(gardenId);
-  const packet = packets.find(p => p.id === packetId);
-  
-  if (!packet) {
-    return false;
-  }
-  
-  // Se abbiamo quantità numerica, usala per calcolo preciso
-  if (packet.currentQuantity !== undefined && packet.currentQuantity !== null) {
-    const newQuantity = Math.max(0, packet.currentQuantity - quantity);
-    const newQuantityRemaining = calculateQuantityRemaining(newQuantity, packet.initialQuantity);
-    
-    updateSeedPacket(gardenId, packetId, {
-      currentQuantity: newQuantity,
-      quantityRemaining: newQuantityRemaining
-    });
-    return newQuantity >= 0;
-  }
-  
-  // Fallback su logica vecchia (per retrocompatibilità con pacchetti senza quantità numerica)
-  if (packet.quantityRemaining === 'Empty') {
-    return false;
-  }
-  
-  const quantityMap: Record<string, number> = {
-    'High': 3,
-    'Medium': 2,
-    'Low': 1,
-    'Empty': 0
-  };
-  
-  const currentValue = quantityMap[packet.quantityRemaining];
-  const newValue = Math.max(0, currentValue - quantity);
-  
-  let newQuantity: SeedPacket['quantityRemaining'];
-  if (newValue >= 3) {
-    newQuantity = 'High';
-  } else if (newValue >= 2) {
-    newQuantity = 'Medium';
-  } else if (newValue >= 1) {
-    newQuantity = 'Low';
-  } else {
-    newQuantity = 'Empty';
-  }
-  
-  updateSeedPacket(gardenId, packetId, { quantityRemaining: newQuantity });
-  return true;
-};
-
-/**
- * Trova semi disponibili per una varietà/specie
- */
-export const findSeedsForPlant = (
-  gardenId: string, 
-  speciesName: string, 
-  varietyName?: string
-): SeedPacket[] => {
-  const packets = getSeedPackets(gardenId);
-  return packets.filter(p => {
-    const speciesMatch = p.speciesName.toLowerCase() === speciesName.toLowerCase();
-    const varietyMatch = !varietyName || 
-      p.varietyName.toLowerCase() === varietyName.toLowerCase();
-    return speciesMatch && varietyMatch && p.quantityRemaining !== 'Empty';
-  });
-};
-
-/**
- * Ottiene i semi scaduti (anno passato)
- */
-export const getExpiredSeeds = (gardenId: string, currentYear: number): SeedPacket[] => {
-  const packets = getSeedPackets(gardenId);
-  return packets.filter(p => p.expiryYear < currentYear);
-};
-
-/**
- * Controlla se è Gennaio e mostra alert per semi scaduti
- */
-export const shouldShowJanuaryAlert = (): boolean => {
-  const month = new Date().getMonth() + 1;
-  return month === 1; // Gennaio
-};
-
-
-
-
-
+export const seedInventoryService = new SeedInventoryService()

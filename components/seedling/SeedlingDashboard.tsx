@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Garden } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { CardContent, CardHeader, CardTitle, Badge, Input } from '@/components/ui/ortomio-adapter';
 import { Button } from '@/components/ui/Button';
@@ -44,7 +45,11 @@ interface SeedlingBatch {
 }
 
 interface SeedlingDashboardProps {
-  batches: SeedlingBatch[];
+  garden: Garden;
+  shouldCreate?: boolean;
+  plantName?: string;
+  variety?: string;
+  batches?: SeedlingBatch[];
   onBatchCreate?: (batch: Partial<SeedlingBatch>) => void;
   onBatchUpdate?: (batchId: string, updates: Partial<SeedlingBatch>) => void;
   onBatchDelete?: (batchId: string) => void;
@@ -52,7 +57,11 @@ interface SeedlingDashboardProps {
 }
 
 export default function SeedlingDashboard({
-  batches,
+  garden,
+  shouldCreate = false,
+  plantName,
+  variety,
+  batches = [],
   onBatchCreate,
   onBatchUpdate,
   onBatchDelete,

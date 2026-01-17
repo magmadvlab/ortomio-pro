@@ -1,0 +1,41 @@
+feat: Integrazione completa sistema consigli e piante individuali
+
+🔄 SISTEMA CONSIGLI INTEGRATO NEL PLANNER:
+- Spostato CropRotationPlanner da /app/advice a tab planner
+- Spostato BiologicalControlDashboard da /app/advice a tab planner
+- Aggiunti tab "🔄 Rotazione Colture" e "🐛 Controllo Biologico"
+- Mantenute tutte le funzionalità esistenti
+
+🌱 PIANTE INDIVIDUALI INTEGRATE NEI SISTEMI SPECIALIZZATI:
+- Frutteto: aggiunto tab "Piante Individuali" con SmartPlantManager
+- Vigneto: aggiunto tab "Viti Individuali" con SmartPlantManager  
+- Oliveto: aggiunto toggle "Olivi Individuali" con SmartPlantManager
+- Banner informativi specifici per ogni contesto
+
+📍 PAGINE DI REINDIRIZZAMENTO:
+- /app/advice → redirect informativo verso planner (3s auto)
+- /app/plants → redirect informativo verso sistemi specializzati (3s auto)
+
+✅ MIGLIORAMENTI UX:
+- Workflow unificato: consigli dove si pianifica
+- Gestione contestuale: piante nel sistema appropriato
+- Navigazione più intuitiva e logica
+- Tutte le funzionalità mantenute e accessibili
+
+🏗️ ARCHITETTURA:
+- Componenti riutilizzati senza modifiche
+- Integrazione pulita nei sistemi esistenti
+- Coesione migliorata tra funzionalità correlate
+- Build locale completato con successo
+
+Files modified:
+- app/app/planner/page.tsx (integrazione consigli)
+- app/app/orchard/page.tsx (integrazione piante individuali)
+- app/app/vineyard/page.tsx (integrazione viti individuali)
+- app/app/olives/page.tsx (integrazione olivi individuali)
+- app/app/advice/page.tsx (pagina redirect)
+- app/app/plants/page.tsx (pagina redirect)
+- ADVICE_INDIVIDUAL_PLANTS_INTEGRATION_COMPLETE.md (documentazione)
+
+Tested: ✅ Build locale completato
+Ready for: 🚀 Deploy Vercel

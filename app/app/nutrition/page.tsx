@@ -2,8 +2,13 @@
 
 import { NutritionStatsWidget } from '@/components/nutrition/NutritionStatsWidget'
 import NutritionAISuggestionsWidget from '@/components/nutrition/NutritionAISuggestionsWidget'
+import ProfessionalNutritionDashboard from '@/components/nutrition/ProfessionalNutritionDashboard'
+import ProductManager from '@/components/nutrition/ProductManager'
+import TreatmentPlanner from '@/components/nutrition/TreatmentPlanner'
+import NutritionAnalytics from '@/components/nutrition/NutritionAnalytics'
+import InventoryManager from '@/components/nutrition/InventoryManager'
 import { useState, useEffect } from 'react'
-import { FlaskConical, Droplets, Leaf, Calendar, Plus, BarChart3, X, ArrowLeft, ArrowRight, MapPin } from 'lucide-react'
+import { FlaskConical, Droplets, Leaf, Calendar, Plus, BarChart3, X, ArrowLeft, ArrowRight, MapPin, Settings } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
 import LocationSelector from '@/components/shared/LocationSelector'
@@ -37,7 +42,7 @@ export default function NutritionPage() {
   const { storageProvider } = useStorage()
   const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'treatments' | 'schedule' | 'analytics'>('overview')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'products' | 'treatments' | 'schedule' | 'analytics' | 'inventory'>('dashboard')
   const [showTreatmentWizard, setShowTreatmentWizard] = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [treatmentConfigs, setTreatmentConfigs] = useState<TreatmentConfig[]>([])
@@ -69,6 +74,28 @@ export default function NutritionPage() {
     }
   }
 
+  // Navigation handlers for Professional Dashboard
+  const handleNavigateToProducts = () => {
+    setActiveTab('products')
+  }
+
+  const handleNavigateToTreatments = () => {
+    setActiveTab('treatments')
+  }
+
+  const handleNavigateToSchedules = () => {
+    setActiveTab('treatments') // Schedules are part of treatment planner
+  }
+
+  const handleNavigateToAnalytics = () => {
+    setActiveTab('analytics')
+    setShowAnalytics(true)
+  }
+
+  const handleNavigateToInventory = () => {
+    setActiveTab('inventory')
+  }
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -84,10 +111,12 @@ export default function NutritionPage() {
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
             {[
+              { id: 'dashboard', label: 'Dashboard Pro', icon: Settings },
               { id: 'overview', label: 'Panoramica', icon: BarChart3 },
-              { id: 'treatments', label: 'Trattamenti', icon: FlaskConical },
-              { id: 'schedule', label: 'Calendario', icon: Calendar },
-              { id: 'analytics', label: 'Analytics', icon: BarChart3 }
+              { id: 'products', label: 'Prodotti', icon: FlaskConical },
+              { id: 'treatments', label: 'Trattamenti', icon: Droplets },
+              { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+              { id: 'inventory', label: 'Inventario', icon: Calendar }
             ].map((tab) => {
               const Icon = tab.icon
               return (
@@ -110,6 +139,16 @@ export default function NutritionPage() {
       </div>
 
       {/* Contenuto */}
+      {activeTab === 'dashboard' && activeGarden && (
+        <ProfessionalNutritionDashboard
+          garden={activeGarden}
+          onNavigateToProducts={handleNavigateToProducts}
+          onNavigateToTreatments={handleNavigateToTreatments}
+          onNavigateToSchedules={handleNavigateToSchedules}
+          onNavigateToAnalytics={handleNavigateToAnalytics}
+          onNavigateToInventory={handleNavigateToInventory}
+        />
+      )}
       {activeTab === 'overview' && (
         <div className="space-y-6">
           {/* AI Suggestions Widget */}
@@ -157,7 +196,19 @@ export default function NutritionPage() {
         </div>
       )}
 
-      {activeTab === 'treatments' && (
+      {activeTab === 'products' && activeGarden && (
+        <ProductManager garden={activeGarden} />
+      )}
+      {activeTab === 'treatments' && activeGarden && (
+        <TreatmentPlanner garden={activeGarden} />
+      )}
+      {activeTab === 'analytics' && activeGarden && (
+        <NutritionAnalytics garden={activeGarden} />
+      )}
+      {activeTab === 'inventory' && activeGarden && (
+        <InventoryManager garden={activeGarden} />
+      )}
+      {activeTab === 'schedule' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="text-center py-12">
             <FlaskConical className="mx-auto mb-4 text-green-500" size={48} />
@@ -181,28 +232,13 @@ export default function NutritionPage() {
             <Calendar className="mx-auto mb-4 text-blue-500" size={48} />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Calendario Trattamenti</h2>
             <p className="text-gray-600 mb-6">
-              Visualizza e pianifica i trattamenti nel tempo
-            </p>
-            <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
-              Visualizza Calendario
-            </button>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'analytics' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="text-center py-12">
-            <BarChart3 className="mx-auto mb-4 text-purple-500" size={48} />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Analytics Nutrizionali</h2>
-            <p className="text-gray-600 mb-6">
-              Analizza l'efficacia dei trattamenti e ottimizza la nutrizione
+              Le programmazioni sono ora integrate nella sezione Trattamenti
             </p>
             <button 
-              onClick={() => setShowAnalytics(true)}
-              className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
+              onClick={() => setActiveTab('treatments')}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Visualizza Report
+              Vai ai Trattamenti
             </button>
           </div>
         </div>

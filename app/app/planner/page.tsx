@@ -4,10 +4,12 @@ import SmartPlanner from '@/components/planner/SmartPlanner'
 import TaskCalendar from '@/components/planner/TaskCalendar'
 import TaskList from '@/components/planner/TaskList'
 import PlannerAISuggestions from '@/components/planner/tabs/PlannerAISuggestions'
+import CropRotationPlanner from '@/components/advice/CropRotationPlanner'
+import BiologicalControlDashboard from '@/components/advice/BiologicalControlDashboard'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useState, useEffect } from 'react'
 import { Garden, GardenTask } from '@/types'
-import { Calendar, Clock, Activity, Target, CheckCircle, AlertTriangle, TrendingUp, List, Lightbulb } from 'lucide-react'
+import { Calendar, Clock, Activity, Target, CheckCircle, AlertTriangle, TrendingUp, List, Lightbulb, RefreshCw, Bug } from 'lucide-react'
 import { isSameDay, addDays, parseISO, format } from 'date-fns'
 
 export default function PlannerPage() {
@@ -15,7 +17,7 @@ export default function PlannerPage() {
   const [gardens, setGardens] = useState<Garden[]>([])
   const [tasks, setTasks] = useState<GardenTask[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'planner' | 'calendar' | 'timeline' | 'list' | 'ai-suggestions'>('planner')
+  const [activeTab, setActiveTab] = useState<'planner' | 'calendar' | 'timeline' | 'list' | 'ai-suggestions' | 'rotation' | 'biological'>('planner')
 
   useEffect(() => {
     const loadData = async () => {
@@ -152,6 +154,8 @@ export default function PlannerPage() {
             {[
               { id: 'planner', label: 'Planner AI', icon: Target },
               { id: 'ai-suggestions', label: '💡 Suggerimenti AI', icon: Lightbulb },
+              { id: 'rotation', label: '🔄 Rotazione Colture', icon: RefreshCw },
+              { id: 'biological', label: '🐛 Controllo Biologico', icon: Bug },
               { id: 'calendar', label: '📅 Calendario', icon: Calendar },
               { id: 'list', label: 'Lista Task', icon: List },
               { id: 'timeline', label: 'Timeline', icon: Activity }
@@ -201,6 +205,14 @@ export default function PlannerPage() {
             }
           }}
         />
+      )}
+
+      {activeTab === 'rotation' && (
+        <CropRotationPlanner />
+      )}
+
+      {activeTab === 'biological' && (
+        <BiologicalControlDashboard />
       )}
 
       {activeTab === 'calendar' && (

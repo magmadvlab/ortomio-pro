@@ -1,96 +1,82 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { FeatureGate } from '@/components/shared/FeatureGate'
-import SmartPlantManager from '@/components/plants/SmartPlantManager'
-import { useStorage } from '@/packages/core/hooks/useStorage'
-import { Garden } from '@/types'
-import { TreePine } from 'lucide-react'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Users, ArrowRight, TreePine, Grape, CircleDot } from 'lucide-react'
 
-/**
- * Plants Page - Gestione Piante Individuali
- * 
- * Modulo: INDIVIDUAL_PLANTS
- * Componente: SmartPlantManager.tsx
- * Servizio: individualPlantService.ts
- * 
- * Funzionalità:
- * - Tracciamento piante individuali (alberi, viti, olivi)
- * - Storico operazioni per pianta
- * - Health score e monitoraggio
- * - Operazioni bulk su multiple piante
- * - Heatmap salute piante
- * - Integrazione con sistema zone/filari
- */
 export default function PlantsPage() {
-  const { storageProvider } = useStorage()
-  const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
-  const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
-    loadActiveGarden()
-  }, [storageProvider])
+    // Auto-redirect after 3 seconds
+    const timer = setTimeout(() => {
+      router.push('/app/orchard')
+    }, 3000)
 
-  const loadActiveGarden = async () => {
-    try {
-      setLoading(true)
-      const gardens = await storageProvider.getGardens()
-      if (gardens.length > 0) {
-        // Prendi il primo giardino
-        setActiveGarden(gardens[0])
-      }
-    } catch (error) {
-      console.error('Error loading garden:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+    return () => clearTimeout(timer)
+  }, [router])
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">Caricamento...</p>
-      </div>
-    )
-  }
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
+        <div className="mb-6">
+          <Users className="mx-auto text-blue-600 mb-4" size={48} />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Piante Individuali Integrate
+          </h1>
+          <p className="text-gray-600">
+            La gestione delle piante individuali è ora integrata nei sistemi specializzati per un controllo più preciso.
+          </p>
+        </div>
 
-  if (!activeGarden) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-md text-center">
-          <TreePine className="mx-auto text-gray-400 mb-4" size={48} />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Nessun Giardino
-          </h2>
-          <p className="text-gray-600 mb-4">
-            Crea un giardino dalla Dashboard per iniziare a tracciare le tue piante.
+        <div className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+            <h3 className="font-semibold text-blue-900 mb-2">Trova le tue piante in:</h3>
+            <div className="space-y-2 text-sm text-blue-800">
+              <div className="flex items-center gap-2">
+                <TreePine size={16} />
+                <span>Frutteto → Piante Individuali</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Grape size={16} />
+                <span>Vigneto → Viti Individuali</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CircleDot size={16} />
+                <span>Oliveto → Olivi Individuali</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => router.push('/app/orchard')}
+              className="flex flex-col items-center gap-1 p-3 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+            >
+              <TreePine size={20} className="text-green-600" />
+              <span className="text-xs text-green-800">Frutteto</span>
+            </button>
+            <button
+              onClick={() => router.push('/app/vineyard')}
+              className="flex flex-col items-center gap-1 p-3 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
+            >
+              <Grape size={20} className="text-purple-600" />
+              <span className="text-xs text-purple-800">Vigneto</span>
+            </button>
+            <button
+              onClick={() => router.push('/app/olives')}
+              className="flex flex-col items-center gap-1 p-3 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+            >
+              <CircleDot size={20} className="text-green-600" />
+              <span className="text-xs text-green-800">Oliveto</span>
+            </button>
+          </div>
+
+          <p className="text-xs text-gray-500">
+            Reindirizzamento automatico al frutteto in 3 secondi...
           </p>
         </div>
       </div>
-    )
-  }
-
-  return (
-    <FeatureGate 
-      feature="INDIVIDUAL_PLANTS"
-      fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-md text-center">
-            <div className="text-6xl mb-4">🌳</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Piante Individuali
-            </h2>
-            <p className="text-gray-600 mb-4">
-              Questa funzionalità non è ancora disponibile.
-            </p>
-            <p className="text-sm text-gray-500">
-              Contatta l'amministratore per attivarla.
-            </p>
-          </div>
-        </div>
-      }
-    >
-      <SmartPlantManager garden={activeGarden} />
-    </FeatureGate>
+    </div>
   )
 }

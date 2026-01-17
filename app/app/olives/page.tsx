@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { FeatureGate } from '@/components/shared/FeatureGate'
 import LocationSelector from '@/components/shared/LocationSelector'
-import { CircleDot, Plus, Calendar, Scissors, Droplets, Info, MapPin, Filter } from 'lucide-react'
+import SmartPlantManager from '@/components/plants/SmartPlantManager'
+import { CircleDot, Plus, Calendar, Scissors, Droplets, Info, MapPin, Filter, Users } from 'lucide-react'
 import { Garden, GardenTask } from '@/types'
 import { getMasterSheetSync } from '@/services/plantMasterService'
 import { format } from 'date-fns'
@@ -20,6 +21,7 @@ export default function OlivesPage() {
   const [selectedLocation, setSelectedLocation] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [upcomingPrunings, setUpcomingPrunings] = useState<any[]>([])
+  const [viewMode, setViewMode] = useState<'overview' | 'individual-plants'>('overview')
 
   useEffect(() => {
     loadData()
@@ -94,16 +96,42 @@ export default function OlivesPage() {
   return (
     <FeatureGate feature="OLIVE_GROVE">
       <div className="min-h-screen p-4 sm:p-6 max-w-7xl mx-auto">
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <CircleDot className="text-green-600" size={32} />
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Gestione Oliveto</h1>
-                <p className="text-gray-600">Monitora e gestisci i tuoi olivi e produzione olio</p>
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <CircleDot className="text-green-600" size={32} />
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Gestione Oliveto</h1>
+                  <p className="text-gray-600">Monitora e gestisci i tuoi olivi e produzione olio</p>
+                </div>
+              </div>
+              
+              {/* View Mode Toggle */}
+              <div className="flex bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('overview')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'overview'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <CircleDot size={16} className="inline mr-2" />
+                  Panoramica
+                </button>
+                <button
+                  onClick={() => setViewMode('individual-plants')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'individual-plants'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <Users size={16} className="inline mr-2" />
+                  Olivi Individuali
+                </button>
               </div>
             </div>
-          </div>
 
           {/* Selezione Giardino */}
           {gardens.length > 1 && (
@@ -223,7 +251,24 @@ export default function OlivesPage() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-6">
+          <>
+            {viewMode === 'individual-plants' ? (
+              <div className="space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <Users className="text-green-600" size={20} />
+                    <div>
+                      <h3 className="font-semibold text-green-900">Gestione Olivi Individuali</h3>
+                      <p className="text-sm text-green-800">
+                        Tracciamento dettagliato di ogni singolo olivo con foto, salute e operazioni
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <SmartPlantManager garden={selectedGarden} />
+              </div>
+            ) : (
+              <div className="space-y-6">
             {/* Prossime Potature */}
             {upcomingPrunings.length > 0 && (
               <div className="bg-white rounded-lg shadow-md p-6">
@@ -321,7 +366,9 @@ export default function OlivesPage() {
                 })}
               </div>
             </div>
-          </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </FeatureGate>
