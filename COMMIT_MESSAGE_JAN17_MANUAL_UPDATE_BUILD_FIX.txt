@@ -1,0 +1,33 @@
+feat: Update user manual and fix build error
+
+## 📚 User Manual Updates
+- Updated navigation structure to reflect integrated advice system
+- Documented new paths for advice system in Planner AI tabs
+- Updated individual plants management integration in specialized systems
+- Modified workflow guides and best practices for new navigation
+- Added redirect pages documentation for compatibility
+- Updated sidebar structure and navigation patterns
+
+## 🐛 Build Fix
+- Fixed IrrigationZoneManager import error in HomeDashboard
+- Changed from named import to default import
+- Build now completes successfully
+
+## 🔄 Integration Documentation
+- Sistema consigli AI now integrated in Planner (Rotazione Colture + Controllo Biologico)
+- Gestione piante individuali integrated in Frutteto/Vigneto/Oliveto
+- All functionality preserved with improved navigation
+- Redirect pages maintain compatibility with existing links
+
+## ✅ Files Modified
+- USER_MANUAL.md: Complete manual update
+- docs/manual/29-interface-navigation.md: Navigation documentation
+- components/shared/HomeDashboard.tsx: Import fix
+- USER_MANUAL_UPDATE_COMPLETE.md: Summary documentation
+- BUILD_FIX_IRRIGATION_ZONE_MANAGER.md: Build fix documentation
+
+## 🎯 Benefits
+- Unified workflow with advice directly in planner
+- Contextual plant management in appropriate systems
+- More intuitive navigation structure
+- Build errors resolved, ready for deployment

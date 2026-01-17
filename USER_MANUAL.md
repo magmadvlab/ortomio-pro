@@ -254,6 +254,36 @@ Sistema completo di gamificazione con badge e achievement:
 4. Condividi achievement sui social
 5. Usa badge per motivazione e gamificazione
 
+### 🤖 **Sistema Consigli AI Integrato**
+**Percorso:** Planner AI → Tab "Rotazione Colture" e "Controllo Biologico"
+
+Sistema completo di consigli agricoli integrato nella Centrale Operativa:
+
+#### **Rotazione Colture Intelligente**
+- **Pianificazione Automatica**: Rotazioni ottimali basate su principi agronomici
+- **Prevenzione Malattie**: Interruzione cicli patogeni attraverso rotazioni
+- **Fertilità Suolo**: Mantenimento e miglioramento fertilità naturale
+- **Massimizzazione Rese**: Sequenze colturali per rese ottimali
+
+#### **Controllo Biologico Avanzato**
+- **Nemici Naturali**: Database completo insetti utili e antagonisti
+- **Strategie IPM**: Gestione integrata parassiti senza chimica
+- **Monitoraggio Biologico**: Tracking popolazioni benefiche
+- **Interventi Mirati**: Consigli per rilasci e conservazione ausiliari
+
+#### **Integrazione nel Workflow**
+- **Accesso Diretto**: Consigli disponibili durante la pianificazione
+- **Implementazione Automatica**: Suggerimenti applicabili con un click
+- **Cronologia Decisioni**: Tracking delle scelte agronomiche
+- **Risultati Misurabili**: Monitoraggio efficacia strategie applicate
+
+**Come usarlo:**
+1. Vai su "🤖 Planner AI" dalla sidebar
+2. Seleziona tab "🔄 Rotazione Colture" per pianificare rotazioni
+3. Seleziona tab "🐛 Controllo Biologico" per strategie IPM
+4. Applica i consigli direttamente nel tuo piano colturale
+5. Monitora i risultati attraverso il sistema di tracking
+
 ### 🤖 **Chat AI Planner Integrata**
 **Percorso:** Planner AI → Pulsante Chat (in basso a destra)
 
@@ -346,10 +376,6 @@ Sistema professionale di consulenze agronomiche:
 4. Prenota consulenza online
 5. Ricevi trattamenti automaticamente nel journal
 
----
-
-## 🔧 GUIDA RAPIDA - PRIMI PASSI
-
 ### **Setup Iniziale (5 minuti)**
 
 1. **Seleziona il tuo Orto**
@@ -366,10 +392,17 @@ Sistema professionale di consulenze agronomiche:
    - Clicca "Aggiorna" per prima analisi
    - Esamina raccomandazioni
 
-4. **Testa Chat AI Planner**
+4. **Testa Sistema Consigli Integrato**
    - Vai su "🤖 Planner AI"
-   - Clicca pulsante chat (in basso a destra)
-   - Fai una domanda di prova: "Cosa posso piantare questo mese?"
+   - Seleziona tab "🔄 Rotazione Colture" per pianificare rotazioni
+   - Seleziona tab "🐛 Controllo Biologico" per strategie IPM
+   - Applica i consigli direttamente nel tuo piano colturale
+
+5. **Esplora Gestione Piante Individuali**
+   - Vai su "Frutteto", "Vigneto" o "Oliveto" (a seconda delle tue colture)
+   - Seleziona tab/toggle "Piante Individuali"
+   - Registra le tue piante per tracking dettagliato
+   - Monitora salute e performance individuali
 
 5. **Primo Volo Drone**
    - Vai su "Operazioni Drone"
@@ -411,11 +444,12 @@ Sistema professionale di consulenze agronomiche:
 #### **Mattina (5 minuti)**
 1. Controlla Predizioni AI per nuovi alert
 2. Verifica stato certificazioni e compliance
-3. **Usa Chat AI Planner per consigli giornalieri**
+3. **Usa Consigli AI integrati nel Planner per strategie giornaliere**
 4. **Usa Chat AI Globale per domande rapide**
 5. **Visualizza challenge giornaliere sotto il calendario**
 6. **Controlla badge e achievement per motivazione**
 7. **Controlla registro attività per follow-up**
+8. **Verifica piante individuali per monitoraggio salute**
 
 #### **Durante il Giorno**
 1. Registra operazioni per tracciabilità automatica
@@ -425,6 +459,8 @@ Sistema professionale di consulenze agronomiche:
 5. **Usa Chat AI Globale per domande immediate**
 6. **Condividi progressi sui social per marketing**
 7. **Consulta agronomi per problemi specifici**
+8. **Monitora piante individuali durante le operazioni**
+9. **Applica consigli di rotazione e controllo biologico**
 
 #### **Sera (5 minuti)**
 1. Rivedi risultati analisi drone
@@ -432,8 +468,9 @@ Sistema professionale di consulenze agronomiche:
 3. **Rivedi registro attività della giornata**
 4. **Verifica progresso challenge e streak counter**
 5. **Controlla nuovi badge sbloccati**
-6. **Pianifica domani con Chat AI se necessario**
+6. **Pianifica domani con Consigli AI integrati se necessario**
 7. **Condividi achievement giornalieri sui social**
+8. **Aggiorna stato piante individuali se necessario**
 
 ---
 
@@ -684,10 +721,15 @@ Sistema completo per viticoltura di qualità:
 4. Ottimizza vendemmia per obiettivi enologici
 5. Integra con processo di vinificazione
 
-### 🌿 **Gestione Piante Individuali**
-**Percorso:** Sidebar → "Plants"
+### 🌿 **Gestione Piante Individuali Integrata**
+**Percorso:** Integrata nei sistemi specializzati (Frutteto/Vigneto/Oliveto)
 
-Sistema avanzato per tracking piante singole:
+Sistema avanzato per tracking piante singole integrato nei contesti appropriati:
+
+#### **Accesso Contestuale**
+- **🌳 Frutteto**: Tab "Piante Individuali" per alberi da frutto
+- **🍇 Vigneto**: Tab "Viti Individuali" per gestione viti
+- **🫒 Oliveto**: Toggle "Olivi Individuali" per olivi specifici
 
 #### **Identificazione Univoca**
 - **QR Code per Pianta**: Identificazione univoca ogni esemplare
@@ -708,11 +750,11 @@ Sistema avanzato per tracking piante singole:
 - **Miglioramento Genetico**: Supporto breeding programs
 
 **Come usarlo:**
-1. Registra ogni pianta con QR code univoco
-2. Monitora crescita e salute individualmente
-3. Registra interventi e risultati per pianta
-4. Analizza performance per selezione
-5. Usa dati per miglioramento varietale
+1. Vai nella sezione appropriata (Frutteto/Vigneto/Oliveto)
+2. Seleziona il tab/toggle "Piante Individuali"
+3. Registra ogni pianta con QR code univoco
+4. Monitora crescita e salute individualmente
+5. Analizza performance per selezione e miglioramento
 
 ---
 
@@ -826,14 +868,33 @@ La sidebar è organizzata in sezioni logiche:
 #### **PRINCIPALE**
 - **Dashboard**: Panoramica generale
 - **Il Mio Orto**: Gestione piante e spazi (con tab Registro)
-- **🤖 Planner AI**: Pianificazione intelligente (con Chat AI)
+- **🤖 Planner AI**: Pianificazione intelligente (con Chat AI e Consigli integrati)
+  - Tab "Planner AI": Pianificazione automatica
+  - Tab "💡 Suggerimenti AI": Raccomandazioni intelligenti
+  - Tab "🔄 Rotazione Colture": Sistema rotazioni integrato
+  - Tab "🐛 Controllo Biologico": Strategie IPM integrate
+  - Tab "📅 Calendario": Vista calendario operazioni
+  - Tab "Lista Task": Gestione task dettagliata
+  - Tab "Timeline": Cronologia attività
 - **Salute**: Diagnosi e consulenze (con Agronomi)
 - **Progressi**: Analytics e statistiche
 
 #### **COLTURE SPECIALIZZATE**
-- **Frutteto**: Gestione alberi da frutto
-- **Oliveto**: Monitoraggio olive
-- **Vigneto**: Gestione viti
+- **Frutteto**: Gestione alberi da frutto professionale
+  - Tab "Alberi": Gestione generale frutteto
+  - Tab "Piante Individuali": Tracking singoli alberi
+  - Tab "Potature": Calendario potature
+  - Tab "Raccolte": Gestione raccolti
+  - Tab "Analytics": Analisi performance
+- **Oliveto**: Monitoraggio olive e produzione olio
+  - Vista "Panoramica": Gestione generale oliveto
+  - Toggle "Olivi Individuali": Tracking singoli olivi
+- **Vigneto**: Gestione viti e produzione vino
+  - Tab "Viti": Gestione generale vigneto
+  - Tab "Viti Individuali": Tracking singole viti
+  - Tab "Potature": Potature specializzate vigneto
+  - Tab "Vendemmie": Gestione vendemmie
+  - Tab "Analisi": Analytics viticole
 
 #### **GESTIONE PROFESSIONALE**
 - **Irrigazione**: Controllo sistemi irrigui
@@ -900,6 +961,9 @@ La sidebar è organizzata in sezioni logiche:
 - ✅ **Condivisione Social Automatica**
 - ✅ **Registro Attività Completo**
 - ✅ **Agronomi Professionali Ripristinati**
+- ✅ **Sistema Consigli AI Integrato nel Planner**
+- ✅ **Gestione Piante Individuali Integrata nei Sistemi Specializzati**
+- ✅ **Navigazione Unificata e Workflow Ottimizzato**
 
 ### **Prossimi Aggiornamenti (Q2 2026)**
 - 📱 App Mobile Nativa (iOS/Android)
@@ -914,21 +978,23 @@ La sidebar è organizzata in sezioni logiche:
 
 ### **Massimizza i Risultati**
 1. **Usa l'AI Regolarmente**: Controlla predizioni giornalmente
-2. **Chat AI per Dubbi**: Consulta la chat per consigli rapidi di pianificazione
+2. **Consigli AI Integrati**: Usa rotazioni e controllo biologico nel Planner
 3. **Documenta Tutto**: Tracciabilità e foto migliorano l'AI
 4. **Monitora il Registro**: Controlla cronologia attività per miglioramenti
 5. **Segui le Raccomandazioni**: Basate su dati scientifici
 6. **Mantieni Compliance**: Certificazioni automatiche sempre aggiornate
 7. **Consulta Agronomi**: Per problemi complessi usa consulenze professionali
+8. **Piante Individuali**: Traccia performance singole per ottimizzazione
 
 ### **Ottimizzazione ROI**
 - Implementa tutte le certificazioni per massimo risparmio
 - Usa droni per monitoraggio preventivo
 - Sfrutta tracciabilità per premium pricing
 - Segui ottimizzazioni AI per efficienza
-- **Usa Chat AI per decisioni rapide senza perdere tempo**
+- **Usa Consigli AI integrati per decisioni rapide senza perdere tempo**
 - **Monitora registro per identificare pattern e miglioramenti**
 - **Consulta agronomi per massimizzare rese e qualità**
+- **Traccia piante individuali per selezione e miglioramento genetico**
 
 ### **Sostenibilità**
 - Traccia carbon footprint con sistema integrato

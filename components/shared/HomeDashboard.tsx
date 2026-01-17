@@ -29,7 +29,7 @@ import VineHarvest from '@/components/VineHarvest'
 
 
 import { IrrigationZonesWidget } from '@/components/irrigation/IrrigationZonesWidget'
-import { IrrigationZoneManager } from '@/components/irrigation/IrrigationZoneManager'
+import IrrigationZoneManager from '@/components/irrigation/IrrigationZoneManager'
 import { IrrigationZone } from '@/types/irrigation'
 
 

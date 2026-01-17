@@ -28,7 +28,14 @@ Organizzata in sezioni logiche per navigazione efficiente:
   - Tab "Calendario": Pianificazione e challenge
   - Tab "Registro": Cronologia attività complete
   - Tab "Tracciabilità": Sistema tracciabilità integrato
-- **🤖 Planner AI**: Pianificazione intelligente con chat integrata
+- **🤖 Planner AI**: Pianificazione intelligente con sistema consigli integrato
+  - Tab "Planner AI": Pianificazione automatica
+  - Tab "💡 Suggerimenti AI": Raccomandazioni intelligenti
+  - Tab "🔄 Rotazione Colture": Sistema rotazioni integrato (ex /app/advice)
+  - Tab "🐛 Controllo Biologico": Strategie IPM integrate (ex /app/advice)
+  - Tab "📅 Calendario": Vista calendario operazioni
+  - Tab "Lista Task": Gestione task dettagliata
+  - Tab "Timeline": Cronologia attività
 - **Salute**: Diagnosi, monitoraggio e consulenze
   - Tab "Diagnosi AI": Sistema diagnostico automatico
   - Tab "Consultazioni": Storico consulenze
@@ -39,8 +46,20 @@ Organizzata in sezioni logiche per navigazione efficiente:
 
 #### **🌳 COLTURE SPECIALIZZATE**
 - **Frutteto**: Gestione alberi da frutto professionale
+  - Tab "Alberi": Gestione generale frutteto
+  - Tab "Piante Individuali": Tracking singoli alberi (ex /app/plants)
+  - Tab "Potature": Calendario potature
+  - Tab "Raccolte": Gestione raccolti
+  - Tab "Analytics": Analisi performance
 - **Oliveto**: Monitoraggio olive e produzione olio
+  - Vista "Panoramica": Gestione generale oliveto
+  - Toggle "Olivi Individuali": Tracking singoli olivi (ex /app/plants)
 - **Vigneto**: Gestione viti e produzione vino
+  - Tab "Viti": Gestione generale vigneto
+  - Tab "Viti Individuali": Tracking singole viti (ex /app/plants)
+  - Tab "Potature": Potature specializzate vigneto
+  - Tab "Vendemmie": Gestione vendemmie
+  - Tab "Analisi": Analytics viticole
 
 #### **⚙️ GESTIONE PROFESSIONALE**
 - **Irrigazione**: Controllo sistemi irrigui automatizzati
@@ -130,6 +149,27 @@ Organizzata in sezioni logiche per navigazione efficiente:
 - **Consistency**: Spaziature coerenti in tutta l'app
 - **Rhythm**: Ritmo verticale per leggibilità
 - **White Space**: Uso strategico spazio bianco
+
+---
+
+## 🔄 PAGINE DI REINDIRIZZAMENTO
+
+Per mantenere la compatibilità con i link esistenti, alcune pagine sono state convertite in redirect informativi:
+
+### **Sistema Consigli (/app/advice)**
+- **Reindirizzamento**: Automatico verso `/app/planner` dopo 3 secondi
+- **Nuova Posizione**: Planner AI → Tab "🔄 Rotazione Colture" e "🐛 Controllo Biologico"
+- **Motivo**: Integrazione nel workflow di pianificazione per maggiore efficienza
+
+### **Gestione Piante (/app/plants)**
+- **Reindirizzamento**: Automatico verso `/app/orchard` dopo 3 secondi
+- **Nuove Posizioni**: 
+  - Frutteto → Tab "Piante Individuali"
+  - Vigneto → Tab "Viti Individuali"  
+  - Oliveto → Toggle "Olivi Individuali"
+- **Motivo**: Integrazione contestuale nei sistemi di gestione specializzati
+
+Questi redirect garantiscono che tutti i link esistenti continuino a funzionare mentre guidano gli utenti verso la nuova struttura integrata.
 
 ---
 
