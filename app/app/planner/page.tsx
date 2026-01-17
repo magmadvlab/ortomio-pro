@@ -7,6 +7,7 @@ import PlannerAISuggestions from '@/components/planner/tabs/PlannerAISuggestions
 import PlannerHealthSuggestions from '@/components/planner/tabs/PlannerHealthSuggestions'
 import CropRotationPlanner from '@/components/advice/CropRotationPlanner'
 import BiologicalControlDashboard from '@/components/advice/BiologicalControlDashboard'
+import MobileTabNavigation from '@/components/shared/MobileTabNavigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useState, useEffect } from 'react'
 import { Garden, GardenTask } from '@/types'
@@ -138,6 +139,27 @@ export default function PlannerPage() {
   const timelineData = generateTimelineData()
   const upcomingTasks = getUpcomingTasks()
 
+  // Configurazione tab per il componente mobile
+  const plannerTabs = [
+    { id: 'planner', label: 'Planner AI', emoji: '🎯', icon: Target },
+    { id: 'health-monitoring', label: 'Salute Piante', emoji: '🩺', icon: Stethoscope, badge: upcomingTasks.length },
+    { id: 'ai-suggestions', label: 'Suggerimenti AI', emoji: '💡', icon: Lightbulb },
+    { id: 'rotation', label: 'Rotazione Colture', emoji: '🔄', icon: RefreshCw },
+    { id: 'biological', label: 'Controllo Biologico', emoji: '🐛', icon: Bug },
+    { id: 'calendar', label: 'Calendario', emoji: '📅', icon: Calendar },
+    { id: 'list', label: 'Lista Task', emoji: '📋', icon: List, badge: tasks.filter(t => !t.completed).length },
+    { id: 'timeline', label: 'Timeline', emoji: '📊', icon: Activity }
+  ]
+
+  // Configurazione tab per NDVI
+  const ndviTabs = [
+    { id: 'overview', label: 'Panoramica', emoji: '📊', icon: BarChart3 },
+    { id: 'map', label: 'Mappa NDVI', emoji: '🗺️', icon: Map },
+    { id: 'zones', label: 'Zone', emoji: '📍', icon: MapPin },
+    { id: 'trend', label: 'Trend Storico', emoji: '📈', icon: TrendingUp },
+    { id: 'stress', label: 'Aree Stress', emoji: '⚠️', icon: AlertTriangle, badge: stressAreas.length }
+  ]
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -148,39 +170,13 @@ export default function PlannerPage() {
         <p className="text-gray-600 mt-1">Pianificazione, calendario e timeline delle attività</p>
       </div>
 
-      {/* Tabs */}
-      <div className="mb-6">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            {[
-              { id: 'planner', label: 'Planner AI', icon: Target },
-              { id: 'health-monitoring', label: '🩺 Salute Piante', icon: Stethoscope },
-              { id: 'ai-suggestions', label: '💡 Suggerimenti AI', icon: Lightbulb },
-              { id: 'rotation', label: '🔄 Rotazione Colture', icon: RefreshCw },
-              { id: 'biological', label: '🐛 Controllo Biologico', icon: Bug },
-              { id: 'calendar', label: '📅 Calendario', icon: Calendar },
-              { id: 'list', label: 'Lista Task', icon: List },
-              { id: 'timeline', label: 'Timeline', icon: Activity }
-            ].map((tab) => {
-              const Icon = tab.icon
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === tab.id
-                      ? 'border-green-500 text-green-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon size={16} />
-                  {tab.label}
-                </button>
-              )
-            })}
-          </nav>
-        </div>
-      </div>
+      {/* Mobile-Friendly Tab Navigation */}
+      <MobileTabNavigation
+        tabs={plannerTabs}
+        activeTab={activeTab}
+        onTabChange={(tabId) => setActiveTab(tabId as any)}
+        className="mb-6"
+      />
 
       {/* Contenuto Tabs */}
       {activeTab === 'planner' && (

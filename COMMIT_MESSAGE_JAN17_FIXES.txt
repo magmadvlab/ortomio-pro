@@ -1,0 +1,49 @@
+fix: Risolti problemi configurazione satellitare e sistema salute
+
+🔧 PROBLEMI RISOLTI:
+
+✅ Configurazione Satellitare Ora Configurabile
+- Aggiunto setup automatico via API endpoint
+- Implementato form manuale per credenziali
+- API /api/ndvi/save-credentials per salvataggio
+- API /api/ndvi/setup-credentials per setup automatico
+- Validazione real-time delle credenziali
+- Salvataggio sicuro in file .env.local
+
+✅ Sistema Salute con Pagina Dedicata
+- Creata pagina completa /app/health
+- Dashboard con statistiche dettagliate
+- Filtri avanzati per severità e tipo alert
+- Modal per analisi foto AI con upload multiplo
+- Modal per consulti agronomi con prezzi
+- Widget ora rimanda alla pagina dedicata invece del planner
+
+🎯 MIGLIORAMENTI UX:
+
+Configurazione Satellitare:
+- Setup automatico con un click
+- Form interattivo per configurazione manuale
+- Feedback immediato su successo/errore
+- Test credenziali integrato
+
+Sistema Salute:
+- Interfaccia professionale dedicata
+- Workflow completo: alert → azione → task
+- Azioni immediate (Foto AI, Agronomo, Monitora)
+- Organizzazione avanzata con filtri
+
+📁 FILE AGGIUNTI:
+- app/app/health/page.tsx - Pagina sistema salute completa
+- app/api/ndvi/save-credentials/route.ts - Salvataggio credenziali
+- app/api/ndvi/setup-credentials/route.ts - Setup automatico
+
+📝 FILE MODIFICATI:
+- components/ndvi/SatelliteConfigStatus.tsx - Configurazione interattiva
+- components/planner/HealthAlertsWidget.tsx - Navigazione corretta
+- components/shared/HomeDashboard.tsx - Rimozione parametri obsoleti
+
+🚀 RISULTATO:
+- Configurazione satellitare completamente funzionale via web
+- Sistema salute con interfaccia dedicata e professionale
+- User experience migliorata per entrambi i sistemi
+- Pronto per produzione

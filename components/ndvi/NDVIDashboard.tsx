@@ -5,8 +5,9 @@ import SentinelHubStatus from './SentinelHubStatus';
 import NDVIMap from './NDVIMap';
 import ActionButton, { ActionContext } from '../actions/ActionButton';
 import InterventionWizard, { InterventionData } from '../actions/InterventionWizard';
+import MobileTabNavigation from '../shared/MobileTabNavigation';
 import { interventionService } from '../../services/interventionService';
-import { Satellite, TrendingUp, TrendingDown, Minus, AlertTriangle, Leaf, Droplets, Activity, RefreshCw, Calendar, MapPin, Settings } from 'lucide-react';
+import { Satellite, TrendingUp, TrendingDown, Minus, AlertTriangle, Leaf, Droplets, Activity, RefreshCw, Calendar, MapPin, Settings, BarChart3, Map } from 'lucide-react';
 import Link from 'next/link';
 
 interface NDVIDashboardProps {
@@ -111,6 +112,15 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
     if (ndvi < 0.7) return 'medium';
     return 'low';
   };
+
+  // Configurazione tab per NDVI
+  const ndviTabs = [
+    { id: 'overview', label: 'Panoramica', emoji: '📊', icon: Activity },
+    { id: 'map', label: 'Mappa NDVI', emoji: '🗺️', icon: MapPin },
+    { id: 'zones', label: 'Zone', emoji: '📍', icon: MapPin },
+    { id: 'trend', label: 'Trend Storico', emoji: '📈', icon: TrendingUp },
+    { id: 'stress', label: 'Aree Stress', emoji: '⚠️', icon: AlertTriangle, badge: stressAreas.length }
+  ]
 
   if (loading) {
     return (
@@ -227,32 +237,14 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
         )}
       </div>
 
-      {/* Navigation Tabs */}
+      {/* Mobile-Friendly Navigation Tabs */}
       <div className="bg-white rounded-xl border border-gray-200">
-        <div className="border-b border-gray-200">
-          <nav className="flex space-x-8 px-6">
-            {[
-              { id: 'overview', label: 'Panoramica', icon: Activity },
-              { id: 'map', label: 'Mappa NDVI', icon: MapPin },
-              { id: 'zones', label: 'Zone', icon: MapPin },
-              { id: 'trend', label: 'Trend Storico', icon: TrendingUp },
-              { id: 'stress', label: 'Aree Stress', icon: AlertTriangle }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
+        <MobileTabNavigation
+          tabs={ndviTabs}
+          activeTab={activeTab}
+          onTabChange={(tabId) => setActiveTab(tabId as any)}
+          className="border-b border-gray-200 px-6 py-4"
+        />
 
         <div className="p-6">
           {/* Overview Tab */}
