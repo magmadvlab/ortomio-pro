@@ -4,27 +4,39 @@
  */
 
 import { APIKey, APIService, APIKeyTestResult, API_SERVICES } from '@/types/apiKeys';
+import { getSupabaseClient } from '@/config/supabase';
+import { encryptText, decryptText, simpleEncrypt, simpleDecrypt, isCryptoAvailable } from '@/utils/crypto';
 
 /**
  * Encrypt API key value
- * NOTE: In production, use proper encryption (AES-256-GCM)
  */
-const encryptKey = (value: string): string => {
-  // TODO: Implement proper encryption
-  // For now, just base64 encode (NOT SECURE - placeholder only)
-  return btoa(value);
+const encryptKey = async (value: string): Promise<string> => {
+  if (isCryptoAvailable()) {
+    try {
+      return await encryptText(value);
+    } catch (error) {
+      console.warn('Crypto encryption failed, falling back to simple encoding:', error);
+      return simpleEncrypt(value);
+    }
+  } else {
+    console.warn('Web Crypto API not available, using simple encoding (not secure)');
+    return simpleEncrypt(value);
+  }
 };
 
 /**
  * Decrypt API key value
  */
-const decryptKey = (encrypted: string): string => {
-  // TODO: Implement proper decryption
-  // For now, just base64 decode (NOT SECURE - placeholder only)
-  try {
-    return atob(encrypted);
-  } catch {
-    return encrypted;
+const decryptKey = async (encrypted: string): Promise<string> => {
+  if (isCryptoAvailable()) {
+    try {
+      return await decryptText(encrypted);
+    } catch (error) {
+      console.warn('Crypto decryption failed, falling back to simple decoding:', error);
+      return simpleDecrypt(encrypted);
+    }
+  } else {
+    return simpleDecrypt(encrypted);
   }
 };
 
@@ -39,13 +51,15 @@ export const createAPIKey = async (
   config?: Record<string, any>,
   organizationId?: string
 ): Promise<APIKey> => {
+  const supabase = getSupabaseClient();
+  
   const apiKey: APIKey = {
     id: crypto.randomUUID(),
     userId,
     organizationId,
     service,
     name,
-    keyValue: encryptKey(keyValue),
+    keyValue: await encryptKey(keyValue),
     config,
     isActive: true,
     usageCount: 0,
@@ -53,8 +67,45 @@ export const createAPIKey = async (
     updatedAt: new Date().toISOString(),
   };
 
-  // TODO: Save to database via storage provider
-  return apiKey;
+  const { data, error } = await supabase
+    .from('api_keys')
+    .insert({
+      id: apiKey.id,
+      user_id: apiKey.userId,
+      organization_id: apiKey.organizationId,
+      service: apiKey.service,
+      name: apiKey.name,
+      description: apiKey.description,
+      key_value: apiKey.keyValue,
+      config: apiKey.config || {},
+      is_active: apiKey.isActive,
+      usage_count: apiKey.usageCount,
+      created_at: apiKey.createdAt,
+      updated_at: apiKey.updatedAt
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating API key:', error);
+    throw new Error(`Failed to create API key: ${error.message}`);
+  }
+
+  return {
+    id: data.id,
+    userId: data.user_id,
+    organizationId: data.organization_id,
+    service: data.service,
+    name: data.name,
+    description: data.description,
+    keyValue: data.key_value,
+    config: data.config,
+    isActive: data.is_active,
+    lastUsed: data.last_used,
+    usageCount: data.usage_count,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at
+  };
 };
 
 /**
@@ -64,16 +115,74 @@ export const getUserAPIKeys = async (
   userId: string,
   organizationId?: string
 ): Promise<APIKey[]> => {
-  // TODO: Implement via storage provider
-  return [];
+  const supabase = getSupabaseClient();
+
+  let query = supabase
+    .from('api_keys')
+    .select('*')
+    .eq('user_id', userId);
+
+  if (organizationId) {
+    query = query.eq('organization_id', organizationId);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error getting API keys:', error);
+    throw new Error(`Failed to get API keys: ${error.message}`);
+  }
+
+  return (data || []).map(key => ({
+    id: key.id,
+    userId: key.user_id,
+    organizationId: key.organization_id,
+    service: key.service,
+    name: key.name,
+    description: key.description,
+    keyValue: key.key_value,
+    config: key.config,
+    isActive: key.is_active,
+    lastUsed: key.last_used,
+    usageCount: key.usage_count,
+    createdAt: key.created_at,
+    updatedAt: key.updated_at
+  }));
 };
 
 /**
  * Get API key by ID
  */
 export const getAPIKey = async (keyId: string): Promise<APIKey | null> => {
-  // TODO: Implement via storage provider
-  return null;
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('api_keys')
+    .select('*')
+    .eq('id', keyId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
+    console.error('Error getting API key:', error);
+    throw new Error(`Failed to get API key: ${error.message}`);
+  }
+
+  return {
+    id: data.id,
+    userId: data.user_id,
+    organizationId: data.organization_id,
+    service: data.service,
+    name: data.name,
+    description: data.description,
+    keyValue: data.key_value,
+    config: data.config,
+    isActive: data.is_active,
+    lastUsed: data.last_used,
+    usageCount: data.usage_count,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at
+  };
 };
 
 /**
@@ -82,7 +191,7 @@ export const getAPIKey = async (keyId: string): Promise<APIKey | null> => {
 export const getDecryptedAPIKey = async (keyId: string): Promise<string | null> => {
   const apiKey = await getAPIKey(keyId);
   if (!apiKey) return null;
-  return decryptKey(apiKey.keyValue);
+  return await decryptKey(apiKey.keyValue);
 };
 
 /**
@@ -92,34 +201,113 @@ export const updateAPIKey = async (
   keyId: string,
   updates: Partial<APIKey>
 ): Promise<void> => {
+  const supabase = getSupabaseClient();
+
   // If updating keyValue, encrypt it
+  const dbUpdates: any = { ...updates };
   if (updates.keyValue) {
-    updates.keyValue = encryptKey(updates.keyValue);
+    dbUpdates.key_value = await encryptKey(updates.keyValue);
+    delete dbUpdates.keyValue;
   }
-  
-  // TODO: Implement via storage provider
+
+  // Convert camelCase to snake_case for database
+  const dbFields: any = {};
+  Object.keys(dbUpdates).forEach(key => {
+    switch (key) {
+      case 'userId': dbFields.user_id = dbUpdates[key]; break;
+      case 'organizationId': dbFields.organization_id = dbUpdates[key]; break;
+      case 'keyValue': dbFields.key_value = dbUpdates[key]; break;
+      case 'isActive': dbFields.is_active = dbUpdates[key]; break;
+      case 'lastUsed': dbFields.last_used = dbUpdates[key]; break;
+      case 'usageCount': dbFields.usage_count = dbUpdates[key]; break;
+      case 'createdAt': dbFields.created_at = dbUpdates[key]; break;
+      case 'updatedAt': dbFields.updated_at = dbUpdates[key]; break;
+      default: dbFields[key] = dbUpdates[key];
+    }
+  });
+
+  dbFields.updated_at = new Date().toISOString();
+
+  const { error } = await supabase
+    .from('api_keys')
+    .update(dbFields)
+    .eq('id', keyId);
+
+  if (error) {
+    console.error('Error updating API key:', error);
+    throw new Error(`Failed to update API key: ${error.message}`);
+  }
 };
 
 /**
  * Delete API key
  */
 export const deleteAPIKey = async (keyId: string): Promise<void> => {
-  // TODO: Implement via storage provider
+  const supabase = getSupabaseClient();
+
+  const { error } = await supabase
+    .from('api_keys')
+    .delete()
+    .eq('id', keyId);
+
+  if (error) {
+    console.error('Error deleting API key:', error);
+    throw new Error(`Failed to delete API key: ${error.message}`);
+  }
 };
 
 /**
  * Toggle API key active status
  */
 export const toggleAPIKeyStatus = async (keyId: string): Promise<void> => {
-  // TODO: Implement via storage provider
+  const supabase = getSupabaseClient();
+
+  // First get current status
+  const { data: currentKey, error: getError } = await supabase
+    .from('api_keys')
+    .select('is_active')
+    .eq('id', keyId)
+    .single();
+
+  if (getError) {
+    console.error('Error getting API key status:', getError);
+    throw new Error(`Failed to get API key status: ${getError.message}`);
+  }
+
+  // Toggle status
+  const { error } = await supabase
+    .from('api_keys')
+    .update({ 
+      is_active: !currentKey.is_active,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', keyId);
+
+  if (error) {
+    console.error('Error toggling API key status:', error);
+    throw new Error(`Failed to toggle API key status: ${error.message}`);
+  }
 };
 
 /**
  * Increment usage count
  */
 export const incrementUsageCount = async (keyId: string): Promise<void> => {
-  // TODO: Implement via storage provider
-  // Update usageCount and lastUsed timestamp
+  const supabase = getSupabaseClient();
+
+  const { error } = await supabase
+    .from('api_keys')
+    .update({ 
+      usage_count: supabase.raw('usage_count + 1'),
+      last_used: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', keyId);
+
+  if (error) {
+    console.error('Error incrementing usage count:', error);
+    throw new Error(`Failed to increment usage count: ${error.message}`);
+  }
 };
 
 /**

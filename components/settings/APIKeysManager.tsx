@@ -12,6 +12,7 @@ import {
   testAPIKey,
   getServiceConfig
 } from '@/services/apiKeysService'
+import { getSupabaseClient } from '@/config/supabase'
 
 export default function APIKeysManager() {
   const [apiKeys, setApiKeys] = useState<APIKey[]>([])
@@ -25,11 +26,33 @@ export default function APIKeysManager() {
     loadAPIKeys()
   }, [])
 
+  const getCurrentUserId = async (): Promise<string | null> => {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      return localStorage.getItem('user_id') || null;
+    }
+    
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        return localStorage.getItem('user_id') || null;
+      }
+      return user.id;
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return localStorage.getItem('user_id') || null;
+    }
+  };
+
   const loadAPIKeys = async () => {
     try {
       setLoading(true)
-      // TODO: Get actual user ID
-      const userId = 'current-user-id'
+      const userId = await getCurrentUserId()
+      if (!userId) {
+        console.warn('No user ID available, skipping API keys load')
+        setApiKeys([])
+        return
+      }
       const keys = await getUserAPIKeys(userId)
       setApiKeys(keys)
     } catch (error) {
@@ -317,8 +340,29 @@ function APIKeyModal({
     }
 
     try {
-      // TODO: Get actual user ID
-      const userId = 'current-user-id'
+      const getCurrentUserId = async (): Promise<string | null> => {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+          return localStorage.getItem('user_id') || null;
+        }
+        
+        try {
+          const { data: { user }, error } = await supabase.auth.getUser();
+          if (error || !user) {
+            return localStorage.getItem('user_id') || null;
+          }
+          return user.id;
+        } catch (error) {
+          console.error('Error getting current user:', error);
+          return localStorage.getItem('user_id') || null;
+        }
+      };
+
+      const userId = await getCurrentUserId()
+      if (!userId) {
+        alert('Devi essere autenticato per salvare una API key')
+        return
+      }
 
       if (apiKey) {
         await updateAPIKey(apiKey.id, { name, config: formData })

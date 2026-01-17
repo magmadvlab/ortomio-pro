@@ -35,6 +35,7 @@ import {
   assignGarden,
   getMemberGardenAssignments
 } from '@/services/organizationService'
+import { getSupabaseClient } from '@/config/supabase'
 
 export default function OrganizationManager() {
   const [organizations, setOrganizations] = useState<Organization[]>([])
@@ -57,11 +58,33 @@ export default function OrganizationManager() {
     }
   }, [selectedOrg])
 
+  const getCurrentUserId = async (): Promise<string | null> => {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      return localStorage.getItem('user_id') || null;
+    }
+    
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        return localStorage.getItem('user_id') || null;
+      }
+      return user.id;
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return localStorage.getItem('user_id') || null;
+    }
+  };
+
   const loadOrganizations = async () => {
     try {
       setLoading(true)
-      // TODO: Get actual user ID
-      const userId = 'current-user-id'
+      const userId = await getCurrentUserId()
+      if (!userId) {
+        console.warn('No user ID available, skipping organizations load')
+        setOrganizations([])
+        return
+      }
       const orgs = await getUserOrganizations(userId)
       setOrganizations(orgs)
       if (orgs.length > 0 && !selectedOrg) {
@@ -515,8 +538,30 @@ function CreateOrganizationModal({
     }
 
     try {
-      // TODO: Get actual user ID
-      const userId = 'current-user-id'
+      const getCurrentUserId = async (): Promise<string | null> => {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+          return localStorage.getItem('user_id') || null;
+        }
+        
+        try {
+          const { data: { user }, error } = await supabase.auth.getUser();
+          if (error || !user) {
+            return localStorage.getItem('user_id') || null;
+          }
+          return user.id;
+        } catch (error) {
+          console.error('Error getting current user:', error);
+          return localStorage.getItem('user_id') || null;
+        }
+      };
+
+      const userId = await getCurrentUserId()
+      if (!userId) {
+        alert('Devi essere autenticato per creare un\'organizzazione')
+        return
+      }
+
       await createOrganization(userId, formData.name, formData.type, formData)
       onSave()
     } catch (error) {
@@ -634,8 +679,30 @@ function InviteMemberModal({
     }
 
     try {
-      // TODO: Get actual user ID
-      const userId = 'current-user-id'
+      const getCurrentUserId = async (): Promise<string | null> => {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+          return localStorage.getItem('user_id') || null;
+        }
+        
+        try {
+          const { data: { user }, error } = await supabase.auth.getUser();
+          if (error || !user) {
+            return localStorage.getItem('user_id') || null;
+          }
+          return user.id;
+        } catch (error) {
+          console.error('Error getting current user:', error);
+          return localStorage.getItem('user_id') || null;
+        }
+      };
+
+      const userId = await getCurrentUserId()
+      if (!userId) {
+        alert('Devi essere autenticato per inviare inviti')
+        return
+      }
+
       await createInvitation(organizationId, email, roleId, userId)
       onSave()
     } catch (error) {
