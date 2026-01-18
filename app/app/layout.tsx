@@ -8,6 +8,7 @@ import { AppTier } from '@/packages/core/config/tiers'
 import { ProfessionalSidebar } from '@/components/professional/Sidebar'
 import GlobalAIChat from '@/components/ai/GlobalAIChat'
 import TopBar from '@/components/shared/TopBar'
+import AuthGuard from '@/components/auth/AuthGuard'
 
 export default function AppLayout({
   children,
@@ -16,21 +17,23 @@ export default function AppLayout({
 }) {
   return (
     <AuthProvider>
-      <StorageProvider>
-        <TierProvider defaultTier={AppTier.PRO}>
-          <div className="flex min-h-screen bg-gray-50">
-            <ProfessionalSidebar />
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <TopBar />
-              <main className="flex-1 overflow-auto">
-                {children}
-              </main>
+      <AuthGuard>
+        <StorageProvider>
+          <TierProvider defaultTier={AppTier.PRO}>
+            <div className="flex min-h-screen bg-gray-50">
+              <ProfessionalSidebar />
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <TopBar />
+                <main className="flex-1 overflow-auto">
+                  {children}
+                </main>
+              </div>
+              {/* Chat AI Globale */}
+              <GlobalAIChat />
             </div>
-            {/* Chat AI Globale */}
-            <GlobalAIChat />
-          </div>
-        </TierProvider>
-      </StorageProvider>
+          </TierProvider>
+        </StorageProvider>
+      </AuthGuard>
     </AuthProvider>
   )
 }

@@ -39,6 +39,9 @@ class SecurityBypassController {
    * Verifica se il bypass è attivo con controlli di sicurezza tripli
    */
   public isBypassActive(): boolean {
+    // CONTROLLO 0: Se BYPASS_AUTH è esplicitamente false, SEMPRE disabilitato
+    if (process.env.NEXT_PUBLIC_BYPASS_AUTH === 'false') return false;
+    
     // CONTROLLO 1: Ambiente di produzione - SEMPRE disabilitato
     if (process.env.NODE_ENV === 'production') return false;
     if (process.env.VERCEL_ENV === 'production') return false;
@@ -47,12 +50,13 @@ class SecurityBypassController {
     const isLocalhost = this.isLocalhostEnvironment();
     if (!isLocalhost) return false;
     
-    // CONTROLLO 3: Flag espliciti richiesti
+    // CONTROLLO 3: Flag espliciti richiesti (TUTTI devono essere true)
     const hasExplicitFlag = process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
     const hasDevFlag = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+    const hasDebugFlag = process.env.NEXT_PUBLIC_DEBUG_AUTH === 'true';
     
-    // TUTTI i controlli devono passare
-    return isLocalhost && hasExplicitFlag && hasDevFlag;
+    // TUTTI i controlli devono passare per attivare il bypass
+    return isLocalhost && hasExplicitFlag && hasDevFlag && hasDebugFlag;
   }
 
   /**

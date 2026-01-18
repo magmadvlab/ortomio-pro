@@ -212,6 +212,7 @@ class ClassicPlannerService {
       }
       if (filters?.fieldRowId) {
         query = query.eq('field_row_id', filters.fieldRowId)
+      }
       if (filters?.zoneId) {
         query = query.eq('zone_id', filters.zoneId)
       }
