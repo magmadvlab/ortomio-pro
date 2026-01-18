@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mobile Layout Fix - Comprehensive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .viewport-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="viewport-indicator" id="viewportIndicator">
+        Loading...
+    </div>
+
+    <!-- Test 1: Pagina Salute con MobileResponsiveButtonGroup -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold mb-6">🧪 Test Mobile Layout Fixes</h1>
+        
+        <!-- Salute Page Header -->
+        <div class="bg-white border-b border-gray-200 mb-8">
+            <div class="px-4 py-6">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                            <span class="text-green-600">❤️</span>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">Salute delle Piante</h1>
+                            <p class="text-gray-600">Monitoraggio AI e consulti specialistici</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Mobile Responsive Button Group -->
+                    <div class="flex flex-col gap-3 sm:flex-row sm:gap-2">
+                        <button class="flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm md:text-base">
+                            <span>📷</span>
+                            <span class="hidden sm:inline">Scatta Foto</span>
+                            <span class="sm:hidden">Foto</span>
+                        </button>
+                        <button class="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm md:text-base">
+                            <span>📊</span>
+                            <span class="hidden sm:inline">Esporta Report</span>
+                            <span class="sm:hidden">Report</span>
+                        </button>
+                        <button class="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm md:text-base">
+                            <span>➕</span>
+                            <span class="hidden sm:inline">Nuovo Controllo</span>
+                            <span class="sm:hidden">Nuovo</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weather Widget Test -->
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white shadow-lg mb-8">
+            <div class="flex items-center justify-between mb-3">
+                <div>
+                    <h3 class="text-sm font-medium opacity-90">Condizioni - Roma</h3>
+                    <p class="text-xl md:text-2xl font-bold">Sereno</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-4xl font-bold">18°</div>
+                    <div class="text-xs opacity-90 space-y-1">
+                        <div>Vento: 12km/h</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dettagli aggiuntivi -->
+            <div class="grid grid-cols-3 gap-4 mb-3 text-xs opacity-90">
+                <div class="flex items-center gap-1">
+                    <span>💧</span>
+                    <span>65%</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span>💨</span>
+                    <span>12km/h</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span>🌡️</span>
+                    <span>1013hPa</span>
+                </div>
+            </div>
+
+            <!-- Alert meteo -->
+            <div class="bg-blue-500/30 backdrop-blur-sm rounded-lg p-3 border border-blue-300">
+                <div class="flex items-start gap-2">
+                    <span>ℹ️</span>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium">Condizioni ideali per giardinaggio</p>
+                        <p class="text-xs opacity-90 mt-1">Temperature miti, nessuna precipitazione prevista</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Previsioni rapide -->
+            <div class="mt-4 pt-3 border-t border-white/20">
+                <div class="flex justify-between text-xs">
+                    <div class="text-center opacity-90">
+                        <div class="mb-1">Dom</div>
+                        <div class="font-semibold">20°/8°</div>
+                    </div>
+                    <div class="text-center opacity-90">
+                        <div class="mb-1">Lun</div>
+                        <div class="font-semibold">22°/10°</div>
+                    </div>
+                    <div class="text-center opacity-90">
+                        <div class="mb-1">Mar</div>
+                        <div class="font-semibold">19°/7°</div>
+                        <div class="text-blue-200">2mm</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test 2: Altri layout con più bottoni -->
+        <div class="space-y-8">
+            <!-- Planner Page Style -->
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900">🌱 Smart Planner</h2>
+                        <p class="text-gray-600">Pianificazione intelligente con controlli meteo</p>
+                    </div>
+                    
+                    <div class="flex flex-col gap-3 sm:flex-row sm:gap-2">
+                        <button class="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm md:text-base">
+                            <span>➕</span>
+                            <span class="hidden sm:inline">Nuova Operazione</span>
+                            <span class="sm:hidden">Nuovo</span>
+                        </button>
+                        <button class="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm md:text-base">
+                            <span>📅</span>
+                            <span class="hidden sm:inline">Calendario</span>
+                            <span class="sm:hidden">Cal</span>
+                        </button>
+                        <button class="flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm md:text-base">
+                            <span>🤖</span>
+                            <span class="hidden sm:inline">AI</span>
+                            <span class="sm:hidden">AI</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-green-800">Operazioni Smart</h3>
+                        <p class="text-sm text-green-600 mt-1">3 operazioni programmate</p>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-blue-800">Calendario</h3>
+                        <p class="text-sm text-blue-600 mt-1">5 eventi questa settimana</p>
+                    </div>
+                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-purple-800">AI</h3>
+                        <p class="text-sm text-purple-600 mt-1">2 suggerimenti attivi</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nutrition Page Style -->
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900">🌿 Nutrizione</h2>
+                        <p class="text-gray-600">Gestione fertilizzanti e trattamenti</p>
+                    </div>
+                    
+                    <div class="flex flex-col gap-3 sm:flex-row sm:gap-2">
+                        <button class="flex items-center justify-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm md:text-base">
+                            <span>🧪</span>
+                            <span class="hidden sm:inline">Nuovo Trattamento</span>
+                            <span class="sm:hidden">Tratt.</span>
+                        </button>
+                        <button class="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm md:text-base">
+                            <span>📦</span>
+                            <span class="hidden sm:inline">Inventario</span>
+                            <span class="sm:hidden">Inv.</span>
+                        </button>
+                        <button class="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm md:text-base">
+                            <span>📊</span>
+                            <span class="hidden sm:inline">Analytics</span>
+                            <span class="sm:hidden">Stats</span>
+                        </button>
+                        <button class="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm md:text-base">
+                            <span>🤖</span>
+                            <span class="hidden sm:inline">AI Suggerimenti</span>
+                            <span class="sm:hidden">AI</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="text-center py-8 text-gray-500">
+                    <p>Test con 4 bottoni - Layout automatico</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Controls -->
+        <div class="fixed bottom-4 left-4 bg-white border border-gray-300 rounded-lg p-4 shadow-lg">
+            <h3 class="font-bold mb-2">Test Viewport</h3>
+            <div class="space-y-2">
+                <button onclick="setViewport(375, 667)" class="block w-full text-left px-3 py-1 bg-blue-100 hover:bg-blue-200 rounded text-sm">iPhone SE (375x667)</button>
+                <button onclick="setViewport(390, 844)" class="block w-full text-left px-3 py-1 bg-blue-100 hover:bg-blue-200 rounded text-sm">iPhone 12 (390x844)</button>
+                <button onclick="setViewport(768, 1024)" class="block w-full text-left px-3 py-1 bg-blue-100 hover:bg-blue-200 rounded text-sm">iPad (768x1024)</button>
+                <button onclick="setViewport(1920, 1080)" class="block w-full text-left px-3 py-1 bg-green-100 hover:bg-green-200 rounded text-sm">Desktop (1920x1080)</button>
+            </div>
+            <div class="mt-3 pt-3 border-t border-gray-200">
+                <div class="text-xs text-gray-600">
+                    <div>Current: <span id="currentSize">Loading...</span></div>
+                    <div>Layout: <span id="layoutTest">-</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateViewportIndicator() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const indicator = document.getElementById('viewportIndicator');
+            const currentSize = document.getElementById('currentSize');
+            const layoutTest = document.getElementById('layoutTest');
+            
+            let deviceType = 'Desktop';
+            if (width <= 640) deviceType = 'Mobile';
+            else if (width <= 768) deviceType = 'Tablet';
+            
+            indicator.textContent = `${deviceType}: ${width}x${height}`;
+            if (currentSize) currentSize.textContent = `${width}x${height}`;
+            
+            // Test layout behavior
+            if (layoutTest) {
+                if (width <= 640) {
+                    layoutTest.textContent = 'Vertical buttons ✅';
+                } else {
+                    layoutTest.textContent = 'Horizontal buttons ✅';
+                }
+            }
+        }
+        
+        function setViewport(width, height) {
+            alert(`Set browser dev tools to ${width}x${height} and refresh the page`);
+        }
+        
+        // Update on load and resize
+        window.addEventListener('load', updateViewportIndicator);
+        window.addEventListener('resize', updateViewportIndicator);
+        
+        // Test button interactions
+        document.addEventListener('DOMContentLoaded', function() {
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach((button, index) => {
+                if (!button.onclick) {
+                    button.addEventListener('click', function() {
+                        console.log(`Button ${index + 1} clicked:`, this.textContent.trim());
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -8,6 +8,7 @@ import { GardenTypeWizard } from '@/components/GardenTypeWizard'
 import { GardenEditModal } from '@/components/settings/GardenEditModal'
 import APIKeysManager from '@/components/settings/APIKeysManager'
 import OrganizationManager from '@/components/settings/OrganizationManager'
+import SatelliteCredentialsManager from '@/components/settings/SatelliteCredentialsManager'
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState('profile')
@@ -63,6 +64,7 @@ export default function SettingsPage() {
   const sections = [
     { id: 'profile', label: 'Profilo', icon: User },
     { id: 'gardens', label: 'I Miei Orti', icon: MapPin },
+    { id: 'satellite', label: 'Dati Satellitari', icon: Settings },
     { id: 'apikeys', label: 'API Keys', icon: Settings },
     { id: 'organization', label: 'Organizzazione', icon: Settings },
     { id: 'notifications', label: 'Notifiche', icon: Bell },
@@ -381,6 +383,12 @@ export default function SettingsPage() {
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeSection === 'satellite' && (
+              <div>
+                <SatelliteCredentialsManager />
               </div>
             )}
 

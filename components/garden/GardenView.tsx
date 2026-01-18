@@ -71,45 +71,53 @@ export function GardenView({
             message="Qui puoi gestire tutte le tue coltivazioni: pianifica semine, visualizza il calendario, controlla i task e monitora le tue piante."
             position="bottom"
           />
-          <div className="flex gap-3">
+          {/* Mobile: Dropdown menu for actions */}
+          <div className="flex gap-2 md:gap-3">
             <Link
               href="/app/settings?section=gardens"
-              className="px-4 py-3 text-base border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-3"
+              className="px-3 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2 md:px-4 md:py-3 md:text-base"
               title="Gestisci i tuoi orti"
             >
-              <Settings size={18} />
+              <Settings size={16} className="md:w-[18px] md:h-[18px]" />
               <span className="hidden sm:inline">Gestisci Orti</span>
             </Link>
             <button
               onClick={() => setShowAddModal(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-3"
+              className="px-3 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2 text-sm md:px-4 md:text-base"
             >
-              <Plus size={18} />
+              <Plus size={16} className="md:w-[18px] md:h-[18px]" />
               <span className="hidden sm:inline">Aggiungi</span>
             </button>
           </div>
         </div>
         
-        {/* Tab Switcher */}
-        <div className="flex gap-3 border-b border-gray-200">
-          {tabs.map((tab) => {
-            const Icon = tab.icon
-            const isActive = activeTab === tab.id
-            return (
-              <button
-                key={tab.id}
-                onClick={() => onTabChange(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors border-b-2 ${
-                  isActive
-                    ? 'text-green-600 border-green-600'
-                    : 'text-gray-500 border-transparent hover:text-gray-700'
-                }`}
-              >
-                <Icon size={18} />
-                <span>{tab.label}</span>
-              </button>
-            )
-          })}
+        {/* Tab Switcher - Mobile Responsive */}
+        <div className="border-b border-gray-200">
+          {/* Mobile: Horizontal scroll */}
+          <div className="flex gap-1 overflow-x-auto pb-2 md:gap-3 md:overflow-visible" style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            WebkitScrollbar: { display: 'none' }
+          }}>
+            {tabs.map((tab) => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => onTabChange(tab.id)}
+                  className={`flex items-center gap-2 px-3 py-2 font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0 text-sm md:text-base md:px-4 ${
+                    isActive
+                      ? 'text-green-600 border-green-600'
+                      : 'text-gray-500 border-transparent hover:text-gray-700'
+                  }`}
+                >
+                  <Icon size={16} className="md:w-[18px] md:h-[18px]" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </header>
       

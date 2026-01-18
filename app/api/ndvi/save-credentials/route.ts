@@ -1,69 +1,80 @@
-import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
+import { NextRequest, NextResponse } from 'next/server';
+import { writeFileSync } from 'fs';
+import { join } from 'path';
 
 export async function POST(request: NextRequest) {
   try {
-    const { clientId, clientSecret, instanceId } = await request.json()
+    const { clientId, clientSecret, instanceId } = await request.json();
 
-    if (!clientId || !clientSecret || !instanceId) {
+    if (!clientId || !clientSecret) {
       return NextResponse.json(
-        { success: false, error: 'Client ID, Client Secret e Instance ID sono richiesti' },
+        { error: 'Client ID e Client Secret sono richiesti' },
         { status: 400 }
-      )
+      );
     }
 
-    // Path del file .env.local
-    const envPath = path.join(process.cwd(), '.env.local')
+    // In un'app reale, salveresti nel database utente
+    // Per ora, aggiorniamo le variabili d'ambiente locali
     
-    // Leggi il file esistente o crea nuovo contenuto
-    let envContent = ''
-    if (fs.existsSync(envPath)) {
-      envContent = fs.readFileSync(envPath, 'utf8')
+    // Leggi il file .env.local esistente
+    const envPath = join(process.cwd(), '.env.local');
+    let envContent = '';
+    
+    try {
+      const fs = require('fs');
+      envContent = fs.readFileSync(envPath, 'utf8');
+    } catch (error) {
+      // File non esiste, crealo
+      envContent = '# OrtoMio Environment Variables\n';
     }
 
-    // Rimuovi eventuali configurazioni esistenti
-    const linesToRemove = [
-      'SH_CLIENT_ID=',
-      'SH_CLIENT_SECRET=',
-      'SH_INSTANCE_ID=',
-      'SENTINEL_HUB_CLIENT_ID=',
-      'SENTINEL_HUB_CLIENT_SECRET=',
-      'COPERNICUS_CLIENT_ID=',
-      'COPERNICUS_CLIENT_SECRET='
-    ]
+    // Aggiorna o aggiungi le credenziali Sentinel Hub
+    const lines = envContent.split('\n');
+    const updatedLines = [];
+    let foundClientId = false;
+    let foundClientSecret = false;
+    let foundInstanceId = false;
 
-    const lines = envContent.split('\n').filter(line => {
-      return !linesToRemove.some(prefix => line.startsWith(prefix))
-    })
+    for (const line of lines) {
+      if (line.startsWith('SH_CLIENT_ID=')) {
+        updatedLines.push(`SH_CLIENT_ID=${clientId}`);
+        foundClientId = true;
+      } else if (line.startsWith('SH_CLIENT_SECRET=')) {
+        updatedLines.push(`SH_CLIENT_SECRET=${clientSecret}`);
+        foundClientSecret = true;
+      } else if (line.startsWith('ORTOMIO_WMS_CONFIG_ID=')) {
+        updatedLines.push(`ORTOMIO_WMS_CONFIG_ID=${instanceId || 'a9646191-f172-4e6e-a965-670c4a222898'}`);
+        foundInstanceId = true;
+      } else {
+        updatedLines.push(line);
+      }
+    }
 
-    // Aggiungi le nuove configurazioni
-    lines.push('')
-    lines.push('# Sentinel Hub / Copernicus Configuration')
-    lines.push(`SH_CLIENT_ID=${clientId}`)
-    lines.push(`SH_CLIENT_SECRET=${clientSecret}`)
-    lines.push(`SH_INSTANCE_ID=${instanceId}`)
-    lines.push('')
-    lines.push('# Alternative names for compatibility')
-    lines.push(`SENTINEL_HUB_CLIENT_ID=${clientId}`)
-    lines.push(`SENTINEL_HUB_CLIENT_SECRET=${clientSecret}`)
-    lines.push(`COPERNICUS_CLIENT_ID=${clientId}`)
-    lines.push(`COPERNICUS_CLIENT_SECRET=${clientSecret}`)
+    // Aggiungi le variabili se non esistevano
+    if (!foundClientId) {
+      updatedLines.push(`SH_CLIENT_ID=${clientId}`);
+    }
+    if (!foundClientSecret) {
+      updatedLines.push(`SH_CLIENT_SECRET=${clientSecret}`);
+    }
+    if (!foundInstanceId) {
+      updatedLines.push(`ORTOMIO_WMS_CONFIG_ID=${instanceId || 'a9646191-f172-4e6e-a965-670c4a222898'}`);
+    }
 
     // Scrivi il file aggiornato
-    const newContent = lines.join('\n')
-    fs.writeFileSync(envPath, newContent, 'utf8')
+    const updatedContent = updatedLines.join('\n');
+    writeFileSync(envPath, updatedContent, 'utf8');
 
     return NextResponse.json({
       success: true,
       message: 'Credenziali salvate con successo'
-    })
+    });
 
   } catch (error: any) {
-    console.error('Error saving credentials:', error)
+    console.error('Errore salvataggio credenziali:', error);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { error: 'Errore interno del server' },
       { status: 500 }
-    )
+    );
   }
 }

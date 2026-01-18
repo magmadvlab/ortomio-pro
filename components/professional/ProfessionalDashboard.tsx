@@ -172,23 +172,26 @@ export default function ProfessionalDashboard({
     <div className="space-y-6">
       {/* Header Professionale */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col gap-4 mb-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-              <BarChart3 className="text-green-600" size={28} />
-              Command Center Professionale
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 md:text-2xl md:gap-3">
+              <BarChart3 className="text-green-600" size={24} className="md:w-7 md:h-7" />
+              <span className="hidden sm:inline">Command Center Professionale</span>
+              <span className="sm:hidden">Dashboard Pro</span>
             </h2>
-            <p className="text-gray-600 mt-1">
+            <p className="text-gray-600 mt-1 text-sm md:text-base">
               Piano operativo generato dal Director • {new Date(dailyPlan.date).toLocaleDateString('it-IT')}
             </p>
           </div>
           
-          {/* Status Generale */}
-          <div className={`px-4 py-2 rounded-full border-2 ${getPriorityColor(dailyPlan.priority)}`}>
+          {/* Status Generale - Mobile Responsive */}
+          <div className={`px-3 py-2 rounded-full border-2 ${getPriorityColor(dailyPlan.priority)} md:px-4 self-start md:self-auto`}>
             <div className="flex items-center gap-2">
               {getPriorityIcon(dailyPlan.priority)}
-              <span className="font-semibold text-sm">
-                Priorità: {dailyPlan.priority}
+              <span className="font-semibold text-xs md:text-sm">
+                <span className="hidden sm:inline">Priorità: </span>
+                <span className="sm:hidden">P:</span>
+                {dailyPlan.priority}
               </span>
             </div>
           </div>

@@ -28,6 +28,9 @@ import {
   Activity
 } from 'lucide-react'
 import { plantHealthMonitoringService } from '@/services/plantHealthMonitoringService'
+import { weatherService } from '@/services/weatherService'
+import MobileResponsiveButtonGroup from '@/components/shared/MobileResponsiveButtonGroup'
+import WeatherWidget from '@/components/weather/WeatherWidget'
 
 interface HealthAlert {
   id: string
@@ -116,26 +119,13 @@ export default function PlantHealthPage() {
 
   const loadWeather = async () => {
     try {
-      // Simula caricamento meteo per Roma (coordinate di default)
-      const lat = 41.9028
-      const lon = 12.4964
-      
-      const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=precipitation_sum&timezone=auto`
-      )
-      const data = await response.json()
-      
-      if (data.current_weather && data.daily) {
-        const condition = data.current_weather.weathercode <= 3 ? 'Sereno' :
-                         data.current_weather.weathercode <= 48 ? 'Nuvoloso' :
-                         data.current_weather.weathercode <= 65 ? 'Pioggia' : 'Brutto'
-
-        setWeather({
-          temp: data.current_weather.temperature,
-          rainMm: data.daily.precipitation_sum[0] || 0,
-          condition
-        })
-      }
+      // Usa il servizio meteo reale
+      const weatherData = await weatherService.getWeatherForUserLocation()
+      setWeather({
+        temp: weatherData.temp,
+        rainMm: weatherData.rainMm,
+        condition: weatherData.condition
+      })
     } catch (error) {
       console.error('Weather fetch failed:', error)
       // Fallback weather data
@@ -450,67 +440,50 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={() => setPhotoModal({ isOpen: true, alert: { 
-                  id: 'quick-photo', 
-                  plantName: 'Diagnosi Rapida', 
-                  description: 'Scatta una foto per analisi AI immediata' 
-                } as any })}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-              >
-                <Camera className="w-4 h-4" />
-                Scatta Foto
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                <Download className="w-4 h-4" />
-                Esporta Report
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-                <Plus className="w-4 h-4" />
-                Nuovo Controllo
-              </button>
-            </div>
+            <MobileResponsiveButtonGroup
+              buttons={[
+                {
+                  id: 'photo',
+                  icon: <Camera className="w-4 h-4" />,
+                  label: 'Scatta Foto',
+                  shortLabel: 'Foto',
+                  variant: 'secondary',
+                  onClick: () => setPhotoModal({ isOpen: true, alert: { 
+                    id: 'quick-photo', 
+                    plantName: 'Diagnosi Rapida', 
+                    description: 'Scatta una foto per analisi AI immediata' 
+                  } as any })
+                },
+                {
+                  id: 'export',
+                  icon: <Download className="w-4 h-4" />,
+                  label: 'Esporta Report',
+                  shortLabel: 'Report',
+                  variant: 'outline',
+                  onClick: () => console.log('Export report')
+                },
+                {
+                  id: 'new',
+                  icon: <Plus className="w-4 h-4" />,
+                  label: 'Nuovo Controllo',
+                  shortLabel: 'Nuovo',
+                  variant: 'primary',
+                  onClick: () => console.log('New control')
+                }
+              ]}
+              layout="auto"
+              size="md"
+            />
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Weather Widget */}
-        {weather && (
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white shadow-lg mb-8">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-sm font-medium opacity-90">Condizioni Oggi</h3>
-                <p className="text-xl md:text-2xl font-bold">{weather.condition}</p>
-              </div>
-              <div className="text-right">
-                <div className="text-4xl font-bold">{weather.temp.toFixed(0)}°</div>
-                <p className="text-xs opacity-90">Pioggia: {weather.rainMm}mm</p>
-              </div>
-            </div>
-
-            {/* Alert meteo proattivi */}
-            {weather.rainMm > 5 && (
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mt-3">
-                <p className="text-sm font-medium">⚠️ Pioggia prevista oggi</p>
-                <p className="text-xs opacity-90 mt-1">Evita irrigazione, controlla ristagni d'acqua</p>
-              </div>
-            )}
-            {weather.temp > 30 && (
-              <div className="bg-orange-500/30 backdrop-blur-sm rounded-lg p-3 mt-3">
-                <p className="text-sm font-medium">🌡️ Temperature elevate</p>
-                <p className="text-xs opacity-90 mt-1">Aumenta l'irrigazione, proteggi le piantine dal sole diretto</p>
-              </div>
-            )}
-            {weather.temp < 5 && (
-              <div className="bg-blue-500/30 backdrop-blur-sm rounded-lg p-3 mt-3">
-                <p className="text-sm font-medium">❄️ Rischio gelo</p>
-                <p className="text-xs opacity-90 mt-1">Proteggi le piante sensibili con teli o rientrale</p>
-              </div>
-            )}
-          </div>
-        )}
+        <WeatherWidget 
+          showAlerts={true}
+          className="mb-8"
+        />
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 border border-gray-200">

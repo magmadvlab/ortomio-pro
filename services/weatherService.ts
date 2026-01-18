@@ -1,464 +1,419 @@
-import { Garden } from '../types';
-import { getEffectiveTemperature, getEffectiveMinTemperature } from './sensorDataService';
-import { getWeatherForecastWithProvider } from './weatherProviderAdapter';
-
-// Cache per evitare troppe chiamate API
-const weatherCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_DURATION = 15 * 60 * 1000; // 15 minuti (aumentato da 10)
-
-export interface WeatherForecast {
-  temp: number; // Temperatura corrente
-  tempMin?: number; // Temperatura minima prevista
-  tempMax?: number; // Temperatura massima prevista
-  code: number; // Weather code (0 = clear, etc.)
-  rainForecastMm: number; // Pioggia prevista in mm
-  date?: string; // Date for multi-day forecasts
-  humidity?: number; // Humidity percentage
-  windSpeed?: number; // Wind speed in km/h
-}
-
-export interface WeatherAlert {
-  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-  type: 'FROST' | 'HEATWAVE' | 'HEAVYRAIN' | 'DROUGHT';
-  message: string;
-  actionRequired: string[];
-  date?: string;
-}
-
-export interface TransplantConditions {
-  isSuitable: boolean;
-  reason: string;
-  currentMinTemp?: number;
-  requiredMinTemp: number;
-}
-
 /**
- * Recupera le previsioni meteo da Open-Meteo API (singolo giorno)
+ * Weather Service - Servizio per recuperare dati meteo reali
+ * Integra OpenWeatherMap e Open-Meteo per dati accurati
  */
-export const getWeatherForecast = async (
-  lat: number,
-  lng: number
-): Promise<WeatherForecast | null> => {
-  const cacheKey = `current_${lat.toFixed(2)}_${lng.toFixed(2)}`;
-  const cached = weatherCache.get(cacheKey);
-  
-  // Usa cache se disponibile e non scaduto
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return cached.data;
-  }
 
-  try {
-    const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,weathercode&timezone=auto`
-    );
+interface WeatherData {
+  temp: number
+  rainMm: number
+  condition: string
+  humidity: number
+  windSpeed: number
+  pressure: number
+  uvIndex: number
+  forecast: WeatherForecast[]
+  location: {
+    name: string
+    lat: number
+    lon: number
+  }
+}
+
+interface WeatherForecast {
+  date: string
+  tempMin: number
+  tempMax: number
+  condition: string
+  rainMm: number
+  windSpeed: number
+  humidity: number
+}
+
+interface GardenLocation {
+  lat: number
+  lon: number
+  name?: string
+}
+
+class WeatherService {
+  private readonly OPENWEATHER_API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY
+  private readonly CACHE_DURATION = 10 * 60 * 1000 // 10 minuti
+  private cache = new Map<string, { data: WeatherData; timestamp: number }>()
+
+  /**
+   * Ottiene dati meteo per una posizione specifica
+   */
+  async getWeatherForLocation(location: GardenLocation): Promise<WeatherData> {
+    const cacheKey = `${location.lat}_${location.lon}`
+    const cached = this.cache.get(cacheKey)
     
-    if (!response.ok) {
-      console.error(`Weather API error: ${response.status} ${response.statusText}`);
-      // Ritorna cache scaduto se disponibile per evitare errori ripetuti
-      if (cached) {
-        console.warn('Using expired cache due to API error');
-        return cached.data;
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      return cached.data
+    }
+
+    try {
+      // Prova prima con OpenWeatherMap se disponibile
+      if (this.OPENWEATHER_API_KEY) {
+        const weatherData = await this.fetchFromOpenWeatherMap(location)
+        this.cache.set(cacheKey, { data: weatherData, timestamp: Date.now() })
+        return weatherData
+      } else {
+        // Fallback su Open-Meteo (gratuito)
+        const weatherData = await this.fetchFromOpenMeteo(location)
+        this.cache.set(cacheKey, { data: weatherData, timestamp: Date.now() })
+        return weatherData
       }
-      return null;
+    } catch (error) {
+      console.error('Error fetching weather data:', error)
+      // Ritorna dati di fallback
+      return this.getFallbackWeatherData(location)
     }
-    
-    const data = await response.json();
-    
-    if (data.current_weather && data.daily) {
-      const result = {
-        temp: data.current_weather.temperature,
-        tempMin: data.daily.temperature_2m_min?.[0],
-        tempMax: data.daily.temperature_2m_max?.[0],
-        code: data.current_weather.weathercode,
-        rainForecastMm: data.daily.precipitation_sum?.[0] || 0,
-      };
-      
-      // Salva in cache
-      weatherCache.set(cacheKey, { data: result, timestamp: Date.now() });
-      return result;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error("Weather fetch failed", error);
-    // Ritorna cache scaduto se disponibile
-    return cached ? cached.data : null;
-  }
-};
-
-/**
- * Recupera previsioni meteo per 7 giorni
- * Usa provider configurato personalizzato se disponibile, altrimenti Open-Meteo (default)
- */
-export const getWeatherForecast7Days = async (
-  lat: number,
-  lng: number
-): Promise<WeatherForecast[]> => {
-  const cacheKey = `forecast_${lat.toFixed(2)}_${lng.toFixed(2)}`;
-  const cached = weatherCache.get(cacheKey);
-  
-  // Usa cache se disponibile e non scaduto
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return cached.data;
   }
 
-  try {
-    // Prova prima provider personalizzato
-    const customForecast = await getWeatherForecastWithProvider(lat, lng, 7);
-    if (customForecast && customForecast.length > 0) {
-      // Salva in cache
-      weatherCache.set(cacheKey, { data: customForecast, timestamp: Date.now() });
-      return customForecast;
-    }
-  } catch (error) {
-    console.warn('Errore recupero forecast da provider personalizzato, uso default:', error);
-  }
-
-  // Fallback a Open-Meteo (default)
-  try {
-    const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,weathercode&timezone=auto&forecast_days=7`
-    );
-    
-    if (!response.ok) {
-      console.error(`Weather API error: ${response.status} ${response.statusText}`);
-      // Ritorna cache scaduto se disponibile per evitare errori ripetuti
-      if (cached) {
-        console.warn('Using expired cache due to API error');
-        return cached.data;
+  /**
+   * Ottiene dati meteo dalla posizione dell'utente
+   */
+  async getWeatherForUserLocation(): Promise<WeatherData> {
+    try {
+      const position = await this.getCurrentPosition()
+      const location: GardenLocation = {
+        lat: position.coords.latitude,
+        lon: position.coords.longitude,
+        name: 'La tua posizione'
       }
-      return [];
-    }
-    
-    const data = await response.json();
-    
-    if (data.daily && data.daily.time) {
-      const result = data.daily.time.map((date: string, i: number) => ({
-        temp: (data.daily.temperature_2m_max[i] + data.daily.temperature_2m_min[i]) / 2,
-        tempMin: data.daily.temperature_2m_min[i],
-        tempMax: data.daily.temperature_2m_max[i],
-        code: data.daily.weathercode[i],
-        rainForecastMm: data.daily.precipitation_sum[i] || 0,
-        date,
-        humidity: undefined,
-        windSpeed: undefined,
-      }));
-      
-      // Salva in cache
-      weatherCache.set(cacheKey, { data: result, timestamp: Date.now() });
-      return result;
-    }
-    
-    return [];
-  } catch (error) {
-    console.error("Weather forecast 7 days failed", error);
-    // Ritorna cache scaduto se disponibile
-    return cached ? cached.data : [];
-  }
-};
-
-/**
- * Generate weather alerts based on forecast
- */
-export const generateWeatherAlerts = (
-  forecast: WeatherForecast[],
-  activePlants?: Array<{ plantName: string; minTemp?: number }>
-): WeatherAlert[] => {
-  const alerts: WeatherAlert[] = [];
-
-  // Check for frost
-  const frostDays = forecast.filter(f => f.tempMin !== undefined && f.tempMin < 2);
-  if (frostDays.length > 0) {
-    const sensitivePlants = activePlants?.filter(p => (p.minTemp || 10) > 10) || [];
-    
-    if (sensitivePlants.length > 0) {
-      alerts.push({
-        severity: 'CRITICAL',
-        type: 'FROST',
-        message: `⚠️ GELATA PREVISTA: ${frostDays[0].date || 'Oggi'} (Min: ${frostDays[0].tempMin?.toFixed(1)}°C)`,
-        actionRequired: [
-          `Copri immediatamente: ${sensitivePlants.map(p => p.plantName).join(', ')}`,
-          'Usa teli TNT o campane di plastica',
-          'Se in vaso, sposta al riparo',
-          'Annaffia leggermente al mattino (acqua rilascia calore)',
-        ],
-        date: frostDays[0].date,
-      });
+      return await this.getWeatherForLocation(location)
+    } catch (error) {
+      console.error('Error getting user location:', error)
+      // Fallback su Roma
+      return await this.getWeatherForLocation({
+        lat: 41.9028,
+        lon: 12.4964,
+        name: 'Roma (default)'
+      })
     }
   }
 
-  // Check for heatwave (3+ days >35°C)
-  const heatDays = forecast.filter(f => f.tempMax !== undefined && f.tempMax > 35);
-  if (heatDays.length >= 3) {
-    alerts.push({
-      severity: 'HIGH',
-      type: 'HEATWAVE',
-      message: `🔥 ONDATA DI CALORE: ${heatDays.length} giorni > 35°C`,
-      actionRequired: [
-        'Installa teli ombreggianti (50%) su Lattughe, Spinaci',
-        'Sposta irrigazione a prima mattina (5-7am) per evitare evaporazione',
-        'Aumenta frequenza irrigazione Pomodori/Peperoni',
-        'Pacciamatura d\'emergenza se non fatta',
-      ],
-    });
-  }
-
-  // Check for heavy rain (2+ days >20mm)
-  const rainDays = forecast.filter(f => f.rainForecastMm > 20);
-  if (rainDays.length >= 2) {
-    alerts.push({
-      severity: 'MEDIUM',
-      type: 'HEAVYRAIN',
-      message: `☔ PIOGGE INTENSE PREVISTE: ${rainDays.length} giorni con >20mm`,
-      actionRequired: [
-        'Sospendi irrigazione per i prossimi giorni',
-        'Se terreno argilloso: verifica che non ci siano ristagni',
-        'Zappa leggermente dopo pioggia per arieggiare',
-      ],
-    });
-  }
-
-  // Check for drought (7+ days without rain, low humidity)
-  const dryDays = forecast.filter(f => f.rainForecastMm === 0);
-  if (dryDays.length >= 7 && forecast[0]?.humidity && forecast[0].humidity < 40) {
-    alerts.push({
-      severity: 'MEDIUM',
-      type: 'DROUGHT',
-      message: `🏜️ SICCITÀ: 7+ giorni senza pioggia, umidità <40%`,
-      actionRequired: [
-        'Verifica che pacciamatura sia intatta',
-        'Controlla impianto irrigazione',
-        'Aumenta frequenza per terreni sabbiosi',
-        'Nebulizza foglie di Lattughe/Spinaci alla sera',
-      ],
-    });
-  }
-
-  return alerts;
-};
-
-/**
- * Verifica se le condizioni meteo sono adatte per il trapianto
- * Controlla che la temperatura minima notturna sia sopra la soglia richiesta
- * Versione legacy: usa solo lat/lng (per retrocompatibilità)
- */
-export const checkTransplantConditions = async (
-  lat: number,
-  lng: number,
-  minTemp: number
-): Promise<TransplantConditions> => {
-  const forecast = await getWeatherForecast(lat, lng);
-  
-  if (!forecast) {
-    return {
-      isSuitable: false,
-      reason: "Impossibile recuperare le previsioni meteo. Verifica la connessione.",
-      requiredMinTemp: minTemp,
-    };
-  }
-  
-  // Usa la temperatura minima prevista (notturna) se disponibile, altrimenti usa la corrente
-  const currentMinTemp = forecast.tempMin ?? forecast.temp;
-  
-  if (currentMinTemp < minTemp) {
-    return {
-      isSuitable: false,
-      reason: `La temperatura minima prevista (${currentMinTemp.toFixed(1)}°C) è inferiore a quella richiesta (${minTemp}°C). Aspetta che le notti si riscaldino.`,
-      currentMinTemp,
-      requiredMinTemp: minTemp,
-    };
-  }
-  
-  return {
-    isSuitable: true,
-    reason: `Le condizioni sono adatte: temperatura minima prevista ${currentMinTemp.toFixed(1)}°C (richiesta: ${minTemp}°C).`,
-    currentMinTemp,
-    requiredMinTemp: minTemp,
-  };
-};
-
-/**
- * Verifica se le condizioni sono adatte per il trapianto usando sensori + meteo
- * Versione avanzata: usa sensori IoT se disponibili, altrimenti API meteo
- */
-export const checkTransplantConditionsWithSensors = async (
-  garden: Garden,
-  minTemp: number,
-  zoneId?: string
-): Promise<TransplantConditions> => {
-  try {
-    // Usa temperatura effettiva da sensori o API
-    const tempResult = await getEffectiveMinTemperature(garden, zoneId);
-    const currentMinTemp = tempResult.temperature;
-    
-    const sourceInfo = tempResult.source === 'sensor' 
-      ? `sensore ${tempResult.sensorType} (${tempResult.confidence * 100}% confidenza)`
-      : tempResult.source === 'weather_api'
-      ? 'previsioni meteo'
-      : 'stima';
-
-    if (currentMinTemp < minTemp) {
-      return {
-        isSuitable: false,
-        reason: `La temperatura minima attuale (${currentMinTemp.toFixed(1)}°C da ${sourceInfo}) è inferiore a quella richiesta (${minTemp}°C). Aspetta che le notti si riscaldino.`,
-        currentMinTemp,
-        requiredMinTemp: minTemp,
-      };
-    }
-    
-    return {
-      isSuitable: true,
-      reason: `Le condizioni sono adatte: temperatura minima attuale ${currentMinTemp.toFixed(1)}°C da ${sourceInfo} (richiesta: ${minTemp}°C).`,
-      currentMinTemp,
-      requiredMinTemp: minTemp,
-    };
-  } catch (error) {
-    console.error('Errore verifica condizioni trapianto:', error);
-    // Fallback a versione legacy
+  /**
+   * Ottiene dati meteo per un orto specifico
+   */
+  async getWeatherForGarden(garden: any): Promise<WeatherData> {
     if (garden.coordinates) {
-      return checkTransplantConditions(
-        garden.coordinates.latitude,
-        garden.coordinates.longitude,
-        minTemp
-      );
+      return await this.getWeatherForLocation({
+        lat: garden.coordinates.lat,
+        lon: garden.coordinates.lon,
+        name: garden.name
+      })
+    } else {
+      // Se l'orto non ha coordinate, usa la posizione dell'utente
+      return await this.getWeatherForUserLocation()
     }
-    
+  }
+
+  /**
+   * Fetch da OpenWeatherMap (API premium)
+   */
+  private async fetchFromOpenWeatherMap(location: GardenLocation): Promise<WeatherData> {
+    const currentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${location.lat}&lon=${location.lon}&appid=${this.OPENWEATHER_API_KEY}&units=metric&lang=it`
+    const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${location.lat}&lon=${location.lon}&appid=${this.OPENWEATHER_API_KEY}&units=metric&lang=it`
+
+    const [currentResponse, forecastResponse] = await Promise.all([
+      fetch(currentUrl),
+      fetch(forecastUrl)
+    ])
+
+    if (!currentResponse.ok || !forecastResponse.ok) {
+      throw new Error('OpenWeatherMap API error')
+    }
+
+    const currentData = await currentResponse.json()
+    const forecastData = await forecastResponse.json()
+
     return {
-      isSuitable: false,
-      reason: "Impossibile verificare le condizioni meteo. Verifica la connessione.",
-      requiredMinTemp: minTemp,
-    };
+      temp: Math.round(currentData.main.temp),
+      rainMm: currentData.rain?.['1h'] || 0,
+      condition: this.translateCondition(currentData.weather[0].description),
+      humidity: currentData.main.humidity,
+      windSpeed: Math.round(currentData.wind.speed * 3.6), // m/s to km/h
+      pressure: currentData.main.pressure,
+      uvIndex: 0, // Richiede chiamata separata
+      location: {
+        name: location.name || currentData.name,
+        lat: location.lat,
+        lon: location.lon
+      },
+      forecast: this.processForecast(forecastData.list)
+    }
   }
-};
 
-export interface CriticalWeatherAlert {
-  type: 'frost' | 'heat' | 'heavy_rain';
-  severity: 'Critical' | 'High' | 'Medium';
-  message: string;
-  icon: string; // Nome icona per lucide-react
-}
+  /**
+   * Fetch da Open-Meteo (gratuito)
+   */
+  private async fetchFromOpenMeteo(location: GardenLocation): Promise<WeatherData> {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current_weather=true&hourly=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&timezone=auto&forecast_days=7`
 
-/**
- * Verifica condizioni meteo critiche e genera alert
- */
-export const checkCriticalWeatherAlerts = (
-  forecast: WeatherForecast
-): CriticalWeatherAlert[] => {
-  const alerts: CriticalWeatherAlert[] = [];
-  
-  // Alert gelata tardiva (minime < 0°C)
-  if (forecast.tempMin !== undefined && forecast.tempMin < 0) {
-    alerts.push({
-      type: 'frost',
-      severity: 'Critical',
-      message: `⚠️ GELATA IN ARRIVO! Stanotte previsti ${forecast.tempMin.toFixed(1)}°C. Copri le piante sensibili!`,
-      icon: 'Snowflake'
-    });
-  }
-  
-  // Alert ondata di calore (massime > 35°C)
-  if (forecast.tempMax !== undefined && forecast.tempMax > 35) {
-    alerts.push({
-      type: 'heat',
-      severity: 'High',
-      message: `🌡️ CALDO ESTREMO! ${forecast.tempMax.toFixed(1)}°C previsti. Aumenta irrigazione e ombreggia!`,
-      icon: 'ThermometerSun'
-    });
-  }
-  
-  // Alert pioggia intensa (> 20mm)
-  if (forecast.rainForecastMm > 20) {
-    alerts.push({
-      type: 'heavy_rain',
-      severity: 'Medium',
-      message: `🌧️ PIOGGIA INTENSA! ${forecast.rainForecastMm.toFixed(1)}mm previsti. Sospendi irrigazione!`,
-      icon: 'CloudRain'
-    });
-  }
-  
-  return alerts;
-};
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error('Open-Meteo API error')
+    }
 
-/**
- * Controlla rischi sanitari basati su meteo
- * Converte alert meteo in formato HealthAlert per HealthDashboard
- */
-export async function checkWeatherHealthRisks(garden: Garden): Promise<Array<{
-  type: 'weather' | 'disease' | 'pest' | 'nutrient'
-  severity: 'critical' | 'high' | 'medium' | 'low'
-  message: string
-  affectedPlants?: string[]
-  action?: string
-}>> {
-  const alerts: Array<{
-    type: 'weather' | 'disease' | 'pest' | 'nutrient'
-    severity: 'critical' | 'high' | 'medium' | 'low'
+    const data = await response.json()
+
+    return {
+      temp: Math.round(data.current_weather.temperature),
+      rainMm: data.hourly.precipitation[0] || 0,
+      condition: this.getConditionFromWeatherCode(data.current_weather.weathercode),
+      humidity: data.hourly.relative_humidity_2m[0] || 0,
+      windSpeed: Math.round(data.current_weather.windspeed),
+      pressure: 1013, // Non disponibile in Open-Meteo gratuito
+      uvIndex: 0, // Non disponibile in Open-Meteo gratuito
+      location: {
+        name: location.name || 'Posizione corrente',
+        lat: location.lat,
+        lon: location.lon
+      },
+      forecast: this.processOpenMeteoForecast(data.daily)
+    }
+  }
+
+  /**
+   * Ottiene posizione corrente dell'utente
+   */
+  private getCurrentPosition(): Promise<GeolocationPosition> {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation not supported'))
+        return
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        resolve,
+        reject,
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 5 * 60 * 1000 // 5 minuti
+        }
+      )
+    })
+  }
+
+  /**
+   * Traduce condizioni meteo in italiano
+   */
+  private translateCondition(condition: string): string {
+    const translations: Record<string, string> = {
+      'clear sky': 'Sereno',
+      'few clouds': 'Poco nuvoloso',
+      'scattered clouds': 'Nuvoloso',
+      'broken clouds': 'Molto nuvoloso',
+      'overcast clouds': 'Coperto',
+      'light rain': 'Pioggia leggera',
+      'moderate rain': 'Pioggia',
+      'heavy rain': 'Pioggia forte',
+      'thunderstorm': 'Temporale',
+      'snow': 'Neve',
+      'mist': 'Nebbia',
+      'fog': 'Nebbia fitta'
+    }
+    return translations[condition.toLowerCase()] || condition
+  }
+
+  /**
+   * Converte weather code di Open-Meteo in condizione
+   */
+  private getConditionFromWeatherCode(code: number): string {
+    if (code === 0) return 'Sereno'
+    if (code <= 3) return 'Poco nuvoloso'
+    if (code <= 48) return 'Nuvoloso'
+    if (code <= 57) return 'Pioggerella'
+    if (code <= 67) return 'Pioggia'
+    if (code <= 77) return 'Neve'
+    if (code <= 82) return 'Rovesci'
+    if (code <= 99) return 'Temporale'
+    return 'Variabile'
+  }
+
+  /**
+   * Processa previsioni OpenWeatherMap
+   */
+  private processForecast(forecastList: any[]): WeatherForecast[] {
+    const dailyForecasts = new Map<string, any[]>()
+    
+    // Raggruppa per giorno
+    forecastList.forEach(item => {
+      const date = item.dt_txt.split(' ')[0]
+      if (!dailyForecasts.has(date)) {
+        dailyForecasts.set(date, [])
+      }
+      dailyForecasts.get(date)!.push(item)
+    })
+
+    // Crea previsioni giornaliere
+    return Array.from(dailyForecasts.entries()).slice(0, 7).map(([date, items]) => {
+      const temps = items.map(item => item.main.temp)
+      const rains = items.map(item => item.rain?.['3h'] || 0)
+      const winds = items.map(item => item.wind.speed * 3.6)
+      const humidities = items.map(item => item.main.humidity)
+
+      return {
+        date,
+        tempMin: Math.round(Math.min(...temps)),
+        tempMax: Math.round(Math.max(...temps)),
+        condition: this.translateCondition(items[0].weather[0].description),
+        rainMm: Math.max(...rains),
+        windSpeed: Math.round(Math.max(...winds)),
+        humidity: Math.round(humidities.reduce((a, b) => a + b, 0) / humidities.length)
+      }
+    })
+  }
+
+  /**
+   * Processa previsioni Open-Meteo
+   */
+  private processOpenMeteoForecast(daily: any): WeatherForecast[] {
+    return daily.time.slice(0, 7).map((date: string, index: number) => ({
+      date,
+      tempMin: Math.round(daily.temperature_2m_min[index]),
+      tempMax: Math.round(daily.temperature_2m_max[index]),
+      condition: 'Variabile', // Open-Meteo gratuito non ha weather codes giornalieri
+      rainMm: daily.precipitation_sum[index] || 0,
+      windSpeed: Math.round(daily.wind_speed_10m_max[index]),
+      humidity: 60 // Stima
+    }))
+  }
+
+  /**
+   * Dati meteo di fallback
+   */
+  private getFallbackWeatherData(location: GardenLocation): WeatherData {
+    const now = new Date()
+    const month = now.getMonth()
+    
+    // Dati stagionali approssimativi per l'Italia
+    let temp = 15
+    let condition = 'Variabile'
+    
+    if (month >= 5 && month <= 8) { // Estate
+      temp = 25
+      condition = 'Soleggiato'
+    } else if (month >= 2 && month <= 4) { // Primavera
+      temp = 18
+      condition = 'Variabile'
+    } else if (month >= 9 && month <= 11) { // Autunno
+      temp = 12
+      condition = 'Nuvoloso'
+    } else { // Inverno
+      temp = 8
+      condition = 'Freddo'
+    }
+
+    return {
+      temp,
+      rainMm: 0,
+      condition,
+      humidity: 65,
+      windSpeed: 10,
+      pressure: 1013,
+      uvIndex: 3,
+      location: {
+        name: location.name || 'Posizione non disponibile',
+        lat: location.lat,
+        lon: location.lon
+      },
+      forecast: Array.from({ length: 7 }, (_, i) => ({
+        date: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        tempMin: temp - 5,
+        tempMax: temp + 5,
+        condition,
+        rainMm: Math.random() > 0.7 ? Math.random() * 10 : 0,
+        windSpeed: 8 + Math.random() * 10,
+        humidity: 60 + Math.random() * 20
+      }))
+    }
+  }
+
+  /**
+   * Genera alert meteo intelligenti per l'agricoltura
+   */
+  generateWeatherAlerts(weather: WeatherData): Array<{
+    type: 'info' | 'warning' | 'danger'
+    title: string
     message: string
-    affectedPlants?: string[]
-    action?: string
-  }> = []
-  
-  if (!garden.coordinates) {
+    icon: string
+  }> {
+    const alerts = []
+
+    // Alert pioggia
+    if (weather.rainMm > 10) {
+      alerts.push({
+        type: 'warning' as const,
+        title: 'Pioggia intensa prevista',
+        message: `${weather.rainMm}mm di pioggia. Evita irrigazione, controlla drenaggio`,
+        icon: '🌧️'
+      })
+    } else if (weather.rainMm > 2) {
+      alerts.push({
+        type: 'info' as const,
+        title: 'Pioggia leggera',
+        message: 'Riduci o sospendi l\'irrigazione oggi',
+        icon: '🌦️'
+      })
+    }
+
+    // Alert temperatura
+    if (weather.temp > 35) {
+      alerts.push({
+        type: 'danger' as const,
+        title: 'Caldo estremo',
+        message: 'Proteggi le piante, aumenta irrigazione mattutina',
+        icon: '🔥'
+      })
+    } else if (weather.temp > 30) {
+      alerts.push({
+        type: 'warning' as const,
+        title: 'Temperature elevate',
+        message: 'Aumenta frequenza irrigazione, ombreggia piantine',
+        icon: '🌡️'
+      })
+    } else if (weather.temp < 0) {
+      alerts.push({
+        type: 'danger' as const,
+        title: 'Rischio gelo',
+        message: 'Proteggi piante sensibili, copri con teli',
+        icon: '❄️'
+      })
+    } else if (weather.temp < 5) {
+      alerts.push({
+        type: 'warning' as const,
+        title: 'Temperature basse',
+        message: 'Monitora piante sensibili al freddo',
+        icon: '🥶'
+      })
+    }
+
+    // Alert vento
+    if (weather.windSpeed > 50) {
+      alerts.push({
+        type: 'danger' as const,
+        title: 'Vento forte',
+        message: 'Proteggi piante alte, controlla tutori',
+        icon: '💨'
+      })
+    }
+
+    // Alert umidità
+    if (weather.humidity > 85 && weather.temp > 20) {
+      alerts.push({
+        type: 'warning' as const,
+        title: 'Alta umidità',
+        message: 'Rischio malattie fungine, migliora aerazione',
+        icon: '💧'
+      })
+    }
+
     return alerts
   }
-  
-  try {
-    const forecast = await getWeatherForecast(
-      garden.coordinates.latitude,
-      garden.coordinates.longitude
-    )
-    
-    if (!forecast) {
-      return alerts
-    }
-    
-    // Alert pioggia eccessiva → rischio peronospora
-    if (forecast.rainForecastMm > 10) {
-      alerts.push({
-        type: 'disease',
-        severity: forecast.rainForecastMm > 20 ? 'high' : 'medium',
-        message: `Pioggia prevista domani (${forecast.rainForecastMm.toFixed(1)}mm). Rischio peronospora per pomodori e zucchine.`,
-        affectedPlants: ['Pomodoro', 'Zucchina', 'Patata'],
-        action: 'Proteggi con coperture o anticipa trattamenti preventivi'
-      })
-    }
-    
-    // Alert gelata
-    if (forecast.tempMin !== undefined && forecast.tempMin < 2) {
-      alerts.push({
-        type: 'weather',
-        severity: 'critical',
-        message: `Gelata prevista stanotte (${forecast.tempMin.toFixed(1)}°C). Proteggi le piante sensibili!`,
-        action: 'Copri con teli TNT o sposta al riparo se in vaso'
-      })
-    }
-    
-    // Alert caldo estremo
-    if (forecast.tempMax !== undefined && forecast.tempMax > 35) {
-      alerts.push({
-        type: 'nutrient',
-        severity: 'high',
-        message: `Caldo estremo previsto (${forecast.tempMax.toFixed(1)}°C). Aumenta irrigazione e ombreggia.`,
-        action: 'Irriga al mattino presto e installa teli ombreggianti'
-      })
-    }
-    
-    // Alert siccità
-    if (forecast.rainForecastMm === 0 && forecast.tempMax !== undefined && forecast.tempMax > 25) {
-      alerts.push({
-        type: 'nutrient',
-        severity: 'medium',
-        message: 'Nessuna pioggia prevista con temperature elevate. Aumenta frequenza irrigazione.',
-        action: 'Verifica pacciamatura e aumenta irrigazione per terreni sabbiosi'
-      })
-    }
-  } catch (error) {
-    console.error('Error checking weather health risks:', error)
-  }
-  
-  return alerts
 }
 
-
-
-
+export const weatherService = new WeatherService()
+export type { WeatherData, WeatherForecast, GardenLocation }

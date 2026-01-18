@@ -1,26 +1,26 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Verifica presenza variabili d'ambiente
-    const clientId = process.env.SH_CLIENT_ID || process.env.SENTINEL_HUB_CLIENT_ID || process.env.COPERNICUS_CLIENT_ID
-    const clientSecret = process.env.SH_CLIENT_SECRET || process.env.SENTINEL_HUB_CLIENT_SECRET || process.env.COPERNICUS_CLIENT_SECRET
-    const instanceId = process.env.SH_INSTANCE_ID || 'a9646191-f172-4e6e-a965-670c4a222898'
+    // Check if credentials are present in environment
+    const clientId = process.env.SH_CLIENT_ID;
+    const clientSecret = process.env.SH_CLIENT_SECRET;
+    const instanceId = process.env.ORTOMIO_WMS_CONFIG_ID;
 
     const status = {
       configured: !!(clientId && clientSecret),
       clientIdPresent: !!clientId,
       clientSecretPresent: !!clientSecret,
       instanceIdPresent: !!instanceId,
-      environment: process.env.NODE_ENV,
-      timestamp: new Date().toISOString()
-    }
+      isTestCredentials: clientId === 'sh-ea7b7e16-0f29-4dca-a2ec-2ea8d9845042' // Check if using test credentials
+    };
 
-    return NextResponse.json(status)
+    return NextResponse.json(status);
   } catch (error: any) {
+    console.error('Error checking satellite config:', error);
     return NextResponse.json(
-      { error: 'Errore verifica configurazione', details: error.message },
+      { error: 'Failed to check configuration' },
       { status: 500 }
-    )
+    );
   }
 }

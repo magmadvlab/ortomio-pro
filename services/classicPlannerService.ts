@@ -68,42 +68,55 @@ class ClassicPlannerService {
   // ===== PLANNING =====
 
   async createPlan(data: Partial<PlantingPlan>): Promise<PlantingPlan> {
-    // Check rotation if field row specified
-    let rotationInfo: any = {}
-    if (data.fieldRowId && data.plantName && data.plantFamily) {
-      rotationInfo = await this.checkRotation(
-        data.gardenId!,
-        data.fieldRowId,
-        data.plantName,
-        data.plantFamily
-      )
+    try {
+      // Check rotation if field row specified
+      let rotationInfo: any = {}
+      if (data.fieldRowId && data.plantName && data.plantFamily) {
+        rotationInfo = await this.checkRotation(
+          data.gardenId!,
+          data.fieldRowId,
+          data.plantName,
+          data.plantFamily
+        )
+      }
+
+      const { data: plan, error } = await this.getClient()
+        .from('planting_plans')
+        .insert({
+          garden_id: data.gardenId,
+          zone_id: data.zoneId,
+          field_row_id: data.fieldRowId,
+          field_row_section_id: data.fieldRowSectionId,
+          plant_variety_id: data.plantVarietyId,
+          plant_name: data.plantName,
+          plant_family: data.plantFamily,
+          quantity: data.quantity,
+          planned_planting_date: data.plannedPlantingDate,
+          planned_harvest_date: data.plannedHarvestDate,
+          status: data.status || 'PLANNED',
+          rotation_plan_id: rotationInfo.planId,
+          follows_rotation_advice: rotationInfo.followsAdvice || false,
+          rotation_score: rotationInfo.score,
+          rotation_warnings: rotationInfo.warnings,
+          notes: data.notes
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating planting plan:', error)
+        // Se la tabella non esiste, mostra messaggio più chiaro
+        if (error.code === 'PGRST205' || error.message?.includes('planting_plans')) {
+          throw new Error('La tabella planting_plans non esiste nel database. Contatta l\'amministratore.')
+        }
+        throw error
+      }
+      
+      return this.mapPlanFromDb(plan)
+    } catch (error) {
+      console.error('Error in createPlan:', error)
+      throw error
     }
-
-    const { data: plan, error } = await this.getClient()
-      .from('planting_plans')
-      .insert({
-        garden_id: data.gardenId,
-        zone_id: data.zoneId,
-        field_row_id: data.fieldRowId,
-        field_row_section_id: data.fieldRowSectionId,
-        plant_variety_id: data.plantVarietyId,
-        plant_name: data.plantName,
-        plant_family: data.plantFamily,
-        quantity: data.quantity,
-        planned_planting_date: data.plannedPlantingDate,
-        planned_harvest_date: data.plannedHarvestDate,
-        status: data.status || 'PLANNED',
-        rotation_plan_id: rotationInfo.planId,
-        follows_rotation_advice: rotationInfo.followsAdvice || false,
-        rotation_score: rotationInfo.score,
-        rotation_warnings: rotationInfo.warnings,
-        notes: data.notes
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return this.mapPlanFromDb(plan)
   }
 
   private async checkRotation(
@@ -187,26 +200,40 @@ class ClassicPlannerService {
       season?: string
     }
   ): Promise<PlantingPlan[]> {
-    let query = this.getClient()
-      .from('planting_plans')
-      .select('*')
-      .eq('garden_id', gardenId)
-      .order('planned_planting_date', { ascending: true })
+    try {
+      let query = this.getClient()
+        .from('planting_plans')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .order('planned_planting_date', { ascending: true })
 
-    if (filters?.status) {
-      query = query.eq('status', filters.status)
-    }
-    if (filters?.fieldRowId) {
-      query = query.eq('field_row_id', filters.fieldRowId)
-    }
-    if (filters?.zoneId) {
-      query = query.eq('zone_id', filters.zoneId)
-    }
+      if (filters?.status) {
+        query = query.eq('status', filters.status)
+      }
+      if (filters?.fieldRowId) {
+        query = query.eq('field_row_id', filters.fieldRowId)
+      if (filters?.zoneId) {
+        query = query.eq('zone_id', filters.zoneId)
+      }
 
-    const { data, error } = await query
+      const { data, error } = await query
 
-    if (error) throw error
-    return (data || []).map(this.mapPlanFromDb)
+      if (error) {
+        console.error('Error loading planting plans:', error)
+        // Se la tabella non esiste, ritorna array vuoto invece di errore
+        if (error.code === 'PGRST205' || error.message?.includes('planting_plans')) {
+          console.warn('planting_plans table not found, returning empty array')
+          return []
+        }
+        throw error
+      }
+      
+      return (data || []).map(this.mapPlanFromDb)
+    } catch (error) {
+      console.error('Error in getPlans:', error)
+      // Gestione graceful degli errori - ritorna array vuoto
+      return []
+    }
   }
 
   async updatePlanStatus(
