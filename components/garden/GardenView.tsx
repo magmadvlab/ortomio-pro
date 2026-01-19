@@ -89,31 +89,52 @@ export function GardenView({
         
         {/* Tab Switcher - Mobile Responsive */}
         <div className="border-b border-gray-200">
-          {/* Mobile: Usa MobileTabNavigation migliorato */}
+          {/* Mobile: Layout a due righe */}
           <div className="block md:hidden">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-gray-600">Sezione:</span>
-              <div className="flex-1 ml-3">
-                <select
-                  value={activeTab}
-                  onChange={(e) => onTabChange(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 font-medium focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
-                  {tabs.map((tab) => (
-                    <option key={tab.id} value={tab.id}>
-                      {tab.label}
-                    </option>
-                  ))}
-                </select>
+            <div className="space-y-2">
+              {/* Prima riga - 4 tab principali */}
+              <div className="flex">
+                {tabs.slice(0, 4).map((tab) => {
+                  const Icon = tab.icon
+                  const isActive = activeTab === tab.id
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => onTabChange(tab.id)}
+                      className={`flex-1 flex flex-col items-center gap-1 py-2 px-1 text-xs font-medium transition-colors ${
+                        isActive
+                          ? 'text-green-600 bg-green-50 border-b-2 border-green-600'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Icon size={16} />
+                      <span className="text-center leading-tight">{tab.label}</span>
+                    </button>
+                  )
+                })}
               </div>
-            </div>
-            
-            {/* Indicatore sezione attiva mobile */}
-            <div className="flex items-center gap-3 px-3 py-2 bg-green-50 border border-green-200 rounded-lg mb-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="font-medium text-green-800 text-sm">
-                {tabs.find(t => t.id === activeTab)?.label}
-              </span>
+              
+              {/* Seconda riga - 3 tab rimanenti */}
+              <div className="flex">
+                {tabs.slice(4).map((tab) => {
+                  const Icon = tab.icon
+                  const isActive = activeTab === tab.id
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => onTabChange(tab.id)}
+                      className={`flex-1 flex flex-col items-center gap-1 py-2 px-1 text-xs font-medium transition-colors ${
+                        isActive
+                          ? 'text-green-600 bg-green-50 border-b-2 border-green-600'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Icon size={16} />
+                      <span className="text-center leading-tight">{tab.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
           
