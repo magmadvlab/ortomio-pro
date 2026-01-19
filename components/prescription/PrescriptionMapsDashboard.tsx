@@ -182,7 +182,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
       <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
           <div className="flex items-center gap-3">
-            <Map className="text-green-600" size={24} sm:size={28} />
+            <Map className="text-green-600" size={24} />
             <div>
               <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Mappe Prescrizione</h2>
               <p className="text-sm sm:text-base text-gray-600">
@@ -196,7 +196,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
               onClick={() => setShowCreateModal(true)}
               className="bg-green-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 sm:gap-3 font-medium shadow-sm text-sm sm:text-base touch-manipulation"
             >
-              <Plus size={18} sm:size={20} />
+              <Plus size={18} />
               <span className="sm:inline">Crea Nuova Mappa</span>
             </button>
             
@@ -204,7 +204,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
               onClick={() => setShowHistoricalComparison(true)}
               className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 sm:gap-3 text-sm sm:text-base touch-manipulation"
             >
-              <History size={16} sm:size={20} />
+              <History size={16} />
               <span className="hidden sm:inline">Confronto Storico</span>
               <span className="sm:hidden">Confronto</span>
             </button>
@@ -220,7 +220,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                   <p className="text-xs sm:text-sm text-blue-600">Mappe Totali</p>
                   <p className="text-base sm:text-lg md:text-xl font-bold text-blue-700">{stats.totalMapsGenerated}</p>
                 </div>
-                <Map className="text-blue-600" size={20} sm:size={24} />
+                <Map className="text-blue-600" size={20} />
               </div>
             </div>
 
@@ -230,7 +230,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                   <p className="text-xs sm:text-sm text-green-600">Area Coperta</p>
                   <p className="text-base sm:text-lg md:text-xl font-bold text-green-700">{stats.totalAreaCovered} ha</p>
                 </div>
-                <Layers className="text-green-600" size={20} sm:size={24} />
+                <Layers className="text-green-600" size={20} />
               </div>
             </div>
 
@@ -240,7 +240,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                   <p className="text-xs sm:text-sm text-purple-600">Qualità Media</p>
                   <p className="text-base sm:text-lg md:text-xl font-bold text-purple-700">{stats.averageQualityScore}%</p>
                 </div>
-                <BarChart3 className="text-purple-600" size={20} sm:size={24} />
+                <BarChart3 className="text-purple-600" size={20} />
               </div>
             </div>
 
@@ -250,7 +250,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                   <p className="text-xs sm:text-sm text-orange-600">Risparmio</p>
                   <p className="text-base sm:text-lg md:text-xl font-bold text-orange-700">€{stats.totalCostSavings}</p>
                 </div>
-                <TrendingUp className="text-orange-600" size={20} sm:size={24} />
+                <TrendingUp className="text-orange-600" size={20} />
               </div>
             </div>
 
@@ -260,7 +260,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                   <p className="text-xs sm:text-sm text-cyan-600">ROI Medio</p>
                   <p className="text-base sm:text-lg md:text-xl font-bold text-cyan-700">{stats.averageRoi}%</p>
                 </div>
-                <Target className="text-cyan-600" size={20} sm:size={24} />
+                <Target className="text-cyan-600" size={20} />
               </div>
             </div>
 
@@ -270,7 +270,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                   <p className="text-xs sm:text-sm text-indigo-600">Riduzione Input</p>
                   <p className="text-base sm:text-lg md:text-xl font-bold text-indigo-700">{stats.inputReductionAchieved}%</p>
                 </div>
-                <CheckCircle className="text-indigo-600" size={20} sm:size={24} />
+                <CheckCircle className="text-indigo-600" size={20} />
               </div>
             </div>
           </div>
