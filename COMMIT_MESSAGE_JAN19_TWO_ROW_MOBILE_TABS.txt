@@ -1,0 +1,35 @@
+feat: implement two-row mobile tab layout across multi-tab pages
+
+Applied the same two-row mobile tab navigation solution from Planner Classic 
+to all pages with more than 2 tabs for better mobile accessibility:
+
+✅ **Pages Updated:**
+- Planner AI (7 tabs) - replaced MobileTabNavigation with two-row layout
+- Analytics (4 tabs) - added mobile two-row layout
+- Nutrition (6 tabs) - added mobile two-row layout  
+- Irrigation (5 tabs) - added mobile two-row layout
+- Mechanical Work (5 tabs) - added mobile two-row layout
+- Advice (5 tabs) - replaced MobileTabNavigation with two-row layout
+
+✅ **Mobile Layout Pattern:**
+- Desktop: Single row with all tabs (unchanged)
+- Mobile (<768px): Two rows with tabs distributed for accessibility
+- First row: Main/primary tabs (3-4 tabs)
+- Second row: Secondary/additional tabs (remaining tabs)
+- Touch-friendly design with proper spacing and truncation
+- Consistent styling with green accent colors
+
+✅ **Additional Fixes:**
+- Fixed AddItemModal close button styling (reverted from debug red to normal gray)
+- Removed unused MobileTabNavigation imports where replaced
+- Maintained badge support for task counts and notifications
+- Preserved all existing functionality and navigation
+
+✅ **Benefits:**
+- All menu items now visible and accessible on iPhone 13 and similar devices
+- No more hidden tabs or horizontal scrolling issues
+- Consistent mobile experience across all multi-tab pages
+- Better touch targets and user experience on mobile devices
+
+All pages now follow the same mobile-first responsive design pattern
+established in Planner Classic for optimal mobile navigation.

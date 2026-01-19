@@ -23,7 +23,6 @@ import {
 } from 'lucide-react'
 import CropRotationPlanner from '@/components/advice/CropRotationPlanner'
 import BiologicalControlDashboard from '@/components/advice/BiologicalControlDashboard'
-import MobileTabNavigation from '@/components/shared/MobileTabNavigation'
 
 interface AIAdvice {
   id: string
@@ -231,11 +230,11 @@ export default function AdvicePage() {
 
   // Configurazione tab per la pagina consigli
   const adviceTabs = [
-    { id: 'overview', label: 'Panoramica', emoji: '💡', icon: Lightbulb },
-    { id: 'ai-suggestions', label: 'Suggerimenti AI', emoji: '🤖', icon: TrendingUp, badge: advice.filter(a => a.priority === 'critical' || a.priority === 'high').length },
-    { id: 'rotation', label: 'Rotazione Colture', emoji: '🔄', icon: RefreshCw },
-    { id: 'biological', label: 'Controllo Biologico', emoji: '🐛', icon: Bug },
-    { id: 'seasonal', label: 'Consigli Stagionali', emoji: '📅', icon: Calendar }
+    { id: 'overview', label: '💡 Panoramica', icon: Lightbulb },
+    { id: 'ai-suggestions', label: '🤖 Suggerimenti AI', icon: TrendingUp, badge: advice.filter(a => a.priority === 'critical' || a.priority === 'high').length },
+    { id: 'rotation', label: '🔄 Rotazione Colture', icon: RefreshCw },
+    { id: 'biological', label: '🐛 Controllo Biologico', icon: Bug },
+    { id: 'seasonal', label: '📅 Consigli Stagionali', icon: Calendar }
   ]
 
   if (loading) {
@@ -283,6 +282,87 @@ export default function AdvicePage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Tabs */}
+        <div className="bg-white border-b border-gray-200 mb-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Desktop: Single row */}
+            <nav className="hidden md:flex space-x-8">
+              {adviceTabs.map((tab) => {
+                const Icon = tab.icon
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                      activeTab === tab.id
+                        ? 'border-green-500 text-green-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon size={16} />
+                    {tab.label}
+                    {tab.badge && tab.badge > 0 && (
+                      <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[18px] text-center font-bold">
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </nav>
+
+            {/* Mobile: Two rows */}
+            <div className="md:hidden">
+              {/* First row - Main tabs */}
+              <nav className="flex space-x-4 border-b border-gray-100">
+                {adviceTabs.slice(0, 3).map((tab) => {
+                  const Icon = tab.icon
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as any)}
+                      className={`flex items-center gap-1 py-3 px-2 border-b-2 font-medium text-xs transition-colors flex-1 justify-center ${
+                        activeTab === tab.id
+                          ? 'border-green-500 text-green-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <Icon size={14} />
+                      <span className="truncate">{tab.label.replace('💡 ', '').replace('🤖 ', '').replace('🔄 ', '')}</span>
+                      {tab.badge && tab.badge > 0 && (
+                        <span className="bg-red-500 text-white text-xs px-1 py-0.5 rounded-full min-w-[16px] text-center font-bold ml-1">
+                          {tab.badge}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </nav>
+
+              {/* Second row - Additional tabs */}
+              <nav className="flex space-x-4">
+                {adviceTabs.slice(3).map((tab) => {
+                  const Icon = tab.icon
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as any)}
+                      className={`flex items-center gap-1 py-3 px-2 border-b-2 font-medium text-xs transition-colors flex-1 justify-center ${
+                        activeTab === tab.id
+                          ? 'border-green-500 text-green-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <Icon size={14} />
+                      <span className="truncate">{tab.label.replace('🐛 ', '').replace('📅 ', '')}</span>
+                    </button>
+                  )
+                })}
+              </nav>
+            </div>
+          </div>
+        </div>
+
         {/* Mobile-Friendly Tab Navigation */}
         <div className="mb-8">
           <MobileTabNavigation

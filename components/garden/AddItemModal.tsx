@@ -123,11 +123,11 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask, selectedDate 
               console.log('Close button clicked!')
               onClose()
             }}
-            className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm border border-red-300 touch-manipulation z-10"
+            className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors shadow-sm border border-gray-300 touch-manipulation z-10"
             aria-label="Chiudi"
             style={{ position: 'relative', zIndex: 1000 }}
           >
-            <X size={16} className="text-white" />
+            <X size={16} className="text-gray-600" />
           </button>
         </div>
 

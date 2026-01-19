@@ -6,7 +6,6 @@ import TaskList from '@/components/planner/TaskList'
 import PlannerAISuggestions from '@/components/planner/tabs/PlannerAISuggestions'
 import CropRotationPlanner from '@/components/advice/CropRotationPlanner'
 import BiologicalControlDashboard from '@/components/advice/BiologicalControlDashboard'
-import MobileTabNavigation from '@/components/shared/MobileTabNavigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
@@ -154,13 +153,13 @@ export default function PlannerPage() {
 
   // Configurazione tab per il componente mobile
   const plannerTabs = [
-    { id: 'planner', label: 'Planner AI', emoji: '🎯', icon: Target },
-    { id: 'calendar', label: 'Calendario', emoji: '📅', icon: Calendar },
-    { id: 'ai-suggestions', label: 'Suggerimenti AI', emoji: '💡', icon: Lightbulb },
-    { id: 'list', label: 'Lista Task', emoji: '📋', icon: List, badge: tasks ? (tasks || []).filter(t => !t.completed).length : 0 },
-    { id: 'timeline', label: 'Timeline', emoji: '📊', icon: Activity },
-    { id: 'rotation', label: 'Rotazione Colture', emoji: '🔄', icon: RefreshCw },
-    { id: 'biological', label: 'Controllo Biologico', emoji: '🐛', icon: Bug }
+    { id: 'planner', label: '🎯 Planner AI', icon: Target },
+    { id: 'calendar', label: '📅 Calendario', icon: Calendar },
+    { id: 'ai-suggestions', label: '💡 Suggerimenti AI', icon: Lightbulb },
+    { id: 'list', label: '📋 Lista Task', icon: List, badge: tasks ? (tasks || []).filter(t => !t.completed).length : 0 },
+    { id: 'timeline', label: '📊 Timeline', icon: Activity },
+    { id: 'rotation', label: '🔄 Rotazione Colture', icon: RefreshCw },
+    { id: 'biological', label: '🐛 Controllo Biologico', icon: Bug }
   ]
 
   return (
@@ -171,6 +170,87 @@ export default function PlannerPage() {
           Centrale Operativa
         </h1>
         <p className="text-gray-600 mt-1">Pianificazione, calendario e timeline delle attività</p>
+      </div>
+
+      {/* Tabs */}
+      <div className="bg-white border-b border-gray-200 mb-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Desktop: Single row */}
+          <nav className="hidden md:flex space-x-8">
+            {plannerTabs.map((tab) => {
+              const Icon = tab.icon
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === tab.id
+                      ? 'border-green-500 text-green-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon size={16} />
+                  {tab.label}
+                  {tab.badge && tab.badge > 0 && (
+                    <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[18px] text-center font-bold">
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </nav>
+
+          {/* Mobile: Two rows */}
+          <div className="md:hidden">
+            {/* First row - Main tabs */}
+            <nav className="flex space-x-4 border-b border-gray-100">
+              {plannerTabs.slice(0, 4).map((tab) => {
+                const Icon = tab.icon
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex items-center gap-1 py-3 px-2 border-b-2 font-medium text-xs transition-colors flex-1 justify-center ${
+                      activeTab === tab.id
+                        ? 'border-green-500 text-green-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon size={14} />
+                    <span className="truncate">{tab.label.replace('🎯 ', '').replace('📅 ', '').replace('💡 ', '').replace('📋 ', '')}</span>
+                    {tab.badge && tab.badge > 0 && (
+                      <span className="bg-red-500 text-white text-xs px-1 py-0.5 rounded-full min-w-[16px] text-center font-bold ml-1">
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </nav>
+
+            {/* Second row - Additional tabs */}
+            <nav className="flex space-x-4">
+              {plannerTabs.slice(4).map((tab) => {
+                const Icon = tab.icon
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex items-center gap-1 py-3 px-2 border-b-2 font-medium text-xs transition-colors flex-1 justify-center ${
+                      activeTab === tab.id
+                        ? 'border-green-500 text-green-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon size={14} />
+                    <span className="truncate">{tab.label.replace('📊 ', '').replace('🔄 ', '').replace('🐛 ', '')}</span>
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
+        </div>
       </div>
 
       {/* Mobile-Friendly Tab Navigation */}

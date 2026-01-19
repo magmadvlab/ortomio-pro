@@ -191,7 +191,8 @@ export default function IrrigationPage() {
       {/* Tabs */}
       <div className="mb-6">
         <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
+          {/* Desktop: Single row */}
+          <nav className="hidden md:flex -mb-px space-x-8">
             {[
               { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
               { id: 'zones', label: 'Zone', icon: MapPin },
@@ -216,6 +217,58 @@ export default function IrrigationPage() {
               )
             })}
           </nav>
+
+          {/* Mobile: Two rows */}
+          <div className="md:hidden">
+            {/* First row - Main tabs */}
+            <nav className="flex space-x-4 border-b border-gray-100 -mb-px">
+              {[
+                { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+                { id: 'zones', label: 'Zone', icon: MapPin },
+                { id: 'systems', label: 'Sistemi', icon: Settings }
+              ].map((tab) => {
+                const Icon = tab.icon
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex items-center gap-1 py-3 px-2 border-b-2 font-medium text-xs transition-colors flex-1 justify-center ${
+                      activeTab === tab.id
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon size={14} />
+                    <span className="truncate">{tab.label}</span>
+                  </button>
+                )
+              })}
+            </nav>
+
+            {/* Second row - Additional tabs */}
+            <nav className="flex space-x-4 -mb-px">
+              {[
+                { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+                { id: 'scheduler', label: 'Programmazione', icon: Clock }
+              ].map((tab) => {
+                const Icon = tab.icon
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex items-center gap-1 py-3 px-2 border-b-2 font-medium text-xs transition-colors flex-1 justify-center ${
+                      activeTab === tab.id
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon size={14} />
+                    <span className="truncate">{tab.label}</span>
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
         </div>
       </div>
 
