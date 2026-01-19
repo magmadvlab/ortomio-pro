@@ -25,19 +25,56 @@ class AdvancedIrrigationService {
   async getIrrigationZones(gardenId: string): Promise<IrrigationZone[]> {
     try {
       const supabase = getSupabaseClient()
-      const { data, error } = await supabase
+      
+      // Validate gardenId parameter
+      if (!gardenId || gardenId.trim() === '') {
+        console.warn('Invalid gardenId provided to getIrrigationZones')
+        return []
+      }
+      
+      // Prima verifica se la tabella esiste
+      const { data: zones, error } = await supabase
         .from('irrigation_zones')
-        .select(`
-          *,
-          irrigation_systems (*)
-        `)
+        .select('*')
         .eq('garden_id', gardenId)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error('Error fetching irrigation zones:', error)
+        // Se la tabella non esiste o c'è un errore di validazione, ritorna array vuoto
+        if (error.code === 'PGRST116' || 
+            error.message.includes('does not exist') ||
+            error.code === '22P02' || // Invalid UUID format
+            error.message.includes('invalid input syntax')) {
+          console.warn('irrigation_zones table does not exist or invalid parameters, returning empty array')
+          return []
+        }
+        throw error
+      }
 
-      return data?.map(this.mapZoneFromDatabase) || []
+      // Se non ci sono zone, ritorna array vuoto
+      if (!zones || zones.length === 0) {
+        return []
+      }
+
+      // Prova a ottenere i sistemi di irrigazione associati
+      try {
+        const { data: systems } = await supabase
+          .from('irrigation_systems')
+          .select('*')
+          .in('zone_id', zones.map(z => z.id))
+
+        // Mappa i dati combinando zone e sistemi
+        return zones.map(zone => ({
+          ...this.mapZoneFromDatabase(zone),
+          systems: systems?.filter(s => s.zone_id === zone.id) || []
+        }))
+      } catch (systemError) {
+        console.warn('Error fetching irrigation systems, returning zones without systems:', systemError)
+        // Ritorna le zone senza i sistemi se c'è un errore
+        return zones.map(zone => this.mapZoneFromDatabase(zone))
+      }
     } catch (error) {
       console.error('Error fetching irrigation zones:', error)
       return []

@@ -3,7 +3,7 @@
  * Form strutturato per certificazione biologica EU 2018/848
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Leaf, CheckCircle, AlertTriangle, FileText, Calendar, Users } from 'lucide-react';
 
 interface BioCertificationFormProps {
@@ -46,6 +46,15 @@ interface BioCertificationData {
   correctiveActions: string;
 }
 
+// Utility function for debouncing
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+  let timeout: NodeJS.Timeout;
+  return ((...args: any[]) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(null, args), wait);
+  }) as T;
+}
+
 const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, onSave }) => {
   const [formData, setFormData] = useState<BioCertificationData>({
     companyName: '',
@@ -74,9 +83,9 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
   });
 
   const [activeSection, setActiveSection] = useState<'company' | 'production' | 'practices' | 'traceability' | 'controls'>('company');
-  const [complianceScore, setComplianceScore] = useState(0);
 
-  const calculateCompliance = () => {
+  // Ottimizza il calcolo di compliance con useMemo
+  const complianceScore = useMemo(() => {
     let score = 0;
     let total = 0;
 
@@ -113,26 +122,40 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
     total += 10;
 
     return Math.round((score / total) * 100);
-  };
-
-  React.useEffect(() => {
-    setComplianceScore(calculateCompliance());
   }, [formData]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Debounced save function
+  const debouncedSave = useCallback(
+    debounce((data: BioCertificationData) => {
+      if (onSave) {
+        onSave(data);
+      }
+    }, 500),
+    [onSave]
+  );
+
+  const handleInputChange = useCallback((field: keyof BioCertificationData, value: any) => {
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      debouncedSave(newData);
+      return newData;
+    });
+  }, [debouncedSave]);
+
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (onSave) {
       onSave(formData);
     }
-  };
+  }, [formData, onSave]);
 
-  const sections = [
+  const sections = useMemo(() => [
     { id: 'company', label: 'Dati Azienda', icon: FileText },
     { id: 'production', label: 'Produzione', icon: Leaf },
     { id: 'practices', label: 'Pratiche', icon: CheckCircle },
     { id: 'traceability', label: 'Tracciabilità', icon: AlertTriangle },
     { id: 'controls', label: 'Controlli', icon: Calendar }
-  ];
+  ], []);
 
   return (
     <div className="bg-white rounded-lg shadow-md">
@@ -208,7 +231,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                 <input
                   type="text"
                   value={formData.companyName}
-                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                  onChange={(e) => handleInputChange('companyName', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                   required
                 />
@@ -221,7 +244,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                 <input
                   type="text"
                   value={formData.vatNumber}
-                  onChange={(e) => setFormData({ ...formData, vatNumber: e.target.value })}
+                  onChange={(e) => handleInputChange('vatNumber', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               </div>

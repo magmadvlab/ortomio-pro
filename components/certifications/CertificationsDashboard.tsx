@@ -3,7 +3,7 @@
  * Dashboard principale per gestione certificazioni
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Shield, Leaf, Award, FileText, TrendingUp, Calendar, CheckCircle, AlertTriangle } from 'lucide-react';
 import GlobalGapDashboard from '../compliance/GlobalGapDashboard';
 import BioCertificationForm from './BioCertificationForm';
@@ -17,7 +17,7 @@ type CertificationType = 'overview' | 'bio' | 'globalgap' | 'sqnpi' | 'grasp';
 const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ gardenId }) => {
   const [activeTab, setActiveTab] = useState<CertificationType>('overview');
 
-  const certifications = [
+  const certifications = useMemo(() => [
     {
       id: 'bio',
       name: 'Certificazione Biologica',
@@ -58,25 +58,67 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
       status: 'not_started',
       benefits: ['Responsabilità sociale', 'Diritti lavoratori', 'Etica aziendale']
     }
-  ];
+  ], []);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case 'completed': return 'text-green-600 bg-green-50 border-green-200';
       case 'in_progress': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
       case 'not_started': return 'text-gray-600 bg-gray-50 border-gray-200';
       default: return 'text-gray-600 bg-gray-50 border-gray-200';
     }
-  };
+  }, []);
 
-  const getStatusText = (status: string) => {
+  const getStatusText = useCallback((status: string) => {
     switch (status) {
       case 'completed': return 'Completata';
       case 'in_progress': return 'In Corso';
       case 'not_started': return 'Non Iniziata';
       default: return 'Sconosciuto';
     }
-  };
+  }, []);
+
+  const getColorClasses = useCallback((color: string, type: 'bg' | 'text' | 'progress') => {
+    const colorMap = {
+      green: {
+        bg: 'bg-green-100',
+        text: 'text-green-600',
+        progress: 'bg-green-600'
+      },
+      blue: {
+        bg: 'bg-blue-100',
+        text: 'text-blue-600',
+        progress: 'bg-blue-600'
+      },
+      purple: {
+        bg: 'bg-purple-100',
+        text: 'text-purple-600',
+        progress: 'bg-purple-600'
+      },
+      orange: {
+        bg: 'bg-orange-100',
+        text: 'text-orange-600',
+        progress: 'bg-orange-600'
+      }
+    };
+    return colorMap[color as keyof typeof colorMap]?.[type] || 'bg-gray-100';
+  }, []);
+
+  const getCertificationCardClasses = useCallback((status: string) => {
+    const baseClasses = 'border-2 rounded-lg p-6 hover:shadow-lg transition-all cursor-pointer';
+    switch (status) {
+      case 'completed': return `${baseClasses} border-green-300 bg-green-50`;
+      case 'in_progress': return `${baseClasses} border-yellow-300 bg-yellow-50`;
+      default: return `${baseClasses} border-gray-200 bg-white`;
+    }
+  }, []);
+
+  const getTabClasses = useCallback((isActive: boolean) => {
+    const baseClasses = 'flex items-center gap-2 py-4 px-2 border-b-2 font-medium text-sm whitespace-nowrap';
+    return isActive 
+      ? `${baseClasses} border-green-500 text-green-600`
+      : `${baseClasses} border-transparent text-gray-500 hover:text-gray-700`;
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -148,11 +190,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
           <nav className="flex space-x-4 px-6 overflow-x-auto">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`flex items-center gap-2 py-4 px-2 border-b-2 font-medium text-sm whitespace-nowrap ${
-                activeTab === 'overview'
-                  ? 'border-green-500 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+              className={getTabClasses(activeTab === 'overview')}
             >
               <Shield size={16} />
               Panoramica
@@ -161,11 +199,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
               <button
                 key={cert.id}
                 onClick={() => setActiveTab(cert.id as CertificationType)}
-                className={`flex items-center gap-2 py-4 px-2 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === cert.id
-                    ? 'border-green-500 text-green-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
+                className={getTabClasses(activeTab === cert.id)}
               >
                 <cert.icon size={16} />
                 {cert.name}
@@ -189,17 +223,13 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
                 {certifications.map((cert) => (
                   <div
                     key={cert.id}
-                    className={`border-2 rounded-lg p-6 hover:shadow-lg transition-all cursor-pointer ${
-                      cert.status === 'completed' ? 'border-green-300 bg-green-50' :
-                      cert.status === 'in_progress' ? 'border-yellow-300 bg-yellow-50' :
-                      'border-gray-200 bg-white'
-                    }`}
+                    className={getCertificationCardClasses(cert.status)}
                     onClick={() => setActiveTab(cert.id as CertificationType)}
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className={`p-3 rounded-lg bg-${cert.color}-100`}>
-                          <cert.icon className={`h-6 w-6 text-${cert.color}-600`} />
+                        <div className={getColorClasses(cert.color, 'bg') + ' p-3 rounded-lg'}>
+                          <cert.icon className={getColorClasses(cert.color, 'text') + ' h-6 w-6'} />
                         </div>
                         <div>
                           <h3 className="font-semibold text-gray-900">{cert.name}</h3>
@@ -219,7 +249,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
-                          className={`bg-${cert.color}-600 h-2 rounded-full transition-all duration-500`}
+                          className={getColorClasses(cert.color, 'progress') + ' h-2 rounded-full transition-all duration-500'}
                           style={{ width: `${cert.progress}%` }}
                         ></div>
                       </div>
@@ -231,7 +261,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
                       <ul className="space-y-1">
                         {cert.benefits.map((benefit, index) => (
                           <li key={index} className="text-sm text-gray-600 flex items-start gap-2">
-                            <CheckCircle size={14} className={`mt-0.5 text-${cert.color}-600 flex-shrink-0`} />
+                            <CheckCircle size={14} className={getColorClasses(cert.color, 'text') + ' mt-0.5 flex-shrink-0'} />
                             <span>{benefit}</span>
                           </li>
                         ))}

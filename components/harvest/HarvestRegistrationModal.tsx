@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Star, Sprout, AlertCircle, CheckCircle } from 'lucide-react';
 import { GardenTask } from '@/types';
+import { addPassiveEventListener } from '@/utils/passiveEventListeners';
 
 interface Harvest {
   id: string;
@@ -133,17 +134,19 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
     // Gestione tasto ESC per chiudere il modal
     const handleEscKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        event.preventDefault();
+        event.stopPropagation();
+        handleClose();
       }
     };
 
-    document.addEventListener('keydown', handleEscKey);
+    const removeEscListener = addPassiveEventListener(document, 'keydown', handleEscKey);
     
     // Previeni lo scroll del body quando il modal è aperto
     document.body.style.overflow = 'hidden';
 
     return () => {
-      document.removeEventListener('keydown', handleEscKey);
+      removeEscListener();
       document.body.style.overflow = 'unset';
     };
   }, [harvest, onClose]);
@@ -193,21 +196,20 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
     e.preventDefault();
     e.stopPropagation();
     
+    const startTime = performance.now();
     console.log('Form submitted!', { isManualEntry, plantName, quantity, harvestDate });
     
-    // Validazione per inserimento manuale
+    // Validazione rapida
     if (isManualEntry && (!plantName.trim() || !quantity || !harvestDate)) {
       alert('Compila tutti i campi obbligatori per l\'inserimento manuale');
       return;
     }
     
-    // Validazione per coltura tracciata
     if (!isManualEntry && !selectedTaskId && availableCrops.length > 0) {
       alert('Seleziona una coltura da raccogliere o passa all\'inserimento manuale');
       return;
     }
     
-    // Se non ci sono colture tracciate, forza l'inserimento manuale
     if (!isManualEntry && availableCrops.length === 0) {
       alert('Non ci sono colture tracciate disponibili. Usa l\'inserimento manuale.');
       return;
@@ -216,7 +218,9 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
     setLoading(true);
     
     try {
-      const selectedCrop = selectedTaskId ? availableCrops.find(crop => crop.taskId === selectedTaskId) : null;
+      // Ottimizza la ricerca della coltura selezionata
+      const selectedCrop = selectedTaskId ? 
+        availableCrops.find(crop => crop.taskId === selectedTaskId) : null;
       
       const harvestData = {
         plant_name: plantName.trim(),
@@ -234,10 +238,15 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
       };
 
       console.log('Saving harvest data:', harvestData);
-      onSave(harvestData);
+      
+      // Usa Promise.resolve per gestire sia sync che async onSave
+      await Promise.resolve(onSave(harvestData));
+      
+      const endTime = performance.now();
+      console.log(`Form submission took ${endTime - startTime}ms`);
       
       // Chiudi il modal dopo il salvataggio
-      onClose();
+      handleClose();
     } catch (error) {
       console.error('Error saving harvest:', error);
       alert('Errore nel salvataggio. Riprova.');
@@ -246,12 +255,29 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
     }
   };
 
-  const handleClose = (e?: React.MouseEvent) => {
+  const handleClose = (e?: React.MouseEvent | React.KeyboardEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
+    
+    // Assicurati che il body scroll sia ripristinato
+    document.body.style.overflow = 'unset';
+    
+    // Chiama la funzione onClose passata dal parent
     onClose();
+  };
+
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    // Chiudi il modal solo se si clicca direttamente sull'overlay
+    if (e.target === e.currentTarget) {
+      handleClose(e);
+    }
+  };
+
+  const handleContentClick = (e: React.MouseEvent) => {
+    // Previeni la propagazione dell'evento per evitare la chiusura accidentale
+    e.stopPropagation();
   };
 
   const commonPlants = [
@@ -276,19 +302,11 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
   return (
     <div 
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-      onClick={(e) => {
-        // Chiudi il modal se si clicca sull'overlay (non sul contenuto)
-        if (e.target === e.currentTarget) {
-          handleClose(e);
-        }
-      }}
+      onClick={handleOverlayClick}
     >
       <div 
         className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
-        onClick={(e) => {
-          // Previeni la chiusura quando si clicca sul contenuto del modal
-          e.stopPropagation();
-        }}
+        onClick={handleContentClick}
       >
         <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
@@ -608,10 +626,6 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
             </button>
             <button
               type="submit"
-              onClick={(e) => {
-                e.stopPropagation();
-                // Il form submit sarà gestito da handleSubmit
-              }}
               className="flex-1 px-4 py-3 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation text-base sm:text-sm font-medium"
               disabled={loading || (
                 !isManualEntry && !selectedTaskId && availableCrops.length > 0
