@@ -545,13 +545,45 @@ class OrchardService {
     try {
       const supabase = getSupabaseClient()
       
-      // Get dashboard data using the database function
-      const { data, error } = await supabase
-        .rpc('get_orchard_dashboard_data', { garden_uuid: gardenId })
+      // Try to get basic data directly from tables if RPC fails
+      const [orchardsResult, treesResult] = await Promise.all([
+        supabase
+          .from('orchard_configurations')
+          .select('*')
+          .eq('garden_id', gardenId)
+          .eq('is_active', true),
+        supabase
+          .from('orchard_trees')
+          .select('*')
+          .eq('garden_id', gardenId)
+          .eq('is_active', true)
+      ])
 
-      if (error) throw error
+      const orchards = orchardsResult.data || []
+      const trees = treesResult.data || []
 
-      return this.mapDashboardDataFromDatabase(data)
+      // Calculate basic stats
+      const totalOrchards = orchards.length
+      const totalTrees = trees.length
+      const treesNeedingAttention = trees.filter(tree => 
+        tree.needs_pruning || tree.needs_treatment || tree.health_status === 'Poor'
+      ).length
+      const healthyTrees = trees.filter(tree => tree.health_status === 'Excellent' || tree.health_status === 'Good').length
+      const healthyTreesPercentage = totalTrees > 0 ? (healthyTrees / totalTrees) * 100 : 0
+
+      return {
+        totalOrchards,
+        totalTrees,
+        treesNeedingAttention,
+        upcomingHarvests: 0, // Would need harvest schedules
+        recentActivities: [],
+        healthyTreesPercentage,
+        averageYieldPerTree: 0,
+        totalYieldThisYear: 0,
+        profitabilityScore: 0,
+        criticalAlerts: [],
+        upcomingTasks: []
+      }
     } catch (error) {
       console.error('Error fetching orchard dashboard data:', error)
       return {

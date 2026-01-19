@@ -35,7 +35,7 @@ const ExoticFruitManagement: React.FC<ExoticFruitManagementProps> = ({
   }
 
   // Filtra solo task di frutti esotici
-  const exoticFruitTasks = tasks.filter(t => {
+  const exoticFruitTasks = (tasks || []).filter(t => {
     const master = getMasterSheetSync(t.plantName);
     return master?.cropType === 'ExoticFruit';
   });

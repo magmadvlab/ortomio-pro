@@ -156,9 +156,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   }, [mounted, currentDate]);
 
   // Filtra i task in base alla stagione selezionata
-  const pendingTasks = tasks.filter(t => !t.completed && (!t.season || t.season === seasonFilter)).length;
+  const pendingTasks = (tasks || []).filter(t => !t.completed && (!t.season || t.season === seasonFilter)).length;
   
-  const upcomingReminders = mounted && currentDate ? tasks.filter(t => {
+  const upcomingReminders = mounted && currentDate ? (tasks || []).filter(t => {
       if (!t.nextDueDate || t.completed) return false;
       const due = new Date(t.nextDueDate);
       const diffTime = due.getTime() - currentDate.getTime();
@@ -240,7 +240,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   useEffect(() => {
     if (!activeGarden) return;
     
-    const activePlantTasks = getActivePlants(tasks.filter(t => t.gardenId === activeGardenId));
+    const activePlantTasks = getActivePlants((tasks || []).filter(t => t.gardenId === activeGardenId));
     if (activePlantTasks.length === 0) {
       setLifecycleAdvices(new Map());
       return;

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Harvest Modal Fix</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        
+        .test-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background-color: #0056b3;
+        }
+        
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Test Harvest Modal Fix</h1>
+        <p>Test per verificare che il modal di registrazione raccolto funzioni correttamente</p>
+        
+        <div class="test-section">
+            <h3>📋 Checklist Modifiche Applicate</h3>
+            <div class="status success">
+                ✅ <strong>Event Handlers Migliorati</strong><br>
+                - Aggiunto preventDefault() e stopPropagation() ai tasti<br>
+                - Migliorata gestione click overlay<br>
+                - Aggiunto onClick handler esplicito per tasto X
+            </div>
+            
+            <div class="status success">
+                ✅ <strong>Validazione Form Migliorata</strong><br>
+                - Validazione separata per Coltura Tracciata vs Inserimento Manuale<br>
+                - Messaggi di errore più chiari<br>
+                - Console.log per debug
+            </div>
+            
+            <div class="status success">
+                ✅ <strong>Chiusura Modal Automatica</strong><br>
+                - Modal si chiude automaticamente dopo salvataggio<br>
+                - Supporto tasto ESC già presente<br>
+                - Gestione errori con alert
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 Modifiche Tecniche Applicate</h3>
+            
+            <h4>1. Tasto Annulla</h4>
+            <div class="code-block">PRIMA:
+onClick={onClose}
+
+DOPO:
+onClick={(e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  onClose();
+}}</div>
+
+            <h4>2. Tasto Salva</h4>
+            <div class="code-block">AGGIUNTO:
+onClick={(e) => {
+  e.stopPropagation();
+  // Il form submit sarà gestito da handleSubmit
+}}</div>
+
+            <h4>3. HandleSubmit</h4>
+            <div class="code-block">AGGIUNTO:
+- e.stopPropagation()
+- console.log per debug
+- onClose() dopo salvataggio
+- Gestione errori migliorata</div>
+
+            <h4>4. Overlay Click</h4>
+            <div class="code-block">MIGLIORATO:
+- Aggiunto preventDefault() e stopPropagation()
+- Aggiunto stopPropagation() al contenuto modal</div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Test da Eseguire</h3>
+            
+            <div class="status info">
+                <strong>Test 1: Inserimento Manuale</strong><br>
+                1. Apri modal raccolto<br>
+                2. Seleziona "Inserimento Manuale"<br>
+                3. Compila: Nome pianta, Quantità, Data<br>
+                4. Clicca "Salva" → Dovrebbe salvare e chiudere
+            </div>
+            
+            <div class="status info">
+                <strong>Test 2: Chiusura Modal</strong><br>
+                1. Apri modal raccolto<br>
+                2. Prova a chiudere con:<br>
+                   - Tasto X (in alto a destra)<br>
+                   - Tasto "Annulla"<br>
+                   - Click sull'overlay (sfondo scuro)<br>
+                   - Tasto ESC<br>
+                → Tutti dovrebbero chiudere il modal
+            </div>
+            
+            <div class="status info">
+                <strong>Test 3: Validazione</strong><br>
+                1. Apri modal raccolto<br>
+                2. Seleziona "Inserimento Manuale"<br>
+                3. Lascia campi vuoti<br>
+                4. Clicca "Salva" → Dovrebbe mostrare alert errore<br>
+                5. Compila tutti i campi<br>
+                6. Clicca "Salva" → Dovrebbe funzionare
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🐛 Debug Console</h3>
+            <div class="status warning">
+                <strong>Console Logs Aggiunti:</strong><br>
+                - "Form submitted!" quando si clicca Salva<br>
+                - "Saving harvest data:" con i dati del form<br>
+                - Errori dettagliati in caso di problemi
+            </div>
+            
+            <p><strong>Come testare:</strong></p>
+            <ol>
+                <li>Apri DevTools (F12)</li>
+                <li>Vai alla tab Console</li>
+                <li>Apri il modal raccolto</li>
+                <li>Compila e salva</li>
+                <li>Verifica i log nella console</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h3>✅ Risultati Attesi</h3>
+            
+            <div class="status success">
+                <strong>✅ Tasto Salva Funzionante</strong><br>
+                - Abilitato quando tutti i campi obbligatori sono compilati<br>
+                - Salva i dati e chiude il modal<br>
+                - Mostra "Salvando..." durante il processo
+            </div>
+            
+            <div class="status success">
+                <strong>✅ Tasto Annulla Funzionante</strong><br>
+                - Chiude il modal senza salvare<br>
+                - Funziona sempre (non disabilitato)
+            </div>
+            
+            <div class="status success">
+                <strong>✅ Chiusura Modal</strong><br>
+                - X, Annulla, ESC, Overlay click funzionano<br>
+                - Modal si chiude dopo salvataggio<br>
+                - Nessun blocco o freeze
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🚀 Prossimi Passi</h3>
+            <p>Se i test passano, il modal dovrebbe essere completamente funzionale!</p>
+            
+            <div class="status info">
+                <strong>Per testare ora:</strong><br>
+                1. Vai su http://localhost:3002/app/garden<br>
+                2. Clicca su "Registra Raccolto"<br>
+                3. Esegui i test sopra descritti<br>
+                4. Verifica i log nella console del browser
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -194,9 +194,9 @@ export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, on
         {/* Statistiche */}
         <div className="flex items-center gap-6 mt-4 text-sm text-gray-600">
           <span>Totale: {filteredTasks.length}</span>
-          <span>Da fare: {filteredTasks.filter(t => !t.completed).length}</span>
-          <span>Completati: {filteredTasks.filter(t => t.completed).length}</span>
-          <span>In ritardo: {filteredTasks.filter(t => !t.completed && isPast(t.nextDueDate ? parseISO(t.nextDueDate) : parseISO(t.date)) && !isToday(t.nextDueDate ? parseISO(t.nextDueDate) : parseISO(t.date))).length}</span>
+          <span>Da fare: {(filteredTasks || []).filter(t => !t.completed).length}</span>
+          <span>Completati: {(filteredTasks || []).filter(t => t.completed).length}</span>
+          <span>In ritardo: {(filteredTasks || []).filter(t => !t.completed && isPast(t.nextDueDate ? parseISO(t.nextDueDate) : parseISO(t.date)) && !isToday(t.nextDueDate ? parseISO(t.nextDueDate) : parseISO(t.date))).length}</span>
         </div>
       </div>
 

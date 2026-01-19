@@ -72,7 +72,7 @@ export default function ChallengeSection({
 
   const generateTodayChallenge = () => {
     const today = new Date()
-    const todayTasks = tasks.filter(t => {
+    const todayTasks = (tasks || []).filter(t => {
       const taskDate = t.suggestedDate ? parseISO(t.suggestedDate) : parseISO(t.date)
       return isToday(taskDate)
     })
@@ -341,7 +341,7 @@ export default function ChallengeSection({
             Challenge Settimanali
           </h3>
           <span className="text-sm text-gray-600">
-            {weekChallenges.filter(c => c.completed).length}/{weekChallenges.length} completate
+            {(weekChallenges || []).filter(c => c.completed).length}/{(weekChallenges || []).length} completate
           </span>
         </div>
 

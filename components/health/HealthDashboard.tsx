@@ -95,7 +95,7 @@ export function HealthDashboard({ garden, tasks }: HealthDashboardProps) {
   const mediumAlerts = alerts.filter(a => a.severity === 'medium')
   
   // Calcola stato generale
-  const activePlants = tasks.filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant'))
+  const activePlants = (tasks || []).filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant'))
   const healthyCount = activePlants.length - (highAlerts.length + criticalAlerts.length)
   const needsAttentionCount = highAlerts.length + criticalAlerts.length
   

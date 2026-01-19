@@ -35,7 +35,7 @@ const AromaticManagement: React.FC<AromaticManagementProps> = ({
   }
 
   // Filtra solo task di erbe aromatiche
-  const aromaticTasks = tasks.filter(t => {
+  const aromaticTasks = (tasks || []).filter(t => {
     const master = getMasterSheetSync(t.plantName);
     return master?.cropType === 'Aromatic' || master?.cropType === 'Medicinal';
   });

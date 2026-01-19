@@ -17,7 +17,7 @@ const StrawberryManagement: React.FC<StrawberryManagementProps> = ({ tasks, gard
   const [selectedTask, setSelectedTask] = useState<GardenTask | null>(null);
 
   // Filtra solo task di fragole
-  const strawberryTasks = tasks.filter(t => {
+  const strawberryTasks = (tasks || []).filter(t => {
     const master = getMasterSheetSync(t.plantName);
     return master?.cropType === 'Strawberry';
   });

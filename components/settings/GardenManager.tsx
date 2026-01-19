@@ -53,7 +53,7 @@ export function GardenManager() {
 
       // Se l'orto eliminato era quello attivo, switcha al primo disponibile
       if (activeGarden?.id === gardenId) {
-        const remainingGardens = gardens.filter(g => g.id !== gardenId)
+        const remainingGardens = (gardens || []).filter(g => g.id !== gardenId)
         if (remainingGardens.length > 0) {
           setActiveGarden(remainingGardens[0])
         } else {

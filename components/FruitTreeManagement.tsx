@@ -25,7 +25,7 @@ const FruitTreeManagement: React.FC<FruitTreeManagementProps> = ({
   const [selectedTask, setSelectedTask] = useState<GardenTask | null>(null);
 
   // Filtra solo task di frutteti
-  const fruitTreeTasks = tasks.filter(t => {
+  const fruitTreeTasks = (tasks || []).filter(t => {
     const master = getMasterSheetSync(t.plantName);
     return master?.cropType === 'FruitTree';
   });

@@ -66,7 +66,7 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
   const availableCrops = React.useMemo(() => {
     const now = new Date();
     
-    return plantedCrops
+    return (plantedCrops || [])
       .filter(task => {
         // Solo task di semina/trapianto completati
         if (!task.completed || !['Sowing', 'Transplant'].includes(task.taskType)) {
@@ -191,9 +191,17 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     
-    if (!plantName.trim() || !quantity || !harvestDate) {
+    console.log('Form submitted!', { isManualEntry, plantName, quantity, harvestDate });
+    
+    if (isManualEntry && (!plantName.trim() || !quantity || !harvestDate)) {
       alert('Compila tutti i campi obbligatori');
+      return;
+    }
+    
+    if (!isManualEntry && !selectedTaskId) {
+      alert('Seleziona una coltura da raccogliere');
       return;
     }
 
@@ -217,9 +225,14 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
         is_tracked: !isManualEntry && !!selectedTaskId
       };
 
+      console.log('Saving harvest data:', harvestData);
       await onSave(harvestData);
+      
+      // Chiudi il modal dopo il salvataggio
+      onClose();
     } catch (error) {
       console.error('Error saving harvest:', error);
+      alert('Errore nel salvataggio. Riprova.');
     } finally {
       setLoading(false);
     }
@@ -250,17 +263,29 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
       onClick={(e) => {
         // Chiudi il modal se si clicca sull'overlay (non sul contenuto)
         if (e.target === e.currentTarget) {
+          e.preventDefault();
+          e.stopPropagation();
           onClose();
         }
       }}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div 
+        className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => {
+          // Previeni la chiusura quando si clicca sul contenuto del modal
+          e.stopPropagation();
+        }}
+      >
         <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
             {harvest ? 'Modifica Raccolto' : 'Nuovo Raccolto'}
           </h2>
           <button
-            onClick={onClose}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
             className="text-gray-400 hover:text-gray-600 p-2 -m-2 touch-manipulation"
             aria-label="Chiudi modal"
             type="button"
@@ -551,7 +576,11 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onClose();
+              }}
               className="flex-1 px-4 py-3 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 touch-manipulation text-base sm:text-sm font-medium"
               disabled={loading}
             >
@@ -559,8 +588,16 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
             </button>
             <button
               type="submit"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Il form submit sarà gestito da handleSubmit
+              }}
               className="flex-1 px-4 py-3 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 touch-manipulation text-base sm:text-sm font-medium"
-              disabled={loading || (!isManualEntry && !selectedTaskId)}
+              disabled={loading || (
+                !isManualEntry && !selectedTaskId
+              ) || (
+                isManualEntry && (!plantName.trim() || !quantity || !harvestDate)
+              )}
             >
               {loading ? 'Salvando...' : harvest ? 'Aggiorna' : 'Salva'}
             </button>

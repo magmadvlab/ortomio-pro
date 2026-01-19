@@ -98,7 +98,7 @@ const VacationMode: React.FC<VacationModeProps> = ({ garden, tasks, onUpdateGard
   const daysUntil = plan ? getDaysUntilDeparture(new Date(plan.startDate)) : null;
   const isActive = plan ? hasActiveVacation(garden) : false;
   const isUpcoming = plan ? hasUpcomingVacation(garden) : false;
-  const completedTasks = plan ? plan.tasks.filter(t => t.completed).length : 0;
+  const completedTasks = plan ? (plan.tasks || []).filter(t => t.completed).length : 0;
   const totalTasks = plan ? plan.tasks.length : 0;
 
   return (

@@ -42,7 +42,7 @@ export function ProgressCard({ tasks, gardenId }: ProgressCardProps) {
             // Calcola progresso basato su azioni completate
             // Per semplicità, assumiamo che almeno un'azione sia stata completata se ci sono task completati oggi
             const today = new Date().toISOString().split('T')[0]
-            const todayCompletedTasks = tasks.filter(t => t.completed && t.date === today).length
+            const todayCompletedTasks = (tasks || []).filter(t => t.completed && t.date === today).length
             const progress = Math.min(todayCompletedTasks, todayChallenge.challenge.azioni.length)
 
             if (progress > 0) {
@@ -62,8 +62,8 @@ export function ProgressCard({ tasks, gardenId }: ProgressCardProps) {
         }
 
         // 2. Controlla challenge progressivi
-        const sowingCount = tasks.filter(t => t.taskType === 'Sowing' && t.completed).length
-        const harvestCount = tasks.filter(t => t.taskType === 'Harvest' && t.completed).length
+        const sowingCount = (tasks || []).filter(t => t.taskType === 'Sowing' && t.completed).length
+        const harvestCount = (tasks || []).filter(t => t.taskType === 'Harvest' && t.completed).length
 
         // Challenge "Pollice Verde" - 5 semine
         if (sowingCount >= 5 && sowingCount < 10) {

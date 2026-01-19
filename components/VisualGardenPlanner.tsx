@@ -1296,7 +1296,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
                     {task.plantName || 'Pianta senza nome'}
                   </button>
                 ))}
-              {activeTasks.filter(t => !t.gridPosition).length === 0 && (
+              {(activeTasks || []).filter(t => !t.gridPosition).length === 0 && (
                 <p className="text-sm text-gray-500">Tutte le piante sono posizionate!</p>
               )}
             </div>

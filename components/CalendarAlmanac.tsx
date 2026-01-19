@@ -170,8 +170,8 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
               const taskDate = t.suggestedDate ? parseISO(t.suggestedDate) : parseISO(t.date);
               return isSameDay(taskDate, day);
             });
-            const suggestedTasks = dayTasks.filter(t => t.isSuggested);
-            const manualTasks = dayTasks.filter(t => !t.isSuggested);
+            const suggestedTasks = (dayTasks || []).filter(t => t.isSuggested);
+            const manualTasks = (dayTasks || []).filter(t => !t.isSuggested);
             
             // Dati per questo giorno
             const dettiGiorno = getDettiForDate(day);
@@ -217,7 +217,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
                           : 'bg-gray-300 text-gray-700'
                         }
                       `}>
-                        {dayTasks.filter(t => !t.completed).length || dayTasks.length}
+                        {(dayTasks || []).filter(t => !t.completed).length || (dayTasks || []).length}
                       </span>
                     )}
                   </div>
@@ -250,16 +250,16 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
                 )}
                 
                 {/* Lavorazioni meccaniche */}
-                {dayTasks.some(t => t.taskType === 'Plowing' || t.taskType === 'Tilling') && (
+                {(dayTasks || []).some(t => t.taskType === 'Plowing' || t.taskType === 'Tilling') && (
                   <div className="text-xs text-orange-600 font-semibold truncate" title="Lavorazioni meccaniche">
-                    🚜 {dayTasks.filter(t => t.taskType === 'Plowing' || t.taskType === 'Tilling').length} lavoraz.
+                    🚜 {(dayTasks || []).filter(t => t.taskType === 'Plowing' || t.taskType === 'Tilling').length} lavoraz.
                   </div>
                 )}
                 
                 {/* Potatura alberi */}
-                {dayTasks.some(t => t.taskType === 'TreePruning') && (
+                {(dayTasks || []).some(t => t.taskType === 'TreePruning') && (
                   <div className="text-xs text-green-700 font-semibold truncate" title="Potatura alberi">
-                    ✂️ {dayTasks.filter(t => t.taskType === 'TreePruning').length} potatura
+                    ✂️ {(dayTasks || []).filter(t => t.taskType === 'TreePruning').length} potatura
                   </div>
                 )}
                 
@@ -439,9 +439,9 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
             const taskDate = t.suggestedDate ? parseISO(t.suggestedDate) : parseISO(t.date);
             return isSameDay(taskDate, selectedDate);
           });
-          const suggestedTasks = dayTasks.filter(t => t.isSuggested && !t.completed);
-          const completedTasks = dayTasks.filter(t => t.completed);
-          const manualTasks = dayTasks.filter(t => !t.isSuggested && !t.completed);
+          const suggestedTasks = (dayTasks || []).filter(t => t.isSuggested && !t.completed);
+          const completedTasks = (dayTasks || []).filter(t => t.completed);
+          const manualTasks = (dayTasks || []).filter(t => !t.isSuggested && !t.completed);
           
           return (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
@@ -561,7 +561,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
             return isSameDay(taskDate, selectedDate);
           });
 
-          const activeTasks = dayTasks.filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant'));
+          const activeTasks = (dayTasks || []).filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant'));
 
           if (activeTasks.length === 0) return null;
 

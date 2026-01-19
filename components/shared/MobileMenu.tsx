@@ -78,8 +78,8 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
     }
   }, [isOpen])
 
-  const activePlantsCount = tasks.filter(t => !t.completed && t.taskType === 'Sowing').length
-  const todayTasksCount = tasks.filter(t => {
+  const activePlantsCount = (tasks || []).filter(t => !t.completed && t.taskType === 'Sowing').length
+  const todayTasksCount = (tasks || []).filter(t => {
     if (t.completed || !t.nextDueDate) return false
     const today = new Date()
     const dueDate = new Date(t.nextDueDate)

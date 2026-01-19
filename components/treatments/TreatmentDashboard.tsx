@@ -80,7 +80,7 @@ export const TreatmentDashboard: React.FC = () => {
 
       if (error) throw error;
 
-      setTreatments(treatments.filter(t => t.id !== treatmentId));
+      setTreatments((treatments || []).filter(t => t.id !== treatmentId));
     } catch (error) {
       console.error('Error deleting treatment:', error);
       alert('Errore nell\'eliminazione del trattamento');
@@ -109,7 +109,7 @@ export const TreatmentDashboard: React.FC = () => {
     return labels[type];
   };
 
-  const filteredTreatments = treatments.filter(treatment => {
+  const filteredTreatments = (treatments || []).filter(treatment => {
     if (filterType !== 'all' && treatment.product_type !== filterType) return false;
     if (filterStatus === 'pending' && treatment.completed) return false;
     if (filterStatus === 'completed' && !treatment.completed) return false;

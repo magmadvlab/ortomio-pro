@@ -41,7 +41,7 @@ export function FreeDashboard() {
   }, [storageProvider])
 
   const activeGarden = gardens.find(g => g.id === activeGardenId)
-  const pendingTasks = tasks.filter(t => !t.completed).length
+  const pendingTasks = (tasks || []).filter(t => !t.completed).length
 
   if (loading) {
     return (

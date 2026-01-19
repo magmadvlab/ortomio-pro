@@ -45,8 +45,8 @@ export function StatsTab() {
   }
 
   // Calcola metriche
-  const activePlants = tasks.filter(t => !t.completed && t.taskType === 'Sowing').length
-  const completedTasks = tasks.filter(t => t.completed).length
+  const activePlants = (tasks || []).filter(t => !t.completed && t.taskType === 'Sowing').length
+  const completedTasks = (tasks || []).filter(t => t.completed).length
   const totalTasks = tasks.length
   const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0
 

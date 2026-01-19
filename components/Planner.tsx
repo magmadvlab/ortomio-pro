@@ -179,7 +179,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
   const [loadingDailyPlan, setLoadingDailyPlan] = useState(false);
   
   // Verifica limiti task per Free
-  const activeTasksCount = tasks.filter(t => !t.completed).length;
+  const activeTasksCount = (tasks || []).filter(t => !t.completed).length;
   const tasksLimit = checkLimit('maxTasksPerGarden', activeTasksCount);
   
   // Specific search state
@@ -1128,7 +1128,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
           </div>
 
           {/* AI Generated Tasks Section */}
-          {tasks.filter(t => t.aiGenerated).length > 0 && (
+          {(tasks || []).filter(t => t.aiGenerated).length > 0 && (
             <div className="bg-gradient-to-r from-blue-50 to-green-50 p-6 rounded-2xl border border-blue-200">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -1136,7 +1136,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                   <div>
                     <h2 className="text-lg font-bold text-blue-800">Task Generati da AI</h2>
                     <p className="text-sm text-blue-600">
-                      {tasks.filter(t => t.aiGenerated).length} task creati dal sistema di pianificazione AI
+                      {(tasks || []).filter(t => t.aiGenerated).length} task creati dal sistema di pianificazione AI
                     </p>
                   </div>
                 </div>
@@ -1144,7 +1144,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                   <AIActionButton
                     context={{
                       component: 'planner',
-                      data: { aiTasks: tasks.filter(t => t.aiGenerated).length },
+                      data: { aiTasks: (tasks || []).filter(t => t.aiGenerated).length },
                       action: 'optimize'
                     }}
                     variant="compact"
@@ -1155,7 +1155,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
               <div className="space-y-3">
                 {/* Fasi AI */}
                 <div className="flex flex-wrap gap-3 mb-3">
-                  {Array.from(new Set(tasks.filter(t => t.aiGenerated).map(t => t.planPhase))).map(phase => (
+                  {Array.from(new Set((tasks || []).filter(t => t.aiGenerated).map(t => t.planPhase))).map(phase => (
                     <span key={phase} className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
                       Fase {phase}
                     </span>
@@ -1164,7 +1164,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                 
                 {/* Task AI più recenti */}
                 <div className="grid gap-3">
-                  {tasks.filter(t => t.aiGenerated).slice(0, 3).map((task) => (
+                  {(tasks || []).filter(t => t.aiGenerated).slice(0, 3).map((task) => (
                     <div key={task.id} className="bg-white border border-blue-200 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -1205,10 +1205,10 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                   ))}
                 </div>
                 
-                {tasks.filter(t => t.aiGenerated).length > 3 && (
+                {(tasks || []).filter(t => t.aiGenerated).length > 3 && (
                   <div className="text-center">
                     <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                      Vedi tutti i {tasks.filter(t => t.aiGenerated).length} task AI →
+                      Vedi tutti i {(tasks || []).filter(t => t.aiGenerated).length} task AI →
                     </button>
                   </div>
                 )}

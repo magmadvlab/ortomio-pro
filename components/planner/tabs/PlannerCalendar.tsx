@@ -20,7 +20,7 @@ export default function PlannerCalendar({ garden, tasks, onUpdateTask }: Planner
   const [filterPlant, setFilterPlant] = useState<string>('all')
 
   // Filtra tasks
-  const filteredTasks = tasks.filter(task => {
+  const filteredTasks = (tasks || []).filter(task => {
     if (filterType === 'pending' && task.completed) return false
     if (filterType === 'completed' && !task.completed) return false
     if (filterPlant !== 'all' && task.plantName !== filterPlant) return false
@@ -248,11 +248,11 @@ export default function PlannerCalendar({ garden, tasks, onUpdateTask }: Planner
             </div>
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 bg-yellow-500 rounded-full" />
-              <span>In attesa: {filteredTasks.filter(t => !t.completed).length}</span>
+              <span>In attesa: {(filteredTasks || []).filter(t => !t.completed).length}</span>
             </div>
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 bg-green-500 rounded-full" />
-              <span>Completati: {filteredTasks.filter(t => t.completed).length}</span>
+              <span>Completati: {(filteredTasks || []).filter(t => t.completed).length}</span>
             </div>
           </div>
         </div>

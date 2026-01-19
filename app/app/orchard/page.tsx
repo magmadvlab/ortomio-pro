@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { FeatureGate } from '@/components/shared/FeatureGate'
 import { OrchardConfiguration } from '@/types/orchard'
-import { Garden } from '@/types'
+import { Garden, GardenTask } from '@/types'
 import { orchardService } from '@/services/orchardService'
 import OrchardDashboard from '@/components/orchard/OrchardDashboard'
 import OrchardWizard from '@/components/orchard/OrchardWizard'
@@ -12,6 +13,8 @@ import TreeManager from '@/components/orchard/TreeManager'
 import PruningManager from '@/components/orchard/PruningManager'
 import HarvestManager from '@/components/orchard/HarvestManager'
 import SmartPlantManager from '@/components/plants/SmartPlantManager'
+import { format } from 'date-fns'
+import { it } from 'date-fns/locale'
 import { 
   TreePine, 
   ArrowLeft, 
@@ -20,7 +23,10 @@ import {
   Calendar, 
   BarChart3,
   Users,
-  Eye
+  Eye,
+  Plus,
+  X,
+  AlertCircle
 } from 'lucide-react'
 
 type ViewMode = 'dashboard' | 'trees' | 'individual-plants' | 'pruning' | 'harvest' | 'analytics'
@@ -274,9 +280,9 @@ function TropicalExoticSection({ selectedGarden, selectedLocation, tasks }: Trop
 
   // Filtra le colture tropicali/esotiche dai task esistenti
   const tropicalTasks = (tasks || []).filter(task => {
-    const masterData = getMasterSheetSync(task.plantName)
-    return masterData?.category === 'Tropical' || masterData?.category === 'Exotic' ||
-           ['Avocado', 'Mango', 'Papaya', 'Passion Fruit', 'Dragon Fruit', 'Lychee', 'Guava', 'Jackfruit', 'Durian', 'Rambutan'].includes(task.plantName)
+    // Lista di piante tropicali/esotiche comuni
+    const tropicalPlants = ['Avocado', 'Mango', 'Papaya', 'Passion Fruit', 'Dragon Fruit', 'Lychee', 'Guava', 'Jackfruit', 'Durian', 'Rambutan']
+    return tropicalPlants.includes(task.plantName)
   })
 
   // Lista delle colture tropicali/esotiche disponibili
@@ -395,7 +401,6 @@ function TropicalExoticSection({ selectedGarden, selectedLocation, tasks }: Trop
         {tropicalTasks.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {tropicalTasks.map((task) => {
-              const masterData = getMasterSheetSync(task.plantName)
               return (
                 <div key={task.id} className="bg-white rounded-lg p-4 border border-orange-200">
                   <div className="flex items-start gap-3">
@@ -410,11 +415,9 @@ function TropicalExoticSection({ selectedGarden, selectedLocation, tasks }: Trop
                           Piantato: {format(new Date(task.startDate), 'dd MMM yyyy', { locale: it })}
                         </p>
                       )}
-                      {masterData?.harvestWindow && (
-                        <div className="mt-2 text-xs text-orange-700 bg-orange-100 px-2 py-1 rounded">
-                          Raccolta: {masterData.harvestWindow}
-                        </div>
-                      )}
+                      <div className="mt-2 text-xs text-orange-700 bg-orange-100 px-2 py-1 rounded">
+                        Coltura Tropicale
+                      </div>
                     </div>
                   </div>
                 </div>

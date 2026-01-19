@@ -77,13 +77,13 @@ export function EnhancedDashboard({
   }, [tasks, weather])
 
   // Calculate statistics
-  const activePlants = tasks.filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant')).length
-  const monthlyTasks = tasks.filter(t => {
+  const activePlants = (tasks || []).filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant')).length
+  const monthlyTasks = (tasks || []).filter(t => {
     const taskDate = new Date(t.date)
     const now = new Date()
     return taskDate.getMonth() === now.getMonth() && taskDate.getFullYear() === now.getFullYear()
   }).length
-  const monthlyHarvests = tasks.filter(t => t.taskType === 'Harvest' && t.completed).length
+  const monthlyHarvests = (tasks || []).filter(t => t.taskType === 'Harvest' && t.completed).length
 
   const displayName = userName || 'Coltivatore'
 

@@ -61,7 +61,18 @@ export default function ProfessionalIrrigationDashboard({
       setDashboardData(data)
     } catch (err) {
       console.error('Error loading dashboard data:', err)
-      setError('Errore nel caricamento dei dati del dashboard')
+      
+      // Check if it's a table not found error
+      if (err && typeof err === 'object' && 'message' in err) {
+        const errorMessage = (err as any).message
+        if (errorMessage?.includes('relation') && errorMessage?.includes('does not exist')) {
+          setError('Sistema di irrigazione non ancora configurato. Eseguire le migrazioni del database.')
+        } else {
+          setError('Errore nel caricamento dei dati del dashboard')
+        }
+      } else {
+        setError('Errore nel caricamento dei dati del dashboard')
+      }
     } finally {
       setLoading(false)
     }

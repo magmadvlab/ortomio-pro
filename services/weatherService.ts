@@ -547,5 +547,61 @@ class WeatherService {
   }
 }
 
+// Interface for transplant conditions check
+export interface TransplantConditions {
+  isSuitable: boolean;
+  reason: string;
+  currentMinTemp?: number;
+  requiredMinTemp: number;
+}
+
+/**
+ * Verifica se le condizioni meteo sono adatte per il trapianto
+ */
+export async function checkTransplantConditions(
+  lat: number,
+  lng: number,
+  minTemp: number
+): Promise<TransplantConditions> {
+  try {
+    const forecast = await getWeatherForecast(lat, lng, 3); // 3 giorni di previsioni
+    
+    if (!forecast || forecast.length === 0) {
+      return {
+        isSuitable: false,
+        reason: "Impossibile recuperare le previsioni meteo. Verifica la connessione.",
+        requiredMinTemp: minTemp,
+      };
+    }
+    
+    // Usa la temperatura minima del primo giorno (oggi)
+    const today = forecast[0];
+    const currentMinTemp = today.temp_min ?? today.temp_max - 10; // Fallback estimate
+    
+    if (currentMinTemp < minTemp) {
+      return {
+        isSuitable: false,
+        reason: `La temperatura minima prevista (${currentMinTemp.toFixed(1)}°C) è inferiore a quella richiesta (${minTemp}°C). Aspetta che le notti si riscaldino.`,
+        currentMinTemp,
+        requiredMinTemp: minTemp,
+      };
+    }
+    
+    return {
+      isSuitable: true,
+      reason: `Le condizioni sono adatte: temperatura minima prevista ${currentMinTemp.toFixed(1)}°C (richiesta: ${minTemp}°C).`,
+      currentMinTemp,
+      requiredMinTemp: minTemp,
+    };
+  } catch (error) {
+    console.error('Error checking transplant conditions:', error);
+    return {
+      isSuitable: false,
+      reason: "Errore nel controllo delle condizioni meteo. Riprova più tardi.",
+      requiredMinTemp: minTemp,
+    };
+  }
+}
+
 export const weatherService = new WeatherService()
 export type { WeatherData, WeatherForecast, WeatherAlert, GardenLocation }

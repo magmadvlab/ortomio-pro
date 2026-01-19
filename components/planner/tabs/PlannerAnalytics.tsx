@@ -54,13 +54,13 @@ export default function PlannerAnalytics({ garden, tasks }: PlannerAnalyticsProp
         break
     }
 
-    const filteredTasks = tasks.filter(task => {
+    const filteredTasks = (tasks || []).filter(task => {
       if (!task.date) return true
       return new Date(task.date) >= filterDate
     })
 
     const totalTasks = filteredTasks.length
-    const completedTasks = filteredTasks.filter(task => task.completed).length
+    const completedTasks = (filteredTasks || []).filter(task => task.completed).length
     const pendingTasks = totalTasks - completedTasks
     const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0
 
@@ -85,7 +85,7 @@ export default function PlannerAnalytics({ garden, tasks }: PlannerAnalyticsProp
     // Scadenze imminenti (prossimi 7 giorni)
     const nextWeek = new Date()
     nextWeek.setDate(now.getDate() + 7)
-    const upcomingDeadlines = filteredTasks.filter(task => 
+    const upcomingDeadlines = (filteredTasks || []).filter(task => 
       task.date && !task.completed && new Date(task.date) <= nextWeek
     ).length
 
@@ -113,7 +113,7 @@ export default function PlannerAnalytics({ garden, tasks }: PlannerAnalyticsProp
       date.setMonth(date.getMonth() - i)
       const monthName = date.toLocaleDateString('it-IT', { month: 'short' })
       
-      const monthTasks = filteredTasks.filter(task => {
+      const monthTasks = (filteredTasks || []).filter(task => {
         if (!task.date) return false
         const taskDate = new Date(task.date)
         return taskDate.getMonth() === date.getMonth() && taskDate.getFullYear() === date.getFullYear()
@@ -121,7 +121,7 @@ export default function PlannerAnalytics({ garden, tasks }: PlannerAnalyticsProp
       
       monthlyProgress.push({
         month: monthName,
-        completed: monthTasks.filter(t => t.completed).length,
+        completed: (monthTasks || []).filter(t => t.completed).length,
         total: monthTasks.length
       })
     }

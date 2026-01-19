@@ -31,7 +31,7 @@ const RaspberryManagement: React.FC<RaspberryManagementProps> = ({ tasks, garden
   }
 
   // Filtra solo task di lamponi
-  const raspberryTasks = tasks.filter(t => {
+  const raspberryTasks = (tasks || []).filter(t => {
     const master = getMasterSheetSync(t.plantName);
     return master?.cropType === 'Raspberry' as any; // Raspberry è un CropType valido ma TypeScript non lo riconosce
   });

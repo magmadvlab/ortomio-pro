@@ -729,7 +729,25 @@ class AdvancedIrrigationService {
         .eq('garden_id', gardenId)
         .eq('is_active', true)
 
-      if (zonesError) throw zonesError
+      if (zonesError) {
+        // Check if it's a table not found error
+        const errorMessage = zonesError.message || ''
+        if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
+          console.warn('Irrigation tables not found. Please run the irrigation system migration.')
+          console.warn('Run: supabase migration up --file supabase/migrations/20260117010000_create_advanced_irrigation_system.sql')
+          return {
+            activeZones: 0,
+            activeSystems: 0,
+            todayIrrigations: 0,
+            weeklyConsumption: 0,
+            currentAlerts: [],
+            recentLogs: [],
+            upcomingSchedules: [],
+            systemStatus: []
+          }
+        }
+        throw zonesError
+      }
 
       // Get active systems count
       const { data: systems, error: systemsError } = await supabase
@@ -801,7 +819,22 @@ class AdvancedIrrigationService {
         systemStatus: [] // Would need system status monitoring
       }
     } catch (error) {
-      console.error('Error fetching dashboard data:', error)
+      // Better error logging
+      console.error('Error fetching dashboard data:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        errorType: typeof error,
+        errorConstructor: error?.constructor?.name
+      })
+      
+      // Check if it's a table not found error
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      if (errorMessage?.includes('relation') && errorMessage?.includes('does not exist')) {
+        console.warn('Irrigation tables not found. Please run the irrigation system migration.')
+        console.warn('Run: supabase migration up --file supabase/migrations/20260117010000_create_advanced_irrigation_system.sql')
+      }
+      
       return {
         activeZones: 0,
         activeSystems: 0,

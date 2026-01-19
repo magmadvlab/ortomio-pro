@@ -113,7 +113,7 @@ export default function IntegratedCalendarWithChallenges({
     const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
     
     const newChallenges: DailyChallenge[] = days.map(day => {
-      const dayTasks = tasks.filter(t => {
+      const dayTasks = (tasks || []).filter(t => {
         const taskDate = t.suggestedDate ? parseISO(t.suggestedDate) : parseISO(t.date)
         return isSameDay(taskDate, day)
       })
@@ -148,7 +148,7 @@ export default function IntegratedCalendarWithChallenges({
           actions: [
             {
               id: 'complete-sowings',
-              description: `Completa ${dayTasks.filter(t => t.taskType === 'Sowing').length} semine`,
+              description: `Completa ${(dayTasks || []).filter(t => t.taskType === 'Sowing').length} semine`,
               completed: false,
               linkedTaskId: dayTasks.find(t => t.taskType === 'Sowing')?.id
             },
@@ -180,7 +180,7 @@ export default function IntegratedCalendarWithChallenges({
           actions: [
             {
               id: 'complete-harvests',
-              description: `Completa ${dayTasks.filter(t => t.taskType === 'Harvest').length} raccolti`,
+              description: `Completa ${(dayTasks || []).filter(t => t.taskType === 'Harvest').length} raccolti`,
               completed: false
             },
             {
@@ -272,14 +272,14 @@ export default function IntegratedCalendarWithChallenges({
 
   // Prepara dati per ogni giorno
   const calendarDays: CalendarDay[] = days.map(day => {
-    const dayTasks = tasks.filter(t => {
+    const dayTasks = (tasks || []).filter(t => {
       const taskDate = t.suggestedDate ? parseISO(t.suggestedDate) : parseISO(t.date)
       return isSameDay(taskDate, day)
     })
 
     const dayChallenge = challenges.find(c => isSameDay(parseISO(c.date), day))
     
-    const tasksCompleted = dayTasks.filter(t => t.completed).length
+    const tasksCompleted = (dayTasks || []).filter(t => t.completed).length
     const tasksTotal = dayTasks.length
     const challengeCompleted = dayChallenge?.completed || false
     
@@ -408,7 +408,7 @@ export default function IntegratedCalendarWithChallenges({
             <div>
               <p className="text-sm text-purple-600">Challenge Completate</p>
               <p className="text-xl font-bold text-purple-700">
-                {calendarDays.filter(day => day.stats.challengeCompleted).length}
+                {(calendarDays || []).filter(day => day.stats.challengeCompleted).length}
               </p>
             </div>
           </div>

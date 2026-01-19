@@ -25,12 +25,12 @@ export function GardenSelectorCard({
   
   // Calcola statistiche per il giardino attivo
   const stats = useMemo(() => {
-    const activePlants = tasks.filter(
+    const activePlants = (tasks || []).filter(
       t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant')
     ).length
     
     const today = new Date().toISOString().split('T')[0]
-    const todayTasks = tasks.filter(
+    const todayTasks = (tasks || []).filter(
       t => !t.completed && t.date === today
     ).length
     
@@ -106,8 +106,8 @@ export function GardenSelectorCard({
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-20 max-h-96 overflow-y-auto">
           {gardens.map(garden => {
-            const gardenTasks = tasks.filter(t => t.gardenId === garden.id)
-            const gardenActivePlants = gardenTasks.filter(
+            const gardenTasks = (tasks || []).filter(t => t.gardenId === garden.id)
+            const gardenActivePlants = (gardenTasks || []).filter(
               t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant')
             ).length
             

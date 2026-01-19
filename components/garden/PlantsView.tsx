@@ -28,7 +28,7 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
   // Estrai piante attive dai task
   const activePlants = useMemo(() => {
     if (!tasks || tasks.length === 0) return []
-    return getActivePlants(tasks.filter(t => t.gardenId === garden.id))
+    return getActivePlants((tasks || []).filter(t => t.gardenId === garden.id))
   }, [tasks, garden.id])
 
   // Raggruppa per pianta e calcola stato

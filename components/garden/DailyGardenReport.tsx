@@ -102,7 +102,7 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
     if (month >= 3 && month <= 10) healthScore += 10 // Bonus stagione crescita
 
     setGardenStats({
-      plantsCount: tasks.filter(t => t.plantName && !t.completed).length || 0,
+      plantsCount: (tasks || []).filter(t => t.plantName && !t.completed).length || 0,
       tasksToday: todayTasks.length,
       tasksOverdue: overdueTasks.length,
       healthScore: Math.min(100, Math.max(0, healthScore)),

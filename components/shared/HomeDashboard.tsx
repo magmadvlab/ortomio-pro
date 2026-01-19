@@ -453,7 +453,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
               latitude={activeGarden.coordinates.latitude}
               longitude={activeGarden.coordinates.longitude}
               gardens={gardens}
-              activePlants={currentTasks
+              activePlants={(currentTasks || [])
                 .filter(t => !t.completed && t.plantName)
                 .map(t => ({
                   plantName: t.plantName,
@@ -484,7 +484,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
         {/* COSA FARE OGGI */}
         {(() => {
           const today = new Date()
-          const todayTasks = currentTasks.filter(t => {
+          const todayTasks = (currentTasks || []).filter(t => {
             if (t.completed) return false
             const taskDate = t.nextDueDate ? parseISO(t.nextDueDate) : parseISO(t.date)
             return isSameDay(taskDate, today)
@@ -609,7 +609,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
 
             {(() => {
               const q = baselineSearch.trim().toLowerCase()
-              const visiblePrompts = dailyPlan.baselinePrompts
+              const visiblePrompts = (dailyPlan.baselinePrompts || [])
                 .filter((p) => !dismissedBaselinePrompts[p.id])
                 .filter((p) => (baselinePriorityFilter === 'All' ? true : p.priority === baselinePriorityFilter))
                 .filter((p) => {
@@ -1060,7 +1060,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                   </p>
                   <div className="bg-yellow-50 border border-yellow-full max-w-sm rounded-lg p-4">
                     <p className="text-sm text-gray-700">
-                      <strong>Colture Olivi Attive:</strong> {tasks.filter(t => {
+                      <strong>Colture Olivi Attive:</strong> {(tasks || []).filter(t => {
                         const master = getMasterSheetSync(t.plantName);
                         return master?.cropType === 'Olive';
                       }).length}
@@ -1080,7 +1080,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                   </p>
                   <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                     <p className="text-sm text-gray-700">
-                      <strong>Colture Viti Attive:</strong> {tasks.filter(t => {
+                      <strong>Colture Viti Attive:</strong> {(tasks || []).filter(t => {
                         const master = getMasterSheetSync(t.plantName);
                         return master?.cropType === 'Vine';
                       }).length}
@@ -1131,7 +1131,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                   try {
                     await storageProvider.deleteIrrigationZone(zoneId)
                     // Rimuovi la zona dallo stato locale
-                    setIrrigationZones(prev => prev.filter(z => z.id !== zoneId))
+                    setIrrigationZones(prev => (prev || []).filter(z => z.id !== zoneId))
                   } catch (error) {
                     console.error('Error deleting irrigation zone:', error)
                     alert('Errore durante l\'eliminazione della zona')

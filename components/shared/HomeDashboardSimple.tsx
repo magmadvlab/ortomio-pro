@@ -95,7 +95,7 @@ export function HomeDashboardSimple({ garden }: HomeDashboardProps) {
     )
   }
 
-  const todayTasks = gardenTasks.filter(t => {
+  const todayTasks = (gardenTasks || []).filter(t => {
     if (t.completed) return false
     const taskDate = t.nextDueDate ? parseISO(t.nextDueDate) : parseISO(t.date)
     return isSameDay(taskDate, new Date())
@@ -127,13 +127,13 @@ export function HomeDashboardSimple({ garden }: HomeDashboardProps) {
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">
-                {gardenTasks.filter(t => t.completed).length}
+                {(gardenTasks || []).filter(t => t.completed).length}
               </div>
               <div className="text-sm text-gray-600">Completati</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600">
-                {gardenTasks.filter(t => !t.completed).length}
+                {(gardenTasks || []).filter(t => !t.completed).length}
               </div>
               <div className="text-sm text-gray-600">Da Fare</div>
             </div>

@@ -28,7 +28,7 @@ export default function TreatmentCalendarIntegration({
   const { productCards } = useProductCards();
 
   // Filtra task di trattamenti per la data selezionata
-  const treatmentTasks = tasks.filter(task => {
+  const treatmentTasks = (tasks || []).filter(task => {
     if (task.taskType !== 'Treatment' && task.taskType !== 'Fertilize') return false;
     
     const taskDate = parseISO(task.nextDueDate || task.date);

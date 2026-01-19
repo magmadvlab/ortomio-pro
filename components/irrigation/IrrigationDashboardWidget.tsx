@@ -40,14 +40,14 @@ export default function IrrigationDashboardWidget({
   );
 
   // Task in scadenza (oggi e domani)
-  const upcomingTasks = irrigationTasks.filter(task => {
+  const upcomingTasks = (irrigationTasks || []).filter(task => {
     if (!task.nextDueDate && !task.scheduledDate) return false;
     const dueDate = task.nextDueDate ? parseISO(task.nextDueDate) : parseISO(task.scheduledDate!);
     return isToday(dueDate) || isTomorrow(dueDate);
   });
 
   // Statistiche irrigazione
-  const completedThisWeek = irrigationTasks.filter(task => 
+  const completedThisWeek = (irrigationTasks || []).filter(task => 
     task.completed && task.completedAt && 
     new Date(task.completedAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
   ).length;

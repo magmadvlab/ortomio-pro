@@ -42,12 +42,12 @@ export default function TreatmentDashboardWidget({
   const [selectedProduct, setSelectedProduct] = useState<ProductCard | null>(null);
 
   // Filtra task di trattamenti e fertilizzanti
-  const treatmentTasks = tasks.filter(task => 
+  const treatmentTasks = (tasks || []).filter(task => 
     task.taskType === 'Treatment' || task.taskType === 'Fertilize'
   );
 
   // Task in scadenza (oggi e domani)
-  const upcomingTasks = treatmentTasks.filter(task => {
+  const upcomingTasks = (treatmentTasks || []).filter(task => {
     if (task.completed) return false;
     const taskDate = parseISO(task.nextDueDate || task.date);
     return isToday(taskDate) || isTomorrow(taskDate);
@@ -59,7 +59,7 @@ export default function TreatmentDashboardWidget({
     fertilizers: fertilizers.length,
     treatments: treatments.length,
     upcomingTasks: upcomingTasks.length,
-    completedThisMonth: treatmentTasks.filter(task => {
+    completedThisMonth: (treatmentTasks || []).filter(task => {
       if (!task.completed || !task.completedAt) return false;
       const completedDate = parseISO(task.completedAt);
       const now = new Date();
