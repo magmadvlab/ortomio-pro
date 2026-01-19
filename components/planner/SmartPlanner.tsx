@@ -11,7 +11,6 @@ import { format, addDays, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { smartOperationsService, SmartOperation, WeatherData } from '@/services/smartOperationsService'
 import CalendarAlmanac from '@/components/CalendarAlmanac'
-import AlmanaccoWidget from '@/components/almanacco/AlmanaccoWidget'
 
 interface SmartPlannerProps {
   garden: Garden
@@ -33,7 +32,7 @@ export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlan
   const [weatherForecast, setWeatherForecast] = useState<WeatherData[]>([])
   const [showNewOperationForm, setShowNewOperationForm] = useState(false)
   const [selectedOperationType, setSelectedOperationType] = useState<string>('')
-  const [activeView, setActiveView] = useState<'calendar' | 'operations' | 'ai_suggestions' | 'almanacco'>('operations')
+  const [activeView, setActiveView] = useState<'calendar' | 'operations' | 'ai_suggestions'>('operations')
 
   // Carica previsioni meteo reali
   useEffect(() => {
@@ -134,11 +133,10 @@ export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlan
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1 overflow-x-auto">
           {[
             { id: 'operations', label: 'Operazioni Smart', icon: Settings },
             { id: 'calendar', label: 'Calendario', icon: Calendar },
-            { id: 'almanacco', label: 'Almanacco', icon: Sun },
             { id: 'ai_suggestions', label: 'Suggerimenti AI', icon: Bot }
           ].map((tab) => {
             const Icon = tab.icon
@@ -146,7 +144,7 @@ export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlan
               <button
                 key={tab.id}
                 onClick={() => setActiveView(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                   activeView === tab.id
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -313,21 +311,6 @@ export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlan
               onTasksUpdate(tasks.map(t => t.id === task.id ? task : t))
             }}
           />
-        </div>
-      )}
-
-      {/* Vista Almanacco */}
-      {activeView === 'almanacco' && (
-        <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Sun className="text-amber-600" size={20} />
-              Almanacco del Contadino
-            </h3>
-            <AlmanaccoWidget 
-              date={new Date()}
-            />
-          </div>
         </div>
       )}
 
