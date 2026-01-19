@@ -14,7 +14,7 @@ export default function HelpPage() {
       items: [
         { title: 'Primi Passi', href: '/docs/manual/27-quick-start' },
         { title: 'Navigazione Interfaccia', href: '/docs/manual/29-interface-navigation' },
-        { title: 'Creazione Primo Orto', href: '#' },
+        { title: 'Casi d\'Uso Pratici', href: '/docs/manual/30-use-cases' },
       ]
     },
     {
@@ -65,6 +65,24 @@ export default function HelpPage() {
         { title: 'Sistema Export', href: '/docs/manual/23-export-system' },
         { title: 'Benefici Economici', href: '/docs/manual/28-economic-benefits' },
       ]
+    },
+    {
+      title: 'Gamification e Social',
+      description: 'Sfide e condivisione',
+      items: [
+        { title: 'Sfide e Gamification', href: '/docs/manual/07-challenges-gamification' },
+        { title: 'Sistema Badge', href: '/docs/manual/13-badge-system' },
+        { title: 'Condivisione Social', href: '/docs/manual/12-social-sharing' },
+      ]
+    },
+    {
+      title: 'Supporto e Risorse',
+      description: 'Aiuto e contatti',
+      items: [
+        { title: 'Contatti Supporto', href: '/docs/manual/33-support-contacts' },
+        { title: 'Roadmap Sviluppo', href: '/docs/manual/32-roadmap' },
+        { title: 'Storie di Successo', href: '/docs/manual/31-success-stories' },
+      ]
     }
   ]
 
@@ -77,45 +95,45 @@ export default function HelpPage() {
   })).filter(section => section.items.length > 0)
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-          <BookOpen className="text-blue-600" size={28} />
+    <div className="p-4 sm:p-6">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
+          <BookOpen className="text-blue-600" size={24} />
           Manuale Utente
         </h1>
-        <p className="text-gray-600 mt-1">Guida completa alle funzionalità di OrtoMio</p>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">Guida completa alle funzionalità di OrtoMio</p>
       </div>
 
       {/* Barra di Ricerca */}
-      <div className="mb-8">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+      <div className="mb-6 sm:mb-8">
+        <div className="relative w-full sm:max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
             placeholder="Cerca nella documentazione..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
       </div>
 
       {/* Sezioni Aiuto */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {filteredSections.map((section, index) => (
-          <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">{section.title}</h2>
-            <p className="text-sm text-gray-600 mb-4">{section.description}</p>
-            
-            <div className="space-y-2">
+          <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-1 sm:mb-2">{section.title}</h2>
+            <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">{section.description}</p>
+
+            <div className="space-y-1 sm:space-y-2">
               {section.items.map((item, itemIndex) => (
                 <Link
                   key={itemIndex}
                   href={item.href}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors group"
+                  className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors group"
                 >
                   <span className="text-sm text-gray-700 group-hover:text-gray-900">{item.title}</span>
-                  <ChevronRight className="text-gray-400 group-hover:text-gray-600" size={16} />
+                  <ChevronRight className="text-gray-400 group-hover:text-gray-600 flex-shrink-0" size={16} />
                 </Link>
               ))}
             </div>
