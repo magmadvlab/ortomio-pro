@@ -166,7 +166,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
             const isSelected = isSameDay(day, selectedDate);
             
             // Task per questo giorno
-            const dayTasks = tasks.filter(t => {
+            const dayTasks = (tasks || []).filter(t => {
               const taskDate = t.suggestedDate ? parseISO(t.suggestedDate) : parseISO(t.date);
               return isSameDay(taskDate, day);
             });
@@ -435,7 +435,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
         
         {/* Task del Giorno */}
         {(() => {
-          const dayTasks = tasks.filter(t => {
+          const dayTasks = (tasks || []).filter(t => {
             const taskDate = t.suggestedDate ? parseISO(t.suggestedDate) : parseISO(t.date);
             return isSameDay(taskDate, selectedDate);
           });
@@ -556,7 +556,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
 
         {/* AI Consigli Nutrizione e Salute */}
         {(() => {
-          const dayTasks = tasks.filter(t => {
+          const dayTasks = (tasks || []).filter(t => {
             const taskDate = t.suggestedDate ? parseISO(t.suggestedDate) : parseISO(t.date);
             return isSameDay(taskDate, selectedDate);
           });

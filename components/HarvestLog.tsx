@@ -58,7 +58,7 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
   const [loadingRecipes, setLoadingRecipes] = useState(false);
 
   // Grouped Data for Statistics
-  const activeTasks = tasks.filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant'));
+  const activeTasks = (tasks || []).filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant'));
   
   /**
    * CALCOLO RESA TOTALE - Statistiche per Coltura

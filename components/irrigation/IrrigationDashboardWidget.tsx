@@ -35,7 +35,7 @@ export default function IrrigationDashboardWidget({
   const [showWizard, setShowWizard] = useState(false);
 
   // Filtra task di irrigazione
-  const irrigationTasks = tasks.filter(task => 
+  const irrigationTasks = (tasks || []).filter(task => 
     task.taskType === 'Irrigation'
   );
 

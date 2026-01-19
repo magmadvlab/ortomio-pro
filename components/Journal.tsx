@@ -922,7 +922,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
   useEffect(() => {
     if (!garden) return;
     
-    const activePlantingTasks = tasks.filter(t => 
+    const activePlantingTasks = (tasks || []).filter(t => 
       !t.completed && 
       (t.taskType === 'Sowing' || t.taskType === 'Transplant') &&
       t.gardenId === garden.id
@@ -958,7 +958,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
   useEffect(() => {
     if (!garden) return;
     
-    const activePlantingTasks = tasks.filter(t => 
+    const activePlantingTasks = (tasks || []).filter(t => 
       !t.completed && 
       (t.taskType === 'Sowing' || t.taskType === 'Transplant') &&
       t.gardenId === garden.id

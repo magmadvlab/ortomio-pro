@@ -167,7 +167,7 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
   
   // Filtra solo task con posizione o task di semina/trapianto attivi
   const activeTasks = React.useMemo(() => {
-    return tasks.filter(t => 
+    return (tasks || []).filter(t => 
       (t.taskType === 'Sowing' || t.taskType === 'Transplant') && !t.completed
     );
   }, [tasks]);
@@ -1275,10 +1275,10 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
                   <strong>Task totali nel giardino:</strong> {tasks.length}
                 </p>
                 <p className="text-xs text-gray-500 mb-1">
-                  <strong>Task di semina/trapianto:</strong> {tasks.filter(t => (t.taskType === 'Sowing' || t.taskType === 'Transplant')).length}
+                  <strong>Task di semina/trapianto:</strong> {(tasks || []).filter(t => (t.taskType === 'Sowing' || t.taskType === 'Transplant')).length}
                 </p>
                 <p className="text-xs text-gray-500">
-                  <strong>Task non completati:</strong> {tasks.filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant')).length}
+                  <strong>Task non completati:</strong> {(tasks || []).filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant')).length}
                 </p>
               </div>
             </div>

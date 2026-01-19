@@ -117,17 +117,17 @@ export const PlannerWithAI: React.FC<PlannerWithAIProps> = ({
 
         {/* Indicatori AI per task esistenti */}
         <div className="grid gap-4">
-          {tasks.filter(t => t.aiGenerated).length > 0 && (
+          {(tasks || []).filter(t => t.aiGenerated).length > 0 && (
             <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-xl border border-blue-200">
               <div className="flex items-center gap-3 mb-2">
                 <Bot size={20} className="text-blue-600" />
                 <h3 className="font-semibold text-blue-800">Task Generati da AI</h3>
               </div>
               <p className="text-sm text-blue-700 mb-3">
-                {tasks.filter(t => t.aiGenerated).length} task creati dal sistema di pianificazione AI
+                {(tasks || []).filter(t => t.aiGenerated).length} task creati dal sistema di pianificazione AI
               </p>
               <div className="flex flex-wrap gap-3">
-                {Array.from(new Set(tasks.filter(t => t.aiGenerated).map(t => t.planPhase))).map(phase => (
+                {Array.from(new Set((tasks || []).filter(t => t.aiGenerated).map(t => t.planPhase))).map(phase => (
                   <span key={phase} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                     Fase {phase}
                   </span>
