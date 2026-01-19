@@ -16,6 +16,7 @@ interface TimelineViewProps {
 export function TimelineView({ garden, tasks, onUpdateTask }: TimelineViewProps) {
   // Filter tasks to show in timeline (Sowing, Transplant, Harvest)
   const timelineTasks = useMemo(() => {
+    if (!tasks || tasks.length === 0) return []
     return tasks.filter(task => 
       ['Sowing', 'Transplant', 'Harvest'].includes(task.taskType) && !task.completed
     )

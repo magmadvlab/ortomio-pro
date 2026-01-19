@@ -47,7 +47,7 @@ export function ListView({
   const { checkChallengeProgress, showChallengeNotification, hideNotification, activeNotification } = useChallengeNotifications()
   
   // Filter tasks
-  const filteredTasks = tasks.filter(task => {
+  const filteredTasks = (tasks || []).filter(task => {
     // Search filter
     if (searchQuery && !task.plantName.toLowerCase().includes(searchQuery.toLowerCase()) &&
         !task.notes?.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -307,7 +307,7 @@ export function ListView({
                       // Se stiamo completando il task e la pianta è matura, mostra prompt
                       if (!task.completed) {
                         // 🔴 FIX CRITICO: Trova task semina/trapianto collegato alla pianta
-                        const sowingTask = tasks.find(t =>
+                        const sowingTask = (tasks || []).find(t =>
                           t.plantName === task.plantName &&
                           t.variety === task.variety &&
                           (t.taskType === 'Sowing' || t.taskType === 'Transplant')

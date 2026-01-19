@@ -82,6 +82,11 @@ export default function ActivityRegistry({
 
   // Converti tasks in activity records
   useEffect(() => {
+    if (!tasks || tasks.length === 0) {
+      setActivities([])
+      return
+    }
+
     const activityRecords: ActivityRecord[] = tasks.map(task => ({
       id: task.id,
       date: task.actualCompletedDate || task.date,

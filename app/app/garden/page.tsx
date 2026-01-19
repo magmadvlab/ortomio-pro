@@ -32,11 +32,11 @@ export default function GardenPage() {
 
   const handleToggleTask = async (id: string) => {
     try {
-      const task = tasks.find(t => t.id === id)
+      const task = (tasks || []).find(t => t.id === id)
       if (task) {
         const updatedTask = { ...task, completed: !task.completed }
         await storageProvider.updateTask(id, updatedTask)
-        setTasks(prev => prev.map(t => t.id === id ? updatedTask : t))
+        setTasks(prev => (prev || []).map(t => t.id === id ? updatedTask : t))
       }
     } catch (error) {
       console.error('Error toggling task:', error)
@@ -61,7 +61,7 @@ export default function GardenPage() {
   const handleDeleteTask = async (id: string) => {
     try {
       await storageProvider.deleteTask(id)
-      setTasks(prev => prev.filter(t => t.id !== id))
+      setTasks(prev => (prev || []).filter(t => t.id !== id))
     } catch (error) {
       console.error('Error deleting task:', error)
     }
@@ -70,7 +70,7 @@ export default function GardenPage() {
   const handleUpdateTask = async (updatedTask: GardenTask) => {
     try {
       await storageProvider.updateTask(updatedTask.id, updatedTask)
-      setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t))
+      setTasks(prev => (prev || []).map(t => t.id === updatedTask.id ? updatedTask : t))
     } catch (error) {
       console.error('Error updating task:', error)
     }
@@ -105,7 +105,7 @@ export default function GardenPage() {
   }
 
   const defaultGarden = gardens[0]
-  const gardenTasks = tasks.filter(task => task.gardenId === defaultGarden.id)
+  const gardenTasks = (tasks || []).filter(task => task.gardenId === defaultGarden.id)
 
   return (
     <div className="p-6">

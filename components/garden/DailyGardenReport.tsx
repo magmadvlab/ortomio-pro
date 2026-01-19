@@ -68,6 +68,19 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
 
   // Calcola statistiche giardino e genera suggerimenti intelligenti
   useEffect(() => {
+    if (!tasks || tasks.length === 0) {
+      setGardenStats({
+        plantsCount: 0,
+        tasksToday: 0,
+        tasksOverdue: 0,
+        healthScore: 85,
+        wateringNeeded: 0,
+        harvestReady: 0
+      })
+      setSuggestedTasks([])
+      return
+    }
+
     const today = new Date().toDateString()
     const todayTasks = tasks.filter(task => {
       const taskDate = task.scheduledDate || task.date

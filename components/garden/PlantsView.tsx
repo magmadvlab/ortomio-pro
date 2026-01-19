@@ -27,6 +27,7 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
 
   // Estrai piante attive dai task
   const activePlants = useMemo(() => {
+    if (!tasks || tasks.length === 0) return []
     return getActivePlants(tasks.filter(t => t.gardenId === garden.id))
   }, [tasks, garden.id])
 
@@ -357,7 +358,7 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-900 mb-3">Task Correlati</h3>
                   <div className="space-y-2">
-                    {tasks
+                    {(tasks || [])
                       .filter(t =>
                         t.plantName === detailsTask.plantName &&
                         t.id !== detailsTask.id &&
@@ -386,7 +387,7 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
                         </div>
                       ))
                     }
-                    {tasks.filter(t =>
+                    {(tasks || []).filter(t =>
                       t.plantName === detailsTask.plantName &&
                       t.id !== detailsTask.id &&
                       t.gardenId === garden.id
