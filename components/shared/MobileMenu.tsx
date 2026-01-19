@@ -269,12 +269,12 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
       {/* Drawer */}
       <div
-        className={`fixed left-0 top-0 h-full w-[85vw] max-w-[350px] bg-white z-50 shadow-xl transform transition-transform duration-300 ease-in-out overflow-hidden ${
+        className={`fixed left-0 top-0 h-full w-[85vw] max-w-[350px] bg-white z-50 shadow-xl transform transition-transform duration-300 ease-in-out flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
           <div>
             <h2 className="text-lg sm:text-lg md:text-xl font-bold text-gray-900">🌱 OrtoMio</h2>
             <p className="text-xs text-gray-500 mt-1">
@@ -292,7 +292,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
         {/* Garden Selector Prominente */}
         {!loading && activeGarden && (
-          <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
+          <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50 flex-shrink-0">
             <button
               onClick={() => setIsGardenSelectorOpen(!isGardenSelectorOpen)}
               className="w-full text-left min-h-[44px] flex items-center"
@@ -341,8 +341,8 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
         )}
 
         {/* Menu Content - Scrollable */}
-        <div className="overflow-y-auto flex-1 pb-4">
-          <nav className="p-4 space-y-4 sm:space-y-6">
+        <div className="flex-1 overflow-y-auto">
+          <nav className="p-4 space-y-4 sm:space-y-6 pb-8">
             {menuGroups.map((group) => {
               if (!isGroupAvailable(group)) return null
 

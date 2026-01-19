@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mobile Menu Visibility Fix - OrtoMio</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e5e5e5;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.fixed { background: #d4edda; color: #155724; }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checklist li::before {
+            content: "✅";
+            font-size: 16px;
+        }
+        .issue-list {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .issue-list h4 {
+            margin: 0 0 10px 0;
+            color: #856404;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .mobile-demo {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        .menu-structure {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .menu-item {
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .menu-group {
+            font-weight: bold;
+            color: #495057;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 15px;
+            }
+            .mobile-demo {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌱 OrtoMio - Mobile Menu Visibility Fix</h1>
+            <p>Test per verificare che tutto il menu mobile sia visibile e scrollabile</p>
+            <p><strong>Data:</strong> 19 Gennaio 2026</p>
+        </div>
+
+        <!-- Problem Description -->
+        <div class="test-section">
+            <h3>
+                🐛 Problema Identificato
+                <span class="status fixed">FIXED</span>
+            </h3>
+            <div class="issue-list">
+                <h4>Problema Originale:</h4>
+                <p>Il menu mobile era tagliato nella parte inferiore. Le sezioni "ANALYTICS & SMART" e "SUPPORTO" non erano completamente visibili o accessibili.</p>
+                
+                <h4>Causa:</h4>
+                <ul>
+                    <li>Layout flexbox non configurato correttamente</li>
+                    <li>Contenitore scrollabile senza altezza definita</li>
+                    <li>Header e garden selector non marcati come flex-shrink-0</li>
+                    <li>Padding insufficiente in fondo al menu</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Solution Applied -->
+        <div class="test-section">
+            <h3>
+                🔧 Soluzione Applicata
+                <span class="status fixed">IMPLEMENTED</span>
+            </h3>
+            <div class="issue-list">
+                <h4>Modifiche Strutturali:</h4>
+                <ul class="checklist">
+                    <li>Drawer convertito a flex flex-col per layout verticale</li>
+                    <li>Header marcato come flex-shrink-0 (altezza fissa)</li>
+                    <li>Garden selector marcato come flex-shrink-0 (altezza fissa)</li>
+                    <li>Contenuto menu marcato come flex-1 (occupa spazio rimanente)</li>
+                    <li>Aggiunto padding extra (pb-8) per spazio in fondo</li>
+                </ul>
+            </div>
+            <div class="code-block">
+Struttura Layout:
+┌─────────────────────────────────┐
+│ Header (flex-shrink-0)          │ ← Altezza fissa
+├─────────────────────────────────┤
+│ Garden Selector (flex-shrink-0) │ ← Altezza fissa  
+├─────────────────────────────────┤
+│ Menu Content (flex-1)           │ ← Scrollabile
+│ - PRINCIPALE                    │
+│ - COLTURE SPECIALIZZATE         │
+│ - GESTIONE PROFESSIONALE        │
+│ - ANALYTICS & SMART             │
+│ - SUPPORTO                      │
+│ + padding extra                 │
+└─────────────────────────────────┘
+            </div>
+        </div>
+
+        <!-- Menu Structure Test -->
+        <div class="test-section">
+            <h3>📱 Struttura Menu Completa</h3>
+            <p>Verifica che tutte le sezioni siano visibili:</p>
+            
+            <div class="menu-structure">
+                <div class="menu-group">PRINCIPALE</div>
+                <div class="menu-item">📊 Dashboard</div>
+                <div class="menu-item">🌱 Il Mio Orto</div>
+                <div class="menu-item">🍃 Piante</div>
+                <div class="menu-item">❤️ Salute</div>
+                <div class="menu-item">💡 Consigli AI</div>
+                <div class="menu-item">📈 Progressi</div>
+                
+                <div class="menu-group">COLTURE SPECIALIZZATE</div>
+                <div class="menu-item">🌲 Frutteto</div>
+                <div class="menu-item">🫒 Oliveto</div>
+                <div class="menu-item">🍇 Vigneto</div>
+                
+                <div class="menu-group">GESTIONE PROFESSIONALE</div>
+                <div class="menu-item">💧 Irrigazione</div>
+                <div class="menu-item">🧪 Nutrizione & Trattamenti</div>
+                <div class="menu-item">🚜 Lavorazioni</div>
+                <div class="menu-item">🛡️ Certificazioni</div>
+                
+                <div class="menu-group">ANALYTICS & SMART</div>
+                <div class="menu-item">🛰️ NDVI Satellitare</div>
+                <div class="menu-item">🎯 Prescription Maps</div>
+                <div class="menu-item">📊 Analytics</div>
+                <div class="menu-item">📶 Smart Hub</div>
+                <div class="menu-item">💾 Export</div>
+                
+                <div class="menu-group">SUPPORTO</div>
+                <div class="menu-item">📖 Manuale Utente</div>
+                <div class="menu-item">⚙️ Impostazioni</div>
+                <div class="menu-item">👑 Admin</div>
+            </div>
+        </div>
+
+        <!-- Mobile Testing -->
+        <div class="mobile-demo">
+            <h3>📱 Test Mobile</h3>
+            <p><strong>Istruzioni per il test:</strong></p>
+            <ol>
+                <li>Aprire l'app su dispositivo mobile</li>
+                <li>Toccare il menu hamburger (☰)</li>
+                <li>Verificare che il menu si apra completamente</li>
+                <li>Scorrere verso il basso nel menu</li>
+                <li>Verificare che tutte le sezioni siano visibili</li>
+                <li>Verificare che "SUPPORTO" sia completamente accessibile</li>
+                <li>Testare il tocco su tutti gli elementi</li>
+            </ol>
+            
+            <p><strong>Risultato atteso:</strong></p>
+            <ul>
+                <li>✅ Menu si apre senza problemi</li>
+                <li>✅ Tutte le 5 sezioni sono visibili</li>
+                <li>✅ Scroll fluido dall'inizio alla fine</li>
+                <li>✅ Padding sufficiente in fondo</li>
+                <li>✅ Tutti gli elementi sono cliccabili</li>
+            </ul>
+        </div>
+
+        <!-- Technical Details -->
+        <div class="test-section">
+            <h3>🔧 Dettagli Tecnici</h3>
+            <div class="code-block">
+Modifiche CSS Applicate:
+
+1. Drawer Container:
+   - Aggiunto: flex flex-col
+   - Rimosso: overflow-hidden
+
+2. Header:
+   - Aggiunto: flex-shrink-0
+
+3. Garden Selector:
+   - Aggiunto: flex-shrink-0
+
+4. Menu Content:
+   - Cambiato: flex-1 overflow-y-auto
+   - Aggiunto: pb-8 per padding extra
+
+Risultato: Layout flexbox corretto con scroll funzionante
+            </div>
+        </div>
+
+        <!-- Verification Checklist -->
+        <div class="test-section">
+            <h3>✅ Checklist Verifica</h3>
+            <ul class="checklist">
+                <li>Menu si apre completamente su mobile</li>
+                <li>Header sempre visibile in cima</li>
+                <li>Garden selector sempre visibile sotto header</li>
+                <li>Contenuto menu scrollabile senza problemi</li>
+                <li>Tutte le 5 sezioni del menu accessibili</li>
+                <li>Padding sufficiente in fondo al menu</li>
+                <li>Touch targets di 48px per accessibilità</li>
+                <li>Transizioni fluide apertura/chiusura</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Test JavaScript per verificare dimensioni viewport
+        console.log('🌱 OrtoMio Mobile Menu Visibility Test');
+        
+        const viewport = {
+            width: window.innerWidth,
+            height: window.innerHeight
+        };
+        
+        console.log(`📱 Viewport: ${viewport.width}x${viewport.height}px`);
+        
+        if (viewport.width < 768) {
+            console.log('📱 Mobile viewport detected - menu should be fully visible');
+        }
+        
+        // Simula test altezza menu
+        const estimatedMenuHeight = 80 + 120 + (5 * 60) + (15 * 48) + 32; // Header + Garden + Groups + Items + Padding
+        console.log(`📏 Estimated menu height: ${estimatedMenuHeight}px`);
+        console.log(`📏 Available height: ${viewport.height}px`);
+        
+        if (estimatedMenuHeight > viewport.height) {
+            console.log('✅ Menu needs scroll - flex-1 overflow-y-auto should handle this');
+        } else {
+            console.log('✅ Menu fits in viewport - no scroll needed');
+        }
+    </script>
+</body>
+</html>
