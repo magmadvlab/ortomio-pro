@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { ArrowLeft, Calendar, Droplets, Leaf, Shield } from 'lucide-react';
-import { useSupabase } from '../../hooks/useSupabase';
+import { getSupabaseClient } from '../../config/supabase';
 
 interface Treatment {
   id: string;
@@ -28,7 +28,7 @@ export const TreatmentPlanner: React.FC<TreatmentPlannerProps> = ({
   onSave,
   onClose
 }) => {
-  const { supabase } = useSupabase();
+  const supabase = getSupabaseClient();
   const [plantName, setPlantName] = useState('');
   const [productName, setProductName] = useState('');
   const [productType, setProductType] = useState<Treatment['product_type']>('fertilizer');

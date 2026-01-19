@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Calendar, Droplets, Shield, Leaf, Edit2, Trash2 } from 'lucide-react';
-import { useSupabase } from '../../hooks/useSupabase';
+import { getSupabaseClient } from '../../config/supabase';
 import { TreatmentPlanner } from './TreatmentPlanner';
 
 interface Treatment {
@@ -21,7 +21,7 @@ interface Treatment {
 }
 
 export const TreatmentDashboard: React.FC = () => {
-  const { supabase, user } = useSupabase();
+  const supabase = getSupabaseClient();
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPlanner, setShowPlanner] = useState(false);

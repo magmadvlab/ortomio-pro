@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { ZoneFieldRowManager } from '../../../components/settings/ZoneFieldRowManager';
-import { useSupabase } from '../../../hooks/useSupabase';
+import { getSupabaseClient } from '../../../config/supabase';
 
 export default function ZonesPage() {
-  const { user } = useSupabase();
+  // Remove user dependency since we're using getSupabaseClient directly
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

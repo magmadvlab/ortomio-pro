@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, List, Grid } from 'lucide-react';
-import { useSupabase } from '../../hooks/useSupabase';
+import { getSupabaseClient } from '../../config/supabase';
 
 interface CalendarEvent {
   id: string;
@@ -19,7 +19,7 @@ interface CalendarEvent {
 type ViewMode = 'month' | 'week' | 'list';
 
 export const IntegratedCalendar: React.FC = () => {
-  const { supabase, user } = useSupabase();
+  const supabase = getSupabaseClient();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());

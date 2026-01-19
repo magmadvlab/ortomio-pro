@@ -27,13 +27,8 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
   garden,
   onComplete,
   onCancel,
-  initialPlantName,
+  initialPlantName = '',
   selectedDate
-}) => {
-  garden,
-  onComplete,
-  onCancel,
-  initialPlantName = ''
 }) => {
   const { storageProvider } = useStorage();
   const [step, setStep] = useState<WizardStep>('method');

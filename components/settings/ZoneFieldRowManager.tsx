@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, MapPin, Grid, Layers, AlertTriangle } from 'lucide-react';
-import { useSupabase } from '../../hooks/useSupabase';
+import { getSupabaseClient } from '../../config/supabase';
 
 interface Zone {
   id: string;
@@ -34,7 +34,7 @@ interface Row {
 }
 
 export const ZoneFieldRowManager: React.FC = () => {
-  const { supabase, user } = useSupabase();
+  const supabase = getSupabaseClient();
   const [zones, setZones] = useState<Zone[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
   const [rows, setRows] = useState<Row[]>([]);

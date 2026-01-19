@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Calendar, Weight, TrendingUp, Package, Edit2, Trash2 } from 'lucide-react';
-import { useSupabase } from '../../hooks/useSupabase';
+import { getSupabaseClient } from '../../config/supabase';
 import { HarvestRegistrationModal } from './HarvestRegistrationModal';
 
 interface Harvest {
@@ -21,7 +21,7 @@ interface Harvest {
 }
 
 export const HarvestDashboard: React.FC = () => {
-  const { supabase, user } = useSupabase();
+  const supabase = getSupabaseClient();
   const [harvests, setHarvests] = useState<Harvest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
