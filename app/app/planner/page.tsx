@@ -73,7 +73,7 @@ export default function PlannerPage() {
     if (!tasks || tasks.length === 0) return []
     
     const now = new Date()
-    const completedTasks = tasks.filter(task => task.completed)
+    const completedTasks = (tasks || []).filter(task => task.completed)
     
     return Array.from({ length: 7 }, (_, i) => {
       const date = new Date(now)
@@ -103,7 +103,7 @@ export default function PlannerPage() {
     
     for (let i = 0; i < 7; i++) {
       const date = addDays(today, i)
-      const dayTasks = tasks.filter(task => {
+      const dayTasks = (tasks || []).filter(task => {
         if (task.completed) return false
         const taskDate = task.nextDueDate ? parseISO(task.nextDueDate) : parseISO(task.date)
         return isSameDay(taskDate, date)
@@ -157,7 +157,7 @@ export default function PlannerPage() {
     { id: 'planner', label: 'Planner AI', emoji: '🎯', icon: Target },
     { id: 'calendar', label: 'Calendario', emoji: '📅', icon: Calendar },
     { id: 'ai-suggestions', label: 'Suggerimenti AI', emoji: '💡', icon: Lightbulb },
-    { id: 'list', label: 'Lista Task', emoji: '📋', icon: List, badge: tasks ? tasks.filter(t => !t.completed).length : 0 },
+    { id: 'list', label: 'Lista Task', emoji: '📋', icon: List, badge: tasks ? (tasks || []).filter(t => !t.completed).length : 0 },
     { id: 'timeline', label: 'Timeline', emoji: '📊', icon: Activity },
     { id: 'rotation', label: 'Rotazione Colture', emoji: '🔄', icon: RefreshCw },
     { id: 'biological', label: 'Controllo Biologico', emoji: '🐛', icon: Bug }
@@ -294,7 +294,7 @@ export default function PlannerPage() {
                 Andamento Attività (Ultimi 7 giorni)
               </h2>
               <div className="text-sm text-gray-500">
-                {tasks ? tasks.filter(t => t.completed).length : 0} operazioni completate
+                {tasks ? (tasks || []).filter(t => t.completed).length : 0} operazioni completate
               </div>
             </div>
             
@@ -388,7 +388,7 @@ export default function PlannerPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Completate</p>
-                  <p className="text-2xl font-bold text-gray-900">{tasks ? tasks.filter(t => t.completed).length : 0}</p>
+                  <p className="text-2xl font-bold text-gray-900">{tasks ? (tasks || []).filter(t => t.completed).length : 0}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1 text-green-600">
@@ -404,7 +404,7 @@ export default function PlannerPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">In Programma</p>
-                  <p className="text-2xl font-bold text-gray-900">{tasks ? tasks.filter(t => !t.completed).length : 0}</p>
+                  <p className="text-2xl font-bold text-gray-900">{tasks ? (tasks || []).filter(t => !t.completed).length : 0}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1 text-orange-600">
@@ -421,7 +421,7 @@ export default function PlannerPage() {
                 <div>
                   <p className="text-sm text-gray-600">Efficienza</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {tasks && tasks.length > 0 ? Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) : 0}%
+                    {tasks && tasks.length > 0 ? Math.round(((tasks || []).filter(t => t.completed).length / (tasks || []).length) * 100) : 0}%
                   </p>
                 </div>
               </div>
@@ -429,7 +429,7 @@ export default function PlannerPage() {
                 <div 
                   className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                   style={{ 
-                    width: `${tasks && tasks.length > 0 ? (tasks.filter(t => t.completed).length / tasks.length) * 100 : 0}%` 
+                    width: `${tasks && tasks.length > 0 ? ((tasks || []).filter(t => t.completed).length / (tasks || []).length) * 100 : 0}%` 
                   }}
                 ></div>
               </div>

@@ -40,8 +40,8 @@ export default function ExportPage() {
       switch (exportType) {
         case 'tasks':
           dataToExport = selectedGarden === 'all' 
-            ? tasks 
-            : tasks.filter(t => t.gardenId === selectedGarden)
+            ? (tasks || [])
+            : (tasks || []).filter(t => t.gardenId === selectedGarden)
           filename = `ortomio-tasks-${new Date().toISOString().split('T')[0]}`
           break
         case 'gardens':
@@ -53,7 +53,7 @@ export default function ExportPage() {
         case 'analytics':
           // Create analytics data
           dataToExport = gardens.map(garden => {
-            const gardenTasks = tasks.filter(t => t.gardenId === garden.id)
+            const gardenTasks = (tasks || []).filter(t => t.gardenId === garden.id)
             return {
               gardenName: garden.name,
               totalTasks: gardenTasks.length,
@@ -299,8 +299,8 @@ export default function ExportPage() {
                 {exportType === 'tasks' && (
                   <p>
                     {selectedGarden === 'all' 
-                      ? `${tasks.length} attività totali`
-                      : `${tasks.filter(t => t.gardenId === selectedGarden).length} attività per l'orto selezionato`
+                      ? `${(tasks || []).length} attività totali`
+                      : `${(tasks || []).filter(t => t.gardenId === selectedGarden).length} attività per l'orto selezionato`
                     }
                   </p>
                 )}

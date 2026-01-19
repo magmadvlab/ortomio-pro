@@ -46,16 +46,16 @@ export default function AnalyticsPage() {
 
   // Calcolo statistiche business
   const stats: AnalyticsStats = {
-    totalTasks: tasks.length,
-    completedTasks: tasks.filter(t => t.completed).length,
-    plantsGrown: Math.max(tasks.filter(t => (t.taskType === 'Transplant' || t.taskType === 'Sowing') && t.completed).length, 24),
+    totalTasks: (tasks || []).length,
+    completedTasks: (tasks || []).filter(t => t.completed).length,
+    plantsGrown: Math.max((tasks || []).filter(t => (t.taskType === 'Transplant' || t.taskType === 'Sowing') && t.completed).length, 24),
     harvestWeight: 15.6, // Mock data - in futuro da harvest logs
     waterSaved: 120,
     co2Offset: 8.5,
-    efficiency: tasks.length > 0 ? Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) : 87.5,
+    efficiency: (tasks || []).length > 0 ? Math.round(((tasks || []).filter(t => t.completed).length / (tasks || []).length) * 100) : 87.5,
     costSavings: 450,
     roi: 285, // Return on Investment %
-    laborHours: Math.max(tasks.filter(t => t.completed).length * 0.5, 12) // Stima ore lavoro
+    laborHours: Math.max((tasks || []).filter(t => t.completed).length * 0.5, 12) // Stima ore lavoro
   }
 
   const completionRate = stats.totalTasks > 0 ? (stats.completedTasks / stats.totalTasks) * 100 : 0

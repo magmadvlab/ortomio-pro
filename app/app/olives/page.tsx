@@ -29,9 +29,9 @@ export default function OlivesPage() {
 
   useEffect(() => {
     if (!selectedLocation) {
-      setFilteredTasks(tasks)
+      setFilteredTasks(tasks || [])
     } else {
-      const filtered = tasks.filter(task => {
+      const filtered = (tasks || []).filter(task => {
         const taskAny = task as any // Temporary: location fields may not be in type yet
         if (selectedLocation.sectionId && taskAny.fieldRowSectionId) {
           return taskAny.fieldRowSectionId === selectedLocation.sectionId
@@ -60,7 +60,7 @@ export default function OlivesPage() {
       
       if (selectedGardenId) {
         const gardenTasks = await storageProvider.getTasks(selectedGardenId)
-        const oliveTasks = gardenTasks.filter(t => {
+        const oliveTasks = (gardenTasks || []).filter(t => {
           const master = getMasterSheetSync(t.plantName)
           return master?.cropType === 'Olive'
         })

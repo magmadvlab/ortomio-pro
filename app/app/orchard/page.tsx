@@ -273,7 +273,7 @@ function TropicalExoticSection({ selectedGarden, selectedLocation, tasks }: Trop
   const [tropicalCrops, setTropicalCrops] = useState<any[]>([])
 
   // Filtra le colture tropicali/esotiche dai task esistenti
-  const tropicalTasks = tasks.filter(task => {
+  const tropicalTasks = (tasks || []).filter(task => {
     const masterData = getMasterSheetSync(task.plantName)
     return masterData?.category === 'Tropical' || masterData?.category === 'Exotic' ||
            ['Avocado', 'Mango', 'Papaya', 'Passion Fruit', 'Dragon Fruit', 'Lychee', 'Guava', 'Jackfruit', 'Durian', 'Rambutan'].includes(task.plantName)

@@ -151,7 +151,7 @@ export default function PlantsPage() {
                   <div>
                     <p className="text-sm text-gray-600">Piante Attive</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {tasks.filter(t => !t.completed && t.gardenId === defaultGarden.id).length}
+                      {(tasks || []).filter(t => !t.completed && t.gardenId === defaultGarden.id).length}
                     </p>
                   </div>
                 </div>
@@ -163,7 +163,7 @@ export default function PlantsPage() {
                   <div>
                     <p className="text-sm text-gray-600">Varietà Coltivate</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {new Set(tasks.filter(t => t.gardenId === defaultGarden.id).map(t => t.plantName)).size}
+                      {new Set((tasks || []).filter(t => t.gardenId === defaultGarden.id).map(t => t.plantName)).size}
                     </p>
                   </div>
                 </div>
@@ -175,7 +175,7 @@ export default function PlantsPage() {
                   <div>
                     <p className="text-sm text-gray-600">Pronte per Raccolto</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {tasks.filter(t => t.stage === 'Fruiting' && t.gardenId === defaultGarden.id).length}
+                      {(tasks || []).filter(t => t.stage === 'Fruiting' && t.gardenId === defaultGarden.id).length}
                     </p>
                   </div>
                 </div>
@@ -187,7 +187,7 @@ export default function PlantsPage() {
                   <div>
                     <p className="text-sm text-gray-600">Nuove Semine</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {tasks.filter(t => {
+                      {(tasks || []).filter(t => {
                         const plantingDate = new Date(t.date)
                         const daysAgo = (new Date().getTime() - plantingDate.getTime()) / (1000 * 60 * 60 * 24)
                         return daysAgo <= 7 && t.gardenId === defaultGarden.id
@@ -202,7 +202,7 @@ export default function PlantsPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <PlantsView
                 garden={defaultGarden}
-                tasks={tasks.filter(t => t.gardenId === defaultGarden.id)}
+                tasks={(tasks || []).filter(t => t.gardenId === defaultGarden.id)}
                 onUpdateTask={handleUpdateTask}
               />
             </div>
