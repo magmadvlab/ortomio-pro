@@ -19,6 +19,7 @@ test-*.sql
 # Exclude documentation and logs
 *.md
 !README.md
+!docs/manual/*.md
 *.log
 build-*.log
 
