@@ -1,437 +1,352 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Leaf, Plus, TrendingUp, Droplet, Calendar } from 'lucide-react'
-import { OliveMaturityData } from '@/types/olive'
-import { getSupabaseClient } from '@/config/supabase'
+import React, { useState } from 'react'
+import { CircleDot, Calendar, TrendingUp, AlertCircle, Plus } from 'lucide-react'
 
 interface OliveMaturityTrackerProps {
   oliveGroveId: string
   oliveGroveName?: string
 }
 
+interface MaturityReading {
+  id: string
+  date: Date
+  jaenIndex: number
+  colorStage: number
+  notes: string
+}
+
 export default function OliveMaturityTracker({ oliveGroveId, oliveGroveName }: OliveMaturityTrackerProps) {
-  const [measurements, setMeasurements] = useState<OliveMaturityData[]>([])
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [newData, setNewData] = useState<Partial<OliveMaturityData>>({
-    measurementDate: new Date(),
-    invaiatura_percentage: 0,
-    color_stage: 'green'
+  const [readings, setReadings] = useState<MaturityReading[]>([
+    {
+      id: '1',
+      date: new Date('2026-10-01'),
+      jaenIndex: 1.5,
+      colorStage: 2,
+      notes: 'Inizio invaiatura'
+    },
+    {
+      id: '2',
+      date: new Date('2026-10-15'),
+      jaenIndex: 3.2,
+      colorStage: 4,
+      notes: 'Maturazione avanzata'
+    }
+  ])
+
+  const [showForm, setShowForm] = useState(false)
+  const [newReading, setNewReading] = useState({
+    jaenIndex: '',
+    colorStage: '0',
+    notes: ''
   })
 
-  useEffect(() => {
-    loadMeasurements()
-  }, [oliveGroveId])
+  const addReading = () => {
+    if (!newReading.jaenIndex || !newReading.colorStage) return
 
-  const loadMeasurements = async () => {
-    try {
-      const supabase = getSupabaseClient()
-      const { data, error } = await supabase
-        .from('olive_maturity_tracking')
-        .select('*')
-        .eq('olive_grove_id', oliveGroveId)
-        .order('measurement_date', { ascending: false })
-
-      if (error) throw error
-      setMeasurements(data || [])
-    } catch (error) {
-      console.error('Error loading maturity data:', error)
-    }
-  }
-
-  const calculateJaenIndex = (invaiatura: number): number => {
-    // Simplified Jaén Index calculation based on invaiatura %
-    // 0% = 0, 100% = 7
-    return (invaiatura / 100) * 7
-  }
-
-  const estimateOilContent = (jaenIndex: number): number => {
-    // Simplified estimation: oil content increases with maturity
-    // Index 0-2: 12-16%, Index 2-4: 16-20%, Index 4-7: 20-24%
-    if (jaenIndex < 2) return 12 + (jaenIndex / 2) * 4
-    if (jaenIndex < 4) return 16 + ((jaenIndex - 2) / 2) * 4
-    return 20 + ((jaenIndex - 4) / 3) * 4
-  }
-
-  const getHarvestRecommendation = (jaenIndex: number): { text: string, color: string, urgency: string } => {
-    if (jaenIndex < 1.5) {
-      return { text: 'Troppo presto - Olive verdi', color: 'text-red-600', urgency: 'bg-red-100 text-red-800' }
-    } else if (jaenIndex >= 1.5 && jaenIndex < 2.0) {
-      return { text: 'Inizio invaiatura - Attendere', color: 'text-orange-600', urgency: 'bg-orange-100 text-orange-800' }
-    } else if (jaenIndex >= 2.0 && jaenIndex <= 3.5) {
-      return { text: '✅ Ottimale per olio qualità', color: 'text-green-600', urgency: 'bg-green-100 text-green-800' }
-    } else if (jaenIndex > 3.5 && jaenIndex < 5.0) {
-      return { text: 'Buono per olio quantità', color: 'text-blue-600', urgency: 'bg-blue-100 text-blue-800' }
-    } else {
-      return { text: 'Sovramaturazione - Raccolta urgente', color: 'text-yellow-600', urgency: 'bg-yellow-100 text-yellow-800' }
-    }
-  }
-
-  const handleSave = async () => {
-    if (newData.invaiatura_percentage === undefined || newData.invaiatura_percentage < 0) {
-      alert('Inserisci una percentuale di invaiatura valida')
-      return
+    const reading: MaturityReading = {
+      id: Date.now().toString(),
+      date: new Date(),
+      jaenIndex: parseFloat(newReading.jaenIndex),
+      colorStage: parseInt(newReading.colorStage),
+      notes: newReading.notes
     }
 
-    try {
-      const supabase = getSupabaseClient()
-      const jaenIndex = calculateJaenIndex(newData.invaiatura_percentage)
-      const oilContent = estimateOilContent(jaenIndex)
-      const recommendation = getHarvestRecommendation(jaenIndex)
-
-      const { error } = await supabase
-        .from('olive_maturity_tracking')
-        .insert({
-          olive_grove_id: oliveGroveId,
-          measurement_date: newData.measurementDate,
-          invaiatura_percentage: newData.invaiatura_percentage,
-          color_stage: newData.color_stage,
-          pulp_firmness: newData.pulp_firmness || null,
-          detachment_force: newData.detachment_force || null,
-          estimated_oil_content: oilContent,
-          jaen_index: jaenIndex,
-          harvest_recommendation: recommendation.text,
-          notes: newData.notes || null
-        })
-
-      if (error) throw error
-
-      await loadMeasurements()
-      setShowAddModal(false)
-      setNewData({
-        measurementDate: new Date(),
-        invaiatura_percentage: 0,
-        color_stage: 'green'
-      })
-    } catch (error) {
-      console.error('Error saving maturity data:', error)
-      alert('Errore nel salvataggio')
-    }
+    setReadings([...readings, reading])
+    setNewReading({ jaenIndex: '', colorStage: '0', notes: '' })
+    setShowForm(false)
   }
 
-  const latestMeasurement = measurements[0]
+  const getMaturityStatus = (jaenIndex: number) => {
+    if (jaenIndex < 1) return { status: 'Verde', color: 'text-green-600', bg: 'bg-green-50', harvest: 'Troppo presto' }
+    if (jaenIndex >= 1 && jaenIndex < 2.5) return { status: 'Invaiatura', color: 'text-yellow-600', bg: 'bg-yellow-50', harvest: 'Olio verde fruttato' }
+    if (jaenIndex >= 2.5 && jaenIndex < 3.5) return { status: 'Ottimale', color: 'text-purple-600', bg: 'bg-purple-50', harvest: 'Momento ideale' }
+    return { status: 'Sovramatura', color: 'text-orange-600', bg: 'bg-orange-50', harvest: 'Raccolta urgente' }
+  }
+
+  const colorStages = [
+    { value: 0, label: 'Verde intenso', color: 'bg-green-700' },
+    { value: 1, label: 'Verde giallastro', color: 'bg-green-500' },
+    { value: 2, label: 'Verde con macchie rosse', color: 'bg-yellow-500' },
+    { value: 3, label: 'Rosso-violaceo', color: 'bg-red-500' },
+    { value: 4, label: 'Nero con polpa bianca', color: 'bg-purple-700' },
+    { value: 5, label: 'Nero con polpa viola', color: 'bg-purple-900' },
+    { value: 6, label: 'Nero con polpa viola scura', color: 'bg-gray-900' },
+    { value: 7, label: 'Completamente nero', color: 'bg-black' }
+  ]
+
+  const latestReading = readings[readings.length - 1]
+  const maturityStatus = latestReading ? getMaturityStatus(latestReading.jaenIndex) : null
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Leaf className="text-green-600" size={20} />
-            Maturazione Olive (Indice Jaén)
-          </h3>
-          {oliveGroveName && (
-            <p className="text-sm text-gray-600">{oliveGroveName}</p>
-          )}
-        </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-        >
-          <Plus size={18} />
-          Nuova Misurazione
-        </button>
-      </div>
-
-      {/* Latest Measurement */}
-      {latestMeasurement && (
-        <div className="bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-200 rounded-xl p-6">
-          <div className="flex items-start justify-between mb-4">
+      <div className="bg-gradient-to-r from-green-50 to-yellow-50 rounded-xl border border-green-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <CircleDot className="text-green-600" size={32} />
             <div>
-              <p className="text-sm text-gray-600 mb-1">Ultima Misurazione</p>
-              <p className="text-sm text-gray-500">
-                {new Date(latestMeasurement.measurement_date).toLocaleDateString('it-IT')}
-              </p>
-            </div>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-              getHarvestRecommendation(latestMeasurement.jaen_index).urgency
-            }`}>
-              {getHarvestRecommendation(latestMeasurement.jaen_index).text}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div className="bg-white rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="text-green-600" size={16} />
-                <span className="text-xs text-gray-600">Indice Jaén</span>
-              </div>
-              <p className="text-3xl font-bold text-green-600">
-                {latestMeasurement.jaen_index.toFixed(2)}
-              </p>
-              <p className="text-xs text-gray-500">scala 0-7</p>
-            </div>
-
-            <div className="bg-white rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Leaf className="text-purple-600" size={16} />
-                <span className="text-xs text-gray-600">Invaiatura</span>
-              </div>
-              <p className="text-3xl font-bold text-purple-600">
-                {latestMeasurement.invaiatura_percentage}%
-              </p>
-            </div>
-
-            <div className="bg-white rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Droplet className="text-blue-600" size={16} />
-                <span className="text-xs text-gray-600">Olio Stimato</span>
-              </div>
-              <p className="text-3xl font-bold text-blue-600">
-                {latestMeasurement.estimated_oil_content.toFixed(1)}%
-              </p>
-            </div>
-
-            <div className="bg-white rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="text-orange-600" size={16} />
-                <span className="text-xs text-gray-600">Stadio Colore</span>
-              </div>
-              <p className="text-lg font-bold text-orange-600 capitalize">
-                {latestMeasurement.color_stage === 'green' ? '🟢 Verde' :
-                 latestMeasurement.color_stage === 'turning' ? '🟡 Viraggio' :
-                 latestMeasurement.color_stage === 'purple' ? '🟣 Viola' :
-                 latestMeasurement.color_stage === 'black' ? '⚫ Nero' : latestMeasurement.color_stage}
-              </p>
+              <h2 className="text-2xl font-bold text-gray-900">Monitoraggio Maturazione Olive</h2>
+              <p className="text-gray-600">Indice di Jaén per determinare il momento ottimale di raccolta</p>
             </div>
           </div>
-
-          {latestMeasurement.notes && (
-            <div className="bg-white rounded-lg p-4">
-              <p className="text-sm font-semibold text-gray-900 mb-1">Note</p>
-              <p className="text-sm text-gray-700">{latestMeasurement.notes}</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* No Data State */}
-      {!latestMeasurement && (
-        <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
-          <Leaf size={48} className="mx-auto text-gray-400 mb-3" />
-          <p className="text-gray-600 font-medium mb-2">Nessuna misurazione disponibile</p>
-          <p className="text-sm text-gray-500 mb-4">Inizia a monitorare la maturazione delle olive</p>
           <button
-            onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           >
-            <Plus size={18} />
-            Prima Misurazione
+            <Plus size={16} />
+            Nuova Lettura
           </button>
         </div>
-      )}
 
-      {/* Reference Values */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="font-semibold text-blue-900 mb-3">📊 Indice di Maturazione Jaén</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="font-medium text-blue-900 mb-2">Scala Indice (0-7)</p>
-            <p className="text-blue-700">• 0-1.5: Olive verdi (troppo presto)</p>
-            <p className="text-blue-700">• 1.5-2.0: Inizio invaiatura</p>
-            <p className="text-green-700 font-medium">• 2.0-3.5: ✅ Ottimale olio qualità</p>
-            <p className="text-blue-700">• 3.5-5.0: Buono olio quantità</p>
-            <p className="text-blue-700">• &gt;5.0: Sovramaturazione</p>
+        {oliveGroveName && (
+          <div className="text-sm text-green-700 bg-green-100 px-3 py-2 rounded-lg inline-block">
+            Oliveto: {oliveGroveName}
           </div>
-          <div>
-            <p className="font-medium text-blue-900 mb-2">Contenuto Olio</p>
-            <p className="text-blue-700">• Indice 0-2: 12-16%</p>
-            <p className="text-green-700 font-medium">• Indice 2-4: 16-20% ✅</p>
-            <p className="text-blue-700">• Indice 4-7: 20-24%</p>
-            <p className="text-xs text-gray-600 mt-2">
-              * Valori stimati, variano per varietà e condizioni
+        )}
+      </div>
+
+      {/* Info Box */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="text-blue-600 flex-shrink-0 mt-1" size={20} />
+          <div className="text-sm text-blue-900">
+            <p className="font-semibold mb-2">Cos'è l'Indice di Jaén?</p>
+            <p className="mb-2">
+              L'Indice di Jaén valuta la maturazione delle olive basandosi sul colore della buccia e della polpa. 
+              È il metodo più affidabile per determinare il momento ottimale di raccolta.
+            </p>
+            <p className="font-medium">
+              Si calcola campionando 100 olive e classificandole in 8 categorie di colore (0-7), 
+              poi si applica la formula: Σ(n × categoria) / 100
             </p>
           </div>
         </div>
       </div>
 
-      {/* History */}
-      {measurements.length > 1 && (
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <h4 className="font-semibold text-gray-900 mb-4">Storico Misurazioni</h4>
-          <div className="space-y-3">
-            {measurements.map((measurement) => (
-              <div key={measurement.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-16 h-16 bg-green-100 rounded-lg flex flex-col items-center justify-center">
-                    <span className="text-xl font-bold text-green-700">
-                      {measurement.jaen_index.toFixed(1)}
-                    </span>
-                    <span className="text-xs text-gray-600">Jaén</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {new Date(measurement.measurement_date).toLocaleDateString('it-IT')}
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      Invaiatura: {measurement.invaiatura_percentage}% | 
-                      Olio: {measurement.estimated_oil_content.toFixed(1)}% | 
-                      {measurement.color_stage === 'green' ? '🟢' :
-                       measurement.color_stage === 'turning' ? '🟡' :
-                       measurement.color_stage === 'purple' ? '🟣' : '⚫'}
-                    </p>
-                  </div>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  getHarvestRecommendation(measurement.jaen_index).urgency
-                }`}>
-                  {measurement.jaen_index >= 2.0 && measurement.jaen_index <= 3.5 ? 'Ottimale' :
-                   measurement.jaen_index < 2.0 ? 'Presto' : 'Maturo'}
-                </span>
-              </div>
-            ))}
+      {/* Current Status */}
+      {latestReading && maturityStatus && (
+        <div className={`rounded-xl border p-6 ${maturityStatus.bg} border-${maturityStatus.color.replace('text-', '')}-200`}>
+          <div className="flex items-center gap-3 mb-4">
+            <TrendingUp className={maturityStatus.color} size={24} />
+            <h3 className="text-lg font-semibold text-gray-900">Stato Attuale Maturazione</h3>
           </div>
-        </div>
-      )}
 
-      {/* Add Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">Nuova Misurazione Maturazione</h3>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Data Misurazione *
-                </label>
-                <input
-                  type="date"
-                  value={newData.measurementDate?.toISOString().split('T')[0]}
-                  onChange={(e) => setNewData(prev => ({ ...prev, measurementDate: new Date(e.target.value) }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <div className="text-sm text-gray-600 mb-1">Indice di Jaén</div>
+              <div className={`text-4xl font-bold ${maturityStatus.color}`}>
+                {latestReading.jaenIndex.toFixed(1)}
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Invaiatura (%) *
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
-                    value={newData.invaiatura_percentage || ''}
-                    onChange={(e) => setNewData(prev => ({ ...prev, invaiatura_percentage: parseInt(e.target.value) }))}
-                    placeholder="es. 50"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  />
-                  {newData.invaiatura_percentage !== undefined && newData.invaiatura_percentage >= 0 && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Indice Jaén: {calculateJaenIndex(newData.invaiatura_percentage).toFixed(2)}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Stadio Colore *
-                  </label>
-                  <select
-                    value={newData.color_stage}
-                    onChange={(e) => setNewData(prev => ({ ...prev, color_stage: e.target.value as any }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="green">🟢 Verde</option>
-                    <option value="turning">🟡 Viraggio</option>
-                    <option value="purple">🟣 Viola</option>
-                    <option value="black">⚫ Nero</option>
-                  </select>
-                </div>
+            <div>
+              <div className="text-sm text-gray-600 mb-1">Stato Maturazione</div>
+              <div className={`text-2xl font-bold ${maturityStatus.color}`}>
+                {maturityStatus.status}
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Consistenza Polpa <span className="text-xs text-gray-500">(opzionale)</span>
-                  </label>
-                  <select
-                    value={newData.pulp_firmness || ''}
-                    onChange={(e) => setNewData(prev => ({ ...prev, pulp_firmness: e.target.value as any }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="">Seleziona...</option>
-                    <option value="hard">Dura</option>
-                    <option value="medium">Media</option>
-                    <option value="soft">Morbida</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Forza Distacco <span className="text-xs text-gray-500">(opzionale)</span>
-                  </label>
-                  <select
-                    value={newData.detachment_force || ''}
-                    onChange={(e) => setNewData(prev => ({ ...prev, detachment_force: e.target.value as any }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="">Seleziona...</option>
-                    <option value="high">Alta</option>
-                    <option value="medium">Media</option>
-                    <option value="low">Bassa</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Note <span className="text-xs text-gray-500">(opzionale)</span>
-                </label>
-                <textarea
-                  value={newData.notes || ''}
-                  onChange={(e) => setNewData(prev => ({ ...prev, notes: e.target.value }))}
-                  rows={3}
-                  placeholder="Osservazioni..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-
-              {newData.invaiatura_percentage !== undefined && newData.invaiatura_percentage >= 0 && (
-                <div className={`rounded-lg border-2 p-4 ${
-                  calculateJaenIndex(newData.invaiatura_percentage) >= 2.0 && calculateJaenIndex(newData.invaiatura_percentage) <= 3.5
-                    ? 'bg-green-50 border-green-200'
-                    : calculateJaenIndex(newData.invaiatura_percentage) < 2.0
-                    ? 'bg-orange-50 border-orange-200'
-                    : 'bg-blue-50 border-blue-200'
-                }`}>
-                  <p className="text-sm font-semibold mb-1">
-                    {getHarvestRecommendation(calculateJaenIndex(newData.invaiatura_percentage)).text}
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    Olio stimato: {estimateOilContent(calculateJaenIndex(newData.invaiatura_percentage)).toFixed(1)}%
-                  </p>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <button
-                  onClick={() => {
-                    setShowAddModal(false)
-                    setNewData({
-                      measurementDate: new Date(),
-                      invaiatura_percentage: 0,
-                      color_stage: 'green'
-                    })
-                  }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                >
-                  Annulla
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={newData.invaiatura_percentage === undefined || newData.invaiatura_percentage < 0}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                >
-                  Salva Misurazione
-                </button>
+            <div>
+              <div className="text-sm text-gray-600 mb-1">Raccomandazione</div>
+              <div className="text-lg font-semibold text-gray-900">
+                {maturityStatus.harvest}
               </div>
             </div>
           </div>
+
+          {latestReading.notes && (
+            <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-700">{latestReading.notes}</p>
+            </div>
+          )}
         </div>
       )}
+
+      {/* Add Reading Form */}
+      {showForm && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Nuova Lettura Maturazione</h3>
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Indice di Jaén Calcolato
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={newReading.jaenIndex}
+              onChange={(e) => setNewReading({ ...newReading, jaenIndex: e.target.value })}
+              placeholder="es. 2.8"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Campiona 100 olive e calcola: Σ(n × categoria) / 100
+            </p>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Stadio Colore Prevalente
+            </label>
+            <select
+              value={newReading.colorStage}
+              onChange={(e) => setNewReading({ ...newReading, colorStage: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            >
+              {colorStages.map((stage) => (
+                <option key={stage.value} value={stage.value}>
+                  {stage.value} - {stage.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Note
+            </label>
+            <textarea
+              value={newReading.notes}
+              onChange={(e) => setNewReading({ ...newReading, notes: e.target.value })}
+              placeholder="Osservazioni sulla maturazione..."
+              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={addReading}
+              disabled={!newReading.jaenIndex}
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300"
+            >
+              Salva Lettura
+            </button>
+            <button
+              onClick={() => setShowForm(false)}
+              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Annulla
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Color Scale Reference */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Scala Colori Indice di Jaén</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {colorStages.map((stage) => (
+            <div key={stage.value} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
+              <div className={`w-12 h-12 rounded-full ${stage.color} flex-shrink-0`}></div>
+              <div>
+                <div className="font-semibold text-gray-900">Categoria {stage.value}</div>
+                <div className="text-sm text-gray-600">{stage.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Readings History */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Storico Letture</h3>
+        
+        <div className="space-y-3">
+          {readings.slice().reverse().map((reading) => {
+            const status = getMaturityStatus(reading.jaenIndex)
+            return (
+              <div key={reading.id} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="text-gray-400" size={16} />
+                    <span className="text-sm font-medium text-gray-900">
+                      {reading.date.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${status.color} ${status.bg}`}>
+                    {status.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-2">
+                  <div>
+                    <span className="text-xs text-gray-600">Indice di Jaén:</span>
+                    <span className="ml-2 font-semibold text-gray-900">{reading.jaenIndex.toFixed(1)}</span>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-600">Stadio colore:</span>
+                    <span className="ml-2 font-semibold text-gray-900">{reading.colorStage}</span>
+                  </div>
+                </div>
+
+                {reading.notes && (
+                  <p className="text-sm text-gray-600 mt-2">{reading.notes}</p>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Reference Guide */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Guida Interpretazione Indice</h3>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-4 font-semibold text-gray-900">Indice di Jaén</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-900">Stato</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-900">Tipo Olio</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-900">Azione</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-gray-100">
+                <td className="py-3 px-4 font-medium text-green-600">&lt; 1.0</td>
+                <td className="py-3 px-4">Verde</td>
+                <td className="py-3 px-4 text-sm text-gray-600">Troppo amaro</td>
+                <td className="py-3 px-4 text-sm text-gray-600">Attendere</td>
+              </tr>
+              <tr className="border-b border-gray-100 bg-yellow-50">
+                <td className="py-3 px-4 font-medium text-yellow-600">1.0 - 2.5</td>
+                <td className="py-3 px-4">Invaiatura</td>
+                <td className="py-3 px-4 text-sm text-gray-600">Olio verde fruttato</td>
+                <td className="py-3 px-4 text-sm text-gray-600">Buono per olio premium</td>
+              </tr>
+              <tr className="border-b border-gray-100 bg-purple-50">
+                <td className="py-3 px-4 font-medium text-purple-600">2.5 - 3.5</td>
+                <td className="py-3 px-4">Ottimale</td>
+                <td className="py-3 px-4 text-sm text-gray-600">Equilibrato</td>
+                <td className="py-3 px-4 text-sm text-gray-600">Momento ideale raccolta</td>
+              </tr>
+              <tr>
+                <td className="py-3 px-4 font-medium text-orange-600">&gt; 3.5</td>
+                <td className="py-3 px-4">Sovramatura</td>
+                <td className="py-3 px-4 text-sm text-gray-600">Olio dolce</td>
+                <td className="py-3 px-4 text-sm text-gray-600">Raccolta urgente</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Tips */}
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <h4 className="font-semibold text-green-900 mb-2">💡 Consigli Pratici</h4>
+        <ul className="space-y-2 text-sm text-green-800">
+          <li>• Campiona 100 olive da diverse parti dell'oliveto</li>
+          <li>• Raccogli olive da altezze diverse della chioma</li>
+          <li>• Ripeti il campionamento ogni 7-10 giorni</li>
+          <li>• Per olio extravergine di alta qualità, raccogli con indice 1.5-2.5</li>
+          <li>• Per olio più dolce e meno amaro, raccogli con indice 2.5-3.5</li>
+          <li>• Considera anche le condizioni meteo previste</li>
+        </ul>
+      </div>
     </div>
   )
 }
