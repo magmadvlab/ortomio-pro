@@ -123,6 +123,8 @@ export default function ProfessionalCalendar({
   }
 
   const getTasksForDate = (day: number) => {
+    if (!tasks || tasks.length === 0) return []
+    
     const date = new Date(year, month, day)
     const dateStr = date.toISOString().split('T')[0]
 

@@ -30,7 +30,7 @@ export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, on
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
 
   // Filtra e ordina i task
-  const filteredTasks = tasks.filter(task => {
+  const filteredTasks = (tasks || []).filter(task => {
     // Filtro per ricerca
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase()

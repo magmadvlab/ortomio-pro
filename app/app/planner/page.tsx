@@ -70,6 +70,8 @@ export default function PlannerPage() {
 
   // Genera dati timeline basati sui task reali
   const generateTimelineData = () => {
+    if (!tasks || tasks.length === 0) return []
+    
     const now = new Date()
     const completedTasks = tasks.filter(task => task.completed)
     
@@ -94,6 +96,8 @@ export default function PlannerPage() {
 
   // Ottieni task per i prossimi 7 giorni
   const getUpcomingTasks = () => {
+    if (!tasks || tasks.length === 0) return []
+    
     const today = new Date()
     const upcoming = []
     
@@ -153,7 +157,7 @@ export default function PlannerPage() {
     { id: 'planner', label: 'Planner AI', emoji: '🎯', icon: Target },
     { id: 'calendar', label: 'Calendario', emoji: '📅', icon: Calendar },
     { id: 'ai-suggestions', label: 'Suggerimenti AI', emoji: '💡', icon: Lightbulb },
-    { id: 'list', label: 'Lista Task', emoji: '📋', icon: List, badge: tasks.filter(t => !t.completed).length },
+    { id: 'list', label: 'Lista Task', emoji: '📋', icon: List, badge: tasks ? tasks.filter(t => !t.completed).length : 0 },
     { id: 'timeline', label: 'Timeline', emoji: '📊', icon: Activity },
     { id: 'rotation', label: 'Rotazione Colture', emoji: '🔄', icon: RefreshCw },
     { id: 'biological', label: 'Controllo Biologico', emoji: '🐛', icon: Bug }
@@ -290,7 +294,7 @@ export default function PlannerPage() {
                 Andamento Attività (Ultimi 7 giorni)
               </h2>
               <div className="text-sm text-gray-500">
-                {tasks.filter(t => t.completed).length} operazioni completate
+                {tasks ? tasks.filter(t => t.completed).length : 0} operazioni completate
               </div>
             </div>
             
@@ -324,7 +328,7 @@ export default function PlannerPage() {
                   </h3>
                   
                   <div className="space-y-3">
-                    {tasks
+                    {tasks && tasks.length > 0 ? tasks
                       .filter(task => task.completed)
                       .sort((a, b) => {
                         const dateA = new Date(a.completedAt || a.actualCompletedDate || a.date)
@@ -356,7 +360,11 @@ export default function PlannerPage() {
                             </div>
                           </div>
                         )
-                      })}
+                      }) : (
+                        <div className="text-center text-gray-500 py-4">
+                          <p>Nessuna attività completata</p>
+                        </div>
+                      )}
                   </div>
                 </div>
               </div>
@@ -380,7 +388,7 @@ export default function PlannerPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Completate</p>
-                  <p className="text-2xl font-bold text-gray-900">{tasks.filter(t => t.completed).length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{tasks ? tasks.filter(t => t.completed).length : 0}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1 text-green-600">
@@ -396,7 +404,7 @@ export default function PlannerPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">In Programma</p>
-                  <p className="text-2xl font-bold text-gray-900">{tasks.filter(t => !t.completed).length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{tasks ? tasks.filter(t => !t.completed).length : 0}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1 text-orange-600">
@@ -413,7 +421,7 @@ export default function PlannerPage() {
                 <div>
                   <p className="text-sm text-gray-600">Efficienza</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {tasks.length > 0 ? Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) : 0}%
+                    {tasks && tasks.length > 0 ? Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) : 0}%
                   </p>
                 </div>
               </div>
@@ -421,7 +429,7 @@ export default function PlannerPage() {
                 <div 
                   className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                   style={{ 
-                    width: `${tasks.length > 0 ? (tasks.filter(t => t.completed).length / tasks.length) * 100 : 0}%` 
+                    width: `${tasks && tasks.length > 0 ? (tasks.filter(t => t.completed).length / tasks.length) * 100 : 0}%` 
                   }}
                 ></div>
               </div>

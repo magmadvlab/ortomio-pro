@@ -158,6 +158,8 @@ export default function TaskCalendar({ garden, tasks, onTaskUpdate, onTaskCreate
 
   // Ottieni task per una data specifica
   const getTasksForDate = (date: Date) => {
+    if (!tasks || tasks.length === 0) return []
+    
     return tasks.filter(task => {
       const taskDate = task.nextDueDate ? parseISO(task.nextDueDate) : parseISO(task.date)
       return isSameDay(taskDate, date)
