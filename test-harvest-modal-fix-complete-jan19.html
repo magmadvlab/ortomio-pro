@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Harvest Modal Fix - Complete</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            max-width: 32rem;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+        
+        .close-button {
+            color: #9ca3af;
+            padding: 0.5rem;
+            margin: -0.5rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        
+        .close-button:hover {
+            color: #4b5563;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+        
+        .btn {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-size: 1rem;
+        }
+        
+        .btn-primary {
+            background-color: #10b981;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #059669;
+        }
+        
+        .btn-secondary {
+            background-color: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #e5e7eb;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            padding-top: 1rem;
+        }
+        
+        .btn-group .btn {
+            flex: 1;
+        }
+        
+        .test-controls {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            z-index: 1001;
+        }
+        
+        .status {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        
+        .status.error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        
+        .status.info {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Mock data
+        const mockGarden = {
+            id: 'garden-1',
+            name: 'Il Mio Orto Test'
+        };
+
+        const mockPlantedCrops = [
+            {
+                id: 'task-1',
+                plantName: 'Pomodoro',
+                variety: 'San Marzano',
+                date: '2024-10-01',
+                stage: 'Fruiting',
+                taskType: 'Sowing',
+                completed: true,
+                quantity: 12,
+                locationType: 'Ground',
+                zoneId: 'zone-1'
+            },
+            {
+                id: 'task-2',
+                plantName: 'Zucchina',
+                variety: 'Romanesco',
+                date: '2024-09-15',
+                stage: 'Fruiting',
+                taskType: 'Transplant',
+                completed: true,
+                quantity: 6,
+                locationType: 'Ground',
+                zoneId: 'zone-2'
+            },
+            {
+                id: 'task-3',
+                plantName: 'Basilico',
+                date: '2024-11-01',
+                stage: 'Vegetative',
+                taskType: 'Sowing',
+                completed: true,
+                quantity: 20,
+                locationType: 'Pot'
+            }
+        ];
+
+        // Simplified HarvestModal component
+        function HarvestModal({ isOpen, onClose, onSave, gardenId, plantedCrops }) {
+            const [selectedTaskId, setSelectedTaskId] = useState('');
+            const [isManualEntry, setIsManualEntry] = useState(false);
+            const [plantName, setPlantName] = useState('');
+            const [quantity, setQuantity] = useState('');
+            const [unit, setUnit] = useState('kg');
+            const [harvestDate, setHarvestDate] = useState('');
+            const [notes, setNotes] = useState('');
+            const [loading, setLoading] = useState(false);
+
+            // Filter available crops
+            const availableCrops = React.useMemo(() => {
+                const now = new Date();
+                
+                return (plantedCrops || [])
+                    .filter(task => {
+                        if (!task.completed || !['Sowing', 'Transplant'].includes(task.taskType)) {
+                            return false;
+                        }
+                        
+                        const plantingDate = new Date(task.date);
+                        const daysFromPlanting = Math.floor((now.getTime() - plantingDate.getTime()) / (1000 * 60 * 60 * 24));
+                        
+                        return task.stage === 'Fruiting' || daysFromPlanting >= 30;
+                    })
+                    .map(task => {
+                        const plantingDate = new Date(task.date);
+                        const daysFromPlanting = Math.floor((now.getTime() - plantingDate.getTime()) / (1000 * 60 * 60 * 24));
+                        
+                        return {
+                            taskId: task.id,
+                            plantName: task.plantName,
+                            variety: task.variety,
+                            plantingDate: task.date,
+                            stage: task.stage || 'Unknown',
+                            quantity: task.quantity,
+                            daysFromPlanting,
+                            isReadyToHarvest: task.stage === 'Fruiting' || daysFromPlanting >= 60
+                        };
+                    });
+            }, [plantedCrops]);
+
+            useEffect(() => {
+                if (isOpen) {
+                    setHarvestDate(new Date().toISOString().split('T')[0]);
+                    document.body.style.overflow = 'hidden';
+                    
+                    const handleEscKey = (event) => {
+                        if (event.key === 'Escape') {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            handleClose();
+                        }
+                    };
+                    
+                    document.addEventListener('keydown', handleEscKey);
+                    
+                    return () => {
+                        document.removeEventListener('keydown', handleEscKey);
+                        document.body.style.overflow = 'unset';
+                    };
+                }
+            }, [isOpen]);
+
+            // Auto-populate fields when selecting a tracked crop
+            useEffect(() => {
+                if (selectedTaskId && !isManualEntry) {
+                    const selectedCrop = availableCrops.find(crop => crop.taskId === selectedTaskId);
+                    if (selectedCrop) {
+                        setPlantName(selectedCrop.plantName);
+                        // Suggest unit based on plant type
+                        const suggestedUnit = getSuggestedUnit(selectedCrop.plantName);
+                        setUnit(suggestedUnit);
+                    }
+                }
+            }, [selectedTaskId, isManualEntry, availableCrops]);
+
+            const getSuggestedUnit = (plantName) => {
+                const lowerName = plantName.toLowerCase();
+                
+                if (['pomodoro', 'zucchina', 'melanzana', 'peperone', 'cetriolo'].some(p => lowerName.includes(p))) {
+                    return 'kg';
+                }
+                
+                if (['lattuga', 'spinaci', 'rucola', 'basilico', 'prezzemolo'].some(p => lowerName.includes(p))) {
+                    return 'mazzi';
+                }
+                
+                return 'kg';
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('Form submitted!', { isManualEntry, plantName, quantity, harvestDate });
+                
+                if (isManualEntry && (!plantName.trim() || !quantity || !harvestDate)) {
+                    alert('Compila tutti i campi obbligatori per l\'inserimento manuale');
+                    return;
+                }
+                
+                if (!isManualEntry && !selectedTaskId && availableCrops.length > 0) {
+                    alert('Seleziona una coltura da raccogliere o passa all\'inserimento manuale');
+                    return;
+                }
+
+                setLoading(true);
+                
+                try {
+                    const selectedCrop = selectedTaskId ? 
+                        availableCrops.find(crop => crop.taskId === selectedTaskId) : null;
+                    
+                    const harvestData = {
+                        plant_name: plantName.trim(),
+                        quantity: parseFloat(quantity),
+                        unit,
+                        harvest_date: harvestDate,
+                        notes: notes.trim() || undefined,
+                        garden_id: gardenId,
+                        zone_id: selectedCrop?.zoneId,
+                        task_id: selectedTaskId || undefined,
+                        is_tracked: !isManualEntry && !!selectedTaskId
+                    };
+
+                    console.log('Saving harvest data:', harvestData);
+                    
+                    await Promise.resolve(onSave(harvestData));
+                    
+                    handleClose();
+                } catch (error) {
+                    console.error('Error saving harvest:', error);
+                    alert('Errore nel salvataggio. Riprova.');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleClose = (e) => {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                document.body.style.overflow = 'unset';
+                onClose();
+            };
+
+            const handleOverlayClick = (e) => {
+                if (e.target === e.currentTarget) {
+                    handleClose(e);
+                }
+            };
+
+            const handleContentClick = (e) => {
+                e.stopPropagation();
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="modal-overlay" onClick={handleOverlayClick}>
+                    <div className="modal-content" onClick={handleContentClick}>
+                        <div className="modal-header">
+                            <h2 className="text-xl font-semibold text-gray-900">
+                                Nuovo Raccolto
+                            </h2>
+                            <button
+                                onClick={handleClose}
+                                className="close-button"
+                                aria-label="Chiudi modal"
+                                type="button"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="modal-body">
+                            {/* Registration Type Selection */}
+                            <div className="form-group">
+                                <label className="form-label">
+                                    Tipo di registrazione
+                                </label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsManualEntry(false);
+                                            setSelectedTaskId('');
+                                            setPlantName('');
+                                        }}
+                                        className={`p-4 border-2 rounded-lg text-left transition-all ${
+                                            !isManualEntry
+                                                ? 'border-green-500 bg-green-50'
+                                                : 'border-gray-200 hover:border-green-300'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <span className="text-green-600">🌱</span>
+                                            <span className="font-medium">Coltura Tracciata</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600">
+                                            Raccolto da piante che hai seminato/trapiantato
+                                        </p>
+                                    </button>
+                                    
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsManualEntry(true);
+                                            setSelectedTaskId('');
+                                            setPlantName('');
+                                        }}
+                                        className={`p-4 border-2 rounded-lg text-left transition-all ${
+                                            isManualEntry
+                                                ? 'border-blue-500 bg-blue-50'
+                                                : 'border-gray-200 hover:border-blue-300'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <span className="text-blue-600">⚠️</span>
+                                            <span className="font-medium">Inserimento Manuale</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600">
+                                            Raccolto non tracciato nel sistema
+                                        </p>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Tracked Crop Selection */}
+                            {!isManualEntry && (
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        Seleziona coltura da raccogliere *
+                                    </label>
+                                    
+                                    {availableCrops.length === 0 ? (
+                                        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-yellow-600">⚠️</span>
+                                                <div>
+                                                    <p className="font-medium text-yellow-800">Nessuna coltura pronta</p>
+                                                    <p className="text-sm text-yellow-700">
+                                                        Non ci sono colture tracciate pronte per il raccolto. 
+                                                        Usa "Inserimento Manuale" per registrare raccolti non tracciati.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="mt-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsManualEntry(true);
+                                                        setSelectedTaskId('');
+                                                        setPlantName('');
+                                                    }}
+                                                    className="btn btn-primary"
+                                                >
+                                                    Passa a Inserimento Manuale
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <select
+                                            value={selectedTaskId}
+                                            onChange={(e) => setSelectedTaskId(e.target.value)}
+                                            className="form-input"
+                                            required={!isManualEntry}
+                                        >
+                                            <option value="">Seleziona una coltura...</option>
+                                            {availableCrops.map((crop) => (
+                                                <option key={crop.taskId} value={crop.taskId}>
+                                                    {crop.plantName} {crop.variety ? `(${crop.variety})` : ''} - 
+                                                    {crop.daysFromPlanting} giorni - {crop.stage}
+                                                    {crop.quantity ? ` - ${crop.quantity} piante` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Manual Entry - Plant Name */}
+                            {isManualEntry && (
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        Pianta *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={plantName}
+                                        onChange={(e) => setPlantName(e.target.value)}
+                                        className="form-input"
+                                        placeholder="Nome della pianta"
+                                        required
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        ⚠️ Questo raccolto non sarà collegato al sistema di tracciamento
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Quantity and Unit */}
+                            {(isManualEntry || selectedTaskId) && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="form-group">
+                                        <label className="form-label">
+                                            Quantità *
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            min="0"
+                                            value={quantity}
+                                            onChange={(e) => setQuantity(e.target.value)}
+                                            className="form-input"
+                                            placeholder="0.0"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">
+                                            Unità *
+                                        </label>
+                                        <select
+                                            value={unit}
+                                            onChange={(e) => setUnit(e.target.value)}
+                                            className="form-input"
+                                        >
+                                            <option value="kg">kg</option>
+                                            <option value="g">g</option>
+                                            <option value="pz">pz</option>
+                                            <option value="mazzi">mazzi</option>
+                                            <option value="cassette">cassette</option>
+                                            <option value="litri">litri</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Harvest Date */}
+                            {(isManualEntry || selectedTaskId) && (
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        Data Raccolto *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={harvestDate}
+                                        onChange={(e) => setHarvestDate(e.target.value)}
+                                        className="form-input"
+                                        required
+                                    />
+                                </div>
+                            )}
+
+                            {/* Notes */}
+                            {(isManualEntry || selectedTaskId) && (
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        Note
+                                    </label>
+                                    <textarea
+                                        value={notes}
+                                        onChange={(e) => setNotes(e.target.value)}
+                                        rows={3}
+                                        className="form-input"
+                                        placeholder="Note aggiuntive (opzionale)"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Actions */}
+                            <div className="btn-group">
+                                <button
+                                    type="button"
+                                    onClick={handleClose}
+                                    className="btn btn-secondary"
+                                    disabled={loading}
+                                >
+                                    Annulla
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary"
+                                    disabled={loading || (
+                                        !isManualEntry && !selectedTaskId && availableCrops.length > 0
+                                    ) || (
+                                        isManualEntry && (!plantName.trim() || !quantity || !harvestDate)
+                                    )}
+                                >
+                                    {loading ? 'Salvando...' : 'Salva'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        // Test App Component
+        function TestApp() {
+            const [showModal, setShowModal] = useState(false);
+            const [testResults, setTestResults] = useState([]);
+            const [currentTest, setCurrentTest] = useState('');
+
+            const addTestResult = (test, result, message) => {
+                setTestResults(prev => [...prev, { test, result, message, timestamp: new Date().toLocaleTimeString() }]);
+            };
+
+            const runTest = (testName, testFn) => {
+                setCurrentTest(testName);
+                try {
+                    testFn();
+                    addTestResult(testName, 'success', 'Test completato con successo');
+                } catch (error) {
+                    addTestResult(testName, 'error', `Test fallito: ${error.message}`);
+                }
+                setCurrentTest('');
+            };
+
+            const handleSave = (harvestData) => {
+                console.log('Harvest data received:', harvestData);
+                addTestResult('Save Function', 'success', `Dati salvati: ${harvestData.plant_name} - ${harvestData.quantity}${harvestData.unit}`);
+                return Promise.resolve();
+            };
+
+            const handleClose = () => {
+                console.log('Modal closed');
+                setShowModal(false);
+                addTestResult('Close Function', 'success', 'Modal chiuso correttamente');
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-100 p-8">
+                    <div className="max-w-4xl mx-auto">
+                        <h1 className="text-3xl font-bold text-gray-900 mb-8">
+                            Test Harvest Modal Fix - Complete
+                        </h1>
+
+                        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+                            <h2 className="text-xl font-semibold mb-4">Test Controls</h2>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <button
+                                    onClick={() => runTest('Open Modal', () => setShowModal(true))}
+                                    className="btn btn-primary"
+                                    disabled={showModal}
+                                >
+                                    Apri Modal Raccolto
+                                </button>
+                                
+                                <button
+                                    onClick={() => runTest('ESC Key Test', () => {
+                                        if (showModal) {
+                                            const event = new KeyboardEvent('keydown', { key: 'Escape' });
+                                            document.dispatchEvent(event);
+                                        } else {
+                                            throw new Error('Modal non aperto');
+                                        }
+                                    })}
+                                    className="btn btn-secondary"
+                                    disabled={!showModal}
+                                >
+                                    Test Tasto ESC
+                                </button>
+                                
+                                <button
+                                    onClick={() => runTest('Overlay Click Test', () => {
+                                        if (showModal) {
+                                            const overlay = document.querySelector('.modal-overlay');
+                                            if (overlay) {
+                                                overlay.click();
+                                            } else {
+                                                throw new Error('Overlay non trovato');
+                                            }
+                                        } else {
+                                            throw new Error('Modal non aperto');
+                                        }
+                                    })}
+                                    className="btn btn-secondary"
+                                    disabled={!showModal}
+                                >
+                                    Test Click Overlay
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => setTestResults([])}
+                                    className="btn btn-secondary"
+                                >
+                                    Pulisci Risultati
+                                </button>
+                                
+                                <button
+                                    onClick={() => runTest('Full Test Cycle', () => {
+                                        setShowModal(true);
+                                        setTimeout(() => {
+                                            const event = new KeyboardEvent('keydown', { key: 'Escape' });
+                                            document.dispatchEvent(event);
+                                        }, 1000);
+                                    })}
+                                    className="btn btn-primary"
+                                    disabled={showModal}
+                                >
+                                    Test Ciclo Completo
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Test Results */}
+                        <div className="bg-white rounded-lg shadow-lg p-6">
+                            <h2 className="text-xl font-semibold mb-4">Risultati Test</h2>
+                            
+                            {currentTest && (
+                                <div className="status info mb-4">
+                                    🔄 Eseguendo test: {currentTest}
+                                </div>
+                            )}
+                            
+                            <div className="space-y-3 max-h-96 overflow-y-auto">
+                                {testResults.length === 0 ? (
+                                    <p className="text-gray-500 italic">Nessun test eseguito ancora</p>
+                                ) : (
+                                    testResults.map((result, index) => (
+                                        <div
+                                            key={index}
+                                            className={`status ${result.result}`}
+                                        >
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <strong>{result.test}</strong>
+                                                    <p className="text-sm mt-1">{result.message}</p>
+                                                </div>
+                                                <span className="text-xs opacity-75">{result.timestamp}</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Harvest Modal */}
+                    <HarvestModal
+                        isOpen={showModal}
+                        onClose={handleClose}
+                        onSave={handleSave}
+                        gardenId={mockGarden.id}
+                        plantedCrops={mockPlantedCrops}
+                    />
+                </div>
+            );
+        }
+
+        ReactDOM.render(<TestApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>

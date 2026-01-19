@@ -132,10 +132,11 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
     }
 
     // Gestione tasto ESC per chiudere il modal
-    const handleEscKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        event.stopPropagation();
+    const handleEscKey = (event: Event) => {
+      const keyboardEvent = event as KeyboardEvent;
+      if (keyboardEvent.key === 'Escape') {
+        keyboardEvent.preventDefault();
+        keyboardEvent.stopPropagation();
         handleClose();
       }
     };

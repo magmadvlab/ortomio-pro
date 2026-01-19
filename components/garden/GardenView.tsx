@@ -23,6 +23,8 @@ interface GardenViewProps {
   onTabChange: (tab: 'operations' | 'planning' | 'monitoring' | 'plants' | 'compliance' | 'analytics' | 'structure') => void
   onAddTask: (task: Omit<GardenTask, 'id' | 'completed' | 'gardenId'>) => void
   onUpdateTask: (task: GardenTask) => void
+  onToggleTask?: (id: string) => void
+  onDeleteTask?: (id: string) => void
 }
 
 export function GardenView({
@@ -31,13 +33,14 @@ export function GardenView({
   activeTab,
   onTabChange,
   onAddTask,
-  onUpdateTask
+  onUpdateTask,
+  onToggleTask,
+  onDeleteTask
 }: GardenViewProps) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showHarvestModal, setShowHarvestModal] = useState(false)
   const [showPhotoCapture, setShowPhotoCapture] = useState(false)
   const [showQuickActions, setShowQuickActions] = useState(false)
-  const [showBedManager, setShowBedManager] = useState(false)
   
   const tabs = [
     { id: 'operations' as const, label: 'Operazioni', icon: Activity },
@@ -189,7 +192,7 @@ export function GardenView({
               tasks={tasks}
               onUpdateTask={onUpdateTask}
               onAddTask={onAddTask}
-              onDateClick={(date) => {
+              onDateClick={() => {
                 // Switch to operations view
                 onTabChange('operations')
               }}
@@ -401,7 +404,10 @@ export function GardenView({
                 <p className="text-gray-600 mt-1">Gestisci aiuole, filari e zone di coltivazione</p>
               </div>
               <button
-                onClick={() => setShowBedManager(true)}
+                onClick={() => {
+                  // TODO: Implement zone management
+                  console.log('Manage zones')
+                }}
                 className="flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 <Settings size={20} />
@@ -479,15 +485,20 @@ export function GardenView({
       />
 
       {/* Harvest Modal */}
-      <HarvestRegistrationModal
-        garden={garden}
-        isOpen={showHarvestModal}
-        onClose={() => setShowHarvestModal(false)}
-        onHarvestRegistered={() => {
-          // Ricarica i task per aggiornare la vista
-          window.location.reload() // Semplice per ora
-        }}
-      />
+      {showHarvestModal && (
+        <HarvestRegistrationModal
+          gardenId={garden.id}
+          plantedCrops={tasks.filter(task => 
+            task.taskType === 'Sowing' || task.taskType === 'Transplant'
+          )}
+          onSave={(harvestData) => {
+            console.log('Harvest saved:', harvestData)
+            setShowHarvestModal(false)
+            // Qui potresti aggiornare la vista o mostrare una notifica
+          }}
+          onClose={() => setShowHarvestModal(false)}
+        />
+      )}
 
       {/* Photo Capture Modal */}
       <PhotoCaptureModal

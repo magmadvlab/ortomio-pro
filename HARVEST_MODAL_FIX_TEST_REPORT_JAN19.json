@@ -1,0 +1,248 @@
+{
+  "config": {
+    "testName": "Garden Harvest Modal Integration Test",
+    "timestamp": "2026-01-19T15:40:06.450Z",
+    "components": [
+      "components/garden/GardenView.tsx",
+      "components/harvest/HarvestRegistrationModal.tsx",
+      "app/app/garden/page.tsx"
+    ]
+  },
+  "summary": {
+    "total": 32,
+    "passed": 30,
+    "failed": 0,
+    "warnings": 1,
+    "info": 1
+  },
+  "results": [
+    {
+      "test": "Test Suite",
+      "status": "INFO",
+      "message": "Starting comprehensive modal integration tests",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.471Z"
+    },
+    {
+      "test": "Props Interface",
+      "status": "PASS",
+      "message": "Required prop 'gardenId' found in interface",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.473Z"
+    },
+    {
+      "test": "Props Interface",
+      "status": "PASS",
+      "message": "Required prop 'plantedCrops' found in interface",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.473Z"
+    },
+    {
+      "test": "Props Interface",
+      "status": "PASS",
+      "message": "Required prop 'onSave' found in interface",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.473Z"
+    },
+    {
+      "test": "Props Interface",
+      "status": "PASS",
+      "message": "Required prop 'onClose' found in interface",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.473Z"
+    },
+    {
+      "test": "Close Handling",
+      "status": "PASS",
+      "message": "handleClose function implemented correctly",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.473Z"
+    },
+    {
+      "test": "Close Handling",
+      "status": "PASS",
+      "message": "ESC key handler implemented correctly",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.473Z"
+    },
+    {
+      "test": "Close Handling",
+      "status": "PASS",
+      "message": "Overlay click handler implemented correctly",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.473Z"
+    },
+    {
+      "test": "Close Handling",
+      "status": "PASS",
+      "message": "X button handler implemented correctly",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.473Z"
+    },
+    {
+      "test": "Close Handling",
+      "status": "PASS",
+      "message": "Body overflow management implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.473Z"
+    },
+    {
+      "test": "Garden Integration",
+      "status": "PASS",
+      "message": "Modal import found",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.474Z"
+    },
+    {
+      "test": "Garden Integration",
+      "status": "PASS",
+      "message": "Modal state found",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.474Z"
+    },
+    {
+      "test": "Garden Integration",
+      "status": "PASS",
+      "message": "Modal render found",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.474Z"
+    },
+    {
+      "test": "Garden Integration",
+      "status": "PASS",
+      "message": "Modal props found",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.474Z"
+    },
+    {
+      "test": "Garden Integration",
+      "status": "PASS",
+      "message": "Close handler found",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.474Z"
+    },
+    {
+      "test": "Garden Integration",
+      "status": "PASS",
+      "message": "Planted crops filtering implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.474Z"
+    },
+    {
+      "test": "Form Validation",
+      "status": "PASS",
+      "message": "Required field validation implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.474Z"
+    },
+    {
+      "test": "Form Validation",
+      "status": "PASS",
+      "message": "Manual entry validation implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.474Z"
+    },
+    {
+      "test": "Form Validation",
+      "status": "PASS",
+      "message": "Tracked crop validation implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.474Z"
+    },
+    {
+      "test": "Form Validation",
+      "status": "PASS",
+      "message": "Form submission prevention implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.474Z"
+    },
+    {
+      "test": "Performance",
+      "status": "PASS",
+      "message": "useMemo for crops filtering implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.474Z"
+    },
+    {
+      "test": "Performance",
+      "status": "PASS",
+      "message": "useEffect for auto-population implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.474Z"
+    },
+    {
+      "test": "Performance",
+      "status": "PASS",
+      "message": "Event listener cleanup implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.474Z"
+    },
+    {
+      "test": "Performance",
+      "status": "PASS",
+      "message": "Loading state management implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.474Z"
+    },
+    {
+      "test": "Accessibility",
+      "status": "PASS",
+      "message": "ARIA labels implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.475Z"
+    },
+    {
+      "test": "Accessibility",
+      "status": "WARNING",
+      "message": "Keyboard navigation may be missing",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.475Z"
+    },
+    {
+      "test": "Accessibility",
+      "status": "PASS",
+      "message": "Focus management implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.475Z"
+    },
+    {
+      "test": "Accessibility",
+      "status": "PASS",
+      "message": "Screen reader support implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.475Z"
+    },
+    {
+      "test": "Mobile Optimization",
+      "status": "PASS",
+      "message": "Touch-friendly buttons implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.475Z"
+    },
+    {
+      "test": "Mobile Optimization",
+      "status": "PASS",
+      "message": "Responsive layout implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.475Z"
+    },
+    {
+      "test": "Mobile Optimization",
+      "status": "PASS",
+      "message": "Mobile viewport handling implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.475Z"
+    },
+    {
+      "test": "Mobile Optimization",
+      "status": "PASS",
+      "message": "Mobile form optimization implemented",
+      "details": null,
+      "timestamp": "2026-01-19T15:40:06.475Z"
+    }
+  ],
+  "recommendations": [
+    "⚠️ Warnings found - consider addressing for better UX",
+    "✅ Modal implementation looks good - ready for testing"
+  ]
+}
