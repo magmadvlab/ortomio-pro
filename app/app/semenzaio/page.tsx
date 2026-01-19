@@ -11,7 +11,7 @@ import SaplingDashboard from '@/components/seedbank/SaplingDashboard'
 function SemenzaioPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { activeGarden } = useGarden()
+  const { currentGarden } = useGarden()
   
   const [activeTab, setActiveTab] = useState<'seeds' | 'seedlings' | 'saplings'>('seedlings')
   const [loading, setLoading] = useState(true)
@@ -47,7 +47,7 @@ function SemenzaioPageContent() {
     )
   }
 
-  if (!activeGarden) {
+  if (!currentGarden) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -84,7 +84,7 @@ function SemenzaioPageContent() {
                     🌿 Vivaio Pro
                   </h1>
                   <p className="text-sm text-gray-600">
-                    Gestisci semi, piantine e alberelli per {activeGarden.name}
+                    Gestisci semi, piantine e alberelli per {currentGarden.name}
                   </p>
                 </div>
               </div>
@@ -150,7 +150,7 @@ function SemenzaioPageContent() {
         {/* Tab Content */}
         {activeTab === 'seeds' && (
           <SeedInventory 
-            garden={activeGarden}
+            garden={currentGarden}
             plantName={plantName ? decodeURIComponent(plantName) : undefined}
             variety={variety ? decodeURIComponent(variety) : undefined}
           />
@@ -158,7 +158,7 @@ function SemenzaioPageContent() {
 
         {activeTab === 'seedlings' && (
           <SeedlingDashboard 
-            garden={activeGarden}
+            garden={currentGarden}
             shouldCreate={shouldCreate}
             plantName={plantName ? decodeURIComponent(plantName) : undefined}
             variety={variety ? decodeURIComponent(variety) : undefined}
@@ -167,7 +167,7 @@ function SemenzaioPageContent() {
 
         {activeTab === 'saplings' && (
           <SaplingDashboard 
-            garden={activeGarden}
+            garden={currentGarden}
             plantName={plantName ? decodeURIComponent(plantName) : undefined}
             variety={variety ? decodeURIComponent(variety) : undefined}
           />

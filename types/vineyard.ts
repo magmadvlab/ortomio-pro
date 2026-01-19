@@ -1,397 +1,128 @@
-// ============================================================================
-// VINEYARD MANAGEMENT SYSTEM TYPES
-// Comprehensive TypeScript definitions for professional vineyard management
-// ============================================================================
-
-// ============================================================================
-// CORE VINEYARD TYPES
-// ============================================================================
+// Vineyard Management Types
 
 export interface VineyardConfiguration {
   id: string
   gardenId: string
-  
-  // Basic Configuration
   name: string
-  description?: string
-  vineyardType: VineyardType
-  
-  // Planting Information
-  establishedDate?: string
-  totalAreaSqm?: number
+  vineyardType: 'wine' | 'table' | 'raisin' | 'dual-purpose'
+  establishedDate?: Date
   totalVines: number
-  vinesPerHectare?: number
-  
-  // Layout Configuration
-  rowSpacingM?: number
-  vineSpacingM?: number
-  trainingSystem?: string
-  
-  // Varieties and Rootstocks
-  mainVarieties: VarietyInfo[]
-  rootstockTypes: RootstockInfo[]
-  
-  // Climate and Soil
-  climateZone?: string
-  soilType?: string
-  irrigationSystem?: string
-  
-  // Management Settings
-  organicCertified: boolean
-  precisionManagement: boolean
-  
-  // Metadata
-  createdAt: string
-  updatedAt: string
-  createdBy?: string
+  hectares: number
+  mainVarieties?: Array<{
+    variety: string
+    percentage: number
+    cloneCode?: string
+  }>
+  trainingSystem?: 'guyot' | 'cordon' | 'pergola' | 'tendone' | 'other'
+  rowSpacing?: number // meters
+  vineSpacing?: number // meters
+  organicCertified?: boolean
+  description?: string
+  createdAt: Date
+  updatedAt: Date
 }
 
-export type VineyardType = 
-  | 'wine' 
-  | 'table' 
-  | 'raisin' 
-  | 'mixed'
-
-export interface VarietyInfo {
-  variety: string
-  percentage: number
-  plantingDate?: string
-  expectedYield?: number
-  harvestPeriod?: string
-  wineStyle?: string // red, white, rosé, sparkling
-  notes?: string
-}
-
-export interface RootstockInfo {
-  rootstock: string
-  percentage: number
-  characteristics: string[]
-  soilAdaptation: string[]
-  vigorControl: 'dwarfing' | 'semi_dwarfing' | 'standard' | 'vigorous'
-  phylloxeraResistance: boolean
-}
-
-// ============================================================================
-// INDIVIDUAL VINE MANAGEMENT
-// ============================================================================
-
-export interface VineyardVine {
+// Bud Load and Ravaz Index Types
+export interface BudLoadData {
   id: string
   vineyardId: string
-  gardenId: string
-  
-  // Vine Identification
-  vineNumber: string
-  qrCode?: string
-  
-  // Location Information
-  zoneId?: string
-  fieldRowId?: string
-  sectionId?: string
-  
-  // Precise Position
-  rowNumber?: number
-  positionInRow?: number
-  gpsLatitude?: number
-  gpsLongitude?: number
-  
-  // Vine Characteristics
-  variety: string
-  rootstock?: string
-  plantingDate?: string
-  vineAgeYears?: number
-  
-  // Physical Characteristics
-  trunkDiameterCm?: number
-  vineHeightM?: number
-  canopyWidthM?: number
-  trainingSystem?: string
-  
-  // Health and Status
-  healthStatus: VineHealthStatus
-  vigorLevel: VineVigorLevel
-  productivityStatus: VineProductivityStatus
-  
-  // Production Data
-  expectedYieldKg?: number
-  lastHarvestKg?: number
-  lastHarvestDate?: string
-  cumulativeYieldKg: number
-  
-  // Wine-specific Data
-  sugarContentBrix?: number
-  acidityLevel?: number
-  phLevel?: number
-  
-  // Management Notes
+  season: string // e.g., "2025-2026"
+  pruningDate: Date
+  pruningWoodWeight: number // kg
+  harvestDate?: Date
+  grapeYield: number // kg
+  ravazIndex?: number // Calculated: grapeYield / pruningWoodWeight
+  budsPerVine?: number
   notes?: string
-  specialRequirements?: string
-  
-  // Status Flags
-  needsPruning: boolean
-  needsTreatment: boolean
-  needsReplacement: boolean
-  isActive: boolean
-  
-  // Metadata
-  createdAt: string
-  updatedAt: string
+  createdAt: Date
+  updatedAt: Date
 }
 
-export type VineHealthStatus = 
-  | 'healthy' 
-  | 'stressed' 
-  | 'diseased' 
-  | 'pest_damage' 
-  | 'weather_damage' 
-  | 'dead'
-
-export type VineVigorLevel = 
-  | 'very_low' 
-  | 'low' 
-  | 'normal' 
-  | 'high' 
-  | 'excessive'
-
-export type VineProductivityStatus = 
-  | 'young' 
-  | 'establishing' 
-  | 'productive' 
-  | 'peak' 
-  | 'declining' 
-  | 'senescent'
-
-// ============================================================================
-// VINEYARD-SPECIFIC PRUNING TYPES
-// ============================================================================
-
-export type VineyardPruningType = 
-  | 'winter' 
-  | 'summer' 
-  | 'green' 
-  | 'spur' 
-  | 'cane' 
-  | 'renewal'
-
-export type VineyardPruningObjective = 
-  | 'yield_control'
-  | 'quality_improvement'
-  | 'canopy_management'
-  | 'disease_prevention'
-  | 'vigor_control'
-  | 'shape_maintenance'
-  | 'air_circulation'
-  | 'light_exposure'
-
-// ============================================================================
-// VINEYARD-SPECIFIC HARVEST TYPES
-// ============================================================================
-
-export type VineyardHarvestType = 
-  | 'wine_harvest' 
-  | 'table_grape' 
-  | 'selective_harvest' 
-  | 'late_harvest'
-  | 'ice_wine'
-
-export interface VineyardMaturityIndices {
-  brixMin?: number
-  brixMax?: number
-  acidityMin?: number // g/L
-  acidityMax?: number
-  phMin?: number
-  phMax?: number
-  phenolicMaturity?: number // 0-100 scale
-  seedMaturity?: number // 0-100 scale
+export interface RavazIndexCalculation {
+  ravazIndex: number
+  interpretation: 'under-production' | 'optimal' | 'over-production' | 'severe-over-production'
+  recommendation: string
+  color: string
+  icon: string
 }
 
-// ============================================================================
-// WINE QUALITY ASSESSMENT
-// ============================================================================
-
-export interface WineQualityAssessment {
+// Grape Maturity Tracking Types
+export interface GrapeMaturityData {
   id: string
-  vineId: string
-  harvestDate: string
-  
-  // Chemical Analysis
-  sugarContent: number // Brix
-  totalAcidity: number // g/L
-  phLevel: number
-  malicAcid: number // g/L
-  
-  // Physical Assessment
-  berrySize: 'small' | 'medium' | 'large'
-  skinThickness: 'thin' | 'medium' | 'thick'
-  seedMaturity: number // 0-100 scale
-  
-  // Sensory Evaluation
-  colorIntensity: number // 0-10 scale
-  aromaIntensity: number // 0-10 scale
-  flavorProfile: string[]
-  
-  // Quality Classification
-  qualityGrade: WineQualityGrade
-  wineStyle: WineStyle
-  
-  // Notes
+  vineyardId: string
+  measurementDate: Date
+  brix: number // °Brix (sugar content)
+  ph?: number
+  totalAcidity?: number // g/L
+  malicAcid?: number // g/L
+  tartaricAcid?: number // g/L
+  estimatedAlcohol?: number // % vol (calculated from Brix)
+  berryWeight?: number // grams
+  berryColor?: 'green' | 'yellow' | 'pink' | 'red' | 'purple' | 'black'
   tastingNotes?: string
-  recommendations?: string
-  
-  // Metadata
-  createdAt: string
-  createdBy?: string
-}
-
-export type WineQualityGrade = 
-  | 'premium' 
-  | 'reserve' 
-  | 'standard' 
-  | 'bulk'
-
-export type WineStyle = 
-  | 'red_dry' 
-  | 'red_sweet' 
-  | 'white_dry' 
-  | 'white_sweet' 
-  | 'rosé' 
-  | 'sparkling' 
-  | 'dessert'
-
-// ============================================================================
-// VINEYARD DASHBOARD DATA
-// ============================================================================
-
-export interface VineyardDashboardData {
-  totalVineyards: number
-  totalVines: number
-  vinesNeedingAttention: number
-  upcomingHarvests: number
-  recentActivities: VineyardActivity[]
-  
-  // Quick Stats
-  healthyVinesPercentage: number
-  averageYieldPerVine: number
-  totalYieldThisYear: number
-  averageBrix: number
-  
-  // Alerts
-  criticalAlerts: VineyardAlert[]
-  upcomingTasks: VineyardTask[]
-}
-
-export interface VineyardActivity {
-  id: string
-  type: 'harvest' | 'pruning' | 'treatment' | 'planting' | 'observation' | 'tasting'
-  date: string
-  vineNumber?: string
+  harvestRecommendation?: 'too-early' | 'wait' | 'optimal' | 'harvest-soon' | 'overripe'
+  location?: string // zone or block
   variety?: string
-  description: string
-  quantityKg?: number
-  brixLevel?: number
-  operator?: string
+  createdAt: Date
+  updatedAt: Date
 }
 
-export interface VineyardAlert {
+// Green Operations Types
+export interface GreenOperation {
   id: string
-  type: 'disease' | 'pest' | 'weather' | 'harvest_ready' | 'maintenance' | 'quality'
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  title: string
-  description: string
+  vineyardId: string
+  operationType: 'defoliation' | 'topping' | 'shoot-thinning' | 'cluster-thinning'
+  operationDate: Date
+  intensity: 'light' | 'medium' | 'heavy'
+  zone?: 'basal' | 'apical' | 'lateral' | 'all'
   affectedVines: number
-  actionRequired: string
-  dueDate?: string
+  estimatedHours: number
+  actualHours?: number
+  operator?: string
+  notes?: string
+  photos?: string[]
+  createdAt: Date
+  updatedAt: Date
 }
 
-export interface VineyardTask {
-  id: string
-  type: 'pruning' | 'harvest' | 'treatment' | 'observation' | 'canopy_management'
-  title: string
-  dueDate: string
-  estimatedDuration: number // hours
-  priority: 'low' | 'medium' | 'high'
-  assignedTo?: string
+// Defoliation (Sfogliatura) specific
+export interface DefoliationData extends GreenOperation {
+  operationType: 'defoliation'
+  leavesRemoved: 'basal' | 'apical' | 'both'
+  timing: 'pre-flowering' | 'fruit-set' | 'veraison' | 'pre-harvest'
+  benefits: string[]
 }
 
-// ============================================================================
-// VINEYARD WIZARD DATA
-// ============================================================================
-
-export interface VineyardWizardData {
-  step: number
-  totalSteps: number
-  
-  // Step 1: Basic Information
-  basicInfo?: {
-    gardenId: string
-    name: string
-    description?: string
-    vineyardType: VineyardType
-    establishedDate?: string
-    totalAreaSqm?: number
-  }
-  
-  // Step 2: Layout and Design
-  layout?: {
-    rowSpacingM: number
-    vineSpacingM: number
-    trainingSystem: string
-    irrigationSystem?: string
-  }
-  
-  // Step 3: Varieties and Rootstocks
-  varieties?: {
-    mainVarieties: VarietyInfo[]
-    rootstockTypes: RootstockInfo[]
-  }
-  
-  // Step 4: Vine Planting
-  vines?: {
-    plantingMethod: 'manual' | 'bulk' | 'import'
-    vineData: Partial<VineyardVine>[]
-  }
-  
-  // Step 5: Management Settings
-  management?: {
-    organicCertified: boolean
-    precisionManagement: boolean
-    climateZone?: string
-    soilType?: string
-  }
+// Topping/Shoot Thinning (Cimatura/Spollonatura) specific
+export interface ToppingData extends GreenOperation {
+  operationType: 'topping' | 'shoot-thinning'
+  shootsRemoved?: number
+  heightReduction?: number // cm
+  vigorControl: 'low' | 'medium' | 'high'
 }
 
-// ============================================================================
-// SEARCH AND FILTER TYPES
-// ============================================================================
-
-export interface VineyardFilters {
-  vineyardTypes?: VineyardType[]
-  varieties?: string[]
-  healthStatus?: VineHealthStatus[]
-  productivityStatus?: VineProductivityStatus[]
-  ageRange?: { min: number; max: number }
-  yieldRange?: { min: number; max: number }
-  brixRange?: { min: number; max: number }
-  zones?: string[]
-  dateRange?: { startDate: string; endDate: string }
-  organicOnly?: boolean
-  needsAttention?: boolean
+// Cluster Thinning (Diradamento Grappoli) specific
+export interface ClusterThinningData extends GreenOperation {
+  operationType: 'cluster-thinning'
+  clustersPerVine: number
+  clustersRemoved: number
+  targetYield: number // kg/vine
+  qualityGoal: 'standard' | 'premium' | 'reserve'
 }
 
-export interface VineSearchCriteria {
-  vineNumber?: string
-  variety?: string
-  healthStatus?: VineHealthStatus[]
-  vigorLevel?: VineVigorLevel[]
-  productivityStatus?: VineProductivityStatus[]
-  needsPruning?: boolean
-  needsTreatment?: boolean
-  harvestReady?: boolean
-  brixRange?: { min: number; max: number }
-  location?: {
-    zoneId?: string
-    fieldRowId?: string
-    sectionId?: string
-    rowNumber?: number
-  }
+// Vineyard KPIs
+export interface VineyardKPIs {
+  vineyardId: string
+  season: string
+  totalYield: number // kg
+  yieldPerVine: number // kg
+  yieldPerHectare: number // kg/ha
+  averageClusterWeight: number // grams
+  averageBrix: number // °Brix
+  averagePh: number
+  averageAcidity: number // g/L
+  ravazIndex: number
+  qualityScore: number // 0-100
+  estimatedWineProduction?: number // liters
+  estimatedRevenue?: number // €
 }

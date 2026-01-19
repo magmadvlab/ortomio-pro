@@ -17,9 +17,13 @@ import {
   Cloud,
   Sun,
   Leaf,
-  Target
+  Target,
+  Calculator
 } from 'lucide-react'
 import { Garden } from '@/types'
+import DensityCalculator from '../orchard/DensityCalculator'
+import OliveMaturityTracker from './OliveMaturityTracker'
+import OliveFlyMonitor from './OliveFlyMonitor'
 
 interface OliveManagementDashboardProps {
   garden: Garden
@@ -43,6 +47,7 @@ export default function OliveManagementDashboard({ garden, onAction }: OliveMana
   const [weatherData, setWeatherData] = useState<any>(null)
   const [oliveGroveHealth, setOliveGroveHealth] = useState<any>(null)
   const [productionData, setProductionData] = useState<any>(null)
+  const [activeTab, setActiveTab] = useState<'overview' | 'maturity-tracking' | 'fly-monitoring' | 'density-calculator'>('overview')
 
   useEffect(() => {
     loadManagementData()
@@ -192,6 +197,65 @@ export default function OliveManagementDashboard({ garden, onAction }: OliveMana
 
   return (
     <div className="space-y-6">
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+        <div className="flex gap-2 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              activeTab === 'overview'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <BarChart3 size={16} />
+            Gestione Completa
+          </button>
+          <button
+            onClick={() => setActiveTab('maturity-tracking')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              activeTab === 'maturity-tracking'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <CircleDot size={16} />
+            Maturazione
+          </button>
+          <button
+            onClick={() => setActiveTab('fly-monitoring')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              activeTab === 'fly-monitoring'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Bug size={16} />
+            Mosca Olearia
+          </button>
+          <button
+            onClick={() => setActiveTab('density-calculator')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              activeTab === 'density-calculator'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Calculator size={16} />
+            Calcolo Densità
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'density-calculator' ? (
+        <DensityCalculator />
+      ) : activeTab === 'maturity-tracking' ? (
+        <OliveMaturityTracker oliveGroveId={garden.id} oliveGroveName={garden.name} />
+      ) : activeTab === 'fly-monitoring' ? (
+        <OliveFlyMonitor oliveGroveId={garden.id} oliveGroveName={garden.name} />
+      ) : (
+        <>
       {/* Header */}
       <div className="bg-gradient-to-r from-green-50 to-yellow-50 rounded-xl border border-green-200 p-6">
         <div className="flex items-center justify-between mb-4">
@@ -507,6 +571,8 @@ export default function OliveManagementDashboard({ garden, onAction }: OliveMana
           </button>
         </div>
       </div>
+        </>
+      )}
     </div>
   )
 }

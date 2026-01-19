@@ -88,6 +88,47 @@ Forme moderne per efficienza:
 
 ---
 
+## 🆕 FUNZIONALITÀ AVANZATE IMPLEMENTATE
+
+### **Calcolo Densità Impianto**
+**Percorso:** `Vigneto → Tab "Calcolo Densità"`
+
+Sistema automatico per calcolo sesti d'impianto:
+- **Input**: Superficie, forma allevamento, tipo coltura
+- **Calcolo**: Piante/ha, distanza tra file, distanza sulla fila
+- **Forme Supportate**: Guyot, Cordone Speronato, Pergola, Tendone
+- **Output**: Risultato con confidenza, soluzioni alternative
+
+### **Indice di Ravaz (Carico Gemme)**
+**Percorso:** `Vigneto → Tab "Carico Gemme"`
+
+Monitoraggio equilibrio vegeto-produttivo:
+- **Formula**: Resa Uva (kg) / Peso Legno Potatura (kg)
+- **Interpretazione Automatica**:
+  - < 5: Sotto-produzione (troppa vigoria)
+  - 5-10: ✅ Equilibrio ottimale
+  - > 10: Sovra-produzione (stress vite)
+- **Raccomandazioni**: Suggerimenti automatici per carico gemme
+- **Storico**: Trend pluriennale per stagione
+
+### **Maturazione Tecnologica Uva**
+**Percorso:** `Vigneto → Tab "Maturazione Uva"`
+
+Tracking parametri maturazione:
+- **Brix (Zuccheri)**: Scala 0-40°Bx
+- **pH**: Acidità (ottimale 3.0-3.6)
+- **Acidità Totale**: g/L (ottimale 5-8)
+- **Alcol Stimato**: Calcolo automatico (Brix × 0.6)
+- **Raccomandazioni Vendemmia**:
+  - < 18°Bx: Troppo presto
+  - 18-20°Bx: Ancora acerbo
+  - 20-24°Bx: ✅ Ottimale
+  - 24-26°Bx: Vendemmia presto
+  - > 26°Bx: Sovramaturazione
+- **Note Degustazione**: Tracking qualitativo
+
+---
+
 ## 🍃 OPERAZIONI VITICOLE SPECIALIZZATE
 
 ### **Potatura Invernale Avanzata**

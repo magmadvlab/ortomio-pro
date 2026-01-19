@@ -85,6 +85,56 @@ Protezione specifica per olive:
 
 ---
 
+## 🆕 FUNZIONALITÀ AVANZATE IMPLEMENTATE
+
+### **Calcolo Densità Impianto**
+**Percorso:** `Oliveto → Tab "Calcolo Densità"`
+
+Sistema automatico per calcolo sesti d'impianto:
+- **Input**: Superficie, forma allevamento
+- **Calcolo**: Piante/ha, distanza tra file, distanza sulla fila
+- **Forme Supportate**: Globo, Vaso Policonico, Monocono
+- **Output**: Risultato con confidenza, soluzioni alternative
+
+### **Indici Maturazione Olive (Indice Jaén)**
+**Percorso:** `Oliveto → Tab "Maturazione"`
+
+Monitoraggio maturazione per raccolta ottimale:
+- **Invaiatura %**: Tracking cambio colore (0-100%)
+- **Indice Jaén**: Scala 0-7 (calcolo automatico)
+- **Stadi Colore**: Verde → Viraggio → Viola → Nero
+- **Contenuto Olio Stimato**: Percentuale stimata
+- **Raccomandazioni Raccolta**:
+  - 0-1.5: Olive verdi (troppo presto)
+  - 1.5-2.0: Inizio invaiatura
+  - 2.0-3.5: ✅ Ottimale olio qualità
+  - 3.5-5.0: Buono olio quantità
+  - > 5.0: Sovramaturazione
+- **Consistenza Polpa**: Dura / Media / Morbida
+- **Forza Distacco**: Alta / Media / Bassa
+
+### **Monitoraggio Mosca dell'Olivo**
+**Percorso:** `Oliveto → Tab "Mosca Olearia"`
+
+Sistema completo per controllo Bactrocera oleae:
+- **Gestione Trappole**:
+  - Cromotrop (gialle)
+  - Feromoni
+  - Esca alimentare
+- **Tracking Catture**: Registrazione settimanale
+- **Calcolo Infestazione**: % olive infestate
+- **Soglie Intervento Automatiche**:
+  - > 2 mosche/settimana: Intervento
+  - > 10% infestazione: Intervento urgente
+- **Livelli Urgenza**:
+  - 🚨 Immediato (>2 mosche o >10%)
+  - ⚠️ Pianificare (>1 mosca o >5%)
+  - 👁️ Monitorare (>0 mosche o >2%)
+  - ✅ Nessun intervento
+- **Storico Ispezioni**: Trend infestazione
+
+---
+
 ## 🫒 QUALITÀ OLIO E RACCOLTA
 
 ### **Monitoraggio Maturazione**

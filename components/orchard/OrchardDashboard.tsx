@@ -21,10 +21,13 @@ import {
   MapPin,
   Clock,
   Target,
-  Leaf
+  Leaf,
+  Calculator
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import DensityCalculator from './DensityCalculator'
+import YieldPerTreeTracker from './YieldPerTreeTracker'
 
 interface OrchardDashboardProps {
   gardenId: string
@@ -32,11 +35,14 @@ interface OrchardDashboardProps {
   onSelectOrchard: (orchard: OrchardConfiguration) => void
 }
 
+type DashboardTab = 'overview' | 'density-calculator' | 'yield-tracker'
+
 export default function OrchardDashboard({ gardenId, onCreateOrchard, onSelectOrchard }: OrchardDashboardProps) {
   const [orchards, setOrchards] = useState<OrchardConfiguration[]>([])
   const [dashboardData, setDashboardData] = useState<OrchardDashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedOrchardId, setSelectedOrchardId] = useState<string>('')
+  const [activeTab, setActiveTab] = useState<DashboardTab>('overview')
 
   useEffect(() => {
     loadData()
@@ -172,8 +178,8 @@ export default function OrchardDashboard({ gardenId, onCreateOrchard, onSelectOr
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header with Tabs */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard Frutteto</h1>
           <p className="text-gray-600">Panoramica completa dei tuoi frutteti</p>
@@ -187,8 +193,57 @@ export default function OrchardDashboard({ gardenId, onCreateOrchard, onSelectOr
         </button>
       </div>
 
-      {/* Quick Stats */}
-      {dashboardData && (
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+        <div className="flex gap-2 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              activeTab === 'overview'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <BarChart3 size={16} />
+            Panoramica
+          </button>
+          <button
+            onClick={() => setActiveTab('density-calculator')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              activeTab === 'density-calculator'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Calculator size={16} />
+            Calcolo Densità
+          </button>
+          <button
+            onClick={() => setActiveTab('yield-tracker')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              activeTab === 'yield-tracker'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Target size={16} />
+            Resa per Pianta
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'density-calculator' ? (
+        <DensityCalculator />
+      ) : activeTab === 'yield-tracker' ? (
+        <YieldPerTreeTracker 
+          orchardId={selectedOrchardId || gardenId}
+          orchardName={orchards.find(o => o.id === selectedOrchardId)?.name}
+        />
+      ) : (
+        <>
+          {/* Quick Stats */}
+          {dashboardData && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
@@ -482,6 +537,8 @@ export default function OrchardDashboard({ gardenId, onCreateOrchard, onSelectOr
             <p className="text-sm text-orange-700">Score su 100</p>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   )

@@ -72,9 +72,63 @@ export default function SeedlingDashboard({
   const [filterPhase, setFilterPhase] = useState<string>('all');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
+  
+  // Dati mock per testare l'interfaccia
+  const [mockBatches] = useState<SeedlingBatch[]>([
+    {
+      id: '1',
+      plantName: 'Pomodoro',
+      variety: 'San Marzano',
+      source: 'home',
+      currentPhase: 'nursing',
+      startDate: new Date('2024-01-15'),
+      quantity: 24,
+      survivingQuantity: 22,
+      photos: [
+        {
+          id: 'p1',
+          url: '/api/placeholder/200/150?seedling=1',
+          date: new Date('2024-01-20'),
+          phase: 'germination',
+          notes: 'Prima germinazione'
+        }
+      ],
+      notes: 'Crescita regolare, buona germinazione',
+      expectedTransplantDate: new Date('2024-03-15'),
+    },
+    {
+      id: '2',
+      plantName: 'Basilico',
+      variety: 'Genovese',
+      source: 'nursery',
+      currentPhase: 'ready',
+      startDate: new Date('2024-02-01'),
+      quantity: 12,
+      survivingQuantity: 11,
+      photos: [],
+      notes: 'Pronto per il trapianto',
+      expectedTransplantDate: new Date('2024-03-01'),
+    },
+    {
+      id: '3',
+      plantName: 'Peperone',
+      variety: 'Quadrato d\'Asti',
+      source: 'home',
+      currentPhase: 'germination',
+      startDate: new Date('2024-01-25'),
+      quantity: 18,
+      survivingQuantity: 15,
+      photos: [],
+      notes: 'Germinazione in corso',
+      expectedTransplantDate: new Date('2024-04-01'),
+    }
+  ])
+  
+  // Usa i dati mock se non ci sono batch forniti
+  const activeBatches = batches.length > 0 ? batches : mockBatches
 
   // Filtri e ricerca
-  const filteredBatches = batches.filter(batch => {
+  const filteredBatches = activeBatches.filter(batch => {
     const matchesSearch = batch.plantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          batch.variety.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesPhase = filterPhase === 'all' || batch.currentPhase === filterPhase;
@@ -83,25 +137,25 @@ export default function SeedlingDashboard({
 
   // Statistiche
   const stats = {
-    total: batches.length,
-    active: batches.filter(b => b.currentPhase !== 'transplanted').length,
-    ready: batches.filter(b => b.currentPhase === 'ready').length,
-    germinating: batches.filter(b => b.currentPhase === 'germination').length,
-    totalSeedlings: batches.reduce((sum, b) => sum + b.survivingQuantity, 0),
-    averageSurvival: batches.length > 0 
-      ? batches.reduce((sum, b) => sum + (b.survivingQuantity / b.quantity), 0) / batches.length * 100
+    total: activeBatches.length,
+    active: activeBatches.filter(b => b.currentPhase !== 'transplanted').length,
+    ready: activeBatches.filter(b => b.currentPhase === 'ready').length,
+    germinating: activeBatches.filter(b => b.currentPhase === 'germination').length,
+    totalSeedlings: activeBatches.reduce((sum, b) => sum + b.survivingQuantity, 0),
+    averageSurvival: activeBatches.length > 0 
+      ? activeBatches.reduce((sum, b) => sum + (b.survivingQuantity / b.quantity), 0) / activeBatches.length * 100
       : 0
   };
 
   // Promemoria e avvisi
   const alerts = [
-    ...batches.filter(b => b.currentPhase === 'ready').map(b => ({
+    ...activeBatches.filter(b => b.currentPhase === 'ready').map(b => ({
       type: 'ready',
       message: `${b.plantName} (${b.variety}) è pronto per il trapianto`,
       batch: b,
       priority: 'high'
     })),
-    ...batches.filter(b => {
+    ...activeBatches.filter(b => {
       const daysSinceStart = (new Date().getTime() - b.startDate.getTime()) / (1000 * 60 * 60 * 24);
       return b.currentPhase === 'germination' && daysSinceStart > 14;
     }).map(b => ({
@@ -110,7 +164,7 @@ export default function SeedlingDashboard({
       batch: b,
       priority: 'medium'
     })),
-    ...batches.filter(b => (b.survivingQuantity / b.quantity) < 0.5).map(b => ({
+    ...activeBatches.filter(b => (b.survivingQuantity / b.quantity) < 0.5).map(b => ({
       type: 'survival',
       message: `${b.plantName} (${b.variety}) ha bassa sopravvivenza`,
       batch: b,
@@ -268,7 +322,7 @@ export default function SeedlingDashboard({
           
           <Button 
             onClick={() => setShowCreateForm(true)}
-            disabled={batches.length >= maxBatches}
+            disabled={activeBatches.length >= maxBatches}
             className="gap-3"
           >
             <Plus className="w-4 h-4" />
@@ -278,7 +332,7 @@ export default function SeedlingDashboard({
       </div>
 
       {/* Limite versione free */}
-      {batches.length >= maxBatches && (
+      {activeBatches.length >= maxBatches && (
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -363,7 +417,7 @@ export default function SeedlingDashboard({
       {activeTab === 'completed' && (
         <div>
           <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {batches
+            {activeBatches
               .filter(b => b.currentPhase === 'transplanted')
               .map((batch) => (
                 <SeedingProgressCard
@@ -389,7 +443,7 @@ export default function SeedlingDashboard({
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {batches.slice(0, 5).map((batch) => {
+                  {activeBatches.slice(0, 5).map((batch) => {
                     const survivalRate = (batch.survivingQuantity / batch.quantity) * 100;
                     return (
                       <div key={batch.id}>
@@ -426,12 +480,12 @@ export default function SeedlingDashboard({
                   <div className="text-center">
                     <div className="text-xl md:text-2xl font-bold text-blue-600">
                       {Math.round(
-                        batches
+                        activeBatches
                           .filter(b => b.actualTransplantDate)
                           .reduce((sum, b) => {
                             const days = (b.actualTransplantDate!.getTime() - b.startDate.getTime()) / (1000 * 60 * 60 * 24);
                             return sum + days;
-                          }, 0) / batches.filter(b => b.actualTransplantDate).length || 0
+                          }, 0) / activeBatches.filter(b => b.actualTransplantDate).length || 0
                       )}
                     </div>
                     <div className="text-sm text-gray-600">Giorni medi al trapianto</div>

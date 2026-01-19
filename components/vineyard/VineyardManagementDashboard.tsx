@@ -15,9 +15,13 @@ import {
   BarChart3,
   Thermometer,
   Cloud,
-  Sun
+  Sun,
+  Calculator
 } from 'lucide-react'
 import { VineyardConfiguration } from '@/types/vineyard'
+import DensityCalculator from '../orchard/DensityCalculator'
+import RavazIndexCalculator from './RavazIndexCalculator'
+import GrapeMaturityTracker from './GrapeMaturityTracker'
 
 interface VineyardManagementDashboardProps {
   vineyard: VineyardConfiguration
@@ -40,6 +44,7 @@ export default function VineyardManagementDashboard({ vineyard, onAction }: Vine
   const [selectedSection, setSelectedSection] = useState<string>('all')
   const [weatherData, setWeatherData] = useState<any>(null)
   const [vineyardHealth, setVineyardHealth] = useState<any>(null)
+  const [activeTab, setActiveTab] = useState<'overview' | 'density-calculator' | 'ravaz-index' | 'maturity-tracking'>('overview')
 
   useEffect(() => {
     loadManagementData()
@@ -149,6 +154,65 @@ export default function VineyardManagementDashboard({ vineyard, onAction }: Vine
 
   return (
     <div className="space-y-6">
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+        <div className="flex gap-2 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              activeTab === 'overview'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <BarChart3 size={16} />
+            Gestione Completa
+          </button>
+          <button
+            onClick={() => setActiveTab('ravaz-index')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              activeTab === 'ravaz-index'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Calculator size={16} />
+            Carico Gemme
+          </button>
+          <button
+            onClick={() => setActiveTab('maturity-tracking')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              activeTab === 'maturity-tracking'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Droplets size={16} />
+            Maturazione
+          </button>
+          <button
+            onClick={() => setActiveTab('density-calculator')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              activeTab === 'density-calculator'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Calculator size={16} />
+            Calcolo Densità
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'density-calculator' ? (
+        <DensityCalculator />
+      ) : activeTab === 'ravaz-index' ? (
+        <RavazIndexCalculator vineyardId={vineyard.id} vineyardName={vineyard.name} />
+      ) : activeTab === 'maturity-tracking' ? (
+        <GrapeMaturityTracker vineyardId={vineyard.id} vineyardName={vineyard.name} />
+      ) : (
+        <>
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200 p-6">
         <div className="flex items-center justify-between mb-4">
@@ -429,6 +493,8 @@ export default function VineyardManagementDashboard({ vineyard, onAction }: Vine
           </button>
         </div>
       </div>
+        </>
+      )}
     </div>
   )
 }

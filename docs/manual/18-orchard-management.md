@@ -6,6 +6,42 @@ Sistema specializzato per gestione frutteti commerciali con database varietale c
 
 **Percorso**: Sidebar, seleziona "Frutteto"
 
+---
+
+## 🆕 FUNZIONALITÀ AVANZATE IMPLEMENTATE
+
+### **Calcolo Densità Impianto**
+**Percorso:** `Frutteto → Tab "Calcolo Densità"`
+
+Sistema automatico per calcolo sesti d'impianto:
+- **Input**: Superficie, tipo coltura, forma allevamento
+- **Tipi Colture**: 12 tipi (melo, pero, pesco, albicocco, ciliegio, susino, agrumi, noce, nocciolo, mandorlo, olivo, vite)
+- **Forme Allevamento**: 18 forme (Fusetto, Palmetta, Vaso, Guyot, Cordone Speronato, Pergola, Tendone, Globo, Vaso Policonico, Monocono, etc.)
+- **Calcolo**: Piante/ha, distanza tra file, distanza sulla fila
+- **Sistema Confidenza**: Alta / Media / Bassa
+- **Output**: Risultato principale + soluzioni alternative
+
+### **Resa per Pianta**
+**Percorso:** `Frutteto → Tab "Resa per Pianta"`
+
+Tracking produttività individuale alberi:
+- **Statistiche**: Alberi totali, resa media, top/scarsi, totale stagione
+- **Classificazione**: Top (>130%), Buono (110-130%), Medio (70-110%), Sotto (50-70%), Scarso (<50%)
+- **Top Performers**: Evidenziazione alberi eccellenti per propagazione
+- **Alert Scarsi**: Warning alberi problematici per intervento
+- **Tabella Completa**: Tutti gli alberi ordinati per resa
+- **Filtro Stagione**: Confronto anno corrente, -1, -2
+
+### **Tracking Brix (Maturazione)**
+**Percorso:** `Piante Individuali → Brix Tracker`
+
+Monitoraggio maturazione frutti:
+- **Metodi**: Rifrattometro, stima AI, manuale
+- **Valori Riferimento**: es. Mele 12-16°Bx
+- **Trend Storico**: Visualizzazione evoluzione
+- **Raccomandazioni**: Timing raccolta ottimale
+
+---
 
 ## GESTIONE IMPIANTI
 
