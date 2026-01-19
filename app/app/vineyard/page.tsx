@@ -9,6 +9,7 @@ import VineyardWizard from '@/components/vineyard/VineyardWizard'
 import VineManager from '@/components/vineyard/VineManager'
 import VineyardPruningManager from '@/components/vineyard/VineyardPruningManager'
 import VineyardHarvestManager from '@/components/vineyard/VineyardHarvestManager'
+import VineyardManagementDashboard from '@/components/vineyard/VineyardManagementDashboard'
 import SmartPlantManager from '@/components/plants/SmartPlantManager'
 import { 
   Grape, 
@@ -19,11 +20,12 @@ import {
   Calendar,
   BarChart3,
   Eye,
-  Plus
+  Plus,
+  Cog
 } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 
-type ViewMode = 'dashboard' | 'vines' | 'individual-plants' | 'pruning' | 'harvest' | 'analytics'
+type ViewMode = 'dashboard' | 'management' | 'vines' | 'individual-plants' | 'pruning' | 'harvest' | 'analytics'
 
 export default function VineyardPage() {
   const { storageProvider } = useStorage()
@@ -85,6 +87,7 @@ export default function VineyardPage() {
   const getViewTitle = () => {
     switch (viewMode) {
       case 'dashboard': return 'Dashboard Vigneti'
+      case 'management': return `Gestione Completa - ${selectedVineyard?.name || 'Vigneto'}`
       case 'vines': return `Gestione Viti - ${selectedVineyard?.name || 'Vigneto'}`
       case 'individual-plants': return `Viti Individuali - ${selectedVineyard?.name || 'Vigneto'}`
       case 'pruning': return `Potature - ${selectedVineyard?.name || 'Vigneto'}`
@@ -95,6 +98,7 @@ export default function VineyardPage() {
   }
 
   const navigationItems = [
+    { id: 'management', label: 'Gestione Completa', icon: <Cog size={16} /> },
     { id: 'vines', label: 'Viti', icon: <Grape size={16} /> },
     { id: 'individual-plants', label: 'Viti Individuali', icon: <Users size={16} /> },
     { id: 'pruning', label: 'Potature', icon: <Scissors size={16} /> },
@@ -221,6 +225,40 @@ export default function VineyardPage() {
               />
             )}
 
+            {viewMode === 'management' && selectedVineyard && (
+              <VineyardManagementDashboard
+                vineyard={selectedVineyard}
+                onAction={(action, data) => {
+                  console.log('Vineyard action:', action, data)
+                  // Handle various management actions
+                  switch (action) {
+                    case 'schedule-pruning':
+                      setViewMode('pruning')
+                      break
+                    case 'schedule-treatment':
+                      // Open treatment scheduling modal
+                      break
+                    case 'check-irrigation':
+                      // Open irrigation management
+                      break
+                    case 'view-analytics':
+                      setViewMode('analytics')
+                      break
+                    case 'add-task':
+                      // Open task creation modal
+                      break
+                    case 'start-task':
+                    case 'edit-task':
+                    case 'complete-task':
+                      // Handle task management
+                      break
+                    default:
+                      console.log('Unhandled action:', action)
+                  }
+                }}
+              />
+            )}
+
             {viewMode === 'vines' && selectedVineyard && (
               <div className="space-y-6">
                 <VineManager
@@ -239,6 +277,17 @@ export default function VineyardPage() {
                 <div className="bg-white rounded-lg shadow-md p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Azioni Rapide</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <button
+                      onClick={() => setViewMode('management')}
+                      className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
+                    >
+                      <Cog className="text-purple-600" size={20} />
+                      <div className="text-left">
+                        <div className="font-medium text-gray-900">Gestione Completa</div>
+                        <div className="text-sm text-gray-600">Dashboard avanzata</div>
+                      </div>
+                    </button>
+                    
                     <button
                       onClick={() => setViewMode('pruning')}
                       className="flex items-center gap-3 p-4 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors"
@@ -269,17 +318,6 @@ export default function VineyardPage() {
                       <div className="text-left">
                         <div className="font-medium text-gray-900">Viti Singole</div>
                         <div className="text-sm text-gray-600">Traccia ogni vite</div>
-                      </div>
-                    </button>
-                    
-                    <button
-                      onClick={() => setViewMode('analytics')}
-                      className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
-                    >
-                      <BarChart3 className="text-blue-600" size={20} />
-                      <div className="text-left">
-                        <div className="font-medium text-gray-900">Analisi</div>
-                        <div className="text-sm text-gray-600">Dati e report</div>
                       </div>
                     </button>
                   </div>

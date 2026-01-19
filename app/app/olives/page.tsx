@@ -5,7 +5,8 @@ import { useStorage } from '@/packages/core/hooks/useStorage'
 import { FeatureGate } from '@/components/shared/FeatureGate'
 import LocationSelector from '@/components/shared/LocationSelector'
 import SmartPlantManager from '@/components/plants/SmartPlantManager'
-import { CircleDot, Plus, Calendar, Scissors, Droplets, Info, MapPin, Filter, Users } from 'lucide-react'
+import OliveManagementDashboard from '@/components/olives/OliveManagementDashboard'
+import { CircleDot, Plus, Calendar, Scissors, Droplets, Info, MapPin, Filter, Users, Cog } from 'lucide-react'
 import { Garden, GardenTask } from '@/types'
 import { getMasterSheetSync } from '@/services/plantMasterService'
 import { format } from 'date-fns'
@@ -21,7 +22,7 @@ export default function OlivesPage() {
   const [selectedLocation, setSelectedLocation] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [upcomingPrunings, setUpcomingPrunings] = useState<any[]>([])
-  const [viewMode, setViewMode] = useState<'overview' | 'individual-plants'>('overview')
+  const [viewMode, setViewMode] = useState<'overview' | 'management' | 'individual-plants'>('overview')
 
   useEffect(() => {
     loadData()
@@ -118,6 +119,17 @@ export default function OlivesPage() {
                 >
                   <CircleDot size={16} className="inline mr-2" />
                   Panoramica
+                </button>
+                <button
+                  onClick={() => setViewMode('management')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'management'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <Cog size={16} className="inline mr-2" />
+                  Gestione Completa
                 </button>
                 <button
                   onClick={() => setViewMode('individual-plants')}
@@ -252,7 +264,43 @@ export default function OlivesPage() {
           </div>
         ) : (
           <>
-            {viewMode === 'individual-plants' ? (
+            {viewMode === 'management' ? (
+              <OliveManagementDashboard
+                garden={selectedGarden}
+                onAction={(action, data) => {
+                  console.log('Olive action:', action, data)
+                  // Handle various management actions
+                  switch (action) {
+                    case 'schedule-pruning':
+                      // Open pruning scheduling
+                      window.open('/app/mechanical-work?filter=Pruning', '_blank')
+                      break
+                    case 'schedule-treatment':
+                      // Open treatment scheduling
+                      window.open('/app/nutrition', '_blank')
+                      break
+                    case 'plan-harvest':
+                      // Open harvest planning
+                      window.open('/app/harvest', '_blank')
+                      break
+                    case 'view-analytics':
+                      // Open analytics view
+                      window.open('/app/analytics', '_blank')
+                      break
+                    case 'add-task':
+                      // Open task creation modal
+                      break
+                    case 'start-task':
+                    case 'edit-task':
+                    case 'complete-task':
+                      // Handle task management
+                      break
+                    default:
+                      console.log('Unhandled action:', action)
+                  }
+                }}
+              />
+            ) : viewMode === 'individual-plants' ? (
               <div className="space-y-4">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <div className="flex items-center gap-3">

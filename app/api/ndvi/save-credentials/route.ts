@@ -1,79 +1,70 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFileSync } from 'fs';
+import { writeFileSync, readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
 export async function POST(request: NextRequest) {
   try {
-    const { clientId, clientSecret, instanceId } = await request.json();
+    const body = await request.json();
+    const { clientId, clientSecret, instanceId } = body;
 
     if (!clientId || !clientSecret) {
       return NextResponse.json(
-        { error: 'Client ID e Client Secret sono richiesti' },
+        { error: 'Client ID and Client Secret are required' },
         { status: 400 }
       );
     }
 
-    // In un'app reale, salveresti nel database utente
-    // Per ora, aggiorniamo le variabili d'ambiente locali
-    
-    // Leggi il file .env.local esistente
+    // Validate Client ID format (should start with 'sh-' for Sentinel Hub)
+    if (!clientId.startsWith('sh-') && !clientId.includes('-')) {
+      return NextResponse.json(
+        { error: 'Invalid Client ID format. Should be in format: sh-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' },
+        { status: 400 }
+      );
+    }
+
+    // Path to .env.local file
     const envPath = join(process.cwd(), '.env.local');
-    let envContent = '';
     
-    try {
-      const fs = require('fs');
-      envContent = fs.readFileSync(envPath, 'utf8');
-    } catch (error) {
-      // File non esiste, crealo
-      envContent = '# OrtoMio Environment Variables\n';
+    // Read existing .env.local content
+    let envContent = '';
+    if (existsSync(envPath)) {
+      envContent = readFileSync(envPath, 'utf8');
     }
 
-    // Aggiorna o aggiungi le credenziali Sentinel Hub
-    const lines = envContent.split('\n');
-    const updatedLines = [];
-    let foundClientId = false;
-    let foundClientSecret = false;
-    let foundInstanceId = false;
+    // Update or add Sentinel Hub credentials
+    const credentials = [
+      `SH_CLIENT_ID=${clientId}`,
+      `SH_CLIENT_SECRET=${clientSecret}`,
+      `SH_INSTANCE_ID=${instanceId || 'a9646191-f172-4e6e-a965-670c4a222898'}`
+    ];
 
-    for (const line of lines) {
-      if (line.startsWith('SH_CLIENT_ID=')) {
-        updatedLines.push(`SH_CLIENT_ID=${clientId}`);
-        foundClientId = true;
-      } else if (line.startsWith('SH_CLIENT_SECRET=')) {
-        updatedLines.push(`SH_CLIENT_SECRET=${clientSecret}`);
-        foundClientSecret = true;
-      } else if (line.startsWith('ORTOMIO_WMS_CONFIG_ID=')) {
-        updatedLines.push(`ORTOMIO_WMS_CONFIG_ID=${instanceId || 'a9646191-f172-4e6e-a965-670c4a222898'}`);
-        foundInstanceId = true;
-      } else {
-        updatedLines.push(line);
-      }
-    }
+    // Remove existing SH_ credentials
+    const lines = envContent.split('\n').filter(line => 
+      !line.startsWith('SH_CLIENT_ID=') && 
+      !line.startsWith('SH_CLIENT_SECRET=') && 
+      !line.startsWith('SH_INSTANCE_ID=')
+    );
 
-    // Aggiungi le variabili se non esistevano
-    if (!foundClientId) {
-      updatedLines.push(`SH_CLIENT_ID=${clientId}`);
-    }
-    if (!foundClientSecret) {
-      updatedLines.push(`SH_CLIENT_SECRET=${clientSecret}`);
-    }
-    if (!foundInstanceId) {
-      updatedLines.push(`ORTOMIO_WMS_CONFIG_ID=${instanceId || 'a9646191-f172-4e6e-a965-670c4a222898'}`);
-    }
+    // Add new credentials
+    const newEnvContent = [...lines, ...credentials, ''].join('\n');
 
-    // Scrivi il file aggiornato
-    const updatedContent = updatedLines.join('\n');
-    writeFileSync(envPath, updatedContent, 'utf8');
+    // Write back to .env.local
+    writeFileSync(envPath, newEnvContent, 'utf8');
 
-    return NextResponse.json({
-      success: true,
-      message: 'Credenziali salvate con successo'
+    // Also update process.env for immediate use (requires restart for full effect)
+    process.env.SH_CLIENT_ID = clientId;
+    process.env.SH_CLIENT_SECRET = clientSecret;
+    process.env.SH_INSTANCE_ID = instanceId || 'a9646191-f172-4e6e-a965-670c4a222898';
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Credentials saved successfully. Please restart the application for changes to take full effect.' 
     });
 
   } catch (error: any) {
-    console.error('Errore salvataggio credenziali:', error);
+    console.error('Error saving NDVI credentials:', error);
     return NextResponse.json(
-      { error: 'Errore interno del server' },
+      { error: 'Failed to save credentials: ' + error.message },
       { status: 500 }
     );
   }
