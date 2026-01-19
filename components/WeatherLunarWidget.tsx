@@ -5,11 +5,10 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { WeatherForecast, WeatherAlert } from '../services/weatherService';
-import { getWeatherForecast7Days, generateWeatherAlerts } from '../services/weatherService';
-import { getCachedForecast, cacheForecast } from '../services/weatherCacheService';
-import { calculateMoonPhase } from '../logic/lunarCalendar';
-import { useTier } from '../packages/core/hooks/useTier';
+import { WeatherForecast, WeatherAlert, getWeatherForecast7Days, generateWeatherAlerts } from '@/services/weatherService';
+import { getCachedForecast, cacheForecast } from '@/services/weatherCacheService';
+import { calculateMoonPhase } from '@/logic/lunarCalendar';
+import { useTier } from '@/packages/core/hooks/useTier';
 import { Garden } from '../types';
 import { 
   Cloud, CloudRain, Sun, Snowflake, ThermometerSun, Droplets, Wind, 
@@ -32,6 +31,16 @@ interface LunarAdvice {
   todayAdvice: string;
 }
 
+// Extended weather forecast interface for the widget
+interface ExtendedWeatherForecast {
+  date: string;
+  temp: number;
+  code: number;
+  rainForecastMm: number;
+  windSpeed: number;
+  humidity: number;
+}
+
 const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
   latitude,
   longitude,
@@ -39,7 +48,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
   gardens = [],
 }) => {
   const { can } = useTier();
-  const [forecast, setForecast] = useState<WeatherForecast[]>([]);
+  const [forecast, setForecast] = useState<ExtendedWeatherForecast[]>([]);
   const [alerts, setAlerts] = useState<WeatherAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -170,8 +179,17 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
         const cached = await getCachedForecast(weatherLat, weatherLng);
         if (cached && cached.length > 0) {
           clearTimeout(timeoutId);
-          setForecast(cached);
-          const generatedAlerts = generateWeatherAlerts(cached, activePlants);
+          // Transform cached data to match expected interface
+          const transformedCached = cached.map(item => ({
+            date: item.date,
+            temp: item.tempMax || item.tempMin || 20,
+            code: 0, // Default clear sky
+            rainForecastMm: item.rainMm || 0,
+            windSpeed: item.windSpeed || 0,
+            humidity: item.humidity || 60
+          }));
+          setForecast(transformedCached);
+          const generatedAlerts = generateWeatherAlerts(cached as any[], activePlants);
           setAlerts(generatedAlerts);
           setLoading(false);
           return;
@@ -182,8 +200,18 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
         clearTimeout(timeoutId);
 
         if (data && data.length > 0) {
-          setForecast(data);
-          await cacheForecast(weatherLat, weatherLng, data);
+          // Transform the data to match expected interface
+          const transformedData = data.map(item => ({
+            date: item.date?.toISOString?.() || item.date,
+            temp: item.temp_max || item.temp_min || 20,
+            code: 0, // Default clear sky
+            rainForecastMm: item.precipitation || 0,
+            windSpeed: item.wind_speed || 0,
+            humidity: item.humidity || 60
+          }));
+          
+          setForecast(transformedData);
+          await cacheForecast(weatherLat, weatherLng, transformedData);
           const generatedAlerts = generateWeatherAlerts(data, activePlants);
           setAlerts(generatedAlerts);
         } else {

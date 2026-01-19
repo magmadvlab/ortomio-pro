@@ -29,6 +29,12 @@ interface WeatherForecast {
   humidity: number
 }
 
+interface WeatherAlert {
+  severity: 'LOW' | 'MEDIUM' | 'HIGH'
+  message: string
+  type: 'temperature' | 'rain' | 'wind' | 'humidity'
+}
+
 interface GardenLocation {
   lat: number
   lon: number
@@ -85,6 +91,72 @@ export async function getWeatherForecast(lat: number, lng: number, days: number 
 
 export async function getWeatherForecast7Days(lat: number, lng: number): Promise<any[]> {
   return getWeatherForecast(lat, lng, 7);
+}
+
+export function generateWeatherAlerts(
+  forecast: any[], 
+  activePlants: Array<{ plantName: string; minTemp?: number }> = []
+): WeatherAlert[] {
+  const alerts: WeatherAlert[] = [];
+  
+  if (!forecast || forecast.length === 0) return alerts;
+  
+  const today = forecast[0];
+  
+  // Temperature alerts
+  if (today.temp_max > 35) {
+    alerts.push({
+      severity: 'HIGH',
+      message: 'Temperature estreme previste - proteggi le piante',
+      type: 'temperature'
+    });
+  } else if (today.temp_max > 30) {
+    alerts.push({
+      severity: 'MEDIUM', 
+      message: 'Temperature elevate - aumenta irrigazione',
+      type: 'temperature'
+    });
+  }
+  
+  if (today.temp_min < 0) {
+    alerts.push({
+      severity: 'HIGH',
+      message: 'Rischio gelo - proteggi piante sensibili',
+      type: 'temperature'
+    });
+  } else if (today.temp_min < 5) {
+    alerts.push({
+      severity: 'MEDIUM',
+      message: 'Temperature basse - monitora piante sensibili',
+      type: 'temperature'
+    });
+  }
+  
+  // Rain alerts
+  if (today.precipitation > 20) {
+    alerts.push({
+      severity: 'HIGH',
+      message: 'Pioggia intensa prevista - sospendi irrigazione',
+      type: 'rain'
+    });
+  } else if (today.precipitation > 5) {
+    alerts.push({
+      severity: 'MEDIUM',
+      message: 'Pioggia prevista - riduci irrigazione',
+      type: 'rain'
+    });
+  }
+  
+  // Wind alerts
+  if (today.wind_speed > 50) {
+    alerts.push({
+      severity: 'HIGH',
+      message: 'Vento forte - proteggi piante alte',
+      type: 'wind'
+    });
+  }
+  
+  return alerts;
 }
 
 function getConditionFromCode(code: number): string {
@@ -476,4 +548,4 @@ class WeatherService {
 }
 
 export const weatherService = new WeatherService()
-export type { WeatherData, WeatherForecast, GardenLocation }
+export type { WeatherData, WeatherForecast, WeatherAlert, GardenLocation }
