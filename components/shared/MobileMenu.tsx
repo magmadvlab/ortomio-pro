@@ -269,7 +269,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
       {/* Drawer */}
       <div
-        className={`fixed left-0 top-0 h-full w-[80vw] max-w-[320px] bg-white z-50 shadow-xl transform transition-transform duration-300 ease-in-out ${
+        className={`fixed left-0 top-0 h-full w-[85vw] max-w-[350px] bg-white z-50 shadow-xl transform transition-transform duration-300 ease-in-out overflow-hidden ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -341,7 +341,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
         )}
 
         {/* Menu Content - Scrollable */}
-        <div className="overflow-y-auto h-[calc(100vh-140px)] pb-4">
+        <div className="overflow-y-auto flex-1 pb-4">
           <nav className="p-4 space-y-4 sm:space-y-6">
             {menuGroups.map((group) => {
               if (!isGroupAvailable(group)) return null
@@ -380,10 +380,10 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                           <button
                             key={item.path}
                             onClick={() => handleLinkClick(item.path)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left min-h-[44px] ${
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left min-h-[48px] touch-manipulation ${
                               isActive
                                 ? 'bg-gray-100 text-gray-900 font-semibold'
-                                : 'text-gray-700 hover:bg-gray-50'
+                                : 'text-gray-700 hover:bg-gray-50 active:bg-gray-100'
                             }`}
                           >
                             <Icon size={20} className="flex-shrink-0" />

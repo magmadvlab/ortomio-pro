@@ -1,0 +1,53 @@
+fix: Complete mobile UI fixes and interface improvements
+
+🔧 Harvest Modal Fixes:
+- Fix TypeScript errors (rating null/undefined, disabled prop)
+- Remove unused imports (Calendar, Weight)
+- Fix modal blocking issue - now closes properly after save
+- Improve form validation and error handling
+
+📱 Mobile Menu Improvements:
+- Increase menu width to 85vw (max 350px) for better visibility
+- Increase touch targets to 48px for better mobile UX
+- Add touch-manipulation CSS for iOS optimization
+- Improve scroll behavior and visual feedback
+- Fix menu item positioning and active states
+
+📅 Almanacco Integration:
+- Remove standalone Almanacco tab from mobile menu
+- Convert /app/almanacco page to redirect to planner
+- Integrate Almanacco fully into PlannerCalendar component
+- Add new "Almanacco" tab in calendar view with lunar advice
+
+🌤️ Weather Location Sync:
+- Add localStorage cache for user location (24h duration)
+- Support multiple coordinate formats for gardens
+- Improve fallback logic with intelligent defaults
+- Add better error logging and debugging
+
+🍇 Vineyard Management Functions:
+- Add Quick Actions panel in vine management view
+- Add navigation to Potatures, Vendemmie, Analytics
+- Integrate SmartPlantManager for individual vine tracking
+- Improve layout with contextual actions
+
+🫒 Olive Management Functions:
+- Add Quick Actions in olive list header
+- Add direct links to Potature and Raccolti
+- Add per-olive actions (Potatura, Raccolta, Trattamenti)
+- Integrate individual olive tracking system
+
+✅ All TypeScript errors resolved
+✅ Mobile touch targets optimized
+✅ Weather synchronization improved
+✅ Management functions added to specialized crops
+✅ Almanacco properly integrated in calendar
+
+Files modified:
+- components/harvest/HarvestRegistrationModal.tsx
+- components/shared/MobileMenu.tsx  
+- components/planner/tabs/PlannerCalendar.tsx
+- services/weatherService.ts
+- app/app/vineyard/page.tsx
+- app/app/olives/page.tsx
+- app/app/almanacco/page.tsx

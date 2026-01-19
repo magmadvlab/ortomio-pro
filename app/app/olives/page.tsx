@@ -305,12 +305,32 @@ export default function OlivesPage() {
             {/* Lista Olivi */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl font-bold text-gray-900">
-                  {selectedLocation 
-                    ? `Olivi in ${selectedLocation.fullLocationName} (${filteredTasks.length})`
-                    : `I Tuoi Olivi (${tasks.length})`
-                  }
-                </h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {selectedLocation 
+                      ? `Olivi in ${selectedLocation.fullLocationName} (${filteredTasks.length})`
+                      : `I Tuoi Olivi (${tasks.length})`
+                    }
+                  </h2>
+                  
+                  {/* Quick Actions */}
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href="/app/mechanical-work?filter=Pruning"
+                      className="flex items-center gap-2 px-3 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors text-sm"
+                    >
+                      <Scissors size={16} />
+                      Potature
+                    </Link>
+                    <Link
+                      href="/app/harvest"
+                      className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm"
+                    >
+                      <Calendar size={16} />
+                      Raccolti
+                    </Link>
+                  </div>
+                </div>
               </div>
               <div className="divide-y divide-gray-200">
                 {filteredTasks.map((task) => {
@@ -359,6 +379,31 @@ export default function OlivesPage() {
                               )}
                             </div>
                           )}
+                          
+                          {/* Management Actions */}
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <Link
+                              href={`/app/mechanical-work?plant=${encodeURIComponent(task.plantName)}`}
+                              className="flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs hover:bg-orange-200 transition-colors"
+                            >
+                              <Scissors size={12} />
+                              Potatura
+                            </Link>
+                            <Link
+                              href={`/app/harvest?plant=${encodeURIComponent(task.plantName)}`}
+                              className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs hover:bg-green-200 transition-colors"
+                            >
+                              <Calendar size={12} />
+                              Raccolta
+                            </Link>
+                            <Link
+                              href={`/app/nutrition?plant=${encodeURIComponent(task.plantName)}`}
+                              className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs hover:bg-blue-200 transition-colors"
+                            >
+                              <Droplets size={12} />
+                              Trattamenti
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     </div>

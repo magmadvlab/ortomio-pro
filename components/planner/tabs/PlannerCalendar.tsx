@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Calendar, Grid3X3, List, Filter, Clock } from 'lucide-react'
+import { Calendar, Grid3X3, List, Filter, Clock, BookOpen } from 'lucide-react'
 import { TimelineView } from '@/components/garden/TimelineView'
 import { PlantLifecycleTimeline } from '@/components/planner/PlantLifecycleTimeline'
+import { AlmanaccoIntegration } from '@/components/planner/AlmanaccoIntegration'
 
 interface PlannerCalendarProps {
   garden: any
@@ -12,7 +13,7 @@ interface PlannerCalendarProps {
   onUpdateTask: (task: any) => void
 }
 
-type ViewMode = 'timeline' | 'lifecycle' | 'list'
+type ViewMode = 'timeline' | 'lifecycle' | 'list' | 'almanacco'
 
 export default function PlannerCalendar({ garden, tasks, onUpdateTask }: PlannerCalendarProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('timeline')
@@ -154,6 +155,14 @@ export default function PlannerCalendar({ garden, tasks, onUpdateTask }: Planner
         return renderLifecycleView()
       case 'list':
         return renderListView()
+      case 'almanacco':
+        return (
+          <AlmanaccoIntegration
+            selectedDate={new Date()}
+            compact={false}
+            showLunarAdvice={true}
+          />
+        )
       default:
         return null
     }
@@ -206,6 +215,17 @@ export default function PlannerCalendar({ garden, tasks, onUpdateTask }: Planner
             >
               <List size={14} />
               Lista
+            </button>
+            <button
+              onClick={() => setViewMode('almanacco')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                viewMode === 'almanacco'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <BookOpen size={14} />
+              Almanacco
             </button>
           </div>
         </div>

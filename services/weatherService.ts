@@ -207,12 +207,35 @@ class WeatherService {
    */
   async getWeatherForUserLocation(): Promise<WeatherData> {
     try {
+      // Prima prova a usare la posizione salvata nel localStorage
+      const savedLocation = localStorage.getItem('userLocation')
+      if (savedLocation) {
+        const location = JSON.parse(savedLocation)
+        if (location.lat && location.lon && Date.now() - location.timestamp < 24 * 60 * 60 * 1000) {
+          return await this.getWeatherForLocation({
+            lat: location.lat,
+            lon: location.lon,
+            name: location.name || 'Posizione salvata'
+          })
+        }
+      }
+
+      // Se non c'è posizione salvata o è scaduta, richiedi nuova posizione
       const position = await this.getCurrentPosition()
       const location: GardenLocation = {
         lat: position.coords.latitude,
         lon: position.coords.longitude,
         name: 'La tua posizione'
       }
+
+      // Salva la posizione per uso futuro
+      localStorage.setItem('userLocation', JSON.stringify({
+        lat: location.lat,
+        lon: location.lon,
+        name: location.name,
+        timestamp: Date.now()
+      }))
+
       return await this.getWeatherForLocation(location)
     } catch (error) {
       console.error('Error getting user location:', error)
@@ -229,14 +252,22 @@ class WeatherService {
    * Ottiene dati meteo per un orto specifico
    */
   async getWeatherForGarden(garden: any): Promise<WeatherData> {
-    if (garden.coordinates) {
+    if (garden?.coordinates?.lat && garden?.coordinates?.lon) {
       return await this.getWeatherForLocation({
         lat: garden.coordinates.lat,
         lon: garden.coordinates.lon,
         name: garden.name
       })
+    } else if (garden?.location?.coordinates) {
+      // Supporta anche formato alternativo
+      return await this.getWeatherForLocation({
+        lat: garden.location.coordinates.lat,
+        lon: garden.location.coordinates.lon,
+        name: garden.name
+      })
     } else {
       // Se l'orto non ha coordinate, usa la posizione dell'utente
+      console.log('Garden has no coordinates, using user location for weather')
       return await this.getWeatherForUserLocation()
     }
   }

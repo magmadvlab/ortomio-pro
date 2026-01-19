@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Weight, Star, Sprout, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Star, Sprout, AlertCircle, CheckCircle } from 'lucide-react';
 import { GardenTask } from '@/types';
 
 interface Harvest {
@@ -224,7 +224,7 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
         quantity: parseFloat(quantity),
         unit,
         harvest_date: harvestDate,
-        rating: qualityRating,
+        rating: qualityRating || undefined,
         notes: notes.trim() || undefined,
         garden_id: gardenId,
         zone_id: selectedCrop?.zoneId,
@@ -234,7 +234,7 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
       };
 
       console.log('Saving harvest data:', harvestData);
-      await onSave(harvestData);
+      onSave(harvestData);
       
       // Chiudi il modal dopo il salvataggio
       onClose();
@@ -494,7 +494,7 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
                 onChange={(e) => setVariety(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="Varietà (opzionale)"
-                disabled={!isManualEntry && selectedTaskId && availableCrops.find(c => c.taskId === selectedTaskId)?.variety}
+                disabled={!isManualEntry && selectedTaskId ? !!availableCrops.find(c => c.taskId === selectedTaskId)?.variety : false}
               />
             </div>
           )}

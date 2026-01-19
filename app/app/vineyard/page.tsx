@@ -222,17 +222,69 @@ export default function VineyardPage() {
             )}
 
             {viewMode === 'vines' && selectedVineyard && (
-              <VineManager
-                vineyardId={selectedVineyard.id}
-                onCreateVine={() => {
-                  // Implementare creazione vite
-                  console.log('Create vine for vineyard:', selectedVineyard.id)
-                }}
-                onEditVine={(vine) => {
-                  // Implementare modifica vite
-                  console.log('Edit vine:', vine)
-                }}
-              />
+              <div className="space-y-6">
+                <VineManager
+                  vineyardId={selectedVineyard.id}
+                  onCreateVine={() => {
+                    // Implementare creazione vite
+                    console.log('Create vine for vineyard:', selectedVineyard.id)
+                  }}
+                  onEditVine={(vine) => {
+                    // Implementare modifica vite
+                    console.log('Edit vine:', vine)
+                  }}
+                />
+                
+                {/* Quick Actions */}
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Azioni Rapide</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <button
+                      onClick={() => setViewMode('pruning')}
+                      className="flex items-center gap-3 p-4 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors"
+                    >
+                      <Scissors className="text-orange-600" size={20} />
+                      <div className="text-left">
+                        <div className="font-medium text-gray-900">Potature</div>
+                        <div className="text-sm text-gray-600">Gestisci potature</div>
+                      </div>
+                    </button>
+                    
+                    <button
+                      onClick={() => setViewMode('harvest')}
+                      className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
+                    >
+                      <Calendar className="text-purple-600" size={20} />
+                      <div className="text-left">
+                        <div className="font-medium text-gray-900">Vendemmie</div>
+                        <div className="text-sm text-gray-600">Pianifica raccolti</div>
+                      </div>
+                    </button>
+                    
+                    <button
+                      onClick={() => setViewMode('individual-plants')}
+                      className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+                    >
+                      <Users className="text-green-600" size={20} />
+                      <div className="text-left">
+                        <div className="font-medium text-gray-900">Viti Singole</div>
+                        <div className="text-sm text-gray-600">Traccia ogni vite</div>
+                      </div>
+                    </button>
+                    
+                    <button
+                      onClick={() => setViewMode('analytics')}
+                      className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      <BarChart3 className="text-blue-600" size={20} />
+                      <div className="text-left">
+                        <div className="font-medium text-gray-900">Analisi</div>
+                        <div className="text-sm text-gray-600">Dati e report</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
 
             {viewMode === 'individual-plants' && selectedVineyard && (

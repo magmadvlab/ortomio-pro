@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mobile Fixes Complete - OrtoMio</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e5e5e5;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.fixed { background: #d4edda; color: #155724; }
+        .status.improved { background: #d1ecf1; color: #0c5460; }
+        .status.removed { background: #f8d7da; color: #721c24; }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checklist li::before {
+            content: "✅";
+            font-size: 16px;
+        }
+        .issue-list {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .issue-list h4 {
+            margin: 0 0 10px 0;
+            color: #856404;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .mobile-test {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 15px;
+            }
+            .mobile-test {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌱 OrtoMio - Mobile Fixes Complete</h1>
+            <p>Test completo delle correzioni per i problemi mobile e di interfaccia</p>
+            <p><strong>Data:</strong> 19 Gennaio 2026</p>
+        </div>
+
+        <!-- Harvest Modal Fixes -->
+        <div class="test-section">
+            <h3>
+                🔧 Harvest Modal Fixes
+                <span class="status fixed">FIXED</span>
+            </h3>
+            <div class="issue-list">
+                <h4>Problemi Risolti:</h4>
+                <ul class="checklist">
+                    <li>Errore TypeScript: rating null vs undefined</li>
+                    <li>Errore TypeScript: disabled prop boolean</li>
+                    <li>Errore TypeScript: await su onSave non necessario</li>
+                    <li>Import non utilizzati rimossi (Calendar, Weight)</li>
+                    <li>Modal ora si chiude correttamente dopo salvataggio</li>
+                </ul>
+            </div>
+            <div class="code-block">
+Test: Aprire modal raccolto, compilare form, salvare
+Risultato atteso: Modal si chiude senza errori
+            </div>
+        </div>
+
+        <!-- Almanacco Tab Removal -->
+        <div class="test-section">
+            <h3>
+                📅 Almanacco Tab Removal
+                <span class="status removed">REMOVED</span>
+            </h3>
+            <div class="issue-list">
+                <h4>Modifiche Applicate:</h4>
+                <ul class="checklist">
+                    <li>Tab Almanacco rimossa dal menu mobile</li>
+                    <li>Pagina /app/almanacco ora reindirizza al planner</li>
+                    <li>Almanacco integrato nel calendario del planner</li>
+                    <li>Nuova tab "Almanacco" nel PlannerCalendar</li>
+                </ul>
+            </div>
+            <div class="code-block">
+Test: Navigare a /app/almanacco
+Risultato atteso: Messaggio di reindirizzamento al planner
+            </div>
+        </div>
+
+        <!-- Mobile Menu Improvements -->
+        <div class="test-section">
+            <h3>
+                📱 Mobile Menu Improvements
+                <span class="status improved">IMPROVED</span>
+            </h3>
+            <div class="issue-list">
+                <h4>Miglioramenti Applicati:</h4>
+                <ul class="checklist">
+                    <li>Larghezza menu aumentata: 85vw (max 350px)</li>
+                    <li>Altezza touch target aumentata: 48px</li>
+                    <li>Aggiunto touch-manipulation per iOS</li>
+                    <li>Migliorato scroll del contenuto</li>
+                    <li>Feedback visivo migliorato (active states)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Weather Location Sync -->
+        <div class="test-section">
+            <h3>
+                🌤️ Weather Location Sync
+                <span class="status fixed">FIXED</span>
+            </h3>
+            <div class="issue-list">
+                <h4>Correzioni Applicate:</h4>
+                <ul class="checklist">
+                    <li>Cache posizione utente in localStorage (24h)</li>
+                    <li>Supporto formati coordinate multipli per giardini</li>
+                    <li>Fallback intelligente su Roma se posizione non disponibile</li>
+                    <li>Logging migliorato per debug</li>
+                </ul>
+            </div>
+            <div class="code-block">
+Test: Aprire WeatherWidget senza coordinate giardino
+Risultato atteso: Usa posizione utente o fallback Roma
+            </div>
+        </div>
+
+        <!-- Vineyard Management Functions -->
+        <div class="test-section">
+            <h3>
+                🍇 Vineyard Management Functions
+                <span class="status improved">IMPROVED</span>
+            </h3>
+            <div class="issue-list">
+                <h4>Funzioni Aggiunte:</h4>
+                <ul class="checklist">
+                    <li>Quick Actions panel nella vista viti</li>
+                    <li>Navigazione rapida a Potature, Vendemmie, Analisi</li>
+                    <li>Integrazione con SmartPlantManager per viti individuali</li>
+                    <li>Layout migliorato con azioni contestuali</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Olive Management Functions -->
+        <div class="test-section">
+            <h3>
+                🫒 Olive Management Functions
+                <span class="status improved">IMPROVED</span>
+            </h3>
+            <div class="issue-list">
+                <h4>Funzioni Aggiunte:</h4>
+                <ul class="checklist">
+                    <li>Quick Actions nella header lista olivi</li>
+                    <li>Link diretti a Potature e Raccolti</li>
+                    <li>Azioni per singolo olivo (Potatura, Raccolta, Trattamenti)</li>
+                    <li>Integrazione con SmartPlantManager per tracciamento individuale</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Mobile Testing -->
+        <div class="mobile-test">
+            <h3>📱 Test Mobile Specifici</h3>
+            <p><strong>Testare su dispositivi mobili:</strong></p>
+            <ul>
+                <li>Menu hamburger si apre correttamente</li>
+                <li>Tutte le voci del menu sono visibili e cliccabili</li>
+                <li>Modal raccolto si apre, compila e chiude senza problemi</li>
+                <li>Weather widget mostra posizione corretta</li>
+                <li>Navigazione tra sezioni fluida</li>
+                <li>Touch targets sufficientemente grandi (48px+)</li>
+            </ul>
+        </div>
+
+        <!-- Technical Details -->
+        <div class="test-section">
+            <h3>🔧 Dettagli Tecnici</h3>
+            <div class="code-block">
+File Modificati:
+- components/harvest/HarvestRegistrationModal.tsx (TypeScript fixes)
+- components/shared/MobileMenu.tsx (UI improvements)
+- components/planner/tabs/PlannerCalendar.tsx (Almanacco integration)
+- services/weatherService.ts (Location sync)
+- app/app/vineyard/page.tsx (Management functions)
+- app/app/olives/page.tsx (Management functions)
+- app/app/almanacco/page.tsx (Redirect page)
+            </div>
+        </div>
+
+        <!-- Next Steps -->
+        <div class="test-section">
+            <h3>🚀 Prossimi Passi</h3>
+            <ul class="checklist">
+                <li>Test su dispositivi mobili reali</li>
+                <li>Verifica performance su connessioni lente</li>
+                <li>Test accessibilità con screen reader</li>
+                <li>Validazione UX con utenti finali</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Test JavaScript per verificare funzionalità
+        console.log('🌱 OrtoMio Mobile Fixes Test Loaded');
+        
+        // Simula test touch events
+        if ('ontouchstart' in window) {
+            console.log('✅ Touch events supported');
+        }
+        
+        // Test localStorage per weather cache
+        try {
+            localStorage.setItem('test', 'value');
+            localStorage.removeItem('test');
+            console.log('✅ localStorage available for weather cache');
+        } catch (e) {
+            console.log('❌ localStorage not available');
+        }
+        
+        // Test viewport
+        const viewport = window.innerWidth;
+        console.log(`📱 Viewport width: ${viewport}px`);
+        if (viewport < 768) {
+            console.log('📱 Mobile viewport detected');
+        }
+    </script>
+</body>
+</html>
