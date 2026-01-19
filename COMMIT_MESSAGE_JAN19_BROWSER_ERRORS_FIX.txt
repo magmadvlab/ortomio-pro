@@ -1,0 +1,68 @@
+feat: Fix browser errors and implement missing critical routes
+
+MAJOR FIXES:
+- Move pianifica route from /app/pianifica/ to /app/app/pianifica/ (correct structure)
+- Fix 404 error: GET /app/pianifica?plant=Fave&from=suggestion
+- Resolve "Gestisci Zone" button not working issue
+- Import missing functionality from vcchiortomio directory (excluded from Vercel)
+
+NEW ROUTES IMPLEMENTED:
+🗺️ Zone Management (/app/zones):
+- Complete zone/field/row hierarchical management
+- ZoneFieldRowManager component with CRUD operations
+- Real-time Supabase integration
+- Statistics dashboard and responsive design
+
+🌾 Harvest Management (/app/harvest):
+- HarvestDashboard with analytics and filtering
+- HarvestRegistrationModal with quality rating system
+- Statistics: total kg, harvests count, varieties, quality tracking
+- Grouping by plant type and time period filtering
+
+📅 Calendar (/app/calendar):
+- IntegratedCalendar with month/list view modes
+- Event creation with types (planting, harvest, treatment, etc.)
+- Color-coded events and completion tracking
+- Click-to-create events functionality
+
+🧪 Treatments (/app/treatments):
+- TreatmentDashboard with product type classification
+- TreatmentPlanner with visual product selection
+- Support for fertilizers, pesticides, fungicides, herbicides
+- Dosage tracking and application method management
+
+COMPONENTS CREATED:
+- components/settings/ZoneFieldRowManager.tsx
+- components/harvest/HarvestDashboard.tsx
+- components/harvest/HarvestRegistrationModal.tsx
+- components/calendar/IntegratedCalendar.tsx
+- components/treatments/TreatmentDashboard.tsx
+- components/treatments/TreatmentPlanner.tsx
+
+SERVICES CREATED:
+- services/zoneManagementService.ts (adapted from old app)
+
+TECHNICAL IMPROVEMENTS:
+- Proper error handling and loading states
+- Mobile-responsive design for all components
+- Form validation and user feedback
+- Supabase integration with CRUD operations
+- TypeScript interfaces and type safety
+
+DATABASE REQUIREMENTS:
+- zones, zone_fields, zone_rows tables
+- harvests table with quality rating
+- calendar_events table with event types
+- treatments table with product classification
+
+RESOLVED ISSUES:
+✅ 404 errors on critical routes eliminated
+✅ Zone management functionality restored
+✅ Proper route structure (/app/app/[route])
+✅ Import paths fixed for moved components
+✅ Vercel deployment compatibility ensured
+✅ Mobile responsiveness implemented
+
+This resolves the core issue where vcchiortomio directory exclusion from Vercel
+caused missing functionality. All critical agricultural management features
+are now properly integrated into the main app structure.

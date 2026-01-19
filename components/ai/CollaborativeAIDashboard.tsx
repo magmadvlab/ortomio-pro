@@ -18,6 +18,7 @@ import {
   Filter
 } from 'lucide-react'
 import { useGarden } from '@/packages/core/hooks/useGarden'
+import { useAuth } from '@/packages/core/hooks/useAuth'
 import AISuggestionCard from './AISuggestionCard'
 import AITransparencyPanel from './AITransparencyPanel'
 import { collaborativeAIService } from '@/services/collaborativeAIService'
@@ -30,6 +31,7 @@ import type {
 
 export default function CollaborativeAIDashboard() {
   const { activeGarden } = useGarden()
+  const { user } = useAuth()
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([])
   const [loading, setLoading] = useState(true)
   const [performanceScore, setPerformanceScore] = useState<AIPerformanceScore | null>(null)
@@ -42,27 +44,26 @@ export default function CollaborativeAIDashboard() {
   const [activeTab, setActiveTab] = useState<'active' | 'history' | 'performance'>('active')
 
   useEffect(() => {
-    if (activeGarden) {
+    if (activeGarden && user) {
       loadData()
     }
-  }, [activeGarden, filter])
+  }, [activeGarden, user, filter])
 
   const loadData = async () => {
-    if (!activeGarden) return
+    if (!activeGarden || !user?.id) return
     
     try {
       setLoading(true)
       
       // Carica suggerimenti
-      const userId = "mock-user-id"
-      const suggs = await collaborativeAIService.getSuggestions(userId, {
+      const suggs = await collaborativeAIService.getSuggestions(user.id, {
         ...filter,
         gardenId: activeGarden.id
       })
       setSuggestions(suggs)
       
       // Carica performance score
-      const score = await collaborativeAIService.getAIPerformanceScore(userId)
+      const score = await collaborativeAIService.getAIPerformanceScore(user.id)
       setPerformanceScore(score)
       
     } catch (error) {

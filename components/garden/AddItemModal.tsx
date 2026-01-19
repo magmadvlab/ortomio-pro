@@ -13,9 +13,10 @@ interface AddItemModalProps {
   isOpen: boolean
   onClose: () => void
   onAddTask?: (task: GardenTask) => void
+  selectedDate?: Date | null
 }
 
-export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModalProps) {
+export function AddItemModal({ garden, isOpen, onClose, onAddTask, selectedDate }: AddItemModalProps) {
   const router = useRouter()
   const { isPro } = useTier()
   const [selectedOption, setSelectedOption] = useState<'plant' | 'task' | 'harvest' | null>(null)
@@ -82,6 +83,7 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
           <div className="p-4">
             <AddCropWizard
               garden={garden}
+              selectedDate={selectedDate}
               onComplete={(taskData: GardenTask) => {
                 if (onAddTask) {
                   onAddTask(taskData)
@@ -113,7 +115,18 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask }: AddItemModa
       <div className="bg-white rounded-3xl w-full max-w-[500px] shadow-xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-          <h2 className="text-lg md:text-xl font-semibold text-gray-900">➕ Aggiungi</h2>
+          <div>
+            <h2 className="text-lg md:text-xl font-semibold text-gray-900">➕ Aggiungi</h2>
+            {selectedDate && (
+              <p className="text-sm text-gray-600 mt-1">
+                📅 Per il {selectedDate.toLocaleDateString('it-IT', { 
+                  weekday: 'long', 
+                  day: 'numeric', 
+                  month: 'long' 
+                })}
+              </p>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors shadow-sm border border-gray-200"

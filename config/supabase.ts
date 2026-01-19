@@ -6,13 +6,15 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 let supabaseClient: SupabaseClient | null = null;
+let clientInitialized = false;
 
 /**
  * Initialize Supabase client
  * Returns null if credentials are not configured (for local development)
  */
 export const getSupabaseClient = (): SupabaseClient | null => {
-  if (supabaseClient) {
+  // Return existing client if already initialized
+  if (clientInitialized) {
     return supabaseClient;
   }
 
@@ -38,6 +40,7 @@ export const getSupabaseClient = (): SupabaseClient | null => {
         sessionStorage.setItem(warningKey, 'true');
       }
     }
+    clientInitialized = true;
     return null;
   }
 
@@ -57,6 +60,8 @@ export const getSupabaseClient = (): SupabaseClient | null => {
       },
     });
     
+    clientInitialized = true;
+    
     // Clear any invalid sessions on initialization
     if (typeof window !== 'undefined') {
       supabaseClient.auth.onAuthStateChange((event, session) => {
@@ -70,6 +75,7 @@ export const getSupabaseClient = (): SupabaseClient | null => {
     return supabaseClient;
   } catch (error) {
     console.error('Error initializing Supabase client:', error);
+    clientInitialized = true;
     return null;
   }
 };

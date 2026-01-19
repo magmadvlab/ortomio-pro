@@ -18,11 +18,18 @@ interface AddCropWizardProps {
   onComplete: (task: GardenTask) => void;
   onCancel: () => void;
   initialPlantName?: string; // Nome iniziale se già inserito
+  selectedDate?: Date | null; // Data selezionata dal calendario
 }
 
 type WizardStep = 'method' | 'name' | 'setup' | 'advanced';
 
 export const AddCropWizard: React.FC<AddCropWizardProps> = ({
+  garden,
+  onComplete,
+  onCancel,
+  initialPlantName,
+  selectedDate
+}) => {
   garden,
   onComplete,
   onCancel,
@@ -434,7 +441,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
       gardenId: garden.id,
       plantName: plantName.trim(),
       taskType: 'Sowing',
-      date: new Date().toISOString().split('T')[0],
+      date: selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       completed: false,
       locationType,
       initialQuantity: plantCount ? parseInt(plantCount) : undefined,

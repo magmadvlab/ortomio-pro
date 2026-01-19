@@ -1,10 +1,11 @@
 /**
- * CalendarAlmanac - Componente principale Calendario + Almanacco + Challenge
+ * CalendarAlmanac - Componente principale Calendario + Almanacco integrato
  * Integra visualizzazione calendario mensile con:
  * - Eventi stagionali (equinozi, solstizi, candelora)
  * - Detti contadini del giorno
  * - Challenge giornaliere
  * - Fasi lunari
+ * - Almanacco integrato come componente accessorio
  */
 
 import React, { useState, useEffect } from 'react';
@@ -19,7 +20,7 @@ import { calculateNutrientNeeds } from '../logic/nutrientEngine';
 import { calculateHealthStrategy } from '../logic/healthEngine';
 import { getMasterSheetSync } from '../services/plantMasterService';
 import { calculatePlantDaysActive } from '../services/taskCalculationService';
-import { FlaskConical, Shield } from 'lucide-react';
+import { FlaskConical, Shield, X, BookOpen, Sun } from 'lucide-react';
 
 interface CalendarAlmanacProps {
   // Props opzionali per integrazione futura
@@ -33,6 +34,7 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [showCompletionDialog, setShowCompletionDialog] = useState<{ task: GardenTask; suggestedDate: Date } | null>(null);
   const [completionDate, setCompletionDate] = useState<string>('');
+  const [showAlmanacco, setShowAlmanacco] = useState<boolean>(false);
   
   // Dati per il giorno selezionato
   const dettiOggi = getDettiForDate(selectedDate);
@@ -86,13 +88,22 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
       onDateClick(date);
     }
   };
+
+  const handleDateDoubleClick = (date: Date) => {
+    // Double click per creare un nuovo task
+    if (onDateClick) {
+      onDateClick(date);
+    }
+    // Qui potresti aprire un modal per creare un task
+    console.log('Double click su data:', date);
+  };
   
   return (
     <div className="p-4 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-col md:flex-col md:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-gray-800">📅 Calendario</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={handlePrevMonth}
             className="p-3 rounded-lg hover:bg-green-100 transition-colors"
@@ -119,6 +130,19 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
             className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
           >
             Oggi
+          </button>
+          {/* Pulsante Almanacco */}
+          <button
+            onClick={() => setShowAlmanacco(!showAlmanacco)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              showAlmanacco 
+                ? 'bg-orange-600 text-white hover:bg-orange-700' 
+                : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+            }`}
+            title={showAlmanacco ? 'Nascondi almanacco' : 'Mostra almanacco'}
+          >
+            <Sun size={16} />
+            Almanacco
           </button>
         </div>
       </div>
@@ -163,13 +187,15 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
               <div
                 key={day.toString()}
                 onClick={() => handleDateClick(day)}
+                onDoubleClick={() => handleDateDoubleClick(day)}
                 className={`
                   min-h-[100px] p-2 rounded-lg border-2 transition-all cursor-pointer
-                  hover:border-green-500 hover:shadow-md
+                  hover:border-green-500 hover:shadow-md hover:scale-[1.02]
                   ${isSelected ? 'border-green-600 bg-green-50 shadow-md' : 'border-gray-200 bg-white'}
                   ${isDayToday && !isSelected ? 'ring-2 ring-green-500 border-green-400' : ''}
                   ${!isCurrentMonth ? 'opacity-40' : ''}
                 `}
+                title={`${format(day, 'dd/MM/yyyy')} - Clicca per dettagli, doppio click per aggiungere task`}
               >
                 {/* Numero giorno */}
                 <div className="flex items-start justify-between mb-1">
@@ -274,9 +300,78 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
             </span>
           )}
         </div>
+
+        {/* Almanacco Integrato - Mostra solo se attivato */}
+        {showAlmanacco && (
+          <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-xl p-4 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <Sun className="text-orange-600" size={24} />
+                <h4 className="font-bold text-orange-900">📖 Almanacco del Giorno</h4>
+              </div>
+              <button
+                onClick={() => setShowAlmanacco(false)}
+                className="p-1 hover:bg-orange-200 rounded-full transition-colors"
+                title="Chiudi almanacco"
+              >
+                <X size={16} className="text-orange-600" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Fase Lunare nell'almanacco */}
+              {faseLunare && (
+                <div className="bg-white/70 rounded-lg p-3 border border-orange-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">{faseLunare.emoji}</span>
+                    <div>
+                      <h5 className="font-semibold text-orange-900 text-sm">{faseLunare.name}</h5>
+                      <p className="text-xs text-orange-700">{faseLunare.consiglio}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Evento Stagionale nell'almanacco */}
+              {eventoStagionale && (
+                <div className="bg-white/70 rounded-lg p-3 border border-orange-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">{eventoStagionale.emoji}</span>
+                    <div>
+                      <h5 className="font-semibold text-orange-900 text-sm">{eventoStagionale.name}</h5>
+                      <p className="text-xs text-orange-700">{eventoStagionale.description}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Detti Contadini nell'almanacco */}
+              {dettiOggi.length > 0 && (
+                <div className="bg-white/70 rounded-lg p-3 border border-orange-200 md:col-span-2">
+                  <h5 className="font-semibold text-orange-900 mb-2 text-sm flex items-center gap-2">
+                    <BookOpen size={16} />
+                    Saggezza Contadina
+                  </h5>
+                  {dettiOggi.slice(0, 1).map((detto, idx) => (
+                    <div key={idx}>
+                      <blockquote className="text-sm italic text-orange-800 mb-1">
+                        "{detto.detto}"
+                      </blockquote>
+                      {detto.consiglioOrto && (
+                        <p className="text-xs text-orange-700 font-medium">
+                          💡 {detto.consiglioOrto}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         
-        {/* Fase Lunare */}
-        {faseLunare && (
+        {/* Fase Lunare - Solo se almanacco non è mostrato */}
+        {!showAlmanacco && faseLunare && (
           <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-3xl">{faseLunare.emoji}</span>
@@ -288,8 +383,8 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
           </div>
         )}
         
-        {/* Evento Stagionale */}
-        {eventoStagionale && (
+        {/* Evento Stagionale - Solo se almanacco non è mostrato */}
+        {!showAlmanacco && eventoStagionale && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-3xl">{eventoStagionale.emoji}</span>
@@ -311,8 +406,8 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
           </div>
         )}
         
-        {/* Detti Contadini */}
-        {dettiOggi.length > 0 && (
+        {/* Detti Contadini - Solo se almanacco non è mostrato */}
+        {!showAlmanacco && dettiOggi.length > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
             <h4 className="font-semibold text-amber-900 mb-2">📖 Detti Contadini</h4>
             {dettiOggi.map((detto, idx) => (
@@ -348,22 +443,36 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
           const completedTasks = dayTasks.filter(t => t.completed);
           const manualTasks = dayTasks.filter(t => !t.isSuggested && !t.completed);
           
-          if (dayTasks.length === 0) {
-            return (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-                <p className="text-gray-500">Nessun task per questo giorno</p>
-              </div>
-            )
-          }
-          
           return (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="font-semibold text-green-900">📋 Task del Giorno</h4>
-                <span className="px-2 py-1 bg-green-600 text-white rounded-full text-xs font-bold">
-                  {dayTasks.length} totali
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-1 bg-green-600 text-white rounded-full text-xs font-bold">
+                    {dayTasks.length} totali
+                  </span>
+                  <button
+                    onClick={() => onDateClick && onDateClick(selectedDate)}
+                    className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center gap-1"
+                    title="Aggiungi nuovo task per questo giorno"
+                  >
+                    <span>+</span>
+                    Aggiungi Task
+                  </button>
+                </div>
               </div>
+              
+              {dayTasks.length === 0 && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                  <p className="text-gray-500 mb-2">Nessun task per questo giorno</p>
+                  <button
+                    onClick={() => onDateClick && onDateClick(selectedDate)}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                  >
+                    Crea il primo task
+                  </button>
+                </div>
+              )}
               
               {/* Task suggeriti */}
               {suggestedTasks.length > 0 && (
@@ -606,13 +715,6 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
                 <p className="text-xs text-purple-600 mt-1">{challengeOggi.challenge.badge.descrizione}</p>
               </div>
             )}
-          </div>
-        )}
-        
-        {/* Nessun contenuto per oggi */}
-        {!eventoStagionale && dettiOggi.length === 0 && !challengeOggi && (
-          <div className="text-center py-8 text-gray-500">
-            <p>Nessun evento speciale oggi. Goditi il tuo orto! 🌱</p>
           </div>
         )}
       </div>

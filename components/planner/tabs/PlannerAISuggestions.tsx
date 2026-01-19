@@ -5,9 +5,10 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Lightbulb, Filter, Calendar, CheckCircle, XCircle, Eye, AlertTriangle, TrendingUp } from 'lucide-react'
 import { useGarden } from '@/packages/core/hooks/useGarden'
+import { useAuth } from '@/packages/core/hooks/useAuth'
 import { collaborativeAIService } from '@/services/collaborativeAIService'
 import AITransparencyPanel from '@/components/ai/AITransparencyPanel'
 import type { AISuggestion, AITransparencyLog } from '@/types/aiFeedback'
@@ -19,6 +20,7 @@ interface PlannerAISuggestionsProps {
 }
 
 export default function PlannerAISuggestions({ garden, tasks, onCreateTasks }: PlannerAISuggestionsProps) {
+  const { user } = useAuth()
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedSuggestion, setSelectedSuggestion] = useState<AISuggestion | null>(null)
@@ -38,17 +40,17 @@ export default function PlannerAISuggestions({ garden, tasks, onCreateTasks }: P
   ]
 
   useEffect(() => {
-    if (garden) {
+    if (garden && user) {
       loadSuggestions()
     }
-  }, [garden])
+  }, [garden, user])
 
   const loadSuggestions = async () => {
-    if (!garden) return
+    if (!garden || !user?.id) return
     
     try {
       setLoading(true)
-      const suggs = await collaborativeAIService.getSuggestions(garden.user_id, {
+      const suggs = await collaborativeAIService.getSuggestions(user.id, {
         statuses: ['PENDING'],
         types: planningTypes,
         gardenId: garden.id

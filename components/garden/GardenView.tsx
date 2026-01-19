@@ -1,13 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Garden, GardenTask } from '@/types'
-import { TimelineView } from './TimelineView'
 import { CalendarTabView } from './CalendarTabView'
-import { ListView } from './ListView'
-import ActivityRegistry from './ActivityRegistry'
 import TraceabilityWidget from './TraceabilityWidget'
-import { Calendar, GanttChart, Plus, Sprout, Settings, Grid3X3, Package, Leaf, Bot, FileText, Shield, Activity, BarChart3, TrendingUp } from 'lucide-react'
+import { Calendar, Plus, Sprout, Settings, Grid3X3, Package, Leaf, Bot, Shield, Activity, BarChart3, TrendingUp, TreePine } from 'lucide-react'
 import { PlantsView } from './PlantsView'
 import { AddItemModal } from './AddItemModal'
 import { HarvestRegistrationModal } from '../harvest/HarvestRegistrationModal'
@@ -24,9 +21,7 @@ interface GardenViewProps {
   tasks: GardenTask[]
   activeTab: 'operations' | 'planning' | 'monitoring' | 'plants' | 'compliance' | 'analytics' | 'structure'
   onTabChange: (tab: 'operations' | 'planning' | 'monitoring' | 'plants' | 'compliance' | 'analytics' | 'structure') => void
-  onToggleTask: (id: string) => void
   onAddTask: (task: Omit<GardenTask, 'id' | 'completed' | 'gardenId'>) => void
-  onDeleteTask: (id: string) => void
   onUpdateTask: (task: GardenTask) => void
 }
 
@@ -35,15 +30,13 @@ export function GardenView({
   tasks,
   activeTab,
   onTabChange,
-  onToggleTask,
   onAddTask,
-  onDeleteTask,
   onUpdateTask
 }: GardenViewProps) {
-  const [showQuickActions, setShowQuickActions] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showHarvestModal, setShowHarvestModal] = useState(false)
   const [showPhotoCapture, setShowPhotoCapture] = useState(false)
+  const [showQuickActions, setShowQuickActions] = useState(false)
   const [showBedManager, setShowBedManager] = useState(false)
   
   const tabs = [
@@ -93,12 +86,36 @@ export function GardenView({
         
         {/* Tab Switcher - Mobile Responsive */}
         <div className="border-b border-gray-200">
-          {/* Mobile: Horizontal scroll */}
-          <div className="flex gap-1 overflow-x-auto pb-2 md:gap-3 md:overflow-visible" style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            WebkitScrollbar: { display: 'none' }
-          }}>
+          {/* Mobile: Usa MobileTabNavigation migliorato */}
+          <div className="block md:hidden">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-gray-600">Sezione:</span>
+              <div className="flex-1 ml-3">
+                <select
+                  value={activeTab}
+                  onChange={(e) => onTabChange(e.target.value as any)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 font-medium focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  {tabs.map((tab) => (
+                    <option key={tab.id} value={tab.id}>
+                      {tab.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            {/* Indicatore sezione attiva mobile */}
+            <div className="flex items-center gap-3 px-3 py-2 bg-green-50 border border-green-200 rounded-lg mb-3">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="font-medium text-green-800 text-sm">
+                {tabs.find(t => t.id === activeTab)?.label}
+              </span>
+            </div>
+          </div>
+          
+          {/* Desktop: Tab orizzontali */}
+          <div className="hidden md:flex gap-1 overflow-x-auto pb-2 scrollbar-hide">
             {tabs.map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
@@ -106,14 +123,14 @@ export function GardenView({
                 <button
                   key={tab.id}
                   onClick={() => onTabChange(tab.id)}
-                  className={`flex items-center gap-2 px-3 py-2 font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0 text-sm md:text-base md:px-4 ${
+                  className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0 text-sm ${
                     isActive
                       ? 'text-green-600 border-green-600'
                       : 'text-gray-500 border-transparent hover:text-gray-700'
                   }`}
                 >
-                  <Icon size={16} className="md:w-[18px] md:h-[18px]" />
-                  <span className="hidden sm:inline">{tab.label}</span>
+                  <Icon size={16} />
+                  <span>{tab.label}</span>
                 </button>
               )
             })}
@@ -171,6 +188,7 @@ export function GardenView({
               garden={garden}
               tasks={tasks}
               onUpdateTask={onUpdateTask}
+              onAddTask={onAddTask}
               onDateClick={(date) => {
                 // Switch to operations view
                 onTabChange('operations')
@@ -296,6 +314,13 @@ export function GardenView({
                 </div>
                 <div className="flex gap-3">
                   <Link
+                    href="/app/semenzaio"
+                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
+                  >
+                    <Sprout size={16} />
+                    Semenzaio
+                  </Link>
+                  <Link
                     href="/app/planner"
                     className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-3"
                   >
@@ -310,6 +335,53 @@ export function GardenView({
                     Vista Completa
                   </Link>
                 </div>
+              </div>
+
+              {/* Quick Navigation */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <Link
+                  href="/app/plants?tab=plants"
+                  className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+                >
+                  <Sprout className="text-green-600" size={24} />
+                  <div>
+                    <p className="font-medium text-green-900">Piante in Orto</p>
+                    <p className="text-sm text-green-700">Monitoraggio attivo</p>
+                  </div>
+                </Link>
+                
+                <Link
+                  href="/app/plants?tab=seeds"
+                  className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  <Package className="text-blue-600" size={24} />
+                  <div>
+                    <p className="font-medium text-blue-900">Banca Semi</p>
+                    <p className="text-sm text-blue-700">Inventario completo</p>
+                  </div>
+                </Link>
+                
+                <Link
+                  href="/app/plants?tab=saplings"
+                  className="flex items-center gap-3 p-4 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors"
+                >
+                  <Sprout className="text-orange-600" size={24} />
+                  <div>
+                    <p className="font-medium text-orange-900">Vivaio</p>
+                    <p className="text-sm text-orange-700">Piantine pronte</p>
+                  </div>
+                </Link>
+                
+                <Link
+                  href="/app/plants?tab=trees"
+                  className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
+                >
+                  <TreePine className="text-purple-600" size={24} />
+                  <div>
+                    <p className="font-medium text-purple-900">Alberi & Perenni</p>
+                    <p className="text-sm text-purple-700">Sistemi specializzati</p>
+                  </div>
+                </Link>
               </div>
 
               <PlantsView

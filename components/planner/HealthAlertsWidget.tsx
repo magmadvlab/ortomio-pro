@@ -11,7 +11,8 @@ import {
   Clock,
   ArrowRight,
   Stethoscope,
-  Eye
+  Eye,
+  Calendar
 } from 'lucide-react'
 
 interface HealthAlertsWidgetProps {
@@ -231,13 +232,23 @@ export default function HealthAlertsWidget({ garden, maxAlerts = 3 }: HealthAler
       </div>
 
       {/* View All Button */}
-      <button
-        onClick={() => router.push('/app/health')}
-        className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 text-green-600 border border-green-200 rounded-lg hover:bg-green-50 transition-colors"
-      >
-        <span>Vedi Monitoraggio Completo</span>
-        <ArrowRight size={16} />
-      </button>
+      <div className="flex gap-3 mt-4">
+        <button
+          onClick={() => router.push('/app/health')}
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-green-600 border border-green-200 rounded-lg hover:bg-green-50 transition-colors"
+        >
+          <span>Vedi Monitoraggio Completo</span>
+          <ArrowRight size={16} />
+        </button>
+        
+        <button
+          onClick={() => router.push('/app/planner')}
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
+          <Calendar size={16} />
+          <span className="hidden sm:inline">Planner</span>
+        </button>
+      </div>
     </div>
   )
 }

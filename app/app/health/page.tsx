@@ -486,15 +486,27 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
         />
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <button
+            onClick={() => {
+              // Scroll to alerts section
+              const alertsSection = document.getElementById('alerts-section')
+              if (alertsSection) {
+                alertsSection.scrollIntoView({ behavior: 'smooth' })
+              }
+            }}
+            className="bg-white rounded-xl p-6 border border-gray-200 hover:border-orange-300 hover:shadow-md transition-all duration-200 text-left group cursor-pointer"
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Alert Totali</p>
-                <p className="text-2xl font-bold text-gray-900">{alerts.length}</p>
+                <p className="text-sm text-gray-600 group-hover:text-orange-600 transition-colors">Alert Totali</p>
+                <p className="text-2xl font-bold text-gray-900 group-hover:text-orange-700 transition-colors">{alerts.length}</p>
+                <p className="text-xs text-gray-500 group-hover:text-orange-500 transition-colors mt-1">
+                  Clicca per vedere dettagli
+                </p>
               </div>
-              <AlertTriangle className="w-8 h-8 text-orange-500" />
+              <AlertTriangle className="w-8 h-8 text-orange-500 group-hover:text-orange-600 transition-colors" />
             </div>
-          </div>
+          </button>
 
           <div className="bg-white rounded-xl p-6 border border-gray-200">
             <div className="flex items-center justify-between">
@@ -535,46 +547,66 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
 
         {/* Filters */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Filtri:</span>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">Filtri:</span>
+              </div>
+              
+              <select
+                value={selectedSeverity}
+                onChange={(e) => setSelectedSeverity(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="all">Tutte le severità</option>
+                <option value="critical">Critico</option>
+                <option value="high">Alto</option>
+                <option value="medium">Medio</option>
+                <option value="low">Basso</option>
+              </select>
+
+              <select
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="all">Tutti i tipi</option>
+                <option value="disease_risk">Rischio malattie</option>
+                <option value="pest_alert">Alert parassiti</option>
+                <option value="nutrient_deficiency">Carenze nutrizionali</option>
+                <option value="stress_symptoms">Sintomi stress</option>
+                <option value="harvest_timing">Timing raccolta</option>
+                <option value="weather_stress">Stress climatico</option>
+              </select>
+
+              <div className="text-sm text-gray-600">
+                {filteredAlerts.length} di {alerts.length} alert
+              </div>
             </div>
-            
-            <select
-              value={selectedSeverity}
-              onChange={(e) => setSelectedSeverity(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-            >
-              <option value="all">Tutte le severità</option>
-              <option value="critical">Critico</option>
-              <option value="high">Alto</option>
-              <option value="medium">Medio</option>
-              <option value="low">Basso</option>
-            </select>
 
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-            >
-              <option value="all">Tutti i tipi</option>
-              <option value="disease_risk">Rischio malattie</option>
-              <option value="pest_alert">Alert parassiti</option>
-              <option value="nutrient_deficiency">Carenze nutrizionali</option>
-              <option value="stress_symptoms">Sintomi stress</option>
-              <option value="harvest_timing">Timing raccolta</option>
-              <option value="weather_stress">Stress climatico</option>
-            </select>
-
-            <div className="ml-auto text-sm text-gray-600">
-              {filteredAlerts.length} di {alerts.length} alert
+            {/* Navigation Buttons */}
+            <div className="flex items-center gap-3">
+              <a
+                href="/app/planner"
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+              >
+                <Calendar className="w-4 h-4" />
+                Vai al Planner AI
+              </a>
+              <a
+                href="/app/planner-classic"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+              >
+                <Calendar className="w-4 h-4" />
+                Planner Classico
+              </a>
             </div>
           </div>
         </div>
 
         {/* Health Alerts */}
-        <div className="space-y-4">
+        <div id="alerts-section" className="space-y-4">
           {filteredAlerts.map((alert) => (
             <div key={alert.id} className="bg-white rounded-xl border border-gray-200 p-6">
               <div className="flex items-start gap-4">

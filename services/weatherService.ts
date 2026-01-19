@@ -35,6 +35,66 @@ interface GardenLocation {
   name?: string
 }
 
+// Export standalone functions for compatibility
+export async function getWeatherForecast(lat: number, lng: number, days: number = 7): Promise<any[]> {
+  try {
+    const url = new URL('https://api.open-meteo.com/v1/forecast');
+    url.searchParams.append('latitude', lat.toString());
+    url.searchParams.append('longitude', lng.toString());
+    url.searchParams.append('daily', [
+      'temperature_2m_max',
+      'temperature_2m_min',
+      'precipitation_sum',
+      'precipitation_probability_max',
+      'weathercode',
+      'wind_speed_10m_max',
+      'uv_index_max'
+    ].join(','));
+    url.searchParams.append('forecast_days', days.toString());
+    url.searchParams.append('timezone', 'Europe/Rome');
+    
+    const response = await fetch(url.toString(), {
+      next: { revalidate: 3600 }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Weather API error: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.daily || !data.daily.time) {
+      throw new Error('Invalid weather API response');
+    }
+    
+    return data.daily.time.map((dateStr: string, idx: number) => ({
+      date: new Date(dateStr),
+      temp_max: Math.round(data.daily.temperature_2m_max[idx]),
+      temp_min: Math.round(data.daily.temperature_2m_min[idx]),
+      precipitation: data.daily.precipitation_sum[idx] || 0,
+      precipitation_probability: data.daily.precipitation_probability_max[idx] || 0,
+      condition: getConditionFromCode(data.daily.weathercode[idx]),
+      wind_speed: data.daily.wind_speed_10m_max[idx] || 0,
+      uv_index: data.daily.uv_index_max[idx] || 0
+    }));
+  } catch (error) {
+    console.error('Error fetching weather:', error);
+    return [];
+  }
+}
+
+export async function getWeatherForecast7Days(lat: number, lng: number): Promise<any[]> {
+  return getWeatherForecast(lat, lng, 7);
+}
+
+function getConditionFromCode(code: number): string {
+  if (code <= 3) return 'sunny';
+  if (code <= 48) return 'cloudy';
+  if (code <= 67) return 'rainy';
+  if (code <= 77) return 'snowy';
+  return 'stormy';
+}
+
 class WeatherService {
   private readonly OPENWEATHER_API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY
   private readonly CACHE_DURATION = 10 * 60 * 1000 // 10 minuti

@@ -5,9 +5,10 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Droplets, TrendingDown, CheckCircle, XCircle, Eye, Lightbulb } from 'lucide-react'
 import { useGarden } from '@/packages/core/hooks/useGarden'
+import { useAuth } from '@/packages/core/hooks/useAuth'
 import { collaborativeAIService } from '@/services/collaborativeAIService'
 import AITransparencyPanel from '@/components/ai/AITransparencyPanel'
 import type { AISuggestion, AITransparencyLog } from '@/types/aiFeedback'
@@ -22,6 +23,7 @@ export default function IrrigationAISuggestionsWidget({
   maxItems = 2 
 }: IrrigationAISuggestionsWidgetProps) {
   const { activeGarden } = useGarden()
+  const { user } = useAuth()
   const garden = propGarden || activeGarden
   
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([])
@@ -32,17 +34,17 @@ export default function IrrigationAISuggestionsWidget({
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (garden) {
+    if (garden && user) {
       loadSuggestions()
     }
-  }, [garden])
+  }, [garden, user])
 
   const loadSuggestions = async () => {
-    if (!garden) return
+    if (!garden || !user?.id) return
     
     try {
       setLoading(true)
-      const suggs = await collaborativeAIService.getSuggestions(garden.user_id, {
+      const suggs = await collaborativeAIService.getSuggestions(user.id, {
         statuses: ['PENDING'],
         types: ['RESOURCE_SAVING', 'IRRIGATION'],
         priorities: ['CRITICAL', 'HIGH', 'MEDIUM'],
