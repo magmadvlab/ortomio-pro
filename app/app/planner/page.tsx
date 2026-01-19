@@ -6,7 +6,6 @@ import TaskList from '@/components/planner/TaskList'
 import PlannerAISuggestions from '@/components/planner/tabs/PlannerAISuggestions'
 import CropRotationPlanner from '@/components/advice/CropRotationPlanner'
 import BiologicalControlDashboard from '@/components/advice/BiologicalControlDashboard'
-import AlmanaccoIntegration from '@/components/planner/AlmanaccoIntegration'
 import MobileTabNavigation from '@/components/shared/MobileTabNavigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useState, useEffect } from 'react'
@@ -21,12 +20,12 @@ export default function PlannerPage() {
   const [gardens, setGardens] = useState<Garden[]>([])
   const [tasks, setTasks] = useState<GardenTask[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'planner' | 'calendar' | 'timeline' | 'list' | 'ai-suggestions' | 'rotation' | 'biological' | 'almanacco'>('planner')
+  const [activeTab, setActiveTab] = useState<'planner' | 'calendar' | 'timeline' | 'list' | 'ai-suggestions' | 'rotation' | 'biological'>('planner')
 
   // Handle URL parameters for tab switching
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab && ['planner', 'calendar', 'timeline', 'list', 'ai-suggestions', 'rotation', 'biological', 'almanacco'].includes(tab)) {
+    if (tab && ['planner', 'calendar', 'timeline', 'list', 'ai-suggestions', 'rotation', 'biological'].includes(tab)) {
       setActiveTab(tab as any)
     }
   }, [searchParams])
@@ -153,7 +152,6 @@ export default function PlannerPage() {
   const plannerTabs = [
     { id: 'planner', label: 'Planner AI', emoji: '🎯', icon: Target },
     { id: 'calendar', label: 'Calendario', emoji: '📅', icon: Calendar },
-    { id: 'almanacco', label: 'Almanacco', emoji: '🌙', icon: Calendar },
     { id: 'ai-suggestions', label: 'Suggerimenti AI', emoji: '💡', icon: Lightbulb },
     { id: 'list', label: 'Lista Task', emoji: '📋', icon: List, badge: tasks.filter(t => !t.completed).length },
     { id: 'timeline', label: 'Timeline', emoji: '📊', icon: Activity },
@@ -245,14 +243,6 @@ export default function PlannerPage() {
               console.error('Error deleting task:', error)
             }
           }}
-        />
-      )}
-
-      {activeTab === 'almanacco' && (
-        <AlmanaccoIntegration
-          selectedDate={new Date()}
-          compact={false}
-          showLunarAdvice={true}
         />
       )}
 

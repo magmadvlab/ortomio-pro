@@ -295,12 +295,14 @@ export default function TaskCalendar({ garden, tasks, onTaskUpdate, onTaskCreate
 
   return (
     <div className="space-y-6">
-      {/* Almanacco Compatto */}
-      <AlmanaccoIntegration
-        selectedDate={selectedDate || new Date()}
-        compact={true}
-        showLunarAdvice={false}
-      />
+      {/* Almanacco Integrato - Più prominente */}
+      <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6">
+        <AlmanaccoIntegration
+          selectedDate={selectedDate || new Date()}
+          compact={false}
+          showLunarAdvice={true}
+        />
+      </div>
 
       {/* Header Calendario */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">

@@ -75,7 +75,8 @@ export default function MobileTabNavigation({
         {/* Current Tab Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex items-center justify-between px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 font-medium hover:bg-gray-50 transition-colors shadow-sm"
+          className="w-full flex items-center justify-between px-4 py-4 border border-gray-300 rounded-lg bg-white text-gray-900 font-medium hover:bg-gray-50 transition-colors shadow-sm touch-manipulation"
+          style={{ minHeight: '56px' }}
           aria-expanded={isOpen}
           aria-haspopup="true"
         >
@@ -135,9 +136,10 @@ export default function MobileTabNavigation({
                       onTabChange(tab.id)
                       setIsOpen(false)
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0 ${
+                    className={`w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0 touch-manipulation ${
                       isActive ? 'bg-green-50 text-green-700' : 'text-gray-700'
                     }`}
+                    style={{ minHeight: '56px' }}
                     role="menuitem"
                     tabIndex={isOpen ? 0 : -1}
                   >
