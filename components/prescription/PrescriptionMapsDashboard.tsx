@@ -179,97 +179,98 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
           <div className="flex items-center gap-3">
-            <Map className="text-green-600" size={28} />
+            <Map className="text-green-600" size={24} sm:size={28} />
             <div>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-900">Mappe Prescrizione</h2>
-              <p className="text-gray-600">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Mappe Prescrizione</h2>
+              <p className="text-sm sm:text-base text-gray-600">
                 Mappe prescrizione per precision farming
               </p>
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-col md:flex-row items-start sm:items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
             <button
               onClick={() => setShowCreateModal(true)}
-              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-3 font-medium shadow-sm"
+              className="bg-green-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 sm:gap-3 font-medium shadow-sm text-sm sm:text-base touch-manipulation"
             >
-              <Plus size={20} />
-              Crea Nuova Mappa
+              <Plus size={18} sm:size={20} />
+              <span className="sm:inline">Crea Nuova Mappa</span>
             </button>
             
             <button
               onClick={() => setShowHistoricalComparison(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-3"
+              className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 sm:gap-3 text-sm sm:text-base touch-manipulation"
             >
-              <History size={20} />
-              Confronto Storico
+              <History size={16} sm:size={20} />
+              <span className="hidden sm:inline">Confronto Storico</span>
+              <span className="sm:hidden">Confronto</span>
             </button>
           </div>
         </div>
 
         {/* Statistics Dashboard */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+            <div className="bg-blue-50 p-3 sm:p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-blue-600">Mappe Totali</p>
-                  <p className="text-lg md:text-xl font-bold text-blue-700">{stats.totalMapsGenerated}</p>
+                  <p className="text-xs sm:text-sm text-blue-600">Mappe Totali</p>
+                  <p className="text-base sm:text-lg md:text-xl font-bold text-blue-700">{stats.totalMapsGenerated}</p>
                 </div>
-                <Map className="text-blue-600" size={24} />
+                <Map className="text-blue-600" size={20} sm:size={24} />
               </div>
             </div>
 
-            <div className="bg-green-50 p-4 rounded-lg">
+            <div className="bg-green-50 p-3 sm:p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-green-600">Area Coperta</p>
-                  <p className="text-lg md:text-xl font-bold text-green-700">{stats.totalAreaCovered} ha</p>
+                  <p className="text-xs sm:text-sm text-green-600">Area Coperta</p>
+                  <p className="text-base sm:text-lg md:text-xl font-bold text-green-700">{stats.totalAreaCovered} ha</p>
                 </div>
-                <Layers className="text-green-600" size={24} />
+                <Layers className="text-green-600" size={20} sm:size={24} />
               </div>
             </div>
 
-            <div className="bg-purple-50 p-4 rounded-lg">
+            <div className="bg-purple-50 p-3 sm:p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-purple-600">Qualità Media</p>
-                  <p className="text-lg md:text-xl font-bold text-purple-700">{stats.averageQualityScore}%</p>
+                  <p className="text-xs sm:text-sm text-purple-600">Qualità Media</p>
+                  <p className="text-base sm:text-lg md:text-xl font-bold text-purple-700">{stats.averageQualityScore}%</p>
                 </div>
-                <BarChart3 className="text-purple-600" size={24} />
+                <BarChart3 className="text-purple-600" size={20} sm:size={24} />
               </div>
             </div>
 
-            <div className="bg-orange-50 p-4 rounded-lg">
+            <div className="bg-orange-50 p-3 sm:p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-orange-600">Risparmio</p>
-                  <p className="text-lg md:text-xl font-bold text-orange-700">€{stats.totalCostSavings}</p>
+                  <p className="text-xs sm:text-sm text-orange-600">Risparmio</p>
+                  <p className="text-base sm:text-lg md:text-xl font-bold text-orange-700">€{stats.totalCostSavings}</p>
                 </div>
-                <TrendingUp className="text-orange-600" size={24} />
+                <TrendingUp className="text-orange-600" size={20} sm:size={24} />
               </div>
             </div>
 
-            <div className="bg-cyan-50 p-4 rounded-lg">
+            <div className="bg-cyan-50 p-3 sm:p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-cyan-600">ROI Medio</p>
-                  <p className="text-lg md:text-xl font-bold text-cyan-700">{stats.averageRoi}%</p>
+                  <p className="text-xs sm:text-sm text-cyan-600">ROI Medio</p>
+                  <p className="text-base sm:text-lg md:text-xl font-bold text-cyan-700">{stats.averageRoi}%</p>
                 </div>
-                <Target className="text-cyan-600" size={24} />
+                <Target className="text-cyan-600" size={20} sm:size={24} />
               </div>
             </div>
 
-            <div className="bg-indigo-50 p-4 rounded-lg">
+            <div className="bg-indigo-50 p-3 sm:p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-indigo-600">Riduzione Input</p>
-                  <p className="text-lg md:text-xl font-bold text-indigo-700">{stats.inputReductionAchieved}%</p>
+                  <p className="text-xs sm:text-sm text-indigo-600">Riduzione Input</p>
+                  <p className="text-base sm:text-lg md:text-xl font-bold text-indigo-700">{stats.inputReductionAchieved}%</p>
                 </div>
-                <CheckCircle className="text-indigo-600" size={24} />
+                <CheckCircle className="text-indigo-600" size={20} sm:size={24} />
               </div>
             </div>
           </div>
@@ -400,13 +401,13 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
       {/* Generation Progress Modal */}
       {generating && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-[90vw] md:max-w-md max-h-[90vh] overflow-y-auto w-full p-6">
+          <div className="bg-white rounded-lg shadow-xl max-w-[90vw] sm:max-w-md max-h-[90vh] overflow-y-auto w-full p-4 sm:p-6">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
                 Generazione Mappa Prescrizione
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-sm sm:text-base text-gray-600 mb-4">
                 Elaborazione dati e calcolo zone in corso...
               </p>
               
@@ -554,16 +555,20 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-          <h2 className="text-lg md:text-xl font-bold text-gray-900">Nuova Mappa Prescrizione</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            ×
+        <div className="sticky top-0 bg-white border-b px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between rounded-t-lg">
+          <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">Nuova Mappa Prescrizione</h2>
+          <button 
+            onClick={onClose} 
+            className="text-gray-400 hover:text-gray-600 p-2 -m-2 touch-manipulation"
+            aria-label="Chiudi"
+          >
+            <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Basic Info */}
-          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Nome Mappa *
@@ -572,7 +577,7 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
                 type="text"
                 value={formData.name || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="es. Fertilizzazione Primavera 2026"
                 required
               />
@@ -585,7 +590,7 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
               <select
                 value={formData.mapType || 'fertilizer'}
                 onChange={(e) => setFormData(prev => ({ ...prev, mapType: e.target.value as any }))}
-                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               >
                 <option value="fertilizer">Fertilizzazione</option>
                 <option value="seeding">Semina</option>
@@ -603,14 +608,14 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
             <textarea
               value={formData.description || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               rows={3}
               placeholder="Descrizione opzionale della mappa..."
             />
           </div>
 
           {/* Prescription Config */}
-          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Dose Base
@@ -625,7 +630,7 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
                     baseRate: parseFloat(e.target.value) || 100
                   }
                 }))}
-                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 min="0"
                 step="0.1"
               />
@@ -644,7 +649,7 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
                     unit: e.target.value
                   }
                 }))}
-                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               >
                 <option value="kg/ha">kg/ha</option>
                 <option value="L/ha">L/ha</option>
@@ -667,24 +672,24 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
                     maxVariation: parseFloat(e.target.value) || 30
                   }
                 }))}
-                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 min="0"
                 max="100"
               />
             </div>
           </div>
 
-          <div className="flex gap-3 justify-end pt-4 border-t">
+          <div className="flex flex-col sm:flex-row gap-3 justify-end pt-4 border-t">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors touch-manipulation"
             >
               Annulla
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors touch-manipulation"
             >
               Genera Mappa
             </button>

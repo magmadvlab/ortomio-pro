@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mobile Fixes Comprehensive - January 19, 2025</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for testing */
+        .test-container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background: white;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .ai-suggestion-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .ai-suggestion-card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .prescription-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        
+        .prescription-modal-content {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 42rem;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .touch-target {
+            min-height: 44px;
+            min-width: 44px;
+        }
+        
+        @media (max-width: 640px) {
+            .test-container {
+                padding: 0.5rem;
+            }
+            
+            .test-section {
+                padding: 0.75rem;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Mock data
+        const mockSuggestions = [
+            {
+                id: '1',
+                title: 'Irrigazione Urgente Necessaria',
+                description: 'Le piante di pomodoro nella zona A mostrano segni di stress idrico. Si consiglia irrigazione immediata.',
+                action_priority: 'CRITICAL',
+                suggested_action: 'Attivare irrigazione per 30 minuti nella zona A',
+                confidence_score: 0.92,
+                action_deadline: '2025-01-20'
+            },
+            {
+                id: '2',
+                title: 'Fertilizzazione Programmata',
+                description: 'È il momento ideale per la fertilizzazione delle colture di stagione.',
+                action_priority: 'HIGH',
+                suggested_action: 'Applicare fertilizzante NPK 10-10-10',
+                confidence_score: 0.85,
+                action_deadline: '2025-01-25'
+            },
+            {
+                id: '3',
+                title: 'Controllo Parassiti',
+                description: 'Rilevata presenza di afidi sulle piante di peperone.',
+                action_priority: 'MEDIUM',
+                suggested_action: 'Trattamento con sapone molle',
+                confidence_score: 0.78,
+                action_deadline: '2025-01-22'
+            }
+        ];
+
+        // Task Modal Component (Simplified)
+        function TaskModal({ isOpen, onClose }) {
+            if (!isOpen) return null;
+
+            return (
+                <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+                    <div className="modal-content">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100 sticky top-0 bg-white rounded-t-3xl">
+                            <div>
+                                <h2 className="text-lg sm:text-xl font-semibold text-gray-900">➕ Aggiungi</h2>
+                                <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                                    📅 Per il 19 gennaio 2025
+                                </p>
+                            </div>
+                            <button
+                                onClick={onClose}
+                                className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors shadow-sm border border-gray-200 touch-target"
+                                aria-label="Chiudi"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-4 sm:p-6">
+                            <p className="text-sm sm:text-[15px] text-gray-600 mb-4 sm:mb-5">Cosa vuoi aggiungere?</p>
+
+                            {/* Action Grid - Mobile Optimized */}
+                            <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
+                                <button className="flex flex-col items-center justify-center p-4 sm:p-6 bg-gray-50 rounded-xl sm:rounded-2xl border-2 border-transparent hover:bg-green-50 hover:border-green-200 transition-all touch-target">
+                                    <div className="w-10 h-10 sm:w-14 sm:h-14 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center mb-2 sm:mb-3 shadow-lg text-2xl sm:text-3xl">
+                                        🌱
+                                    </div>
+                                    <div className="font-semibold text-xs sm:text-sm mb-1">Nuova Pianta</div>
+                                    <div className="text-xs text-gray-500 text-center">Trapianto diretto</div>
+                                </button>
+
+                                <button className="flex flex-col items-center justify-center p-4 sm:p-6 bg-gray-50 rounded-xl sm:rounded-2xl border-2 border-transparent hover:bg-orange-50 hover:border-orange-200 transition-all touch-target">
+                                    <div className="w-10 h-10 sm:w-14 sm:h-14 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center mb-2 sm:mb-3 shadow-lg text-2xl sm:text-3xl">
+                                        🌰
+                                    </div>
+                                    <div className="font-semibold text-xs sm:text-sm mb-1">Semenzaio</div>
+                                    <div className="text-xs text-gray-500 text-center">Pianifica da seme</div>
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                                <button className="flex flex-col items-center justify-center p-4 sm:p-6 bg-gray-50 rounded-xl sm:rounded-2xl border-2 border-transparent hover:bg-green-50 hover:border-green-200 transition-all touch-target">
+                                    <div className="w-10 h-10 sm:w-14 sm:h-14 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center mb-2 sm:mb-3 shadow-lg text-2xl sm:text-3xl">
+                                        📋
+                                    </div>
+                                    <div className="font-semibold text-xs sm:text-sm mb-1">Nuovo Task</div>
+                                    <div className="text-xs text-gray-500 text-center">Pianifica attività</div>
+                                </button>
+
+                                <button className="flex flex-col items-center justify-center p-4 sm:p-6 bg-gray-50 rounded-xl sm:rounded-2xl border-2 border-transparent hover:bg-green-50 hover:border-green-200 transition-all touch-target">
+                                    <div className="w-10 h-10 sm:w-14 sm:h-14 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center mb-2 sm:mb-3 shadow-lg text-2xl sm:text-3xl">
+                                        🛒
+                                    </div>
+                                    <div className="font-semibold text-xs sm:text-sm mb-1">Raccolto</div>
+                                    <div className="text-xs text-gray-500 text-center">Registra raccolto</div>
+                                </button>
+                            </div>
+
+                            {/* Close Button */}
+                            <button
+                                onClick={onClose}
+                                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-100 text-gray-700 rounded-lg sm:rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors touch-target"
+                            >
+                                Chiudi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // AI Suggestions Widget Component
+        function AISuggestionsWidget({ suggestions }) {
+            const [expandedId, setExpandedId] = useState(null);
+
+            const getPriorityColor = (priority) => {
+                switch (priority) {
+                    case 'CRITICAL': return 'text-red-600 bg-red-50 border-red-200';
+                    case 'HIGH': return 'text-orange-600 bg-orange-50 border-orange-200';
+                    case 'MEDIUM': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+                    default: return 'text-blue-600 bg-blue-50 border-blue-200';
+                }
+            };
+
+            const getPriorityIcon = (priority) => {
+                switch (priority) {
+                    case 'CRITICAL':
+                    case 'HIGH':
+                        return '⚠️';
+                    default:
+                        return '💡';
+                }
+            };
+
+            return (
+                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <span className="text-purple-600 text-xl">💡</span>
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Suggerimenti AI</h3>
+                        </div>
+                        <span className="text-xs sm:text-sm text-gray-500 bg-purple-50 px-2 py-1 rounded-full">
+                            {suggestions.length} urgenti
+                        </span>
+                    </div>
+
+                    <div className="space-y-3">
+                        {suggestions.map((suggestion) => (
+                            <div
+                                key={suggestion.id}
+                                onClick={() => setExpandedId(expandedId === suggestion.id ? null : suggestion.id)}
+                                className={`ai-suggestion-card ${expandedId === suggestion.id ? 'ring-2 ring-purple-200' : ''} ${getPriorityColor(suggestion.action_priority)}`}
+                            >
+                                <div className="flex items-start gap-2 sm:gap-3">
+                                    <div className="flex-shrink-0 mt-0.5 text-lg">
+                                        {getPriorityIcon(suggestion.action_priority)}
+                                    </div>
+                                    
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-semibold text-sm sm:text-base line-clamp-2 pr-2">
+                                                    {suggestion.title}
+                                                </h4>
+                                            </div>
+                                            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                                                <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap font-medium ${
+                                                    suggestion.action_priority === 'CRITICAL' ? 'bg-red-100 text-red-700' :
+                                                    suggestion.action_priority === 'HIGH' ? 'bg-orange-100 text-orange-700' :
+                                                    'bg-yellow-100 text-yellow-700'
+                                                }`}>
+                                                    {suggestion.action_priority === 'CRITICAL' ? 'CRITICO' :
+                                                     suggestion.action_priority === 'HIGH' ? 'ALTO' :
+                                                     suggestion.action_priority === 'MEDIUM' ? 'MEDIO' : 'BASSO'}
+                                                </span>
+                                                <span className="text-gray-400">→</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <p className="text-xs sm:text-sm text-gray-700 mt-1 line-clamp-2">
+                                            {suggestion.description}
+                                        </p>
+
+                                        {expandedId === suggestion.id && (
+                                            <div className="mt-3 pt-3 border-t border-current border-opacity-20">
+                                                <p className="text-xs sm:text-sm text-gray-700 mb-2">
+                                                    <strong>Azione:</strong> {suggestion.suggested_action}
+                                                </p>
+                                                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                                                    <span className="bg-gray-100 px-2 py-1 rounded">
+                                                        Confidenza: {(suggestion.confidence_score * 100).toFixed(0)}%
+                                                    </span>
+                                                    <span className="bg-gray-100 px-2 py-1 rounded">
+                                                        Entro: {new Date(suggestion.action_deadline).toLocaleDateString('it-IT')}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="flex flex-wrap items-center gap-2 mt-3">
+                                            <button className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors touch-target">
+                                                <span>✓</span>
+                                                <span className="hidden sm:inline">Accetta</span>
+                                                <span className="sm:hidden">✓</span>
+                                            </button>
+                                            
+                                            <button className="flex items-center gap-1 px-3 py-1.5 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-colors touch-target">
+                                                <span>✗</span>
+                                                <span className="hidden sm:inline">Rifiuta</span>
+                                                <span className="sm:hidden">✗</span>
+                                            </button>
+                                            
+                                            <button className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white text-xs rounded hover:bg-purple-700 transition-colors touch-target">
+                                                <span>👁</span>
+                                                <span className="hidden sm:inline">Dettagli</span>
+                                                <span className="sm:hidden">👁</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // Prescription Maps Modal Component
+        function PrescriptionMapsModal({ isOpen, onClose }) {
+            if (!isOpen) return null;
+
+            return (
+                <div className="prescription-modal">
+                    <div className="prescription-modal-content">
+                        <div className="sticky top-0 bg-white border-b px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between rounded-t-lg">
+                            <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">Nuova Mappa Prescrizione</h2>
+                            <button 
+                                onClick={onClose} 
+                                className="text-gray-400 hover:text-gray-600 p-2 -m-2 touch-target"
+                                aria-label="Chiudi"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Nome Mappa *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        placeholder="es. Fertilizzazione Primavera 2026"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Tipo Mappa *
+                                    </label>
+                                    <select className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                        <option value="fertilizer">Fertilizzazione</option>
+                                        <option value="seeding">Semina</option>
+                                        <option value="irrigation">Irrigazione</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Descrizione
+                                </label>
+                                <textarea
+                                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    rows={3}
+                                    placeholder="Descrizione opzionale della mappa..."
+                                />
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-3 justify-end pt-4 border-t">
+                                <button
+                                    onClick={onClose}
+                                    className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors touch-target"
+                                >
+                                    Annulla
+                                </button>
+                                <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors touch-target">
+                                    Genera Mappa
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Main Test App
+        function TestApp() {
+            const [showTaskModal, setShowTaskModal] = useState(false);
+            const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
+            const [testResults, setTestResults] = useState([]);
+
+            const addTestResult = (test, result, message) => {
+                setTestResults(prev => [...prev, { 
+                    test, 
+                    result, 
+                    message, 
+                    timestamp: new Date().toLocaleTimeString() 
+                }]);
+            };
+
+            const runTest = (testName, testFn) => {
+                try {
+                    testFn();
+                    addTestResult(testName, 'success', 'Test completato con successo');
+                } catch (error) {
+                    addTestResult(testName, 'error', `Test fallito: ${error.message}`);
+                }
+            };
+
+            return (
+                <div className="test-container">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 text-center">
+                        Test Mobile Fixes Comprehensive - January 19, 2025
+                    </h1>
+
+                    {/* Test Controls */}
+                    <div className="test-section">
+                        <h2 className="text-lg sm:text-xl font-semibold mb-4">Test Controls</h2>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <button
+                                onClick={() => runTest('Task Modal', () => setShowTaskModal(true))}
+                                className="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors touch-target"
+                            >
+                                Test Task Modal
+                            </button>
+                            
+                            <button
+                                onClick={() => runTest('Prescription Modal', () => setShowPrescriptionModal(true))}
+                                className="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors touch-target"
+                            >
+                                Test Prescription Modal
+                            </button>
+                            
+                            <button
+                                onClick={() => setTestResults([])}
+                                className="bg-gray-600 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors touch-target"
+                            >
+                                Clear Results
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* AI Suggestions Widget Test */}
+                    <div className="test-section">
+                        <h2 className="text-lg sm:text-xl font-semibold mb-4">AI Suggestions Widget</h2>
+                        <AISuggestionsWidget suggestions={mockSuggestions} />
+                    </div>
+
+                    {/* Test Results */}
+                    <div className="test-section">
+                        <h2 className="text-lg sm:text-xl font-semibold mb-4">Test Results</h2>
+                        
+                        {testResults.length === 0 ? (
+                            <p className="text-gray-500 italic">No tests run yet</p>
+                        ) : (
+                            <div className="space-y-2">
+                                {testResults.map((result, index) => (
+                                    <div
+                                        key={index}
+                                        className={`p-3 rounded-lg border ${
+                                            result.result === 'success' 
+                                                ? 'bg-green-50 border-green-200 text-green-800' 
+                                                : 'bg-red-50 border-red-200 text-red-800'
+                                        }`}
+                                    >
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <strong>{result.test}</strong>
+                                                <p className="text-sm mt-1">{result.message}</p>
+                                            </div>
+                                            <span className="text-xs opacity-75">{result.timestamp}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Mobile Testing Instructions */}
+                    <div className="test-section">
+                        <h2 className="text-lg sm:text-xl font-semibold mb-4">Mobile Testing Instructions</h2>
+                        <div className="space-y-3 text-sm">
+                            <div className="bg-blue-50 p-3 rounded-lg">
+                                <strong>Task Modal:</strong>
+                                <ul className="mt-2 space-y-1 ml-4">
+                                    <li>• Check proportions on mobile (should be 2x2 grid)</li>
+                                    <li>• Verify close button is visible and touchable</li>
+                                    <li>• Test touch targets are at least 44px</li>
+                                    <li>• Confirm modal scrolls properly on small screens</li>
+                                </ul>
+                            </div>
+                            
+                            <div className="bg-green-50 p-3 rounded-lg">
+                                <strong>AI Suggestions:</strong>
+                                <ul className="mt-2 space-y-1 ml-4">
+                                    <li>• Check text is readable on mobile</li>
+                                    <li>• Verify buttons are touch-friendly</li>
+                                    <li>• Test expand/collapse functionality</li>
+                                    <li>• Confirm priority badges are visible</li>
+                                </ul>
+                            </div>
+                            
+                            <div className="bg-purple-50 p-3 rounded-lg">
+                                <strong>Prescription Maps:</strong>
+                                <ul className="mt-2 space-y-1 ml-4">
+                                    <li>• Check modal doesn't overflow viewport</li>
+                                    <li>• Verify form fields are properly sized</li>
+                                    <li>• Test close button functionality</li>
+                                    <li>• Confirm no overlay issues</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Modals */}
+                    <TaskModal isOpen={showTaskModal} onClose={() => setShowTaskModal(false)} />
+                    <PrescriptionMapsModal isOpen={showPrescriptionModal} onClose={() => setShowPrescriptionModal(false)} />
+                </div>
+            );
+        }
+
+        ReactDOM.render(<TestApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>

@@ -149,13 +149,15 @@ export default function AISuggestionsWidget({
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Lightbulb className="text-purple-600" size={24} />
-            <h3 className="text-lg font-semibold text-gray-900">Suggerimenti AI</h3>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Lightbulb className="text-purple-600" size={20} />
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Suggerimenti AI</h3>
           </div>
-          <span className="text-sm text-gray-500">{suggestions.length} urgenti</span>
+          <span className="text-xs sm:text-sm text-gray-500 bg-purple-50 px-2 py-1 rounded-full">
+            {suggestions.length} urgenti
+          </span>
         </div>
 
         <div className="space-y-3">
@@ -163,65 +165,72 @@ export default function AISuggestionsWidget({
             <div
               key={suggestion.id}
               onClick={() => setExpandedId(expandedId === suggestion.id ? null : suggestion.id)}
-              className={`border rounded-lg p-4 transition-all cursor-pointer hover:shadow-md ${
+              className={`border rounded-lg p-3 sm:p-4 transition-all cursor-pointer hover:shadow-md touch-manipulation ${
                 expandedId === suggestion.id ? 'ring-2 ring-purple-200' : ''
               } ${getPriorityColor(suggestion.action_priority)}`}
             >
               {/* Header compatto */}
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 mt-1">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <div className="flex-shrink-0 mt-0.5">
                   {getPriorityIcon(suggestion.action_priority)}
                 </div>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-sm line-clamp-1">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-sm sm:text-base line-clamp-2 pr-2">
                         {suggestion.title}
                       </h4>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${
+                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                      <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap font-medium ${
                         suggestion.action_priority === 'CRITICAL' ? 'bg-red-100 text-red-700' :
                         suggestion.action_priority === 'HIGH' ? 'bg-orange-100 text-orange-700' :
                         'bg-yellow-100 text-yellow-700'
                       }`}>
-                        {suggestion.action_priority}
+                        {suggestion.action_priority === 'CRITICAL' ? 'CRITICO' :
+                         suggestion.action_priority === 'HIGH' ? 'ALTO' :
+                         suggestion.action_priority === 'MEDIUM' ? 'MEDIO' : 'BASSO'}
                       </span>
-                      <ArrowRight size={20} className="text-gray-400" />
+                      <ArrowRight size={16} className="text-gray-400" />
                     </div>
                   </div>
                   
-                  <p className="text-xs text-gray-700 mt-1 line-clamp-2">
+                  <p className="text-xs sm:text-sm text-gray-700 mt-1 line-clamp-2">
                     {suggestion.description}
                   </p>
 
                   {/* Espandi/Comprimi */}
                   {expandedId === suggestion.id && (
                     <div className="mt-3 pt-3 border-t border-current border-opacity-20">
-                      <p className="text-xs text-gray-700 mb-2">
+                      <p className="text-xs sm:text-sm text-gray-700 mb-2">
                         <strong>Azione:</strong> {suggestion.suggested_action}
                       </p>
-                      <div className="flex items-center gap-2 text-xs text-gray-600">
-                        <span>Confidenza: {(suggestion.confidence_score * 100).toFixed(0)}%</span>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                        <span className="bg-gray-100 px-2 py-1 rounded">
+                          Confidenza: {(suggestion.confidence_score * 100).toFixed(0)}%
+                        </span>
                         {suggestion.action_deadline && (
-                          <span>• Entro: {new Date(suggestion.action_deadline).toLocaleDateString('it-IT')}</span>
+                          <span className="bg-gray-100 px-2 py-1 rounded">
+                            Entro: {new Date(suggestion.action_deadline).toLocaleDateString('it-IT')}
+                          </span>
                         )}
                       </div>
                     </div>
                   )}
 
-                  {/* Azioni */}
-                  <div className="flex items-center gap-2 mt-3">
+                  {/* Azioni - Mobile Optimized */}
+                  <div className="flex flex-wrap items-center gap-2 mt-3">
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         handleAccept(suggestion.id)
                       }}
-                      className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors touch-manipulation"
                     >
-                      <CheckCircle size={14} />
-                      Accetta
+                      <CheckCircle size={12} />
+                      <span className="hidden sm:inline">Accetta</span>
+                      <span className="sm:hidden">✓</span>
                     </button>
                     
                     <button
@@ -229,10 +238,11 @@ export default function AISuggestionsWidget({
                         e.stopPropagation()
                         handleReject(suggestion.id)
                       }}
-                      className="flex items-center gap-1 px-3 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-colors"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-colors touch-manipulation"
                     >
-                      <XCircle size={14} />
-                      Rifiuta
+                      <XCircle size={12} />
+                      <span className="hidden sm:inline">Rifiuta</span>
+                      <span className="sm:hidden">✗</span>
                     </button>
                     
                     <button
@@ -240,10 +250,11 @@ export default function AISuggestionsWidget({
                         e.stopPropagation()
                         handleViewTransparency(suggestion)
                       }}
-                      className="flex items-center gap-1 px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700 transition-colors"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white text-xs rounded hover:bg-purple-700 transition-colors touch-manipulation"
                     >
-                      <Eye size={14} />
-                      Dettagli
+                      <Eye size={12} />
+                      <span className="hidden sm:inline">Dettagli</span>
+                      <span className="sm:hidden">👁</span>
                     </button>
                   </div>
                 </div>
@@ -251,6 +262,21 @@ export default function AISuggestionsWidget({
             </div>
           ))}
         </div>
+
+        {/* Mobile: Show more button if there are more suggestions */}
+        {suggestions.length >= maxItems && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => {
+                // Navigate to full suggestions page
+                window.location.href = '/app/advice?tab=suggestions';
+              }}
+              className="text-purple-600 text-sm font-medium hover:text-purple-700 transition-colors"
+            >
+              Vedi tutti i suggerimenti →
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Transparency Panel */}
