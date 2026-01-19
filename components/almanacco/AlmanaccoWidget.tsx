@@ -223,7 +223,7 @@ const AlmanaccoWidget: React.FC<AlmanaccoWidgetProps> = ({
         {/* CTA Buttons */}
         <div className="flex gap-3 pt-2">
           <Link
-            href="/app/almanacco"
+            href="/app/planner?tab=almanacco"
             className="flex-1 px-4 py-2 bg-white border border-amber-300 text-amber-900 rounded-lg hover:bg-amber-100 transition-colors text-sm font-medium flex items-center justify-center gap-3"
           >
             <BookOpen size={16} />

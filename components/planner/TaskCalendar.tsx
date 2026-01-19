@@ -6,6 +6,7 @@ import { Garden, GardenTask } from '@/types'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths, isSameMonth, isToday } from 'date-fns'
 import { it } from 'date-fns/locale'
 import TreatmentCalendarIntegration from '@/components/treatments/TreatmentCalendarIntegration'
+import AlmanaccoIntegration from '@/components/planner/AlmanaccoIntegration'
 import { translateTaskType, getCommonTaskTypesItalian } from '@/utils/taskTranslations'
 
 // Lunar calendar integration
@@ -294,6 +295,13 @@ export default function TaskCalendar({ garden, tasks, onTaskUpdate, onTaskCreate
 
   return (
     <div className="space-y-6">
+      {/* Almanacco Compatto */}
+      <AlmanaccoIntegration
+        selectedDate={selectedDate || new Date()}
+        compact={true}
+        showLunarAdvice={false}
+      />
+
       {/* Header Calendario */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-6">

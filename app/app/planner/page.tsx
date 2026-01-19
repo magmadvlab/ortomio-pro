@@ -6,19 +6,30 @@ import TaskList from '@/components/planner/TaskList'
 import PlannerAISuggestions from '@/components/planner/tabs/PlannerAISuggestions'
 import CropRotationPlanner from '@/components/advice/CropRotationPlanner'
 import BiologicalControlDashboard from '@/components/advice/BiologicalControlDashboard'
+import AlmanaccoIntegration from '@/components/planner/AlmanaccoIntegration'
 import MobileTabNavigation from '@/components/shared/MobileTabNavigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Garden, GardenTask } from '@/types'
 import { Calendar, Clock, Activity, Target, CheckCircle, AlertTriangle, TrendingUp, List, Lightbulb, RefreshCw, Bug } from 'lucide-react'
 import { isSameDay, addDays, parseISO, format } from 'date-fns'
 
 export default function PlannerPage() {
   const { storageProvider } = useStorage()
+  const searchParams = useSearchParams()
   const [gardens, setGardens] = useState<Garden[]>([])
   const [tasks, setTasks] = useState<GardenTask[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'planner' | 'calendar' | 'timeline' | 'list' | 'ai-suggestions' | 'rotation' | 'biological'>('planner')
+  const [activeTab, setActiveTab] = useState<'planner' | 'calendar' | 'timeline' | 'list' | 'ai-suggestions' | 'rotation' | 'biological' | 'almanacco'>('planner')
+
+  // Handle URL parameters for tab switching
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab && ['planner', 'calendar', 'timeline', 'list', 'ai-suggestions', 'rotation', 'biological', 'almanacco'].includes(tab)) {
+      setActiveTab(tab as any)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     const loadData = async () => {
@@ -141,12 +152,13 @@ export default function PlannerPage() {
   // Configurazione tab per il componente mobile
   const plannerTabs = [
     { id: 'planner', label: 'Planner AI', emoji: '🎯', icon: Target },
-    { id: 'ai-suggestions', label: 'Suggerimenti AI', emoji: '💡', icon: Lightbulb },
-    { id: 'rotation', label: 'Rotazione Colture', emoji: '🔄', icon: RefreshCw },
-    { id: 'biological', label: 'Controllo Biologico', emoji: '🐛', icon: Bug },
     { id: 'calendar', label: 'Calendario', emoji: '📅', icon: Calendar },
+    { id: 'almanacco', label: 'Almanacco', emoji: '🌙', icon: Calendar },
+    { id: 'ai-suggestions', label: 'Suggerimenti AI', emoji: '💡', icon: Lightbulb },
     { id: 'list', label: 'Lista Task', emoji: '📋', icon: List, badge: tasks.filter(t => !t.completed).length },
-    { id: 'timeline', label: 'Timeline', emoji: '📊', icon: Activity }
+    { id: 'timeline', label: 'Timeline', emoji: '📊', icon: Activity },
+    { id: 'rotation', label: 'Rotazione Colture', emoji: '🔄', icon: RefreshCw },
+    { id: 'biological', label: 'Controllo Biologico', emoji: '🐛', icon: Bug }
   ]
 
   return (
@@ -233,6 +245,14 @@ export default function PlannerPage() {
               console.error('Error deleting task:', error)
             }
           }}
+        />
+      )}
+
+      {activeTab === 'almanacco' && (
+        <AlmanaccoIntegration
+          selectedDate={new Date()}
+          compact={false}
+          showLunarAdvice={true}
         />
       )}
 

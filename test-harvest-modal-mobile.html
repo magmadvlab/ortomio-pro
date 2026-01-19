@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Harvest Modal Mobile</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .test-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .test-button {
+            width: 100%;
+            padding: 16px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 16px;
+            touch-action: manipulation;
+        }
+        
+        .test-button:hover {
+            background: #059669;
+        }
+        
+        .test-info {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        
+        .test-result {
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 16px;
+            font-weight: 600;
+        }
+        
+        .success {
+            background: #ecfdf5;
+            border: 1px solid #86efac;
+            color: #059669;
+        }
+        
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            color: #dc2626;
+        }
+        
+        /* Mock Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            padding: 16px;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            max-width: 32rem;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .close-button {
+            color: #9ca3af;
+            padding: 8px;
+            margin: -8px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            touch-action: manipulation;
+            border-radius: 4px;
+        }
+        
+        .close-button:hover {
+            color: #4b5563;
+            background: #f3f4f6;
+        }
+        
+        .modal-body {
+            padding: 16px 24px;
+        }
+        
+        .type-selection {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        @media (min-width: 640px) {
+            .type-selection {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        .type-button {
+            padding: 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            text-align: left;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+        
+        .type-button:hover {
+            border-color: #10b981;
+        }
+        
+        .type-button.active {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+        
+        .type-button-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .type-button-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .type-button-desc {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .modal-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-top: 16px;
+        }
+        
+        @media (min-width: 640px) {
+            .modal-actions {
+                flex-direction: row;
+            }
+        }
+        
+        .action-button {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            touch-action: manipulation;
+            font-size: 16px;
+            border: none;
+        }
+        
+        @media (min-width: 640px) {
+            .action-button {
+                font-size: 14px;
+                padding: 8px 16px;
+            }
+        }
+        
+        .action-button.secondary {
+            background: white;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+        
+        .action-button.secondary:hover {
+            background: #f9fafb;
+        }
+        
+        .action-button.primary {
+            background: #10b981;
+            color: white;
+        }
+        
+        .action-button.primary:hover {
+            background: #059669;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🌾 Test Modal Raccolti Mobile</h1>
+        
+        <div class="test-info">
+            <strong>Test di Usabilità Mobile:</strong><br>
+            Verifica che il modal si chiuda correttamente su dispositivi touch
+        </div>
+        
+        <button class="test-button" onclick="openModal()">
+            Apri Modal Raccolti
+        </button>
+        
+        <div class="test-info">
+            <strong>Modi per chiudere il modal:</strong><br>
+            • Tocca la X in alto a destra<br>
+            • Tocca l'area scura fuori dal modal<br>
+            • Premi il tasto ESC (su desktop)<br>
+            • Tocca "Annulla"
+        </div>
+        
+        <div id="test-results"></div>
+    </div>
+    
+    <!-- Mock Modal -->
+    <div id="modal" class="modal-overlay hidden" onclick="closeModalOverlay(event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Nuovo Raccolto</h2>
+                <button class="close-button" onclick="closeModal()" aria-label="Chiudi modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 12px;">
+                        Tipo di registrazione
+                    </label>
+                    <div class="type-selection">
+                        <button class="type-button active" onclick="selectType('tracked')">
+                            <div class="type-button-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+                                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                </svg>
+                                <span class="type-button-title">Coltura Tracciata</span>
+                            </div>
+                            <p class="type-button-desc">
+                                Raccolto da piante che hai seminato/trapiantato
+                            </p>
+                        </button>
+                        
+                        <button class="type-button" onclick="selectType('manual')">
+                            <div class="type-button-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="8" x2="12" y2="12"/>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                </svg>
+                                <span class="type-button-title">Inserimento Manuale</span>
+                            </div>
+                            <p class="type-button-desc">
+                                Raccolto non tracciato nel sistema
+                            </p>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="action-button secondary" onclick="closeModal()">
+                        Annulla
+                    </button>
+                    <button class="action-button primary" onclick="saveHarvest()">
+                        Salva
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let modalOpenTime = 0;
+        let closeMethod = '';
+        
+        function openModal() {
+            const modal = document.getElementById('modal');
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            modalOpenTime = Date.now();
+            
+            // Add ESC key listener
+            document.addEventListener('keydown', handleEscKey);
+            
+            showResult('Modal aperto. Prova a chiuderlo in diversi modi.', 'info');
+        }
+        
+        function closeModal(method = 'button') {
+            const modal = document.getElementById('modal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'unset';
+            
+            // Remove ESC key listener
+            document.removeEventListener('keydown', handleEscKey);
+            
+            const timeOpen = Date.now() - modalOpenTime;
+            closeMethod = method;
+            
+            showResult(`✅ Modal chiuso con successo! Metodo: ${method}, Tempo: ${timeOpen}ms`, 'success');
+        }
+        
+        function closeModalOverlay(event) {
+            // Close only if clicking on the overlay, not the content
+            if (event.target === event.currentTarget) {
+                closeModal('overlay');
+            }
+        }
+        
+        function handleEscKey(event) {
+            if (event.key === 'Escape') {
+                closeModal('esc');
+            }
+        }
+        
+        function selectType(type) {
+            const buttons = document.querySelectorAll('.type-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.type-button').classList.add('active');
+        }
+        
+        function saveHarvest() {
+            closeModal('save');
+        }
+        
+        function showResult(message, type) {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = `<div class="test-result ${type}">${message}</div>`;
+        }
+        
+        // Test touch events
+        document.addEventListener('DOMContentLoaded', function() {
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            
+            if (isTouchDevice) {
+                showResult('📱 Dispositivo touch rilevato - Test ottimizzato per mobile', 'success');
+            } else {
+                showResult('🖥️ Dispositivo desktop - Usa anche il tasto ESC per testare', 'info');
+            }
+        });
+    </script>
+</body>
+</html>

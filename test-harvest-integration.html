@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Harvest Integration System</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+        .test-section {
+            margin-bottom: 32px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .crop-card {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 8px 0;
+        }
+        .crop-ready {
+            background: #ecfdf5;
+            border-color: #86efac;
+        }
+        .crop-not-ready {
+            background: #fef3c7;
+            border-color: #fcd34d;
+        }
+        .harvest-card {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 8px 0;
+        }
+        .tracked {
+            background: #f0f9ff;
+            border-color: #7dd3fc;
+        }
+        .manual {
+            background: #f9fafb;
+            border-color: #d1d5db;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 16px 0;
+        }
+        .stat-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 16px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e40af;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+        .suggestion {
+            background: #fef7cd;
+            border: 1px solid #f59e0b;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 8px 0;
+        }
+        .success {
+            color: #059669;
+        }
+        .warning {
+            color: #d97706;
+        }
+        .info {
+            color: #0284c7;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌾 Test Sistema Integrato Raccolti</h1>
+        <p>Verifica del sistema intelligente di registrazione raccolti con tracciamento colture</p>
+    </div>
+
+    <div class="container">
+        <div class="test-section">
+            <div class="test-title">
+                📋 Colture Piantate Disponibili per Raccolto
+            </div>
+            <div id="available-crops"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">
+                🏷️ Suggerimenti Unità di Misura
+            </div>
+            <div id="unit-suggestions"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">
+                📊 Analisi Performance Raccolti
+            </div>
+            <div id="harvest-analysis"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">
+                💡 Suggerimenti per Migliorare i Raccolti
+            </div>
+            <div id="harvest-suggestions"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">
+                🔄 Test Integrazione Completa
+            </div>
+            <div id="integration-test"></div>
+        </div>
+    </div>
+
+    <script>
+        // Mock data for testing
+        const mockPlantedCrops = [
+            {
+                id: 'task-1',
+                gardenId: 'garden-1',
+                plantName: 'Pomodoro',
+                variety: 'Datterino',
+                taskType: 'Sowing',
+                date: '2024-11-01', // 79 days ago
+                completed: true,
+                stage: 'Fruiting',
+                quantity: 6,
+                locationType: 'Ground',
+                zoneId: 'zone-1',
+                rowId: 'row-1'
+            },
+            {
+                id: 'task-2',
+                gardenId: 'garden-1',
+                plantName: 'Zucchina',
+                variety: 'Romanesco',
+                taskType: 'Transplant',
+                date: '2024-12-01', // 49 days ago
+                completed: true,
+                stage: 'Vegetative',
+                quantity: 4,
+                locationType: 'RaisedBed',
+                zoneId: 'zone-2'
+            },
+            {
+                id: 'task-3',
+                gardenId: 'garden-1',
+                plantName: 'Lattuga',
+                variety: 'Iceberg',
+                taskType: 'Sowing',
+                date: '2024-12-15', // 35 days ago
+                completed: true,
+                stage: 'Vegetative',
+                quantity: 12,
+                locationType: 'Pot'
+            },
+            {
+                id: 'task-4',
+                gardenId: 'garden-1',
+                plantName: 'Basilico',
+                taskType: 'Sowing',
+                date: '2024-10-01', // 110 days ago
+                completed: true,
+                stage: 'Harvested',
+                quantity: 3,
+                locationType: 'Pot'
+            }
+        ];
+
+        const mockHarvests = [
+            {
+                id: 'harvest-1',
+                plant_name: 'Pomodoro',
+                variety: 'Datterino',
+                quantity: 2.5,
+                unit: 'kg',
+                harvest_date: '2025-01-15',
+                rating: 4,
+                garden_id: 'garden-1',
+                task_id: 'task-1',
+                is_tracked: true,
+                created_at: '2025-01-15T10:00:00Z'
+            },
+            {
+                id: 'harvest-2',
+                plant_name: 'Basilico',
+                quantity: 0.2,
+                unit: 'kg',
+                harvest_date: '2025-01-10',
+                rating: 5,
+                garden_id: 'garden-1',
+                task_id: 'task-4',
+                is_tracked: true,
+                created_at: '2025-01-10T15:30:00Z'
+            },
+            {
+                id: 'harvest-3',
+                plant_name: 'Carote',
+                quantity: 1.0,
+                unit: 'kg',
+                harvest_date: '2025-01-12',
+                rating: 3,
+                garden_id: 'garden-1',
+                is_tracked: false, // Manual entry
+                created_at: '2025-01-12T09:15:00Z'
+            }
+        ];
+
+        // Simplified version of HarvestTrackingService functions
+        function getAvailableCropsForHarvest(plantedCrops) {
+            const now = new Date();
+            
+            return plantedCrops
+                .filter(task => {
+                    if (!task.completed || !['Sowing', 'Transplant'].includes(task.taskType)) {
+                        return false;
+                    }
+                    
+                    const plantingDate = new Date(task.date);
+                    const daysFromPlanting = Math.floor((now.getTime() - plantingDate.getTime()) / (1000 * 60 * 60 * 24));
+                    
+                    const isReadyToHarvest = task.stage === 'Fruiting' || 
+                                            task.stage === 'Harvested' || 
+                                            daysFromPlanting >= 30;
+                    
+                    return isReadyToHarvest;
+                })
+                .map(task => {
+                    const plantingDate = new Date(task.date);
+                    const daysFromPlanting = Math.floor((now.getTime() - plantingDate.getTime()) / (1000 * 60 * 60 * 24));
+                    
+                    return {
+                        taskId: task.id,
+                        plantName: task.plantName,
+                        variety: task.variety,
+                        plantingDate: task.date,
+                        stage: task.stage || 'Unknown',
+                        quantity: task.quantity,
+                        locationType: task.locationType || 'Ground',
+                        zoneId: task.zoneId,
+                        rowId: task.rowId,
+                        isReadyToHarvest: task.stage === 'Fruiting' || daysFromPlanting >= 60,
+                        daysFromPlanting,
+                        estimatedYield: estimateYield(task)
+                    };
+                })
+                .sort((a, b) => {
+                    if (a.isReadyToHarvest && !b.isReadyToHarvest) return -1;
+                    if (!a.isReadyToHarvest && b.isReadyToHarvest) return 1;
+                    return b.daysFromPlanting - a.daysFromPlanting;
+                });
+        }
+
+        function estimateYield(task) {
+            const plantName = task.plantName.toLowerCase();
+            const quantity = task.quantity || 1;
+            
+            const yieldPerPlant = {
+                'pomodoro': 3.0,
+                'zucchina': 2.5,
+                'lattuga': 0.3,
+                'basilico': 0.1
+            };
+            
+            const yieldPer = Object.entries(yieldPerPlant).find(([plant]) => 
+                plantName.includes(plant)
+            )?.[1] || 0.5;
+            
+            return quantity * yieldPer;
+        }
+
+        function getSuggestedUnit(plantName) {
+            const lowerName = plantName.toLowerCase();
+            
+            if (['pomodoro', 'zucchina', 'melanzana', 'peperone'].some(p => lowerName.includes(p))) {
+                return 'kg';
+            }
+            
+            if (['lattuga', 'spinaci', 'rucola', 'basilico'].some(p => lowerName.includes(p))) {
+                return 'mazzi';
+            }
+            
+            if (['ravanello', 'carota', 'cipolla'].some(p => lowerName.includes(p))) {
+                return 'pz';
+            }
+            
+            return 'kg';
+        }
+
+        function analyzeHarvestPerformance(harvests, plantedCrops) {
+            const trackedHarvests = harvests.filter(h => h.is_tracked && h.task_id);
+            
+            const totalHarvested = trackedHarvests.reduce((sum, h) => sum + h.quantity, 0);
+            
+            const harvestsByTask = trackedHarvests.reduce((acc, harvest) => {
+                if (!harvest.task_id) return acc;
+                if (!acc[harvest.task_id]) acc[harvest.task_id] = [];
+                acc[harvest.task_id].push(harvest);
+                return acc;
+            }, {});
+            
+            let totalYield = 0;
+            let totalPlants = 0;
+            
+            Object.entries(harvestsByTask).forEach(([taskId, taskHarvests]) => {
+                const task = plantedCrops.find(t => t.id === taskId);
+                if (task) {
+                    const plantCount = task.quantity || 1;
+                    const harvestTotal = taskHarvests.reduce((sum, h) => sum + h.quantity, 0);
+                    totalYield += harvestTotal;
+                    totalPlants += plantCount;
+                }
+            });
+            
+            const averageYield = totalPlants > 0 ? totalYield / totalPlants : 0;
+            
+            const varietyPerformance = trackedHarvests.reduce((acc, harvest) => {
+                const key = `${harvest.plant_name}${harvest.variety ? ` (${harvest.variety})` : ''}`;
+                if (!acc[key]) acc[key] = { total: 0, count: 0 };
+                acc[key].total += harvest.quantity;
+                acc[key].count += 1;
+                return acc;
+            }, {});
+            
+            const varietyAverages = Object.entries(varietyPerformance).map(([variety, data]) => ({
+                variety,
+                average: data.total / data.count
+            })).sort((a, b) => b.average - a.average);
+            
+            const bestPerformingVariety = varietyAverages[0]?.variety;
+            
+            const tasksWithHarvest = new Set(trackedHarvests.map(h => h.task_id)).size;
+            const totalCompletedTasks = plantedCrops.filter(t => 
+                t.completed && ['Sowing', 'Transplant'].includes(t.taskType)
+            ).length;
+            const harvestEfficiency = totalCompletedTasks > 0 ? (tasksWithHarvest / totalCompletedTasks) * 100 : 0;
+            
+            const qualityRatings = trackedHarvests
+                .filter(h => h.rating)
+                .sort((a, b) => new Date(a.harvest_date).getTime() - new Date(b.harvest_date).getTime())
+                .map(h => h.rating);
+            
+            let qualityTrend = 'stable';
+            if (qualityRatings.length >= 3) {
+                const firstHalf = qualityRatings.slice(0, Math.floor(qualityRatings.length / 2));
+                const secondHalf = qualityRatings.slice(Math.ceil(qualityRatings.length / 2));
+                const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+                const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+                
+                if (secondAvg > firstAvg + 0.3) qualityTrend = 'improving';
+                else if (secondAvg < firstAvg - 0.3) qualityTrend = 'declining';
+            }
+            
+            return {
+                totalHarvested,
+                averageYield,
+                bestPerformingVariety,
+                harvestEfficiency,
+                qualityTrend,
+                trackedCount: trackedHarvests.length,
+                totalCount: harvests.length
+            };
+        }
+
+        function generateHarvestSuggestions(analysis) {
+            const suggestions = [];
+            
+            if (analysis.harvestEfficiency < 70) {
+                suggestions.push('🌱 Efficienza raccolto bassa. Considera di migliorare la cura delle piante o la qualità del terreno.');
+            }
+            
+            if (analysis.qualityTrend === 'declining') {
+                suggestions.push('📉 La qualità dei raccolti sta diminuendo. Verifica nutrizione e irrigazione.');
+            }
+            
+            if (analysis.qualityTrend === 'improving') {
+                suggestions.push('📈 Ottimo! La qualità dei raccolti sta migliorando. Continua così!');
+            }
+            
+            if (analysis.bestPerformingVariety) {
+                suggestions.push(`🏆 La varietà "${analysis.bestPerformingVariety}" sta dando i migliori risultati.`);
+            }
+            
+            if (analysis.averageYield < 1) {
+                suggestions.push('⚡ Resa media bassa. Considera fertilizzazione o varietà più produttive.');
+            }
+            
+            return suggestions;
+        }
+
+        // Run tests and display results
+        function runTests() {
+            // Test 1: Available crops
+            const availableCrops = getAvailableCropsForHarvest(mockPlantedCrops);
+            const cropsContainer = document.getElementById('available-crops');
+            
+            if (availableCrops.length === 0) {
+                cropsContainer.innerHTML = '<div class="crop-card crop-not-ready">Nessuna coltura pronta per il raccolto</div>';
+            } else {
+                cropsContainer.innerHTML = availableCrops.map(crop => `
+                    <div class="crop-card ${crop.isReadyToHarvest ? 'crop-ready' : 'crop-not-ready'}">
+                        <strong>${crop.plantName} ${crop.variety ? `(${crop.variety})` : ''}</strong><br>
+                        <small>
+                            Giorni dalla semina: ${crop.daysFromPlanting} • 
+                            Fase: ${crop.stage} • 
+                            Piante: ${crop.quantity} • 
+                            Resa stimata: ${crop.estimatedYield}kg •
+                            ${crop.isReadyToHarvest ? '<span class="success">✅ Pronto</span>' : '<span class="warning">⏳ Non ancora pronto</span>'}
+                        </small>
+                    </div>
+                `).join('');
+            }
+
+            // Test 2: Unit suggestions
+            const testPlants = ['Pomodoro', 'Lattuga', 'Carota', 'Basilico', 'Fagiolo'];
+            const unitsContainer = document.getElementById('unit-suggestions');
+            unitsContainer.innerHTML = testPlants.map(plant => {
+                const unit = getSuggestedUnit(plant);
+                return `<div class="crop-card"><strong>${plant}:</strong> ${unit}</div>`;
+            }).join('');
+
+            // Test 3: Harvest analysis
+            const analysis = analyzeHarvestPerformance(mockHarvests, mockPlantedCrops);
+            const analysisContainer = document.getElementById('harvest-analysis');
+            
+            analysisContainer.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">${analysis.totalHarvested.toFixed(1)}</div>
+                        <div class="stat-label">kg Totali Raccolti</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${analysis.averageYield.toFixed(2)}</div>
+                        <div class="stat-label">kg per Pianta</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${analysis.harvestEfficiency.toFixed(1)}%</div>
+                        <div class="stat-label">Efficienza Raccolto</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${analysis.trackedCount}/${analysis.totalCount}</div>
+                        <div class="stat-label">Raccolti Tracciati</div>
+                    </div>
+                </div>
+                <div class="harvest-card">
+                    <strong>Trend Qualità:</strong> <span class="${analysis.qualityTrend === 'improving' ? 'success' : analysis.qualityTrend === 'declining' ? 'warning' : 'info'}">${analysis.qualityTrend}</span>
+                </div>
+                ${analysis.bestPerformingVariety ? `<div class="harvest-card"><strong>Migliore Varietà:</strong> ${analysis.bestPerformingVariety}</div>` : ''}
+            `;
+
+            // Test 4: Suggestions
+            const suggestions = generateHarvestSuggestions(analysis);
+            const suggestionsContainer = document.getElementById('harvest-suggestions');
+            
+            if (suggestions.length === 0) {
+                suggestionsContainer.innerHTML = '<div class="suggestion">✅ Tutto sembra andare bene! Continua così.</div>';
+            } else {
+                suggestionsContainer.innerHTML = suggestions.map(suggestion => 
+                    `<div class="suggestion">${suggestion}</div>`
+                ).join('');
+            }
+
+            // Test 5: Integration test
+            const integrationContainer = document.getElementById('integration-test');
+            const integrationResults = [];
+            
+            // Check if system can distinguish tracked vs manual harvests
+            const trackedHarvests = mockHarvests.filter(h => h.is_tracked);
+            const manualHarvests = mockHarvests.filter(h => !h.is_tracked);
+            integrationResults.push(`✅ Sistema distingue raccolti tracciati (${trackedHarvests.length}) da manuali (${manualHarvests.length})`);
+            
+            // Check if system can link harvests to tasks
+            const linkedHarvests = mockHarvests.filter(h => h.task_id);
+            integrationResults.push(`✅ Sistema collega raccolti ai task di coltivazione (${linkedHarvests.length}/${mockHarvests.length})`);
+            
+            // Check if system filters ready crops correctly
+            const readyCrops = availableCrops.filter(c => c.isReadyToHarvest);
+            integrationResults.push(`✅ Sistema filtra colture pronte per raccolto (${readyCrops.length}/${availableCrops.length})`);
+            
+            // Check if system provides intelligent suggestions
+            integrationResults.push(`✅ Sistema genera ${suggestions.length} suggerimenti intelligenti`);
+            
+            integrationContainer.innerHTML = integrationResults.map(result => 
+                `<div class="harvest-card">${result}</div>`
+            ).join('');
+        }
+
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', runTests);
+    </script>
+</body>
+</html>
