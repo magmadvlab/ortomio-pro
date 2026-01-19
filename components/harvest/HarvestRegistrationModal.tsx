@@ -195,13 +195,21 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
     
     console.log('Form submitted!', { isManualEntry, plantName, quantity, harvestDate });
     
+    // Validazione per inserimento manuale
     if (isManualEntry && (!plantName.trim() || !quantity || !harvestDate)) {
-      alert('Compila tutti i campi obbligatori');
+      alert('Compila tutti i campi obbligatori per l\'inserimento manuale');
       return;
     }
     
-    if (!isManualEntry && !selectedTaskId) {
-      alert('Seleziona una coltura da raccogliere');
+    // Validazione per coltura tracciata
+    if (!isManualEntry && !selectedTaskId && availableCrops.length > 0) {
+      alert('Seleziona una coltura da raccogliere o passa all\'inserimento manuale');
+      return;
+    }
+    
+    // Se non ci sono colture tracciate, forza l'inserimento manuale
+    if (!isManualEntry && availableCrops.length === 0) {
+      alert('Non ci sono colture tracciate disponibili. Usa l\'inserimento manuale.');
       return;
     }
 
@@ -238,6 +246,14 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
     }
   };
 
+  const handleClose = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    onClose();
+  };
+
   const commonPlants = [
     'Pomodoro', 'Zucchina', 'Melanzana', 'Peperone', 'Cetriolo',
     'Lattuga', 'Spinaci', 'Rucola', 'Basilico', 'Prezzemolo',
@@ -263,9 +279,7 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
       onClick={(e) => {
         // Chiudi il modal se si clicca sull'overlay (non sul contenuto)
         if (e.target === e.currentTarget) {
-          e.preventDefault();
-          e.stopPropagation();
-          onClose();
+          handleClose(e);
         }
       }}
     >
@@ -281,11 +295,7 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
             {harvest ? 'Modifica Raccolto' : 'Nuovo Raccolto'}
           </h2>
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onClose();
-            }}
+            onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 p-2 -m-2 touch-manipulation"
             aria-label="Chiudi modal"
             type="button"
@@ -367,6 +377,20 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
                         Usa "Inserimento Manuale" per registrare raccolti non tracciati.
                       </p>
                     </div>
+                  </div>
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsManualEntry(true);
+                        setSelectedTaskId('');
+                        setPlantName('');
+                        setVariety('');
+                      }}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                    >
+                      Passa a Inserimento Manuale
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -576,11 +600,7 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onClose();
-              }}
+              onClick={handleClose}
               className="flex-1 px-4 py-3 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 touch-manipulation text-base sm:text-sm font-medium"
               disabled={loading}
             >
@@ -592,9 +612,9 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
                 e.stopPropagation();
                 // Il form submit sarà gestito da handleSubmit
               }}
-              className="flex-1 px-4 py-3 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 touch-manipulation text-base sm:text-sm font-medium"
+              className="flex-1 px-4 py-3 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation text-base sm:text-sm font-medium"
               disabled={loading || (
-                !isManualEntry && !selectedTaskId
+                !isManualEntry && !selectedTaskId && availableCrops.length > 0
               ) || (
                 isManualEntry && (!plantName.trim() || !quantity || !harvestDate)
               )}
