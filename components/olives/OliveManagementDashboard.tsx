@@ -148,8 +148,8 @@ export default function OliveManagementDashboard({ garden, onAction }: OliveMana
       recommendations: [
         'Monitorare presenza mosca olearia',
         'Controllare umidità del suolo',
-        'Verificare stato nutrizionale foglie',
-        'Programmare potatura verde'
+        'Programmare potatura di produzione',
+        'Verificare stato nutrizionale foglie'
       ]
     })
   }
