@@ -216,7 +216,7 @@ export function ProfessionalSidebar() {
           </button>
         </div>
         
-        <nav className="space-y-4 sm:space-y-6 px-4 pb-4 safe-area-inset-bottom">
+        <nav className="space-y-4 sm:space-y-6 px-4 pb-4 safe-area-inset-bottom flex-1">
           {menuGroups.map((group) => {
             const tierStr = (tier || 'FREE') as string
             const isGroupAvailable = group.tier === 'all' || 
@@ -293,6 +293,13 @@ export function ProfessionalSidebar() {
             )
           })}
         </nav>
+
+        {/* Author Credits */}
+        <div className="px-4 py-3 border-t border-gray-200 mt-auto">
+          <p className="text-xs text-gray-400 text-center">
+            by <span className="font-medium text-gray-500">Roberto Lalinga</span>
+          </p>
+        </div>
       </aside>
     </>
   )

@@ -180,6 +180,19 @@ export default function HelpPage() {
           Contatta il Supporto
         </button>
       </div>
+
+      {/* Credits */}
+      <div className="mt-12 pt-6 border-t border-gray-200 text-center">
+        <p className="text-sm text-gray-500">
+          Sviluppato da <span className="font-medium text-gray-700">Roberto Lalinga</span>
+        </p>
+        <a
+          href="mailto:roberto.lalinga@gmail.com"
+          className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+        >
+          roberto.lalinga@gmail.com
+        </a>
+      </div>
     </div>
   )
 }
