@@ -192,9 +192,12 @@ export function ProfessionalSidebar() {
       `}>
         {/* Header con logo e close button su mobile */}
         <div className="mb-4 sm:mb-6 flex items-center justify-between p-4 sticky top-0 bg-white border-b border-gray-100 z-10 safe-area-inset-top">
-          <div className="min-w-0 flex-1 pr-2">
-            <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 truncate">🌱 OrtoMio</h2>
-            <p className="text-xs text-gray-500 mt-1 truncate">PRO Professional</p>
+          <div className="min-w-0 flex-1 pr-2 flex items-center gap-3">
+            <img src="/logo.png" alt="OrtoMio" className="w-10 h-10 object-contain" />
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-gray-900">OrtoMio</h2>
+              <p className="text-xs text-gray-500">Il tuo assistente smart</p>
+            </div>
           </div>
           {/* Close button - solo mobile */}
           <button
