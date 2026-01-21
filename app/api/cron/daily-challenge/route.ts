@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSupabase } from '../../../../lib/supabase-server';
-import { getChallengeForDate } from '../../../../data/giornateSpeciali';
+// import { getChallengeForDate } from '../../../../data/giornateSpeciali'; // REMOVED: gamification
 import { sendBatchNotifications, createChallengeNotification, createTaskReminderNotification, NotificationData } from '../../../../services/notificationService';
 
 // Verifica CRON_SECRET per sicurezza
@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
     }
     
     const today = new Date();
-    const challenge = getChallengeForDate(today);
+    // const challenge = getChallengeForDate(today); // REMOVED: gamification
+    const challenge = null; // Gamification removed
     
     if (!challenge) {
       return NextResponse.json({

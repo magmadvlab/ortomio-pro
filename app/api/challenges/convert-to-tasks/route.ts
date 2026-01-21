@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSupabase } from '../../../../lib/supabase-server';
-import { getChallengeForDate } from '@/data/giornateSpeciali';
+// import { getChallengeForDate } from '@/data/giornateSpeciali'; // REMOVED: gamification
 import { convertChallengeActionsToTasks, checkChallengeTasksExist } from '../../../../services/challengeTaskConverter';
 
 export async function POST(request: NextRequest) {
@@ -32,7 +32,8 @@ export async function POST(request: NextRequest) {
     }
     
     const challengeDate = new Date(new Date().getFullYear(), mese - 1, giorno);
-    const challenge = getChallengeForDate(challengeDate);
+    // const challenge = getChallengeForDate(challengeDate); // REMOVED: gamification
+    const challenge = null; // Gamification removed
     
     if (!challenge) {
       return NextResponse.json(

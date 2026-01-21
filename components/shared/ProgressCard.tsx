@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '@/packages/core/hooks/useAuth'
 import { useStorage } from '@/packages/core/hooks/useStorage'
-import { getChallengeForDate } from '@/data/giornateSpeciali'
+// import { getChallengeForDate } from '@/data/giornateSpeciali' // REMOVED: gamification
 import { GardenTask } from '@/types'
 import { Trophy, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
@@ -30,7 +30,8 @@ export function ProgressCard({ tasks, gardenId }: ProgressCardProps) {
 
       try {
         // 1. Controlla challenge giornaliero
-        const todayChallenge = getChallengeForDate(new Date())
+        // const todayChallenge = getChallengeForDate(new Date()) // REMOVED: gamification
+        const todayChallenge = null; // Gamification removed
         if (todayChallenge) {
           const challengeId = `${todayChallenge.giorno}-${todayChallenge.mese}`
           

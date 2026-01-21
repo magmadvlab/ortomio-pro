@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from 'react'
-import { getChallengeForDate } from '@/data/giornateSpeciali'
+// import { getChallengeForDate } from '@/data/giornateSpeciali' // REMOVED: gamification
 import { useStorage } from '@/packages/core/hooks/useStorage'
 
 export interface ChallengeProgress {
@@ -39,7 +39,8 @@ export function useChallengeNotifications() {
     
     try {
       // 1. Controlla challenge giornaliero
-      const todayChallenge = getChallengeForDate(new Date())
+      // const todayChallenge = getChallengeForDate(new Date()) // REMOVED: gamification
+      const todayChallenge = null; // Gamification removed
       if (todayChallenge) {
         // Verifica se l'azione corrisponde al challenge del giorno
         const actionMatches = checkActionMatchesChallenge(action, todayChallenge)

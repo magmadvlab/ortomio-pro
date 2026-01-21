@@ -3,7 +3,7 @@
  * Converte le azioni di una challenge in calendar tasks tracciabili
  */
 
-import { GiornataSpeciale } from '@/data/giornateSpeciali';
+// import { GiornataSpeciale } from '@/data/giornateSpeciali'; // REMOVED: gamification
 import { SupabaseClient } from '@supabase/supabase-js';
 
 interface ConvertOptions {

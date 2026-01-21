@@ -12,7 +12,7 @@ import React, { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isSameDay, isToday, addMonths, subMonths, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { getDettiForDate } from '../data/dettiContadini';
-import { getChallengeForDate } from '../data/giornateSpeciali';
+// import { getChallengeForDate } from '../data/giornateSpeciali'; // REMOVED: gamification
 import { getSeasonalEventForDate } from '../logic/seasonalEvents';
 import { calculateMoonPhase, MoonPhaseInfo } from '../logic/lunarCalendar';
 import { GardenTask } from '../types';
@@ -38,7 +38,8 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
   
   // Dati per il giorno selezionato
   const dettiOggi = getDettiForDate(selectedDate);
-  const challengeOggi = getChallengeForDate(selectedDate);
+  // const challengeOggi = getChallengeForDate(selectedDate); // REMOVED: gamification
+  const challengeOggi = null; // Gamification removed
   const eventoStagionale = getSeasonalEventForDate(selectedDate);
   const faseLunareInfo = calculateMoonPhase(selectedDate);
   
@@ -175,7 +176,8 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
             
             // Dati per questo giorno
             const dettiGiorno = getDettiForDate(day);
-            const challengeGiorno = getChallengeForDate(day);
+            // const challengeGiorno = getChallengeForDate(day); // REMOVED: gamification
+            const challengeGiorno = null; // Gamification removed
             const eventoGiorno = getSeasonalEventForDate(day);
             const faseLunareGiornoInfo = calculateMoonPhase(day);
             const faseLunareGiorno = faseLunareGiornoInfo ? {
