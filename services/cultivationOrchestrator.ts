@@ -1,11 +1,19 @@
 /**
  * ORCHESTRATORE COLTIVAZIONE ORTOMIO
- * 
+ *
  * Gestisce il flusso completo dalla pianificazione alla raccolta
  * Coordina le diverse banche (semi, piantine, alberelli) in base al tipo di giardino
+ *
+ * INTEGRAZIONE DAILY DIARY:
+ * L'orchestratore ora si integra con il DailyDiaryService per:
+ * - Registrare automaticamente eventi di fase nel diario
+ * - Utilizzare previsioni GDD per stime più accurate
+ * - Generare raccomandazioni basate su dati storici
  */
 
 import { getSupabaseClient } from '../config/supabase';
+import { dailyDiaryService, type DiaryEvent } from './dailyDiaryService';
+import { diaryPredictiveEngine, type CropPrediction, type ActionRecommendation } from './diaryPredictiveEngine';
 
 // Tipi di giardino supportati
 export type GardenType = 
@@ -234,16 +242,19 @@ export class CultivationOrchestrator {
       quantity?: number;
       notes?: string;
       photos?: string[];
+      userId?: string; // Per registrazione diario
     }
   ): Promise<CultivationPlan> {
-    
+
     const plan = await this.getCultivationPlan(planId);
     if (!plan) throw new Error('Piano non trovato');
-    
+
+    const oldPhase = plan.currentPhase;
+
     // Chiudi fase corrente
     const currentPhaseRecord = plan.phaseHistory[plan.phaseHistory.length - 1];
     currentPhaseRecord.endDate = new Date();
-    
+
     // Aggiungi nuova fase
     const newPhaseRecord: PhaseRecord = {
       phase: newPhase,
@@ -253,18 +264,23 @@ export class CultivationOrchestrator {
       notes: params.notes,
       photos: params.photos
     };
-    
+
     plan.phaseHistory.push(newPhaseRecord);
     plan.currentPhase = newPhase;
     plan.currentLocation = newPhaseRecord.location;
     plan.updatedAt = new Date();
-    
+
     // Gestisci transizioni speciali
     await this.handlePhaseTransition(plan, newPhase, params);
-    
+
     // Salva aggiornamenti
     await this.saveCultivationPlan(plan);
-    
+
+    // INTEGRAZIONE DIARY: Registra evento cambio fase
+    if (params.userId) {
+      await this.recordPhaseChangeEvent(plan, oldPhase, newPhase, params.userId);
+    }
+
     return plan;
   }
   
@@ -611,39 +627,298 @@ export class CultivationOrchestrator {
     if (!supabase) {
       throw new Error('Supabase client not available');
     }
-    
+
     await supabase
       .from('cultivation_plans')
       .update({ is_active: false })
       .eq('id', plan.id);
-    
+
     // Trigger automatico calcolerà le statistiche
+  }
+
+  // ==========================================================================
+  // INTEGRAZIONE DAILY DIARY
+  // ==========================================================================
+
+  /**
+   * Registra evento di cambio fase nel diario
+   */
+  private static async recordPhaseChangeEvent(
+    plan: CultivationPlan,
+    oldPhase: CultivationPhase,
+    newPhase: CultivationPhase,
+    userId: string
+  ): Promise<void> {
+    try {
+      await dailyDiaryService.recordManualEvent({
+        user_id: userId,
+        cultivation_id: plan.id,
+        event_date: new Date().toISOString().split('T')[0],
+        event_type: 'phase_change',
+        severity: 'info',
+        title: `Cambio fase: ${this.translatePhase(oldPhase)} → ${this.translatePhase(newPhase)}`,
+        description: `La coltivazione "${plan.plantName}" è passata dalla fase ${this.translatePhase(oldPhase)} alla fase ${this.translatePhase(newPhase)}.`,
+        parameters_affected: ['phenological_stage', 'growth_rate'],
+        resolved: true
+      });
+    } catch (err) {
+      console.error('Errore registrazione evento fase:', err);
+    }
+  }
+
+  /**
+   * Traduce fase in italiano
+   */
+  private static translatePhase(phase: CultivationPhase): string {
+    const translations: Record<CultivationPhase, string> = {
+      planning: 'Pianificazione',
+      preparation: 'Preparazione',
+      sowing: 'Semina',
+      germination: 'Germinazione',
+      nursing: 'Allevamento',
+      hardening: 'Indurimento',
+      transplanting: 'Trapianto',
+      growing: 'Crescita',
+      flowering: 'Fioritura',
+      fruiting: 'Fruttificazione',
+      harvesting: 'Raccolta',
+      composting: 'Compostaggio'
+    };
+    return translations[phase] || phase;
+  }
+
+  /**
+   * Ottiene previsioni dettagliate per una coltivazione
+   */
+  static async getCultivationPrediction(
+    userId: string,
+    planId: string
+  ): Promise<CropPrediction | null> {
+    try {
+      return await diaryPredictiveEngine.generateCropPrediction(userId, planId);
+    } catch (err) {
+      console.error('Errore generazione previsione:', err);
+      return null;
+    }
+  }
+
+  /**
+   * Ottiene raccomandazioni giornaliere per tutte le coltivazioni
+   */
+  static async getDailyRecommendations(userId: string): Promise<ActionRecommendation[]> {
+    try {
+      return await diaryPredictiveEngine.generateDailyRecommendations(userId);
+    } catch (err) {
+      console.error('Errore generazione raccomandazioni:', err);
+      return [];
+    }
+  }
+
+  /**
+   * Esegue registrazione giornaliera automatica
+   * Da chiamare ogni giorno (tramite cron o manualmente)
+   */
+  static async runDailyDiaryRegistration(userId: string, date?: string): Promise<{
+    success: boolean;
+    weatherLog: any;
+    cultivationsUpdated: number;
+    eventsGenerated: number;
+    errors: string[];
+  }> {
+    try {
+      const result = await dailyDiaryService.runDailyRegistration(userId, date);
+      return {
+        success: result.errors.length === 0,
+        weatherLog: result.weatherLog,
+        cultivationsUpdated: result.cultivationsUpdated,
+        eventsGenerated: result.eventsGenerated,
+        errors: result.errors
+      };
+    } catch (err) {
+      return {
+        success: false,
+        weatherLog: null,
+        cultivationsUpdated: 0,
+        eventsGenerated: 0,
+        errors: [String(err)]
+      };
+    }
+  }
+
+  /**
+   * Calcola data raccolta più precisa usando GDD accumulati
+   */
+  static async getImprovedHarvestEstimate(
+    userId: string,
+    planId: string
+  ): Promise<{ date: string; confidence: number; daysRemaining: number } | null> {
+    try {
+      const prediction = await this.getCultivationPrediction(userId, planId);
+      if (!prediction) return null;
+
+      const harvestDate = new Date(prediction.predicted_harvest_date);
+      const today = new Date();
+      const daysRemaining = Math.ceil((harvestDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+      return {
+        date: prediction.predicted_harvest_date,
+        confidence: prediction.confidence,
+        daysRemaining: Math.max(0, daysRemaining)
+      };
+    } catch (err) {
+      console.error('Errore stima raccolta:', err);
+      return null;
+    }
+  }
+
+  /**
+   * Confronta performance anno su anno per una coltivazione
+   */
+  static async getYearOverYearAnalysis(
+    userId: string,
+    planId: string,
+    years?: number[]
+  ): Promise<{
+    comparisons: any[];
+    analysis: string;
+    bestYear: number;
+    recommendations: string[];
+  }> {
+    try {
+      return await diaryPredictiveEngine.compareYears(userId, planId, years);
+    } catch (err) {
+      console.error('Errore confronto annate:', err);
+      return {
+        comparisons: [],
+        analysis: 'Errore nel recupero dati',
+        bestYear: new Date().getFullYear(),
+        recommendations: []
+      };
+    }
+  }
+
+  /**
+   * Ottieni riassunto del diario per un periodo
+   */
+  static async getDiarySummary(
+    userId: string,
+    startDate: string,
+    endDate: string,
+    cultivationId?: string
+  ): Promise<{
+    totalDays: number;
+    weatherSummary: {
+      avgTemp: number;
+      totalPrecipitation: number;
+      stressDays: number;
+    };
+    events: DiaryEvent[];
+    gddAccumulated: number;
+  }> {
+    try {
+      const entries = await dailyDiaryService.getDiaryEntries(userId, startDate, endDate, cultivationId);
+
+      const weatherSummary = {
+        avgTemp: entries.weather.length > 0
+          ? entries.weather.reduce((sum, w) => sum + w.temp_avg, 0) / entries.weather.length
+          : 0,
+        totalPrecipitation: entries.weather.reduce((sum, w) => sum + w.precipitation_mm, 0),
+        stressDays: entries.tracking.filter(t =>
+          t.cold_stress_index > 0.5 || t.heat_stress_index > 0.5 || t.water_stress_index > 0.5
+        ).length
+      };
+
+      const lastTracking = entries.tracking[entries.tracking.length - 1];
+      const firstTracking = entries.tracking[0];
+      const gddAccumulated = lastTracking && firstTracking
+        ? lastTracking.accumulated_gdd - (firstTracking.accumulated_gdd - firstTracking.daily_gdd)
+        : 0;
+
+      return {
+        totalDays: entries.weather.length,
+        weatherSummary: {
+          avgTemp: Math.round(weatherSummary.avgTemp * 10) / 10,
+          totalPrecipitation: Math.round(weatherSummary.totalPrecipitation),
+          stressDays: weatherSummary.stressDays
+        },
+        events: entries.events,
+        gddAccumulated: Math.round(gddAccumulated)
+      };
+    } catch (err) {
+      console.error('Errore riassunto diario:', err);
+      return {
+        totalDays: 0,
+        weatherSummary: { avgTemp: 0, totalPrecipitation: 0, stressDays: 0 },
+        events: [],
+        gddAccumulated: 0
+      };
+    }
   }
 }
 
 /**
  * HOOK REACT PER L'ORCHESTRATORE
  */
-export function useCultivationOrchestrator(gardenId: string) {
-  
+export function useCultivationOrchestrator(gardenId: string, userId?: string) {
+
   const getAvailableMaterials = async (archetypeId: string) => {
     return CultivationOrchestrator.getAvailableMaterials(gardenId, archetypeId);
   };
-  
+
   const createPlan = async (params: any) => {
     return CultivationOrchestrator.createCultivationPlan({
       ...params,
       gardenId
     });
   };
-  
+
   const advancePhase = async (planId: string, newPhase: CultivationPhase, params: any) => {
-    return CultivationOrchestrator.advancePhase(planId, newPhase, params);
+    return CultivationOrchestrator.advancePhase(planId, newPhase, { ...params, userId });
   };
-  
+
+  // NUOVE FUNZIONI INTEGRAZIONE DIARY
+
+  const runDailyRegistration = async (date?: string) => {
+    if (!userId) throw new Error('userId richiesto per registrazione diario');
+    return CultivationOrchestrator.runDailyDiaryRegistration(userId, date);
+  };
+
+  const getCultivationPrediction = async (planId: string) => {
+    if (!userId) throw new Error('userId richiesto per previsioni');
+    return CultivationOrchestrator.getCultivationPrediction(userId, planId);
+  };
+
+  const getDailyRecommendations = async () => {
+    if (!userId) throw new Error('userId richiesto per raccomandazioni');
+    return CultivationOrchestrator.getDailyRecommendations(userId);
+  };
+
+  const getHarvestEstimate = async (planId: string) => {
+    if (!userId) throw new Error('userId richiesto per stima raccolta');
+    return CultivationOrchestrator.getImprovedHarvestEstimate(userId, planId);
+  };
+
+  const getYearComparison = async (planId: string, years?: number[]) => {
+    if (!userId) throw new Error('userId richiesto per confronto annate');
+    return CultivationOrchestrator.getYearOverYearAnalysis(userId, planId, years);
+  };
+
+  const getDiarySummary = async (startDate: string, endDate: string, cultivationId?: string) => {
+    if (!userId) throw new Error('userId richiesto per riassunto diario');
+    return CultivationOrchestrator.getDiarySummary(userId, startDate, endDate, cultivationId);
+  };
+
   return {
+    // Funzioni originali
     getAvailableMaterials,
     createPlan,
-    advancePhase
+    advancePhase,
+    // Nuove funzioni Diary
+    runDailyRegistration,
+    getCultivationPrediction,
+    getDailyRecommendations,
+    getHarvestEstimate,
+    getYearComparison,
+    getDiarySummary
   };
 }

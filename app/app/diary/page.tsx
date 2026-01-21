@@ -1,17 +1,18 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { BookOpen, Calendar, Filter, Download, Plus, Search, Clock, MapPin } from 'lucide-react'
+import { BookOpen, Calendar, Filter, Download, Plus, Search, Clock, MapPin, Zap } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
 import OperationalDiary from '@/components/diary/OperationalDiary'
 import UnifiedTimelineDiary from '@/components/diary/UnifiedTimelineDiary'
+import AutomatedDiaryViewer from '@/components/diary/AutomatedDiaryViewer'
 
 export default function DiaryPage() {
   const { storageProvider } = useStorage()
   const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
-  const [activeView, setActiveView] = useState<'timeline' | 'operational' | 'calendar'>('timeline')
+  const [activeView, setActiveView] = useState<'timeline' | 'operational' | 'calendar' | 'automated'>('timeline')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -87,6 +88,7 @@ export default function DiaryPage() {
             {[
               { id: 'timeline', label: 'Timeline', icon: Clock },
               { id: 'operational', label: 'Diario Operativo', icon: BookOpen },
+              { id: 'automated', label: 'Diario Automatico', icon: Zap },
               { id: 'calendar', label: 'Vista Calendario', icon: Calendar }
             ].map((tab) => {
               const Icon = tab.icon
@@ -126,6 +128,13 @@ export default function DiaryPage() {
           
           {activeView === 'operational' && (
             <OperationalDiary garden={activeGarden} />
+          )}
+          
+          {activeView === 'automated' && (
+            <AutomatedDiaryViewer 
+              gardenId={activeGarden.id} 
+              gardenName={activeGarden.name}
+            />
           )}
           
           {activeView === 'calendar' && (

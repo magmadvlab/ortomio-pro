@@ -4,14 +4,31 @@ import React, { useState } from 'react'
 import { 
   FileText, Download, Calendar, TrendingUp, Award, 
   Leaf, Droplets, Bug, Scissors, DollarSign, BarChart3,
-  CheckCircle, AlertTriangle, Camera, MapPin
+  CheckCircle, AlertTriangle, Camera, MapPin, Filter
 } from 'lucide-react'
+import { 
+  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
+  Legend, ResponsiveContainer 
+} from 'recharts'
+
+// Import PDF export (will be available after npm install)
+// import { jsPDF } from 'jspdf'
+// import autoTable from 'jspdf-autotable'
 
 export default function PlantReportsPage() {
   const [selectedReport, setSelectedReport] = useState<'summary' | 'detailed' | 'comparison'>('summary')
   const [selectedCrop, setSelectedCrop] = useState('pomodoro')
+  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState({
+    dateRange: { start: '', end: '' },
+    minQuality: 0,
+    minYield: 0,
+    operationType: 'all'
+  })
 
-  // DATI MOCK REALISTICI
+  // DATI MOCK REALISTICI (continua...)
+
   const mockData = {
     pomodoro: {
       name: 'Pomodoro San Marzano',
@@ -21,115 +38,49 @@ export default function PlantReportsPage() {
       harvestDate: '15/03/2026',
       duration: 60,
       
-      // OPERAZIONI
       operations: [
-        {
-          date: '10/01/2026',
-          type: 'Lavorazione',
-          title: 'Fresatura Terreno',
-          details: 'Motozappa, 30m², 60min, €30',
-          icon: Scissors,
-          color: 'blue'
-        },
-        {
-          date: '15/01/2026',
-          type: 'Trapianto',
-          title: 'Trapianto 10 Piantine',
-          details: 'Distanza 50cm, da semenzaio',
-          icon: Leaf,
-          color: 'green'
-        },
-        {
-          date: '21/01/2026',
-          type: 'Fertilizzazione',
-          title: 'Nitrato di Calcio',
-          details: '1.08kg via fertirrigazione, 30m²',
-          icon: Droplets,
-          color: 'purple'
-        },
-        {
-          date: '21/01/2026',
-          type: 'Irrigazione',
-          title: 'Irrigazione a Goccia',
-          details: '150L, 45min, con fertirrigazione',
-          icon: Droplets,
-          color: 'blue'
-        },
-        {
-          date: '28/01/2026',
-          type: 'Problema',
-          title: 'Afidi Rilevati',
-          details: 'Afidi neri su foglie giovani',
-          icon: Bug,
-          color: 'red'
-        },
-        {
-          date: '29/01/2026',
-          type: 'Trattamento',
-          title: 'Sapone Molle',
-          details: '200ml spray fogliare contro afidi',
-          icon: Bug,
-          color: 'orange'
-        },
-        {
-          date: '15/03/2026',
-          type: 'Raccolta',
-          title: 'Primo Raccolto',
-          details: '18.5kg, qualità 4.5/5, brix 6.2',
-          icon: Award,
-          color: 'yellow'
-        }
+        { date: '10/01/2026', type: 'Lavorazione', title: 'Fresatura Terreno', details: 'Motozappa, 30m², 60min, €30', icon: Scissors, color: 'blue' },
+        { date: '15/01/2026', type: 'Trapianto', title: 'Trapianto 10 Piantine', details: 'Distanza 50cm, da semenzaio', icon: Leaf, color: 'green' },
+        { date: '21/01/2026', type: 'Fertilizzazione', title: 'Nitrato di Calcio', details: '1.08kg via fertirrigazione, 30m²', icon: Droplets, color: 'purple' },
+        { date: '21/01/2026', type: 'Irrigazione', title: 'Irrigazione a Goccia', details: '150L, 45min, con fertirrigazione', icon: Droplets, color: 'blue' },
+        { date: '28/01/2026', type: 'Problema', title: 'Afidi Rilevati', details: 'Afidi neri su foglie giovani', icon: Bug, color: 'red' },
+        { date: '29/01/2026', type: 'Trattamento', title: 'Sapone Molle', details: '200ml spray fogliare contro afidi', icon: Bug, color: 'orange' },
+        { date: '15/03/2026', type: 'Raccolta', title: 'Primo Raccolto', details: '18.5kg, qualità 4.5/5, brix 6.2', icon: Award, color: 'yellow' }
       ],
       
-      // RISULTATI
-      results: {
-        totalYield: 18.5,
-        yieldPerPlant: 1.85,
-        quality: 4.5,
-        brix: 6.2,
-        defects: 5,
-        marketValue: 240
-      },
-      
-      // COSTI
-      costs: {
-        preparation: 30,
-        plants: 20,
-        fertilizers: 15,
-        treatments: 10,
-        irrigation: 10,
-        total: 85
-      },
-      
-      // ROI
-      roi: {
-        revenue: 240,
-        costs: 85,
-        profit: 155,
-        percentage: 182
-      },
-      
-      // PROBLEMI
-      issues: [
-        {
-          date: '28/01/2026',
-          problem: 'Afidi neri',
-          severity: 'Media',
-          solution: 'Sapone molle',
-          resolved: true,
-          daysToResolve: 1
-        }
-      ],
-      
-      // FOTO
+      results: { totalYield: 18.5, yieldPerPlant: 1.85, quality: 4.5, brix: 6.2, defects: 5, marketValue: 240 },
+      costs: { preparation: 30, plants: 20, fertilizers: 15, treatments: 10, irrigation: 10, total: 85 },
+      roi: { revenue: 240, costs: 85, profit: 155, percentage: 182 },
+      issues: [{ date: '28/01/2026', problem: 'Afidi neri', severity: 'Media', solution: 'Sapone molle', resolved: true, daysToResolve: 1 }],
       photos: 5,
+      weather: { avgTemp: 16, totalRain: 45, sunnyDays: 42 },
       
-      // METEO MEDIO
-      weather: {
-        avgTemp: 16,
-        totalRain: 45,
-        sunnyDays: 42
-      }
+      // Dati per grafici
+      growthData: [
+        { day: 0, height: 10, leaves: 4, health: 85 },
+        { day: 10, height: 25, leaves: 8, health: 90 },
+        { day: 20, height: 45, leaves: 12, health: 88 },
+        { day: 30, height: 70, leaves: 18, health: 92 },
+        { day: 40, height: 95, leaves: 24, health: 95 },
+        { day: 50, height: 110, leaves: 28, health: 93 },
+        { day: 60, height: 120, leaves: 30, health: 94 }
+      ],
+      
+      costBreakdown: [
+        { name: 'Preparazione', value: 30, percentage: 35 },
+        { name: 'Piantine', value: 20, percentage: 24 },
+        { name: 'Fertilizzanti', value: 15, percentage: 18 },
+        { name: 'Trattamenti', value: 10, percentage: 12 },
+        { name: 'Irrigazione', value: 10, percentage: 12 }
+      ],
+      
+      weeklyYield: [
+        { week: 'Sett 1-4', yield: 0 },
+        { week: 'Sett 5', yield: 2.5 },
+        { week: 'Sett 6', yield: 4.8 },
+        { week: 'Sett 7', yield: 6.2 },
+        { week: 'Sett 8', yield: 5.0 }
+      ]
     },
     lattuga: {
       name: 'Lattuga Romana',
@@ -149,11 +100,59 @@ export default function PlantReportsPage() {
       roi: { revenue: 96, costs: 40, profit: 56, percentage: 140 },
       issues: [],
       photos: 3,
-      weather: { avgTemp: 14, totalRain: 35, sunnyDays: 45 }
+      weather: { avgTemp: 14, totalRain: 35, sunnyDays: 45 },
+      
+      growthData: [
+        { day: 0, height: 2, leaves: 2, health: 80 },
+        { day: 10, height: 5, leaves: 4, health: 85 },
+        { day: 20, height: 10, leaves: 8, health: 90 },
+        { day: 30, height: 15, leaves: 12, health: 92 },
+        { day: 40, height: 20, leaves: 16, health: 90 },
+        { day: 50, height: 22, leaves: 18, health: 88 },
+        { day: 60, height: 25, leaves: 20, health: 85 }
+      ],
+      
+      costBreakdown: [
+        { name: 'Preparazione', value: 15, percentage: 38 },
+        { name: 'Semi', value: 5, percentage: 13 },
+        { name: 'Fertilizzanti', value: 8, percentage: 20 },
+        { name: 'Trattamenti', value: 5, percentage: 13 },
+        { name: 'Irrigazione', value: 7, percentage: 18 }
+      ],
+      
+      weeklyYield: [
+        { week: 'Sett 1-7', yield: 0 },
+        { week: 'Sett 8', yield: 3.0 },
+        { week: 'Sett 9', yield: 5.5 },
+        { week: 'Sett 10', yield: 3.5 }
+      ]
     }
   }
 
+  // Dati per confronto cicli
+  const comparisonData = {
+    pomodoro: [
+      { cycle: 'Ciclo 1\n(Gen-Mar)', yield: 18.5, quality: 4.5, costs: 85, roi: 182, duration: 60 },
+      { cycle: 'Ciclo 2\n(Apr-Giu)', yield: 22.0, quality: 4.8, costs: 90, roi: 210, duration: 58 },
+      { cycle: 'Ciclo 3\n(Lug-Set)', yield: 16.0, quality: 4.2, costs: 80, roi: 150, duration: 62 }
+    ],
+    lattuga: [
+      { cycle: 'Ciclo 1\n(Gen-Mar)', yield: 12.0, quality: 4.0, costs: 40, roi: 140, duration: 60 },
+      { cycle: 'Ciclo 2\n(Apr-Giu)', yield: 14.5, quality: 4.3, costs: 42, roi: 165, duration: 55 },
+      { cycle: 'Ciclo 3\n(Lug-Set)', yield: 10.5, quality: 3.8, costs: 38, roi: 120, duration: 58 }
+    ]
+  }
+
   const currentData = mockData[selectedCrop as keyof typeof mockData]
+  const currentComparison = comparisonData[selectedCrop as keyof typeof comparisonData]
+
+  const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444']
+
+  // Funzione Export PDF (placeholder - sarà implementata dopo npm install)
+  const exportToPDF = () => {
+    alert('Export PDF: Funzionalità in fase di implementazione.\n\nDopo npm install di jspdf, questa funzione genererà un PDF completo con:\n- Tutte le sezioni del report\n- Grafici e tabelle\n- Logo e intestazione professionale')
+  }
+
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
@@ -166,10 +165,22 @@ export default function PlantReportsPage() {
               <h1 className="text-3xl font-bold mb-2">📊 Report Storico Piante</h1>
               <p className="text-green-100">Analisi completa delle colture con dati reali</p>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-white text-green-600 rounded-lg hover:bg-green-50 transition-colors font-medium">
-              <Download size={18} />
-              Esporta PDF
-            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2 px-4 py-2 bg-white text-green-600 rounded-lg hover:bg-green-50 transition-colors font-medium"
+              >
+                <Filter size={18} />
+                Filtri
+              </button>
+              <button 
+                onClick={exportToPDF}
+                className="flex items-center gap-2 px-4 py-2 bg-white text-green-600 rounded-lg hover:bg-green-50 transition-colors font-medium"
+              >
+                <Download size={18} />
+                Esporta PDF
+              </button>
+            </div>
           </div>
           
           {/* Selettore Coltura */}
@@ -197,6 +208,75 @@ export default function PlantReportsPage() {
           </div>
         </div>
 
+        {/* FILTRI AVANZATI */}
+        {showFilters && (
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">🔍 Filtri Avanzati</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Data Inizio</label>
+                <input
+                  type="date"
+                  value={filters.dateRange.start}
+                  onChange={(e) => setFilters({...filters, dateRange: {...filters.dateRange, start: e.target.value}})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Data Fine</label>
+                <input
+                  type="date"
+                  value={filters.dateRange.end}
+                  onChange={(e) => setFilters({...filters, dateRange: {...filters.dateRange, end: e.target.value}})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Qualità Minima</label>
+                <select
+                  value={filters.minQuality}
+                  onChange={(e) => setFilters({...filters, minQuality: Number(e.target.value)})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value={0}>Tutte</option>
+                  <option value={3}>3+ stelle</option>
+                  <option value={4}>4+ stelle</option>
+                  <option value={4.5}>4.5+ stelle</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tipo Operazione</label>
+                <select
+                  value={filters.operationType}
+                  onChange={(e) => setFilters({...filters, operationType: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="all">Tutte</option>
+                  <option value="Lavorazione">Lavorazioni</option>
+                  <option value="Irrigazione">Irrigazioni</option>
+                  <option value="Fertilizzazione">Fertilizzazioni</option>
+                  <option value="Trattamento">Trattamenti</option>
+                  <option value="Raccolta">Raccolti</option>
+                </select>
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => setFilters({ dateRange: { start: '', end: '' }, minQuality: 0, minYield: 0, operationType: 'all' })}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Reset Filtri
+              </button>
+              <button
+                onClick={() => setShowFilters(false)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Applica Filtri
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* TABS */}
         <div className="flex gap-2 bg-white rounded-lg p-2 border border-gray-200">
           {[
@@ -222,7 +302,7 @@ export default function PlantReportsPage() {
           })}
         </div>
 
-        {/* RIEPILOGO */}
+        {/* RIEPILOGO TAB */}
         {selectedReport === 'summary' && (
           <div className="space-y-6">
             
@@ -260,61 +340,37 @@ export default function PlantReportsPage() {
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border-2 border-green-200">
                 <div className="flex items-center justify-between mb-2">
                   <Award className="text-green-600" size={24} />
-                  <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-1 rounded-full">
-                    Resa
-                  </span>
+                  <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-1 rounded-full">Resa</span>
                 </div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">
-                  {currentData.results.totalYield} kg
-                </div>
-                <div className="text-sm text-gray-600">
-                  {currentData.results.yieldPerPlant} kg/pianta
-                </div>
+                <div className="text-3xl font-bold text-gray-900 mb-1">{currentData.results.totalYield} kg</div>
+                <div className="text-sm text-gray-600">{currentData.results.yieldPerPlant} kg/pianta</div>
               </div>
 
               <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl p-6 border-2 border-yellow-200">
                 <div className="flex items-center justify-between mb-2">
                   <TrendingUp className="text-yellow-600" size={24} />
-                  <span className="text-xs font-medium text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full">
-                    Qualità
-                  </span>
+                  <span className="text-xs font-medium text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full">Qualità</span>
                 </div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">
-                  {currentData.results.quality}/5 ⭐
-                </div>
-                <div className="text-sm text-gray-600">
-                  {currentData.results.brix > 0 ? `Brix ${currentData.results.brix}°` : 'Eccellente'}
-                </div>
+                <div className="text-3xl font-bold text-gray-900 mb-1">{currentData.results.quality}/5 ⭐</div>
+                <div className="text-sm text-gray-600">{currentData.results.brix > 0 ? `Brix ${currentData.results.brix}°` : 'Eccellente'}</div>
               </div>
 
               <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border-2 border-blue-200">
                 <div className="flex items-center justify-between mb-2">
                   <DollarSign className="text-blue-600" size={24} />
-                  <span className="text-xs font-medium text-blue-700 bg-blue-100 px-2 py-1 rounded-full">
-                    Ricavi
-                  </span>
+                  <span className="text-xs font-medium text-blue-700 bg-blue-100 px-2 py-1 rounded-full">Ricavi</span>
                 </div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">
-                  €{currentData.results.marketValue}
-                </div>
-                <div className="text-sm text-gray-600">
-                  €{(currentData.results.marketValue / currentData.results.totalYield).toFixed(1)}/kg
-                </div>
+                <div className="text-3xl font-bold text-gray-900 mb-1">€{currentData.results.marketValue}</div>
+                <div className="text-sm text-gray-600">€{(currentData.results.marketValue / currentData.results.totalYield).toFixed(1)}/kg</div>
               </div>
 
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border-2 border-purple-200">
                 <div className="flex items-center justify-between mb-2">
                   <BarChart3 className="text-purple-600" size={24} />
-                  <span className="text-xs font-medium text-purple-700 bg-purple-100 px-2 py-1 rounded-full">
-                    ROI
-                  </span>
+                  <span className="text-xs font-medium text-purple-700 bg-purple-100 px-2 py-1 rounded-full">ROI</span>
                 </div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">
-                  +{currentData.roi.percentage}%
-                </div>
-                <div className="text-sm text-gray-600">
-                  Profitto €{currentData.roi.profit}
-                </div>
+                <div className="text-3xl font-bold text-gray-900 mb-1">+{currentData.roi.percentage}%</div>
+                <div className="text-sm text-gray-600">Profitto €{currentData.roi.profit}</div>
               </div>
             </div>
 
@@ -322,33 +378,32 @@ export default function PlantReportsPage() {
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">📅 Timeline Operazioni</h2>
               <div className="space-y-3">
-                {currentData.operations.map((op, idx) => {
-                  const Icon = op.icon
-                  return (
-                    <div
-                      key={idx}
-                      className={`flex items-start gap-4 p-4 rounded-lg border-l-4 bg-${op.color}-50 border-${op.color}-500`}
-                    >
-                      <div className={`flex-shrink-0 w-10 h-10 rounded-full bg-${op.color}-100 flex items-center justify-center`}>
-                        <Icon className={`text-${op.color}-600`} size={20} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-semibold text-gray-900">{op.title}</h3>
-                          <span className="text-sm text-gray-500">{op.date}</span>
+                {currentData.operations
+                  .filter(op => filters.operationType === 'all' || op.type === filters.operationType)
+                  .map((op, idx) => {
+                    const Icon = op.icon
+                    return (
+                      <div key={idx} className={`flex items-start gap-4 p-4 rounded-lg border-l-4 bg-${op.color}-50 border-${op.color}-500`}>
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-full bg-${op.color}-100 flex items-center justify-center`}>
+                          <Icon className={`text-${op.color}-600`} size={20} />
                         </div>
-                        <p className="text-sm text-gray-600">{op.details}</p>
-                        <span className={`inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full bg-${op.color}-100 text-${op.color}-700`}>
-                          {op.type}
-                        </span>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className="font-semibold text-gray-900">{op.title}</h3>
+                            <span className="text-sm text-gray-500">{op.date}</span>
+                          </div>
+                          <p className="text-sm text-gray-600">{op.details}</p>
+                          <span className={`inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full bg-${op.color}-100 text-${op.color}-700`}>
+                            {op.type}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
               </div>
             </div>
 
-            {/* ANALISI COSTI */}
+            {/* ANALISI COSTI E RIEPILOGO ECONOMICO */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">💰 Analisi Costi</h2>
@@ -370,10 +425,7 @@ export default function PlantReportsPage() {
                           <span className="font-semibold text-gray-900">€{value}</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-green-600 h-2 rounded-full"
-                            style={{ width: `${percentage}%` }}
-                          />
+                          <div className="bg-green-600 h-2 rounded-full" style={{ width: `${percentage}%` }} />
                         </div>
                       </div>
                     )
@@ -483,31 +535,421 @@ export default function PlantReportsPage() {
           </div>
         )}
 
-        {/* DETTAGLIATO */}
+        {/* DETTAGLIATO TAB - CON GRAFICI */}
         {selectedReport === 'detailed' && (
-          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-            <BarChart3 size={64} className="mx-auto text-gray-300 mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Report Dettagliato</h3>
-            <p className="text-gray-600 mb-4">
-              Analisi approfondita con grafici, trend e correlazioni
-            </p>
-            <p className="text-sm text-gray-500">
-              Questa sezione mostrerà grafici dettagliati di crescita, consumo risorse, e analytics avanzate
-            </p>
+          <div className="space-y-6">
+            
+            {/* GRAFICO CRESCITA NEL TEMPO */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">📈 Crescita nel Tempo</h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={currentData.growthData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="day" label={{ value: 'Giorni', position: 'insideBottom', offset: -5 }} />
+                  <YAxis yAxisId="left" label={{ value: 'Altezza (cm)', angle: -90, position: 'insideLeft' }} />
+                  <YAxis yAxisId="right" orientation="right" label={{ value: 'Salute (%)', angle: 90, position: 'insideRight' }} />
+                  <Tooltip />
+                  <Legend />
+                  <Line yAxisId="left" type="monotone" dataKey="height" stroke="#10b981" strokeWidth={2} name="Altezza (cm)" />
+                  <Line yAxisId="left" type="monotone" dataKey="leaves" stroke="#3b82f6" strokeWidth={2} name="Foglie" />
+                  <Line yAxisId="right" type="monotone" dataKey="health" stroke="#f59e0b" strokeWidth={2} name="Salute (%)" />
+                </LineChart>
+              </ResponsiveContainer>
+              <p className="text-sm text-gray-600 mt-4">
+                Questo grafico mostra l'evoluzione della pianta durante il ciclo di crescita, tracciando altezza, numero di foglie e stato di salute generale.
+              </p>
+            </div>
+
+            {/* DISTRIBUZIONE COSTI */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">💰 Distribuzione Costi</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={currentData.costBreakdown}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={(entry: any) => `${entry.name} ${entry.percentage}%`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {currentData.costBreakdown.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="mt-4 space-y-2">
+                  {currentData.costBreakdown.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                        <span className="text-gray-700">{item.name}</span>
+                      </div>
+                      <span className="font-semibold text-gray-900">€{item.value} ({item.percentage}%)</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* RESA SETTIMANALE */}
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">🌾 Resa Settimanale</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={currentData.weeklyYield}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="week" />
+                    <YAxis label={{ value: 'Kg', angle: -90, position: 'insideLeft' }} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="yield" fill="#10b981" name="Resa (kg)" />
+                  </BarChart>
+                </ResponsiveContainer>
+                <p className="text-sm text-gray-600 mt-4">
+                  Distribuzione della resa durante il periodo di raccolta. Utile per pianificare raccolte future.
+                </p>
+              </div>
+            </div>
+
+            {/* TREND QUALITÀ */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">⭐ Trend Qualità e Salute</h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={currentData.growthData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="day" label={{ value: 'Giorni', position: 'insideBottom', offset: -5 }} />
+                  <YAxis label={{ value: 'Salute (%)', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip />
+                  <Legend />
+                  <Area type="monotone" dataKey="health" stroke="#10b981" fill="#10b98133" name="Salute (%)" />
+                </AreaChart>
+              </ResponsiveContainer>
+              <div className="mt-4 grid grid-cols-3 gap-4">
+                <div className="p-3 bg-green-50 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">Salute Media</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {(currentData.growthData.reduce((sum, d) => sum + d.health, 0) / currentData.growthData.length).toFixed(1)}%
+                  </div>
+                </div>
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">Salute Massima</div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {Math.max(...currentData.growthData.map(d => d.health))}%
+                  </div>
+                </div>
+                <div className="p-3 bg-yellow-50 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">Salute Minima</div>
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {Math.min(...currentData.growthData.map(d => d.health))}%
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* METRICHE AVANZATE */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">📊 Metriche Avanzate</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                  <div className="text-sm text-gray-600 mb-1">Efficienza Spazio</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {(currentData.results.totalYield / 30).toFixed(2)} kg/m²
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">Resa per metro quadro</div>
+                </div>
+                <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
+                  <div className="text-sm text-gray-600 mb-1">Costo per Kg</div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    €{(currentData.costs.total / currentData.results.totalYield).toFixed(2)}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">Costo di produzione</div>
+                </div>
+                <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                  <div className="text-sm text-gray-600 mb-1">Margine Profitto</div>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {((currentData.roi.profit / currentData.roi.revenue) * 100).toFixed(1)}%
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">Profitto su ricavi</div>
+                </div>
+                <div className="p-4 bg-gradient-to-br from-yellow-50 to-amber-50 rounded-lg border border-yellow-200">
+                  <div className="text-sm text-gray-600 mb-1">Giorni per Kg</div>
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {(currentData.duration / currentData.results.totalYield).toFixed(1)}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">Tempo di produzione</div>
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
 
-        {/* CONFRONTO */}
+        {/* CONFRONTO TAB - CONFRONTO TRA CICLI */}
         {selectedReport === 'comparison' && (
-          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-            <TrendingUp size={64} className="mx-auto text-gray-300 mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Confronto Cicli</h3>
-            <p className="text-gray-600 mb-4">
-              Confronta questo ciclo con cicli precedenti della stessa coltura
-            </p>
-            <p className="text-sm text-gray-500">
-              Questa sezione mostrerà differenze di resa, qualità, costi e ROI tra cicli diversi
-            </p>
+          <div className="space-y-6">
+            
+            {/* INTRO */}
+            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-200">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">🔄 Confronto Cicli Colturali</h2>
+              <p className="text-gray-700">
+                Analizza le performance di {currentData.name} attraverso diversi cicli di coltivazione per identificare trend, miglioramenti e aree di ottimizzazione.
+              </p>
+            </div>
+
+            {/* TABELLA COMPARATIVA */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 overflow-x-auto">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">📋 Tabella Comparativa</h3>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="text-left py-3 px-4 text-gray-700 font-semibold">Ciclo</th>
+                    <th className="text-center py-3 px-4 text-gray-700 font-semibold">Resa (kg)</th>
+                    <th className="text-center py-3 px-4 text-gray-700 font-semibold">Qualità</th>
+                    <th className="text-center py-3 px-4 text-gray-700 font-semibold">Costi (€)</th>
+                    <th className="text-center py-3 px-4 text-gray-700 font-semibold">ROI (%)</th>
+                    <th className="text-center py-3 px-4 text-gray-700 font-semibold">Durata (gg)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentComparison.map((cycle, idx) => {
+                    const isCurrentCycle = idx === 0
+                    return (
+                      <tr key={idx} className={`border-b border-gray-100 ${isCurrentCycle ? 'bg-green-50' : ''}`}>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            {isCurrentCycle && <span className="text-green-600">→</span>}
+                            <span className="font-medium text-gray-900">{cycle.cycle}</span>
+                            {isCurrentCycle && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Attuale</span>}
+                          </div>
+                        </td>
+                        <td className="text-center py-3 px-4">
+                          <span className="font-semibold text-gray-900">{cycle.yield}</span>
+                          {idx > 0 && (
+                            <span className={`ml-2 text-xs ${cycle.yield > currentComparison[0].yield ? 'text-red-600' : 'text-green-600'}`}>
+                              {cycle.yield > currentComparison[0].yield ? '↓' : '↑'} {Math.abs(cycle.yield - currentComparison[0].yield).toFixed(1)}
+                            </span>
+                          )}
+                        </td>
+                        <td className="text-center py-3 px-4">
+                          <span className="font-semibold text-gray-900">{cycle.quality}/5</span>
+                          {idx > 0 && (
+                            <span className={`ml-2 text-xs ${cycle.quality > currentComparison[0].quality ? 'text-red-600' : 'text-green-600'}`}>
+                              {cycle.quality > currentComparison[0].quality ? '↓' : '↑'} {Math.abs(cycle.quality - currentComparison[0].quality).toFixed(1)}
+                            </span>
+                          )}
+                        </td>
+                        <td className="text-center py-3 px-4">
+                          <span className="font-semibold text-gray-900">{cycle.costs}</span>
+                          {idx > 0 && (
+                            <span className={`ml-2 text-xs ${cycle.costs < currentComparison[0].costs ? 'text-red-600' : 'text-green-600'}`}>
+                              {cycle.costs < currentComparison[0].costs ? '↑' : '↓'} {Math.abs(cycle.costs - currentComparison[0].costs)}
+                            </span>
+                          )}
+                        </td>
+                        <td className="text-center py-3 px-4">
+                          <span className="font-semibold text-gray-900">+{cycle.roi}%</span>
+                          {idx > 0 && (
+                            <span className={`ml-2 text-xs ${cycle.roi > currentComparison[0].roi ? 'text-red-600' : 'text-green-600'}`}>
+                              {cycle.roi > currentComparison[0].roi ? '↓' : '↑'} {Math.abs(cycle.roi - currentComparison[0].roi)}%
+                            </span>
+                          )}
+                        </td>
+                        <td className="text-center py-3 px-4">
+                          <span className="font-semibold text-gray-900">{cycle.duration}</span>
+                          {idx > 0 && (
+                            <span className={`ml-2 text-xs ${cycle.duration < currentComparison[0].duration ? 'text-green-600' : 'text-red-600'}`}>
+                              {cycle.duration < currentComparison[0].duration ? '↓' : '↑'} {Math.abs(cycle.duration - currentComparison[0].duration)}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* GRAFICI COMPARATIVI */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* CONFRONTO RESA E QUALITÀ */}
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">🌾 Resa e Qualità</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={currentComparison}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="cycle" />
+                    <YAxis yAxisId="left" label={{ value: 'Resa (kg)', angle: -90, position: 'insideLeft' }} />
+                    <YAxis yAxisId="right" orientation="right" label={{ value: 'Qualità', angle: 90, position: 'insideRight' }} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar yAxisId="left" dataKey="yield" fill="#10b981" name="Resa (kg)" />
+                    <Bar yAxisId="right" dataKey="quality" fill="#f59e0b" name="Qualità" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* CONFRONTO COSTI E ROI */}
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">💰 Costi e ROI</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={currentComparison}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="cycle" />
+                    <YAxis yAxisId="left" label={{ value: 'Costi (€)', angle: -90, position: 'insideLeft' }} />
+                    <YAxis yAxisId="right" orientation="right" label={{ value: 'ROI (%)', angle: 90, position: 'insideRight' }} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar yAxisId="left" dataKey="costs" fill="#ef4444" name="Costi (€)" />
+                    <Bar yAxisId="right" dataKey="roi" fill="#8b5cf6" name="ROI (%)" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+            </div>
+
+            {/* ANALISI DIFFERENZE */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Analisi Differenze e Miglioramenti</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* MIGLIORAMENTI */}
+                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                  <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                    <TrendingUp size={20} />
+                    Miglioramenti Rispetto al Ciclo Migliore
+                  </h4>
+                  <div className="space-y-2">
+                    {(() => {
+                      const bestCycle = currentComparison.reduce((best, cycle) => cycle.roi > best.roi ? cycle : best, currentComparison[0])
+                      const current = currentComparison[0]
+                      
+                      return (
+                        <>
+                          {current.yield >= bestCycle.yield && (
+                            <div className="flex items-center gap-2 text-sm text-green-700">
+                              <CheckCircle size={16} />
+                              <span>Resa uguale o superiore al miglior ciclo</span>
+                            </div>
+                          )}
+                          {current.quality >= bestCycle.quality && (
+                            <div className="flex items-center gap-2 text-sm text-green-700">
+                              <CheckCircle size={16} />
+                              <span>Qualità uguale o superiore al miglior ciclo</span>
+                            </div>
+                          )}
+                          {current.costs <= bestCycle.costs && (
+                            <div className="flex items-center gap-2 text-sm text-green-700">
+                              <CheckCircle size={16} />
+                              <span>Costi ridotti rispetto al miglior ciclo</span>
+                            </div>
+                          )}
+                          {current.roi >= bestCycle.roi && (
+                            <div className="flex items-center gap-2 text-sm text-green-700">
+                              <CheckCircle size={16} />
+                              <span>ROI uguale o superiore al miglior ciclo</span>
+                            </div>
+                          )}
+                          {current.duration <= bestCycle.duration && (
+                            <div className="flex items-center gap-2 text-sm text-green-700">
+                              <CheckCircle size={16} />
+                              <span>Durata ridotta rispetto al miglior ciclo</span>
+                            </div>
+                          )}
+                        </>
+                      )
+                    })()}
+                  </div>
+                </div>
+
+                {/* AREE DI OTTIMIZZAZIONE */}
+                <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <h4 className="font-semibold text-yellow-900 mb-3 flex items-center gap-2">
+                    <AlertTriangle size={20} />
+                    Aree di Ottimizzazione
+                  </h4>
+                  <div className="space-y-2">
+                    {(() => {
+                      const bestCycle = currentComparison.reduce((best, cycle) => cycle.roi > best.roi ? cycle : best, currentComparison[0])
+                      const current = currentComparison[0]
+                      const suggestions = []
+                      
+                      if (current.yield < bestCycle.yield) {
+                        suggestions.push(`Resa inferiore di ${(bestCycle.yield - current.yield).toFixed(1)}kg rispetto al miglior ciclo`)
+                      }
+                      if (current.quality < bestCycle.quality) {
+                        suggestions.push(`Qualità inferiore di ${(bestCycle.quality - current.quality).toFixed(1)} stelle`)
+                      }
+                      if (current.costs > bestCycle.costs) {
+                        suggestions.push(`Costi superiori di €${(current.costs - bestCycle.costs)} rispetto al miglior ciclo`)
+                      }
+                      if (current.duration > bestCycle.duration) {
+                        suggestions.push(`Durata superiore di ${(current.duration - bestCycle.duration)} giorni`)
+                      }
+                      
+                      if (suggestions.length === 0) {
+                        return (
+                          <div className="text-sm text-green-700 flex items-center gap-2">
+                            <CheckCircle size={16} />
+                            <span>Questo è il miglior ciclo finora! 🎉</span>
+                          </div>
+                        )
+                      }
+                      
+                      return suggestions.map((suggestion, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-sm text-yellow-700">
+                          <span className="mt-0.5">•</span>
+                          <span>{suggestion}</span>
+                        </div>
+                      ))
+                    })()}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* STATISTICHE AGGREGATE */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">📈 Statistiche Aggregate</h3>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="p-4 bg-gray-50 rounded-lg text-center">
+                  <div className="text-sm text-gray-600 mb-1">Resa Media</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {(currentComparison.reduce((sum, c) => sum + c.yield, 0) / currentComparison.length).toFixed(1)} kg
+                  </div>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg text-center">
+                  <div className="text-sm text-gray-600 mb-1">Qualità Media</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {(currentComparison.reduce((sum, c) => sum + c.quality, 0) / currentComparison.length).toFixed(1)}/5
+                  </div>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg text-center">
+                  <div className="text-sm text-gray-600 mb-1">Costi Medi</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    €{(currentComparison.reduce((sum, c) => sum + c.costs, 0) / currentComparison.length).toFixed(0)}
+                  </div>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg text-center">
+                  <div className="text-sm text-gray-600 mb-1">ROI Medio</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    +{(currentComparison.reduce((sum, c) => sum + c.roi, 0) / currentComparison.length).toFixed(0)}%
+                  </div>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg text-center">
+                  <div className="text-sm text-gray-600 mb-1">Durata Media</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {(currentComparison.reduce((sum, c) => sum + c.duration, 0) / currentComparison.length).toFixed(0)} gg
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
 

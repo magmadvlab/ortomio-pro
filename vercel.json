@@ -3,6 +3,12 @@
   "devCommand": "npm run dev:next",
   "installCommand": "npm install",
   "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/daily-diary",
+      "schedule": "0 23 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

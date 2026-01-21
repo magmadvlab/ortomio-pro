@@ -9,7 +9,8 @@ import { IrrigationZone, WateringLog } from '@/types/irrigation'
 import { GardenBed } from '@/types/gardenBed'
 import { GardenRow } from '@/types'
 import { useStorage } from '@/packages/core/hooks/useStorage'
-import { X } from 'lucide-react'
+import { X, Calculator, Info } from 'lucide-react'
+import { irrigationCalculatorService, ManualIrrigationSystem } from '@/services/irrigationCalculatorService'
 
 interface WateringLogFormProps {
   zones: IrrigationZone[]
@@ -36,15 +37,83 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
     soilMoistureBefore: undefined as number | undefined,
     soilMoistureAfter: undefined as number | undefined,
     airTemperatureC: undefined as number | undefined,
-    notes: ''
+    notes: '',
+    // Parametri sistema manuale
+    manualSystemType: 'drip' as 'drip' | 'sprinkler' | 'hose' | 'furrow',
+    useManualCalculation: false,
+    // Goccia
+    dripperFlowRateLph: undefined as number | undefined,
+    dripperCount: undefined as number | undefined,
+    dripperSpacingCm: undefined as number | undefined,
+    // Sprinkler
+    sprinklerFlowRateLph: undefined as number | undefined,
+    sprinklerCount: undefined as number | undefined,
+    sprinklerEfficiency: 75,
+    // Tubo
+    hoseFlowRateLpm: undefined as number | undefined,
+    hoseDiameterMm: undefined as number | undefined,
+    pressureBar: undefined as number | undefined,
+    // Solco
+    furrowLengthM: undefined as number | undefined,
+    furrowWidthCm: undefined as number | undefined,
+    infiltrationRateMmh: undefined as number | undefined
   })
 
   const [bedOptions, setBedOptions] = useState<GardenBed[]>([])
   const [rowOptions, setRowOptions] = useState<GardenRow[]>([])
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([])
   const [selectedFieldRowIds, setSelectedFieldRowIds] = useState<string[]>([]) // Nuovo: per field rows
+  const [showManualCalculator, setShowManualCalculator] = useState(false)
+  const [calculationResult, setCalculationResult] = useState<any>(null)
 
   const selectedZone = zones.find(z => z.id === formData.zoneId)
+
+  // Calcolo automatico volume/durata per sistemi manuali
+  const handleCalculateManual = () => {
+    const system: ManualIrrigationSystem = {
+      type: formData.manualSystemType,
+      pressureBar: formData.pressureBar,
+      dripperFlowRateLph: formData.dripperFlowRateLph,
+      dripperCount: formData.dripperCount,
+      dripperSpacingCm: formData.dripperSpacingCm,
+      rowLengthM: selectedRows[0]?.lengthMeters,
+      sprinklerFlowRateLph: formData.sprinklerFlowRateLph,
+      sprinklerCount: formData.sprinklerCount,
+      sprinklerEfficiency: formData.sprinklerEfficiency,
+      hoseDiameterMm: formData.hoseDiameterMm,
+      hoseFlowRateLpm: formData.hoseFlowRateLpm,
+      furrowLengthM: formData.furrowLengthM,
+      furrowWidthCm: formData.furrowWidthCm,
+      infiltrationRateMmh: formData.infiltrationRateMmh
+    }
+
+    const result = irrigationCalculatorService.calculate(system, formData.litersPerRow)
+    setCalculationResult(result)
+  }
+
+  // Ricalcola automaticamente quando cambiano i parametri
+  React.useEffect(() => {
+    if (formData.useManualCalculation) {
+      handleCalculateManual()
+    }
+  }, [
+    formData.useManualCalculation,
+    formData.manualSystemType,
+    formData.litersPerRow,
+    formData.dripperFlowRateLph,
+    formData.dripperCount,
+    formData.dripperSpacingCm,
+    formData.sprinklerFlowRateLph,
+    formData.sprinklerCount,
+    formData.sprinklerEfficiency,
+    formData.hoseFlowRateLpm,
+    formData.hoseDiameterMm,
+    formData.pressureBar,
+    formData.furrowLengthM,
+    formData.furrowWidthCm,
+    formData.infiltrationRateMmh,
+    selectedRows
+  ])
 
   React.useEffect(() => {
     const loadBedsAndReset = async () => {
@@ -195,22 +264,32 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
 
       if (formData.irrigationType === 'field') {
         // Irrigazione diretta field rows
-        const logsToCreate = selectedFieldRows.map((row) => ({
-          zoneId: '', // Non collegato a zona
-          gardenId: row.gardenId || '',
-          fieldRowId: row.id, // Nuovo campo per field rows
-          wateredAt,
-          date: formData.date,
-          durationMinutes: 30, // Default per field rows (da configurare)
-          litersApplied: formData.litersPerRow,
-          method: formData.method,
-          weatherCondition: formData.weatherCondition || undefined,
-          soilMoistureBefore: formData.soilMoistureBefore,
-          soilMoistureAfter: formData.soilMoistureAfter,
-          airTemperatureC: formData.airTemperatureC,
-          notes: formData.notes || undefined,
-          completed: true
-        }))
+        const logsToCreate = selectedFieldRows.map((row) => {
+          // Usa durata calcolata se disponibile, altrimenti default
+          const duration = calculationResult?.durationMinutes || 30
+          
+          return {
+            zoneId: '', // Non collegato a zona
+            gardenId: row.gardenId || '',
+            fieldRowId: row.id, // Nuovo campo per field rows
+            wateredAt,
+            date: formData.date,
+            durationMinutes: duration,
+            litersApplied: formData.litersPerRow,
+            method: formData.method,
+            weatherCondition: formData.weatherCondition || undefined,
+            soilMoistureBefore: formData.soilMoistureBefore,
+            soilMoistureAfter: formData.soilMoistureAfter,
+            airTemperatureC: formData.airTemperatureC,
+            notes: formData.notes || undefined,
+            completed: true,
+            // Salva parametri sistema per riferimento futuro
+            systemType: formData.useManualCalculation ? formData.manualSystemType : undefined,
+            flowRateLph: calculationResult?.estimatedFlowRateLph,
+            calculationMethod: calculationResult?.method,
+            calculationConfidence: calculationResult?.confidence
+          }
+        })
 
         if (onSubmitBatch) {
           await onSubmitBatch(logsToCreate)
@@ -568,6 +647,8 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
                   {formData.irrigationType === 'field' ? (
                     selectedFieldRowIds.length === 0 ? (
                       <span className="text-gray-500">Seleziona filari per calcolare</span>
+                    ) : calculationResult ? (
+                      <span className="font-semibold text-green-700">{calculationResult.durationMinutes} min</span>
                     ) : (
                       <span>~30 min per filare</span>
                     )
@@ -587,12 +668,266 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
                   {formData.irrigationType === 'field' 
-                    ? 'Stima per filari campo aperto'
+                    ? calculationResult ? calculationResult.method : 'Stima per filari campo aperto'
                     : 'Calcolato dalla configurazione del filare (passo/portata o L/h per metro)'
                   }
                 </p>
               </div>
             </div>
+
+            {/* Calcolatore Automatico Volumi */}
+            {formData.irrigationType === 'field' && (
+              <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Calculator className="w-5 h-5 text-blue-600" />
+                    <h3 className="font-semibold text-gray-900">Calcolo Automatico Volume/Durata</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowManualCalculator(!showManualCalculator)}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-semibold"
+                  >
+                    {showManualCalculator ? 'Nascondi' : 'Configura'}
+                  </button>
+                </div>
+
+                {showManualCalculator && (
+                  <div className="space-y-4 mt-4">
+                    {/* Tipo Sistema */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tipo Sistema Irrigazione
+                      </label>
+                      <Select
+                        value={formData.manualSystemType}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, manualSystemType: e.target.value as any }))}
+                      >
+                        <option value="drip">Goccia</option>
+                        <option value="sprinkler">Sprinkler</option>
+                        <option value="hose">Tubo/Manichetta</option>
+                        <option value="furrow">Solco</option>
+                      </Select>
+                    </div>
+
+                    {/* Parametri Goccia */}
+                    {formData.manualSystemType === 'drip' && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Portata gocciolatore (L/h)
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            placeholder="es. 2"
+                            value={formData.dripperFlowRateLph || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, dripperFlowRateLph: parseFloat(e.target.value) || undefined, useManualCalculation: true }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Numero gocciolatori
+                          </label>
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="es. 20"
+                            value={formData.dripperCount || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, dripperCount: parseInt(e.target.value) || undefined, useManualCalculation: true }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Passo gocciolatori (cm)
+                          </label>
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="es. 30"
+                            value={formData.dripperSpacingCm || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, dripperSpacingCm: parseInt(e.target.value) || undefined, useManualCalculation: true }))}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Parametri Sprinkler */}
+                    {formData.manualSystemType === 'sprinkler' && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Portata ugello (L/h)
+                          </label>
+                          <Input
+                            type="number"
+                            step="1"
+                            min="0"
+                            placeholder="es. 100"
+                            value={formData.sprinklerFlowRateLph || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, sprinklerFlowRateLph: parseFloat(e.target.value) || undefined, useManualCalculation: true }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Numero ugelli
+                          </label>
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="es. 4"
+                            value={formData.sprinklerCount || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, sprinklerCount: parseInt(e.target.value) || undefined, useManualCalculation: true }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Efficienza (%)
+                          </label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            placeholder="75"
+                            value={formData.sprinklerEfficiency}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, sprinklerEfficiency: parseInt(e.target.value) || 75, useManualCalculation: true }))}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Parametri Tubo */}
+                    {formData.manualSystemType === 'hose' && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Portata misurata (L/min)
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            placeholder="es. 15"
+                            value={formData.hoseFlowRateLpm || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, hoseFlowRateLpm: parseFloat(e.target.value) || undefined, useManualCalculation: true }))}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">💡 Riempi secchio 10L e cronometra</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Diametro tubo (mm)
+                          </label>
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="es. 19"
+                            value={formData.hoseDiameterMm || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, hoseDiameterMm: parseInt(e.target.value) || undefined, useManualCalculation: true }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Pressione (bar)
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            placeholder="es. 3"
+                            value={formData.pressureBar || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, pressureBar: parseFloat(e.target.value) || undefined, useManualCalculation: true }))}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Parametri Solco */}
+                    {formData.manualSystemType === 'furrow' && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Lunghezza solco (m)
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            placeholder="es. 10"
+                            value={formData.furrowLengthM || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, furrowLengthM: parseFloat(e.target.value) || undefined, useManualCalculation: true }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Larghezza solco (cm)
+                          </label>
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="es. 30"
+                            value={formData.furrowWidthCm || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, furrowWidthCm: parseInt(e.target.value) || undefined, useManualCalculation: true }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Infiltrazione (mm/h)
+                          </label>
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="es. 20"
+                            value={formData.infiltrationRateMmh || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, infiltrationRateMmh: parseInt(e.target.value) || undefined, useManualCalculation: true }))}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Risultato Calcolo */}
+                    {calculationResult && (
+                      <div className="mt-4 p-3 bg-white border border-green-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <Info className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-gray-900 mb-1">
+                              Calcolo: {calculationResult.method}
+                            </p>
+                            <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 mb-2">
+                              <div>
+                                <span className="font-medium">Portata:</span> {calculationResult.estimatedFlowRateLph.toFixed(1)} L/h
+                              </div>
+                              <div>
+                                <span className="font-medium">Durata:</span> {calculationResult.durationMinutes} min
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 mb-2">
+                              <span className="text-xs font-medium">Affidabilità:</span>
+                              <span className={`text-xs px-2 py-0.5 rounded font-semibold ${
+                                calculationResult.confidence === 'high' ? 'bg-green-100 text-green-700' :
+                                calculationResult.confidence === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-orange-100 text-orange-700'
+                              }`}>
+                                {calculationResult.confidence === 'high' ? 'Alta' :
+                                 calculationResult.confidence === 'medium' ? 'Media' : 'Bassa'}
+                              </span>
+                            </div>
+                            {calculationResult.notes && calculationResult.notes.length > 0 && (
+                              <ul className="text-xs text-gray-600 space-y-1">
+                                {calculationResult.notes.map((note: string, idx: number) => (
+                                  <li key={idx}>• {note}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Metodo */}
             <div>

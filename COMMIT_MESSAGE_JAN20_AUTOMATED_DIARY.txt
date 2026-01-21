@@ -1,0 +1,37 @@
+feat: Add automated daily diary system with agronomic calculations
+
+Implemented comprehensive automated daily diary system that records:
+- Weather data (temp, precipitation, humidity, wind, UV)
+- Agronomic calculations (GDD, chill hours, water stress, photoperiod)
+- Lunar phases with planting/pruning favorability
+- Automated events (irrigations, treatments, alerts)
+- Event correlations (weather → problems → actions)
+
+Features:
+- Automatic daily recording via Vercel Cron (23:00 UTC)
+- GDD accumulation tracking per crop
+- Multi-year comparison functionality
+- Complete UI viewer with period selection
+- SQL helper functions for statistics and comparisons
+
+Technical implementation:
+- Service: dailyDiaryService.ts (500+ lines)
+- Database: 3 new tables with RLS policies
+- API: Cron endpoint with security
+- UI: AutomatedDiaryViewer component
+- Integration: New tab in diary page
+
+Configuration required:
+- Apply database migration
+- Set CRON_SECRET environment variable
+- Deploy to activate cron job
+
+Files:
+- services/dailyDiaryService.ts (NEW)
+- supabase/migrations/20260119030000_create_daily_diary_system.sql (NEW)
+- app/api/cron/daily-diary/route.ts (NEW)
+- components/diary/AutomatedDiaryViewer.tsx (NEW)
+- vercel.json (MODIFIED - added cron config)
+- app/app/diary/page.tsx (MODIFIED - integrated viewer)
+- DIARIO_AUTOMATICO_INTELLIGENTE_COMPLETE.md (NEW - full docs)
+- SETUP_DIARIO_AUTOMATICO_QUICK.md (NEW - quick setup)

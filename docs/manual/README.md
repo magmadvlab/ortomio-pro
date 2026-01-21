@@ -51,6 +51,10 @@ OrtoMio è la piattaforma agricola digitale completa che scala automaticamente d
 - [🔮 Roadmap Futuro](./32-roadmap.md)
 - [📞 Supporto e Contatti](./33-support-contacts.md)
 
+### 🤖 **SISTEMI INTELLIGENTI AVANZATI** (NUOVO!)
+- [🎯 Director Orchestrator](./34-director-orchestrator.md) - Sistema Predittivo Intelligente
+- [📔 Diario Automatico](./35-automated-diary.md) - Registrazione Crescita Automatica
+
 ---
 
 ## 🚀 ACCESSO RAPIDO
@@ -74,8 +78,8 @@ OrtoMio è la piattaforma agricola digitale completa che scala automaticamente d
 
 ## 📋 INFORMAZIONI DOCUMENTO
 
-**Versione**: 2026.1  
-**Ultimo Aggiornamento**: 11 Gennaio 2026  
+**Versione**: 2026.2  
+**Ultimo Aggiornamento**: 21 Gennaio 2026  
 **Lingua**: Italiano  
 **Formato**: Markdown modulare  
 
@@ -87,7 +91,7 @@ OrtoMio è la piattaforma agricola digitale completa che scala automaticamente d
 
 ## ✅ STATO COMPLETAMENTO MODULI
 
-### **🎉 SISTEMA COMPLETATO** (33/33) - 100%
+### **🎉 SISTEMA COMPLETATO** (35/35) - 100%
 
 #### **🚀 FUNZIONALITÀ PRINCIPALI** (6/6) ✅
 - ✅ [🧠 Predizioni AI Avanzate](./01-ai-predictions.md)
@@ -116,14 +120,14 @@ OrtoMio è la piattaforma agricola digitale completa che scala automaticamente d
 - ✅ [🍇 Gestione Vigneto](./20-vineyard-management.md)
 - ✅ [🌿 Gestione Piante Individuali](./21-individual-plants.md)
 
-#### **📊 ANALYTICS E BUSINESS** (6/6) ✅
+#### **📊 ANALYTICS E BUSINESS** (5/5) ✅
 - ✅ [📊 Business Intelligence](./22-business-intelligence.md)
 - ✅ [📤 Sistema Export](./23-export-system.md)
 - ✅ [🌍 Sostenibilità](./24-sustainability.md)
 - ✅ [🔬 Ricerca e Sviluppo](./25-research-development.md)
 - ✅ [🌐 Integrazione e API](./26-integration-api.md)
 
-#### **🎓 GUIDE E SUPPORTO** (6/6) ✅
+#### **🎓 GUIDE E SUPPORTO** (7/7) ✅
 - ✅ [🔧 Guida Rapida](./27-quick-start.md)
 - ✅ [💰 Vantaggi Economici](./28-economic-benefits.md)
 - ✅ [📱 Interfaccia e Navigazione](./29-interface-navigation.md)
@@ -132,12 +136,24 @@ OrtoMio è la piattaforma agricola digitale completa che scala automaticamente d
 - ✅ [🔮 Roadmap Futuro](./32-roadmap.md)
 - ✅ [📞 Supporto e Contatti](./33-support-contacts.md)
 
+#### **🤖 SISTEMI INTELLIGENTI AVANZATI** (2/2) ✅ **NUOVO!**
+- ✅ [🎯 Director Orchestrator](./34-director-orchestrator.md) - Sistema Predittivo
+- ✅ [📔 Diario Automatico](./35-automated-diary.md) - Registrazione Automatica
+
 ---
 
 ## 🔄 AGGIORNAMENTI RECENTI
 
-### **Gennaio 2026 - SISTEMA DOCUMENTAZIONE MODULARE COMPLETATO** 🎉
-- ✅ **Struttura modulare completa**: 33/33 moduli implementati
+### **Gennaio 2026 - SISTEMI INTELLIGENTI AVANZATI AGGIUNTI** 🎉
+- ✅ **Director Orchestrator**: Sistema predittivo che coordina tutti i sistemi
+- ✅ **Diario Automatico**: Registrazione giornaliera automatica crescita
+- ✅ **GDD Tracking**: Growing Degree Days per previsioni accurate
+- ✅ **Stress Monitoring**: Indici stress freddo, caldo e idrico
+- ✅ **Briefing Giornaliero**: Raccomandazioni intelligenti personalizzate
+- ✅ **Analisi Predittiva**: Previsioni raccolta e qualità
+
+### **Gennaio 2026 - SISTEMA DOCUMENTAZIONE MODULARE COMPLETATO**
+- ✅ **Struttura modulare completa**: 35/35 moduli implementati
 - ✅ **Sistema navigazione cross-reference**: Collegamenti tra tutti i moduli
 - ✅ **Template standardizzato**: Formato uniforme per tutti i moduli
 - ✅ **Copertura completa**: 100% funzionalità OrtoMio documentate

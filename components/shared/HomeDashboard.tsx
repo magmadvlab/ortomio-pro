@@ -50,6 +50,7 @@ import { GardenSelectorCard } from './GardenSelectorCard'
 import { TaskCard } from './TaskCard'
 import WeatherLunarWidget from '@/components/WeatherLunarWidget'
 import AISuggestionsWidget from '@/components/ai/AISuggestionsWidget'
+import DirectorBriefingWidget from '@/components/director/DirectorBriefingWidget'
 import HealthAlertsWidget from '@/components/planner/HealthAlertsWidget'
 import { GardenCard } from './GardenCard'
 import { ProgressCard } from './ProgressCard'
@@ -463,6 +464,14 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
             />
           )}
       </div>
+
+        {/* Director Briefing Widget - Orchestratore Predittivo */}
+        {activeGarden && (
+          <DirectorBriefingWidget
+            compact={false}
+            maxActions={5}
+          />
+        )}
 
         {/* AI Suggestions Widget - Suggerimenti urgenti */}
         {activeGarden && (
