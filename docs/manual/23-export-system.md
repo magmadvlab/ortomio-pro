@@ -141,9 +141,11 @@ Sistema completo di esportazione dati per integrazione con sistemi esterni, back
 ### **Destinazioni Multiple**
 - **Email**: Invio automatico via email
 - **FTP/SFTP**: Upload su server FTP
-- **Cloud Storage**: AWS S3, Google Drive, Dropbox
+- **Supabase Storage**: Storage cloud integrato (incluso)
 - **API Endpoints**: Invio a API esterne
 - **Database**: Insert diretto in database esterni
+
+> **Nota**: I dati sono già salvati su Supabase cloud (PostgreSQL + Storage). Non serve sincronizzazione con cloud esterni.
 
 ### **Batch Processing**
 - **Bulk Export**: Export multipli in batch

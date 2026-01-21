@@ -111,9 +111,11 @@ Sistema completo di integrazione con droni DJI per monitoraggio aereo profession
 
 ### **Export e Condivisione**
 - **Formati Multipli**: PDF, Excel, Shapefile, KML
-- **Cloud Storage**: Sincronizzazione automatica
+- **Supabase Storage**: Salvataggio automatico cloud (incluso)
 - **Condivisione Team**: Accesso controllato risultati
 - **API Integration**: Connessione sistemi esterni
+
+> **Nota**: Le immagini drone sono salvate automaticamente su Supabase Storage cloud. Accesso da qualsiasi dispositivo garantito.
 
 ---
 
