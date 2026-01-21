@@ -1,0 +1,32 @@
+feat: integrate real PDF export system for plant reports
+
+EXPORT PDF INTEGRATION:
+- Create lib/reports/exportReportPDF.ts with jsPDF
+- Use existing jspdf (^2.5.2) and jspdf-autotable (^3.8.4)
+- Replace placeholder alert with real PDF generation
+- Professional layout with tables, KPIs, timeline, costs
+- Dynamic import for bundle optimization
+- Auto-pagination and custom filename
+
+PDF FEATURES:
+- Header with logo and plant info
+- General information section
+- KPI table (cost, yield, quality, cycle)
+- Operations timeline (max 10 recent)
+- Cost breakdown by category (6 categories)
+- Economic summary (revenue, costs, profit, ROI)
+- Footer with automatic pagination
+
+TECHNICAL:
+- TypeScript interfaces for type safety
+- Error handling with user-friendly messages
+- Reuses pattern from lib/calendar/exportPDF.ts
+- No new dependencies (libraries already installed)
+- Modular and extensible structure
+
+FILES:
+- lib/reports/exportReportPDF.ts [NEW]
+- app/app/reports/page.tsx [MODIFIED]
+- EXPORT_PDF_INTEGRATION_COMPLETE.md [NEW]
+
+STATUS: ✅ Export PDF fully functional and production-ready
