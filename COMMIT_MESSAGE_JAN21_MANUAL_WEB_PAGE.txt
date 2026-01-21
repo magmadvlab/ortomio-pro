@@ -1,0 +1,34 @@
+feat: add web-accessible manual page with markdown rendering
+
+Add /app/manual page to view user manual directly in the app.
+Fixes issue where markdown files were not accessible from web interface.
+
+Features:
+- Complete manual viewer with sidebar navigation
+- 32 modules organized by category
+- Real-time search functionality
+- Responsive mobile-first design
+- ReactMarkdown rendering support
+- Quick access to most used modules
+
+Files Added:
+- app/app/manual/page.tsx - Manual viewer page
+- public/docs/manual/*.md - Public accessible manual files
+- MANUAL_WEB_PAGE_COMPLETE.md - Implementation documentation
+
+Manual Structure:
+- Funzionalità Principali (6 modules)
+- Funzionalità Potenziate (5 modules) - includes Smart Hub with IoT
+- Funzionalità Professionali (7 modules)
+- Analytics e Business (5 modules)
+- Guide e Supporto (7 modules)
+- Sistemi Intelligenti Avanzati (2 modules)
+
+IoT Documentation:
+Module 14 (Smart Hub) includes complete IoT Tuya documentation
+with clear Beta status indication and implementation roadmap.
+
+Note: Requires react-markdown package installation:
+npm install react-markdown remark-gfm
+
+Resolves user issue with accessing manual files from app interface.
