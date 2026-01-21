@@ -25,7 +25,7 @@ Organizzata in sezioni logiche per navigazione efficiente:
 #### **🏠 SEZIONE PRINCIPALE**
 - **Dashboard**: Panoramica generale e KPI principali
 - **Il Mio Orto**: Gestione piante, spazi e operazioni quotidiane
-  - Tab "Calendario": Pianificazione e challenge
+  - Tab "Calendario": Pianificazione operazioni
   - Tab "Registro": Cronologia attività complete
   - Tab "Tracciabilità": Sistema tracciabilità integrato
 - **🤖 Planner AI**: Pianificazione intelligente con sistema consigli integrato
@@ -40,9 +40,9 @@ Organizzata in sezioni logiche per navigazione efficiente:
   - Tab "Diagnosi AI": Sistema diagnostico automatico
   - Tab "Consultazioni": Storico consulenze
   - Tab "Agronomi": Database e prenotazioni
-- **Progressi**: Analytics, statistiche e gamificazione
+- **Progressi**: Analytics e statistiche
   - Tab "Statistiche": Metriche performance
-  - Tab "Traguardi": Badge e achievement
+  - Tab "Analytics": Dashboard avanzate
 
 #### **🌳 COLTURE SPECIALIZZATE**
 - **Frutteto**: Gestione alberi da frutto professionale

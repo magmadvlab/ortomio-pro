@@ -17,13 +17,11 @@ OrtoMio è la piattaforma agricola digitale completa che scala automaticamente d
 - [🗺️ Prescription Maps](./06-prescription-maps.md)
 
 ### 🎯 **FUNZIONALITÀ POTENZIATE**
-- [🎮 Challenge e Gamificazione](./07-challenges-gamification.md)
 - [🤖 Chat AI Globale](./08-global-ai-chat.md)
 - [🤖 Chat AI Planner](./09-planner-ai-chat.md)
 - [📋 Registro Attività](./10-activity-registry.md)
 - [👨‍🌾 Consultazioni Agronomo](./11-agronomist-consultations.md)
 - [📱 Condivisione Social](./12-social-sharing.md)
-- [🏆 Sistema Badge](./13-badge-system.md)
 - [🏠 Smart Hub Integrato](./14-smart-hub.md)
 
 ### 💼 **FUNZIONALITÀ PROFESSIONALI**
@@ -62,7 +60,7 @@ OrtoMio è la piattaforma agricola digitale completa che scala automaticamente d
 ### **Per Nuovi Utenti**
 1. [🔧 Guida Rapida](./27-quick-start.md) - Setup in 5 minuti
 2. [🤖 Chat AI Globale](./08-global-ai-chat.md) - Assistenza immediata
-3. [🎮 Challenge](./07-challenges-gamification.md) - Gamificazione
+3. [📋 Registro Attività](./10-activity-registry.md) - Tracking operazioni
 
 ### **Per Aziende Professionali**
 1. [🏆 Certificazioni](./04-certifications.md) - Compliance automatica
@@ -91,7 +89,7 @@ OrtoMio è la piattaforma agricola digitale completa che scala automaticamente d
 
 ## ✅ STATO COMPLETAMENTO MODULI
 
-### **🎉 SISTEMA COMPLETATO** (35/35) - 100%
+### **🎉 SISTEMA COMPLETATO** (33/33) - 100%
 
 #### **🚀 FUNZIONALITÀ PRINCIPALI** (6/6) ✅
 - ✅ [🧠 Predizioni AI Avanzate](./01-ai-predictions.md)
@@ -101,14 +99,12 @@ OrtoMio è la piattaforma agricola digitale completa che scala automaticamente d
 - ✅ [🛰️ NDVI Satellitare](./05-ndvi-satellite.md)
 - ✅ [🗺️ Prescription Maps](./06-prescription-maps.md)
 
-#### **🎯 FUNZIONALITÀ POTENZIATE** (8/8) ✅
-- ✅ [🎮 Challenge e Gamificazione](./07-challenges-gamification.md)
+#### **🎯 FUNZIONALITÀ POTENZIATE** (6/6) ✅
 - ✅ [🤖 Chat AI Globale](./08-global-ai-chat.md)
 - ✅ [🤖 Chat AI Planner](./09-planner-ai-chat.md)
 - ✅ [📋 Registro Attività](./10-activity-registry.md)
 - ✅ [👨‍🌾 Consultazioni Agronomo](./11-agronomist-consultations.md)
 - ✅ [📱 Condivisione Social](./12-social-sharing.md)
-- ✅ [🏆 Sistema Badge](./13-badge-system.md)
 - ✅ [🏠 Smart Hub Integrato](./14-smart-hub.md)
 
 #### **💼 FUNZIONALITÀ PROFESSIONALI** (7/7) ✅
