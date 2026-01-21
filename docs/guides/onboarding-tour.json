@@ -1,0 +1,84 @@
+{
+  "id": "first-time-tour",
+  "name": "Tour Iniziale OrtoMio",
+  "description": "Tour guidato per nuovi utenti",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "welcome",
+      "title": "👋 Benvenuto in OrtoMio!",
+      "content": "Sei pronto a trasformare il tuo orto con l'intelligenza artificiale? Questo tour ti mostrerà le funzionalità principali in pochi minuti.",
+      "position": "center"
+    },
+    {
+      "id": "garden-selector",
+      "title": "🌱 Selettore Orto",
+      "content": "Qui puoi selezionare l'orto su cui lavorare. Puoi gestire più orti contemporaneamente e passare da uno all'altro con un click.",
+      "target": "[data-tour='garden-selector']",
+      "position": "bottom"
+    },
+    {
+      "id": "dashboard",
+      "title": "📊 Dashboard Principale",
+      "content": "La dashboard ti mostra una panoramica completa: meteo, attività recenti, suggerimenti AI e stato delle tue colture.",
+      "target": "[data-tour='dashboard']",
+      "position": "center"
+    },
+    {
+      "id": "ai-predictions",
+      "title": "🤖 Predizioni AI",
+      "content": "L'intelligenza artificiale analizza il tuo orto e ti fornisce consigli personalizzati basati su meteo, stagione e condizioni specifiche.",
+      "target": "[data-tour='ai-predictions']",
+      "position": "right",
+      "action": {
+        "label": "Vai alle Predizioni AI",
+        "route": "/app/predictions"
+      }
+    },
+    {
+      "id": "planner",
+      "title": "📅 Planner Intelligente",
+      "content": "Pianifica semine, trapianti e raccolti con l'aiuto dell'AI. Il sistema considera rotazioni, consociazioni e calendario lunare.",
+      "target": "[data-tour='planner']",
+      "position": "right"
+    },
+    {
+      "id": "health-monitoring",
+      "title": "🏥 Monitoraggio Salute",
+      "content": "Monitora la salute delle tue piante con foto AI, dati satellitari NDVI e analisi predittive per prevenire malattie.",
+      "target": "[data-tour='health']",
+      "position": "right"
+    },
+    {
+      "id": "certifications",
+      "title": "📋 Certificazioni",
+      "content": "Gestisci certificazioni GlobalG.A.P., Bio e HACCP con registri automatici e tracciabilità completa per audit.",
+      "target": "[data-tour='certifications']",
+      "position": "right"
+    },
+    {
+      "id": "smart-hub",
+      "title": "🏠 Smart Hub",
+      "content": "Controlla sensori IoT, droni e automazioni da un'unica interfaccia. Integra tecnologia avanzata nel tuo orto.",
+      "target": "[data-tour='smart-hub']",
+      "position": "right"
+    },
+    {
+      "id": "help-button",
+      "title": "❓ Serve Aiuto?",
+      "content": "Clicca il pulsante aiuto in basso a destra per accedere a guide, video tutorial e supporto diretto. Siamo sempre qui per te!",
+      "target": "[data-tour='help-button']",
+      "position": "left"
+    },
+    {
+      "id": "complete",
+      "title": "🎉 Sei Pronto!",
+      "content": "Hai completato il tour iniziale. Esplora l'app e scopri tutte le funzionalità. Buon lavoro con il tuo orto intelligente!",
+      "position": "center",
+      "action": {
+        "label": "Inizia a Usare OrtoMio",
+        "route": "/app"
+      }
+    }
+  ]
+}

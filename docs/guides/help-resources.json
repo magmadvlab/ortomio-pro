@@ -1,0 +1,254 @@
+{
+  "version": "1.0.0",
+  "categories": [
+    {
+      "id": "getting-started",
+      "name": "Primi Passi",
+      "icon": "rocket",
+      "resources": [
+        {
+          "id": "quick-start",
+          "title": "Guida Rapida - 5 Minuti",
+          "description": "Setup iniziale e primi passi con OrtoMio",
+          "type": "manual",
+          "link": "/docs/manual/27-quick-start.md",
+          "duration": "5 min"
+        },
+        {
+          "id": "interface-navigation",
+          "title": "Navigazione Interfaccia",
+          "description": "Come muoversi nell'app e trovare le funzionalità",
+          "type": "manual",
+          "link": "/docs/manual/29-interface-navigation.md",
+          "duration": "3 min"
+        },
+        {
+          "id": "first-garden",
+          "title": "Crea il Tuo Primo Orto",
+          "description": "Video tutorial per configurare il primo orto",
+          "type": "video",
+          "link": "https://youtube.com/watch?v=example1",
+          "duration": "8 min"
+        }
+      ]
+    },
+    {
+      "id": "ai-features",
+      "name": "Funzionalità AI",
+      "icon": "brain",
+      "resources": [
+        {
+          "id": "ai-predictions",
+          "title": "Predizioni AI",
+          "description": "Come funzionano i consigli intelligenti",
+          "type": "manual",
+          "link": "/docs/manual/01-ai-predictions.md",
+          "duration": "5 min"
+        },
+        {
+          "id": "planner-ai-chat",
+          "title": "Chat AI Planner",
+          "description": "Usa l'assistente AI per pianificare",
+          "type": "manual",
+          "link": "/docs/manual/09-planner-ai-chat.md",
+          "duration": "4 min"
+        },
+        {
+          "id": "global-ai-chat",
+          "title": "Chat AI Globale",
+          "description": "Assistente AI sempre disponibile",
+          "type": "manual",
+          "link": "/docs/manual/08-global-ai-chat.md",
+          "duration": "3 min"
+        }
+      ]
+    },
+    {
+      "id": "professional",
+      "name": "Funzionalità Professionali",
+      "icon": "briefcase",
+      "resources": [
+        {
+          "id": "certifications",
+          "title": "Certificazioni GlobalG.A.P.",
+          "description": "Gestione certificazioni e compliance",
+          "type": "manual",
+          "link": "/docs/manual/04-certifications.md",
+          "duration": "10 min"
+        },
+        {
+          "id": "drone-operations",
+          "title": "Operazioni Drone",
+          "description": "Monitoraggio aereo e analisi AI",
+          "type": "manual",
+          "link": "/docs/manual/02-drone-operations.md",
+          "duration": "8 min"
+        },
+        {
+          "id": "ndvi-satellite",
+          "title": "Dati Satellitari NDVI",
+          "description": "Analisi vegetazione da satellite",
+          "type": "manual",
+          "link": "/docs/manual/05-ndvi-satellite.md",
+          "duration": "6 min"
+        },
+        {
+          "id": "prescription-maps",
+          "title": "Mappe Prescrizione",
+          "description": "Agricoltura di precisione VRT",
+          "type": "manual",
+          "link": "/docs/manual/06-prescription-maps.md",
+          "duration": "12 min"
+        }
+      ]
+    },
+    {
+      "id": "management",
+      "name": "Gestione Colture",
+      "icon": "plant",
+      "resources": [
+        {
+          "id": "irrigation-system",
+          "title": "Sistema Irrigazione",
+          "description": "Gestione irrigazione e calcoli automatici",
+          "type": "manual",
+          "link": "/docs/manual/15-irrigation-system.md",
+          "duration": "7 min"
+        },
+        {
+          "id": "nutrition-treatments",
+          "title": "Nutrizione e Trattamenti",
+          "description": "Fertilizzanti e fitofarmaci",
+          "type": "manual",
+          "link": "/docs/manual/16-nutrition-treatments.md",
+          "duration": "8 min"
+        },
+        {
+          "id": "individual-plants",
+          "title": "Tracking Piante Individuali",
+          "description": "Monitoraggio plant-level avanzato",
+          "type": "manual",
+          "link": "/docs/manual/21-individual-plants.md",
+          "duration": "6 min"
+        }
+      ]
+    },
+    {
+      "id": "specialized",
+      "name": "Colture Specializzate",
+      "icon": "tree",
+      "resources": [
+        {
+          "id": "orchard-management",
+          "title": "Gestione Frutteto",
+          "description": "Funzionalità specifiche per frutteti",
+          "type": "manual",
+          "link": "/docs/manual/18-orchard-management.md",
+          "duration": "9 min"
+        },
+        {
+          "id": "olive-management",
+          "title": "Gestione Oliveto",
+          "description": "Strumenti per olivicoltura",
+          "type": "manual",
+          "link": "/docs/manual/19-olive-management.md",
+          "duration": "9 min"
+        },
+        {
+          "id": "vineyard-management",
+          "title": "Gestione Vigneto",
+          "description": "Viticoltura professionale",
+          "type": "manual",
+          "link": "/docs/manual/20-vineyard-management.md",
+          "duration": "10 min"
+        }
+      ]
+    },
+    {
+      "id": "smart-tech",
+      "name": "Tecnologie Smart",
+      "icon": "cpu",
+      "resources": [
+        {
+          "id": "smart-hub",
+          "title": "Smart Hub Integrato",
+          "description": "IoT, droni e automazioni",
+          "type": "manual",
+          "link": "/docs/manual/14-smart-hub.md",
+          "duration": "8 min"
+        },
+        {
+          "id": "automated-diary",
+          "title": "Diario Automatico",
+          "description": "Registrazione automatica operazioni",
+          "type": "manual",
+          "link": "/docs/manual/35-automated-diary.md",
+          "duration": "5 min"
+        }
+      ]
+    },
+    {
+      "id": "support",
+      "name": "Supporto",
+      "icon": "help-circle",
+      "resources": [
+        {
+          "id": "support-contacts",
+          "title": "Contatti Supporto",
+          "description": "Come contattare il team di supporto",
+          "type": "guide",
+          "link": "/docs/manual/33-support-contacts.md",
+          "duration": "2 min"
+        },
+        {
+          "id": "use-cases",
+          "title": "Casi d'Uso",
+          "description": "Esempi pratici di utilizzo",
+          "type": "manual",
+          "link": "/docs/manual/30-use-cases.md",
+          "duration": "10 min"
+        },
+        {
+          "id": "success-stories",
+          "title": "Storie di Successo",
+          "description": "Testimonianze e risultati reali",
+          "type": "manual",
+          "link": "/docs/manual/31-success-stories.md",
+          "duration": "8 min"
+        }
+      ]
+    }
+  ],
+  "quickLinks": [
+    {
+      "id": "emergency-support",
+      "title": "Supporto Urgente",
+      "description": "Contatta il supporto per problemi urgenti",
+      "icon": "alert-circle",
+      "action": {
+        "type": "email",
+        "value": "support@ortomio.com"
+      }
+    },
+    {
+      "id": "video-tutorials",
+      "title": "Video Tutorial",
+      "description": "Playlist completa su YouTube",
+      "icon": "video",
+      "action": {
+        "type": "link",
+        "value": "https://youtube.com/ortomio"
+      }
+    },
+    {
+      "id": "community",
+      "title": "Community Forum",
+      "description": "Discuti con altri utenti",
+      "icon": "users",
+      "action": {
+        "type": "link",
+        "value": "https://community.ortomio.com"
+      }
+    }
+  ]
+}
