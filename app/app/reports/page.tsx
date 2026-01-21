@@ -12,9 +12,7 @@ import {
   Legend, ResponsiveContainer 
 } from 'recharts'
 
-// Import PDF export (will be available after npm install)
-// import { jsPDF } from 'jspdf'
-// import autoTable from 'jspdf-autotable'
+// Sistema export PDF: lib/reports/exportReportPDF.ts (dynamic import)
 
 export default function PlantReportsPage() {
   const [selectedReport, setSelectedReport] = useState<'summary' | 'detailed' | 'comparison'>('summary')
@@ -148,9 +146,60 @@ export default function PlantReportsPage() {
 
   const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444']
 
-  // Funzione Export PDF (placeholder - sarà implementata dopo npm install)
-  const exportToPDF = () => {
-    alert('Export PDF: Funzionalità in fase di implementazione.\n\nDopo npm install di jspdf, questa funzione genererà un PDF completo con:\n- Tutte le sezioni del report\n- Grafici e tabelle\n- Logo e intestazione professionale')
+  // Funzione Export PDF con sistema reale
+  const exportToPDF = async () => {
+    try {
+      // Dynamic import del sistema export
+      const { downloadPlantReportPDF } = await import('@/lib/reports/exportReportPDF')
+      
+      const currentData = mockData[selectedCrop as keyof typeof mockData]
+      
+      // Prepara dati per export
+      const reportData = {
+        plantName: currentData.name,
+        variety: currentData.variety,
+        plantingDate: currentData.plantingDate,
+        harvestDate: currentData.harvestDate,
+        location: currentData.location,
+        
+        // KPI
+        totalCost: currentData.costs.total,
+        totalYield: currentData.results.totalYield,
+        qualityScore: currentData.results.quality,
+        cycleLength: currentData.duration,
+        
+        // Timeline operazioni (converti formato)
+        operations: currentData.operations.map(op => ({
+          date: op.date,
+          type: op.type,
+          description: op.title,
+          cost: 0 // Mock - in produzione verrà dal database
+        })),
+        
+        // Analisi costi
+        costBreakdown: {
+          seeds: currentData.costs.plants,
+          fertilizers: currentData.costs.fertilizers,
+          treatments: currentData.costs.treatments,
+          labor: currentData.costs.preparation,
+          water: currentData.costs.irrigation,
+          other: 0
+        },
+        
+        // Riepilogo economico
+        economicSummary: {
+          totalRevenue: currentData.roi.revenue,
+          totalCosts: currentData.roi.costs,
+          netProfit: currentData.roi.profit,
+          roi: currentData.roi.percentage
+        }
+      }
+      
+      await downloadPlantReportPDF(reportData)
+    } catch (error) {
+      console.error('Errore export PDF:', error)
+      alert('Errore durante l\'export PDF. Riprova.')
+    }
   }
 
 
