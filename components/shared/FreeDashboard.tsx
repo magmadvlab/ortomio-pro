@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/Button'
 import { Sparkles, Leaf, Lock, Plus, Home, Sun, Snowflake } from 'lucide-react'
 import Link from 'next/link'
 import AlmanaccoWidget from '@/components/almanacco/AlmanaccoWidget'
-import ChallengeWidget from '@/components/challenges/ChallengeWidget'
 
 export function FreeDashboard() {
   const { storageProvider } = useStorage()
@@ -134,15 +133,6 @@ export function FreeDashboard() {
 
             {/* Almanacco Widget */}
             <AlmanaccoWidget />
-
-            {/* Challenge Widget */}
-            <ChallengeWidget 
-              userId={activeGardenId || undefined}
-              onComplete={(challengeId, points) => {
-                console.log('Challenge completed:', challengeId, points);
-                // TODO: Update UI, show notification
-              }}
-            />
 
             {/* Widget Funzionalità Free */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

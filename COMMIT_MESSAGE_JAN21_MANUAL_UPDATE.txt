@@ -1,0 +1,43 @@
+docs: update manual - clarify cloud and IoT implementation status
+
+CLOUD SYNC CLARIFICATION:
+- Remove misleading 'cloud sync' references
+- Clarify: Supabase IS cloud (already implemented)
+- Add 'In Development' sections for external cloud storage
+- Timeline: Q2-Q3 2026 for AWS S3, Google Drive, Dropbox
+
+IOT STATUS CLARIFICATION:
+- Add implementation status section to Smart Hub
+- Clarify: Drones complete ✅, IoT in beta 🔄
+- Tuya integration available for testing
+- Cloud IoT platforms (AWS/Azure/Google) in roadmap Q3 2026
+
+CONVENTIONS ADOPTED:
+- ✅ Available Now badge
+- 🔄 In Beta badge  
+- 🚀 In Development badge with timeline
+- Standard status sections across modules
+
+FILES UPDATED (8):
+- docs/manual/README.md - Smart Hub status badge
+- docs/manual/14-smart-hub.md - Implementation status section
+- docs/manual/23-export-system.md - Remove cloud sync, add roadmap
+- docs/manual/29-interface-navigation.md - Remove background sync
+- docs/manual/16-nutrition-treatments.md - Clarify backup (Supabase)
+- docs/manual/02-drone-operations.md - Clarify storage + roadmap
+- docs/manual/05-ndvi-satellite.md - Clarify storage + roadmap
+- docs/manual/26-integration-api.md - Clarify cloud platforms status
+
+BENEFITS:
+- Realistic user expectations
+- Clear roadmap visibility (Q2-Q3 2026)
+- Increased transparency and trust
+- Accurate documentation reflecting real implementation
+
+DOCUMENTATION:
+- MANUAL_AUDIT_CLOUD_IOT_JAN21.md - Audit analysis
+- MANUAL_UPDATE_CLOUD_IOT_COMPLETE.md - Complete update report
+
+Lines modified: ~120
+Sections added: 6 status sections
+References corrected: 15+

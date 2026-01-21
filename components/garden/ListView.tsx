@@ -12,8 +12,6 @@ import { EditTaskModal } from '../tasks/EditTaskModal'
 import { ManualTaskModal } from './ManualTaskModal'
 import { isPlantMature } from '@/utils/plantMaturityDetector'
 import { useStorage } from '@/packages/core/hooks/useStorage'
-import { useChallengeNotifications } from '@/hooks/useChallengeNotifications'
-import { ChallengeToast } from '@/components/challenges/ChallengeToast'
 import { useAuth } from '@/packages/core/hooks/useAuth'
 
 interface ListViewProps {
@@ -44,7 +42,6 @@ export function ListView({
   const [editingTask, setEditingTask] = useState<GardenTask | null>(null)
   const { storageProvider } = useStorage()
   const { user } = useAuth()
-  const { checkChallengeProgress, showChallengeNotification, hideNotification, activeNotification } = useChallengeNotifications()
   
   // Filter tasks
   const filteredTasks = (tasks || []).filter(task => {
@@ -320,20 +317,6 @@ export function ListView({
 
                         // Completa il task corrente
                         await onToggleTask(task.id)
-
-                        // Controlla challenge progress
-                        if (user?.id) {
-                          const challengeProgress = await checkChallengeProgress(
-                            task.taskType === 'Sowing' ? 'sowing' :
-                            task.taskType === 'Harvest' ? 'harvest' :
-                            'task_complete',
-                            user.id,
-                            { gardenId: garden.id }
-                          )
-                          if (challengeProgress) {
-                            showChallengeNotification(challengeProgress)
-                          }
-                        }
                       } else {
                         await onToggleTask(task.id)
                       }
@@ -521,14 +504,6 @@ export function ListView({
         }}
       />
       
-      {/* Challenge Toast */}
-      {activeNotification && (
-        <ChallengeToast
-          progress={activeNotification}
-          onClose={hideNotification}
-        />
-      )}
-
       {/* Manual Task Modal */}
       <ManualTaskModal
         gardenId={garden.id}

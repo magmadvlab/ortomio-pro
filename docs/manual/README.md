@@ -21,7 +21,6 @@ OrtoMio è la piattaforma agricola digitale completa che scala automaticamente d
 - [🤖 Chat AI Planner](./09-planner-ai-chat.md)
 - [📋 Registro Attività](./10-activity-registry.md)
 - [👨‍🌾 Consultazioni Agronomo](./11-agronomist-consultations.md)
-- [📱 Condivisione Social](./12-social-sharing.md)
 - [🏠 Smart Hub Integrato](./14-smart-hub.md)
 
 ### 💼 **FUNZIONALITÀ PROFESSIONALI**
