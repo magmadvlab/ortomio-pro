@@ -1,0 +1,88 @@
+feat: Add plant history reports mock page and documentation
+
+## New Features
+
+### 📊 Plant Reports Mock Page
+- Created `/app/reports` page with realistic mock data
+- Shows complete crop cycle history with real-world examples
+- Interactive crop selector (Tomato San Marzano / Romaine Lettuce)
+- Three view modes: Summary, Detailed, Comparison
+
+### 📋 Summary View Components
+- **Crop Information Card**: Name, variety, location, planting/harvest dates, cycle duration
+- **4 KPI Cards**: Yield (18.5kg), Quality (4.5/5), Revenue (€240), ROI (+182%)
+- **Operations Timeline**: 7 operations with icons and color coding
+  - Soil preparation (tilling)
+  - Transplanting
+  - Fertilization
+  - Irrigation
+  - Problem detection (aphids)
+  - Treatment
+  - Harvest
+- **Cost Analysis**: Breakdown with progress bars (preparation, plants, fertilizers, treatments, irrigation)
+- **Economic Summary**: Revenue, costs, profit, ROI calculation
+- **Problems & Solutions**: Issue tracking with resolution status
+- **Additional Stats**: Photos, operations count, weather averages
+
+### 🎨 Design Features
+- Color-coded operation types (blue, green, purple, red, orange, yellow)
+- Gradient KPI cards with icons
+- Responsive mobile-friendly layout
+- Professional UI with Tailwind CSS
+- Export PDF button (UI only)
+
+### 📚 Documentation
+- **GUIDA_RAPIDA_STORICO_PIANTE.md**: Complete guide on how to populate real data
+  - Where to register operations (mechanical work, treatments, irrigation, harvests, photos)
+  - Where to view history (diary, row view, analytics, planner)
+  - Practical example: Complete tomato cycle from preparation to harvest
+  - Query examples: By row, by crop, by period, comparative, predictive
+- **PLANT_REPORTS_MOCK_PAGE_COMPLETE.md**: Technical documentation
+  - Page structure and components
+  - Mock data details (2 crops with complete data)
+  - Design specifications
+  - Access instructions
+  - Future implementation roadmap
+
+### 🎯 Purpose
+- Demonstrates how reports look with real data
+- Shows what information gets tracked
+- Motivates users to input real operations
+- Helps understand available analytics
+
+### 💡 Mock Data Included
+**Tomato San Marzano (60 days cycle)**:
+- Yield: 18.5kg (1.85kg/plant)
+- Quality: 4.5/5, Brix 6.2°
+- Revenue: €240, Costs: €85
+- ROI: +182%, Profit: €155
+- 7 operations, 1 resolved issue, 5 photos
+
+**Romaine Lettuce (60 days cycle)**:
+- Yield: 12kg (0.12kg/plant)
+- Quality: 4/5
+- Revenue: €96, Costs: €40
+- ROI: +140%, Profit: €56
+- 4 operations, 0 issues, 3 photos
+
+## Files Added
+- app/app/reports/page.tsx
+- GUIDA_RAPIDA_STORICO_PIANTE.md
+- PLANT_REPORTS_MOCK_PAGE_COMPLETE.md
+
+## Technical Details
+- React functional component with TypeScript
+- State management for crop selection and view modes
+- Lucide icons for visual elements
+- Tailwind CSS for styling
+- Mock data structure ready for real database integration
+
+## Next Steps
+- Connect to real database data
+- Implement detailed view with charts
+- Implement comparison view between cycles
+- Add real PDF export functionality
+- Add advanced filters
+- Add growth charts over time
+
+Access: http://localhost:3000/reports
