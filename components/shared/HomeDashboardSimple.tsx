@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { isSameDay, addDays, parseISO, format } from 'date-fns'
+import { GardenTypeWizard } from '@/components/GardenTypeWizard'
 
 interface HomeDashboardProps {
   garden?: Garden
@@ -23,6 +24,7 @@ export function HomeDashboardSimple({ garden }: HomeDashboardProps) {
   const [activeGarden, setActiveGarden] = useState<Garden | null>(garden || null)
   const [gardenTasks, setGardenTasks] = useState<GardenTask[]>([])
   const [loading, setLoading] = useState(true)
+  const [showGardenWizard, setShowGardenWizard] = useState(false)
 
   // Load gardens on mount
   useEffect(() => {
@@ -77,21 +79,39 @@ export function HomeDashboardSimple({ garden }: HomeDashboardProps) {
 
   if (!activeGarden) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="bg-white rounded-xl border-2 border-green-200 p-8 max-w-md">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Benvenuto in OrtoMio!</h2>
-            <p className="text-gray-600 mb-6">Crea il tuo primo orto per iniziare</p>
-            <Link 
-              href="/app/garden/create" 
-              className="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
-            >
-              <Plus size={20} />
-              Crea il tuo orto
-            </Link>
+      <>
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <div className="text-center">
+            <div className="bg-white rounded-xl border-2 border-green-200 p-8 max-w-md">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Benvenuto in OrtoMio!</h2>
+              <p className="text-gray-600 mb-6">Crea il tuo primo orto per iniziare</p>
+              <button 
+                onClick={() => setShowGardenWizard(true)}
+                className="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
+              >
+                <Plus size={20} />
+                Crea il tuo orto
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+
+        {/* Garden Creation Wizard */}
+        {showGardenWizard && (
+          <GardenTypeWizard
+            onComplete={async (garden) => {
+              try {
+                console.log('✅ Garden created:', garden)
+                setActiveGarden(garden)
+                setShowGardenWizard(false)
+              } catch (error) {
+                console.error('Error after garden creation:', error)
+              }
+            }}
+            onCancel={() => setShowGardenWizard(false)}
+          />
+        )}
+      </>
     )
   }
 

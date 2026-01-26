@@ -4,12 +4,14 @@ import { GardenView } from '@/components/garden/GardenView'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useState, useEffect } from 'react'
 import { Garden, GardenTask } from '@/types'
+import { GardenTypeWizard } from '@/components/GardenTypeWizard'
 
 export default function GardenPage() {
   const { storageProvider } = useStorage()
   const [gardens, setGardens] = useState<Garden[]>([])
   const [tasks, setTasks] = useState<GardenTask[]>([])
   const [loading, setLoading] = useState(true)
+  const [showGardenWizard, setShowGardenWizard] = useState(false)
   const [activeTab, setActiveTab] = useState<'operations' | 'planning' | 'monitoring' | 'plants' | 'compliance' | 'analytics' | 'structure'>('operations')
 
   useEffect(() => {
@@ -86,21 +88,37 @@ export default function GardenPage() {
 
   if (gardens.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Nessun orto trovato</h2>
-          <p className="text-gray-600 mb-6">Crea il tuo primo orto per iniziare</p>
-          <button 
-            onClick={() => {
-              // TODO: Implementare creazione orto
-              console.log('Create garden')
-            }}
-            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
-          >
-            Crea il tuo orto
-          </button>
+      <>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Nessun orto trovato</h2>
+            <p className="text-gray-600 mb-6">Crea il tuo primo orto per iniziare</p>
+            <button 
+              onClick={() => setShowGardenWizard(true)}
+              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Crea il tuo orto
+            </button>
+          </div>
         </div>
-      </div>
+
+        {/* Garden Creation Wizard */}
+        {showGardenWizard && (
+          <GardenTypeWizard
+            onComplete={async (garden) => {
+              try {
+                console.log('✅ Garden created:', garden)
+                const updatedGardens = await storageProvider.getGardens()
+                setGardens(updatedGardens)
+                setShowGardenWizard(false)
+              } catch (error) {
+                console.error('Error after garden creation:', error)
+              }
+            }}
+            onCancel={() => setShowGardenWizard(false)}
+          />
+        )}
+      </>
     )
   }
 

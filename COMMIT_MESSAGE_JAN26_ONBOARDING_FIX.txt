@@ -1,0 +1,34 @@
+fix: Implementato wizard creazione orto funzionante per onboarding
+
+🎯 Problema Risolto
+- Il pulsante "Crea il tuo orto" non funzionava dopo il login
+- Gli utenti nuovi rimanevano bloccati senza poter creare il primo orto
+
+✅ Modifiche
+- Integrato GardenTypeWizard in tutte le pagine principali
+- Convertito link/button statico in button interattivo con onClick
+- Aggiunto stato per gestire apertura/chiusura wizard
+- Implementato callback onComplete per aggiornare lista orti
+
+📁 File Modificati
+- app/app/page.tsx (Dashboard principale)
+- app/app/garden/page.tsx (Pagina Orto)
+- app/app/plants/page.tsx (Pagina Piante)
+- app/app/planner/page.tsx (Pagina Planner)
+- components/shared/HomeDashboardSimple.tsx (Dashboard semplificata)
+
+🎨 Flusso Utente
+Login → Nessun orto → Click "Crea orto" → Wizard si apre → 
+Selezione tipo → Configurazione → Orto creato → Dashboard aggiornata
+
+📊 Risultati
+- ✅ Wizard funzionante su tutte le pagine
+- ✅ Orto viene creato e salvato correttamente
+- ✅ Dashboard si aggiorna automaticamente
+- ✅ Nessun errore TypeScript
+- ✅ UX coerente su tutta l'app
+
+🔧 Componenti Coinvolti
+- GardenTypeWizard: Selezione tipo spazio
+- GardenOnboarding: Wizard configurazione 6 step
+- StorageProvider: Salvataggio orto nel database

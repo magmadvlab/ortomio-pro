@@ -12,6 +12,7 @@ import { useSearchParams } from 'next/navigation'
 import { Garden, GardenTask } from '@/types'
 import { Calendar, Clock, Activity, Target, CheckCircle, AlertTriangle, TrendingUp, List, Lightbulb, RefreshCw, Bug } from 'lucide-react'
 import { isSameDay, addDays, parseISO, format } from 'date-fns'
+import { GardenTypeWizard } from '@/components/GardenTypeWizard'
 
 export default function PlannerPage() {
   const { storageProvider } = useStorage()
@@ -20,6 +21,7 @@ export default function PlannerPage() {
   const [tasks, setTasks] = useState<GardenTask[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'planner' | 'calendar' | 'timeline' | 'list' | 'ai-suggestions' | 'rotation' | 'biological'>('planner')
+  const [showGardenWizard, setShowGardenWizard] = useState(false)
 
   // Handle URL parameters for tab switching
   useEffect(() => {
@@ -132,18 +134,37 @@ export default function PlannerPage() {
 
   if (gardens.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Nessun orto trovato</h2>
-          <p className="text-gray-600 mb-6">Crea il tuo primo orto per usare la Centrale Operativa</p>
-          <a 
-            href="/app/garden" 
-            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
-          >
-            Crea il tuo orto
-          </a>
+      <>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Nessun orto trovato</h2>
+            <p className="text-gray-600 mb-6">Crea il tuo primo orto per usare la Centrale Operativa</p>
+            <button 
+              onClick={() => setShowGardenWizard(true)}
+              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Crea il tuo orto
+            </button>
+          </div>
         </div>
-      </div>
+
+        {/* Garden Creation Wizard */}
+        {showGardenWizard && (
+          <GardenTypeWizard
+            onComplete={async (garden) => {
+              try {
+                console.log('✅ Garden created:', garden)
+                const updatedGardens = await storageProvider.getGardens()
+                setGardens(updatedGardens)
+                setShowGardenWizard(false)
+              } catch (error) {
+                console.error('Error after garden creation:', error)
+              }
+            }}
+            onCancel={() => setShowGardenWizard(false)}
+          />
+        )}
+      </>
     )
   }
 
