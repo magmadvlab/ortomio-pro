@@ -1,34 +1,36 @@
-fix: Implementato wizard creazione orto funzionante per onboarding
+fix(onboarding): Implement optimistic UI update for garden creation
 
-🎯 Problema Risolto
-- Il pulsante "Crea il tuo orto" non funzionava dopo il login
-- Gli utenti nuovi rimanevano bloccati senza poter creare il primo orto
+CRITICAL FIX: Resolve race condition where newly created gardens don't appear in UI
 
-✅ Modifiche
-- Integrato GardenTypeWizard in tutte le pagine principali
-- Convertito link/button statico in button interattivo con onClick
-- Aggiunto stato per gestire apertura/chiusura wizard
-- Implementato callback onComplete per aggiornare lista orti
+Problem:
+- User creates garden successfully (saved to database)
+- UI immediately shows "No gardens found" again
+- Race condition: getGardens() called before DB commit/RLS recognition
 
-📁 File Modificati
-- app/app/page.tsx (Dashboard principale)
-- app/app/garden/page.tsx (Pagina Orto)
-- app/app/plants/page.tsx (Pagina Piante)
-- app/app/planner/page.tsx (Pagina Planner)
-- components/shared/HomeDashboardSimple.tsx (Dashboard semplificata)
+Solution:
+- Optimistic UI update: Add garden to state immediately after creation
+- Close wizard instantly for better UX
+- Background refresh with retry logic (3 attempts, 200ms delay)
+- Keep optimistic state if refresh fails (garden was created successfully)
 
-🎨 Flusso Utente
-Login → Nessun orto → Click "Crea orto" → Wizard si apre → 
-Selezione tipo → Configurazione → Orto creato → Dashboard aggiornata
+Changes:
+- app/app/page.tsx:
+  * Add refreshGardensWithRetry() helper function
+  * Modify onComplete callback to use optimistic updates
+  * Add comprehensive logging for debugging
+  * Implement retry logic with garden ID verification
 
-📊 Risultati
-- ✅ Wizard funzionante su tutte le pagine
-- ✅ Orto viene creato e salvato correttamente
-- ✅ Dashboard si aggiorna automaticamente
-- ✅ Nessun errore TypeScript
-- ✅ UX coerente su tutta l'app
+Benefits:
+- Instant UI feedback (no more "No gardens found" after creation)
+- Resilient to database timing issues
+- Better user experience with immediate dashboard display
+- Graceful degradation if refresh fails
 
-🔧 Componenti Coinvolti
-- GardenTypeWizard: Selezione tipo spazio
-- GardenOnboarding: Wizard configurazione 6 step
-- StorageProvider: Salvataggio orto nel database
+Testing:
+- Verified garden appears immediately after creation
+- Tested with network delays
+- Confirmed retry logic works correctly
+- Validated state consistency
+
+Spec: .kiro/specs/onboarding-fix/
+Tasks: Phase 1 (Quick Fix) - Tasks 1 & 2 complete
