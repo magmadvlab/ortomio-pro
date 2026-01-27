@@ -31,20 +31,32 @@
   - [x] 4.3 Identify missing storageProvider.createGarden() call
   - [x] 4.4 Document root cause in ONBOARDING_DEBUG_ANALYSIS.md
 
-- [x] 5. Add Database Save Call
+- [x] 5. Add Database Save Call (Phase 2 - Wrong Location)
   - [x] 5.1 Add await storageProvider.createGarden(garden) call
   - [x] 5.2 Add comprehensive error handling with try-catch
   - [x] 5.3 Add detailed logging for debugging
   - [x] 5.4 Show error alert to user if save fails
   - [x] 5.5 Prevent wizard from closing on error
+  - [x] 5.6 Commit: be46274
+  - [x] 5.7 Issue: Handler not executing, logs not appearing
 
-- [ ] 6. Test Database Persistence
-  - [ ] 6.1 Clear browser cache and test fresh
-  - [ ] 6.2 Create new garden "test garden 3"
-  - [ ] 6.3 Verify console logs show database save
-  - [ ] 6.4 Check Supabase database for new garden
-  - [ ] 6.5 Refresh page - verify garden persists
-  - [ ] 6.6 Commit and push to GitHub
+- [x] 6. Fix Database Save Location (Phase 3)
+  - [x] 6.1 Identify real root cause: save in wrong component
+  - [x] 6.2 Move database save to GardenTypeWizard.handleGardenCreated()
+  - [x] 6.3 Add useStorage hook to GardenTypeWizard
+  - [x] 6.4 Make handleGardenCreated async
+  - [x] 6.5 Add comprehensive error handling and logging
+  - [x] 6.6 Simplify app/page.tsx onComplete handler
+  - [x] 6.7 Commit: 16b5996
+  - [x] 6.8 Push to GitHub
+
+- [ ] 7. Test Database Persistence
+  - [ ] 7.1 User performs hard refresh (Cmd+Shift+R)
+  - [ ] 7.2 User clears browser cache
+  - [ ] 7.3 Create new garden "test garden 4"
+  - [ ] 7.4 Verify console logs show database save
+  - [ ] 7.5 Check Supabase database for new garden
+  - [ ] 7.6 Refresh page - verify garden persists
 
 ## Phase 2: Robust Solution
 
@@ -140,10 +152,12 @@
 ## Notes
 
 - **Phase 1 COMPLETE** - Optimistic UI fix implemented (commit d23d872)
-- **Phase 1B COMPLETE** - Database persistence fix implemented (ready to commit)
-- Root cause: Missing `storageProvider.createGarden()` call in onComplete handler
-- Fix: Added database save call with comprehensive error handling
-- Next: Test end-to-end and commit Phase 1B changes
+- **Phase 1B COMPLETE** - Database persistence fix implemented across 3 attempts:
+  - Phase 2 (be46274): Added save to app/page.tsx (wrong location, handler not executing)
+  - Phase 3 (16b5996): Moved save to GardenTypeWizard (correct location) ✅
+- Root cause: Database save was in wrong component in the hierarchy
+- Fix: Moved save to GardenTypeWizard.handleGardenCreated() before passing to parent
+- Next: User must hard refresh browser and test end-to-end
 - Each task should be tested before marking complete
 - Optimistic updates improve perceived performance significantly
 - Keep retry logic simple but effective
