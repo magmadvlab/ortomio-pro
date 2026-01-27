@@ -151,20 +151,35 @@ export default function AppPage() {
           <GardenTypeWizard
             onComplete={async (garden) => {
               try {
-                console.log('✅ Garden created:', garden)
+                console.log('✅ Garden created from wizard:', garden)
+                console.log('📊 Storage provider available:', storageProvider.isAvailable())
+                console.log('🔐 About to save garden to database...')
+                
+                // CRITICAL: Save garden to database FIRST
+                const savedGarden = await storageProvider.createGarden(garden)
+                console.log('💾 Garden saved to database successfully:', savedGarden.id)
                 
                 // OPTIMISTIC UPDATE: Add garden to state immediately
                 console.log('🚀 Optimistic update: Adding garden to state')
-                setGardens(prev => [...prev, garden])
-                setActiveGarden(garden)
+                setGardens(prev => [...prev, savedGarden])
+                setActiveGarden(savedGarden)
                 setShowGardenWizard(false)
                 
-                // Background refresh with retry logic
+                // Background refresh with retry logic to confirm
                 console.log('🔄 Starting background refresh with retry...')
-                await refreshGardensWithRetry(garden.id)
+                await refreshGardensWithRetry(savedGarden.id)
               } catch (error) {
-                console.error('❌ Error after garden creation:', error)
-                // Keep optimistic state even on error - garden was created successfully
+                console.error('❌ CRITICAL ERROR: Failed to save garden to database:', error)
+                console.error('Error details:', {
+                  message: error instanceof Error ? error.message : 'Unknown error',
+                  stack: error instanceof Error ? error.stack : undefined,
+                  error
+                })
+                
+                // Show error to user
+                alert(`Errore nel salvare il giardino: ${error instanceof Error ? error.message : 'Errore sconosciuto'}. Riprova.`)
+                
+                // Don't close wizard on error - let user try again
               }
             }}
             onCancel={() => setShowGardenWizard(false)}
