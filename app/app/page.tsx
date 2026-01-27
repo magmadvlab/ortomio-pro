@@ -150,37 +150,17 @@ export default function AppPage() {
         {showGardenWizard && (
           <GardenTypeWizard
             onComplete={async (garden) => {
-              try {
-                console.log('✅ Garden created from wizard:', garden)
-                console.log('📊 Storage provider available:', storageProvider.isAvailable())
-                console.log('🔐 About to save garden to database...')
-                
-                // CRITICAL: Save garden to database FIRST
-                const savedGarden = await storageProvider.createGarden(garden)
-                console.log('💾 Garden saved to database successfully:', savedGarden.id)
-                
-                // OPTIMISTIC UPDATE: Add garden to state immediately
-                console.log('🚀 Optimistic update: Adding garden to state')
-                setGardens(prev => [...prev, savedGarden])
-                setActiveGarden(savedGarden)
-                setShowGardenWizard(false)
-                
-                // Background refresh with retry logic to confirm
-                console.log('🔄 Starting background refresh with retry...')
-                await refreshGardensWithRetry(savedGarden.id)
-              } catch (error) {
-                console.error('❌ CRITICAL ERROR: Failed to save garden to database:', error)
-                console.error('Error details:', {
-                  message: error instanceof Error ? error.message : 'Unknown error',
-                  stack: error instanceof Error ? error.stack : undefined,
-                  error
-                })
-                
-                // Show error to user
-                alert(`Errore nel salvare il giardino: ${error instanceof Error ? error.message : 'Errore sconosciuto'}. Riprova.`)
-                
-                // Don't close wizard on error - let user try again
-              }
+              console.log('✅ Garden saved and returned from wizard:', garden.id);
+              
+              // OPTIMISTIC UPDATE: Add garden to state immediately
+              console.log('🚀 Optimistic update: Adding garden to state')
+              setGardens(prev => [...prev, garden])
+              setActiveGarden(garden)
+              setShowGardenWizard(false)
+              
+              // Background refresh with retry logic to confirm
+              console.log('🔄 Starting background refresh with retry...')
+              await refreshGardensWithRetry(garden.id)
             }}
             onCancel={() => setShowGardenWizard(false)}
           />

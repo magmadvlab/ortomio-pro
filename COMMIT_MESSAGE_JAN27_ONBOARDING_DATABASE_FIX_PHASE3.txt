@@ -1,0 +1,43 @@
+fix(onboarding): Move database save to GardenTypeWizard to fix garden persistence
+
+CRITICAL FIX: Gardens were not being saved to database during onboarding
+
+ROOT CAUSE:
+- GardenOnboarding.handleComplete() created garden object but never saved to DB
+- Garden object passed through GardenTypeWizard.handleGardenCreated()
+- GardenTypeWizard immediately called onComplete() without saving
+- app/page.tsx onComplete handler tried to save, but received already-created garden
+- Result: Gardens only existed in React state, never persisted to Supabase
+
+SOLUTION:
+- Moved database save logic to GardenTypeWizard.handleGardenCreated()
+- Added useStorage hook to GardenTypeWizard
+- Database save happens BEFORE passing garden to parent
+- Added comprehensive error handling and logging
+- Simplified app/page.tsx onComplete handler (no longer needs to save)
+
+FLOW NOW:
+1. User completes GardenOnboarding wizard
+2. GardenOnboarding.handleComplete() creates garden object
+3. GardenTypeWizard.handleGardenCreated() receives garden
+4. GardenTypeWizard saves to database via storageProvider.createGarden()
+5. Saved garden passed to app/page.tsx onComplete handler
+6. app/page.tsx adds to state and refreshes
+
+TESTING:
+- Hard refresh browser (Cmd+Shift+R)
+- Create new garden
+- Verify console logs show:
+  * "✅ Garden created from GardenOnboarding"
+  * "📊 Storage provider available: true"
+  * "🔐 About to save garden to database..."
+  * "💾 Garden saved to database successfully: [id]"
+  * "✅ Garden saved and returned from wizard: [id]"
+- Verify garden appears in Supabase database
+- Verify garden persists after page refresh
+
+FILES MODIFIED:
+- components/GardenTypeWizard.tsx - Added database save logic
+- app/app/page.tsx - Simplified onComplete handler
+
+IMPACT: HIGH - Fixes critical bug preventing garden creation

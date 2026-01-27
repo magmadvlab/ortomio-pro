@@ -5,6 +5,7 @@ import { Garden } from '../types';
 import { X, Sprout, TreePine, CircleDot, Grape, ArrowRight } from 'lucide-react';
 import GardenOnboarding from './GardenOnboarding';
 import { CreateOrchardWizard } from './crops/CreateOrchardWizard';
+import { useStorage } from '@/packages/core/hooks/useStorage';
 
 export type SpaceType = 'vegetable' | 'orchard' | 'oliveGrove' | 'vineyard';
 
@@ -14,8 +15,10 @@ interface GardenTypeWizardProps {
 }
 
 export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, onCancel }) => {
+  const { storageProvider } = useStorage();
   const [selectedType, setSelectedType] = useState<SpaceType | null>(null);
   const [createdGarden, setCreatedGarden] = useState<Garden | null>(null);
+  const [saving, setSaving] = useState(false);
 
   console.log('[GardenTypeWizard] Rendered - selectedType:', selectedType, 'createdGarden:', createdGarden);
 
@@ -23,17 +26,44 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
     setSelectedType(type);
   };
 
-  const handleGardenCreated = (garden: Garden) => {
-    setCreatedGarden(garden);
-    // Se è un orto, completa subito
-    if (selectedType === 'vegetable') {
-      onComplete(garden);
+  const handleGardenCreated = async (garden: Garden) => {
+    try {
+      console.log('✅ Garden created from GardenOnboarding:', garden);
+      console.log('📊 Storage provider available:', storageProvider.isAvailable());
+      console.log('🔐 About to save garden to database...');
+      
+      setSaving(true);
+      
+      // CRITICAL: Save garden to database FIRST
+      const savedGarden = await storageProvider.createGarden(garden);
+      console.log('💾 Garden saved to database successfully:', savedGarden.id);
+      
+      setCreatedGarden(savedGarden);
+      
+      // Se è un orto, completa subito
+      if (selectedType === 'vegetable') {
+        console.log('🎉 Vegetable garden complete, calling onComplete');
+        onComplete(savedGarden);
+      }
+      // Se è frutteto/oliveto/vigneto, mostra wizard configurazione
+    } catch (error) {
+      console.error('❌ CRITICAL ERROR: Failed to save garden to database:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        error
+      });
+      
+      // Show error to user
+      alert(`Errore nel salvare il giardino: ${error instanceof Error ? error.message : 'Errore sconosciuto'}. Riprova.`);
+    } finally {
+      setSaving(false);
     }
-    // Se è frutteto/oliveto/vigneto, mostra wizard configurazione
   };
 
   const handleOrchardConfigComplete = () => {
     if (createdGarden) {
+      console.log('🎉 Orchard/Olive/Vineyard configuration complete, calling onComplete');
       onComplete(createdGarden);
     }
   };
