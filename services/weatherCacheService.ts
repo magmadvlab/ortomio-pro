@@ -41,34 +41,7 @@ export const getCachedForecast = async (
   // Create new request promise
   const requestPromise = (async () => {
     try {
-      const supabase = getSupabaseClient();
-      const today = new Date().toISOString().split('T')[0];
-
-      if (supabase) {
-        try {
-          // Try Supabase cache
-          const { data, error } = await supabase
-            .from('weather_cache')
-            .select('forecast, cached_at')
-            .eq('lat_lng', cacheKey)
-            .eq('date', today)
-            .single();
-
-          if (!error && data) {
-            const cachedAt = new Date(data.cached_at).getTime();
-            const age = Date.now() - cachedAt;
-
-            if (age < CACHE_TTL_MS) {
-              return data.forecast as WeatherForecast[];
-            }
-          }
-        } catch (err) {
-          // Silently fall through to localStorage cache
-          // This can happen if table doesn't exist in local dev
-        }
-      }
-
-      // Fallback to localStorage
+      // Try localStorage FIRST (faster and no network errors)
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
         try {
@@ -78,10 +51,49 @@ export const getCachedForecast = async (
           );
 
           if (cached && cached.expiresAt > Date.now()) {
+            console.log('✅ Weather cache: Found in localStorage for', cacheKey);
             return cached.forecast;
           }
         } catch (e) {
           console.error('Error reading weather cache from localStorage', e);
+        }
+      }
+
+      // Then try Supabase cache (may fail with 406 if table doesn't exist)
+      const supabase = getSupabaseClient();
+      const today = new Date().toISOString().split('T')[0];
+
+      if (supabase) {
+        try {
+          // Try Supabase cache with timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+          
+          const { data, error } = await supabase
+            .from('weather_cache')
+            .select('forecast, cached_at')
+            .eq('lat_lng', cacheKey)
+            .eq('date', today)
+            .single()
+            .abortSignal(controller.signal);
+
+          clearTimeout(timeoutId);
+
+          if (!error && data) {
+            const cachedAt = new Date(data.cached_at).getTime();
+            const age = Date.now() - cachedAt;
+
+            if (age < CACHE_TTL_MS) {
+              console.log('✅ Weather cache: Found in Supabase for', cacheKey);
+              return data.forecast as WeatherForecast[];
+            }
+          }
+        } catch (err: any) {
+          // Silently fall through - table might not exist or network error
+          // Error 406 means "Not Acceptable" - usually RLS or table issue
+          if (err?.code === '406' || err?.message?.includes('406')) {
+            console.warn('⚠️ Weather cache: Supabase table issue (406), using localStorage only');
+          }
         }
       }
 
@@ -106,13 +118,17 @@ export const cacheForecast = async (
   lng: number,
   forecast: WeatherForecast[]
 ): Promise<void> => {
-  const supabase = getSupabaseClient();
   const cacheKey = `${lat.toFixed(4)}_${lng.toFixed(4)}`;
   const today = new Date().toISOString().split('T')[0];
 
+  // ALWAYS cache in localStorage first (reliable, no network issues)
+  cacheForecastLocal(lat, lng, forecast);
+  console.log('✅ Weather cache: Saved to localStorage for', cacheKey);
+
+  // Then try Supabase (may fail silently)
+  const supabase = getSupabaseClient();
   if (supabase) {
     try {
-      // Cache in Supabase
       const { error } = await supabase
         .from('weather_cache')
         .upsert({
@@ -124,20 +140,13 @@ export const cacheForecast = async (
           onConflict: 'lat_lng,date',
         });
 
-      if (error) {
-        // Table might not exist in local dev - use localStorage
-        cacheForecastLocal(lat, lng, forecast);
+      if (!error) {
+        console.log('✅ Weather cache: Also saved to Supabase for', cacheKey);
       }
-      return;
     } catch (err) {
-      // Silently fall back to localStorage
-      cacheForecastLocal(lat, lng, forecast);
-      return;
+      // Silently ignore - localStorage is already saved
     }
   }
-
-  // Fallback to localStorage
-  cacheForecastLocal(lat, lng, forecast);
 }
 
 /**

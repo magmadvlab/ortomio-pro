@@ -15,6 +15,7 @@ OrtoMio è la piattaforma agricola digitale completa che scala automaticamente d
 - [🏆 Centro Certificazioni](./04-certifications.md)
 - [🛰️ NDVI Satellitare](./05-ndvi-satellite.md)
 - [🗺️ Prescription Maps](./06-prescription-maps.md)
+- [🤖 Scheda AI (Panoramica)](./07-ai-overview.md)
 
 ### 🎯 **FUNZIONALITÀ POTENZIATE**
 - [🤖 Chat AI Globale](./08-global-ai-chat.md)
@@ -88,15 +89,16 @@ OrtoMio è la piattaforma agricola digitale completa che scala automaticamente d
 
 ## ✅ STATO COMPLETAMENTO MODULI
 
-### **🎉 SISTEMA COMPLETATO** (33/33) - 100%
+### **🎉 SISTEMA COMPLETATO** (34/34) - 100%
 
-#### **🚀 FUNZIONALITÀ PRINCIPALI** (6/6) ✅
+#### **🚀 FUNZIONALITÀ PRINCIPALI** (7/7) ✅
 - ✅ [🧠 Predizioni AI Avanzate](./01-ai-predictions.md)
 - ✅ [🚁 Operazioni Drone](./02-drone-operations.md)
 - ✅ [🔗 Tracciabilità Integrata](./03-traceability.md)
 - ✅ [🏆 Centro Certificazioni](./04-certifications.md)
 - ✅ [🛰️ NDVI Satellitare](./05-ndvi-satellite.md)
 - ✅ [🗺️ Prescription Maps](./06-prescription-maps.md)
+- ✅ [🤖 Scheda AI (Panoramica)](./07-ai-overview.md)
 
 #### **🎯 FUNZIONALITÀ POTENZIATE** (6/6) ✅
 - ✅ [🤖 Chat AI Globale](./08-global-ai-chat.md)

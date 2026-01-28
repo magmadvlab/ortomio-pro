@@ -3,7 +3,7 @@
  * OrtoMio PRO - Always returns PRO tier
  */
 
-import { useContext } from 'react';
+import { useContext, useCallback, useMemo } from 'react';
 import { TierContext } from '../context/TierContext';
 import { AppTier, TierConfig, getTierConfig, PRO_TIER } from '../config/tiers';
 
@@ -31,34 +31,34 @@ export const useTier = (): UseTierReturn => {
   const config = PRO_TIER;
 
   // All features are always enabled in PRO
-  const can = (_feature: keyof TierConfig['features']): boolean => {
+  const can = useCallback((_feature: keyof TierConfig['features']): boolean => {
     return true;
-  };
+  }, []);
 
   // All limits are unlimited in PRO
-  const limit = <K extends keyof TierConfig['limits']>(_limitKey: K): number => {
+  const limit = useCallback(<K extends keyof TierConfig['limits']>(_limitKey: K): number => {
     return -1; // Unlimited
-  };
+  }, []);
 
   // All limits are unlimited in PRO
-  const checkLimit = <K extends keyof TierConfig['limits']>(
+  const checkLimit = useCallback(<K extends keyof TierConfig['limits']>(
     _limitKey: K,
     _currentValue: number
   ): { allowed: boolean; remaining: number } => {
     return { allowed: true, remaining: -1 }; // Always allowed, unlimited
-  };
+  }, []);
 
   // All features are always enabled in PRO
-  const hasFeature = (_feature: string): boolean => {
+  const hasFeature = useCallback((_feature: string): boolean => {
     return true;
-  };
+  }, []);
 
   // setTier is a no-op since we're always PRO
-  const setTier = (_tier: AppTier): void => {
+  const setTier = useCallback((_tier: AppTier): void => {
     // No-op - always PRO
-  };
+  }, []);
 
-  return {
+  return useMemo(() => ({
     tier,
     config,
     isPro: true,
@@ -69,5 +69,5 @@ export const useTier = (): UseTierReturn => {
     checkLimit,
     hasFeature,
     setTier,
-  };
+  }), [tier, config, can, limit, checkLimit, hasFeature, setTier]);
 };

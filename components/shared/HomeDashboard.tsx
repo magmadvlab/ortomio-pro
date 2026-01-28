@@ -106,8 +106,24 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     }
   }, [storageProvider])
   const [gardens, setGardens] = useState<Garden[]>([])
-  const [activeGarden, setActiveGarden] = useState<Garden | null>(garden || null)
+  const [activeGarden, setActiveGardenState] = useState<Garden | null>(garden || null)
   const [isGardenSelectorOpen, setIsGardenSelectorOpen] = useState(false)
+
+  // Wrapper per setActiveGarden che persiste la selezione
+  const setActiveGarden = React.useCallback((garden: Garden | null) => {
+    setActiveGardenState(garden)
+    
+    // Persisti l'orto attivo in localStorage per il meteo
+    if (garden) {
+      try {
+        localStorage.setItem('ortoActiveGardenId', garden.id)
+        localStorage.setItem('ortoLastUsedGardenId', garden.id)
+        console.log('✅ HomeDashboard: Orto attivo salvato:', garden.name, garden.id)
+      } catch (e) {
+        console.error('Errore nel salvare orto attivo:', e)
+      }
+    }
+  }, [])
 
   // Sync activeGarden with garden prop - memoized to prevent loops
   useEffect(() => {
@@ -209,10 +225,29 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
         console.log('✅ HomeDashboard: Gardens loaded:', loadedGardens.length)
         setGardens(loadedGardens)
         setGardensLoaded(true)
+        
+        // Recupera l'ultimo orto usato da localStorage
+        let savedGardenId: string | null = null
+        try {
+          savedGardenId = localStorage.getItem('ortoActiveGardenId') || localStorage.getItem('ortoLastUsedGardenId')
+        } catch (e) {
+          // Ignora errori localStorage
+        }
+        
         // Only set activeGarden if we don't have one from props and none is set
         if (loadedGardens.length > 0 && !activeGarden && !garden) {
-          console.log('✅ HomeDashboard: Setting first garden as active:', loadedGardens[0].name)
-          setActiveGarden(loadedGardens[0])
+          // Cerca l'orto salvato
+          const savedGarden = savedGardenId 
+            ? loadedGardens.find(g => g.id === savedGardenId)
+            : null
+          
+          if (savedGarden) {
+            console.log('✅ HomeDashboard: Ripristinato ultimo orto usato:', savedGarden.name)
+            setActiveGarden(savedGarden)
+          } else {
+            console.log('✅ HomeDashboard: Setting first garden as active:', loadedGardens[0].name)
+            setActiveGarden(loadedGardens[0])
+          }
         }
       } catch (error) {
         console.error('❌ HomeDashboard: Error loading gardens:', error)
