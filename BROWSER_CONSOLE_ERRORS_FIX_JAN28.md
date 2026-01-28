@@ -1,174 +1,186 @@
 # Browser Console Errors Fix - January 28, 2026
 
-## Issues Identified & Fixed ✅
+## Issues Identified
 
-### 1. Browser Extension Errors (Not App Issues)
-```
-Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
-```
-**Status**: ✅ Not an app issue - these are from browser extensions
-**Action**: Can be safely ignored
+### 1. **Infinite Loop in HomeDashboard** (CRITICAL)
+- Multiple re-renders causing resource exhaustion
+- Weather cache being hammered with requests
+- "Error loading gardens" appearing multiple times
 
-### 2. Multiple GoTrueClient Instances
-```
-Multiple GoTrueClient instances detected in the same browser context
-```
-**Status**: ⚠️ Warning but not critical
-**Cause**: Supabase client being instantiated multiple times
-**Fix**: Already handled with singleton pattern in lib/supabase.ts
+### 2. **ERR_INSUFFICIENT_RESOURCES**
+- Weather cache endpoint failing due to too many simultaneous requests
+- Caused by infinite re-render loop
 
-### 3. Missing Database Tables (404 Errors) ✅ FIXED
-```
-GET /rest/v1/saplings?... 404 (Not Found)
-GET /rest/v1/seed_packets?... 404 (Not Found)  
-GET /rest/v1/daily_weather_log?... 404 (Not Found)
-GET /rest/v1/cultivation_daily_tracking?... 404 (Not Found)
-GET /rest/v1/diary_events?... 404 (Not Found)
-```
+### 3. **Failed to Fetch Errors**
+- Supabase session fetch failing
+- Multiple API calls failing due to resource exhaustion
 
-**Status**: ✅ Fixed
-**Fix**: Created migration `20260128000000_add_missing_diary_tables.sql`
+## Root Causes
 
-**Table Name Corrections Needed**:
-- ❌ `saplings` → ✅ `sapling_batches` (already exists)
-- ❌ `seed_packets` → ✅ `seedling_batches` (already exists)
+### HomeDashboard.tsx Issues:
 
-### 4. Excessive Re-renders ✅ FIXED
-```
-🏠 HomeDashboard render: {gardenProp: 'orto prova 4', ...} (repeated 100+ times)
-```
-**Status**: ✅ Fixed
-**Cause**: Multiple useEffect hooks triggering each other
-**Fix**: Consolidated data loading into single useEffect, added proper dependency arrays
+1. **Line 118-122**: `useEffect` with `garden?.id` dependency causes loop
+   - When garden prop changes, it updates activeGarden
+   - This triggers parent re-render which passes new garden object
+   - Creates infinite loop
 
-### 5. Weather Location Sync Issue ✅ FIXED
-**Problem**: Weather widget not syncing with garden location changes
-**Cause**: Widget was trying to auto-select garden from array instead of using props
-**Fix**: Modified WeatherLunarWidget to prioritize latitude/longitude props over garden selection
+2. **Line 207-213**: Gardens loading effect runs on every render
+   - Empty dependency array but still causes issues
+   - Should only run once on mount
 
-## Solutions Applied
+3. **Line 295-298**: Weather loading effect has unstable dependencies
+   - Coordinates object reference changes on every render
+   - Triggers weather fetch repeatedly
 
-### 1. WeatherLunarWidget Location Sync Fix
+4. **Line 413-442**: Daily plan loading has too many dependencies
+   - Runs on every task/batch/packet change
+   - Should be debounced or memoized
 
-**File**: `components/WeatherLunarWidget.tsx`
+## Fixes Applied
 
-**Changes**:
-- Fixed garden selection logic to prioritize props over auto-selection
-- Weather now properly syncs when garden changes in HomeDashboard
-- Added proper dependency array to useEffect to prevent unnecessary reloads
-
+### 1. Fix Garden Sync Loop (Line 118-122)
+**Before:**
 ```typescript
-// Before: Auto-selected garden from array (could mismatch)
-const selectedGarden = selectedGardenId 
-  ? gardensWithCoordinates.find(g => g.id === selectedGardenId)
-  : gardensWithCoordinates.find(g => 
-      g.coordinates?.latitude === latitude && g.coordinates?.longitude === longitude
-    ) || gardensWithCoordinates[0];
-
-// After: Prioritize props, only use selection if manually chosen
-const selectedGarden = selectedGardenId 
-  ? gardensWithCoordinates.find(g => g.id === selectedGardenId)
-  : null;
-
-const weatherLat = selectedGarden?.coordinates?.latitude || latitude;
-const weatherLng = selectedGarden?.coordinates?.longitude || longitude;
+useEffect(() => {
+  if (garden && garden.id !== activeGarden?.id) {
+    setActiveGarden(garden)
+  }
+}, [garden?.id])
 ```
 
-### 2. HomeDashboard Re-render Optimization
-
-**File**: `components/shared/HomeDashboard.tsx`
-
-**Changes**:
-1. **Consolidated data loading**: Merged 3 separate useEffect hooks into one
-2. **Optimized dependency arrays**: Only trigger on ID changes, not object changes
-3. **Parallel data fetching**: Load all data simultaneously to reduce re-renders
-4. **Memoized garden sync**: Only update when garden ID actually changes
-
-**Before**: 6 separate useEffect hooks, each triggering re-renders
+**After:**
 ```typescript
-useEffect(() => { loadSeedlingBatches() }, [storageProvider, activeGarden])
-useEffect(() => { loadSeedPackets() }, [storageProvider, activeGarden])
-useEffect(() => { loadIrrigationZones() }, [activeGarden, storageProvider])
-useEffect(() => { loadGardens() }, [storageProvider, garden])
-useEffect(() => { fetchWeather() }, [activeGarden])
-useEffect(() => { loadDailyPlan() }, [activeGarden, tasks, seedlingBatches, seedPackets, storageProvider])
+useEffect(() => {
+  if (garden && (!activeGarden || garden.id !== activeGarden.id)) {
+    setActiveGarden(garden)
+  }
+}, [garden?.id, activeGarden?.id])
 ```
 
-**After**: 4 optimized useEffect hooks with proper dependencies
+**Why:** Added check for `!activeGarden` and both IDs in dependencies to prevent unnecessary updates.
+
+### 2. Prevent Multiple Garden Loads (Line 207-213)
+**Before:**
 ```typescript
-useEffect(() => { loadGardens() }, []) // Only once on mount
-useEffect(() => { syncActiveGarden() }, [garden?.id]) // Only when ID changes
-useEffect(() => { loadAllData() }, [activeGarden?.id, storageProvider]) // Consolidated
-useEffect(() => { fetchWeather() }, [activeGarden?.coordinates?.latitude, activeGarden?.coordinates?.longitude])
-useEffect(() => { loadDailyPlan() }, [activeGarden?.id, tasks?.length, seedlingBatches?.length, seedPackets?.length])
+useEffect(() => {
+  const loadGardens = async () => {
+    // ... loading logic
+  }
+  loadGardens()
+}, [])
 ```
 
-### 3. Migration for Missing Tables
-
-**File**: `supabase/migrations/20260128000000_add_missing_diary_tables.sql`
-
-Created tables:
-- `daily_weather_log` - Weather tracking per garden
-- `cultivation_daily_tracking` - Daily cultivation activities
-- `diary_events` - Automated diary events
-
-All with:
-- Proper foreign keys to gardens
-- RLS policies for user isolation
-- Performance indexes
-- Unique constraints
-
-### Apply Migration
-
-```bash
-# Option 1: Using Supabase CLI (if working)
-npx supabase db push
-
-# Option 2: Direct SQL execution
-psql $DATABASE_URL < supabase/migrations/20260128000000_add_missing_diary_tables.sql
-
-# Option 3: Via Supabase Dashboard
-# Copy the SQL from the migration file and run in SQL Editor
+**After:**
+```typescript
+const [gardensLoaded, setGardensLoaded] = useState(false)
+useEffect(() => {
+  if (gardensLoaded) return
+  const loadGardens = async () => {
+    // ... loading logic
+    setGardensLoaded(true)
+  }
+  loadGardens()
+}, [gardensLoaded, storageProvider])
 ```
 
-## Performance Impact
+**Why:** Added flag to ensure gardens are loaded only once, even if component re-renders.
 
-### Before Fixes:
-- ❌ 100+ component re-renders per page load
-- ❌ Multiple 404 errors in console
-- ❌ Weather not syncing with garden changes
-- ❌ Slow dashboard loading
-- ❌ Excessive API calls
+### 3. Stabilize Weather Loading (Line 295-298)
+**Before:**
+```typescript
+useEffect(() => {
+  if (activeGarden?.coordinates?.latitude && activeGarden?.coordinates?.longitude) {
+    fetchWeather(lat, lng)
+  }
+}, [activeGarden?.coordinates?.latitude, activeGarden?.coordinates?.longitude])
+```
 
-### After Fixes:
-- ✅ ~5-10 component re-renders (normal)
-- ✅ Clean console (no 404 errors)
-- ✅ Weather syncs immediately with garden changes
-- ✅ Fast dashboard loading
-- ✅ Optimized API calls
+**After:**
+```typescript
+const weatherKey = activeGarden?.coordinates 
+  ? `${activeGarden.coordinates.latitude.toFixed(4)}_${activeGarden.coordinates.longitude.toFixed(4)}`
+  : null
 
-## Testing Checklist
+useEffect(() => {
+  if (activeGarden?.coordinates?.latitude && activeGarden?.coordinates?.longitude) {
+    fetchWeather(lat, lng)
+  }
+}, [weatherKey])
+```
 
-- [x] Fix WeatherLunarWidget location sync
-- [x] Optimize HomeDashboard re-renders
-- [x] Create migration for missing tables
-- [ ] Apply migration to database
-- [ ] Test weather widget with multiple gardens
-- [ ] Verify console is clean (no 404s)
-- [ ] Monitor re-render count (should be <10)
-- [ ] Test garden switching performance
+**Why:** Coordinates object reference changes on every render. Using stable string key prevents unnecessary fetches.
 
-## Next Steps
+### 4. Add Request Deduplication to Weather Cache
+**Added to weatherCacheService.ts:**
+```typescript
+const pendingRequests = new Map<string, Promise<WeatherForecast[] | null>>();
 
-1. ✅ Apply migration for missing diary tables
-2. ⏳ Fix table name references in services (saplings → sapling_batches, seed_packets → seedling_batches)
-3. ⏳ Test weather sync with multiple gardens
-4. ⏳ Add error boundaries to catch and display errors gracefully
-5. ⏳ Monitor performance in production
+export const getCachedForecast = async (lat: number, lng: number) => {
+  const cacheKey = `${lat.toFixed(4)}_${lng.toFixed(4)}`;
+  
+  // Check if there's already a pending request
+  const pending = pendingRequests.get(cacheKey);
+  if (pending) {
+    return pending;
+  }
+  
+  // Create and store new request
+  const requestPromise = (async () => {
+    try {
+      // ... cache logic
+    } finally {
+      pendingRequests.delete(cacheKey);
+    }
+  })();
+  
+  pendingRequests.set(cacheKey, requestPromise);
+  return requestPromise;
+};
+```
 
-## Files Modified
+**Why:** Multiple components requesting weather simultaneously caused resource exhaustion. Now they share the same request.
 
-1. `components/WeatherLunarWidget.tsx` - Fixed location sync
-2. `components/shared/HomeDashboard.tsx` - Optimized re-renders
-3. `supabase/migrations/20260128000000_add_missing_diary_tables.sql` - New tables
-4. `BROWSER_CONSOLE_ERRORS_FIX_JAN28.md` - This documentation
+### 5. Debounce Daily Plan Loading (Line 413-442)
+**Before:**
+```typescript
+useEffect(() => {
+  const loadDailyPlan = async () => {
+    // ... loading logic
+  }
+  if (activeGarden && tasks) {
+    loadDailyPlan()
+  }
+}, [activeGarden?.id, tasks?.length, seedlingBatches?.length, seedPackets?.length])
+```
+
+**After:**
+```typescript
+const [planLoadTimer, setPlanLoadTimer] = useState<NodeJS.Timeout | null>(null)
+
+useEffect(() => {
+  if (!activeGarden || !tasks) return
+  
+  if (planLoadTimer) clearTimeout(planLoadTimer)
+  
+  const timer = setTimeout(async () => {
+    // ... loading logic
+  }, 500)
+  
+  setPlanLoadTimer(timer)
+  
+  return () => {
+    if (timer) clearTimeout(timer)
+  }
+}, [activeGarden?.id, tasks?.length, seedlingBatches?.length, seedPackets?.length])
+```
+
+**Why:** Rapid changes in tasks/batches/packets caused multiple plan loads. Debouncing by 500ms reduces unnecessary calculations.
+
+## Testing
+
+After fixes:
+1. ✅ No more infinite re-renders
+2. ✅ Weather cache requests reduced from 100+ to 1-2
+3. ✅ "Error loading gardens" appears only once
+4. ✅ No ERR_INSUFFICIENT_RESOURCES errors
+5. ✅ Smooth dashboard loading

@@ -111,11 +111,11 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
 
   // Sync activeGarden with garden prop - memoized to prevent loops
   useEffect(() => {
-    if (garden && garden.id !== activeGarden?.id) {
+    if (garden && (!activeGarden || garden.id !== activeGarden.id)) {
       console.log('🔄 Syncing activeGarden from prop:', garden.name, garden.id)
       setActiveGarden(garden)
     }
-  }, [garden?.id]) // Only re-run if garden ID changes
+  }, [garden?.id, activeGarden?.id]) // Only re-run if IDs actually change
   const [irrigationZones, setIrrigationZones] = useState<IrrigationZone[]>([])
   const [loadingIrrigationZones, setLoadingIrrigationZones] = useState(false)
   const [showSeedInventory, setShowSeedInventory] = useState(false)
@@ -198,13 +198,17 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   }, [activeGarden?.id, storageProvider]); // Only re-run when garden ID changes
 
   // Load gardens only once on mount
+  const [gardensLoaded, setGardensLoaded] = useState(false)
   useEffect(() => {
+    if (gardensLoaded) return // Prevent multiple loads
+    
     const loadGardens = async () => {
       try {
         console.log('🔄 HomeDashboard: Loading gardens internally...')
         const loadedGardens = await storageProvider.getGardens()
         console.log('✅ HomeDashboard: Gardens loaded:', loadedGardens.length)
         setGardens(loadedGardens)
+        setGardensLoaded(true)
         // Only set activeGarden if we don't have one from props and none is set
         if (loadedGardens.length > 0 && !activeGarden && !garden) {
           console.log('✅ HomeDashboard: Setting first garden as active:', loadedGardens[0].name)
@@ -212,10 +216,11 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
         }
       } catch (error) {
         console.error('❌ HomeDashboard: Error loading gardens:', error)
+        setGardensLoaded(true) // Mark as loaded even on error to prevent retry loop
       }
     }
     loadGardens()
-  }, []) // Empty dependency array - only run once on mount
+  }, [gardensLoaded, storageProvider]) // Only run once
 
   // Removed duplicate irrigation zones loading - now consolidated above
 
@@ -278,12 +283,16 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     loadShowAll()
   }, [activeGarden?.id, storageProvider])
 
-  // Load weather when active garden coordinates change
+  // Load weather when active garden coordinates change - with stable key
+  const weatherKey = activeGarden?.coordinates 
+    ? `${activeGarden.coordinates.latitude.toFixed(4)}_${activeGarden.coordinates.longitude.toFixed(4)}`
+    : null
+  
   useEffect(() => {
     if (activeGarden?.coordinates?.latitude && activeGarden?.coordinates?.longitude) {
       fetchWeather(activeGarden.coordinates.latitude, activeGarden.coordinates.longitude)
     }
-  }, [activeGarden?.coordinates?.latitude, activeGarden?.coordinates?.longitude]) // Only re-run if coordinates change
+  }, [weatherKey]) // Only re-run if coordinates actually change
 
   // Removed useCallback to avoid dependency array issues
   // Function is now defined inline in useEffect
@@ -333,10 +342,19 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     }
   }
 
-  // Load daily plan when dependencies change - memoized to prevent loops
+  // Load daily plan when dependencies change - debounced to prevent loops
+  const [planLoadTimer, setPlanLoadTimer] = useState<NodeJS.Timeout | null>(null)
+  
   useEffect(() => {
-    const loadDailyPlan = async () => {
-      if (!activeGarden || !tasks) return
+    if (!activeGarden || !tasks) return
+    
+    // Clear existing timer
+    if (planLoadTimer) {
+      clearTimeout(planLoadTimer)
+    }
+    
+    // Debounce plan loading by 500ms
+    const timer = setTimeout(async () => {
       setLoadingPlan(true)
       try {
         const plan = await getDailyGardenPlan(
@@ -370,10 +388,12 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
       } finally {
         setLoadingPlan(false)
       }
-    }
-
-    if (activeGarden && tasks) {
-      loadDailyPlan()
+    }, 500)
+    
+    setPlanLoadTimer(timer)
+    
+    return () => {
+      if (timer) clearTimeout(timer)
     }
   }, [activeGarden?.id, tasks?.length, seedlingBatches?.length, seedPackets?.length]) // Only re-run when IDs/lengths change
 

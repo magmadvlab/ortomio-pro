@@ -10,6 +10,9 @@ import { getSupabaseClient } from '../config/supabase';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const LOCAL_STORAGE_KEY = 'ortoWeatherCache';
 
+// Request deduplication - prevent multiple simultaneous requests for same location
+const pendingRequests = new Map<string, Promise<WeatherForecast[] | null>>();
+
 interface CachedForecast {
   lat: number;
   lng: number;
@@ -20,57 +23,79 @@ interface CachedForecast {
 
 /**
  * Get cached forecast or null if expired/not found
+ * Includes request deduplication to prevent multiple simultaneous requests
  */
 export const getCachedForecast = async (
   lat: number,
   lng: number
 ): Promise<WeatherForecast[] | null> => {
-  const supabase = getSupabaseClient();
   const cacheKey = `${lat.toFixed(4)}_${lng.toFixed(4)}`;
-  const today = new Date().toISOString().split('T')[0];
-
-  if (supabase) {
+  
+  // Check if there's already a pending request for this location
+  const pending = pendingRequests.get(cacheKey);
+  if (pending) {
+    console.log('⏳ Weather cache: Reusing pending request for', cacheKey);
+    return pending;
+  }
+  
+  // Create new request promise
+  const requestPromise = (async () => {
     try {
-      // Try Supabase cache
-      const { data, error } = await supabase
-        .from('weather_cache')
-        .select('forecast, cached_at')
-        .eq('lat_lng', cacheKey)
-        .eq('date', today)
-        .single();
+      const supabase = getSupabaseClient();
+      const today = new Date().toISOString().split('T')[0];
 
-      if (!error && data) {
-        const cachedAt = new Date(data.cached_at).getTime();
-        const age = Date.now() - cachedAt;
+      if (supabase) {
+        try {
+          // Try Supabase cache
+          const { data, error } = await supabase
+            .from('weather_cache')
+            .select('forecast, cached_at')
+            .eq('lat_lng', cacheKey)
+            .eq('date', today)
+            .single();
 
-        if (age < CACHE_TTL_MS) {
-          return data.forecast as WeatherForecast[];
+          if (!error && data) {
+            const cachedAt = new Date(data.cached_at).getTime();
+            const age = Date.now() - cachedAt;
+
+            if (age < CACHE_TTL_MS) {
+              return data.forecast as WeatherForecast[];
+            }
+          }
+        } catch (err) {
+          // Silently fall through to localStorage cache
+          // This can happen if table doesn't exist in local dev
         }
       }
-    } catch (err) {
-      // Silently fall through to localStorage cache
-      // This can happen if table doesn't exist in local dev
-    }
-  }
 
-  // Fallback to localStorage
-  const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-  if (saved) {
-    try {
-      const cache = JSON.parse(saved) as CachedForecast[];
-      const cached = cache.find(
-        c => Math.abs(c.lat - lat) < 0.01 && Math.abs(c.lng - lng) < 0.01
-      );
+      // Fallback to localStorage
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (saved) {
+        try {
+          const cache = JSON.parse(saved) as CachedForecast[];
+          const cached = cache.find(
+            c => Math.abs(c.lat - lat) < 0.01 && Math.abs(c.lng - lng) < 0.01
+          );
 
-      if (cached && cached.expiresAt > Date.now()) {
-        return cached.forecast;
+          if (cached && cached.expiresAt > Date.now()) {
+            return cached.forecast;
+          }
+        } catch (e) {
+          console.error('Error reading weather cache from localStorage', e);
+        }
       }
-    } catch (e) {
-      console.error('Error reading weather cache from localStorage', e);
-    }
-  }
 
-  return null;
+      return null;
+    } finally {
+      // Clean up pending request
+      pendingRequests.delete(cacheKey);
+    }
+  })();
+  
+  // Store pending request
+  pendingRequests.set(cacheKey, requestPromise);
+  
+  return requestPromise;
 };
 
 /**

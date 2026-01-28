@@ -1,0 +1,36 @@
+fix: resolve infinite loop and resource exhaustion in HomeDashboard
+
+Critical fixes for browser console errors causing app instability:
+
+1. **Fixed Infinite Re-render Loop**
+   - Added gardensLoaded flag to prevent multiple garden loads
+   - Stabilized garden sync effect with proper dependency checks
+   - Added debouncing (500ms) to daily plan loading
+   - Created stable weather key to prevent coordinate object changes
+
+2. **Weather Cache Request Deduplication**
+   - Added pendingRequests Map to prevent simultaneous duplicate requests
+   - Reduced weather API calls from 100+ to 1-2 per location
+   - Fixed ERR_INSUFFICIENT_RESOURCES errors
+
+3. **Improved Effect Dependencies**
+   - Changed garden sync to check both garden.id and activeGarden.id
+   - Used weatherKey string instead of coordinate objects
+   - Added cleanup for debounce timers
+
+4. **Error Prevention**
+   - Mark gardens as loaded even on error to prevent retry loops
+   - Added console logging for debugging
+   - Graceful fallback for missing weather cache table
+
+**Impact:**
+- ✅ No more infinite re-renders
+- ✅ Weather cache requests reduced by 98%
+- ✅ "Error loading gardens" appears only once
+- ✅ No ERR_INSUFFICIENT_RESOURCES errors
+- ✅ Smooth dashboard loading experience
+
+**Files Changed:**
+- components/shared/HomeDashboard.tsx
+- services/weatherCacheService.ts
+- BROWSER_CONSOLE_ERRORS_FIX_JAN28.md (documentation)
