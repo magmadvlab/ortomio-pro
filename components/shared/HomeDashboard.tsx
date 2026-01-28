@@ -109,13 +109,13 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   const [activeGarden, setActiveGarden] = useState<Garden | null>(garden || null)
   const [isGardenSelectorOpen, setIsGardenSelectorOpen] = useState(false)
 
-  // Sync activeGarden with garden prop
+  // Sync activeGarden with garden prop - memoized to prevent loops
   useEffect(() => {
-    if (garden) {
+    if (garden && garden.id !== activeGarden?.id) {
       console.log('🔄 Syncing activeGarden from prop:', garden.name, garden.id)
       setActiveGarden(garden)
     }
-  }, [garden])
+  }, [garden?.id]) // Only re-run if garden ID changes
   const [irrigationZones, setIrrigationZones] = useState<IrrigationZone[]>([])
   const [loadingIrrigationZones, setLoadingIrrigationZones] = useState(false)
   const [showSeedInventory, setShowSeedInventory] = useState(false)
@@ -151,33 +151,53 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     }
   }, [onRefreshTasks])
 
+  // Consolidated data loading effect - prevents multiple re-renders
   useEffect(() => {
-    const loadSeedlingBatches = async () => {
-      if (!activeGarden) return
+    const loadAllData = async () => {
+      if (!activeGarden) return;
+      
       try {
-        const batches = await storageProvider.getSeedlingBatches(activeGarden.id)
-        setSeedlingBatches(batches)
+        // Load all data in parallel to reduce re-renders
+        const [batches, packets, zones] = await Promise.all([
+          storageProvider.getSeedlingBatches(activeGarden.id).catch(err => {
+            console.error('Error loading seedling batches:', err);
+            return [];
+          }),
+          storageProvider.getSeedPackets(activeGarden.id).catch(err => {
+            console.error('Error loading seed packets:', err);
+            return [];
+          }),
+          (async () => {
+            setLoadingIrrigationZones(true);
+            try {
+              const systems = await storageProvider.getIrrigationSystems(activeGarden.id);
+              const allZones: IrrigationZone[] = [];
+              for (const system of systems) {
+                const systemZones = await storageProvider.getIrrigationZones(system.id);
+                allZones.push(...systemZones);
+              }
+              return allZones;
+            } catch (error) {
+              console.error('Error loading irrigation zones:', error);
+              return [];
+            } finally {
+              setLoadingIrrigationZones(false);
+            }
+          })()
+        ]);
+        
+        setSeedlingBatches(batches);
+        setSeedPackets(packets || []);
+        setIrrigationZones(zones);
       } catch (error) {
-        console.error('Error loading seedling batches:', error)
+        console.error('Error loading garden data:', error);
       }
-    }
-    loadSeedlingBatches()
-  }, [storageProvider, activeGarden])
+    };
+    
+    loadAllData();
+  }, [activeGarden?.id, storageProvider]); // Only re-run when garden ID changes
 
-  useEffect(() => {
-    const loadSeedPackets = async () => {
-      if (!activeGarden) return
-      try {
-        const packets = await storageProvider.getSeedPackets(activeGarden.id)
-        setSeedPackets(packets || [])
-      } catch (error) {
-        console.error('Error loading seed packets:', error)
-        setSeedPackets([])
-      }
-    }
-    loadSeedPackets()
-  }, [storageProvider, activeGarden])
-
+  // Load gardens only once on mount
   useEffect(() => {
     const loadGardens = async () => {
       try {
@@ -195,39 +215,9 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
       }
     }
     loadGardens()
-  }, [storageProvider, garden])
+  }, []) // Empty dependency array - only run once on mount
 
-  // Load irrigation zones when active garden changes
-  useEffect(() => {
-    const loadIrrigationZones = async () => {
-      if (!activeGarden) {
-        setIrrigationZones([])
-        return
-      }
-      
-      setLoadingIrrigationZones(true)
-      try {
-        // Prima carica i sistemi di irrigazione per questo giardino
-        const systems = await storageProvider.getIrrigationSystems(activeGarden.id)
-        
-        // Poi carica tutte le zone per tutti i sistemi
-        const allZones: IrrigationZone[] = []
-        for (const system of systems) {
-          const zones = await storageProvider.getIrrigationZones(system.id)
-          allZones.push(...zones)
-        }
-        
-        setIrrigationZones(allZones)
-      } catch (error) {
-        console.error('Error loading irrigation zones:', error)
-        setIrrigationZones([])
-      } finally {
-        setLoadingIrrigationZones(false)
-      }
-    }
-    
-    loadIrrigationZones()
-  }, [activeGarden, storageProvider])
+  // Removed duplicate irrigation zones loading - now consolidated above
 
   useEffect(() => {
     if (!activeGarden) return
@@ -288,12 +278,12 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     loadShowAll()
   }, [activeGarden?.id, storageProvider])
 
-  // Load weather when active garden changes
+  // Load weather when active garden coordinates change
   useEffect(() => {
-    if (activeGarden && activeGarden.coordinates) {
+    if (activeGarden?.coordinates?.latitude && activeGarden?.coordinates?.longitude) {
       fetchWeather(activeGarden.coordinates.latitude, activeGarden.coordinates.longitude)
     }
-  }, [activeGarden])
+  }, [activeGarden?.coordinates?.latitude, activeGarden?.coordinates?.longitude]) // Only re-run if coordinates change
 
   // Removed useCallback to avoid dependency array issues
   // Function is now defined inline in useEffect
@@ -343,8 +333,8 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     }
   }
 
+  // Load daily plan when dependencies change - memoized to prevent loops
   useEffect(() => {
-    // Define loadDailyPlan inline to avoid dependency array issues
     const loadDailyPlan = async () => {
       if (!activeGarden || !tasks) return
       setLoadingPlan(true)
@@ -385,7 +375,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     if (activeGarden && tasks) {
       loadDailyPlan()
     }
-  }, [activeGarden, tasks, seedlingBatches, seedPackets, storageProvider])
+  }, [activeGarden?.id, tasks?.length, seedlingBatches?.length, seedPackets?.length]) // Only re-run when IDs/lengths change
 
   const fetchWeather = async (lat: number, lng: number) => {
     setWeatherLoading(true)

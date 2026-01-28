@@ -59,13 +59,12 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
   const gardensWithCoordinates = gardens.filter(g => g.coordinates?.latitude && g.coordinates?.longitude);
   
   // Trova il giardino attualmente selezionato per il meteo
+  // Se non c'è selezione manuale, usa le coordinate passate come props
   const selectedGarden = selectedGardenId 
     ? gardensWithCoordinates.find(g => g.id === selectedGardenId)
-    : gardensWithCoordinates.find(g => 
-        g.coordinates?.latitude === latitude && g.coordinates?.longitude === longitude
-      ) || gardensWithCoordinates[0];
+    : null;
 
-  // Coordinate da usare per il meteo
+  // Coordinate da usare per il meteo - priorità alle props se non c'è selezione manuale
   const weatherLat = selectedGarden?.coordinates?.latitude || latitude;
   const weatherLng = selectedGarden?.coordinates?.longitude || longitude;
 
@@ -161,8 +160,9 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
       return;
     }
 
+    // Carica previsioni meteo solo se le coordinate sono cambiate
     loadForecast();
-  }, [weatherLat, weatherLng]);
+  }, [weatherLat, weatherLng, can]);
 
   const loadForecast = async () => {
     try {
