@@ -68,6 +68,27 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
   const weatherLat = selectedGarden?.coordinates?.latitude || latitude;
   const weatherLng = selectedGarden?.coordinates?.longitude || longitude;
 
+  // DEBUG: Log dettagliato delle coordinate meteo
+  useEffect(() => {
+    console.log('🌤️ METEO DEBUG:', {
+      propsLatitude: latitude,
+      propsLongitude: longitude,
+      selectedGardenId,
+      selectedGardenName: selectedGarden?.name || 'NESSUNO',
+      selectedGardenCoords: selectedGarden?.coordinates || 'N/A',
+      finalWeatherLat: weatherLat,
+      finalWeatherLng: weatherLng,
+      gardensCount: gardens.length,
+      gardensWithCoordsCount: gardensWithCoordinates.length,
+      allGardens: gardens.map(g => ({
+        id: g.id,
+        name: g.name,
+        lat: g.coordinates?.latitude,
+        lng: g.coordinates?.longitude
+      }))
+    });
+  }, [latitude, longitude, selectedGardenId, weatherLat, weatherLng, gardens.length]);
+
   // Calcola consigli lunari
   const calculateLunarAdvice = (): LunarAdvice => {
     const moonPhase = calculateMoonPhase(new Date());
@@ -175,26 +196,9 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
       }, 10000);
 
       try {
-        // Try cache first
-        const cached = await getCachedForecast(weatherLat, weatherLng);
-        if (cached && cached.length > 0) {
-          clearTimeout(timeoutId);
-          // Transform cached data to match expected interface
-          const transformedCached = cached.map(item => ({
-            date: item.date,
-            temp: item.tempMax || item.tempMin || 20,
-            code: 0, // Default clear sky
-            rainForecastMm: item.rainMm || 0,
-            windSpeed: item.windSpeed || 0,
-            humidity: item.humidity || 60
-          }));
-          setForecast(transformedCached);
-          const generatedAlerts = generateWeatherAlerts(cached as any[], activePlants);
-          setAlerts(generatedAlerts);
-          setLoading(false);
-          return;
-        }
-
+        // SKIP CACHE - Fetch direttamente dall'API per dati freschi
+        console.log('🌤️ Fetching FRESH weather data (skipping cache)...');
+        
         // Fetch from API
         const data = await getWeatherForecast7Days(weatherLat, weatherLng);
         clearTimeout(timeoutId);
@@ -204,13 +208,17 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
           const transformedData = data.map(item => ({
             date: item.date?.toISOString?.() || item.date,
             temp: item.temp_max || item.temp_min || 20,
-            code: 0, // Default clear sky
+            code: item.weathercode || 0,
             rainForecastMm: item.precipitation || 0,
             windSpeed: item.wind_speed || 0,
-            humidity: item.humidity || 60
+            humidity: item.humidity || 60,
+            condition: item.condition || 'Variabile'
           }));
           
+          console.log('🌤️ Fresh weather data:', transformedData[0]);
+          
           setForecast(transformedData);
+          // Aggiorna la cache con i nuovi dati
           await cacheForecast(weatherLat, weatherLng, transformedData);
           const generatedAlerts = generateWeatherAlerts(data, activePlants);
           setAlerts(generatedAlerts);

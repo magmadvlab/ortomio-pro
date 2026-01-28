@@ -43,6 +43,8 @@ interface GardenLocation {
 
 // Export standalone functions for compatibility
 export async function getWeatherForecast(lat: number, lng: number, days: number = 7): Promise<any[]> {
+  console.log('🌤️ API METEO: Richiesta per coordinate:', { lat, lng, days });
+  
   try {
     const url = new URL('https://api.open-meteo.com/v1/forecast');
     url.searchParams.append('latitude', lat.toString());
@@ -59,6 +61,8 @@ export async function getWeatherForecast(lat: number, lng: number, days: number 
     url.searchParams.append('forecast_days', days.toString());
     url.searchParams.append('timezone', 'Europe/Rome');
     
+    console.log('🌤️ API METEO URL:', url.toString());
+    
     const response = await fetch(url.toString(), {
       next: { revalidate: 3600 }
     });
@@ -68,6 +72,13 @@ export async function getWeatherForecast(lat: number, lng: number, days: number 
     }
     
     const data = await response.json();
+    console.log('🌤️ API METEO Risposta:', {
+      timezone: data.timezone,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      firstDate: data.daily?.time?.[0],
+      firstTempMax: data.daily?.temperature_2m_max?.[0]
+    });
     
     if (!data.daily || !data.daily.time) {
       throw new Error('Invalid weather API response');
@@ -80,6 +91,7 @@ export async function getWeatherForecast(lat: number, lng: number, days: number 
       precipitation: data.daily.precipitation_sum[idx] || 0,
       precipitation_probability: data.daily.precipitation_probability_max[idx] || 0,
       condition: getConditionFromCode(data.daily.weathercode[idx]),
+      weathercode: data.daily.weathercode[idx] || 0,
       wind_speed: data.daily.wind_speed_10m_max[idx] || 0,
       uv_index: data.daily.uv_index_max[idx] || 0
     }));

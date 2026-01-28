@@ -467,7 +467,16 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     )
   }
 
+  // DEBUG: Log coordinate orto attivo per meteo
   console.log('✅ HomeDashboard: Rendering with activeGarden:', activeGarden.name, activeGarden.id)
+  console.log('🌤️ HomeDashboard METEO DEBUG:', {
+    gardenName: activeGarden.name,
+    gardenId: activeGarden.id,
+    coordinates: activeGarden.coordinates,
+    latitude: activeGarden.coordinates?.latitude,
+    longitude: activeGarden.coordinates?.longitude,
+    hasCoordinates: !!(activeGarden.coordinates?.latitude && activeGarden.coordinates?.longitude)
+  })
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 pb-20">
@@ -478,6 +487,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
           activeGarden={activeGarden}
           tasks={tasks}
           onGardenChange={(garden) => {
+            console.log('🔄 HomeDashboard: Cambio orto a:', garden.name, garden.coordinates)
             setActiveGarden(garden)
             if (onUpdateGarden) onUpdateGarden(garden)
           }}
