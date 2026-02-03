@@ -1061,7 +1061,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                     <h4 className="font-semibold text-gray-900 mb-3">
                       {editingFieldRow ? 'Modifica Filare' : 'Nuovo Filare'}
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1">Nome</label>
                         <input
@@ -1132,7 +1132,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
 
                       {/* Campi avanzati - Accordion espandibile */}
                       <div className="md:col-span-2 mt-3 border-t pt-3">
-                        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                           <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">
                               Spaziatura piante (cm)
@@ -1458,7 +1458,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                     <p className="text-xs text-gray-600 mb-3">
                       Crea più filari contemporaneamente con le stesse caratteristiche di base
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1">Numero filari da creare</label>
                         <input
