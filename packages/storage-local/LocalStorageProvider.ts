@@ -48,6 +48,8 @@ export class LocalStorageProvider implements IStorageProvider {
     PHYTO_INVENTORY: 'ortoPhytoInventory',
     COMPOST_LOGS: 'ortoCompostLogs',
     FERTILIZER_APPLICATION_LOGS: 'ortoFertilizerApplicationLogs',
+    INDIVIDUAL_PLANTS: 'ortoIndividualPlants',
+    FIELD_ROWS: 'ortoFieldRows',
   } as const;
 
   private getUserPreferenceKey(key: string): string {
@@ -1919,25 +1921,108 @@ export class LocalStorageProvider implements IStorageProvider {
     throw new Error('Garden zones not supported in local storage mode');
   }
 
-  // Field Rows (stub implementations - features not available in local mode)
+  // Field Rows (Local Storage Implementation)
   async getFieldRows(gardenId?: string, zoneId?: string): Promise<any[]> {
-    return [];
+    try {
+      if (!gardenId) return [];
+      
+      const key = `ortoFieldRows_${gardenId}`;
+      const raw = localStorage.getItem(key);
+      if (!raw) return [];
+      
+      const fieldRows = JSON.parse(raw);
+      
+      // Filter by zone if specified
+      if (zoneId) {
+        return fieldRows.filter((row: any) => row.zoneId === zoneId);
+      }
+      
+      return fieldRows;
+    } catch (error) {
+      console.error('Error loading field rows:', error);
+      return [];
+    }
   }
 
   async getFieldRow(id: string): Promise<any | null> {
-    return null;
+    try {
+      // Search across all gardens for the field row
+      const gardens = await this.getGardens();
+      for (const garden of gardens) {
+        const fieldRows = await this.getFieldRows(garden.id);
+        const fieldRow = fieldRows.find((row: any) => row.id === id);
+        if (fieldRow) return fieldRow;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error loading field row:', error);
+      return null;
+    }
   }
 
   async createFieldRow(row: any): Promise<any> {
-    throw new Error('Field rows not supported in local storage mode');
+    try {
+      const newRow = {
+        ...row,
+        id: row.id || crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      const key = `ortoFieldRows_${row.gardenId}`;
+      const existing = await this.getFieldRows(row.gardenId);
+      const updated = [...existing, newRow];
+      
+      localStorage.setItem(key, JSON.stringify(updated));
+      console.log('✅ Field row saved to localStorage:', newRow.name);
+      
+      return newRow;
+    } catch (error) {
+      console.error('Error creating field row:', error);
+      throw error;
+    }
   }
 
   async updateFieldRow(id: string, updates: any): Promise<any> {
-    throw new Error('Field rows not supported in local storage mode');
+    try {
+      const fieldRow = await this.getFieldRow(id);
+      if (!fieldRow) throw new Error('Field row not found');
+
+      const updatedRow = {
+        ...fieldRow,
+        ...updates,
+        updatedAt: new Date().toISOString()
+      };
+
+      const key = `ortoFieldRows_${fieldRow.gardenId}`;
+      const existing = await this.getFieldRows(fieldRow.gardenId);
+      const updated = existing.map((row: any) => row.id === id ? updatedRow : row);
+      
+      localStorage.setItem(key, JSON.stringify(updated));
+      console.log('✅ Field row updated in localStorage:', updatedRow.name);
+      
+      return updatedRow;
+    } catch (error) {
+      console.error('Error updating field row:', error);
+      throw error;
+    }
   }
 
   async deleteFieldRow(id: string): Promise<void> {
-    throw new Error('Field rows not supported in local storage mode');
+    try {
+      const fieldRow = await this.getFieldRow(id);
+      if (!fieldRow) return;
+
+      const key = `ortoFieldRows_${fieldRow.gardenId}`;
+      const existing = await this.getFieldRows(fieldRow.gardenId);
+      const updated = existing.filter((row: any) => row.id !== id);
+      
+      localStorage.setItem(key, JSON.stringify(updated));
+      console.log('✅ Field row deleted from localStorage:', id);
+    } catch (error) {
+      console.error('Error deleting field row:', error);
+      throw error;
+    }
   }
 
   // Planting Batches (stub implementations - features not available in local mode)
@@ -1959,6 +2044,100 @@ export class LocalStorageProvider implements IStorageProvider {
 
   async deletePlantingBatch(id: string): Promise<void> {
     throw new Error('Planting batches not supported in local storage mode');
+  }
+
+  // Individual Plants (Plant Tracking)
+  async getIndividualPlants(gardenId: string): Promise<import('@/types/individualPlant').GardenPlant[]> {
+    try {
+      const key = `ortoIndividualPlants_${gardenId}`;
+      const raw = localStorage.getItem(key);
+      if (!raw) return [];
+      return JSON.parse(raw);
+    } catch (error) {
+      console.error('Error loading individual plants:', error);
+      return [];
+    }
+  }
+
+  async getIndividualPlant(id: string): Promise<import('@/types/individualPlant').GardenPlant | null> {
+    try {
+      // Search across all gardens for the plant
+      const gardens = await this.getGardens();
+      for (const garden of gardens) {
+        const plants = await this.getIndividualPlants(garden.id);
+        const plant = plants.find(p => p.id === id);
+        if (plant) return plant;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error loading individual plant:', error);
+      return null;
+    }
+  }
+
+  async createIndividualPlant(plant: Omit<import('@/types/individualPlant').GardenPlant, 'id' | 'createdAt' | 'updatedAt'>): Promise<import('@/types/individualPlant').GardenPlant> {
+    try {
+      const newPlant: import('@/types/individualPlant').GardenPlant = {
+        ...plant,
+        id: plant.id || crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      const key = `ortoIndividualPlants_${plant.gardenId}`;
+      const existing = await this.getIndividualPlants(plant.gardenId);
+      const updated = [...existing, newPlant];
+      
+      localStorage.setItem(key, JSON.stringify(updated));
+      console.log('✅ Individual plant saved to localStorage:', newPlant.plantCode);
+      
+      return newPlant;
+    } catch (error) {
+      console.error('Error creating individual plant:', error);
+      throw error;
+    }
+  }
+
+  async updateIndividualPlant(id: string, updates: Partial<import('@/types/individualPlant').GardenPlant>): Promise<import('@/types/individualPlant').GardenPlant> {
+    try {
+      const plant = await this.getIndividualPlant(id);
+      if (!plant) throw new Error('Plant not found');
+
+      const updatedPlant = {
+        ...plant,
+        ...updates,
+        updatedAt: new Date().toISOString()
+      };
+
+      const key = `ortoIndividualPlants_${plant.gardenId}`;
+      const existing = await this.getIndividualPlants(plant.gardenId);
+      const updated = existing.map(p => p.id === id ? updatedPlant : p);
+      
+      localStorage.setItem(key, JSON.stringify(updated));
+      console.log('✅ Individual plant updated in localStorage:', updatedPlant.plantCode);
+      
+      return updatedPlant;
+    } catch (error) {
+      console.error('Error updating individual plant:', error);
+      throw error;
+    }
+  }
+
+  async deleteIndividualPlant(id: string): Promise<void> {
+    try {
+      const plant = await this.getIndividualPlant(id);
+      if (!plant) return;
+
+      const key = `ortoIndividualPlants_${plant.gardenId}`;
+      const existing = await this.getIndividualPlants(plant.gardenId);
+      const updated = existing.filter(p => p.id !== id);
+      
+      localStorage.setItem(key, JSON.stringify(updated));
+      console.log('✅ Individual plant deleted from localStorage:', id);
+    } catch (error) {
+      console.error('Error deleting individual plant:', error);
+      throw error;
+    }
   }
 }
 

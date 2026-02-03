@@ -261,6 +261,13 @@ export interface IStorageProvider {
   updateHealthAlert(id: string, updates: Partial<HealthAlert>): Promise<HealthAlert>;
   deleteHealthAlert(id: string): Promise<void>;
 
+  // Individual Plants (Plant Tracking)
+  getIndividualPlants?(gardenId: string): Promise<import('../../../types/individualPlant').GardenPlant[]>;
+  getIndividualPlant?(id: string): Promise<import('../../../types/individualPlant').GardenPlant | null>;
+  createIndividualPlant?(plant: Omit<import('../../../types/individualPlant').GardenPlant, 'id' | 'createdAt' | 'updatedAt'>): Promise<import('../../../types/individualPlant').GardenPlant>;
+  updateIndividualPlant?(id: string, updates: Partial<import('../../../types/individualPlant').GardenPlant>): Promise<import('../../../types/individualPlant').GardenPlant>;
+  deleteIndividualPlant?(id: string): Promise<void>;
+
   // Check if provider is available
   isAvailable(): boolean;
 }

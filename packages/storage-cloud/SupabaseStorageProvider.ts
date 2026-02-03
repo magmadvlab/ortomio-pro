@@ -4122,4 +4122,156 @@ export class SupabaseStorageProvider implements IStorageProvider {
       metadata: alert.metadata || null
     };
   }
+
+  // Individual Plants (Plant Tracking)
+  async getIndividualPlants(gardenId: string): Promise<import('@/types/individualPlant').GardenPlant[]> {
+    if (!this.client) throw new Error('Supabase client not initialized');
+
+    try {
+      const { data, error } = await this.client
+        .from('individual_plants')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return (data || []).map(this.mapIndividualPlantFromDB);
+    } catch (error) {
+      console.error('Error loading individual plants:', error);
+      return [];
+    }
+  }
+
+  async getIndividualPlant(id: string): Promise<import('@/types/individualPlant').GardenPlant | null> {
+    if (!this.client) throw new Error('Supabase client not initialized');
+
+    try {
+      const { data, error } = await this.client
+        .from('individual_plants')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') return null; // Not found
+        throw error;
+      }
+
+      return this.mapIndividualPlantFromDB(data);
+    } catch (error) {
+      console.error('Error loading individual plant:', error);
+      return null;
+    }
+  }
+
+  async createIndividualPlant(plant: Omit<import('@/types/individualPlant').GardenPlant, 'id' | 'createdAt' | 'updatedAt'>): Promise<import('@/types/individualPlant').GardenPlant> {
+    if (!this.client) throw new Error('Supabase client not initialized');
+
+    try {
+      const dbPlant = this.mapIndividualPlantToDB(plant);
+      
+      const { data, error } = await this.client
+        .from('individual_plants')
+        .insert(dbPlant)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Individual plant saved to Supabase:', data.plant_code);
+      return this.mapIndividualPlantFromDB(data);
+    } catch (error) {
+      console.error('Error creating individual plant:', error);
+      throw error;
+    }
+  }
+
+  async updateIndividualPlant(id: string, updates: Partial<import('@/types/individualPlant').GardenPlant>): Promise<import('@/types/individualPlant').GardenPlant> {
+    if (!this.client) throw new Error('Supabase client not initialized');
+
+    try {
+      const dbUpdates = this.mapIndividualPlantToDB(updates as any);
+      delete dbUpdates.id; // Remove ID from updates
+      
+      const { data, error } = await this.client
+        .from('individual_plants')
+        .update(dbUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Individual plant updated in Supabase:', data.plant_code);
+      return this.mapIndividualPlantFromDB(data);
+    } catch (error) {
+      console.error('Error updating individual plant:', error);
+      throw error;
+    }
+  }
+
+  async deleteIndividualPlant(id: string): Promise<void> {
+    if (!this.client) throw new Error('Supabase client not initialized');
+
+    try {
+      const { error } = await this.client
+        .from('individual_plants')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      console.log('✅ Individual plant deleted from Supabase:', id);
+    } catch (error) {
+      console.error('Error deleting individual plant:', error);
+      throw error;
+    }
+  }
+
+  private mapIndividualPlantFromDB(db: any): import('@/types/individualPlant').GardenPlant {
+    return {
+      id: db.id,
+      gardenId: db.garden_id,
+      fieldRowId: db.field_row_id || undefined,
+      fieldRowName: db.field_row_name || undefined,
+      positionInRow: db.position_in_row || undefined,
+      plantCode: db.plant_code,
+      plantName: db.plant_name,
+      variety: db.variety || undefined,
+      plantingDate: db.planting_date,
+      transplantDate: db.transplant_date || undefined,
+      sourceVivaio: db.source_vivaio || undefined,
+      status: db.status,
+      healthScore: db.health_score,
+      stage: db.stage,
+      photos: db.photos || [],
+      operations: db.operations || [],
+      orchestratorEnabled: db.orchestrator_enabled || false,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at
+    };
+  }
+
+  private mapIndividualPlantToDB(plant: Partial<import('@/types/individualPlant').GardenPlant>): any {
+    return {
+      id: plant.id,
+      garden_id: plant.gardenId,
+      field_row_id: plant.fieldRowId || null,
+      field_row_name: plant.fieldRowName || null,
+      position_in_row: plant.positionInRow || null,
+      plant_code: plant.plantCode,
+      plant_name: plant.plantName,
+      variety: plant.variety || null,
+      planting_date: plant.plantingDate,
+      transplant_date: plant.transplantDate || null,
+      source_vivaio: plant.sourceVivaio || null,
+      status: plant.status,
+      health_score: plant.healthScore,
+      stage: plant.stage,
+      photos: plant.photos || [],
+      operations: plant.operations || [],
+      orchestrator_enabled: plant.orchestratorEnabled || false
+    };
+  }
 }
