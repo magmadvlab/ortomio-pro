@@ -231,11 +231,11 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
   const handleEditFieldRow = (row: any) => {
     setEditingFieldRow(row)
     
-    // Carica configurazione irrigazione esistente se presente - PRESERVA LO STATO
+    // Carica configurazione irrigazione esistente se presente - PRESERVA LO STATO ENABLED
     const existingIrrigationConfig = row.irrigationConfig
     const irrigationConfig = existingIrrigationConfig ? {
-      // Preserva la configurazione esistente
-      enabled: existingIrrigationConfig.enabled || false,
+      // CRITICO: Preserva esattamente lo stato enabled esistente
+      enabled: Boolean(existingIrrigationConfig.enabled), // Forza boolean per evitare undefined
       irrigationType: existingIrrigationConfig.irrigationType || 'drip' as const,
       tubeLength: existingIrrigationConfig.tubeLength || row.length_meters || row.lengthMeters || 10,
       tubeDiameter: existingIrrigationConfig.tubeDiameter || 16,

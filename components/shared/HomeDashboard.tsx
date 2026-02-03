@@ -960,7 +960,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                                       href={`/app/plants?tab=plants&fieldRow=${row.id}`}
                                       className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                                     >
-                                      🌾 Vedi Piante del Filare →
+                                      🌾 VEDI PIANTE DEL FILARE →
                                     </Link>
                                   </div>
                                   
@@ -1090,7 +1090,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                                       href={`/app/plants?tab=plants&fieldRow=${row.id}`}
                                       className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                                     >
-                                      🌾 Vedi Piante del Filare →
+                                      🌾 VEDI PIANTE DEL FILARE →
                                     </Link>
                                   </div>
                                   
