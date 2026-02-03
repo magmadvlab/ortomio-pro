@@ -119,10 +119,18 @@ export default function PlantsPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
-                🌱 Gestione Piante Professionale
+                {fieldRowParam ? (
+                  <>🌾 Piante del Filare - {defaultGarden.name}</>
+                ) : (
+                  <>🌱 Gestione Piante Professionale</>
+                )}
               </h1>
               <p className="text-gray-600 mt-1">
-                Monitoraggio completo di piante, semi, vivaio e alberi per {defaultGarden.name}
+                {fieldRowParam ? (
+                  `Visualizzazione piante individuali del filare selezionato in ${defaultGarden.name}`
+                ) : (
+                  `Monitoraggio completo di piante, semi, vivaio e alberi per ${defaultGarden.name}`
+                )}
               </p>
             </div>
             <div className="flex gap-3">

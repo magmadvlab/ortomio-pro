@@ -950,17 +950,17 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                                   
                                   <div className="bg-white border-2 border-blue-500 rounded-lg p-3">
                                     <div className="flex items-center gap-2 mb-2">
-                                      <span className="text-blue-600 text-lg">📦</span>
-                                      <span className="font-semibold text-blue-800">Pianta Direttamente</span>
+                                      <span className="text-blue-600 text-lg">🌾</span>
+                                      <span className="font-semibold text-blue-800">Vedi Piante del Filare</span>
                                     </div>
                                     <p className="text-xs text-blue-700 mb-3">
-                                      Aggiungi piante direttamente nel filare
+                                      Visualizza e gestisci le piante di questo filare
                                     </p>
                                     <Link
                                       href={`/app/plants?tab=plants&fieldRow=${row.id}`}
                                       className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                                     >
-                                      Gestisci Piante →
+                                      🌾 Vedi Piante del Filare →
                                     </Link>
                                   </div>
                                   
@@ -987,13 +987,13 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                           // FILARE CON PIANTE - Mostra operazioni normali
                           return (
                             <>
-                              {/* PRIMARY ACTION - Ispeziona Piante (Most Prominent) */}
+                              {/* PRIMARY ACTION - Vedi Piante del Filare (Most Prominent) */}
                               <div className="mb-3">
                                 <Link
                                   href={`/app/plants?tab=plants&fieldRow=${row.id}`}
                                   className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all shadow-md border-2 border-green-500"
                                 >
-                                  🔍 ISPEZIONA PIANTE ({rowPlants.length})
+                                  🌱 VEDI PIANTE DEL FILARE ({rowPlants.length})
                                   <span className="ml-2 text-green-200">→</span>
                                 </Link>
                               </div>
@@ -1012,7 +1012,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                                   href="/app/semenzaio"
                                   className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
                                 >
-                                  🌱 Vivaio
+                                  🏪 Vivaio
                                 </Link>
                               </div>
                               
@@ -1080,7 +1080,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                                 <div className="grid grid-cols-1 gap-3">
                                   <div className="bg-white border-2 border-green-500 rounded-lg p-3">
                                     <div className="flex items-center gap-2 mb-2">
-                                      <span className="text-green-600 text-lg">🔍</span>
+                                      <span className="text-green-600 text-lg">🌾</span>
                                       <span className="font-semibold text-green-800">Vedi Piante del Filare</span>
                                     </div>
                                     <p className="text-xs text-green-700 mb-3">
@@ -1090,7 +1090,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                                       href={`/app/plants?tab=plants&fieldRow=${row.id}`}
                                       className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                                     >
-                                      Gestisci Piante →
+                                      🌾 Vedi Piante del Filare →
                                     </Link>
                                   </div>
                                   

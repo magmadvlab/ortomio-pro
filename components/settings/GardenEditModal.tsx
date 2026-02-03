@@ -231,8 +231,26 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
   const handleEditFieldRow = (row: any) => {
     setEditingFieldRow(row)
     
-    // Carica configurazione irrigazione esistente se presente
-    const irrigationConfig = row.irrigationConfig || {
+    // Carica configurazione irrigazione esistente se presente - PRESERVA LO STATO
+    const existingIrrigationConfig = row.irrigationConfig
+    const irrigationConfig = existingIrrigationConfig ? {
+      // Preserva la configurazione esistente
+      enabled: existingIrrigationConfig.enabled || false,
+      irrigationType: existingIrrigationConfig.irrigationType || 'drip' as const,
+      tubeLength: existingIrrigationConfig.tubeLength || row.length_meters || row.lengthMeters || 10,
+      tubeDiameter: existingIrrigationConfig.tubeDiameter || 16,
+      emitterSpacing: existingIrrigationConfig.emitterSpacing || 30,
+      emitterFlowRate: existingIrrigationConfig.emitterFlowRate || 2.0,
+      flowRatePerMeter: existingIrrigationConfig.flowRatePerMeter || 0,
+      totalFlowRate: existingIrrigationConfig.totalFlowRate || 0,
+      pressure: existingIrrigationConfig.pressure || 1.5,
+      schedule: existingIrrigationConfig.schedule || {
+        frequency: 'daily' as const,
+        times: ['08:00'],
+        duration: 30
+      }
+    } : {
+      // Solo se non esiste configurazione, crea nuova con enabled: false
       enabled: false,
       irrigationType: 'drip' as const,
       tubeLength: row.length_meters || row.lengthMeters || 10,
@@ -249,13 +267,13 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
       }
     }
     
-    // Calcola parametri automaticamente
-    const calculatedConfig = calculateIrrigationParameters(
+    // Calcola parametri automaticamente solo se l'irrigazione è abilitata
+    const calculatedConfig = irrigationConfig.enabled ? calculateIrrigationParameters(
       row.length_meters || row.lengthMeters || 10,
       irrigationConfig.emitterSpacing,
       irrigationConfig.emitterFlowRate,
       irrigationConfig.irrigationType
-    )
+    ) : { flowRatePerMeter: 0, totalFlowRate: 0 }
     
     setFieldRowForm({
       name: row.name || '',
