@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { X, MapPin, Ruler, Info, Grid, Layers, TreeDeciduous, Sun, Trash2, Plus, Edit2 } from 'lucide-react'
 import { Garden, GardenBed, GardenRow } from '@/types'
 import { useStorage } from '@/packages/core/hooks/useStorage'
+import { CultivationSelector } from './CultivationSelector'
 
 interface GardenEditModalProps {
   garden: Garden
@@ -963,11 +964,26 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                       </div>
                       <div className="md:col-span-2">
                         <label className="block text-xs font-semibold text-gray-700 mb-1">Coltura (opzionale)</label>
-                        <input
-                          type="text"
+                        <CultivationSelector
+                          gardenId={garden.id}
                           value={fieldRowForm.cultivar}
-                          onChange={(e) => setFieldRowForm({ ...fieldRowForm, cultivar: e.target.value })}
-                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
+                          onChange={(value) => setFieldRowForm({ ...fieldRowForm, cultivar: value })}
+                          onSeedlingBatchSelect={(batch) => {
+                            // Quando seleziona una piantina pronta, suggerisci data trapianto oggi
+                            setFieldRowForm({ 
+                              ...fieldRowForm, 
+                              cultivar: batch.variety ? `${batch.plantName} ${batch.variety}` : batch.plantName,
+                              plantedDate: new Date().toISOString().split('T')[0] // Oggi
+                            })
+                          }}
+                          onSeedPacketSelect={(packet) => {
+                            // Quando seleziona semi, lascia data vuota (da seminare)
+                            setFieldRowForm({ 
+                              ...fieldRowForm, 
+                              cultivar: packet.variety ? `${packet.plantName} ${packet.variety}` : packet.plantName,
+                              plantedDate: '' // Da definire
+                            })
+                          }}
                           placeholder="Es. Pomodoro Datterino"
                         />
                       </div>
@@ -1121,11 +1137,10 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                       </div>
                       <div className="md:col-span-2">
                         <label className="block text-xs font-semibold text-gray-700 mb-1">Coltura (opzionale)</label>
-                        <input
-                          type="text"
+                        <CultivationSelector
+                          gardenId={garden.id}
                           value={bulkFieldRowForm.cultivar}
-                          onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, cultivar: e.target.value })}
-                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
+                          onChange={(value) => setBulkFieldRowForm({ ...bulkFieldRowForm, cultivar: value })}
                           placeholder="Es. Pomodoro Datterino"
                         />
                       </div>

@@ -141,6 +141,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   const [loadingPlan, setLoadingPlan] = useState(false)
   const [seedlingBatches, setSeedlingBatches] = useState<SeedlingBatch[]>([])
   const [seedPackets, setSeedPackets] = useState<SeedPacket[]>([])
+  const [fieldRows, setFieldRows] = useState<any[]>([]) // Field rows del garden
   const [showAllBaselinePrompts, setShowAllBaselinePrompts] = useState(false)
   const [baselineSearch, setBaselineSearch] = useState('')
   const [baselinePriorityFilter, setBaselinePriorityFilter] = useState<'All' | 'High' | 'Medium' | 'Low'>('All')
@@ -174,7 +175,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
       
       try {
         // Load all data in parallel to reduce re-renders
-        const [batches, packets, zones] = await Promise.all([
+        const [batches, packets, zones, rows] = await Promise.all([
           storageProvider.getSeedlingBatches(activeGarden.id).catch(err => {
             console.error('Error loading seedling batches:', err);
             return [];
@@ -199,12 +200,20 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
             } finally {
               setLoadingIrrigationZones(false);
             }
-          })()
+          })(),
+          // Load field rows
+          storageProvider.getFieldRows?.(activeGarden.id).catch(err => {
+            console.error('Error loading field rows:', err);
+            return [];
+          }) || Promise.resolve([])
         ]);
         
         setSeedlingBatches(batches);
         setSeedPackets(packets || []);
         setIrrigationZones(zones);
+        setFieldRows(rows || []);
+        
+        console.log('✅ HomeDashboard: Loaded field rows:', rows?.length || 0);
       } catch (error) {
         console.error('Error loading garden data:', error);
       }
@@ -763,6 +772,126 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
         {/* Progress Card */}
         {activeGarden && (
           <ProgressCard tasks={currentTasks} gardenId={activeGarden.id} />
+        )}
+
+        {/* Field Rows Widget */}
+        {activeGarden && fieldRows.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <span className="text-green-600 text-lg">🌾</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Filari Campo Aperto</h3>
+                  <p className="text-sm text-gray-600">{fieldRows.length} filari configurati</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Link href="/app/semenzaio" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                  Vivaio →
+                </Link>
+                <Link href="/app/settings?section=gardens" className="text-green-600 hover:text-green-700 text-sm font-medium">
+                  Gestisci →
+                </Link>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {fieldRows.slice(0, 6).map((row, index) => {
+                // Cerca piantine pronte per questa coltura
+                const matchingBatches = seedlingBatches.filter(batch => 
+                  row.cultivar && (
+                    batch.plantName.toLowerCase().includes(row.cultivar.toLowerCase()) ||
+                    (batch.variety && row.cultivar.toLowerCase().includes(batch.variety.toLowerCase()))
+                  ) && batch.currentPhase === 'ready'
+                )
+                
+                // Cerca semi disponibili per questa coltura
+                const matchingSeeds = seedPackets.filter(packet =>
+                  row.cultivar && (
+                    packet.plantName.toLowerCase().includes(row.cultivar.toLowerCase()) ||
+                    (packet.variety && row.cultivar.toLowerCase().includes(packet.variety.toLowerCase()))
+                  ) && (packet.remainingSeeds || 0) > 0
+                )
+
+                return (
+                  <div key={row.id || index} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-gray-900 text-sm">{row.name}</h4>
+                      <span className="text-xs text-gray-500">#{row.row_number || index + 1}</span>
+                    </div>
+                    
+                    <div className="space-y-1 text-xs text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <span>📏</span>
+                        <span>{row.length_meters}m</span>
+                        {row.distance_from_previous_row && (
+                          <>
+                            <span>•</span>
+                            <span>↔️ {row.distance_from_previous_row}cm</span>
+                          </>
+                        )}
+                      </div>
+                      
+                      {row.cultivar && (
+                        <div className="flex items-center gap-2">
+                          <span>🌱</span>
+                          <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">
+                            {row.cultivar}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Connessione vivaio */}
+                      {row.cultivar && (matchingBatches.length > 0 || matchingSeeds.length > 0) && (
+                        <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+                          <div className="text-xs font-medium text-green-800 mb-1">Nel vivaio:</div>
+                          {matchingBatches.length > 0 && (
+                            <div className="flex items-center gap-1 text-xs text-green-700">
+                              <span>🌿</span>
+                              <span>{matchingBatches.reduce((sum, b) => sum + b.survivingQuantity, 0)} piantine pronte</span>
+                            </div>
+                          )}
+                          {matchingSeeds.length > 0 && (
+                            <div className="flex items-center gap-1 text-xs text-blue-700">
+                              <span>📦</span>
+                              <span>{matchingSeeds.reduce((sum, s) => sum + (s.remainingSeeds || 0), 0)} semi disponibili</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {row.plant_spacing && (
+                        <div className="flex items-center gap-2">
+                          <span>📐</span>
+                          <span>{row.plant_spacing}cm → {row.plant_count || Math.floor((row.length_meters * 100) / row.plant_spacing)} piante</span>
+                        </div>
+                      )}
+                      
+                      {row.planted_date && (
+                        <div className="flex items-center gap-2">
+                          <span>📅</span>
+                          <span>{new Date(row.planted_date).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            
+            {fieldRows.length > 6 && (
+              <div className="mt-4 text-center">
+                <Link 
+                  href="/app/settings?section=gardens" 
+                  className="text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Vedi tutti i {fieldRows.length} filari →
+                </Link>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Link Rapidi alle Funzionalità Avanzate */}
