@@ -4,20 +4,57 @@
 
 Il modulo **Gestione Piante Individuali** di OrtoMio rappresenta il livello più avanzato di precision agriculture, permettendo il tracking e la gestione di ogni singola pianta con identificazione univoca, monitoraggio personalizzato e analytics individuali.
 
-**Percorso di Accesso:** `Sidebar → "Plants"`
+**🌱 INTEGRAZIONE FILARI CAMPO APERTO**: Sistema completamente integrato con i filari per generazione automatica e monitoraggio plant-level.
+
+**Percorso di Accesso:** `Sidebar → "Plants"` o `Dashboard → Filari → "Ispeziona Piante"`
 
 ---
 
 ## 🏷️ IDENTIFICAZIONE UNIVOCA
 
+### **🌱 Sistema Integrato Filari Campo Aperto** (NUOVO!)
+Generazione automatica piante individuali da configurazione filari:
+
+#### **Generazione Automatica da Filari**
+- **Calcolo Automatico**: Numero piante basato su lunghezza filare e spaziatura
+- **Codici Univoci**: Sistema F01-P001, F01-P002... per ogni pianta
+- **Posizionamento**: Coordinate precise nel filare
+- **Metadati Completi**: Varietà, data semina, origine dal filare
+
+#### **Workflow Integrato**
+```
+1. Configurazione Filare:
+   ├── Nome: "Filare 1"
+   ├── Lunghezza: 15m
+   ├── Spaziatura: 50cm
+   └── Coltura: "Pomodoro Datterino"
+
+2. Generazione Automatica:
+   ├── 30 piante individuali create
+   ├── Codici: F01-P001 → F01-P030
+   ├── Posizioni: 0.5m, 1.0m, 1.5m...
+   └── Metadati: varietà, data, filare origine
+
+3. Dashboard Access:
+   ├── Widget "Filari Campo Aperto"
+   ├── Pulsante "Ispeziona Piante"
+   └── Link: /app/plants?fieldRow=ID
+```
+
+#### **Tracciabilità Filare-Pianta**
+- **Origine Filare**: Ogni pianta conosce il filare di origine
+- **Posizione Precisa**: Coordinate nel filare (es. 7.5m dal inizio)
+- **Configurazione Ereditata**: Coltura, varietà, data semina
+- **Irrigazione Collegata**: Connessione con sistema irrigazione filare
+
 ### **Sistema QR Code per Pianta**
 Identificazione digitale avanzata:
 
 #### **Generazione Automatica**
-- **QR Code Univoci**: Codice unico per ogni pianta
+- **QR Code Univoci**: Codice unico per ogni pianta (include filare)
 - **Geolocalizzazione GPS**: Coordinate precise posizione
 - **Timestamp Creazione**: Data registrazione pianta
-- **Metadati Integrati**: Varietà, età, origine
+- **Metadati Integrati**: Varietà, età, origine, filare
 
 #### **Etichettatura Fisica**
 - **Materiali Resistenti**: Etichette weatherproof
@@ -170,14 +207,42 @@ Cura individuale avanzata:
 
 ## 📱 INTERFACCIA E WORKFLOW
 
+### **🌱 Dashboard Filari Integrata** (NUOVO!)
+Accesso diretto dal sistema filari:
+
+#### **Widget Filari Campo Aperto**
+```
+Dashboard → Widget "Filari Campo Aperto"
+├── Ogni filare mostra:
+│   ├── Dimensioni e configurazione
+│   ├── Numero piante calcolato
+│   ├── Connessione vivaio (semi/piantine)
+│   ├── Badge irrigazione (se abilitata)
+│   └── Pulsante "🔍 Ispeziona Piante"
+└── Click "Ispeziona Piante" → /app/plants?fieldRow=ID
+```
+
+#### **Filtro Filare Attivo**
+- **Notifica Filtro**: "Visualizzando piante del Filare X"
+- **Piante Filtrate**: Solo piante del filare selezionato
+- **Statistiche Filare**: Salute media, problemi, rese
+- **Link "Vedi Tutte"**: Rimuove filtro per vista completa
+
+#### **SmartPlantManager Integrato**
+- **Caricamento Automatico**: Piante del filare specifico
+- **Codici Filare**: F01-P001, F01-P002... visibili
+- **Operazioni Bulk**: Su tutte le piante del filare
+- **Analytics Filare**: Statistiche aggregate per filare
+
 ### **Dashboard Pianta Singola**
 Vista completa informazioni:
 
-#### **Scheda Pianta**
-- **Informazioni Base**: ID, varietà, età, posizione
+#### **Scheda Pianta Enhanced**
+- **Informazioni Base**: ID (con filare), varietà, età, posizione nel filare
 - **Stato Attuale**: Salute, fenologia, produttività
 - **Storico**: Cronologia completa interventi
 - **Analytics**: Grafici performance e trend
+- **Filare Origine**: Link al filare di appartenenza
 
 #### **Operazioni Rapide**
 - **Registrazione Veloce**: Interventi con un click
@@ -203,6 +268,36 @@ Operazioni su gruppi selezionati:
 ---
 
 ## 🎯 CASI D'USO SPECIFICI
+
+### **🌱 Campo Aperto con Filari** (NUOVO!)
+Gestione integrata filari e piante individuali:
+
+#### **Scenario**
+- **Configurazione**: Filari campo aperto con spaziatura definita
+- **Colture**: Orticole (pomodoro, peperone, melanzana, zucchino)
+- **Densità**: 1-4 piante/metro lineare
+- **Obiettivo**: Monitoraggio precision agriculture plant-level
+- **Irrigazione**: Sistema integrato con calcoli automatici
+
+#### **Workflow Completo**
+1. **Setup Filari**: Configurazione lunghezza, spaziatura, coltura
+2. **Generazione Automatica**: Piante individuali create automaticamente
+3. **Dashboard Overview**: Widget filari con accesso rapido
+4. **Ispezione Dettagliata**: SmartPlantManager per ogni filare
+5. **Operazioni Mirate**: Interventi plant-level o bulk per filare
+6. **Analytics Integrate**: Correlazione filare-irrigazione-salute
+
+#### **Esempio Pratico**
+```
+Filare 1 - Pomodoro Datterino:
+├── Lunghezza: 15m
+├── Spaziatura: 50cm
+├── Piante: 30 (F01-P001 → F01-P030)
+├── Irrigazione: Goccia 100L/h
+├── Salute Media: 87%
+├── Problemi: 2 piante con stress idrico
+└── Azione: Aumenta irrigazione piante P015, P023
+```
 
 ### **Frutteto Commerciale**
 Gestione individuale alberi da frutto:
@@ -289,7 +384,17 @@ Massimizzare ritorno investimento:
 - [🚁 Operazioni Drone](./02-drone-operations.md) - Monitoraggio aereo individuale
 - [🔗 Tracciabilità](./03-traceability.md) - Blockchain per pianta
 - [📋 Registro Attività](./10-activity-registry.md) - Cronologia interventi
+- [💧 Sistema Irrigazione](./15-irrigation-system.md) - Irrigazione integrata filari
 - [📊 Business Intelligence](./22-business-intelligence.md) - Analytics avanzate
+
+### **🌱 Workflow Filari Integrato** (NUOVO!)
+```
+1. Settings → Gardens → "Aiuole & File" (Configurazione filari)
+2. Dashboard → "Filari Campo Aperto" (Overview)
+3. "Ispeziona Piante" → SmartPlantManager (Gestione individuale)
+4. Operazioni bulk o singole (Interventi mirati)
+5. Analytics e reporting (Performance tracking)
+```
 
 ### **Guide Correlate**
 - [🔧 Guida Rapida](./27-quick-start.md) - Setup sistema

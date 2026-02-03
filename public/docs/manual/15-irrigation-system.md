@@ -37,7 +37,7 @@ Sistema completo di gestione irrigazione professionale per aziende agricole con 
 
 ---
 
-## 🗺️ GESTIONE MULTI-ZONA
+## 🗺️ GESTIONE MULTI-ZONA E FILARI
 
 ### **Zone Differenziate**
 - **Configurazione Flessibile**: Definizione zone personalizzate
@@ -53,12 +53,45 @@ Sistema completo di gestione irrigazione professionale per aziende agricole con 
 - **Pressione Ottimale**: Controllo pressione per uniformità
 - **Monitoraggio Separato**: Analytics indipendenti per zona
 
-### **Filari Specifici**
+### **🌱 INTEGRAZIONE FILARI CAMPO APERTO** (NUOVO!)
+Sistema avanzato di irrigazione integrato direttamente con i filari:
+
+#### **Configurazione Automatica per Filare**
+- **Setup Diretto**: Configurazione irrigazione nel modale filare
+- **Calcoli Automatici**: Numero gocciolatori basato su lunghezza e spaziatura
+- **Parametri Intelligenti**: Portata totale e per metro calcolata in tempo reale
+- **Validazione**: Controlli automatici per configurazioni ottimali
+
+#### **Calcoli Precision Agriculture**
+```
+Esempio Filare 15m con spaziatura piante 30cm:
+├── Gocciolatori: 50 (calcolati automaticamente)
+├── Portata per gocciolatore: 2.0 L/h
+├── Portata totale: 100 L/h
+└── Portata per metro: 6.67 L/h/m
+```
+
+#### **Configurazione Completa per Filare**
+- **Tipo Sistema**: Goccia a goccia, aspersione, micro-sprinkler, manuale
+- **Diametro Tubo**: 12mm, 16mm, 20mm, 25mm
+- **Passo Gocciolatori**: 10-100cm (personalizzabile)
+- **Portata Gocciolatore**: 1.0, 2.0, 4.0, 8.0 L/h
+- **Pressione Sistema**: 0.5-5.0 bar
+- **Programmazione**: Frequenza, orari, durata
+
+#### **Dashboard Integrata Filari**
+- **Badge Irrigazione**: Tipo sistema e portata visibili
+- **Dettagli Espansi**: Gocciolatori, frequenza, durata, orario
+- **Accesso Rapido**: Link diretto al sistema irrigazione avanzato
+- **Monitoraggio Piante**: Collegamento con tracking individuale
+
+### **Filari Specifici Avanzati**
 - **Tracking Precisione**: Irrigazione per singolo filare
 - **Variabilità Intra-Campo**: Gestione differenze micro-locali
 - **Prescription Maps**: Mappe irrigazione variabile
 - **GPS Integration**: Localizzazione precisa interventi
 - **Performance Tracking**: Monitoraggio risultati per filare
+- **Plant-Level Monitoring**: Correlazione irrigazione-salute piante
 
 ---
 
@@ -89,7 +122,48 @@ Sistema completo di gestione irrigazione professionale per aziende agricole con 
 
 ## 🔧 CONFIGURAZIONE AVANZATA
 
-### **Setup Sistema**
+### **🌱 Setup Filari Campo Aperto** (NUOVO!)
+Configurazione irrigazione integrata direttamente nei filari:
+
+#### **Workflow Setup Completo**
+1. **Accesso**: Settings → Gardens → Tab "Aiuole & File"
+2. **Creazione Filare**: Nuovo filare o modifica esistente
+3. **Parametri Base**: Nome, lunghezza, spaziatura piante, coltura
+4. **Abilitazione Irrigazione**: Checkbox per attivare sistema
+5. **Configurazione Sistema**: Tipo, parametri, programmazione
+6. **Calcoli Automatici**: Visualizzazione in tempo reale
+
+#### **Parametri Configurabili**
+```
+Sistema Irrigazione Filare:
+├── Tipo: Goccia a Goccia / Aspersione / Micro / Manuale
+├── Diametro Tubo: 12mm, 16mm, 20mm, 25mm
+├── Passo Gocciolatori: 10-100cm
+├── Portata Gocciolatore: 1.0, 2.0, 4.0, 8.0 L/h
+├── Pressione: 0.5-5.0 bar
+└── Programmazione:
+    ├── Frequenza: Giornaliera / Ogni 2-3 giorni / Settimanale
+    ├── Orario: HH:MM
+    └── Durata: 1-120 minuti
+```
+
+#### **Calcoli Automatici in Tempo Reale**
+```javascript
+// Esempio: Filare 15m, passo 30cm, gocciolatori 2.0L/h
+Numero gocciolatori = (15m × 100cm) ÷ 30cm = 50 gocciolatori
+Portata totale = 50 × 2.0L/h = 100 L/h
+Portata per metro = 100L/h ÷ 15m = 6.67 L/h/m
+```
+
+#### **Dashboard Filari Integrata**
+- **Widget Filari**: Visualizzazione tutti i filari con irrigazione
+- **Badge Irrigazione**: Tipo sistema e portata (es. "💧 Goccia (100L/h)")
+- **Dettagli Espansi**: Gocciolatori, frequenza, durata, orario
+- **Azioni Rapide**: 
+  - "🔍 Ispeziona Piante" → Monitoraggio individuale
+  - "💧 Irrigazione" → Sistema irrigazione avanzato
+
+### **Setup Sistema Tradizionale**
 1. **Mappatura Rete**: Definizione layout sistema irriguo
 2. **Installazione Sensori**: Posizionamento sensori IoT
 3. **Configurazione Zone**: Definizione aree irrigazione

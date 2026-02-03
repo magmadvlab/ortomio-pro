@@ -11,7 +11,27 @@
 - Crea nuovo orto se necessario
 - Configura dimensioni e caratteristiche
 
-### **2. Attiva le Certificazioni**
+### **🌱 2. Configura Filari Campo Aperto** (NUOVO!)
+- Vai su **Settings → Gardens → Tab "Aiuole & File"**
+- Sezione **"Filari Campo Aperto"**
+- Crea primo filare:
+  - Nome: "Filare 1"
+  - Lunghezza: 10m
+  - Spaziatura piante: 50cm
+  - Coltura: seleziona dal vivaio
+- **Abilita irrigazione** (opzionale):
+  - Tipo: Goccia a goccia
+  - Calcoli automatici portata
+  - Programmazione base
+
+### **🔍 3. Testa Monitoraggio Piante Individuali** (NUOVO!)
+- Torna alla **Dashboard**
+- Widget **"Filari Campo Aperto"** ora visibile
+- Clicca **"Ispeziona Piante"** sul filare creato
+- Esplora **SmartPlantManager** con piante generate automaticamente
+- Ogni pianta ha codice univoco (F01-P001, F01-P002...)
+
+### **4. Attiva le Certificazioni**
 - Vai su **"Certificazioni"** dalla sidebar
 - Inizializza GlobalG.A.P. e HACCP
 - Configura dati azienda e responsabili
@@ -68,29 +88,33 @@
 ### **🌅 Mattina (5 minuti)**
 1. Controlla **Predizioni AI** per nuovi alert
 2. Verifica stato **certificazioni** e compliance
-3. **Usa Chat AI Planner** per consigli giornalieri
-4. **Usa Chat AI Globale** per domande rapide
-5. **Visualizza challenge giornaliere** sotto il calendario
-6. **Controlla badge e achievement** per motivazione
-7. **Controlla registro attività** per follow-up
+3. **Controlla widget Filari** per overview campo aperto
+4. **Usa Chat AI Planner** per consigli giornalieri
+5. **Usa Chat AI Globale** per domande rapide
+6. **Visualizza challenge giornaliere** sotto il calendario
+7. **Controlla badge e achievement** per motivazione
+8. **Controlla registro attività** per follow-up
 
 ### **🌞 Durante il Giorno**
-1. Registra operazioni per **tracciabilità automatica**
-2. Esegui **voli drone** per monitoraggio
-3. **Tutte le attività vengono registrate automaticamente** nel registro
-4. **Completa challenge giornaliere** per XP e badge
-5. **Usa Chat AI Globale** per domande immediate
-6. **Condividi progressi sui social** per marketing
-7. **Consulta agronomi** per problemi specifici
+1. **Ispeziona piante individuali** dai filari se necessario
+2. Registra operazioni per **tracciabilità automatica**
+3. Esegui **voli drone** per monitoraggio
+4. **Gestisci irrigazione filari** se configurata
+5. **Tutte le attività vengono registrate automaticamente** nel registro
+6. **Completa challenge giornaliere** per XP e badge
+7. **Usa Chat AI Globale** per domande immediate
+8. **Condividi progressi sui social** per marketing
+9. **Consulta agronomi** per problemi specifici
 
 ### **🌙 Sera (5 minuti)**
 1. Rivedi **risultati analisi drone**
 2. Controlla **compliance certificazioni**
-3. **Rivedi registro attività** della giornata
-4. **Verifica progresso challenge** e streak counter
-5. **Controlla nuovi badge** sbloccati
-6. **Pianifica domani con Chat AI** se necessario
-7. **Condividi achievement giornalieri** sui social
+3. **Verifica salute piante** nei filari se necessario
+4. **Rivedi registro attività** della giornata
+5. **Verifica progresso challenge** e streak counter
+6. **Controlla nuovi badge** sbloccati
+7. **Pianifica domani con Chat AI** se necessario
+8. **Condividi achievement giornalieri** sui social
 
 ---
 
@@ -98,19 +122,24 @@
 
 ### **Settimana 1: Familiarizzazione**
 - [ ] Completa setup iniziale
+- [ ] **Configura primo filare campo aperto**
+- [ ] **Testa monitoraggio piante individuali**
 - [ ] Esplora tutte le sezioni principali
 - [ ] Attiva almeno 2 certificazioni
 - [ ] Completa 5 challenge giornaliere
 - [ ] Ottieni primi 3 badge
 
 ### **Settimana 2: Operatività**
+- [ ] **Configura irrigazione su filari**
+- [ ] **Esplora SmartPlantManager completo**
 - [ ] Esegui primo volo drone completo
-- [ ] Configura automazione irrigazione
 - [ ] Genera primo QR code tracciabilità
 - [ ] Prenota consulenza agronomo
 - [ ] Condividi primi risultati sui social
 
 ### **Settimana 3: Ottimizzazione**
+- [ ] **Analizza performance piante individuali**
+- [ ] **Ottimizza configurazione irrigazione filari**
 - [ ] Analizza dati registro attività
 - [ ] Ottimizza workflow con AI
 - [ ] Configura alert personalizzati
@@ -118,6 +147,8 @@
 - [ ] Pianifica strategie mensili
 
 ### **Mese 1: Padronanza**
+- [ ] **Gestisci operazioni bulk su piante**
+- [ ] **Monitora correlazione irrigazione-salute**
 - [ ] Usa tutte le funzionalità principali
 - [ ] Ottieni certificazione completa
 - [ ] Raggiungi streak di 30 giorni
@@ -131,11 +162,20 @@
 ### **❓ Non vedo i dati**
 **Soluzione**: Verifica di aver selezionato l'orto corretto dal selettore in alto a destra
 
+### **❓ Filari non mostrano piante**
+**Soluzione**: Verifica configurazione filare (lunghezza e spaziatura). Le piante vengono generate automaticamente
+
+### **❓ Irrigazione filari non calcola**
+**Soluzione**: Controlla che tutti i parametri siano inseriti (lunghezza, passo gocciolatori, portata)
+
 ### **❓ Chat AI non risponde**
 **Soluzione**: Controlla connessione internet e riprova. Se persiste, contatta supporto
 
 ### **❓ Drone non si connette**
 **Soluzione**: Verifica configurazione WiFi e autorizzazioni. Consulta [Guida Droni](./02-drone-operations.md)
+
+### **❓ SmartPlantManager lento**
+**Soluzione**: Con molte piante, usa filtri per filare specifico per migliorare performance
 
 ### **❓ Certificazioni non si attivano**
 **Soluzione**: Completa tutti i dati azienda richiesti nella sezione Impostazioni
@@ -167,6 +207,8 @@
 
 ## 🔗 LINK UTILI
 
+- [💧 Sistema Irrigazione](./15-irrigation-system.md) - Per irrigazione integrata filari
+- [🌿 Gestione Piante Individuali](./21-individual-plants.md) - Per monitoraggio plant-level
 - [📊 Business Intelligence](./22-business-intelligence.md) - Per analisi avanzate
 - [🤖 Chat AI Globale](./08-global-ai-chat.md) - Per assistenza AI
 - [🏆 Certificazioni](./04-certifications.md) - Per compliance

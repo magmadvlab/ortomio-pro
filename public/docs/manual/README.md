@@ -24,13 +24,13 @@ OrtoMio è la piattaforma agricola digitale completa che scala automaticamente d
 - [🏠 Smart Hub Integrato](./14-smart-hub.md)
 
 ### 💼 **FUNZIONALITÀ PROFESSIONALI**
-- [💧 Sistema Irrigazione](./15-irrigation-system.md)
+- [💧 Sistema Irrigazione](./15-irrigation-system.md) - **AGGIORNATO** con integrazione filari
 - [🌱 Nutrizione e Trattamenti](./16-nutrition-treatments.md)
 - [🚜 Lavorazioni Meccaniche](./17-mechanical-operations.md)
 - [🌳 Gestione Frutteto](./18-orchard-management.md)
 - [🫒 Gestione Oliveto](./19-olive-management.md)
 - [🍇 Gestione Vigneto](./20-vineyard-management.md)
-- [🌿 Gestione Piante Individuali](./21-individual-plants.md)
+- [🌿 Gestione Piante Individuali](./21-individual-plants.md) - **AGGIORNATO** con integrazione filari
 
 ### 📊 **ANALYTICS E BUSINESS**
 - [📊 Business Intelligence](./22-business-intelligence.md)
@@ -40,7 +40,7 @@ OrtoMio è la piattaforma agricola digitale completa che scala automaticamente d
 - [🌐 Integrazione e API](./26-integration-api.md)
 
 ### 🎓 **GUIDE E SUPPORTO**
-- [🔧 Guida Rapida](./27-quick-start.md)
+- [🔧 Guida Rapida](./27-quick-start.md) - **AGGIORNATO** con setup filari
 - [💰 Vantaggi Economici](./28-economic-benefits.md)
 - [📱 Interfaccia e Navigazione](./29-interface-navigation.md)
 - [🎯 Casi d'Uso](./30-use-cases.md)
@@ -138,6 +138,14 @@ OrtoMio è la piattaforma agricola digitale completa che scala automaticamente d
 ---
 
 ## 🔄 AGGIORNAMENTI RECENTI
+
+### **Gennaio 2026 - INTEGRAZIONE FILARI CAMPO APERTO** 🌱 **NUOVO!**
+- ✅ **Sistema Irrigazione Integrato**: Configurazione irrigazione direttamente nei filari
+- ✅ **Calcoli Automatici**: Numero gocciolatori, portate e parametri calcolati in tempo reale
+- ✅ **Monitoraggio Piante Individuali**: Generazione automatica piante da configurazione filari
+- ✅ **Dashboard Unificata**: Widget filari con accesso rapido a tutte le funzionalità
+- ✅ **SmartPlantManager**: Tracciamento plant-level con codici univoci (F01-P001, F01-P002...)
+- ✅ **Orchestrazione Completa**: Filari → Irrigazione → Piante → Analytics integrati
 
 ### **Gennaio 2026 - SISTEMI INTELLIGENTI AVANZATI AGGIUNTI** 🎉
 - ✅ **Director Orchestrator**: Sistema predittivo che coordina tutti i sistemi
