@@ -110,12 +110,29 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
     
     try {
       setLoading(true);
-      // TODO: Implementare caricamento dal storage provider
-      // const loadedPlants = await storageProvider.getGardenPlants?.(garden.id) || [];
-      // setPlants(loadedPlants);
-      setPlants([]); // Placeholder
+      
+      // Carica filari del campo aperto
+      const fieldRows = await storageProvider.getFieldRows?.(garden.id) || [];
+      
+      // Se ci sono filari, genera/carica piante individuali
+      if (fieldRows.length > 0) {
+        // Import the integration service dynamically
+        const { fieldRowPlantIntegrationService } = await import('@/services/fieldRowPlantIntegrationService');
+        
+        // Inizializza piante dai filari (demo per ora)
+        const generatedPlants = await fieldRowPlantIntegrationService.initializePlantsFromFieldRows(
+          garden.id,
+          fieldRows
+        );
+        
+        setPlants(generatedPlants);
+      } else {
+        // Nessun filare configurato
+        setPlants([]);
+      }
     } catch (error) {
       console.error('Error loading plants:', error);
+      setPlants([]);
     } finally {
       setLoading(false);
     }

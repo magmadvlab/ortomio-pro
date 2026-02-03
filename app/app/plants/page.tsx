@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden, GardenTask } from '@/types'
 import { Sprout, Package, TreePine, Plus, ArrowRight } from 'lucide-react'
 import { PlantsView } from '@/components/garden/PlantsView'
 import SeedInventory from '@/components/seedbank/SeedInventory'
 import SaplingDashboard from '@/components/seedbank/SaplingDashboard'
+import SmartPlantManager from '@/components/plants/SmartPlantManager'
 import Link from 'next/link'
 import { GardenTypeWizard } from '@/components/GardenTypeWizard'
 
@@ -14,11 +16,16 @@ type TabType = 'plants' | 'seeds' | 'saplings' | 'trees'
 
 export default function PlantsPage() {
   const { storageProvider } = useStorage()
+  const searchParams = useSearchParams()
   const [gardens, setGardens] = useState<Garden[]>([])
   const [tasks, setTasks] = useState<GardenTask[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('plants')
   const [showGardenWizard, setShowGardenWizard] = useState(false)
+  
+  // URL parameters
+  const fieldRowParam = searchParams.get('fieldRow')
+  const tabParam = searchParams.get('tab') as TabType | null
 
   useEffect(() => {
     const loadData = async () => {
@@ -29,6 +36,11 @@ export default function PlantsPage() {
         ])
         setGardens(loadedGardens)
         setTasks(loadedTasks)
+        
+        // Set tab from URL parameter
+        if (tabParam && ['plants', 'seeds', 'saplings', 'trees'].includes(tabParam)) {
+          setActiveTab(tabParam)
+        }
       } catch (error) {
         console.error('Error loading data:', error)
       } finally {
@@ -36,7 +48,7 @@ export default function PlantsPage() {
       }
     }
     loadData()
-  }, [storageProvider])
+  }, [storageProvider, tabParam])
 
   const handleUpdateTask = async (updatedTask: GardenTask) => {
     try {
@@ -219,8 +231,70 @@ export default function PlantsPage() {
               </div>
             </div>
 
-            {/* Plants View */}
+            {/* Field Row Filter Notification */}
+            {fieldRowParam && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <span className="text-blue-600">🌾</span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-blue-900">Filtrando per Filare Specifico</h3>
+                      <p className="text-sm text-blue-700">
+                        Visualizzando solo le piante del filare selezionato dalla dashboard
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/app/plants?tab=plants"
+                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Vedi Tutte
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Smart Plant Manager Integration */}
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                      🔍 Monitoraggio Piante Individuali
+                    </h2>
+                    <p className="text-gray-600 mt-1">Sistema avanzato per tracciare ogni singola pianta</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <Link
+                      href="/app/semenzaio"
+                      className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
+                    >
+                      <Sprout size={16} />
+                      Vivaio
+                    </Link>
+                    <Link
+                      href="/app/garden?tab=plants"
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                    >
+                      <Plus size={16} />
+                      Aggiungi Pianta
+                    </Link>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Smart Plant Manager Component */}
+              <SmartPlantManager garden={defaultGarden} />
+            </div>
+
+            {/* Traditional Plants View (Legacy) */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Vista Tradizionale (Tasks)</h3>
+                <span className="text-sm text-gray-500">Sistema legacy - migrazione in corso</span>
+              </div>
               <PlantsView
                 garden={defaultGarden}
                 tasks={(tasks || []).filter(t => t.gardenId === defaultGarden.id)}

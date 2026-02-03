@@ -875,6 +875,39 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                           <span>{new Date(row.planted_date).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })}</span>
                         </div>
                       )}
+                      
+                      {/* Informazioni irrigazione */}
+                      {row.irrigationConfig?.enabled && (
+                        <div className="flex items-center gap-2">
+                          <span>💧</span>
+                          <span className="bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded text-xs">
+                            {row.irrigationConfig.irrigationType === 'drip' ? 'Goccia' : 
+                             row.irrigationConfig.irrigationType === 'sprinkler' ? 'Aspersione' : 
+                             row.irrigationConfig.irrigationType === 'micro_sprinkler' ? 'Micro' : 'Manuale'}
+                            {row.irrigationConfig.totalFlowRate > 0 && ` (${row.irrigationConfig.totalFlowRate}L/h)`}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Individual Plant Inspection Link */}
+                    <div className="mt-3 pt-2 border-t border-gray-200">
+                      <div className="flex gap-2">
+                        <Link
+                          href={`/app/plants?tab=plants&fieldRow=${row.id}`}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                          🔍 Ispeziona Piante
+                        </Link>
+                        {row.irrigationConfig?.enabled && (
+                          <Link
+                            href={`/app/irrigation?fieldRow=${row.id}`}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            💧 Irrigazione
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )

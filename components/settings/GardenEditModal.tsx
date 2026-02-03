@@ -57,7 +57,24 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
     cultivar: '',
     plantSpacing: 50, // cm - Distanza tra piante nel filare
     plantedDate: '', // Data semina/trapianto
-    orientation: '' as '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE'
+    orientation: '' as '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE',
+    // Configurazione irrigazione integrata
+    irrigationConfig: {
+      enabled: false,
+      irrigationType: 'drip' as 'drip' | 'sprinkler' | 'micro_sprinkler' | 'manual',
+      tubeLength: 0, // Calcolato automaticamente dalla lunghezza filare
+      tubeDiameter: 16, // mm
+      emitterSpacing: 30, // cm
+      emitterFlowRate: 2.0, // L/h per gocciolatore
+      flowRatePerMeter: 0, // L/h per metro (calcolato)
+      totalFlowRate: 0, // L/h totale (calcolato)
+      pressure: 1.5, // bar
+      schedule: {
+        frequency: 'daily' as 'daily' | 'every_2_days' | 'every_3_days' | 'weekly',
+        times: ['08:00'],
+        duration: 30 // minuti
+      }
+    }
   })
 
   // Bulk creation state
@@ -181,7 +198,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
 
   const handleStartNewFieldRow = () => {
     setEditingFieldRow(null)
-    setFieldRowForm({
+    const newForm = {
       name: `Filare ${fieldRows.length + 1}`,
       rowNumber: fieldRows.length + 1,
       lengthMeters: 10,
@@ -189,12 +206,57 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
       cultivar: '',
       plantSpacing: 50,
       plantedDate: '',
-      orientation: ''
-    })
+      orientation: '' as '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE',
+      irrigationConfig: {
+        enabled: false,
+        irrigationType: 'drip' as const,
+        tubeLength: 10,
+        tubeDiameter: 16,
+        emitterSpacing: 30,
+        emitterFlowRate: 2.0,
+        flowRatePerMeter: 0,
+        totalFlowRate: 0,
+        pressure: 1.5,
+        schedule: {
+          frequency: 'daily' as const,
+          times: ['08:00'],
+          duration: 30
+        }
+      }
+    }
+    
+    setFieldRowForm(updateIrrigationCalculations(newForm))
   }
 
   const handleEditFieldRow = (row: any) => {
     setEditingFieldRow(row)
+    
+    // Carica configurazione irrigazione esistente se presente
+    const irrigationConfig = row.irrigationConfig || {
+      enabled: false,
+      irrigationType: 'drip' as const,
+      tubeLength: row.length_meters || row.lengthMeters || 10,
+      tubeDiameter: 16,
+      emitterSpacing: 30,
+      emitterFlowRate: 2.0,
+      flowRatePerMeter: 0,
+      totalFlowRate: 0,
+      pressure: 1.5,
+      schedule: {
+        frequency: 'daily' as const,
+        times: ['08:00'],
+        duration: 30
+      }
+    }
+    
+    // Calcola parametri automaticamente
+    const calculatedConfig = calculateIrrigationParameters(
+      row.length_meters || row.lengthMeters || 10,
+      irrigationConfig.emitterSpacing,
+      irrigationConfig.emitterFlowRate,
+      irrigationConfig.irrigationType
+    )
+    
     setFieldRowForm({
       name: row.name || '',
       rowNumber: row.row_number || row.rowNumber || 1,
@@ -203,8 +265,70 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
       cultivar: row.cultivar || '',
       plantSpacing: row.plant_spacing || row.plantSpacing || 50,
       plantedDate: row.planted_date || row.plantedDate || '',
-      orientation: (row.orientation || '') as '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE'
+      orientation: (row.orientation || '') as '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE',
+      irrigationConfig: {
+        ...irrigationConfig,
+        tubeLength: row.length_meters || row.lengthMeters || 10,
+        flowRatePerMeter: calculatedConfig.flowRatePerMeter,
+        totalFlowRate: calculatedConfig.totalFlowRate
+      }
     })
+  }
+
+  // Funzione per calcolare parametri irrigazione automaticamente
+  const calculateIrrigationParameters = (
+    lengthMeters: number,
+    emitterSpacing: number,
+    emitterFlowRate: number,
+    irrigationType: string
+  ) => {
+    if (irrigationType === 'drip') {
+      // Calcola numero gocciolatori
+      const lengthCm = lengthMeters * 100
+      const emitterCount = Math.floor(lengthCm / emitterSpacing)
+      
+      // Calcola portata totale
+      const totalFlowRate = emitterCount * emitterFlowRate
+      
+      // Calcola portata per metro
+      const flowRatePerMeter = lengthMeters > 0 ? totalFlowRate / lengthMeters : 0
+      
+      return {
+        emitterCount,
+        totalFlowRate: Math.round(totalFlowRate * 10) / 10,
+        flowRatePerMeter: Math.round(flowRatePerMeter * 10) / 10
+      }
+    }
+    
+    return {
+      emitterCount: 0,
+      totalFlowRate: 0,
+      flowRatePerMeter: 0
+    }
+  }
+
+  // Aggiorna calcoli quando cambiano i parametri
+  const updateIrrigationCalculations = (newForm: typeof fieldRowForm) => {
+    if (newForm.irrigationConfig.enabled && newForm.irrigationConfig.irrigationType === 'drip') {
+      const calculated = calculateIrrigationParameters(
+        newForm.lengthMeters,
+        newForm.irrigationConfig.emitterSpacing,
+        newForm.irrigationConfig.emitterFlowRate,
+        newForm.irrigationConfig.irrigationType
+      )
+      
+      return {
+        ...newForm,
+        irrigationConfig: {
+          ...newForm.irrigationConfig,
+          tubeLength: newForm.lengthMeters,
+          flowRatePerMeter: calculated.flowRatePerMeter,
+          totalFlowRate: calculated.totalFlowRate
+        }
+      }
+    }
+    
+    return newForm
   }
 
   const handleSaveFieldRow = async () => {
@@ -219,7 +343,9 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
         cultivar: fieldRowForm.cultivar || undefined,
         plantSpacing: fieldRowForm.plantSpacing || undefined,
         plantedDate: fieldRowForm.plantedDate || undefined,
-        orientation: fieldRowForm.orientation || undefined
+        orientation: fieldRowForm.orientation || undefined,
+        // Salva configurazione irrigazione
+        irrigationConfig: fieldRowForm.irrigationConfig.enabled ? fieldRowForm.irrigationConfig : undefined
       }
 
       if (editingFieldRow) {
@@ -272,7 +398,23 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
       cultivar: '',
       plantSpacing: 50,
       plantedDate: '',
-      orientation: ''
+      orientation: '',
+      irrigationConfig: {
+        enabled: false,
+        irrigationType: 'drip',
+        tubeLength: 10,
+        tubeDiameter: 16,
+        emitterSpacing: 30,
+        emitterFlowRate: 2.0,
+        flowRatePerMeter: 0,
+        totalFlowRate: 0,
+        pressure: 1.5,
+        schedule: {
+          frequency: 'daily',
+          times: ['08:00'],
+          duration: 30
+        }
+      }
     })
   }
 
@@ -1000,7 +1142,10 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                               type="number"
                               min={0}
                               value={fieldRowForm.plantSpacing}
-                              onChange={(e) => setFieldRowForm({ ...fieldRowForm, plantSpacing: parseInt(e.target.value) || 0 })}
+                              onChange={(e) => {
+                                const newForm = { ...fieldRowForm, plantSpacing: parseInt(e.target.value) || 0 }
+                                setFieldRowForm(updateIrrigationCalculations(newForm))
+                              }}
                               className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                               placeholder="Es. 50"
                             />
@@ -1036,6 +1181,252 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                             </select>
                           </div>
                         </div>
+                      </div>
+
+                      {/* Configurazione Irrigazione */}
+                      <div className="md:col-span-2 mt-4 border-t pt-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                            💧 Sistema di Irrigazione
+                          </h4>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={fieldRowForm.irrigationConfig.enabled}
+                              onChange={(e) => {
+                                const newForm = {
+                                  ...fieldRowForm,
+                                  irrigationConfig: {
+                                    ...fieldRowForm.irrigationConfig,
+                                    enabled: e.target.checked
+                                  }
+                                }
+                                setFieldRowForm(updateIrrigationCalculations(newForm))
+                              }}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-xs text-gray-600">Abilita irrigazione</span>
+                          </label>
+                        </div>
+
+                        {fieldRowForm.irrigationConfig.enabled && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+                            {/* Tipo irrigazione */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs font-semibold text-blue-800 mb-1">Tipo Sistema</label>
+                                <select
+                                  value={fieldRowForm.irrigationConfig.irrigationType}
+                                  onChange={(e) => {
+                                    const newForm = {
+                                      ...fieldRowForm,
+                                      irrigationConfig: {
+                                        ...fieldRowForm.irrigationConfig,
+                                        irrigationType: e.target.value as any
+                                      }
+                                    }
+                                    setFieldRowForm(updateIrrigationCalculations(newForm))
+                                  }}
+                                  className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                >
+                                  <option value="drip">Goccia a Goccia</option>
+                                  <option value="sprinkler">Aspersione</option>
+                                  <option value="micro_sprinkler">Micro-aspersione</option>
+                                  <option value="manual">Manuale</option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-semibold text-blue-800 mb-1">Diametro Tubo</label>
+                                <select
+                                  value={fieldRowForm.irrigationConfig.tubeDiameter}
+                                  onChange={(e) => setFieldRowForm({
+                                    ...fieldRowForm,
+                                    irrigationConfig: {
+                                      ...fieldRowForm.irrigationConfig,
+                                      tubeDiameter: parseInt(e.target.value)
+                                    }
+                                  })}
+                                  className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                >
+                                  <option value="12">12 mm</option>
+                                  <option value="16">16 mm</option>
+                                  <option value="20">20 mm</option>
+                                  <option value="25">25 mm</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            {/* Configurazione gocciolatori */}
+                            {fieldRowForm.irrigationConfig.irrigationType === 'drip' && (
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                  <label className="block text-xs font-semibold text-blue-800 mb-1">Passo Gocciolatori (cm)</label>
+                                  <input
+                                    type="number"
+                                    min={10}
+                                    max={100}
+                                    step={5}
+                                    value={fieldRowForm.irrigationConfig.emitterSpacing}
+                                    onChange={(e) => {
+                                      const newForm = {
+                                        ...fieldRowForm,
+                                        irrigationConfig: {
+                                          ...fieldRowForm.irrigationConfig,
+                                          emitterSpacing: parseInt(e.target.value) || 30
+                                        }
+                                      }
+                                      setFieldRowForm(updateIrrigationCalculations(newForm))
+                                    }}
+                                    className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-semibold text-blue-800 mb-1">Portata Gocciolatore (L/h)</label>
+                                  <select
+                                    value={fieldRowForm.irrigationConfig.emitterFlowRate}
+                                    onChange={(e) => {
+                                      const newForm = {
+                                        ...fieldRowForm,
+                                        irrigationConfig: {
+                                          ...fieldRowForm.irrigationConfig,
+                                          emitterFlowRate: parseFloat(e.target.value)
+                                        }
+                                      }
+                                      setFieldRowForm(updateIrrigationCalculations(newForm))
+                                    }}
+                                    className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                  >
+                                    <option value="1.0">1.0 L/h</option>
+                                    <option value="2.0">2.0 L/h</option>
+                                    <option value="4.0">4.0 L/h</option>
+                                    <option value="8.0">8.0 L/h</option>
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-semibold text-blue-800 mb-1">Pressione (bar)</label>
+                                  <input
+                                    type="number"
+                                    min={0.5}
+                                    max={5}
+                                    step={0.1}
+                                    value={fieldRowForm.irrigationConfig.pressure}
+                                    onChange={(e) => setFieldRowForm({
+                                      ...fieldRowForm,
+                                      irrigationConfig: {
+                                        ...fieldRowForm.irrigationConfig,
+                                        pressure: parseFloat(e.target.value) || 1.5
+                                      }
+                                    })}
+                                    className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Calcoli automatici */}
+                            {fieldRowForm.irrigationConfig.irrigationType === 'drip' && fieldRowForm.irrigationConfig.totalFlowRate > 0 && (
+                              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                <h5 className="text-xs font-semibold text-green-800 mb-2">📊 Calcoli Automatici</h5>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-green-700">
+                                  <div>
+                                    <span className="font-medium">Gocciolatori:</span>
+                                    <br />
+                                    {Math.floor((fieldRowForm.lengthMeters * 100) / fieldRowForm.irrigationConfig.emitterSpacing)} unità
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Portata Totale:</span>
+                                    <br />
+                                    {fieldRowForm.irrigationConfig.totalFlowRate} L/h
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Portata per Metro:</span>
+                                    <br />
+                                    {fieldRowForm.irrigationConfig.flowRatePerMeter} L/h/m
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Programmazione base */}
+                            <div className="border-t border-blue-200 pt-3">
+                              <h5 className="text-xs font-semibold text-blue-800 mb-2">⏰ Programmazione Base</h5>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                  <label className="block text-xs font-medium text-blue-700 mb-1">Frequenza</label>
+                                  <select
+                                    value={fieldRowForm.irrigationConfig.schedule.frequency}
+                                    onChange={(e) => setFieldRowForm({
+                                      ...fieldRowForm,
+                                      irrigationConfig: {
+                                        ...fieldRowForm.irrigationConfig,
+                                        schedule: {
+                                          ...fieldRowForm.irrigationConfig.schedule,
+                                          frequency: e.target.value as any
+                                        }
+                                      }
+                                    })}
+                                    className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                  >
+                                    <option value="daily">Giornaliera</option>
+                                    <option value="every_2_days">Ogni 2 giorni</option>
+                                    <option value="every_3_days">Ogni 3 giorni</option>
+                                    <option value="weekly">Settimanale</option>
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-medium text-blue-700 mb-1">Orario</label>
+                                  <input
+                                    type="time"
+                                    value={fieldRowForm.irrigationConfig.schedule.times[0] || '08:00'}
+                                    onChange={(e) => setFieldRowForm({
+                                      ...fieldRowForm,
+                                      irrigationConfig: {
+                                        ...fieldRowForm.irrigationConfig,
+                                        schedule: {
+                                          ...fieldRowForm.irrigationConfig.schedule,
+                                          times: [e.target.value]
+                                        }
+                                      }
+                                    })}
+                                    className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-medium text-blue-700 mb-1">Durata (min)</label>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={120}
+                                    value={fieldRowForm.irrigationConfig.schedule.duration}
+                                    onChange={(e) => setFieldRowForm({
+                                      ...fieldRowForm,
+                                      irrigationConfig: {
+                                        ...fieldRowForm.irrigationConfig,
+                                        schedule: {
+                                          ...fieldRowForm.irrigationConfig.schedule,
+                                          duration: parseInt(e.target.value) || 30
+                                        }
+                                      }
+                                    })}
+                                    className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="bg-blue-100 border border-blue-300 rounded-lg p-3">
+                              <p className="text-xs text-blue-800">
+                                💡 <strong>Configurazione completa:</strong> Vai alla sezione Irrigazione per configurazioni avanzate, 
+                                sensori e automazioni complete.
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3 mt-4">
@@ -1202,7 +1593,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                             )}
                             {row.plant_spacing && (
                               <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
-                                🌱 {row.plant_spacing}cm → {row.plant_count || '?'} piante
+                                🌱 {row.plant_spacing}cm → {row.plant_count || Math.floor((row.length_meters * 100) / row.plant_spacing)} piante
                               </span>
                             )}
                             {row.cultivar && (
@@ -1220,7 +1611,32 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                                 📅 {new Date(row.planted_date).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                               </span>
                             )}
+                            {/* Informazioni irrigazione */}
+                            {row.irrigationConfig?.enabled && (
+                              <span className="bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded flex items-center gap-1">
+                                💧 {row.irrigationConfig.irrigationType === 'drip' ? 'Goccia' : 
+                                     row.irrigationConfig.irrigationType === 'sprinkler' ? 'Aspersione' : 
+                                     row.irrigationConfig.irrigationType === 'micro_sprinkler' ? 'Micro' : 'Manuale'}
+                                {row.irrigationConfig.totalFlowRate > 0 && (
+                                  <span className="text-xs">({row.irrigationConfig.totalFlowRate}L/h)</span>
+                                )}
+                              </span>
+                            )}
                           </div>
+                          
+                          {/* Dettagli irrigazione espansi */}
+                          {row.irrigationConfig?.enabled && row.irrigationConfig.irrigationType === 'drip' && (
+                            <div className="mt-2 p-2 bg-cyan-50 border border-cyan-200 rounded text-xs">
+                              <div className="flex items-center gap-4 text-cyan-800">
+                                <span>🔧 {Math.floor((row.length_meters * 100) / row.irrigationConfig.emitterSpacing)} gocciolatori</span>
+                                <span>⏰ {row.irrigationConfig.schedule?.frequency || 'daily'}</span>
+                                <span>⌚ {row.irrigationConfig.schedule?.duration || 30}min</span>
+                                {row.irrigationConfig.schedule?.times?.[0] && (
+                                  <span>🕐 {row.irrigationConfig.schedule.times[0]}</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-3">
                           <button
