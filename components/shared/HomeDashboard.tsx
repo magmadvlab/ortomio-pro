@@ -182,7 +182,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
       
       try {
         // Load all data in parallel to reduce re-renders
-        const [batches, packets, zones, rows] = await Promise.all([
+        const [batches, packets, zones, rows, plants] = await Promise.all([
           storageProvider.getSeedlingBatches(activeGarden.id).catch(err => {
             console.error('Error loading seedling batches:', err);
             return [];
@@ -931,27 +931,54 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                                   Questo filare è configurato ma ancora vuoto. Scegli come popolarlo:
                                 </p>
                                 
-                                <div className="grid grid-cols-1 gap-2">
-                                  <Link
-                                    href="/app/semenzaio"
-                                    className="flex items-center justify-center gap-2 px-3 py-2 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                                  >
-                                    🌱 Trapianta dal Vivaio
-                                  </Link>
+                                <div className="grid grid-cols-1 gap-3">
+                                  <div className="bg-white border-2 border-green-500 rounded-lg p-3">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-green-600 text-lg">🌱</span>
+                                      <span className="font-semibold text-green-800">Trapianta dal Vivaio</span>
+                                    </div>
+                                    <p className="text-xs text-green-700 mb-3">
+                                      Usa piantine già pronte dal tuo vivaio
+                                    </p>
+                                    <Link
+                                      href="/app/semenzaio"
+                                      className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                    >
+                                      Vai al Vivaio →
+                                    </Link>
+                                  </div>
                                   
-                                  <Link
-                                    href={`/app/plants?tab=plants&fieldRow=${row.id}`}
-                                    className="flex items-center justify-center gap-2 px-3 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                  >
-                                    📦 Pianta Direttamente
-                                  </Link>
+                                  <div className="bg-white border-2 border-blue-500 rounded-lg p-3">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-blue-600 text-lg">📦</span>
+                                      <span className="font-semibold text-blue-800">Pianta Direttamente</span>
+                                    </div>
+                                    <p className="text-xs text-blue-700 mb-3">
+                                      Aggiungi piante direttamente nel filare
+                                    </p>
+                                    <Link
+                                      href={`/app/plants?tab=plants&fieldRow=${row.id}`}
+                                      className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    >
+                                      Gestisci Piante →
+                                    </Link>
+                                  </div>
                                   
-                                  <Link
-                                    href="/app/settings?section=gardens"
-                                    className="flex items-center justify-center gap-2 px-3 py-2 text-xs bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                                  >
-                                    ⚙️ Configura Coltura
-                                  </Link>
+                                  <div className="bg-white border border-gray-300 rounded-lg p-3">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-gray-600 text-lg">⚙️</span>
+                                      <span className="font-semibold text-gray-800">Configura Coltura</span>
+                                    </div>
+                                    <p className="text-xs text-gray-700 mb-3">
+                                      Imposta tipo di pianta e parametri
+                                    </p>
+                                    <Link
+                                      href="/app/settings?section=gardens"
+                                      className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                                    >
+                                      Impostazioni →
+                                    </Link>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -960,13 +987,19 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                           // FILARE CON PIANTE - Mostra operazioni normali
                           return (
                             <>
-                              <div className="flex gap-2 mb-2">
+                              {/* PRIMARY ACTION - Ispeziona Piante (Most Prominent) */}
+                              <div className="mb-3">
                                 <Link
                                   href={`/app/plants?tab=plants&fieldRow=${row.id}`}
-                                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                  className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all shadow-md border-2 border-green-500"
                                 >
-                                  🔍 Ispeziona Piante ({rowPlants.length})
+                                  🔍 ISPEZIONA PIANTE ({rowPlants.length})
+                                  <span className="ml-2 text-green-200">→</span>
                                 </Link>
+                              </div>
+                              
+                              {/* Secondary Actions */}
+                              <div className="flex gap-2 mb-2">
                                 {row.irrigationConfig?.enabled && (
                                   <Link
                                     href={`/app/irrigation?fieldRow=${row.id}`}
@@ -975,6 +1008,12 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                                     💧 Irrigazione
                                   </Link>
                                 )}
+                                <Link
+                                  href="/app/semenzaio"
+                                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                                >
+                                  🌱 Vivaio
+                                </Link>
                               </div>
                               
                               {/* Quick Operations Row */}
@@ -1038,20 +1077,38 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                                   Coltura: {row.cultivar} • Piantato: {new Date(row.planted_date).toLocaleDateString('it-IT')}
                                 </p>
                                 
-                                <div className="grid grid-cols-2 gap-2">
-                                  <Link
-                                    href={`/app/plants?tab=plants&fieldRow=${row.id}`}
-                                    className="flex items-center justify-center gap-2 px-3 py-2 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                                  >
-                                    🔍 Vedi Piante
-                                  </Link>
+                                <div className="grid grid-cols-1 gap-3">
+                                  <div className="bg-white border-2 border-green-500 rounded-lg p-3">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-green-600 text-lg">🔍</span>
+                                      <span className="font-semibold text-green-800">Vedi Piante del Filare</span>
+                                    </div>
+                                    <p className="text-xs text-green-700 mb-3">
+                                      Visualizza e gestisci le piante di questo filare
+                                    </p>
+                                    <Link
+                                      href={`/app/plants?tab=plants&fieldRow=${row.id}`}
+                                      className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                    >
+                                      Gestisci Piante →
+                                    </Link>
+                                  </div>
                                   
-                                  <Link
-                                    href="/app/semenzaio"
-                                    className="flex items-center justify-center gap-2 px-3 py-2 text-xs bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
-                                  >
-                                    🌱 Aggiungi Piante
-                                  </Link>
+                                  <div className="bg-white border border-orange-300 rounded-lg p-3">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-orange-600 text-lg">🌱</span>
+                                      <span className="font-semibold text-orange-800">Aggiungi dal Vivaio</span>
+                                    </div>
+                                    <p className="text-xs text-orange-700 mb-3">
+                                      Trapianta piantine dal vivaio
+                                    </p>
+                                    <Link
+                                      href="/app/semenzaio"
+                                      className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                                    >
+                                      Vai al Vivaio →
+                                    </Link>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -1592,95 +1649,3 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     </div>
   )
 }
-      {showGardenTypeWizard && (
-        <GardenTypeWizard
-          onComplete={async (garden) => {
-            try {
-              console.log('✅ Garden created:', garden)
-              const updatedGardens = await storageProvider.getGardens()
-              setGardens(updatedGardens)
-              setShowGardenTypeWizard(false)
-            } catch (error) {
-              console.error('Error after garden creation:', error)
-            }
-          }}
-          onCancel={() => setShowGardenTypeWizard(false)}
-        />
-      )}
-
-      {/* Integrated Field Operations Modal */}
-      {showIntegratedOperationsModal && activeGarden && (
-        <IntegratedFieldOperationsModal
-          isOpen={showIntegratedOperationsModal}
-          onClose={() => {
-            setShowIntegratedOperationsModal(false);
-            setSelectedFieldRowsForOperations([]);
-          }}
-          garden={activeGarden}
-          fieldRows={fieldRows}
-          plants={fieldRowPlants}
-          onOperationComplete={(result) => {
-            console.log('✅ Operazione integrata completata:', result);
-            // Ricarica dati
-            if (activeGarden) {
-              const loadData = async () => {
-                try {
-                  const [updatedRows, updatedPlants] = await Promise.all([
-                    storageProvider.getFieldRows?.(activeGarden.id) || [],
-                    storageProvider.getIndividualPlants?.(activeGarden.id) || []
-                  ]);
-                  setFieldRows(updatedRows);
-                  setFieldRowPlants(updatedPlants);
-                } catch (error) {
-                  console.error('Error reloading data:', error);
-                }
-              };
-              loadData();
-            }
-            setShowIntegratedOperationsModal(false);
-            setSelectedFieldRowsForOperations([]);
-          }}
-        />
-      )}
-
-      {/* Quick Operation Modal */}
-      {showQuickOperationModal && activeGarden && selectedFieldRowsForOperations.length > 0 && (
-        <QuickOperationModal
-          isOpen={showQuickOperationModal}
-          onClose={() => {
-            setShowQuickOperationModal(false);
-            setSelectedFieldRowsForOperations([]);
-          }}
-          garden={activeGarden}
-          fieldRowId={selectedFieldRowsForOperations[0]}
-          operationType={quickOperationType}
-          fieldRows={fieldRows}
-          plants={fieldRowPlants}
-          onOperationComplete={(result) => {
-            console.log('✅ Operazione rapida completata:', result);
-            // Ricarica dati
-            if (activeGarden) {
-              const loadData = async () => {
-                try {
-                  const [updatedRows, updatedPlants] = await Promise.all([
-                    storageProvider.getFieldRows?.(activeGarden.id) || [],
-                    storageProvider.getIndividualPlants?.(activeGarden.id) || []
-                  ]);
-                  setFieldRows(updatedRows);
-                  setFieldRowPlants(updatedPlants);
-                } catch (error) {
-                  console.error('Error reloading data:', error);
-                }
-              };
-              loadData();
-            }
-            setShowQuickOperationModal(false);
-            setSelectedFieldRowsForOperations([]);
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
-export default HomeDashboard
