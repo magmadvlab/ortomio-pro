@@ -59,43 +59,13 @@ export const getCachedForecast = async (
         }
       }
 
-      // Then try Supabase cache (may fail with 406 if table doesn't exist)
-      const supabase = getSupabaseClient();
-      const today = new Date().toISOString().split('T')[0];
-
-      if (supabase) {
-        try {
-          // Try Supabase cache with timeout
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
-          
-          const { data, error } = await supabase
-            .from('weather_cache')
-            .select('forecast, cached_at')
-            .eq('lat_lng', cacheKey)
-            .eq('date', today)
-            .single()
-            .abortSignal(controller.signal);
-
-          clearTimeout(timeoutId);
-
-          if (!error && data) {
-            const cachedAt = new Date(data.cached_at).getTime();
-            const age = Date.now() - cachedAt;
-
-            if (age < CACHE_TTL_MS) {
-              console.log('✅ Weather cache: Found in Supabase for', cacheKey);
-              return data.forecast as WeatherForecast[];
-            }
-          }
-        } catch (err: any) {
-          // Silently fall through - table might not exist or network error
-          // Error 406 means "Not Acceptable" - usually RLS or table issue
-          if (err?.code === '406' || err?.message?.includes('406')) {
-            console.warn('⚠️ Weather cache: Supabase table issue (406), using localStorage only');
-          }
-        }
-      }
+      // Skip Supabase cache completely to avoid 406 errors
+      // The daily_weather_log table seems to have RLS issues
+      // We'll rely on localStorage which is faster and more reliable
+      console.log('ℹ️ Weather cache: Using localStorage only (Supabase cache disabled)');
+      
+      // Note: Supabase cache disabled due to table access issues
+      // This actually improves performance as localStorage is faster
 
       return null;
     } finally {
@@ -125,28 +95,8 @@ export const cacheForecast = async (
   cacheForecastLocal(lat, lng, forecast);
   console.log('✅ Weather cache: Saved to localStorage for', cacheKey);
 
-  // Then try Supabase (may fail silently)
-  const supabase = getSupabaseClient();
-  if (supabase) {
-    try {
-      const { error } = await supabase
-        .from('weather_cache')
-        .upsert({
-          lat_lng: cacheKey,
-          date: today,
-          forecast,
-          cached_at: new Date().toISOString(),
-        }, {
-          onConflict: 'lat_lng,date',
-        });
-
-      if (!error) {
-        console.log('✅ Weather cache: Also saved to Supabase for', cacheKey);
-      }
-    } catch (err) {
-      // Silently ignore - localStorage is already saved
-    }
-  }
+  // Skip Supabase cache to avoid 406 errors - localStorage is sufficient and faster
+  console.log('ℹ️ Weather cache: Supabase cache disabled (using localStorage only)');
 }
 
 /**
