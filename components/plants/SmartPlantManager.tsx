@@ -83,6 +83,21 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
   const [healthFilter, setHealthFilter] = useState<string>('all');
   const [rowFilter, setRowFilter] = useState<string>('all'); // New: filter by row assignment
   
+  // Get fieldRow filter from URL
+  const [fieldRowFilter, setFieldRowFilter] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Check URL for fieldRow parameter
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const fieldRowParam = urlParams.get('fieldRow');
+      if (fieldRowParam) {
+        setFieldRowFilter(fieldRowParam);
+        setRowFilter(fieldRowParam); // Auto-set row filter
+      }
+    }
+  }, []);
+  
   // Modal states
   const [showOperationModal, setShowOperationModal] = useState(false);
   const [showHealthModal, setShowHealthModal] = useState(false);
@@ -111,24 +126,36 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
     try {
       setLoading(true);
       
-      // Carica filari del campo aperto
-      const fieldRows = await storageProvider.getFieldRows?.(garden.id) || [];
+      // 1. Carica piante individuali esistenti dal database (trapiantate dal vivaio)
+      let existingPlants: GardenPlant[] = [];
+      try {
+        existingPlants = await storageProvider.getIndividualPlants?.(garden.id) || [];
+        console.log('✅ Piante individuali caricate dal database:', existingPlants.length);
+      } catch (error) {
+        console.warn('Database piante individuali non disponibile, usando generazione da filari');
+        existingPlants = [];
+      }
       
-      // Se ci sono filari, genera/carica piante individuali
+      // 2. Se ci sono piante nel database, usale
+      if (existingPlants.length > 0) {
+        setPlants(existingPlants);
+        console.log('🌱 Usando piante dal database (trapiantate dal vivaio)');
+        return;
+      }
+      
+      // 3. Fallback: genera piante demo dai filari (per compatibilità)
+      const fieldRows = await storageProvider.getFieldRows?.(garden.id) || [];
       if (fieldRows.length > 0) {
-        // Import the integration service dynamically
         const { fieldRowPlantIntegrationService } = await import('@/services/fieldRowPlantIntegrationService');
-        
-        // Inizializza piante dai filari (demo per ora)
         const generatedPlants = await fieldRowPlantIntegrationService.initializePlantsFromFieldRows(
           garden.id,
           fieldRows
         );
-        
         setPlants(generatedPlants);
+        console.log('🌱 Usando piante generate dai filari (demo)');
       } else {
-        // Nessun filare configurato
         setPlants([]);
+        console.log('⚠️ Nessuna pianta trovata');
       }
     } catch (error) {
       console.error('Error loading plants:', error);
@@ -219,9 +246,8 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
       }
     }
 
-    // Row filter (NEW)
+    // Row filter (IMPROVED - Handle fieldRow parameter from URL)
     if (rowFilter !== 'all') {
-      const mapping = plantRowMappings.find(m => m.plantId);
       if (rowFilter === 'assigned') {
         filtered = filtered.filter(plant => {
           const mapping = plantRowMappings.find(m => m.plantId === plant.id);
@@ -233,8 +259,14 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
           return !mapping || (!mapping.gardenRowId && !mapping.fieldRowId);
         });
       } else {
-        // Specific row filter
+        // Specific row filter - check both fieldRowId property and mappings
         filtered = filtered.filter(plant => {
+          // First check direct fieldRowId property (for plants created from transplant)
+          if (plant.fieldRowId === rowFilter) {
+            return true;
+          }
+          
+          // Then check mappings (for legacy plants)
           const mapping = plantRowMappings.find(m => m.plantId === plant.id);
           return mapping && (mapping.gardenRowId === rowFilter || mapping.fieldRowId === rowFilter);
         });

@@ -58,6 +58,8 @@ import { WeatherTaskWidget } from './WeatherTaskAlert'
 import { isToday, isSameDay, addDays, parseISO, format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { Heart, Sparkles } from 'lucide-react'
+import IntegratedFieldOperationsModal from '@/components/fieldrows/IntegratedFieldOperationsModal'
+import QuickOperationModal from '@/components/fieldrows/QuickOperationModal'
 
 interface HomeDashboardProps {
   garden?: Garden
@@ -148,6 +150,11 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   // NEW STATES FOR ADVANCED SYSTEM WIDGETS
   const [showIrrigationManager, setShowIrrigationManager] = useState(false)
   const [showReadingForm, setShowReadingForm] = useState<'hydroponic' | 'aquaponic' | 'aeroponic' | null>(null)
+  const [showIntegratedOperationsModal, setShowIntegratedOperationsModal] = useState(false)
+  const [selectedFieldRowsForOperations, setSelectedFieldRowsForOperations] = useState<string[]>([])
+  const [fieldRowPlants, setFieldRowPlants] = useState<any[]>([]) // Piante individuali
+  const [showQuickOperationModal, setShowQuickOperationModal] = useState(false)
+  const [quickOperationType, setQuickOperationType] = useState<'fertilization' | 'treatment' | 'cultivation'>('fertilization')
   
   // States for modals
   const [showVacationMode, setShowVacationMode] = useState(false)
@@ -205,15 +212,28 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
           storageProvider.getFieldRows?.(activeGarden.id).catch(err => {
             console.error('Error loading field rows:', err);
             return [];
-          }) || Promise.resolve([])
+          }) || Promise.resolve([]),
+          
+          // Load individual plants
+          (async () => {
+            try {
+              const plants = await storageProvider.getIndividualPlants?.(activeGarden.id) || [];
+              return plants;
+            } catch (error) {
+              console.error('Error loading individual plants:', error);
+              return [];
+            }
+          })()
         ]);
         
         setSeedlingBatches(batches);
         setSeedPackets(packets || []);
         setIrrigationZones(zones);
         setFieldRows(rows || []);
+        setFieldRowPlants(plants || []);
         
         console.log('✅ HomeDashboard: Loaded field rows:', rows?.length || 0);
+        console.log('✅ HomeDashboard: Loaded individual plants:', plants?.length || 0);
       } catch (error) {
         console.error('Error loading garden data:', error);
       }
@@ -892,22 +912,152 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                     
                     {/* Individual Plant Inspection Link */}
                     <div className="mt-3 pt-2 border-t border-gray-200">
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/app/plants?tab=plants&fieldRow=${row.id}`}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                        >
-                          🔍 Ispeziona Piante
-                        </Link>
-                        {row.irrigationConfig?.enabled && (
-                          <Link
-                            href={`/app/irrigation?fieldRow=${row.id}`}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                          >
-                            💧 Irrigazione
-                          </Link>
-                        )}
-                      </div>
+                      {/* Check if field row has plants */}
+                      {(() => {
+                        const rowPlants = fieldRowPlants.filter(p => p.fieldRowId === row.id);
+                        const hasPlants = rowPlants.length > 0;
+                        const isEmpty = !row.cultivar || !row.planted_date;
+                        
+                        if (isEmpty) {
+                          // FILARE COMPLETAMENTE VUOTO - Pannello giallo con opzioni piantagione
+                          return (
+                            <div className="space-y-2">
+                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-yellow-600">🌾</span>
+                                  <span className="text-sm font-medium text-yellow-800">Filare Pronto per Piantagione</span>
+                                </div>
+                                <p className="text-xs text-yellow-700 mb-3">
+                                  Questo filare è configurato ma ancora vuoto. Scegli come popolarlo:
+                                </p>
+                                
+                                <div className="grid grid-cols-1 gap-2">
+                                  <Link
+                                    href="/app/semenzaio"
+                                    className="flex items-center justify-center gap-2 px-3 py-2 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                  >
+                                    🌱 Trapianta dal Vivaio
+                                  </Link>
+                                  
+                                  <Link
+                                    href={`/app/plants?tab=plants&fieldRow=${row.id}`}
+                                    className="flex items-center justify-center gap-2 px-3 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                  >
+                                    📦 Pianta Direttamente
+                                  </Link>
+                                  
+                                  <Link
+                                    href="/app/settings?section=gardens"
+                                    className="flex items-center justify-center gap-2 px-3 py-2 text-xs bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                                  >
+                                    ⚙️ Configura Coltura
+                                  </Link>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        } else if (hasPlants) {
+                          // FILARE CON PIANTE - Mostra operazioni normali
+                          return (
+                            <>
+                              <div className="flex gap-2 mb-2">
+                                <Link
+                                  href={`/app/plants?tab=plants&fieldRow=${row.id}`}
+                                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                >
+                                  🔍 Ispeziona Piante ({rowPlants.length})
+                                </Link>
+                                {row.irrigationConfig?.enabled && (
+                                  <Link
+                                    href={`/app/irrigation?fieldRow=${row.id}`}
+                                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                  >
+                                    💧 Irrigazione
+                                  </Link>
+                                )}
+                              </div>
+                              
+                              {/* Quick Operations Row */}
+                              <div className="grid grid-cols-3 gap-1 mb-2">
+                                <button
+                                  onClick={() => {
+                                    setSelectedFieldRowsForOperations([row.id]);
+                                    setQuickOperationType('fertilization');
+                                    setShowQuickOperationModal(true);
+                                  }}
+                                  className="flex items-center justify-center gap-1 px-2 py-1 text-xs bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
+                                >
+                                  ⚡ Fertilizza
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedFieldRowsForOperations([row.id]);
+                                    setQuickOperationType('treatment');
+                                    setShowQuickOperationModal(true);
+                                  }}
+                                  className="flex items-center justify-center gap-1 px-2 py-1 text-xs bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
+                                >
+                                  🛡️ Tratta
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedFieldRowsForOperations([row.id]);
+                                    setQuickOperationType('cultivation');
+                                    setShowQuickOperationModal(true);
+                                  }}
+                                  className="flex items-center justify-center gap-1 px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+                                >
+                                  🔧 Lavora
+                                </button>
+                              </div>
+                              
+                              {/* Advanced Operations Button */}
+                              <div>
+                                <button
+                                  onClick={() => {
+                                    setSelectedFieldRowsForOperations([row.id]);
+                                    setShowIntegratedOperationsModal(true);
+                                  }}
+                                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                                >
+                                  ⚙️ Operazioni Avanzate
+                                </button>
+                              </div>
+                            </>
+                          );
+                        } else {
+                          // FILARE CONFIGURATO MA SENZA PIANTE - Pannello blu con azioni limitate
+                          return (
+                            <div className="space-y-2">
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-blue-600">🌱</span>
+                                  <span className="text-sm font-medium text-blue-800">Filare Configurato</span>
+                                </div>
+                                <p className="text-xs text-blue-700 mb-3">
+                                  Coltura: {row.cultivar} • Piantato: {new Date(row.planted_date).toLocaleDateString('it-IT')}
+                                </p>
+                                
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Link
+                                    href={`/app/plants?tab=plants&fieldRow=${row.id}`}
+                                    className="flex items-center justify-center gap-2 px-3 py-2 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                  >
+                                    🔍 Vedi Piante
+                                  </Link>
+                                  
+                                  <Link
+                                    href="/app/semenzaio"
+                                    className="flex items-center justify-center gap-2 px-3 py-2 text-xs bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                                  >
+                                    🌱 Aggiungi Piante
+                                  </Link>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                      })()}
                     </div>
                   </div>
                 )
@@ -1442,3 +1592,95 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     </div>
   )
 }
+      {showGardenTypeWizard && (
+        <GardenTypeWizard
+          onComplete={async (garden) => {
+            try {
+              console.log('✅ Garden created:', garden)
+              const updatedGardens = await storageProvider.getGardens()
+              setGardens(updatedGardens)
+              setShowGardenTypeWizard(false)
+            } catch (error) {
+              console.error('Error after garden creation:', error)
+            }
+          }}
+          onCancel={() => setShowGardenTypeWizard(false)}
+        />
+      )}
+
+      {/* Integrated Field Operations Modal */}
+      {showIntegratedOperationsModal && activeGarden && (
+        <IntegratedFieldOperationsModal
+          isOpen={showIntegratedOperationsModal}
+          onClose={() => {
+            setShowIntegratedOperationsModal(false);
+            setSelectedFieldRowsForOperations([]);
+          }}
+          garden={activeGarden}
+          fieldRows={fieldRows}
+          plants={fieldRowPlants}
+          onOperationComplete={(result) => {
+            console.log('✅ Operazione integrata completata:', result);
+            // Ricarica dati
+            if (activeGarden) {
+              const loadData = async () => {
+                try {
+                  const [updatedRows, updatedPlants] = await Promise.all([
+                    storageProvider.getFieldRows?.(activeGarden.id) || [],
+                    storageProvider.getIndividualPlants?.(activeGarden.id) || []
+                  ]);
+                  setFieldRows(updatedRows);
+                  setFieldRowPlants(updatedPlants);
+                } catch (error) {
+                  console.error('Error reloading data:', error);
+                }
+              };
+              loadData();
+            }
+            setShowIntegratedOperationsModal(false);
+            setSelectedFieldRowsForOperations([]);
+          }}
+        />
+      )}
+
+      {/* Quick Operation Modal */}
+      {showQuickOperationModal && activeGarden && selectedFieldRowsForOperations.length > 0 && (
+        <QuickOperationModal
+          isOpen={showQuickOperationModal}
+          onClose={() => {
+            setShowQuickOperationModal(false);
+            setSelectedFieldRowsForOperations([]);
+          }}
+          garden={activeGarden}
+          fieldRowId={selectedFieldRowsForOperations[0]}
+          operationType={quickOperationType}
+          fieldRows={fieldRows}
+          plants={fieldRowPlants}
+          onOperationComplete={(result) => {
+            console.log('✅ Operazione rapida completata:', result);
+            // Ricarica dati
+            if (activeGarden) {
+              const loadData = async () => {
+                try {
+                  const [updatedRows, updatedPlants] = await Promise.all([
+                    storageProvider.getFieldRows?.(activeGarden.id) || [],
+                    storageProvider.getIndividualPlants?.(activeGarden.id) || []
+                  ]);
+                  setFieldRows(updatedRows);
+                  setFieldRowPlants(updatedPlants);
+                } catch (error) {
+                  console.error('Error reloading data:', error);
+                }
+              };
+              loadData();
+            }
+            setShowQuickOperationModal(false);
+            setSelectedFieldRowsForOperations([]);
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+export default HomeDashboard

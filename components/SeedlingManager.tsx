@@ -4,9 +4,10 @@ import { Garden, PlantMasterSheet } from '../types';
 import { createSeedlingBatch, createPurchasedSeedlingBatch, getSeedlingTimeline, shouldStartHardening, isReadyToTransplant, addPhotoToLog, updateSurvivalCount, updateBatchPhase } from '../services/seedlingService';
 import { calculateSeedlingTimeline } from '../logic/seedlingTimelineEngine';
 import { getAllMasterSheets } from '../services/plantMasterService';
-import { Sprout, Calendar, Camera, AlertCircle, CheckCircle, Clock, TrendingUp, Upload, X } from 'lucide-react';
+import { Sprout, Calendar, Camera, AlertCircle, CheckCircle, Clock, TrendingUp, Upload, X, ArrowRight, Eye } from 'lucide-react';
 import { useTier } from '../packages/core/hooks/useTier';
 import UpgradePrompt from './UpgradePrompt';
+import TransplantToOrchardModal from './vivaio/TransplantToOrchardModal';
 
 interface SeedlingManagerProps {
   garden: Garden;
@@ -35,6 +36,9 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
     notes: ''
   });
   const [selectedBatch, setSelectedBatch] = useState<SeedlingBatch | null>(null);
+  const [showTransplantModal, setShowTransplantModal] = useState(false);
+  const [batchToTransplant, setBatchToTransplant] = useState<SeedlingBatch | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
 
   const masterSheets = getAllMasterSheets();
 
@@ -116,11 +120,55 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
         return;
       }
 
+      setUploadingPhoto(batch.id);
+
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64 = event.target?.result as string;
         const updated = addPhotoToLog(batch, base64);
         onBatchUpdate(updated);
+        setUploadingPhoto(null);
+        
+        // Feedback visivo migliorato
+        const successMessage = '📸 Foto aggiunta con successo!';
+        
+        // Mostra feedback temporaneo
+        const feedbackElement = document.createElement('div');
+        feedbackElement.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2';
+        feedbackElement.innerHTML = `
+          <span>📸</span>
+          <span>Foto salvata!</span>
+        `;
+        document.body.appendChild(feedbackElement);
+        
+        // Rimuovi feedback dopo 3 secondi
+        setTimeout(() => {
+          if (document.body.contains(feedbackElement)) {
+            document.body.removeChild(feedbackElement);
+          }
+        }, 3000);
+        
+        console.log('✅ Foto aggiunta al batch:', batch.plantName, 'Totale foto:', (batch.photoLog?.length || 0) + 1);
+      };
+      reader.onerror = () => {
+        setUploadingPhoto(null);
+        
+        // Feedback errore migliorato
+        const errorElement = document.createElement('div');
+        errorElement.className = 'fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2';
+        errorElement.innerHTML = `
+          <span>❌</span>
+          <span>Errore caricamento foto</span>
+        `;
+        document.body.appendChild(errorElement);
+        
+        setTimeout(() => {
+          if (document.body.contains(errorElement)) {
+            document.body.removeChild(errorElement);
+          }
+        }, 3000);
+        
+        console.error('❌ Errore caricamento foto per batch:', batch.plantName);
       };
       reader.readAsDataURL(file);
     }
@@ -491,9 +539,30 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
 
                 {transplantCheck.ready && (
                   <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle size={18} className="text-purple-600" />
-                      <p className="text-sm font-bold text-purple-800">Pronto al Trapianto</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle size={18} className="text-purple-600" />
+                        <p className="text-sm font-bold text-purple-800">Pronto al Trapianto</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setBatchToTransplant(batch);
+                            setShowTransplantModal(true);
+                          }}
+                          className="px-3 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition-colors flex items-center gap-1"
+                        >
+                          <ArrowRight size={12} />
+                          Trapianta nell'Orto
+                        </button>
+                        <a
+                          href="/app/plants?tab=plants"
+                          className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors flex items-center gap-1"
+                        >
+                          <Eye size={12} />
+                          Vedi Orto
+                        </a>
+                      </div>
                     </div>
                     {transplantCheck.warnings && transplantCheck.warnings.length > 0 && (
                       <ul className="text-xs text-purple-700 mt-1 list-disc list-inside">
@@ -502,6 +571,9 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
                         ))}
                       </ul>
                     )}
+                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-800">
+                      <strong>🤖 Trapianto Intelligente:</strong> Ogni piantina sarà tracciata individualmente nell'orto con monitoraggio automatico orchestrato per tutte le fasi di crescita.
+                    </div>
                   </div>
                 )}
 
@@ -522,14 +594,25 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
                       </div>
                     ))}
                     {photosLimit.allowed && (
-                      <label className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-green-400 transition-colors">
-                        <Camera size={20} className="text-gray-400" />
+                      <label className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-green-400 hover:bg-green-50 transition-all duration-200">
+                        {uploadingPhoto === batch.id ? (
+                          <div className="flex flex-col items-center">
+                            <div className="animate-spin text-green-600">⏳</div>
+                            <span className="text-xs text-green-600 mt-1 font-medium">Salvando...</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center">
+                            <Camera size={20} className="text-gray-400 group-hover:text-green-500 transition-colors" />
+                            <span className="text-xs text-gray-400 mt-1">Foto</span>
+                          </div>
+                        )}
                         <input
                           type="file"
                           accept="image/*"
                           capture="environment"
                           className="hidden"
                           onChange={(e) => handlePhotoUpload(batch, e)}
+                          disabled={uploadingPhoto === batch.id}
                         />
                       </label>
                     )}
@@ -553,6 +636,43 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
           })
         )}
       </div>
+      
+      {/* Transplant to Orchard Modal */}
+      {showTransplantModal && batchToTransplant && (
+        <TransplantToOrchardModal
+          isOpen={showTransplantModal}
+          onClose={() => {
+            setShowTransplantModal(false);
+            setBatchToTransplant(null);
+          }}
+          batch={batchToTransplant}
+          garden={garden}
+          onTransplantComplete={(result) => {
+            if (result.success) {
+              // Aggiorna il batch per riflettere il trapianto
+              const updatedBatch = {
+                ...batchToTransplant,
+                survivingQuantity: batchToTransplant.survivingQuantity - result.plantsCreated.length,
+                phase: batchToTransplant.survivingQuantity - result.plantsCreated.length > 0 
+                  ? batchToTransplant.phase 
+                  : 'Completed' as const,
+                transplantHistory: [
+                  ...(batchToTransplant.transplantHistory || []),
+                  {
+                    date: result.transplantOperation.transplantDate,
+                    quantity: result.plantsCreated.length,
+                    fieldRowId: result.transplantOperation.fieldRowId,
+                    operationId: result.transplantOperation.id
+                  }
+                ]
+              };
+              onBatchUpdate(updatedBatch);
+            }
+            setShowTransplantModal(false);
+            setBatchToTransplant(null);
+          }}
+        />
+      )}
     </div>
   );
 };
