@@ -808,11 +808,11 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                 </div>
               </div>
               <div className="flex gap-2">
-                <Link href="/app/semenzaio" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                  Vivaio →
+                <Link href={`/app/garden/rows?garden=${activeGarden.id}`} className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                  Gestisci Filari →
                 </Link>
                 <Link href="/app/settings?section=gardens" className="text-green-600 hover:text-green-700 text-sm font-medium">
-                  Gestisci →
+                  Impostazioni →
                 </Link>
               </div>
             </div>

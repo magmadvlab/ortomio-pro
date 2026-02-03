@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Irrigazione e Navigazione - OrtoMio</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-step {
+            background: white;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .problem {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .code {
+            background: #f1f3f4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .status {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 5px 0;
+        }
+        .status.pending { background: #fff3cd; color: #856404; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Irrigazione e Navigazione - OrtoMio AI</h1>
+    
+    <div class="test-section">
+        <h2>📋 Checklist Test</h2>
+        <p><strong>URL App:</strong> <a href="http://localhost:3002" target="_blank">http://localhost:3002</a></p>
+        <p><strong>Commit Fix:</strong> 8f73295</p>
+        <p><strong>Data Test:</strong> <span id="currentDate"></span></p>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 Test 1: Persistenza Irrigazione</h2>
+        <div class="test-step">
+            <h3>Step 1: Accesso e Navigazione</h3>
+            <ol>
+                <li>Apri <a href="http://localhost:3002/app" target="_blank">http://localhost:3002/app</a></li>
+                <li>Accedi con le tue credenziali</li>
+                <li>Vai alla dashboard principale</li>
+            </ol>
+            <div class="status pending" id="step1-status">⏳ Pending</div>
+            <button onclick="markStep('step1', 'success')">✅ Completato</button>
+            <button onclick="markStep('step1', 'error')">❌ Errore</button>
+        </div>
+
+        <div class="test-step">
+            <h3>Step 2: Configurazione Irrigazione</h3>
+            <ol>
+                <li>Trova un filare nella sezione "Filari Campo Aperto"</li>
+                <li>Clicca sull'icona di modifica (✏️) del filare</li>
+                <li>Scorri fino alla sezione "💧 Sistema di Irrigazione"</li>
+                <li>Abilita l'irrigazione (checkbox "Abilita irrigazione")</li>
+                <li>Configura: Tipo = "Goccia a Goccia", Portata = "2.0 L/h"</li>
+                <li>Clicca "Salva"</li>
+            </ol>
+            <div class="status pending" id="step2-status">⏳ Pending</div>
+            <button onclick="markStep('step2', 'success')">✅ Completato</button>
+            <button onclick="markStep('step2', 'error')">❌ Errore</button>
+        </div>
+
+        <div class="test-step">
+            <h3>Step 3: Verifica Persistenza</h3>
+            <ol>
+                <li>Riapri immediatamente il modal di modifica dello stesso filare</li>
+                <li><strong>VERIFICA CRITICA:</strong> L'irrigazione deve rimanere ABILITATA ✅</li>
+                <li>La configurazione deve essere preservata (tipo, portata, ecc.)</li>
+            </ol>
+            <div class="status pending" id="step3-status">⏳ Pending</div>
+            <button onclick="markStep('step3', 'success')">✅ Irrigazione Persistente</button>
+            <button onclick="markStep('step3', 'error')">❌ Si Disabilita</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🧭 Test 2: Navigazione Piante</h2>
+        <div class="test-step">
+            <h3>Step 4: Verifica Pulsanti</h3>
+            <ol>
+                <li>Dalla dashboard, trova un filare con piante</li>
+                <li>Cerca il pulsante "VEDI PIANTE DEL FILARE"</li>
+                <li><strong>VERIFICA:</strong> Il pulsante deve essere ben visibile e con testo chiaro</li>
+                <li>Il pulsante deve avere sfondo verde e testo in maiuscolo</li>
+            </ol>
+            <div class="status pending" id="step4-status">⏳ Pending</div>
+            <button onclick="markStep('step4', 'success')">✅ Pulsante Chiaro</button>
+            <button onclick="markStep('step4', 'error')">❌ Pulsante Confuso</button>
+        </div>
+
+        <div class="test-step">
+            <h3>Step 5: Test Navigazione</h3>
+            <ol>
+                <li>Clicca sul pulsante "VEDI PIANTE DEL FILARE"</li>
+                <li><strong>VERIFICA URL:</strong> Deve aprire /app/plants?tab=plants&fieldRow=ID</li>
+                <li><strong>VERIFICA TITOLO:</strong> "🌾 Piante del Filare - [Nome Orto]"</li>
+                <li><strong>VERIFICA CRITICA:</strong> NON deve andare al vivaio (/app/semenzaio)</li>
+            </ol>
+            <div class="status pending" id="step5-status">⏳ Pending</div>
+            <button onclick="markStep('step5', 'success')">✅ Navigazione Corretta</button>
+            <button onclick="markStep('step5', 'error')">❌ Va al Vivaio</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 Test 3: Workflow Completo</h2>
+        <div class="test-step">
+            <h3>Step 6: Creazione Nuovo Filare</h3>
+            <ol>
+                <li>Vai in Impostazioni > Orti</li>
+                <li>Modifica il tuo orto</li>
+                <li>Tab "Aiuole & File"</li>
+                <li>Clicca "Nuovo" nella sezione Filari Campo Aperto</li>
+                <li>Configura: Nome="Test Fix", Lunghezza=10m, Coltura="Pomodoro"</li>
+                <li>ABILITA irrigazione, Tipo="Goccia a Goccia"</li>
+                <li>Salva</li>
+            </ol>
+            <div class="status pending" id="step6-status">⏳ Pending</div>
+            <button onclick="markStep('step6', 'success')">✅ Filare Creato</button>
+            <button onclick="markStep('step6', 'error')">❌ Errore Creazione</button>
+        </div>
+
+        <div class="test-step">
+            <h3>Step 7: Verifica Integrazione</h3>
+            <ol>
+                <li>Torna alla dashboard</li>
+                <li>Trova il nuovo filare "Test Fix"</li>
+                <li>Verifica che mostri l'icona irrigazione 💧</li>
+                <li>Clicca "VEDI PIANTE DEL FILARE"</li>
+                <li>Verifica che vada alla pagina piante con filtro corretto</li>
+            </ol>
+            <div class="status pending" id="step7-status">⏳ Pending</div>
+            <button onclick="markStep('step7', 'success')">✅ Tutto Funziona</button>
+            <button onclick="markStep('step7', 'error')">❌ Problemi Trovati</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Risultati Test</h2>
+        <div id="results">
+            <p>Completa i test sopra per vedere i risultati...</p>
+        </div>
+        
+        <div class="code">
+            <strong>Fix Applicati:</strong><br>
+            1. components/settings/GardenEditModal.tsx:238<br>
+            &nbsp;&nbsp;enabled: Boolean(existingIrrigationConfig.enabled)<br><br>
+            2. components/shared/HomeDashboard.tsx:996<br>
+            &nbsp;&nbsp;"🌱 VEDI PIANTE DEL FILARE"<br><br>
+            3. app/app/plants/page.tsx:45<br>
+            &nbsp;&nbsp;"🌾 Piante del Filare - {defaultGarden.name}"
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🚨 Problemi Noti</h2>
+        <div class="problem">
+            <strong>Se l'irrigazione si disabilita:</strong><br>
+            - Verifica che il codice contenga Boolean(existingIrrigationConfig.enabled)<br>
+            - Controlla la console del browser per errori<br>
+            - Prova un hard refresh (Ctrl+F5)
+        </div>
+        
+        <div class="problem">
+            <strong>Se va ancora al vivaio:</strong><br>
+            - Verifica l'URL del pulsante nell'inspector<br>
+            - Controlla che il testo sia "VEDI PIANTE DEL FILARE"<br>
+            - Verifica che l'href sia /app/plants?tab=plants&fieldRow=ID
+        </div>
+    </div>
+
+    <script>
+        // Imposta la data corrente
+        document.getElementById('currentDate').textContent = new Date().toLocaleString('it-IT');
+        
+        // Traccia i risultati dei test
+        const testResults = {};
+        
+        function markStep(stepId, status) {
+            const statusElement = document.getElementById(stepId + '-status');
+            testResults[stepId] = status;
+            
+            if (status === 'success') {
+                statusElement.textContent = '✅ Successo';
+                statusElement.className = 'status success';
+            } else if (status === 'error') {
+                statusElement.textContent = '❌ Errore';
+                statusElement.className = 'status error';
+            }
+            
+            updateResults();
+        }
+        
+        function updateResults() {
+            const resultsDiv = document.getElementById('results');
+            const totalSteps = 7;
+            const completedSteps = Object.keys(testResults).length;
+            const successfulSteps = Object.values(testResults).filter(r => r === 'success').length;
+            const errorSteps = Object.values(testResults).filter(r => r === 'error').length;
+            
+            let html = `
+                <h3>Progresso: ${completedSteps}/${totalSteps} step completati</h3>
+                <p>✅ Successi: ${successfulSteps}</p>
+                <p>❌ Errori: ${errorSteps}</p>
+            `;
+            
+            if (completedSteps === totalSteps) {
+                if (errorSteps === 0) {
+                    html += '<div class="success"><strong>🎉 TUTTI I TEST SUPERATI!</strong><br>I fix funzionano correttamente.</div>';
+                } else {
+                    html += '<div class="error"><strong>⚠️ ALCUNI TEST FALLITI</strong><br>Ci sono ancora problemi da risolvere.</div>';
+                }
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        // Funzione per aprire l'app in una nuova finestra
+        function openApp() {
+            window.open('http://localhost:3002/app', '_blank');
+        }
+        
+        // Aggiungi pulsante per aprire l'app
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstSection = document.querySelector('.test-section');
+            const openButton = document.createElement('button');
+            openButton.textContent = '🚀 Apri OrtoMio App';
+            openButton.onclick = openApp;
+            openButton.style.fontSize = '16px';
+            openButton.style.padding = '15px 30px';
+            openButton.style.background = '#28a745';
+            firstSection.appendChild(openButton);
+        });
+    </script>
+</body>
+</html>
