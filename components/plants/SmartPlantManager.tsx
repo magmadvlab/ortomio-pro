@@ -797,14 +797,90 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
             {viewMode === 'grid' && (
               <div className="p-4 sm:p-4 sm:p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {filteredPlants.slice(0, 50).map((plant) => (
+                  {filteredPlants.slice(0, 50).map((plant) => {
+                    // Calcola info tooltip per filare
+                    const fieldRowInfo = plant.fieldRowId ? {
+                      fieldRowName: plant.fieldRowName || `Filare ${plant.fieldRowId}`,
+                      position: plant.positionInRow || 0,
+                      distanceFromStart: plant.positionInRow ? `${(plant.positionInRow * 0.5).toFixed(1)}m` : 'N/A'
+                    } : null;
+
+                    const tooltipContent = fieldRowInfo 
+                      ? `${fieldRowInfo.fieldRowName} - Posizione ${fieldRowInfo.position} (${fieldRowInfo.distanceFromStart} dall'inizio)`
+                      : `Pianta ${plant.plantCode} - ${plant.variety}`;
+
+                    return (
+                      <div
+                        key={plant.id}
+                        className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                          selection.plantIds.includes(plant.id)
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        title={tooltipContent}
+                        onClick={() => {
+                          if (selection.mode === 'single') {
+                            setSelection({
+                              ...selection,
+                              plantIds: selection.plantIds.includes(plant.id) 
+                                ? selection.plantIds.filter(id => id !== plant.id)
+                                : [plant.id]
+                            });
+                          }
+                        }}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium">{plant.plantCode}</span>
+                            {fieldRowInfo && (
+                              <span className="text-xs text-blue-600">
+                                📍 Pos. {fieldRowInfo.position}
+                              </span>
+                            )}
+                          </div>
+                          {getStatusIcon(plant.status)}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className={`w-3 h-3 rounded-full ${getHealthColor(plant.healthScore)}`} />
+                          <span className="text-xs text-gray-600">{plant.healthScore}%</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">{plant.variety}</p>
+                        {fieldRowInfo && (
+                          <p className="text-xs text-blue-500 mt-1">
+                            🌾 {fieldRowInfo.fieldRowName}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* List View */}
+            {viewMode === 'list' && (
+              <div className="p-4 sm:p-4 sm:p-6 space-y-2">
+                {filteredPlants.slice(0, 100).map((plant) => {
+                  // Calcola info tooltip per filare
+                  const fieldRowInfo = plant.fieldRowId ? {
+                    fieldRowName: plant.fieldRowName || `Filare ${plant.fieldRowId}`,
+                    position: plant.positionInRow || 0,
+                    distanceFromStart: plant.positionInRow ? `${(plant.positionInRow * 0.5).toFixed(1)}m` : 'N/A'
+                  } : null;
+
+                  const tooltipContent = fieldRowInfo 
+                    ? `${fieldRowInfo.fieldRowName} - Posizione ${fieldRowInfo.position} (${fieldRowInfo.distanceFromStart} dall'inizio) - Salute: ${plant.healthScore}%`
+                    : `Pianta ${plant.plantCode} - ${plant.variety} - Salute: ${plant.healthScore}%`;
+
+                  return (
                     <div
                       key={plant.id}
-                      className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                      className={`p-4 border rounded-lg cursor-pointer transition-all ${
                         selection.plantIds.includes(plant.id)
                           ? 'border-blue-500 bg-blue-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
+                      title={tooltipContent}
                       onClick={() => {
                         if (selection.mode === 'single') {
                           setSelection({
@@ -816,59 +892,30 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
                         }
                       }}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium">{plant.plantCode}</span>
-                        {getStatusIcon(plant.status)}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${getHealthColor(plant.healthScore)}`} />
-                        <span className="text-xs text-gray-600">{plant.healthScore}%</span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">{plant.variety}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* List View */}
-            {viewMode === 'list' && (
-              <div className="p-4 sm:p-4 sm:p-6 space-y-2">
-                {filteredPlants.slice(0, 100).map((plant) => (
-                  <div
-                    key={plant.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                      selection.plantIds.includes(plant.id)
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => {
-                      if (selection.mode === 'single') {
-                        setSelection({
-                          ...selection,
-                          plantIds: selection.plantIds.includes(plant.id) 
-                            ? selection.plantIds.filter(id => id !== plant.id)
-                            : [plant.id]
-                        });
-                      }
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <span className="font-medium">{plant.plantCode}</span>
-                        <span className="text-gray-600">{plant.plantName}</span>
-                        <span className="text-sm text-gray-500">{plant.variety}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${getHealthColor(plant.healthScore)}`} />
-                          <span className="text-sm">{plant.healthScore}%</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="flex flex-col">
+                            <span className="font-medium">{plant.plantCode}</span>
+                            {fieldRowInfo && (
+                              <span className="text-xs text-blue-600">
+                                🌾 {fieldRowInfo.fieldRowName} - Pos. {fieldRowInfo.position} ({fieldRowInfo.distanceFromStart})
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-gray-600">{plant.plantName}</span>
+                          <span className="text-sm text-gray-500">{plant.variety}</span>
                         </div>
-                        {getStatusIcon(plant.status)}
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-3 h-3 rounded-full ${getHealthColor(plant.healthScore)}`} />
+                            <span className="text-sm">{plant.healthScore}%</span>
+                          </div>
+                          {getStatusIcon(plant.status)}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </>

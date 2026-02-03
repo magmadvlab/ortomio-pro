@@ -224,7 +224,7 @@ const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
                         onClick={() => handlePlantClick(plant)}
                         onMouseEnter={() => handlePlantHover(plant)}
                         onMouseLeave={() => handlePlantHover(null)}
-                        title={`${plant.plantCode} - ${plant.healthScore}% - ${plant.status}`}
+                        title={`${plant.plantCode} - Filare ${rowNumber} Pos.${plant.positionInRow || 'N/A'} - Salute: ${plant.healthScore}% - Stato: ${plant.status}`}
                       >
                         {zoomLevel === 'detailed' && plant.status !== 'healthy' && (
                           <div className="absolute inset-0 flex items-center justify-center text-xs">
