@@ -19,6 +19,7 @@ interface PlantHealthHeatmapProps {
   plants: GardenPlant[];
   onPlantSelect?: (plant: GardenPlant) => void;
   onPlantHover?: (plant: GardenPlant | null) => void;
+  onShowDetails?: (plant: GardenPlant) => void;
 }
 
 interface HeatmapCell {
@@ -32,7 +33,8 @@ interface HeatmapCell {
 const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
   plants,
   onPlantSelect,
-  onPlantHover
+  onPlantHover,
+  onShowDetails
 }) => {
   const [selectedPlant, setSelectedPlant] = useState<GardenPlant | null>(null);
   const [zoomLevel, setZoomLevel] = useState<'overview' | 'detailed'>('overview');
@@ -341,7 +343,10 @@ const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
                         <Camera size={16} />
                         Foto
                       </button>
-                      <button className="flex-1 px-4 py-3 text-base bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-3 text-sm">
+                      <button 
+                        onClick={() => onShowDetails?.(selectedPlant)}
+                        className="flex-1 px-4 py-3 text-base bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-3 text-sm"
+                      >
                         <Eye size={16} />
                         Dettagli
                       </button>

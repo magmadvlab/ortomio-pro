@@ -1,20 +1,19 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Trash2, Edit, MapPin, Calendar, Plus, Home, Layers } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useGarden } from '@/packages/core/hooks/useGarden'
 import { Garden } from '@/types'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { GardenEditModal } from './GardenEditModal'
 import { AddStructureModal, StructureUpdate, ExistingStructures } from '../gardens/AddStructureModal'
 
 export function GardenManager() {
   const { storageProvider } = useStorage()
   const { activeGarden, setActiveGarden, gardens: gardensFromHook, loading: loadingFromHook, refreshGardens } = useGarden()
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [editingGarden, setEditingGarden] = useState<Garden | null>(null)
   const [addingStructuresFor, setAddingStructuresFor] = useState<Garden | null>(null)
 
   // Usa i dati dal hook invece di caricarli separatamente
@@ -89,19 +88,6 @@ export function GardenManager() {
     } catch (error) {
       console.error('Error setting active garden:', error)
     }
-  }
-
-  const handleEdit = (garden: Garden) => {
-    setEditingGarden(garden)
-  }
-
-  const handleCloseEdit = () => {
-    setEditingGarden(null)
-  }
-
-  const handleSaveEdit = async () => {
-    await loadGardens()
-    setEditingGarden(null)
   }
 
   const handleAddStructures = (garden: Garden) => {
@@ -289,15 +275,14 @@ export function GardenManager() {
                     </button>
                   )}
 
-                  <button
-                    onClick={() => handleEdit(garden)}
-                    disabled={isDeleting}
-                    className="px-4 py-3 text-base border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 flex items-center gap-3"
-                    title="Modifica orto"
+                  <Link
+                    href={`/app/garden/rows?garden=${garden.id}`}
+                    className="px-4 py-3 text-base border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-3"
+                    title="Gestisci filari orto"
                   >
                     <Edit size={16} />
-                    Modifica
-                  </button>
+                    Gestisci Filari
+                  </Link>
 
                   <button
                     onClick={() => handleDelete(garden.id, garden.name)}
@@ -334,16 +319,6 @@ export function GardenManager() {
           <li>• Prima di eliminare, considera di fare un backup se necessario</li>
         </ul>
       </div>
-
-      {/* Garden Edit Modal */}
-      {editingGarden && (
-        <GardenEditModal
-          garden={editingGarden}
-          isOpen={true}
-          onClose={handleCloseEdit}
-          onSave={handleSaveEdit}
-        />
-      )}
 
       {/* Add Structure Modal */}
       {addingStructuresFor && (

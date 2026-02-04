@@ -87,21 +87,39 @@ export class PlantRowSyncService {
    */
   async getPlantRowMappings(gardenId: string): Promise<PlantRowMapping[]> {
     try {
+      console.log('🔗 PLANT ROW SYNC DEBUG - Getting mappings for garden:', gardenId)
+      console.log('🔗 PLANT ROW SYNC DEBUG - Storage provider:', this.storageProvider?.constructor?.name)
+      
       // This would query individual_plants with row information
+      console.log('🔗 PLANT ROW SYNC DEBUG - Getting garden plants...')
       const plants = await this.getGardenPlants(gardenId);
+      console.log('🔗 PLANT ROW SYNC DEBUG - Plants loaded:', plants?.length || 0)
       
       const mappings: PlantRowMapping[] = [];
       
       for (const plant of plants) {
         let rowName: string | undefined;
         
-        // Get row name
+        // Get row name safely
         if (plant.gardenRowId) {
-          const row = await this.storageProvider.getGardenRow?.(plant.gardenRowId);
-          rowName = row?.name;
+          try {
+            console.log('🔗 PLANT ROW SYNC DEBUG - Getting garden row:', plant.gardenRowId)
+            const row = await this.storageProvider.getGardenRow?.(plant.gardenRowId);
+            rowName = row?.name;
+            console.log('🔗 PLANT ROW SYNC DEBUG - Garden row name:', rowName)
+          } catch (error) {
+            console.warn('🔗 PLANT ROW SYNC WARN - Error getting garden row:', error);
+          }
         } else if (plant.fieldRowId) {
-          const row = await this.storageProvider.getFieldRow?.(plant.fieldRowId);
-          rowName = row?.name;
+          try {
+            console.log('🔗 PLANT ROW SYNC DEBUG - Getting field row:', plant.fieldRowId)
+            const fieldRows = await this.storageProvider.getFieldRows?.(gardenId);
+            const row = fieldRows?.find(r => r.id === plant.fieldRowId);
+            rowName = row?.name;
+            console.log('🔗 PLANT ROW SYNC DEBUG - Field row name:', rowName)
+          } catch (error) {
+            console.warn('🔗 PLANT ROW SYNC WARN - Error getting field row:', error);
+          }
         }
         
         mappings.push({
@@ -367,11 +385,28 @@ export class PlantRowSyncService {
 
   private async getGardenPlants(gardenId: string): Promise<GardenPlant[]> {
     try {
-      // This would query individual_plants table
-      // For now, return empty array as placeholder
+      console.log('🔗 PLANT ROW SYNC DEBUG - getGardenPlants called for garden:', gardenId)
+      console.log('🔗 PLANT ROW SYNC DEBUG - getIndividualPlants available:', typeof this.storageProvider.getIndividualPlants)
+      
+      // Use storageProvider to get individual plants
+      if (this.storageProvider.getIndividualPlants) {
+        console.log('🔗 PLANT ROW SYNC DEBUG - Calling getIndividualPlants...')
+        const plants = await this.storageProvider.getIndividualPlants(gardenId);
+        console.log('🔗 PLANT ROW SYNC DEBUG - getIndividualPlants returned:', plants?.length || 0, 'plants')
+        return plants;
+      }
+      
+      // Fallback: return empty array if method doesn't exist
+      console.warn('🔗 PLANT ROW SYNC WARN - getIndividualPlants method not available in storageProvider');
       return [];
-    } catch (error) {
-      console.error('Error getting garden plants:', error);
+    } catch (error: any) {
+      console.error('🔗 PLANT ROW SYNC ERROR - Error getting garden plants:');
+      console.error('🔗 PLANT ROW SYNC ERROR - Error message:', error?.message || 'Unknown error');
+      console.error('🔗 PLANT ROW SYNC ERROR - Error code:', error?.code || 'No code');
+      console.error('🔗 PLANT ROW SYNC ERROR - Error details:', error?.details || 'No details');
+      console.error('🔗 PLANT ROW SYNC ERROR - Error hint:', error?.hint || 'No hint');
+      
+      // Return empty array instead of throwing to prevent cascading failures
       return [];
     }
   }

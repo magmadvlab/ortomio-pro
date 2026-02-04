@@ -29,13 +29,18 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
   // Garden Rows (Filari)
   private mapGardenRowFromDB(db: any): GardenRow {
+    console.log('🔍 GARDEN ROW MAPPING DEBUG - Raw DB object keys:', Object.keys(db));
+    
     return {
       id: db.id,
       gardenId: db.garden_id,
-      bedId: db.bed_id,
-      name: db.name,
+      // NEW schema uses garden_zone_id, OLD schema used bed_id
+      bedId: db.garden_zone_id ?? db.bed_id,
+      // NEW schema uses crop_name, OLD schema used name
+      name: db.crop_name ?? db.name ?? `Row ${db.row_number || 'Unknown'}`,
       rowNumber: db.row_number ?? null,
-      lengthMeters: typeof db.length_meters === 'number' ? db.length_meters : Number(db.length_meters),
+      // NEW schema uses row_length_cm, OLD schema used length_meters
+      lengthMeters: db.length_meters ?? (db.row_length_cm ? Number(db.row_length_cm) / 100 : 0),
       irrigationLine: db.irrigation_line,
       notes: db.notes ?? null,
       createdAt: db.created_at,
@@ -46,12 +51,28 @@ export class SupabaseStorageProvider implements IStorageProvider {
   private mapGardenRowToDB(row: Partial<GardenRow>): any {
     const db: any = {};
     if (row.gardenId !== undefined) db.garden_id = row.gardenId;
-    if (row.bedId !== undefined) db.bed_id = row.bedId;
-    if (row.name !== undefined) db.name = row.name;
+    
+    // NEW schema uses garden_zone_id (not bed_id)
+    if (row.bedId !== undefined) {
+      db.garden_zone_id = row.bedId;   // Map to new schema
+    }
+    
+    // NEW schema uses crop_name (not name)
+    if (row.name !== undefined) {
+      db.crop_name = row.name;         // Map to new schema
+    }
+    
     if (row.rowNumber !== undefined) db.row_number = row.rowNumber;
-    if (row.lengthMeters !== undefined) db.length_meters = row.lengthMeters;
+    
+    // NEW schema uses row_length_cm (not length_meters)
+    if (row.lengthMeters !== undefined) {
+      db.row_length_cm = Math.round(row.lengthMeters * 100);  // Convert to cm for new schema
+    }
+    
     if (row.irrigationLine !== undefined) db.irrigation_line = row.irrigationLine;
     if (row.notes !== undefined) db.notes = row.notes;
+    
+    console.log('🔍 GARDEN ROW MAPPING DEBUG - Mapped to DB (new schema):', Object.keys(db));
     return db;
   }
 
@@ -108,8 +129,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
       plantCount: db.plant_count ?? undefined,
       orientation: db.orientation ?? undefined,
       irrigationLine: db.irrigation_line ?? undefined,
+      // Mantieni compatibilità con irrigationConfig per il frontend
+      irrigationConfig: db.irrigation_line ?? undefined,
       plantedDate: db.planted_date ?? undefined,
       status: db.status ?? 'Active',
+      isActive: db.is_active ?? true,
       notes: db.notes ?? undefined,
       createdAt: db.created_at,
       updatedAt: db.updated_at,
@@ -131,6 +155,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (row.irrigationLine !== undefined) db.irrigation_line = row.irrigationLine;
     if (row.plantedDate !== undefined) db.planted_date = row.plantedDate;
     if (row.status !== undefined) db.status = row.status;
+    if (row.isActive !== undefined) db.is_active = row.isActive;
     if (row.notes !== undefined) db.notes = row.notes;
     return db;
   }
@@ -180,13 +205,30 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
   async getGardenRows(bedId: string): Promise<GardenRow[]> {
     const client = this.ensureClient();
-    const { data, error } = await client
-      .from('garden_rows')
-      .select('*')
-      .eq('bed_id', bedId)
-      .order('row_number', { ascending: true });
-    if (error) throw error;
-    return (data || []).map((db) => this.mapGardenRowFromDB(db));
+    
+    console.log('🔍 GARDEN ROWS DEBUG - Getting garden rows for bedId:', bedId);
+    
+    // The database is using the NEW schema (garden_zone_id), so query with that
+    try {
+      console.log('🔍 GARDEN ROWS DEBUG - Using garden_zone_id column (new schema)...');
+      const { data, error } = await client
+        .from('garden_rows')
+        .select('*')
+        .eq('garden_zone_id', bedId)
+        .order('row_number', { ascending: true });
+      
+      if (error) {
+        console.error('🔍 GARDEN ROWS ERROR - Query failed:', error);
+        throw error;
+      }
+      
+      console.log('🔍 GARDEN ROWS DEBUG - Query successful, found', data?.length || 0, 'rows');
+      return (data || []).map((db) => this.mapGardenRowFromDB(db));
+      
+    } catch (error: any) {
+      console.error('🔍 GARDEN ROWS ERROR - Exception:', error.message);
+      throw new Error(`Failed to query garden_rows: ${error.message}`);
+    }
   }
 
   async getGardenRow(id: string): Promise<GardenRow | null> {

@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Settings, User, Bell, Shield, Database, Palette, MapPin, Edit, Trash2, Plus } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
 import { GardenTypeWizard } from '@/components/GardenTypeWizard'
-import { GardenEditModal } from '@/components/settings/GardenEditModal'
 import APIKeysManager from '@/components/settings/APIKeysManager'
 import OrganizationManager from '@/components/settings/OrganizationManager'
 import SatelliteCredentialsManager from '@/components/settings/SatelliteCredentialsManager'
@@ -16,7 +16,6 @@ export default function SettingsPage() {
   const [gardens, setGardens] = useState<Garden[]>([])
   const [loadingGardens, setLoadingGardens] = useState(false)
   const [showGardenWizard, setShowGardenWizard] = useState(false)
-  const [editingGarden, setEditingGarden] = useState<Garden | null>(null)
 
   useEffect(() => {
     const loadGardens = async () => {
@@ -187,13 +186,14 @@ export default function SettingsPage() {
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 ml-4">
-                                <button
-                                  onClick={() => setEditingGarden(garden)}
-                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                  title="Gestisci orto"
+                                <Link
+                                  href={`/app/plants?garden=${garden.id}`}
+                                  className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium"
+                                  title="Visualizza piante individuali dell'orto"
                                 >
-                                  <Edit size={18} />
-                                </button>
+                                  <span>🌱</span>
+                                  Piante
+                                </Link>
                                 <button
                                   onClick={async () => {
                                     if (confirm(`Sei sicuro di voler eliminare "${garden.name}"?\n\nQuesta azione eliminerà anche tutti i dati associati (piante, task, raccolti, ecc.)`)) {
@@ -443,16 +443,6 @@ export default function SettingsPage() {
         <GardenTypeWizard
           onComplete={handleGardenCreated}
           onCancel={() => setShowGardenWizard(false)}
-        />
-      )}
-
-      {/* Garden Edit Modal */}
-      {editingGarden && (
-        <GardenEditModal
-          garden={editingGarden}
-          isOpen={true}
-          onClose={() => setEditingGarden(null)}
-          onSave={handleGardenEdited}
         />
       )}
     </div>

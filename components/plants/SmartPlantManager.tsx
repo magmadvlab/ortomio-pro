@@ -9,6 +9,7 @@ import { GardenPlant, PlantOperation, BulkRowOperation } from '../../types/indiv
 import { useStorage } from '../../packages/core/hooks/useStorage';
 import BulkOperationModal from './BulkOperationModal';
 import PlantHealthHeatmap from './PlantHealthHeatmap';
+import PlantDetailModal from './PlantDetailModal';
 import { createBulkOperation } from '../../services/plantOperationsService';
 import { createUnifiedOperationsService, UnifiedOperationRequest } from '../../services/unifiedOperationsService';
 import { createPlantRowSyncService } from '../../services/plantRowSyncService';
@@ -35,6 +36,7 @@ import {
 
 interface SmartPlantManagerProps {
   garden: Garden;
+  fieldRow?: string; // Optional field row ID for filtering
 }
 
 type SelectionMode = 'single' | 'group' | 'row' | 'problems' | 'healthy';
@@ -53,7 +55,7 @@ interface PlantSelection {
   };
 }
 
-const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
+const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow }) => {
   const { storageProvider } = useStorage();
   
   // Services
@@ -81,27 +83,26 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [healthFilter, setHealthFilter] = useState<string>('all');
-  const [rowFilter, setRowFilter] = useState<string>('all'); // New: filter by row assignment
+  const [rowFilter, setRowFilter] = useState<string>(fieldRow || 'all'); // Use prop for initial filter
   
-  // Get fieldRow filter from URL
-  const [fieldRowFilter, setFieldRowFilter] = useState<string | null>(null);
+  // Set fieldRow filter from prop
+  const [fieldRowFilter, setFieldRowFilter] = useState<string | null>(fieldRow || null);
   
   useEffect(() => {
-    // Check URL for fieldRow parameter
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const fieldRowParam = urlParams.get('fieldRow');
-      if (fieldRowParam) {
-        setFieldRowFilter(fieldRowParam);
-        setRowFilter(fieldRowParam); // Auto-set row filter
-      }
+    // Update filter when fieldRow prop changes
+    if (fieldRow) {
+      setFieldRowFilter(fieldRow);
+      setRowFilter(fieldRow);
+      console.log('🌾 SmartPlantManager: Filtering by fieldRow:', fieldRow);
     }
-  }, []);
+  }, [fieldRow]);
   
   // Modal states
   const [showOperationModal, setShowOperationModal] = useState(false);
   const [showHealthModal, setShowHealthModal] = useState(false);
   const [showUnifiedOperationModal, setShowUnifiedOperationModal] = useState(false);
+  const [showPlantDetailModal, setShowPlantDetailModal] = useState(false);
+  const [selectedPlantForDetail, setSelectedPlantForDetail] = useState<GardenPlant | null>(null);
   const [selectedOperation, setSelectedOperation] = useState<'watering' | 'fertilizing' | 'treatment' | 'health'>('watering');
 
   useEffect(() => {
@@ -173,24 +174,74 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
     }
     
     try {
-      // Load available rows (garden rows + field rows)
-      const [gardenRows, fieldRows] = await Promise.all([
-        storageProvider.getGardenRows?.(garden.id) || [],
-        storageProvider.getFieldRows?.(garden.id) || []
-      ]);
+      console.log('🌱 PLANT MANAGER DEBUG - Loading rows for garden:', garden.id)
+      console.log('🌱 PLANT MANAGER DEBUG - Storage provider:', storageProvider?.constructor?.name)
+      console.log('🌱 PLANT MANAGER DEBUG - getGardenRows available:', typeof storageProvider.getGardenRows)
+      console.log('🌱 PLANT MANAGER DEBUG - getFieldRows available:', typeof storageProvider.getFieldRows)
+      
+      // Load available rows (garden rows + field rows) with proper error handling
+      console.log('🌱 PLANT MANAGER DEBUG - Loading garden rows...')
+      let gardenRows: any[] = [];
+      try {
+        if (storageProvider.getGardenRows) {
+          gardenRows = await storageProvider.getGardenRows(garden.id);
+          console.log('🌱 PLANT MANAGER DEBUG - Garden rows loaded successfully:', gardenRows?.length || 0)
+        } else {
+          console.log('🌱 PLANT MANAGER DEBUG - getGardenRows method not available')
+        }
+      } catch (gardenRowsError) {
+        console.error('🌱 PLANT MANAGER ERROR - Failed to load garden rows:', gardenRowsError)
+        gardenRows = [];
+      }
+      
+      console.log('🌱 PLANT MANAGER DEBUG - Loading field rows...')
+      let fieldRows: any[] = [];
+      try {
+        if (storageProvider.getFieldRows) {
+          fieldRows = await storageProvider.getFieldRows(garden.id);
+          console.log('🌱 PLANT MANAGER DEBUG - Field rows loaded successfully:', fieldRows?.length || 0)
+        } else {
+          console.log('🌱 PLANT MANAGER DEBUG - getFieldRows method not available')
+        }
+      } catch (fieldRowsError) {
+        console.error('🌱 PLANT MANAGER ERROR - Failed to load field rows:', fieldRowsError)
+        fieldRows = [];
+      }
+      
+      console.log('🌱 PLANT MANAGER DEBUG - Garden rows sample:', gardenRows?.[0])
+      console.log('🌱 PLANT MANAGER DEBUG - Field rows sample:', fieldRows?.[0])
 
       const allRows = [
         ...gardenRows.map((r: any) => ({ id: r.id, name: r.name, type: 'garden_row' as const })),
         ...fieldRows.map((r: any) => ({ id: r.id, name: r.name, type: 'field_row' as const }))
       ];
       
+      console.log('🌱 PLANT MANAGER DEBUG - All rows combined:', allRows.length)
       setAvailableRows(allRows);
 
       // Load plant-row mappings
-      const mappings = await plantRowSyncService.getPlantRowMappings(garden.id);
-      setPlantRowMappings(mappings);
-    } catch (error) {
-      console.error('Error loading rows and mappings:', error);
+      console.log('🌱 PLANT MANAGER DEBUG - Loading plant-row mappings...')
+      try {
+        const mappings = await plantRowSyncService.getPlantRowMappings(garden.id);
+        console.log('🌱 PLANT MANAGER DEBUG - Mappings loaded successfully:', mappings?.length || 0)
+        setPlantRowMappings(mappings);
+      } catch (mappingsError) {
+        console.error('🌱 PLANT MANAGER ERROR - Failed to load mappings:', mappingsError)
+        setPlantRowMappings([]);
+      }
+      
+      console.log('🌱 PLANT MANAGER DEBUG - loadRowsAndMappings completed successfully')
+    } catch (error: any) {
+      // Enhanced error logging with better error extraction
+      console.error('🌱 PLANT MANAGER ERROR - loadRowsAndMappings failed');
+      console.error('🌱 PLANT MANAGER ERROR - Error message:', error?.message || 'Unknown error');
+      console.error('🌱 PLANT MANAGER ERROR - Error code:', error?.code || 'No code');
+      console.error('🌱 PLANT MANAGER ERROR - Error details:', error?.details || 'No details');
+      console.error('🌱 PLANT MANAGER ERROR - Error hint:', error?.hint || 'No hint');
+      console.error('🌱 PLANT MANAGER ERROR - Garden ID:', garden?.id);
+      console.error('🌱 PLANT MANAGER ERROR - Storage provider:', storageProvider?.constructor?.name);
+      
+      // Set empty arrays to prevent UI issues
       setAvailableRows([]);
       setPlantRowMappings([]);
     }
@@ -822,6 +873,10 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
                     });
                   }
                 }}
+                onShowDetails={(plant) => {
+                  setSelectedPlantForDetail(plant);
+                  setShowPlantDetailModal(true);
+                }}
               />
             )}
 
@@ -860,6 +915,10 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
                             });
                           }
                         }}
+                        onDoubleClick={() => {
+                          setSelectedPlantForDetail(plant);
+                          setShowPlantDetailModal(true);
+                        }}
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex flex-col">
@@ -882,6 +941,16 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
                             🌾 {fieldRowInfo.fieldRowName}
                           </p>
                         )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPlantForDetail(plant);
+                            setShowPlantDetailModal(true);
+                          }}
+                          className="mt-2 w-full px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                        >
+                          Dettagli
+                        </button>
                       </div>
                     );
                   })}
@@ -943,6 +1012,16 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
                             <span className="text-sm">{plant.healthScore}%</span>
                           </div>
                           {getStatusIcon(plant.status)}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedPlantForDetail(plant);
+                              setShowPlantDetailModal(true);
+                            }}
+                            className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                          >
+                            Dettagli
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -1080,6 +1159,18 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden }) => {
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Plant Detail Modal */}
+      {selectedPlantForDetail && (
+        <PlantDetailModal
+          plant={selectedPlantForDetail}
+          isOpen={showPlantDetailModal}
+          onClose={() => {
+            setShowPlantDetailModal(false);
+            setSelectedPlantForDetail(null);
+          }}
+        />
       )}
     </div>
   );

@@ -78,9 +78,18 @@ export default function EditFieldRowPage() {
           if (existingRow) {
             // Load existing configuration preserving irrigation state
             const existingIrrigationConfig = existingRow.irrigationConfig
+            
+            // DEBUG: Log per identificare problema persistenza irrigazione
+            console.log('🔍 IRRIGATION DEBUG - Existing row:', existingRow)
+            console.log('🔍 IRRIGATION DEBUG - Existing config:', existingIrrigationConfig)
+            console.log('🔍 IRRIGATION DEBUG - Enabled value:', existingIrrigationConfig?.enabled)
+            console.log('🔍 IRRIGATION DEBUG - Type of enabled:', typeof existingIrrigationConfig?.enabled)
+            console.log('🔍 IRRIGATION DEBUG - Boolean conversion:', Boolean(existingIrrigationConfig?.enabled))
+            
             const irrigationConfig = existingIrrigationConfig ? {
               // CRITICO: Preserva esattamente lo stato enabled esistente
-              enabled: Boolean(existingIrrigationConfig.enabled),
+              // Gestisce sia boolean che stringhe ("true"/"false") da localStorage
+              enabled: existingIrrigationConfig.enabled === true || existingIrrigationConfig.enabled === 'true',
               irrigationType: existingIrrigationConfig.irrigationType || 'drip' as const,
               tubeLength: existingIrrigationConfig.tubeLength || existingRow.length_meters || 10,
               tubeDiameter: existingIrrigationConfig.tubeDiameter || 16,
@@ -213,6 +222,33 @@ export default function EditFieldRowPage() {
         return
       }
 
+      // DEBUG: Verifica metodi storageProvider
+      console.log('💾 SAVE DEBUG - StorageProvider inspection:')
+      console.log('- storageProvider object:', storageProvider)
+      console.log('- storageProvider type:', typeof storageProvider)
+      console.log('- storageProvider constructor:', storageProvider?.constructor?.name)
+      console.log('- createFieldRow exists:', typeof storageProvider.createFieldRow === 'function')
+      console.log('- updateFieldRow exists:', typeof storageProvider.updateFieldRow === 'function')
+      console.log('- getFieldRows exists:', typeof storageProvider.getFieldRows === 'function')
+      
+      // Check if storageProvider is properly initialized
+      if (!storageProvider) {
+        throw new Error('Storage provider is null or undefined')
+      }
+      
+      if (typeof storageProvider !== 'object') {
+        throw new Error(`Storage provider is not an object, got: ${typeof storageProvider}`)
+      }
+
+      // Validazione aggiuntiva
+      if (!storageProvider.createFieldRow || !storageProvider.updateFieldRow) {
+        throw new Error('Storage provider methods not available. Check storage provider initialization.')
+      }
+
+      if (!garden || !garden.id) {
+        throw new Error('Garden not found or invalid garden ID')
+      }
+
       const fieldRowData = {
         name: fieldRowForm.name.trim(),
         rowNumber: fieldRowForm.rowNumber,
@@ -222,19 +258,49 @@ export default function EditFieldRowPage() {
         plantSpacing: fieldRowForm.plantSpacing || undefined,
         plantedDate: fieldRowForm.plantedDate || undefined,
         orientation: fieldRowForm.orientation || undefined,
-        irrigationConfig: fieldRowForm.irrigationConfig.enabled ? fieldRowForm.irrigationConfig : undefined
+        // Converti irrigationConfig in irrigation_line (JSONB)
+        irrigationLine: fieldRowForm.irrigationConfig.enabled ? fieldRowForm.irrigationConfig : undefined,
+        // Assicurati che zoneId sia definito (può essere null)
+        zoneId: null, // Per ora null, in futuro potresti collegarlo a una zona specifica
+        isActive: true
       }
 
+      // DEBUG: Log per verificare salvataggio irrigazione
+      console.log('💾 SAVE DEBUG - Form irrigation config:', fieldRowForm.irrigationConfig)
+      console.log('💾 SAVE DEBUG - Enabled value:', fieldRowForm.irrigationConfig.enabled)
+      console.log('💾 SAVE DEBUG - Final data to save:', fieldRowData)
+      console.log('💾 SAVE DEBUG - Is editing:', isEditing)
+      console.log('💾 SAVE DEBUG - Field row ID:', fieldRowId)
+      console.log('💾 SAVE DEBUG - Garden ID:', garden.id)
+
       if (isEditing && fieldRowId) {
-        await storageProvider.updateFieldRow(fieldRowId, fieldRowData)
-        setSuccess('✅ Filare aggiornato con successo')
+        console.log('💾 SAVE DEBUG - Calling updateFieldRow...')
+        try {
+          const result = await storageProvider.updateFieldRow(fieldRowId, fieldRowData)
+          console.log('💾 SAVE DEBUG - updateFieldRow result:', result)
+          console.log('💾 SAVE DEBUG - updateFieldRow completed successfully')
+          setSuccess('✅ Filare aggiornato con successo')
+        } catch (updateError) {
+          console.error('💾 SAVE DEBUG - updateFieldRow failed:', updateError)
+          throw updateError
+        }
       } else {
-        await storageProvider.createFieldRow({
-          gardenId: garden.id,
-          ...fieldRowData,
-          isActive: true
-        })
-        setSuccess('✅ Filare creato con successo')
+        console.log('💾 SAVE DEBUG - Calling createFieldRow...')
+        try {
+          const createData = {
+            gardenId: garden.id,
+            ...fieldRowData,
+            isActive: true
+          }
+          console.log('💾 SAVE DEBUG - createFieldRow data:', createData)
+          const result = await storageProvider.createFieldRow(createData)
+          console.log('💾 SAVE DEBUG - createFieldRow result:', result)
+          console.log('💾 SAVE DEBUG - createFieldRow completed successfully')
+          setSuccess('✅ Filare creato con successo')
+        } catch (createError) {
+          console.error('💾 SAVE DEBUG - createFieldRow failed:', createError)
+          throw createError
+        }
       }
 
       // Redirect after success
@@ -243,8 +309,54 @@ export default function EditFieldRowPage() {
       }, 1500)
 
     } catch (error) {
-      console.error('Error saving field row:', error)
-      setError('❌ Errore durante il salvataggio del filare')
+      // Enhanced error logging to capture all possible error details
+      console.error('💾 SAVE ERROR - Raw error:', error)
+      console.error('💾 SAVE ERROR - Error type:', typeof error)
+      console.error('💾 SAVE ERROR - Error constructor:', error?.constructor?.name)
+      console.error('💾 SAVE ERROR - Error toString:', error?.toString?.())
+      console.error('💾 SAVE ERROR - Error JSON:', JSON.stringify(error, Object.getOwnPropertyNames(error)))
+      
+      if (error instanceof Error) {
+        console.error('💾 SAVE ERROR - Error message:', error.message)
+        console.error('💾 SAVE ERROR - Error stack:', error.stack)
+        console.error('💾 SAVE ERROR - Error name:', error.name)
+        console.error('💾 SAVE ERROR - Error cause:', error.cause)
+      }
+      
+      // Check if it's a storage provider specific error
+      if (error && typeof error === 'object') {
+        console.error('💾 SAVE ERROR - Object keys:', Object.keys(error))
+        console.error('💾 SAVE ERROR - Object values:', Object.values(error))
+        
+        // Check for common error properties
+        if ('code' in error) console.error('💾 SAVE ERROR - Error code:', error.code)
+        if ('status' in error) console.error('💾 SAVE ERROR - Error status:', error.status)
+        if ('statusText' in error) console.error('💾 SAVE ERROR - Error statusText:', error.statusText)
+        if ('response' in error) console.error('💾 SAVE ERROR - Error response:', error.response)
+        if ('data' in error) console.error('💾 SAVE ERROR - Error data:', error.data)
+      }
+      
+      // Try to extract meaningful error message
+      let errorMessage = 'Errore sconosciuto durante il salvataggio'
+      
+      if (error instanceof Error && error.message) {
+        errorMessage = error.message
+      } else if (error && typeof error === 'object') {
+        if ('message' in error && error.message) {
+          errorMessage = String(error.message)
+        } else if ('error' in error && error.error) {
+          errorMessage = String(error.error)
+        } else if ('statusText' in error && error.statusText) {
+          errorMessage = String(error.statusText)
+        } else if (error.toString && error.toString() !== '[object Object]') {
+          errorMessage = error.toString()
+        }
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      }
+      
+      console.error('💾 SAVE ERROR - Final error message:', errorMessage)
+      setError(`❌ Errore durante il salvataggio del filare: ${errorMessage}`)
     } finally {
       setSaving(false)
     }
@@ -293,6 +405,14 @@ export default function EditFieldRowPage() {
               <p className="text-gray-600 mt-1">
                 {garden.name} • URL: /app/garden/rows/edit?garden={garden.id}{fieldRowId && `&id=${fieldRowId}`}
               </p>
+              {/* DEBUG INFO */}
+              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                <p><strong>DEBUG INFO (Server: 3002):</strong></p>
+                <p>Garden ID: {garden.id}</p>
+                <p>Field Row ID: {fieldRowId || 'NEW'}</p>
+                <p>Is Editing: {isEditing ? 'YES' : 'NO'}</p>
+                <p>Current URL: {typeof window !== 'undefined' ? window.location.href : 'SSR'}</p>
+              </div>
             </div>
           </div>
         </div>

@@ -117,21 +117,32 @@ export default function PlantsPage() {
       <header className="bg-white border-b border-gray-200 px-4 py-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
-                {fieldRowParam ? (
-                  <>🌾 Piante del Filare - {defaultGarden.name}</>
-                ) : (
-                  <>🌱 Gestione Piante Professionale</>
-                )}
-              </h1>
-              <p className="text-gray-600 mt-1">
-                {fieldRowParam ? (
-                  `Visualizzazione piante individuali del filare selezionato in ${defaultGarden.name}`
-                ) : (
-                  `Monitoraggio completo di piante, semi, vivaio e alberi per ${defaultGarden.name}`
-                )}
-              </p>
+            <div className="flex items-center gap-4">
+              <Link
+                href="/app/garden/rows"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Torna ai filari"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m15 18-6-6 6-6"/>
+                </svg>
+              </Link>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
+                  {fieldRowParam ? (
+                    <>🌾 Piante del Filare - {defaultGarden.name}</>
+                  ) : (
+                    <>🌱 Gestione Piante Professionale</>
+                  )}
+                </h1>
+                <p className="text-gray-600 mt-1">
+                  {fieldRowParam ? (
+                    `Visualizzazione piante individuali del filare selezionato in ${defaultGarden.name}`
+                  ) : (
+                    `Monitoraggio completo di piante, semi, vivaio e alberi per ${defaultGarden.name}`
+                  )}
+                </p>
+              </div>
             </div>
             <div className="flex gap-3">
               <Link
@@ -294,7 +305,10 @@ export default function PlantsPage() {
               </div>
               
               {/* Smart Plant Manager Component */}
-              <SmartPlantManager garden={defaultGarden} />
+              <SmartPlantManager 
+                garden={defaultGarden} 
+                fieldRow={fieldRowParam || undefined}
+              />
             </div>
 
             {/* Traditional Plants View (Legacy) */}
