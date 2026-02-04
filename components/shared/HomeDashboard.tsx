@@ -794,344 +794,37 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
           <ProgressCard tasks={currentTasks} gardenId={activeGarden.id} />
         )}
 
-        {/* Field Rows Widget */}
-        {activeGarden && fieldRows.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <span className="text-green-600 text-lg">🌾</span>
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Filari Campo Aperto</h3>
-                  <p className="text-sm text-gray-600">{fieldRows.length} filari configurati</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Link href={`/app/garden/rows?garden=${activeGarden.id}`} className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                  Gestisci Filari →
-                </Link>
-                <Link href="/app/settings?section=gardens" className="text-green-600 hover:text-green-700 text-sm font-medium">
-                  Impostazioni →
-                </Link>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {fieldRows.slice(0, 6).map((row, index) => {
-                // Cerca piantine pronte per questa coltura
-                const matchingBatches = seedlingBatches.filter(batch => 
-                  row.cultivar && (
-                    batch.plantName.toLowerCase().includes(row.cultivar.toLowerCase()) ||
-                    (batch.variety && row.cultivar.toLowerCase().includes(batch.variety.toLowerCase()))
-                  ) && batch.currentPhase === 'ready'
-                )
-                
-                // Cerca semi disponibili per questa coltura
-                const matchingSeeds = seedPackets.filter(packet =>
-                  row.cultivar && (
-                    packet.plantName.toLowerCase().includes(row.cultivar.toLowerCase()) ||
-                    (packet.variety && row.cultivar.toLowerCase().includes(packet.variety.toLowerCase()))
-                  ) && (packet.remainingSeeds || 0) > 0
-                )
-
-                return (
-                  <div key={row.id || index} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-gray-900 text-sm">{row.name}</h4>
-                      <span className="text-xs text-gray-500">#{row.row_number || index + 1}</span>
-                    </div>
-                    
-                    <div className="space-y-1 text-xs text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <span>📏</span>
-                        <span>{row.length_meters}m</span>
-                        {row.distance_from_previous_row && (
-                          <>
-                            <span>•</span>
-                            <span>↔️ {row.distance_from_previous_row}cm</span>
-                          </>
-                        )}
-                      </div>
-                      
-                      {row.cultivar && (
-                        <div className="flex items-center gap-2">
-                          <span>🌱</span>
-                          <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">
-                            {row.cultivar}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {/* Connessione vivaio */}
-                      {row.cultivar && (matchingBatches.length > 0 || matchingSeeds.length > 0) && (
-                        <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
-                          <div className="text-xs font-medium text-green-800 mb-1">Nel vivaio:</div>
-                          {matchingBatches.length > 0 && (
-                            <div className="flex items-center gap-1 text-xs text-green-700">
-                              <span>🌿</span>
-                              <span>{matchingBatches.reduce((sum, b) => sum + b.survivingQuantity, 0)} piantine pronte</span>
-                            </div>
-                          )}
-                          {matchingSeeds.length > 0 && (
-                            <div className="flex items-center gap-1 text-xs text-blue-700">
-                              <span>📦</span>
-                              <span>{matchingSeeds.reduce((sum, s) => sum + (s.remainingSeeds || 0), 0)} semi disponibili</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      {row.plant_spacing && (
-                        <div className="flex items-center gap-2">
-                          <span>📐</span>
-                          <span>{row.plant_spacing}cm → {row.plant_count || Math.floor((row.length_meters * 100) / row.plant_spacing)} piante</span>
-                        </div>
-                      )}
-                      
-                      {row.planted_date && (
-                        <div className="flex items-center gap-2">
-                          <span>📅</span>
-                          <span>{new Date(row.planted_date).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })}</span>
-                        </div>
-                      )}
-                      
-                      {/* Informazioni irrigazione */}
-                      {row.irrigationConfig?.enabled && (
-                        <div className="flex items-center gap-2">
-                          <span>💧</span>
-                          <span className="bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded text-xs">
-                            {row.irrigationConfig.irrigationType === 'drip' ? 'Goccia' : 
-                             row.irrigationConfig.irrigationType === 'sprinkler' ? 'Aspersione' : 
-                             row.irrigationConfig.irrigationType === 'micro_sprinkler' ? 'Micro' : 'Manuale'}
-                            {row.irrigationConfig.totalFlowRate > 0 && ` (${row.irrigationConfig.totalFlowRate}L/h)`}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Individual Plant Inspection Link */}
-                    <div className="mt-3 pt-2 border-t border-gray-200">
-                      {/* Check if field row has plants */}
-                      {(() => {
-                        const rowPlants = fieldRowPlants.filter(p => p.fieldRowId === row.id);
-                        const hasPlants = rowPlants.length > 0;
-                        const isEmpty = !row.cultivar || !row.planted_date;
-                        
-                        if (isEmpty) {
-                          // FILARE COMPLETAMENTE VUOTO - Pannello giallo con opzioni piantagione
-                          return (
-                            <div className="space-y-2">
-                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-yellow-600">🌾</span>
-                                  <span className="text-sm font-medium text-yellow-800">Filare Pronto per Piantagione</span>
-                                </div>
-                                <p className="text-xs text-yellow-700 mb-3">
-                                  Questo filare è configurato ma ancora vuoto. Scegli come popolarlo:
-                                </p>
-                                
-                                <div className="grid grid-cols-1 gap-3">
-                                  <div className="bg-white border-2 border-green-500 rounded-lg p-3">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <span className="text-green-600 text-lg">🌱</span>
-                                      <span className="font-semibold text-green-800">Trapianta dal Vivaio</span>
-                                    </div>
-                                    <p className="text-xs text-green-700 mb-3">
-                                      Usa piantine già pronte dal tuo vivaio
-                                    </p>
-                                    <Link
-                                      href="/app/semenzaio"
-                                      className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                                    >
-                                      Vai al Vivaio →
-                                    </Link>
-                                  </div>
-                                  
-                                  <div className="bg-white border-2 border-blue-500 rounded-lg p-3">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <span className="text-blue-600 text-lg">🌾</span>
-                                      <span className="font-semibold text-blue-800">Vedi Piante del Filare</span>
-                                    </div>
-                                    <p className="text-xs text-blue-700 mb-3">
-                                      Visualizza e gestisci le piante di questo filare
-                                    </p>
-                                    <Link
-                                      href={`/app/plants?tab=plants&fieldRow=${row.id}`}
-                                      className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                    >
-                                      🌾 VEDI PIANTE DEL FILARE →
-                                    </Link>
-                                  </div>
-                                  
-                                  <div className="bg-white border border-gray-300 rounded-lg p-3">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <span className="text-gray-600 text-lg">⚙️</span>
-                                      <span className="font-semibold text-gray-800">Configura Coltura</span>
-                                    </div>
-                                    <p className="text-xs text-gray-700 mb-3">
-                                      Imposta tipo di pianta e parametri
-                                    </p>
-                                    <Link
-                                      href="/app/settings?section=gardens"
-                                      className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                                    >
-                                      Impostazioni →
-                                    </Link>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        } else if (hasPlants) {
-                          // FILARE CON PIANTE - Mostra operazioni normali
-                          return (
-                            <>
-                              {/* PRIMARY ACTION - Vedi Piante del Filare (Most Prominent) */}
-                              <div className="mb-3">
-                                <Link
-                                  href={`/app/plants?tab=plants&fieldRow=${row.id}`}
-                                  className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all shadow-md border-2 border-green-500"
-                                >
-                                  🌱 VEDI PIANTE DEL FILARE ({rowPlants.length})
-                                  <span className="ml-2 text-green-200">→</span>
-                                </Link>
-                              </div>
-                              
-                              {/* Secondary Actions */}
-                              <div className="flex gap-2 mb-2">
-                                {row.irrigationConfig?.enabled && (
-                                  <Link
-                                    href={`/app/irrigation?fieldRow=${row.id}`}
-                                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                  >
-                                    💧 Irrigazione
-                                  </Link>
-                                )}
-                                <Link
-                                  href="/app/semenzaio"
-                                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-                                >
-                                  🏪 Vivaio
-                                </Link>
-                              </div>
-                              
-                              {/* Quick Operations Row */}
-                              <div className="grid grid-cols-3 gap-1 mb-2">
-                                <button
-                                  onClick={() => {
-                                    setSelectedFieldRowsForOperations([row.id]);
-                                    setQuickOperationType('fertilization');
-                                    setShowQuickOperationModal(true);
-                                  }}
-                                  className="flex items-center justify-center gap-1 px-2 py-1 text-xs bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
-                                >
-                                  ⚡ Fertilizza
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setSelectedFieldRowsForOperations([row.id]);
-                                    setQuickOperationType('treatment');
-                                    setShowQuickOperationModal(true);
-                                  }}
-                                  className="flex items-center justify-center gap-1 px-2 py-1 text-xs bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
-                                >
-                                  🛡️ Tratta
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setSelectedFieldRowsForOperations([row.id]);
-                                    setQuickOperationType('cultivation');
-                                    setShowQuickOperationModal(true);
-                                  }}
-                                  className="flex items-center justify-center gap-1 px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
-                                >
-                                  🔧 Lavora
-                                </button>
-                              </div>
-                              
-                              {/* Advanced Operations Button */}
-                              <div>
-                                <button
-                                  onClick={() => {
-                                    setSelectedFieldRowsForOperations([row.id]);
-                                    setShowIntegratedOperationsModal(true);
-                                  }}
-                                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                                >
-                                  ⚙️ Operazioni Avanzate
-                                </button>
-                              </div>
-                            </>
-                          );
-                        } else {
-                          // FILARE CONFIGURATO MA SENZA PIANTE - Pannello blu con azioni limitate
-                          return (
-                            <div className="space-y-2">
-                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-blue-600">🌱</span>
-                                  <span className="text-sm font-medium text-blue-800">Filare Configurato</span>
-                                </div>
-                                <p className="text-xs text-blue-700 mb-3">
-                                  Coltura: {row.cultivar} • Piantato: {new Date(row.planted_date).toLocaleDateString('it-IT')}
-                                </p>
-                                
-                                <div className="grid grid-cols-1 gap-3">
-                                  <div className="bg-white border-2 border-green-500 rounded-lg p-3">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <span className="text-green-600 text-lg">🌾</span>
-                                      <span className="font-semibold text-green-800">Vedi Piante del Filare</span>
-                                    </div>
-                                    <p className="text-xs text-green-700 mb-3">
-                                      Visualizza e gestisci le piante di questo filare
-                                    </p>
-                                    <Link
-                                      href={`/app/plants?tab=plants&fieldRow=${row.id}`}
-                                      className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                                    >
-                                      🌾 VEDI PIANTE DEL FILARE →
-                                    </Link>
-                                  </div>
-                                  
-                                  <div className="bg-white border border-orange-300 rounded-lg p-3">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <span className="text-orange-600 text-lg">🌱</span>
-                                      <span className="font-semibold text-orange-800">Aggiungi dal Vivaio</span>
-                                    </div>
-                                    <p className="text-xs text-orange-700 mb-3">
-                                      Trapianta piantine dal vivaio
-                                    </p>
-                                    <Link
-                                      href="/app/semenzaio"
-                                      className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
-                                    >
-                                      Vai al Vivaio →
-                                    </Link>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        }
-                      })()}
-                    </div>
+        {/* Garden Hub Link */}
+        {activeGarden && (
+          <Link href={`/app/garden?garden=${activeGarden.id}`} className="block">
+            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl border-2 border-green-400 p-6 hover:shadow-xl transition-all duration-300 group">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-white text-2xl">🌱</span>
                   </div>
-                )
-              })}
-            </div>
-            
-            {fieldRows.length > 6 && (
-              <div className="mt-4 text-center">
-                <Link 
-                  href="/app/settings?section=gardens" 
-                  className="text-sm text-gray-600 hover:text-gray-800"
-                >
-                  Vedi tutti i {fieldRows.length} filari →
-                </Link>
+                  <div className="text-white">
+                    <h3 className="font-bold text-xl mb-1">Gestione Orto</h3>
+                    <p className="text-green-100 text-sm">{activeGarden.name}</p>
+                  </div>
+                </div>
+                <div className="text-white text-2xl group-hover:translate-x-2 transition-transform">
+                  →
+                </div>
               </div>
-            )}
-          </div>
+              
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+                  <div className="text-white/80 text-xs mb-1">Filari</div>
+                  <div className="text-white font-bold text-lg">{fieldRows.length}</div>
+                </div>
+                <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+                  <div className="text-white/80 text-xs mb-1">Piante</div>
+                  <div className="text-white font-bold text-lg">{fieldRowPlants.length}</div>
+                </div>
+              </div>
+            </div>
+          </Link>
         )}
 
         {/* Link Rapidi alle Funzionalità Avanzate */}

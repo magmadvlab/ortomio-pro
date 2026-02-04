@@ -1,6 +1,7 @@
--- Migration: Add Land Zones and Soil Memory System
+-- Migration: Add Land Zones and Soil Memory System (SIMPLIFIED VERSION)
 -- Created: 2026-02-04
 -- Purpose: Gestire macro-zone del terreno e memoria storica indipendente dai filari
+-- Approach: Zone fisse semplici, nessun GPS, focus su nome + superficie
 
 -- ============================================
 -- LAND_ZONES (Macro-Zone del Terreno) - VERSIONE SEMPLIFICATA
@@ -144,104 +145,16 @@ CREATE POLICY "Users can delete their soil memory"
   USING (user_id = auth.uid());
 
 -- ============================================
+-- AGGIUNGI CAMPO ZONA AI FILARI
+-- ============================================
+ALTER TABLE garden_rows 
+ADD COLUMN IF NOT EXISTS land_zone_id UUID REFERENCES land_zones(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_garden_rows_zone ON garden_rows(land_zone_id);
+
+-- ============================================
 -- FUNZIONI HELPER
 -- ============================================
-
--- Funzione per chiudere un ciclo stagionale e preservare la memoria
-CREATE OR REPLACE FUNCTION close_season_cycle(
-  cycle_id UUID,
-  end_date_param TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-)
-RETURNS JSONB AS $$
-DECLARE
-  cycle_record season_cycles;
-  memory_records_created INTEGER := 0;
-  field_row_record RECORD;
-BEGIN
-  -- Ottieni il ciclo
-  SELECT * INTO cycle_record
-  FROM season_cycles
-  WHERE id = cycle_id;
-  
-  IF NOT FOUND THEN
-    RETURN jsonb_build_object(
-      'success', false,
-      'error', 'Cycle not found'
-    );
-  END IF;
-  
-  -- Per ogni filare nel ciclo, copia lo storico in soil_memory
-  FOR field_row_record IN
-    SELECT h.*
-    FROM field_row_crop_history h
-    WHERE h.garden_id = cycle_record.garden_id
-      AND h.planting_date >= cycle_record.start_date
-      AND (h.harvest_date IS NULL OR h.harvest_date <= end_date_param)
-  LOOP
-    -- Inserisci in soil_memory
-    INSERT INTO soil_memory (
-      land_zone_id,
-      garden_id,
-      user_id,
-      field_row_id,
-      crop_name,
-      crop_variety,
-      crop_family,
-      crop_type,
-      planting_date,
-      harvest_date,
-      days_to_harvest,
-      season_year,
-      season_type,
-      yield_kg,
-      quality_rating,
-      fertilization_type,
-      irrigation_method,
-      treatments_count,
-      planting_context,
-      success_score
-    )
-    SELECT
-      cycle_record.land_zone_id,
-      field_row_record.garden_id,
-      field_row_record.user_id,
-      field_row_record.garden_row_id,
-      field_row_record.crop_name,
-      field_row_record.crop_variety,
-      field_row_record.crop_family,
-      field_row_record.crop_type,
-      field_row_record.planting_date,
-      field_row_record.harvest_date,
-      field_row_record.days_to_harvest,
-      cycle_record.cycle_year,
-      cycle_record.cycle_season,
-      field_row_record.yield_kg,
-      field_row_record.quality_rating,
-      field_row_record.fertilization_type,
-      field_row_record.irrigation_method,
-      field_row_record.treatments_count,
-      field_row_record.planting_context,
-      field_row_record.rotation_score;
-    
-    memory_records_created := memory_records_created + 1;
-  END LOOP;
-  
-  -- Aggiorna stato ciclo
-  UPDATE season_cycles
-  SET 
-    status = 'completed',
-    end_date = end_date_param,
-    updated_at = NOW()
-  WHERE id = cycle_id;
-  
-  RETURN jsonb_build_object(
-    'success', true,
-    'cycle_id', cycle_id,
-    'memory_records_created', memory_records_created,
-    'message', 'Season cycle closed successfully'
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Funzione per ottenere suggerimenti rotazione basati su memoria del terreno
 CREATE OR REPLACE FUNCTION get_zone_rotation_suggestions(
@@ -266,8 +179,6 @@ BEGIN
   LIMIT 10;
   
   -- Genera suggerimenti basati su rotazione e memoria del terreno
-  -- (Logica simile a get_rotation_suggestions ma considera tutta la zona)
-  
   IF last_families IS NULL OR array_length(last_families, 1) = 0 THEN
     suggestions := jsonb_build_array(
       jsonb_build_object(
@@ -363,6 +274,41 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Funzione per ottenere storico completo di una zona
+CREATE OR REPLACE FUNCTION get_zone_history(
+  zone_id UUID,
+  years_back INTEGER DEFAULT 10
+)
+RETURNS TABLE (
+  crop_name TEXT,
+  crop_family TEXT,
+  planting_date TIMESTAMP WITH TIME ZONE,
+  harvest_date TIMESTAMP WITH TIME ZONE,
+  yield_kg DECIMAL,
+  quality_rating INTEGER,
+  success_score INTEGER,
+  season_year INTEGER,
+  season_type TEXT
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    sm.crop_name,
+    sm.crop_family,
+    sm.planting_date,
+    sm.harvest_date,
+    sm.yield_kg,
+    sm.quality_rating,
+    sm.success_score,
+    sm.season_year,
+    sm.season_type
+  FROM soil_memory sm
+  WHERE sm.land_zone_id = zone_id
+    AND sm.planting_date >= NOW() - (years_back || ' years')::INTERVAL
+  ORDER BY sm.planting_date DESC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Trigger per aggiornare updated_at
 CREATE OR REPLACE FUNCTION update_land_zones_updated_at()
 RETURNS TRIGGER AS $$
@@ -382,14 +328,9 @@ CREATE TRIGGER update_soil_memory_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_land_zones_updated_at();
 
-CREATE TRIGGER update_season_cycles_updated_at
-  BEFORE UPDATE ON season_cycles
-  FOR EACH ROW
-  EXECUTE FUNCTION update_land_zones_updated_at();
-
-COMMENT ON TABLE land_zones IS 'Macro-zone del terreno con caratteristiche e stato';
+-- Comments
+COMMENT ON TABLE land_zones IS 'Macro-zone del terreno - versione semplificata senza GPS';
 COMMENT ON TABLE soil_memory IS 'Memoria permanente del terreno indipendente dai filari';
-COMMENT ON TABLE season_cycles IS 'Cicli stagionali con snapshot configurazione';
-COMMENT ON FUNCTION close_season_cycle IS 'Chiude un ciclo stagionale preservando la memoria del terreno';
 COMMENT ON FUNCTION get_zone_rotation_suggestions IS 'Suggerimenti rotazione basati su memoria zona';
 COMMENT ON FUNCTION calculate_zone_soil_health IS 'Calcola salute del terreno di una zona';
+COMMENT ON FUNCTION get_zone_history IS 'Ottiene storico completo colture di una zona';

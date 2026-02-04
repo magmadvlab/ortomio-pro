@@ -1,108 +1,133 @@
-feat: Sistema Macro-Zone e Memoria Permanente del Terreno
+feat: Implement Land Zones System for Crop Rotation and Soil Memory
 
-🌍 SISTEMA COMPLETO GESTIONE TERRENO PROFESSIONALE
+Implemented a simplified land zones system to manage crop rotation and preserve soil memory independently from field rows. This addresses the real-world scenario where field rows are temporary (destroyed after harvest/tilling) but the land retains memory.
 
-Risolve il problema della memoria del terreno quando si eliminano i filari
-a fine stagione. Il terreno ha memoria, i filari sono temporanei!
+## Database Changes
 
-📊 DATABASE - 3 NUOVE TABELLE
+### New Tables
+- `land_zones`: Fixed macro-zones with simple configuration (name + area in hectares)
+  - No GPS required, just name and surface area
+  - Status: active or resting
+  - Optional: soil type, notes
+  
+- `soil_memory`: Permanent soil memory independent from field rows
+  - Linked to land_zone_id (persists even when field rows are deleted)
+  - Stores crop history, performance, nitrogen impact
+  - Enables AI to learn from zone history
 
-1. land_zones (Macro-Zone del Terreno)
-   - Divisione fisica del terreno in zone
-   - Coordinate GPS (poligoni)
-   - Caratteristiche terreno (tipo, pH, drenaggio)
-   - Stati: active, resting, fallow, preparation
-   - Gestione rotazione zone (es. 2 ettari attivi, 2 a riposo)
+### Schema Updates
+- Added `land_zone_id` to `garden_rows` table (optional reference)
+- Field rows can now belong to a specific zone
 
-2. soil_memory (Memoria Permanente)
-   - Storico colture collegato alla zona (non al filare!)
-   - Persiste anche dopo eliminazione filari
-   - Impatto sul terreno (azoto, struttura, materia organica)
-   - Malattie, parassiti, problemi ricorrenti
-   - Usato dall'AI per suggerimenti futuri
+### SQL Functions
+- `get_zone_rotation_suggestions(zone_id, years_back)`: Rotation suggestions based on zone history
+- `calculate_zone_soil_health(zone_id)`: Calculate soil health score (0-100)
+- `get_zone_history(zone_id, years_back)`: Complete zone crop history
 
-3. season_cycles (Cicli Stagionali)
-   - Cicli di coltivazione (es. "Orto Estivo 2026")
-   - Snapshot configurazione filari
-   - Risultati aggregati
-   - Lavorazioni del terreno
-   - Chiusura ciclo preserva memoria
+## New Services
 
-🤖 FUNZIONI SQL INTELLIGENTI
+### landZoneService.ts
+Complete TypeScript service for zone management:
+- CRUD operations for zones
+- Toggle zone status (active ↔ resting)
+- Get rotation suggestions
+- Calculate soil health
+- Get zone history and statistics
+- Count and list field rows in zone
 
-- close_season_cycle(): Chiude ciclo e copia storico in soil_memory
-- get_zone_rotation_suggestions(): Suggerimenti basati su memoria zona
-- calculate_zone_soil_health(): Calcola salute terreno (0-100)
-  * Bilancio azoto
-  * Diversità colture
-  * Attività recente
+## New UI Pages
 
-🎯 WORKFLOW COMPLETO
+### /app/garden/zones
+Zone management page with:
+- Visual cards for each zone (green = active, yellow = resting)
+- Soil health display with score 0-100
+- Rotation suggestions with nitrogen benefit indicators
+- Zone statistics (area, active field rows, crops)
+- Toggle status button
+- Link to zone field rows
+- Delete zone functionality
 
-1. Inizio Stagione:
-   - Crea Land Zone (se non esiste)
-   - Crea Season Cycle
-   - Crea filari
-   - Sistema registra in soil_memory
+## User Workflow
 
-2. Durante Stagione:
-   - Gestione normale filari
-   - Registrazione automatica operazioni
+### Initial Setup (Once)
+1. Create fixed zones (e.g., "Zone A" 2ha, "Zone B" 2ha)
+2. Configure optional soil type and notes
 
-3. Fine Stagione:
-   - Chiudi Season Cycle
-   - Sistema copia tutto in soil_memory
-   - Elimina filari (lavori la terra)
-   - Memoria rimane!
+### Each Season
+1. Choose which zone to cultivate (set active)
+2. Put other zones to rest
+3. Create field rows in active zone
+4. Transplant crops normally
+5. System records everything in soil_memory linked to zone
 
-4. Nuova Stagione:
-   - AI suggerisce colture da memoria zona
-   - Considera bilancio nutrienti
-   - Ottimizza rotazione
+### End of Season
+1. Harvest crops
+2. Delete field rows (if needed for tilling)
+3. Switch zone status (Zone A → rest, Zone B → active)
+4. **Soil memory persists in Zone A!** ✅
 
-💡 CASI D'USO
+### Consult History
+1. View zone history to see all crops planted in that zone
+2. Check soil health score and nitrogen balance
+3. Get AI rotation suggestions based on zone history
 
-Scenario: 4 ettari di terreno
-- 2 ettari → Orto estivo (attivo)
-- 2 ettari → A riposo (rotazione)
+## Key Benefits
 
-Sistema gestisce:
-✅ Rotazione zone
-✅ Memoria permanente per zona
-✅ Suggerimenti basati su storico zona
-✅ Bilancio nutrienti per zona
-✅ Salute terreno per zona
+1. **Realistic**: Matches real agricultural practices
+   - Fixed zones, temporary field rows
+   - Soil memory preserved after tilling
 
-🌱 IMPATTO SUL TERRENO
+2. **Simple**: No GPS required
+   - Just name and surface area
+   - Easy to configure and understand
 
-Tracciamento automatico:
-- Nitrogen Impact (-100 a +100)
-  * Leguminose: +50/+80 (arricchiscono)
-  * Solanacee: -20/-40 (consumano)
-- Soil Structure Impact (-10 a +10)
-- Organic Matter Added (kg/mq)
-- Malattie e parassiti ricorrenti
+3. **Flexible**: Support for multiple zones
+   - Different sizes per zone
+   - Customizable rotation cycles
 
-✅ BENEFICI
+4. **AI-Powered**: Intelligent suggestions
+   - Based on zone history
+   - Nitrogen balance tracking
+   - Crop diversity scoring
 
-Per l'Agricoltore:
-- Memoria permanente multi-anno
-- Gestione professionale grandi appezzamenti
-- Rotazione zone intelligente
-- Non perdi dati eliminando filari
+## Technical Details
 
-Per l'AI:
-- Apprende da storico completo zona
-- Correla posizione-performance
-- Prevede problemi ricorrenti
-- Ottimizza rotazione per zona
+- RLS policies enabled for all tables
+- Cascade delete on zone deletion (removes soil memory)
+- SET NULL on field row deletion (preserves soil memory)
+- Indexes for performance on common queries
 
-📚 DOCUMENTAZIONE
+## Files Changed
 
-- SISTEMA_MACRO_ZONE_E_MEMORIA_TERRENO.md (guida completa)
-- Migration SQL con funzioni e trigger
-- Esempi pratici workflow
+### Database
+- database/migrations/20260204100000_add_land_zones_and_memory_simplified.sql
 
-Files:
-- database/migrations/20260204100000_add_land_zones_and_memory.sql
-- SISTEMA_MACRO_ZONE_E_MEMORIA_TERRENO.md
+### Services
+- services/landZoneService.ts (new)
+
+### UI
+- app/app/garden/zones/page.tsx (new)
+
+### Documentation
+- LAND_ZONES_SYSTEM_COMPLETE.md (new)
+- SISTEMA_ZONE_SEMPLIFICATO.md (existing spec)
+
+## Next Steps (TODO)
+
+1. Implement zone creation modal
+2. Add zone selection dropdown in field row creation
+3. Extend crop history panel to support zone view
+4. Integrate transplant service with zones
+5. Create detailed zone history modal
+6. Add zone edit page
+
+## Related Issues
+
+- Addresses crop rotation tracking for field rows
+- Solves soil memory preservation after field row deletion
+- Enables zone-based rotation planning
+- Supports multi-zone management for large gardens
+
+---
+
+This is a foundational system that will enable advanced crop rotation planning and soil health tracking at the zone level, independent of temporary field row configurations.
