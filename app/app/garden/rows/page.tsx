@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
-import { ArrowLeft, Save, Trash2, Settings, Droplets, Sprout, Plus, Edit2, Brain, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Save, Trash2, Settings, Droplets, Sprout, Plus, Edit2, Brain, TrendingUp, History, Calendar } from 'lucide-react'
 import Link from 'next/link'
 import { useFieldRowPredictions } from '@/services/fieldRowPredictiveService'
 import FieldRowPredictionWidget from '@/components/fieldrows/FieldRowPredictionWidget'
+import FieldRowCropHistoryPanel from '@/components/fieldrows/FieldRowCropHistoryPanel'
 
 export default function GardenRowsPage() {
   const { storageProvider } = useStorage()
@@ -19,6 +20,7 @@ export default function GardenRowsPage() {
   const [loading, setLoading] = useState(true)
   const [selectedGarden, setSelectedGarden] = useState<Garden | null>(null)
   const [showPredictions, setShowPredictions] = useState(false)
+  const [selectedRowForHistory, setSelectedRowForHistory] = useState<string | null>(null)
 
   // URL parameters
   const gardenId = searchParams.get('garden')
@@ -468,7 +470,7 @@ export default function GardenRowsPage() {
                     
                     {/* Actions */}
                     <div className="px-6 pb-6">
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-4 gap-2">
                         <Link
                           href={`/app/garden/rows?garden=${selectedGarden.id}`}
                           className="flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -483,12 +485,19 @@ export default function GardenRowsPage() {
                           <span className="text-sm">🌱</span>
                           Piante
                         </Link>
+                        <button
+                          onClick={() => setSelectedRowForHistory(row.id)}
+                          className="flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                        >
+                          <History size={14} />
+                          Storico
+                        </button>
                         <Link
                           href={`/app/garden/rows/edit?garden=${selectedGarden.id}&id=${row.id}`}
                           className="flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors"
                         >
                           <Edit2 size={14} />
-                          Configura
+                          Config
                         </Link>
                       </div>
                       
@@ -504,6 +513,32 @@ export default function GardenRowsPage() {
                   </div>
                 )
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Crop History Modal */}
+        {selectedRowForHistory && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                  <History size={28} className="text-purple-600" />
+                  Storico e Rotazione Colture
+                </h2>
+                <button
+                  onClick={() => setSelectedRowForHistory(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <span className="text-2xl">×</span>
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <FieldRowCropHistoryPanel
+                  rowId={selectedRowForHistory}
+                  rowName={fieldRows.find(r => r.id === selectedRowForHistory)?.name || 'Filare'}
+                />
+              </div>
             </div>
           </div>
         )}
