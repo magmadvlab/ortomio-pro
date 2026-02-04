@@ -1,0 +1,108 @@
+feat: Sistema Macro-Zone e Memoria Permanente del Terreno
+
+🌍 SISTEMA COMPLETO GESTIONE TERRENO PROFESSIONALE
+
+Risolve il problema della memoria del terreno quando si eliminano i filari
+a fine stagione. Il terreno ha memoria, i filari sono temporanei!
+
+📊 DATABASE - 3 NUOVE TABELLE
+
+1. land_zones (Macro-Zone del Terreno)
+   - Divisione fisica del terreno in zone
+   - Coordinate GPS (poligoni)
+   - Caratteristiche terreno (tipo, pH, drenaggio)
+   - Stati: active, resting, fallow, preparation
+   - Gestione rotazione zone (es. 2 ettari attivi, 2 a riposo)
+
+2. soil_memory (Memoria Permanente)
+   - Storico colture collegato alla zona (non al filare!)
+   - Persiste anche dopo eliminazione filari
+   - Impatto sul terreno (azoto, struttura, materia organica)
+   - Malattie, parassiti, problemi ricorrenti
+   - Usato dall'AI per suggerimenti futuri
+
+3. season_cycles (Cicli Stagionali)
+   - Cicli di coltivazione (es. "Orto Estivo 2026")
+   - Snapshot configurazione filari
+   - Risultati aggregati
+   - Lavorazioni del terreno
+   - Chiusura ciclo preserva memoria
+
+🤖 FUNZIONI SQL INTELLIGENTI
+
+- close_season_cycle(): Chiude ciclo e copia storico in soil_memory
+- get_zone_rotation_suggestions(): Suggerimenti basati su memoria zona
+- calculate_zone_soil_health(): Calcola salute terreno (0-100)
+  * Bilancio azoto
+  * Diversità colture
+  * Attività recente
+
+🎯 WORKFLOW COMPLETO
+
+1. Inizio Stagione:
+   - Crea Land Zone (se non esiste)
+   - Crea Season Cycle
+   - Crea filari
+   - Sistema registra in soil_memory
+
+2. Durante Stagione:
+   - Gestione normale filari
+   - Registrazione automatica operazioni
+
+3. Fine Stagione:
+   - Chiudi Season Cycle
+   - Sistema copia tutto in soil_memory
+   - Elimina filari (lavori la terra)
+   - Memoria rimane!
+
+4. Nuova Stagione:
+   - AI suggerisce colture da memoria zona
+   - Considera bilancio nutrienti
+   - Ottimizza rotazione
+
+💡 CASI D'USO
+
+Scenario: 4 ettari di terreno
+- 2 ettari → Orto estivo (attivo)
+- 2 ettari → A riposo (rotazione)
+
+Sistema gestisce:
+✅ Rotazione zone
+✅ Memoria permanente per zona
+✅ Suggerimenti basati su storico zona
+✅ Bilancio nutrienti per zona
+✅ Salute terreno per zona
+
+🌱 IMPATTO SUL TERRENO
+
+Tracciamento automatico:
+- Nitrogen Impact (-100 a +100)
+  * Leguminose: +50/+80 (arricchiscono)
+  * Solanacee: -20/-40 (consumano)
+- Soil Structure Impact (-10 a +10)
+- Organic Matter Added (kg/mq)
+- Malattie e parassiti ricorrenti
+
+✅ BENEFICI
+
+Per l'Agricoltore:
+- Memoria permanente multi-anno
+- Gestione professionale grandi appezzamenti
+- Rotazione zone intelligente
+- Non perdi dati eliminando filari
+
+Per l'AI:
+- Apprende da storico completo zona
+- Correla posizione-performance
+- Prevede problemi ricorrenti
+- Ottimizza rotazione per zona
+
+📚 DOCUMENTAZIONE
+
+- SISTEMA_MACRO_ZONE_E_MEMORIA_TERRENO.md (guida completa)
+- Migration SQL con funzioni e trigger
+- Esempi pratici workflow
+
+Files:
+- database/migrations/20260204100000_add_land_zones_and_memory.sql
+- SISTEMA_MACRO_ZONE_E_MEMORIA_TERRENO.md
