@@ -5,6 +5,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { GardenPlant } from '../../types/individualPlant';
+import PlantPhotoHealthModal from './PlantPhotoHealthModal';
+import PlantHarvestModal from './PlantHarvestModal';
 import { 
   TrendingUp, 
   AlertTriangle, 
@@ -20,6 +22,7 @@ interface PlantHealthHeatmapProps {
   onPlantSelect?: (plant: GardenPlant) => void;
   onPlantHover?: (plant: GardenPlant | null) => void;
   onShowDetails?: (plant: GardenPlant) => void;
+  gardenCoordinates?: { latitude: number; longitude: number };
 }
 
 interface HeatmapCell {
@@ -34,11 +37,14 @@ const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
   plants,
   onPlantSelect,
   onPlantHover,
-  onShowDetails
+  onShowDetails,
+  gardenCoordinates
 }) => {
   const [selectedPlant, setSelectedPlant] = useState<GardenPlant | null>(null);
   const [zoomLevel, setZoomLevel] = useState<'overview' | 'detailed'>('overview');
   const [hoveredPlant, setHoveredPlant] = useState<GardenPlant | null>(null);
+  const [showPhotoHealthModal, setShowPhotoHealthModal] = useState(false);
+  const [showHarvestModal, setShowHarvestModal] = useState(false);
 
   // Organizza piante per filare e posizione
   const heatmapData = useMemo(() => {
@@ -339,7 +345,10 @@ const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
                   
                   {selectedPlant && (
                     <div className="flex gap-3 pt-3">
-                      <button className="flex-1 px-4 py-3 text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-3 text-sm">
+                      <button 
+                        onClick={() => setShowPhotoHealthModal(true)}
+                        className="flex-1 px-4 py-3 text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-3 text-sm"
+                      >
                         <Camera size={16} />
                         Foto
                       </button>
@@ -375,6 +384,30 @@ const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
             Seleziona Piante Malate
           </button>
         </div>
+      )}
+      
+      {/* Modals */}
+      {selectedPlant && (
+        <>
+          <PlantPhotoHealthModal
+            plant={selectedPlant}
+            isOpen={showPhotoHealthModal}
+            onClose={() => setShowPhotoHealthModal(false)}
+            onSuccess={() => {
+              setShowPhotoHealthModal(false);
+            }}
+            gardenCoordinates={gardenCoordinates}
+          />
+          <PlantHarvestModal
+            plant={selectedPlant}
+            isOpen={showHarvestModal}
+            onClose={() => setShowHarvestModal(false)}
+            onSuccess={() => {
+              setShowHarvestModal(false);
+            }}
+            gardenCoordinates={gardenCoordinates}
+          />
+        </>
       )}
     </div>
   );

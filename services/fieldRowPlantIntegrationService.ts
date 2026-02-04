@@ -47,6 +47,10 @@ export function generatePlantsFromFieldRow(
   // Genera codici pianta (es. F1-P001, F1-P002, etc.)
   const rowNumber = config.fieldRowId.slice(-2) // Usa ultimi 2 caratteri come numero filare
   
+  // Genera contesto di impianto di default
+  const plantingDate = new Date(config.plantingDate);
+  const defaultContext = generateDefaultPlantingContext(plantingDate);
+  
   for (let i = 0; i < maxPlants; i++) {
     const positionInRow = (config.startingPosition || 1) + i
     const plantCode = `F${rowNumber}-P${positionInRow.toString().padStart(3, '0')}`
@@ -60,6 +64,8 @@ export function generatePlantsFromFieldRow(
       plantName: config.plantName,
       variety: config.variety,
       plantingDate: config.plantingDate,
+      plantingContext: defaultContext, // Aggiungi contesto
+      source: 'seed', // Default: da seme
       status: 'healthy',
       healthScore: 85, // Salute iniziale buona
       photos: [],
@@ -71,6 +77,76 @@ export function generatePlantsFromFieldRow(
   }
   
   return plants
+}
+
+/**
+ * Genera un contesto di impianto di default basato sulla data
+ */
+function generateDefaultPlantingContext(plantingDate: Date): any {
+  const month = plantingDate.getMonth();
+  
+  // Determina stagione
+  let season = 'spring';
+  if (month >= 2 && month <= 4) season = 'spring';
+  else if (month >= 5 && month <= 7) season = 'summer';
+  else if (month >= 8 && month <= 10) season = 'autumn';
+  else season = 'winter';
+  
+  // Temperatura media per stagione
+  const tempByseason = {
+    spring: 18,
+    summer: 28,
+    autumn: 15,
+    winter: 8
+  };
+  
+  // Fase lunare approssimativa (basata sul giorno del mese)
+  const dayOfMonth = plantingDate.getDate();
+  let moonPhase = 'Crescente';
+  let moonEmoji = '🌒';
+  let illumination = 50;
+  
+  if (dayOfMonth <= 7) {
+    moonPhase = 'Crescente';
+    moonEmoji = '🌒';
+    illumination = 25;
+  } else if (dayOfMonth <= 14) {
+    moonPhase = 'Primo Quarto';
+    moonEmoji = '🌓';
+    illumination = 50;
+  } else if (dayOfMonth <= 21) {
+    moonPhase = 'Piena';
+    moonEmoji = '🌕';
+    illumination = 100;
+  } else {
+    moonPhase = 'Calante';
+    moonEmoji = '🌘';
+    illumination = 25;
+  }
+  
+  // Ore di luce per stagione
+  const daylightByseason = {
+    spring: { hours: 13, sunrise: '06:30', sunset: '19:30' },
+    summer: { hours: 15, sunrise: '05:30', sunset: '20:30' },
+    autumn: { hours: 11, sunrise: '07:00', sunset: '18:00' },
+    winter: { hours: 9, sunrise: '07:30', sunset: '16:30' }
+  };
+  
+  return {
+    weather: {
+      temp: tempByseason[season as keyof typeof tempByseason],
+      humidity: 65,
+      condition: 'sunny'
+    },
+    moon: {
+      phase: moonPhase,
+      emoji: moonEmoji,
+      illumination,
+      waxing: dayOfMonth <= 14
+    },
+    season,
+    daylight: daylightByseason[season as keyof typeof daylightByseason]
+  };
 }
 
 /**

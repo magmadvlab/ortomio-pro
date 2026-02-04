@@ -877,6 +877,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
                   setSelectedPlantForDetail(plant);
                   setShowPlantDetailModal(true);
                 }}
+                gardenCoordinates={garden.coordinates}
               />
             )}
 
@@ -1162,16 +1163,24 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
       )}
       
       {/* Plant Detail Modal */}
-      {selectedPlantForDetail && (
-        <PlantDetailModal
-          plant={selectedPlantForDetail}
-          isOpen={showPlantDetailModal}
-          onClose={() => {
-            setShowPlantDetailModal(false);
-            setSelectedPlantForDetail(null);
-          }}
-        />
-      )}
+      <PlantDetailModal
+        plant={selectedPlantForDetail || {
+          id: '',
+          gardenId: garden.id,
+          plantCode: '',
+          plantName: '',
+          variety: '',
+          plantedDate: new Date().toISOString(),
+          status: 'healthy',
+          healthScore: 100,
+          photos: []
+        } as GardenPlant}
+        isOpen={showPlantDetailModal && selectedPlantForDetail !== null}
+        onClose={() => {
+          setShowPlantDetailModal(false);
+          setSelectedPlantForDetail(null);
+        }}
+      />
     </div>
   );
 };

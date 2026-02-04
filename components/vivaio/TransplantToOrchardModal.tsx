@@ -141,7 +141,8 @@ export const TransplantToOrchardModal: React.FC<TransplantToOrchardModalProps> =
       const result = await transplantOrchestrationService.executeTransplant(
         operation,
         batch,
-        fieldRow
+        fieldRow,
+        garden // PASSA IL GARDEN PER COORDINATE
       )
       
       console.log('✅ TransplantModal: Trapianto eseguito:', result)

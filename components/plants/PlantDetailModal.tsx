@@ -137,6 +137,146 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
             </button>
           </div>
 
+          {/* Carta d'Identità */}
+          <div className="bg-white/10 rounded-lg p-4 mb-4">
+            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+              <Calendar size={16} />
+              Carta d'Identità Pianta
+            </h3>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <div className="text-green-100 text-xs mb-1">📅 Piantata il</div>
+                <div className="font-medium">
+                  {plant.plantedDate && !isNaN(new Date(plant.plantedDate).getTime()) ? (
+                    new Date(plant.plantedDate).toLocaleDateString('it-IT', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    })
+                  ) : (
+                    'Data non disponibile'
+                  )}
+                </div>
+                <div className="text-green-100 text-xs mt-1">
+                  {plant.plantedDate && !isNaN(new Date(plant.plantedDate).getTime()) ? (
+                    `${Math.floor((new Date().getTime() - new Date(plant.plantedDate).getTime()) / (1000 * 60 * 60 * 24))} giorni fa`
+                  ) : (
+                    'N/D'
+                  )}
+                </div>
+              </div>
+              
+              {plant.plantingContext ? (
+                <>
+                  {/* Meteo */}
+                  {(plant.plantingContext.weather?.temp || plant.plantingContext.weather?.temperature) && (
+                    <div>
+                      <div className="text-green-100 text-xs mb-1">🌡️ Meteo Impianto</div>
+                      <div className="font-medium">
+                        {plant.plantingContext.weather?.temp || plant.plantingContext.weather?.temperature}°C
+                      </div>
+                      <div className="text-green-100 text-xs mt-1">
+                        {plant.plantingContext.weather?.condition || 
+                         plant.plantingContext.weather?.description || 'N/D'}
+                      </div>
+                      {plant.plantingContext.weather?.humidity && (
+                        <div className="text-green-100 text-xs">
+                          💧 {plant.plantingContext.weather.humidity}%
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Fase Lunare */}
+                  {(plant.plantingContext.lunar || plant.plantingContext.moon) && (
+                    <div>
+                      <div className="text-green-100 text-xs mb-1">🌙 Fase Lunare</div>
+                      <div className="font-medium">
+                        {(plant.plantingContext.lunar?.phaseEmoji || plant.plantingContext.moon?.emoji || '🌙')} {' '}
+                        {plant.plantingContext.lunar?.phase || plant.plantingContext.moon?.phase || 'N/D'}
+                      </div>
+                      <div className="text-green-100 text-xs mt-1">
+                        {(plant.plantingContext.lunar?.isWaxing || plant.plantingContext.moon?.waxing) ? 'Crescente' : 'Calante'}
+                      </div>
+                      {(plant.plantingContext.lunar?.illumination || plant.plantingContext.moon?.illumination) && (
+                        <div className="text-green-100 text-xs">
+                          ✨ {plant.plantingContext.lunar?.illumination || plant.plantingContext.moon?.illumination}% illuminata
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Stagione */}
+                  {plant.plantingContext.season && (
+                    <div>
+                      <div className="text-green-100 text-xs mb-1">🌍 Stagione</div>
+                      <div className="font-medium capitalize">
+                        {plant.plantingContext.season === 'spring' ? '🌸 Primavera' :
+                         plant.plantingContext.season === 'summer' ? '☀️ Estate' :
+                         plant.plantingContext.season === 'autumn' ? '🍂 Autunno' : 
+                         plant.plantingContext.season === 'winter' ? '❄️ Inverno' : plant.plantingContext.season}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Ore di luce */}
+                  {plant.plantingContext.daylight && (
+                    <div>
+                      <div className="text-green-100 text-xs mb-1">☀️ Ore di Luce</div>
+                      <div className="font-medium">
+                        {plant.plantingContext.daylight.hours ? 
+                          `${plant.plantingContext.daylight.hours.toFixed(1)}h` : 'N/D'}
+                      </div>
+                      {plant.plantingContext.daylight.sunrise && plant.plantingContext.daylight.sunset && (
+                        <div className="text-green-100 text-xs mt-1">
+                          🌅 {plant.plantingContext.daylight.sunrise} - 🌇 {plant.plantingContext.daylight.sunset}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="col-span-2 text-center py-4">
+                  <div className="text-green-100 text-sm">
+                    ℹ️ Contesto ambientale non disponibile
+                  </div>
+                  <div className="text-green-100 text-xs mt-1">
+                    Questa pianta è stata creata prima dell'implementazione del sistema di tracciamento
+                  </div>
+                </div>
+              )}
+              
+              {plant.photos && plant.photos.length > 0 && (
+                <div>
+                  <div className="text-green-100 text-xs mb-1">📸 Ultima Foto</div>
+                  <div className="font-medium">
+                    {(() => {
+                      // Trova l'operazione più recente con foto
+                      const photoOps = operations.filter(op => op.photos && op.photos.length > 0);
+                      if (photoOps.length > 0) {
+                        const lastPhotoOp = photoOps[0]; // Già ordinato per data
+                        const daysSince = Math.floor((new Date().getTime() - new Date(lastPhotoOp.date).getTime()) / (1000 * 60 * 60 * 24));
+                        return `${daysSince} giorni fa`;
+                      }
+                      return 'Nessuna foto';
+                    })()}
+                  </div>
+                </div>
+              )}
+              
+              {plant.source && (
+                <div>
+                  <div className="text-green-100 text-xs mb-1">🌱 Origine</div>
+                  <div className="font-medium">
+                    {plant.source === 'seed' ? '🌾 Da seme' :
+                     plant.source === 'nursery' ? '🏪 Vivaio' :
+                     plant.source === 'transplant' ? '🔄 Trapianto' : 'N/D'}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Quick Stats */}
           <div className="grid grid-cols-4 gap-4">
             <div className="bg-white/20 rounded-lg p-3">

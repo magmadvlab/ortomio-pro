@@ -1,0 +1,110 @@
+feat: Sistema Rotazione Colture + Fix Carta Identità Pianta
+
+🔄 SISTEMA COMPLETO ROTAZIONE COLTURE PER FILARI
+
+Ogni filare ora ha memoria completa delle colture con:
+- Storico cronologico completo
+- Contesto ambientale (meteo, luna, stagione)
+- Performance e risultati (kg, qualità, problemi)
+- Suggerimenti AI per rotazione ottimale
+- Riconoscimento automatico 8 famiglie botaniche
+
+📊 DATABASE
+- Nuova tabella: field_row_crop_history
+- Funzioni SQL intelligenti:
+  * calculate_rotation_score() - punteggio 1-100
+  * get_rotation_suggestions() - top 3 colture consigliate
+  * get_field_row_history() - storico completo
+- Viste analitiche:
+  * field_row_rotation_analysis
+  * crop_performance_by_family
+
+🌿 RICONOSCIMENTO AUTOMATICO
+- Solanacee, Leguminose, Crucifere, Cucurbitacee
+- Liliacee, Composite, Ombrellifere, Chenopodiacee
+- Classificazione per tipo: frutto, foglia, radice, bulbo, legume
+
+🤖 AI INTELLIGENTE
+- Calcolo automatico punteggio rotazione
+- Suggerimenti basati su ciclo classico
+- Apprendimento da storico performance
+- Prevenzione impoverimento terreno
+
+📱 COMPONENTE UI
+- FieldRowCropHistoryPanel con 2 tab:
+  * Storico: lista cronologica con dettagli completi
+  * Suggerimenti: top 3 colture con motivazioni
+- Visualizzazione contesto ambientale
+- Performance con stelle e kg raccolti
+
+🔗 INTEGRAZIONE AUTOMATICA
+- Registrazione automatica al trapianto dal vivaio
+- Cattura contesto ambientale completo
+- Calcolo rotation score in tempo reale
+- Sincronizzazione con carta identità piante
+
+---
+
+🔧 FIX CARTA D'IDENTITÀ PIANTA
+
+Risolti problemi visualizzazione dati:
+- ✅ Fix "Invalid Date" → validazione robusta
+- ✅ Fix "NaN giorni fa" → calcolo corretto
+- ✅ Fix dati meteo mancanti → supporto strutture multiple
+- ✅ Fix fase lunare mancante → contesto default
+- ✅ Gestione piante senza contesto → messaggio informativo
+
+📊 MIGLIORAMENTI VISUALIZZAZIONE
+- Validazione date robusta con fallback
+- Supporto strutture dati multiple (temp/temperature, lunar/moon)
+- Contesto default per piante generate
+- Emoji per stagioni (🌸🌞🍂❄️)
+- Visualizzazione completa ore di luce con alba/tramonto
+- Illuminazione lunare con percentuale
+
+🎯 CONTESTO DEFAULT INTELLIGENTE
+- Calcolo automatico stagione da data
+- Temperatura media per stagione
+- Fase lunare approssimativa da giorno del mese
+- Ore di luce per stagione
+- Sempre disponibile per piante generate
+
+---
+
+🔧 FIX PLANT DETAIL MODAL
+
+Risolto problema modal che non si apriva:
+- ✅ Rimosso rendering condizionale problematico
+- ✅ Modal sempre renderizzato, controllato solo da isOpen
+- ✅ Eliminato race condition con state updates
+- ✅ Fallback plant object per evitare errori
+
+---
+
+✅ BENEFICI COMPLESSIVI
+
+Per l'Utente:
+- Decisioni data-driven per rotazione colture
+- Tracciabilità completa piante e colture
+- Visualizzazione chiara e completa
+- Nessun errore o dato mancante
+
+Per l'AI:
+- Apprendimento continuo da storico
+- Correlazioni meteo-successo colture
+- Previsioni accurate basate su dati reali
+- Pattern recognition per condizioni ottimali
+
+Files:
+- database/migrations/20260204000000_add_field_row_crop_history.sql
+- services/fieldRowCropHistoryService.ts
+- components/fieldrows/FieldRowCropHistoryPanel.tsx
+- services/transplantOrchestrationService.ts (updated)
+- components/plants/PlantDetailModal.tsx (updated)
+- services/fieldRowPlantIntegrationService.ts (updated)
+- components/plants/SmartPlantManager.tsx (updated)
+- test-crop-rotation-system.js
+- FIELD_ROW_CROP_ROTATION_SYSTEM_COMPLETE.md
+- PLANT_IDENTITY_CARD_FIX_COMPLETE.md
+- PLANT_DETAIL_MODAL_FIX_COMPLETE.md
+- SESSION_SUMMARY_FEB04_CROP_ROTATION.md

@@ -6,6 +6,8 @@
 import { GardenPlant } from '@/types/individualPlant'
 import { SeedlingBatch } from '@/services/seedlingService'
 import { Garden } from '@/types'
+import { createOperationContextService } from './operationContextService'
+import { fieldRowCropHistoryService } from './fieldRowCropHistoryService'
 
 export interface TransplantOperation {
   id: string
@@ -70,10 +72,27 @@ export class TransplantOrchestrationService {
   async executeTransplant(
     operation: TransplantOperation,
     batch: SeedlingBatch,
-    fieldRow: any
+    fieldRow: any,
+    garden?: Garden
   ): Promise<TransplantResult> {
     
     try {
+      // Ottieni contesto ambientale per il trapianto
+      const contextService = createOperationContextService();
+      let plantingContext;
+      
+      if (garden?.coordinates) {
+        try {
+          plantingContext = await contextService.getOperationContext(
+            garden.coordinates.latitude,
+            garden.coordinates.longitude,
+            new Date(operation.transplantDate)
+          );
+        } catch (error) {
+          console.warn('Could not get planting context:', error);
+        }
+      }
+      
       // 1. Crea piante individuali nell'orto
       const plantsCreated: GardenPlant[] = []
       
@@ -91,29 +110,16 @@ export class TransplantOrchestrationService {
           plantName: batch.plantName,
           variety: batch.variety,
           plantingDate: operation.transplantDate,
-          transplantDate: operation.transplantDate,
-          sourceVivaio: {
-            batchId: batch.id,
-            originalSeedDate: batch.seedDate,
-            vivaioPhase: batch.phase,
-            transplantOperation: operation.id
-          },
+          plantedDate: operation.transplantDate, // Alias
+          source: 'nursery', // Origine: vivaio
+          seedlingBatchId: batch.id,
+          plantingContext, // CONTESTO AMBIENTALE
           status: 'healthy',
           healthScore: 85, // Salute iniziale buona post-trapianto
-          stage: 'transplanted', // Nuova fase: appena trapiantato
           photos: [],
-          operations: [{
-            id: `op_transplant_${Date.now()}`,
-            type: 'transplant',
-            date: operation.transplantDate,
-            notes: `Trapiantato dal vivaio - Batch: ${batch.id}`,
-            operatorId: 'system',
-            success: true
-          }],
-          orchestratorEnabled: true, // ATTIVA L'ORCHESTRATOR
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
-        }
+        } as any;
         
         plantsCreated.push(plant)
       }
@@ -125,7 +131,16 @@ export class TransplantOrchestrationService {
         completedAt: new Date().toISOString()
       }
       
-      // 3. Attiva orchestrator per ogni pianta
+      // 3. Registra nello storico delle colture del filare
+      await this.recordCropHistory(
+        operation.fieldRowId,
+        operation.gardenId,
+        batch,
+        operation.transplantDate,
+        garden
+      );
+      
+      // 4. Attiva orchestrator per ogni pianta
       const orchestratorActivated = await this.activateOrchestrator(plantsCreated)
       
       return {
@@ -143,6 +158,37 @@ export class TransplantOrchestrationService {
         orchestratorActivated: false,
         errors: [error instanceof Error ? error.message : 'Errore sconosciuto']
       }
+    }
+  }
+  
+  /**
+   * Registra la coltura nello storico del filare
+   */
+  private async recordCropHistory(
+    fieldRowId: string,
+    gardenId: string,
+    batch: SeedlingBatch,
+    plantingDate: string,
+    garden?: Garden
+  ): Promise<void> {
+    try {
+      await fieldRowCropHistoryService.recordCropPlanting({
+        gardenRowId: fieldRowId,
+        gardenId,
+        cropName: batch.plantName,
+        cropVariety: batch.variety,
+        plantingDate: new Date(plantingDate),
+        notes: `Trapianto dal vivaio - Batch ${batch.id}`,
+        gps: garden?.coordinates ? {
+          lat: garden.coordinates.latitude,
+          lng: garden.coordinates.longitude
+        } : undefined
+      });
+      
+      console.log(`📊 Storico colture aggiornato per filare ${fieldRowId}`);
+    } catch (error) {
+      console.error('Errore registrazione storico colture:', error);
+      // Non blocca il trapianto se fallisce la registrazione
     }
   }
   

@@ -1,0 +1,59 @@
+feat: Sistema Completo Rotazione Colture per Filari con AI
+
+🔄 SISTEMA ROTAZIONE COLTURE IMPLEMENTATO
+
+Ogni filare ora ha memoria completa delle colture con:
+- Storico cronologico completo
+- Contesto ambientale (meteo, luna, stagione)
+- Performance e risultati
+- Suggerimenti AI per rotazione ottimale
+
+📊 DATABASE
+- Nuova tabella: field_row_crop_history
+- Funzioni SQL intelligenti:
+  * calculate_rotation_score() - punteggio 1-100
+  * get_rotation_suggestions() - top 3 colture consigliate
+  * get_field_row_history() - storico completo
+- Viste analitiche:
+  * field_row_rotation_analysis
+  * crop_performance_by_family
+
+🌿 RICONOSCIMENTO AUTOMATICO
+- 8 famiglie botaniche riconosciute automaticamente
+- Solanacee, Leguminose, Crucifere, Cucurbitacee, etc.
+- Classificazione per tipo: frutto, foglia, radice, bulbo, legume
+
+🤖 AI INTELLIGENTE
+- Calcolo automatico punteggio rotazione
+- Suggerimenti basati su ciclo classico
+- Apprendimento da storico performance
+- Prevenzione impoverimento terreno
+
+📱 COMPONENTE UI
+- FieldRowCropHistoryPanel con 2 tab:
+  * Storico: lista cronologica con dettagli completi
+  * Suggerimenti: top 3 colture con motivazioni
+- Visualizzazione contesto ambientale
+- Performance con stelle e kg raccolti
+- Fattori successo e problemi
+
+🔗 INTEGRAZIONE AUTOMATICA
+- Registrazione automatica al trapianto dal vivaio
+- Cattura contesto ambientale completo
+- Calcolo rotation score in tempo reale
+- Sincronizzazione con carta identità piante
+
+✅ BENEFICI
+- Decisioni data-driven per rotazione
+- Prevenzione malattie e parassiti
+- Ottimizzazione fertilità terreno
+- Apprendimento continuo AI
+- Tracciabilità completa
+
+Files:
+- database/migrations/20260204000000_add_field_row_crop_history.sql
+- services/fieldRowCropHistoryService.ts
+- components/fieldrows/FieldRowCropHistoryPanel.tsx
+- services/transplantOrchestrationService.ts (updated)
+- test-crop-rotation-system.js
+- FIELD_ROW_CROP_ROTATION_SYSTEM_COMPLETE.md

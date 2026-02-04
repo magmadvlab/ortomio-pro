@@ -646,5 +646,52 @@ export async function checkTransplantConditions(
   }
 }
 
+/**
+ * Ottiene dati meteo correnti per coordinate specifiche
+ * Funzione helper per operationContextService
+ */
+export async function getCurrentWeather(latitude: number, longitude: number): Promise<{
+  temperature: number;
+  humidity: number;
+  precipitation: number;
+  windSpeed: number;
+  condition: string;
+  pressure: number;
+}> {
+  try {
+    const forecast = await getWeatherForecast(latitude, longitude, 1);
+    
+    if (!forecast || forecast.length === 0) {
+      throw new Error('No weather data available');
+    }
+    
+    const today = forecast[0];
+    
+    return {
+      temperature: (today.temp_max + today.temp_min) / 2,
+      humidity: today.humidity || 60,
+      precipitation: today.precipitation || 0,
+      windSpeed: today.wind_speed || 0,
+      condition: today.condition || 'unknown',
+      pressure: 1013 // Default pressure
+    };
+  } catch (error) {
+    console.error('Error getting current weather:', error);
+    // Return fallback data
+    return {
+      temperature: 20,
+      humidity: 60,
+      precipitation: 0,
+      windSpeed: 0,
+      condition: 'unknown',
+      pressure: 1013
+    };
+  }
+}
+
 export const weatherService = new WeatherService()
+export const createWeatherService = () => ({
+  getCurrentWeather
+});
+
 export type { WeatherData, WeatherForecast, WeatherAlert, GardenLocation }

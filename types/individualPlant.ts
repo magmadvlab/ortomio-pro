@@ -21,6 +21,7 @@ export interface GardenPlant {
   plantName: string;
   variety?: string;
   plantingDate?: string; // ISO date
+  plantedDate?: string; // Alias for compatibility
   expectedHarvestDate?: string; // ISO date
   
   // Stato e salute
@@ -31,6 +32,33 @@ export interface GardenPlant {
   seedlingBatchId?: string;
   saplingBatchId?: string;
   seedPacketId?: string;
+  source?: 'seed' | 'nursery' | 'transplant'; // Origine pianta
+  
+  // Contesto di impianto (meteo, luna, stagione)
+  plantingContext?: {
+    timestamp: string;
+    weather: {
+      temperature: number;
+      humidity: number;
+      precipitation: number;
+      windSpeed: number;
+      condition: string;
+      pressure: number;
+    };
+    lunar: {
+      phase: string;
+      phaseEmoji: string;
+      illumination: number;
+      isWaxing: boolean;
+      dayInCycle: number;
+    };
+    season: string;
+    daylight: {
+      sunrise: string;
+      sunset: string;
+      hoursOfLight: number;
+    };
+  };
   
   // Coordinate precise (per mapping futuro)
   coordinates?: {
@@ -41,6 +69,9 @@ export interface GardenPlant {
   // Media e note
   photos: string[]; // URLs
   notes?: string;
+  
+  // Helper fields for display
+  fieldRowName?: string; // Nome del filare (per display)
   
   // Metadata
   createdAt: string;
@@ -56,24 +87,66 @@ export interface PlantOperation {
   
   // Tipo operazione
   operationType: 'watering' | 'fertilizing' | 'treatment' | 'pruning' | 'harvest' | 
-                 'transplanting' | 'thinning' | 'staking' | 'mulching';
+                 'transplanting' | 'thinning' | 'staking' | 'mulching' | 'work' | 'health';
   operationCategory?: 'irrigation' | 'nutrition' | 'protection' | 'maintenance';
   
   // Dettagli operazione
-  operationDate: string; // ISO date
+  date: string; // ISO date
+  operationDate?: string; // Alias for compatibility
   operationTime?: string; // HH:MM
   
   // Quantità e prodotti
   quantity?: number;
   unit?: string; // 'L', 'ml', 'g', 'kg'
   productName?: string;
+  product?: string; // Alias
   concentration?: number; // % o dosaggio
+  dosage?: string; // Dosaggio testuale
+  
+  // Dettagli specifici per tipo
+  duration?: number; // minuti (per irrigazione, lavori)
+  waterAmount?: number; // litri (per irrigazione)
+  fertilizerType?: string; // tipo fertilizzante
+  npkRatio?: string; // es. "10-10-10"
+  treatmentType?: 'preventive' | 'curative'; // tipo trattamento
+  targetPest?: string; // parassita target
+  workType?: string; // tipo lavorazione
+  
+  // Salute
+  healthScoreBefore?: number;
+  healthScoreAfter?: number;
   
   // Risultati
   effectivenessScore?: number; // 1-10
   plantResponse?: 'positive' | 'negative' | 'neutral';
   
-  // Condizioni ambientali
+  // Contesto ambientale (meteo, luna, stagione)
+  context?: {
+    timestamp: string;
+    weather: {
+      temperature: number;
+      humidity: number;
+      precipitation: number;
+      windSpeed: number;
+      condition: string;
+      pressure: number;
+    };
+    lunar: {
+      phase: string;
+      phaseEmoji: string;
+      illumination: number;
+      isWaxing: boolean;
+      dayInCycle: number;
+    };
+    season: string;
+    daylight: {
+      sunrise: string;
+      sunset: string;
+      hoursOfLight: number;
+    };
+  };
+  
+  // Condizioni ambientali (legacy)
   weatherConditions?: {
     temp?: number;
     humidity?: number;
@@ -84,6 +157,11 @@ export interface PlantOperation {
   // Media e documentazione
   photos: string[];
   notes?: string;
+  
+  // Flag per operazioni di filare
+  isFieldRowOperation?: boolean;
+  fieldRowName?: string;
+  fieldRowId?: string;
   
   // Metadata
   createdAt: string;
