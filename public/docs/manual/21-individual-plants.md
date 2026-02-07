@@ -205,6 +205,61 @@ Cura individuale avanzata:
 
 ---
 
+## 📜 STORICO OPERAZIONI PER PIANTA (NUOVO!)
+
+### **Dati Tracciati Automaticamente**
+Ogni pianta mantiene uno storico dettagliato di tutte le operazioni ricevute:
+
+| Tipo Operazione | Dati Registrati |
+|-----------------|-----------------|
+| **Irrigazione** | Litri ricevuti, efficienza, durata, data |
+| **Fertirrigazione** | Quantità nutriente, prodotto, concentrazione |
+| **Trattamenti** | Prodotto, dosaggio, motivo |
+| **Potature** | Tipo, intensità, data |
+
+### **Visualizzazione Storico**
+1. **Sidebar → "Plants"**
+2. Clicca su una pianta → **"Carta d'Identità"**
+3. Tab **"Storico Operazioni"**
+4. Visualizza timeline con tutti gli interventi
+
+### **Dati Calcolati Automaticamente**
+Quando registri un'irrigazione o fertilizzazione a livello di filare:
+- Il sistema calcola la quota per ogni pianta
+- Salva nella tabella `individual_plant_operations`
+- Mostra nella scheda individuale
+
+```
+Esempio: Irrigazione 60 min su Filare 1 (30 piante)
+├── Pianta F01-P001: 1.2 L (eff. 95%)
+├── Pianta F01-P002: 0.8 L (eff. 72%)
+├── Pianta F01-P003: 1.5 L (eff. 100%)
+└── ... (automatico per tutte)
+```
+
+---
+
+## 🌡️ RACCOMANDAZIONI BASATE SULLO STATO
+
+### **Diagnosi Automatica**
+Il sistema analizza lo stato di ogni pianta e suggerisce azioni:
+
+| Stato Rilevato | Sintomi | Azione Consigliata |
+|----------------|---------|-------------------|
+| **Stress Idrico** | Foglie gialle, cadenti | ↑ Aumenta irrigazione |
+| **Eccesso Acqua** | Radici marce, muffe | ↓ Riduci frequenza |
+| **Carenza Azoto (N)** | Foglie pallide, crescita lenta | Fertirrigazione NPK alto N |
+| **Carenza Potassio (K)** | Bordi foglie marroni | Solfato di potassio |
+| **Carenza Ferro** | Clorosi intervenale | Chelato di ferro |
+
+### **Come Usare le Raccomandazioni**
+1. **Dashboard → "Predizioni AI"** per panoramica
+2. **SmartPlantManager** → Filtro per "Piante con problemi"
+3. Clicca pianta → Vedi **raccomandazione specifica**
+4. Esegui azione → Registra intervento
+
+
+
 ## 📱 INTERFACCIA E WORKFLOW
 
 ### **🌱 Dashboard Filari Integrata** (NUOVO!)

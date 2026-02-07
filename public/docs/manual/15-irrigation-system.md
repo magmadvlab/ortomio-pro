@@ -95,6 +95,96 @@ Esempio Filare 15m con spaziatura piante 30cm:
 
 ---
 
+## 🎯 IRRIGAZIONE PRECISA PER PIANTA (NUOVO!)
+
+### **Calcolo Geometrico Avanzato**
+Il sistema calcola automaticamente quanta acqua riceve **ogni singola pianta** basandosi su:
+
+- **Posizione gocciolatori**: Distanza tra gocciolatori (es. 30cm)
+- **Portata gocciolatore**: Litri/ora di ogni emettitore
+- **Raggio di bagnatura**: Area coperta da ogni gocciolatore (~30cm default)
+- **Posizione pianta**: Distanza dalla partenza del filare
+
+#### **Formula Distribuzione**
+```
+Per ogni pianta:
+1. Identifica gocciolatori entro il raggio di bagnatura
+2. Calcola efficienza (100% al centro, 0% al bordo)
+3. Accumula acqua da tutti i gocciolatori vicini
+
+Acqua Ricevuta = Σ (Portata × Efficienza × Durata)
+```
+
+#### **Esempio Pratico**
+```
+Configurazione:
+├── Gocciolatori: 2.0 L/h, spaziatura 30cm
+├── Raggio bagnatura: 30cm
+├── Durata irrigazione: 30 minuti
+└── Pianta a 15cm dal gocciolatore
+
+Calcolo:
+├── Efficienza: 1 - (15cm ÷ 30cm) = 0.5 (50%)
+├── Output gocciolatore in 30min: 1.0 L
+└── Acqua ricevuta dalla pianta: 0.5 L
+```
+
+### **🌱 Fertirrigazione Integrata**
+La stessa logica si applica ai nutrienti disciolti nella soluzione:
+
+- **Distribuzione proporzionale**: Se una pianta riceve il 10% dell'acqua, riceve il 10% del concime
+- **Tracking separato**: Storico acqua E nutrienti per ogni pianta
+- **Prodotti supportati**: NPK, microelementi, biostimolanti
+
+---
+
+## 📥 COME REGISTRARE UN'IRRIGAZIONE
+
+### **Metodo 1: Dalla Pagina Irrigazione**
+1. **Sidebar → "Irrigazione"**
+2. Clicca **"Nuova Irrigazione"**
+3. Seleziona **Zona** o **Filare**
+4. Inserisci **durata** (minuti) o **litri totali**
+5. Conferma → Il sistema:
+   - Salva il log generale
+   - Calcola automaticamente acqua per ogni pianta
+   - Aggiorna storico individuale
+
+### **Metodo 2: Dalla Dashboard Filari**
+1. **Dashboard → Widget "Filari Campo Aperto"**
+2. Clicca filare → **"💧 Irrigazione"**
+3. Inserisci dati → Calcolo preciso attivato
+
+### **Metodo 3: Da SmartPlantManager**
+1. **Sidebar → "Plants"**
+2. Seleziona piante → **"+ Operazione"**
+3. Tipo: **Irrigazione** → Inserisci dati
+4. Registrazione diretta per piante selezionate
+
+---
+
+## 📥 COME REGISTRARE FERTIRRIGAZIONE
+
+### **Workflow Consigliato**
+1. **Vai al Filare/Zona** dove hai applicato
+2. Clicca **"Aggiungi Operazione" → "Fertilizzazione"**
+3. Seleziona:
+   - **Prodotto** (es. "NPK 20-10-10")
+   - **Quantità totale** (es. 500g)
+   - **Metodo**: "Fertirrigazione"
+4. Conferma → Il sistema distribuisce proporzionalmente a ogni pianta
+
+### **Dati Registrati per Pianta**
+| Campo | Esempio |
+|-------|---------|
+| `quantity` | 16.7g (proporzionale) |
+| `unit` | g |
+| `productName` | NPK 20-10-10 |
+| `efficiency` | 0.85 |
+| `parentOperationId` | UUID del log filare |
+
+
+
 ## 📊 ANALYTICS E REPORTING
 
 ### **Consumi Dettagliati**
