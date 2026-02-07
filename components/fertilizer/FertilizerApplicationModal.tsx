@@ -11,6 +11,7 @@ import {
   FertilizerProduct
 } from '@/data/fertilizers'
 import { useStorage } from '@/packages/core/hooks/useStorage'
+import { autoSyncRowOperation } from '@/services/plantRowSyncService'
 
 interface FertilizerApplicationModalProps {
   task: GardenTask
@@ -103,7 +104,7 @@ export function FertilizerApplicationModal({
     }
   }, [selectedProduct, (task as any).bed])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!selectedProduct) {
@@ -148,6 +149,17 @@ export function FertilizerApplicationModal({
 
       notes: notes.trim() || null
     })
+
+    // TRIGGER PRECISE PER-PLANT SYNC for fertigation
+    if (method === 'fertigation' && selectedRow) {
+      console.log('🌱 Triggering precise plant sync for fertigation...')
+      try {
+        await autoSyncRowOperation(storageProvider, 'fertilizer', selectedRow)
+        console.log(`✅ Synced precise fertigation for row ${selectedRow}`)
+      } catch (syncError) {
+        console.warn(`⚠️ Failed to sync precise fertigation:`, syncError)
+      }
+    }
   }
 
   return (
