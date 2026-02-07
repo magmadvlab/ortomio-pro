@@ -4,7 +4,10 @@
  * Maintains data consistency and provides sync monitoring
  */
 
+
 import { GardenPlant, PlantOperation } from '../types/individualPlant';
+import { PreciseIrrigationService, DripperConfig, PlantPosition, WaterDistributionResult } from './preciseIrrigationService';
+
 
 export interface SyncConfiguration {
   autoSyncEnabled: boolean;
@@ -89,17 +92,17 @@ export class PlantRowSyncService {
     try {
       console.log('🔗 PLANT ROW SYNC DEBUG - Getting mappings for garden:', gardenId)
       console.log('🔗 PLANT ROW SYNC DEBUG - Storage provider:', this.storageProvider?.constructor?.name)
-      
+
       // This would query individual_plants with row information
       console.log('🔗 PLANT ROW SYNC DEBUG - Getting garden plants...')
       const plants = await this.getGardenPlants(gardenId);
       console.log('🔗 PLANT ROW SYNC DEBUG - Plants loaded:', plants?.length || 0)
-      
+
       const mappings: PlantRowMapping[] = [];
-      
+
       for (const plant of plants) {
         let rowName: string | undefined;
-        
+
         // Get row name safely
         if (plant.gardenRowId) {
           try {
@@ -121,7 +124,7 @@ export class PlantRowSyncService {
             console.warn('🔗 PLANT ROW SYNC WARN - Error getting field row:', error);
           }
         }
-        
+
         mappings.push({
           plantId: plant.id,
           plantCode: plant.plantCode,
@@ -132,7 +135,7 @@ export class PlantRowSyncService {
           isActive: plant.status !== 'dead' && plant.status !== 'harvested'
         });
       }
-      
+
       return mappings;
     } catch (error) {
       console.error('Error getting plant-row mappings:', error);
@@ -140,6 +143,9 @@ export class PlantRowSyncService {
     }
   }
 
+  /**
+   * Sync specific row operation to plants
+   */
   /**
    * Sync specific row operation to plants
    */
@@ -156,34 +162,186 @@ export class PlantRowSyncService {
 
     try {
       this.syncStatus.isRunning = true;
+      const preciseIrrigationService = new PreciseIrrigationService();
 
-      // Call appropriate database function based on operation type
-      let syncFunction: string;
-      switch (operationType) {
-        case 'watering':
-          syncFunction = 'sync_watering_to_plants';
-          break;
-        case 'fertilizer':
-          syncFunction = 'sync_fertilizer_to_plants';
-          break;
-        case 'treatment':
-          syncFunction = 'sync_treatment_to_plants';
-          break;
-        default:
-          result.errors.push('Unsupported operation type');
-          return result;
+      let operationsCreated = 0;
+
+      // 1. Get Operation Details
+      let operationDetails: any;
+      let rowId: string | undefined;
+      let rowType: 'garden_row' | 'field_row' | undefined;
+      let durationMinutes = 0;
+      let totalAmount = 0;
+      let unit = '';
+      let productName = '';
+      let notes = '';
+
+      if (operationType === 'watering') {
+        operationDetails = await this.storageProvider.getWateringLog?.(operationId);
+        if (!operationDetails) throw new Error(`Watering log ${operationId} not found`);
+
+        // Try to find row ID from zone/bed linkage (simplified for now)
+        // Ideally operationDetails should have rowId or we infer it from zone
+        // Assuming operationDetails has enough info or we can't sync perfectly yet
+        // For FieldRows, they might be directly linked.
+        // If operation is on a ZONE, we need to find all rows in that zone.
+        // This is complex. Let's assume operation might have a 'rowId' or we process all rows in the zone.
+
+        durationMinutes = operationDetails.duration_minutes || 0;
+        totalAmount = operationDetails.liters_total || 0;
+        unit = 'L';
+        notes = operationDetails.notes;
+
+        // If operation is on a zone, find rows
+        const zoneId = operationDetails.zone_id; // Assuming this exists
+        if (zoneId) {
+          // Get all rows in this zone
+          // We'll process each row. But for simplicity, let's just create generic ops if we can't do precise.
+          // But we WANT precise.
+          // Let's defer to a helper that handles "Zone to Rows" distribution?
+          // For now, let's assume we can get a list of rows affected.
+        }
+      } else if (operationType === 'fertilizer') {
+        operationDetails = await this.storageProvider.getFertilizerApplicationLog?.(operationId);
+        if (!operationDetails) throw new Error(`Fertilizer log ${operationId} not found`);
+        totalAmount = operationDetails.quantity || 0;
+        unit = operationDetails.unit || 'kg';
+        productName = operationDetails.fertilizer_name || 'Fertilizer';
+        notes = operationDetails.notes;
       }
 
-      // Execute sync function (this would call the database function)
-      const operationsCreated = await this.executeSyncFunction(syncFunction, operationId);
-      
+      // Hack: To make this work without complex zone logic refactoring,
+      // let's assume we can interact with "Field Rows" directly or via matching.
+      // If we can't find specific row info, we fall back to simple distribution.
+
+      // Get all plants for the Garden (we can filter by zone/row later)
+      const gardenId = operationDetails?.garden_id;
+      if (!gardenId) throw new Error('Garden ID not found in operation');
+
+      const mappings = await this.getPlantRowMappings(gardenId);
+
+      // Filter mappings that are relevant to this operation
+      // This is the tricky part: matching Operation -> Zone -> Rows -> Plants
+      // For now, let's try to match by Zone ID if available
+      const zoneId = operationDetails?.zone_id || operationDetails?.bed_id;
+
+      let targetMappings = mappings;
+      if (zoneId) {
+        // Filter plants in this zone (need to lookup row -> zone)
+        // Mappings have fieldRowId or gardenRowId. We need to check if those rows are in the zone.
+        // This requires fetching rows details.
+        // Optimization: Fetch all rows for the garden once.
+        const fieldRows = await this.storageProvider.getFieldRows?.(gardenId) || [];
+        const gardenRows = await this.storageProvider.getGardenRows?.(zoneId) || []; // gardenRows are per bed/zone usually
+
+        const validRowIds = new Set([
+          ...fieldRows.filter((r: any) => r.zoneId === zoneId).map((r: any) => r.id),
+          ...gardenRows.map((r: any) => r.id)
+        ]);
+
+        targetMappings = mappings.filter(m =>
+          (m.fieldRowId && validRowIds.has(m.fieldRowId)) ||
+          (m.gardenRowId && validRowIds.has(m.gardenRowId))
+        );
+      }
+
+      console.log(`Syncing ${operationType} to ${targetMappings.length} plants`);
+
+      // Group by Row to apply Precise Irrigation per Row
+      const rows = new Map<string, typeof targetMappings>();
+      for (const m of targetMappings) {
+        const rId = m.fieldRowId || m.gardenRowId || 'unknown';
+        if (!rows.has(rId)) rows.set(rId, []);
+        rows.get(rId)?.push(m);
+      }
+
+      for (const [rId, plantMappings] of rows) {
+        if (rId === 'unknown') continue;
+
+        // Get Row Config
+        // We need to know if it's field or garden row to fetch config
+        let row: any = await this.storageProvider.getFieldRow?.(rId);
+        if (!row) row = await this.storageProvider.getGardenRow?.(rId);
+
+        if (!row) continue;
+
+        // Prepare Dripper Config (simulated or real)
+        const dripperConfig: DripperConfig = {
+          flowRateLph: 2.0, // Default
+          spacingCm: 30,    // Default
+          wettingRadiusCm: 15 // Default
+        };
+
+        // Override with real config if available (e.g. from irrigationConfig json)
+        if (row.irrigationConfig) {
+          // Parse if string or use if object
+          const config = typeof row.irrigationConfig === 'string' ? JSON.parse(row.irrigationConfig) : row.irrigationConfig;
+          if (config.dripperFlowRate) dripperConfig.flowRateLph = config.dripperFlowRate;
+          if (config.dripperSpacing) dripperConfig.spacingCm = config.dripperSpacing;
+        }
+
+        // Prepare Plant Positions
+        const plantPositions: PlantPosition[] = plantMappings.map(m => ({
+          id: m.plantId,
+          distanceFromStartCm: (m.positionInRow || 0) * (row.plantSpacing ? row.plantSpacing * 100 : 30) // Estimate distance if not explicit
+        }));
+
+        // Calculate Water Distribution
+        let distribution: WaterDistributionResult[] = [];
+
+        if (operationType === 'watering') {
+          distribution = preciseIrrigationService.calculateWatering(
+            (row.lengthMeters || 10) * 100,
+            dripperConfig,
+            plantPositions,
+            durationMinutes
+          );
+        } else {
+          // For fertilizer, we can use the same distribution logic effectively
+          // treating "duration" as "amount" if we normalize, or just applying proportional logic
+          // Simplest: Distribute Total Amount based on Water Distribution Ratio
+          // Simulate a watering event to get ratios
+          const waterDist = preciseIrrigationService.calculateWatering(
+            (row.lengthMeters || 10) * 100,
+            dripperConfig,
+            plantPositions,
+            30 // Arbitrary 30 mins to get ratios
+          );
+
+          const totalSimulatedWater = waterDist.reduce((sum, p) => sum + p.litersReceived, 0);
+
+          distribution = waterDist.map(p => ({
+            ...p,
+            litersReceived: totalSimulatedWater > 0 ? (p.litersReceived / totalSimulatedWater) * totalAmount : 0
+          }));
+        }
+
+        // Create Operations
+        for (const dist of distribution) {
+          if (dist.litersReceived > 0 || operationType !== 'watering') {
+            const plantId = dist.plantId;
+
+            await this.storageProvider.createPlantOperation?.({
+              gardenId,
+              plantId,
+              operationType,
+              operationDate: new Date().toISOString(), // Or operation date
+              quantity: Number(dist.litersReceived.toFixed(3)),
+              unit: unit,
+              productName: productName,
+              notes: notes ? `${notes} (Calc: ${dist.efficiency.toFixed(2)}x eff)` : undefined,
+              parentOperationId: operationId,
+              parentOperationTable: operationType === 'watering' ? 'watering_logs' : 'fertilizer_logs'
+            });
+            operationsCreated++;
+          }
+        }
+      }
+
       result.operationsProcessed = operationsCreated;
-      result.plantsAffected = await this.countAffectedPlants(operationType, operationId);
+      result.plantsAffected = operationsCreated;
       result.success = operationsCreated > 0;
-      
-      // Get sync log ID
-      result.syncLogId = await this.getLatestSyncLogId(operationType, operationId);
-      
+
       // Update status
       this.syncStatus.totalSynced += operationsCreated;
       this.syncStatus.lastSyncDate = new Date().toISOString();
@@ -191,6 +349,7 @@ export class PlantRowSyncService {
     } catch (error) {
       result.errors.push(error instanceof Error ? error.message : 'Sync failed');
       this.syncStatus.failedOperations += 1;
+      console.error('SYNC ERROR DETAILS:', error);
     } finally {
       this.syncStatus.isRunning = false;
     }
@@ -214,21 +373,21 @@ export class PlantRowSyncService {
 
       // Get pending operations (operations that haven't been synced yet)
       const pendingOperations = await this.getPendingOperations(gardenId);
-      
+
       let totalProcessed = 0;
       const affectedPlants = new Set<string>();
 
       // Process in batches
       for (let i = 0; i < pendingOperations.length; i += this.config.batchSize) {
         const batch = pendingOperations.slice(i, i + this.config.batchSize);
-        
+
         for (const operation of batch) {
           try {
             const syncResult = await this.syncRowOperationToPlants(
               operation.type,
               operation.id
             );
-            
+
             if (syncResult.success) {
               totalProcessed += syncResult.operationsProcessed;
               // Add affected plants to set (would need to get actual plant IDs)
@@ -239,7 +398,7 @@ export class PlantRowSyncService {
             result.errors.push(`Failed to sync ${operation.type} ${operation.id}: ${error}`);
           }
         }
-        
+
         // Small delay between batches to avoid overwhelming the database
         if (i + this.config.batchSize < pendingOperations.length) {
           await new Promise(resolve => setTimeout(resolve, 100));
@@ -249,7 +408,7 @@ export class PlantRowSyncService {
       result.operationsProcessed = totalProcessed;
       result.plantsAffected = affectedPlants.size;
       result.success = totalProcessed > 0;
-      
+
       // Update status
       this.syncStatus.totalSynced += totalProcessed;
       this.syncStatus.pendingOperations = Math.max(0, this.syncStatus.pendingOperations - totalProcessed);
@@ -352,10 +511,10 @@ export class PlantRowSyncService {
       // Get recent sync logs (last 24 hours)
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
-      
+
       const recentSyncLogs = await this.getRecentSyncLogs(gardenId, yesterday.toISOString());
       const recentSyncOperations = recentSyncLogs.length;
-      
+
       const successfulSyncs = recentSyncLogs.filter(log => log.syncStatus === 'completed').length;
       const syncSuccessRate = recentSyncOperations > 0 ? (successfulSyncs / recentSyncOperations) * 100 : 100;
 
@@ -387,7 +546,7 @@ export class PlantRowSyncService {
     try {
       console.log('🔗 PLANT ROW SYNC DEBUG - getGardenPlants called for garden:', gardenId)
       console.log('🔗 PLANT ROW SYNC DEBUG - getIndividualPlants available:', typeof this.storageProvider.getIndividualPlants)
-      
+
       // Use storageProvider to get individual plants
       if (this.storageProvider.getIndividualPlants) {
         console.log('🔗 PLANT ROW SYNC DEBUG - Calling getIndividualPlants...')
@@ -395,7 +554,7 @@ export class PlantRowSyncService {
         console.log('🔗 PLANT ROW SYNC DEBUG - getIndividualPlants returned:', plants?.length || 0, 'plants')
         return plants;
       }
-      
+
       // Fallback: return empty array if method doesn't exist
       console.warn('🔗 PLANT ROW SYNC WARN - getIndividualPlants method not available in storageProvider');
       return [];
@@ -405,7 +564,7 @@ export class PlantRowSyncService {
       console.error('🔗 PLANT ROW SYNC ERROR - Error code:', error?.code || 'No code');
       console.error('🔗 PLANT ROW SYNC ERROR - Error details:', error?.details || 'No details');
       console.error('🔗 PLANT ROW SYNC ERROR - Error hint:', error?.hint || 'No hint');
-      
+
       // Return empty array instead of throwing to prevent cascading failures
       return [];
     }
@@ -456,8 +615,8 @@ export class PlantRowSyncService {
   }
 
   private async updatePlantRowAssignment(
-    plantId: string, 
-    rowId: string | null, 
+    plantId: string,
+    rowId: string | null,
     rowType: 'garden_row' | 'field_row' | null
   ): Promise<void> {
     try {
@@ -490,7 +649,7 @@ export class PlantRowSyncService {
  * Create plant-row sync service instance
  */
 export const createPlantRowSyncService = (
-  storageProvider: any, 
+  storageProvider: any,
   config?: Partial<SyncConfiguration>
 ) => {
   return new PlantRowSyncService(storageProvider, config);
@@ -520,24 +679,24 @@ export const batchAssignPlantsToRow = async (
 ): Promise<{ success: boolean; plantsAssigned: number; errors: string[] }> => {
   try {
     const syncService = createPlantRowSyncService(storageProvider);
-    
+
     // Assign plants with sequential positions
     let plantsAssigned = 0;
     const errors: string[] = [];
-    
+
     for (let i = 0; i < plantIds.length; i++) {
       try {
         await syncService.assignPlantsToRow([plantIds[i]], rowId, rowType);
-        
+
         // Update position in row
         // This would need additional method to update position
-        
+
         plantsAssigned++;
       } catch (error) {
         errors.push(`Failed to assign plant ${plantIds[i]}: ${error}`);
       }
     }
-    
+
     return {
       success: plantsAssigned > 0,
       plantsAssigned,

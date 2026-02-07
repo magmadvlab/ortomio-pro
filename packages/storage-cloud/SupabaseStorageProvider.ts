@@ -30,7 +30,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
   // Garden Rows (Filari)
   private mapGardenRowFromDB(db: any): GardenRow {
     console.log('🔍 GARDEN ROW MAPPING DEBUG - Raw DB object keys:', Object.keys(db));
-    
+
     return {
       id: db.id,
       gardenId: db.garden_id,
@@ -51,27 +51,27 @@ export class SupabaseStorageProvider implements IStorageProvider {
   private mapGardenRowToDB(row: Partial<GardenRow>): any {
     const db: any = {};
     if (row.gardenId !== undefined) db.garden_id = row.gardenId;
-    
+
     // NEW schema uses garden_zone_id (not bed_id)
     if (row.bedId !== undefined) {
       db.garden_zone_id = row.bedId;   // Map to new schema
     }
-    
+
     // NEW schema uses crop_name (not name)
     if (row.name !== undefined) {
       db.crop_name = row.name;         // Map to new schema
     }
-    
+
     if (row.rowNumber !== undefined) db.row_number = row.rowNumber;
-    
+
     // NEW schema uses row_length_cm (not length_meters)
     if (row.lengthMeters !== undefined) {
       db.row_length_cm = Math.round(row.lengthMeters * 100);  // Convert to cm for new schema
     }
-    
+
     if (row.irrigationLine !== undefined) db.irrigation_line = row.irrigationLine;
     if (row.notes !== undefined) db.notes = row.notes;
-    
+
     console.log('🔍 GARDEN ROW MAPPING DEBUG - Mapped to DB (new schema):', Object.keys(db));
     return db;
   }
@@ -205,9 +205,9 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
   async getGardenRows(bedId: string): Promise<GardenRow[]> {
     const client = this.ensureClient();
-    
+
     console.log('🔍 GARDEN ROWS DEBUG - Getting garden rows for bedId:', bedId);
-    
+
     // The database is using the NEW schema (garden_zone_id), so query with that
     try {
       console.log('🔍 GARDEN ROWS DEBUG - Using garden_zone_id column (new schema)...');
@@ -216,15 +216,15 @@ export class SupabaseStorageProvider implements IStorageProvider {
         .select('*')
         .eq('garden_zone_id', bedId)
         .order('row_number', { ascending: true });
-      
+
       if (error) {
         console.error('🔍 GARDEN ROWS ERROR - Query failed:', error);
         throw error;
       }
-      
+
       console.log('🔍 GARDEN ROWS DEBUG - Query successful, found', data?.length || 0, 'rows');
       return (data || []).map((db) => this.mapGardenRowFromDB(db));
-      
+
     } catch (error: any) {
       console.error('🔍 GARDEN ROWS ERROR - Exception:', error.message);
       throw new Error(`Failed to query garden_rows: ${error.message}`);
@@ -355,7 +355,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('gardens')
       .select('*')
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
     return this.mapGardensFromDB(data || []);
   }
@@ -367,7 +367,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') return null; // Not found
       throw error;
@@ -484,7 +484,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       });
       throw new Error(`Failed to create garden: ${error.message}`);
     }
-    
+
     console.log('Garden created successfully:', data.id);
 
     // Salva strutture (filari, cassoni, vasche) se presenti
@@ -581,7 +581,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapGardenFromDB(data);
   }
@@ -592,7 +592,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('gardens')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw error;
   }
 
@@ -600,11 +600,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
   async getTasks(gardenId?: string): Promise<GardenTask[]> {
     const client = this.ensureClient();
     let query = client.from('garden_tasks').select('*');
-    
+
     if (gardenId) {
       query = query.eq('garden_id', gardenId);
     }
-    
+
     const { data, error } = await query.order('date', { ascending: false });
     if (error) throw error;
     return this.mapTasksFromDB(data || []);
@@ -617,7 +617,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') return null;
       throw error;
@@ -633,10 +633,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .insert(dbTask)
       .select()
       .single();
-    
+
     if (error) throw error;
     const createdTask = this.mapTaskFromDB(data);
-    
+
     // Invia notifica solo per task manuali (non suggeriti)
     if (!task.isSuggested) {
       try {
@@ -647,7 +647,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
             .select('user_id')
             .eq('id', createdTask.gardenId)
             .single();
-          
+
           if (garden) {
             await sendNotification({
               userId: garden.user_id,
@@ -670,7 +670,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
         console.error('Error sending notification:', err);
       }
     }
-    
+
     return createdTask;
   }
 
@@ -691,10 +691,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     const updatedTask = this.mapTaskFromDB(data);
-    
+
     // Invia notifica se task è stato completato
     if (updates.completed === true && currentTask && !currentTask.completed) {
       try {
@@ -705,7 +705,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
             .select('user_id')
             .eq('id', updatedTask.gardenId)
             .single();
-          
+
           if (garden) {
             const notification = createTaskCompletedNotification(
               garden.user_id,
@@ -727,7 +727,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
         console.error('Error sending notification:', err);
       }
     }
-    
+
     return updatedTask;
   }
 
@@ -797,11 +797,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
   async getSeedPackets(gardenId?: string): Promise<SeedPacket[]> {
     const client = this.ensureClient();
     let query = client.from('seed_inventory').select('*');
-    
+
     if (gardenId) {
       query = query.eq('garden_id', gardenId);
     }
-    
+
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
     return this.mapSeedPacketsFromDB(data || []);
@@ -814,7 +814,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') return null;
       throw error;
@@ -833,7 +833,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .insert({ ...dbPacket, user_id: user.id })
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapSeedPacketFromDB(data);
   }
@@ -847,7 +847,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapSeedPacketFromDB(data);
   }
@@ -858,7 +858,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('seed_inventory')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw error;
   }
 
@@ -866,11 +866,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
   async getHarvestLogs(gardenId?: string): Promise<HarvestLogData[]> {
     const client = this.ensureClient();
     let query = client.from('harvest_logs').select('*');
-    
+
     if (gardenId) {
       query = query.eq('garden_id', gardenId);
     }
-    
+
     const { data, error } = await query.order('harvest_date', { ascending: false });
     if (error) throw error;
     return this.mapHarvestLogsFromDB(data || []);
@@ -884,10 +884,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .insert(dbLog)
       .select()
       .single();
-    
+
     if (error) throw error;
     const createdLog = this.mapHarvestLogFromDB(data);
-    
+
     // Invia notifica per raccolto registrato
     try {
       const { data: { user } } = await client.auth.getUser();
@@ -897,7 +897,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
           .select('user_id')
           .eq('id', createdLog.gardenId)
           .single();
-        
+
         if (garden) {
           await sendNotification({
             userId: garden.user_id,
@@ -920,7 +920,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       // Non bloccare operazione se notifica fallisce
       console.error('Error sending notification:', err);
     }
-    
+
     return createdLog;
   }
 
@@ -933,7 +933,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapHarvestLogFromDB(data);
   }
@@ -944,7 +944,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('harvest_logs')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw error;
   }
 
@@ -956,17 +956,17 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}/${gardenId}/${taskId}/${Date.now()}.${fileExt}`;
-    
+
     const { data, error } = await client.storage
       .from('plant-photos')
       .upload(fileName, file);
-    
+
     if (error) throw error;
-    
+
     const { data: { publicUrl } } = client.storage
       .from('plant-photos')
       .getPublicUrl(data.path);
-    
+
     return publicUrl;
   }
 
@@ -977,7 +977,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('task_id', taskId)
       .order('photo_date', { ascending: true });
-    
+
     if (error) throw error;
     return this.mapPhotoLogsFromDB(data || []);
   }
@@ -990,7 +990,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .insert(dbLog)
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapPhotoLogFromDB(data);
   }
@@ -1992,7 +1992,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
   async createGardenBed(bed: Omit<GardenBed, 'id' | 'createdAt' | 'updatedAt'>): Promise<GardenBed> {
     const client = this.ensureClient();
-    
+
     // Calcola area automaticamente
     let areaSqMeters = bed.areaSqMeters;
     if (!areaSqMeters) {
@@ -2002,7 +2002,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
         areaSqMeters = (Math.PI * Math.pow(bed.diameterCm / 2, 2)) / 10000;
       }
     }
-    
+
     const dbData: any = {
       garden_id: bed.gardenId,
       name: bed.name,
@@ -2022,7 +2022,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       covering_structure_id: bed.coveringStructureId,
       notes: bed.notes,
     };
-    
+
     const { data, error } = await client
       .from('garden_beds')
       .insert(dbData)
@@ -2034,7 +2034,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
   async updateGardenBed(id: string, updates: Partial<GardenBed>): Promise<GardenBed> {
     const client = this.ensureClient();
-    
+
     // Ricalcola area se dimensioni sono cambiate
     let areaSqMeters = updates.areaSqMeters;
     if (updates.lengthCm !== undefined || updates.widthCm !== undefined || updates.diameterCm !== undefined) {
@@ -2044,7 +2044,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
         const lengthCm = updates.lengthCm ?? currentBed.lengthCm;
         const widthCm = updates.widthCm ?? currentBed.widthCm;
         const diameterCm = updates.diameterCm ?? currentBed.diameterCm;
-        
+
         if (shape === 'Rectangle' && lengthCm && widthCm) {
           areaSqMeters = (lengthCm * widthCm) / 10000;
         } else if (shape === 'Circle' && diameterCm) {
@@ -2052,7 +2052,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
         }
       }
     }
-    
+
     const dbData: any = {};
     if (updates.name !== undefined) dbData.name = updates.name;
     if (updates.bedType !== undefined) dbData.bed_type = updates.bedType;
@@ -2070,7 +2070,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (updates.isCovered !== undefined) dbData.is_covered = updates.isCovered;
     if (updates.coveringStructureId !== undefined) dbData.covering_structure_id = updates.coveringStructureId;
     if (updates.notes !== undefined) dbData.notes = updates.notes;
-    
+
     const { data, error } = await client
       .from('garden_beds')
       .update(dbData)
@@ -2095,7 +2095,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     // Per Supabase, la sincronizzazione è automatica (tutte le operazioni CRUD sono già sincronizzate)
     // Questo metodo può essere usato per forzare refresh o aggiornare timestamp
     const client = this.ensureClient();
-    
+
     try {
       // Verifica connessione facendo una query leggera
       await client.from('gardens').select('id').limit(1);
@@ -2134,11 +2134,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
   async getSeedlingBatches(gardenId?: string): Promise<SeedlingBatch[]> {
     const client = this.ensureClient();
     let query = client.from('seedling_batches').select('*');
-    
+
     if (gardenId) {
       query = query.eq('garden_id', gardenId);
     }
-    
+
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
     return (data || []).map(db => this.mapSeedlingBatchFromDB(db));
@@ -2151,7 +2151,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') return null; // Not found
       throw error;
@@ -2208,7 +2208,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .insert(dbBatch)
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapSeedlingBatchFromDB(data);
   }
@@ -2222,7 +2222,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapSeedlingBatchFromDB(data);
   }
@@ -2233,7 +2233,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('seedling_batches')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw error;
   }
 
@@ -2286,11 +2286,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
   async getSaplingBatches(gardenId?: string): Promise<SaplingBatch[]> {
     const client = this.ensureClient();
     let query = client.from('sapling_batches').select('*');
-    
+
     if (gardenId) {
       query = query.eq('garden_id', gardenId);
     }
-    
+
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
     return (data || []).map(db => this.mapSaplingBatchFromDB(db));
@@ -2303,7 +2303,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') return null; // Not found
       throw error;
@@ -2319,7 +2319,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .insert(dbBatch)
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapSaplingBatchFromDB(data);
   }
@@ -2333,7 +2333,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapSaplingBatchFromDB(data);
   }
@@ -2344,7 +2344,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('sapling_batches')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw error;
   }
 
@@ -2355,11 +2355,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('mechanical_work_register')
       .select('*')
       .order('work_date', { ascending: false });
-    
+
     if (gardenId) {
       query = query.eq('garden_id', gardenId);
     }
-    
+
     const { data, error } = await query;
     if (error) throw error;
     return (data || []).map(db => this.mapMechanicalWorkFromDB(db));
@@ -2372,7 +2372,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') return null; // Not found
       throw error;
@@ -2384,7 +2384,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     const { data: { user } } = await client.auth.getUser();
     if (!user) throw new Error('User not authenticated');
-    
+
     const { data, error } = await client
       .from('mechanical_work_register')
       .insert({
@@ -2403,7 +2403,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       })
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapMechanicalWorkFromDB(data);
   }
@@ -2411,7 +2411,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
   async updateMechanicalWork(id: string, updates: Partial<MechanicalWorkRecord>): Promise<MechanicalWorkRecord> {
     const client = this.ensureClient();
     const dbData: any = {};
-    
+
     if (updates.garden_id !== undefined) dbData.garden_id = updates.garden_id || null;
     if (updates.work_type !== undefined) dbData.work_type = updates.work_type;
     if (updates.work_date !== undefined) dbData.work_date = updates.work_date;
@@ -2423,14 +2423,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (updates.weather_conditions !== undefined) dbData.weather_conditions = updates.weather_conditions || null;
     if (updates.operator_name !== undefined) dbData.operator_name = updates.operator_name || null;
     if (updates.notes !== undefined) dbData.notes = updates.notes || null;
-    
+
     const { data, error } = await client
       .from('mechanical_work_register')
       .update(dbData)
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapMechanicalWorkFromDB(data);
   }
@@ -2441,7 +2441,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('mechanical_work_register')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw error;
   }
 
@@ -2704,11 +2704,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('treatment_register')
       .select('*')
       .order('treatment_date', { ascending: false });
-    
+
     if (gardenId) {
       query = query.eq('garden_id', gardenId);
     }
-    
+
     const { data, error } = await query;
     if (error) throw error;
     return (data || []).map(db => this.mapTreatmentFromDB(db));
@@ -2721,7 +2721,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') return null; // Not found
       throw error;
@@ -2733,7 +2733,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     const { data: { user } } = await client.auth.getUser();
     if (!user) throw new Error('User not authenticated');
-    
+
     const { data, error } = await client
       .from('treatment_register')
       .insert({
@@ -2756,7 +2756,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       })
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapTreatmentFromDB(data);
   }
@@ -2764,7 +2764,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
   async updateTreatment(id: string, updates: Partial<TreatmentRecordDB>): Promise<TreatmentRecordDB> {
     const client = this.ensureClient();
     const dbData: any = {};
-    
+
     if (updates.garden_id !== undefined) dbData.garden_id = updates.garden_id || null;
     if ((updates as any).bed_id !== undefined) dbData.bed_id = (updates as any).bed_id || null;
     if ((updates as any).row_id !== undefined) dbData.row_id = (updates as any).row_id || null;
@@ -2780,14 +2780,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (updates.weather_conditions !== undefined) dbData.weather_conditions = updates.weather_conditions || null;
     if (updates.operator_name !== undefined) dbData.operator_name = updates.operator_name || null;
     if (updates.notes !== undefined) dbData.notes = updates.notes || null;
-    
+
     const { data, error } = await client
       .from('treatment_register')
       .update(dbData)
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapTreatmentFromDB(data);
   }
@@ -2798,7 +2798,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('treatment_register')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw error;
   }
 
@@ -2832,11 +2832,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('custom_crops')
       .select('*')
       .order('created_at', { ascending: false });
-    
+
     if (gardenId) {
       query = query.eq('garden_id', gardenId);
     }
-    
+
     const { data, error } = await query;
     if (error) throw error;
     return (data || []).map(db => this.mapCustomCropFromDB(db));
@@ -2849,7 +2849,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') return null;
       throw error;
@@ -2861,7 +2861,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     const { data: { user } } = await client.auth.getUser();
     if (!user) throw new Error('User not authenticated');
-    
+
     const { data, error } = await client
       .from('custom_crops')
       .insert({
@@ -2886,7 +2886,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       })
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapCustomCropFromDB(data);
   }
@@ -2894,7 +2894,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
   async updateCustomCrop(id: string, updates: Partial<CustomCrop>): Promise<CustomCrop> {
     const client = this.ensureClient();
     const dbData: any = {};
-    
+
     if (updates.garden_id !== undefined) dbData.garden_id = updates.garden_id || null;
     if (updates.common_name !== undefined) dbData.common_name = updates.common_name;
     if (updates.scientific_name !== undefined) dbData.scientific_name = updates.scientific_name || null;
@@ -2902,14 +2902,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (updates.initial_data !== undefined) dbData.initial_data = updates.initial_data;
     if (updates.learned_patterns !== undefined) dbData.learned_patterns = updates.learned_patterns;
     if (updates.stats !== undefined) dbData.stats = updates.stats;
-    
+
     const { data, error } = await client
       .from('custom_crops')
       .update(dbData)
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapCustomCropFromDB(data);
   }
@@ -2920,7 +2920,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('custom_crops')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw error;
   }
 
@@ -2955,7 +2955,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     const { data: { user } } = await client.auth.getUser();
     if (!user) throw new Error('User not authenticated');
-    
+
     const { data, error } = await client
       .from('crop_learning_events')
       .insert({
@@ -2968,7 +2968,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       })
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapLearningEventFromDB(data);
   }
@@ -2980,7 +2980,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('custom_crop_id', cropId)
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
     return (data || []).map(db => this.mapLearningEventFromDB(db));
   }
@@ -3020,22 +3020,22 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     const { normalizeText } = await import('../../utils/textNormalizer');
     const normalizedQuery = normalizeText(query);
-    
+
     // Cerca prima su alias_text (case-insensitive)
     let queryBuilder = client
       .from('crop_aliases')
       .select('*')
       .ilike('alias_text', query.trim());
-    
+
     if (region) {
       queryBuilder = queryBuilder.eq('region', region);
     }
     if (province) {
       queryBuilder = queryBuilder.eq('province', province);
     }
-    
+
     let { data, error } = await queryBuilder.order('confidence', { ascending: false }).limit(1);
-    
+
     // PGRST205 = table not found (migration not applied)
     if (error && error.code === 'PGRST205') {
       console.warn('Table crop_aliases not found - migration 03_plant_taxonomy.sql may not be applied');
@@ -3045,22 +3045,22 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (data && data.length > 0) {
       return this.mapAliasFromDB(data[0]);
     }
-    
+
     // Se non trovato, cerca su normalized_alias
     queryBuilder = client
       .from('crop_aliases')
       .select('*')
       .eq('normalized_alias', normalizedQuery);
-    
+
     if (region) {
       queryBuilder = queryBuilder.eq('region', region);
     }
     if (province) {
       queryBuilder = queryBuilder.eq('province', province);
     }
-    
+
     ({ data, error } = await queryBuilder.order('confidence', { ascending: false }).limit(1));
-    
+
     // PGRST205 = table not found (migration not applied)
     if (error && error.code === 'PGRST205') {
       console.warn('Table crop_aliases not found - migration 03_plant_taxonomy.sql may not be applied');
@@ -3068,7 +3068,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     }
     if (error) throw error;
     if (!data || data.length === 0) return null;
-    
+
     return this.mapAliasFromDB(data[0]);
   }
 
@@ -3076,10 +3076,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     const { data: { user } } = await client.auth.getUser();
     const { normalizeText } = await import('../../utils/textNormalizer');
-    
+
     // Auto-popola normalized_alias
     const normalizedAlias = normalizeText(alias.aliasText);
-    
+
     const { data, error } = await client
       .from('crop_aliases')
       .insert({
@@ -3094,7 +3094,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       })
       .select()
       .single();
-    
+
     // PGRST205 = table not found (migration not applied)
     if (error && error.code === 'PGRST205') {
       console.warn('Table crop_aliases not found - migration 03_plant_taxonomy.sql may not be applied');
@@ -3110,7 +3110,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('crop_aliases')
       .update({ confidence: Math.max(0, Math.min(1, confidence)) })
       .eq('id', aliasId);
-    
+
     // PGRST205 = table not found (migration not applied)
     if (error && error.code === 'PGRST205') {
       console.warn('Table crop_aliases not found - migration 03_plant_taxonomy.sql may not be applied');
@@ -3126,7 +3126,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('id', aliasId)
       .single();
-    
+
     // PGRST205 = table not found (migration not applied)
     if (error && error.code === 'PGRST205') {
       console.warn('Table crop_aliases not found - migration 03_plant_taxonomy.sql may not be applied');
@@ -3136,14 +3136,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
       if (error.code === 'PGRST116') return null;
       throw error;
     }
-    
+
     return this.mapAliasFromDB(data);
   }
 
   async updateAlias(aliasId: string, updates: Partial<CropAlias>): Promise<CropAlias> {
     const client = this.ensureClient();
     const dbUpdates: any = {};
-    
+
     if (updates.aliasText !== undefined) {
       dbUpdates.alias_text = updates.aliasText;
       // Aggiorna anche normalized_alias se aliasText cambia
@@ -3155,14 +3155,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (updates.province !== undefined) dbUpdates.province = updates.province;
     if (updates.confidence !== undefined) dbUpdates.confidence = updates.confidence;
     if (updates.usageCount !== undefined) dbUpdates.usage_count = updates.usageCount;
-    
+
     const { data, error } = await client
       .from('crop_aliases')
       .update(dbUpdates)
       .eq('id', aliasId)
       .select()
       .single();
-    
+
     // PGRST205 = table not found (migration not applied)
     if (error && error.code === 'PGRST205') {
       console.warn('Table crop_aliases not found - migration 03_plant_taxonomy.sql may not be applied');
@@ -3179,7 +3179,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('archetype_id', archetypeId)
       .order('usage_count', { ascending: false });
-    
+
     // PGRST205 = table not found (migration not applied)
     if (error && error.code === 'PGRST205') {
       console.warn('Table crop_aliases not found - migration 03_plant_taxonomy.sql may not be applied');
@@ -3195,7 +3195,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('crop_aliases')
       .select('*')
       .order('usage_count', { ascending: false });
-    
+
     // PGRST205 = table not found (migration not applied)
     if (error && error.code === 'PGRST205') {
       console.warn('Table crop_aliases not found - migration 03_plant_taxonomy.sql may not be applied');
@@ -3208,7 +3208,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
   // Official Crops
   async getOfficialCrop(name: string): Promise<OfficialCrop | null> {
     const client = this.ensureClient();
-    
+
     // Cerca prima su name (case-insensitive)
     let { data, error } = await client
       .from('official_crops')
@@ -3216,7 +3216,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .ilike('name', name)
       .limit(1)
       .single();
-    
+
     // PGRST205 = table not found (migration not applied)
     if (error && error.code === 'PGRST205') {
       console.warn('Table official_crops not found - migration 03_plant_taxonomy.sql may not be applied');
@@ -3225,22 +3225,22 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (error && error.code !== 'PGRST116') {
       throw error;
     }
-    
+
     if (data) {
       return this.mapOfficialCropFromDB(data);
     }
-    
+
     // Se non trovato, cerca su normalized_name
     const { normalizeText } = await import('../../utils/textNormalizer');
     const normalizedName = normalizeText(name);
-    
+
     ({ data, error } = await client
       .from('official_crops')
       .select('*')
       .eq('normalized_name', normalizedName)
       .limit(1)
       .single());
-    
+
     // PGRST205 = table not found (migration not applied)
     if (error && error.code === 'PGRST205') {
       console.warn('Table official_crops not found - migration 03_plant_taxonomy.sql may not be applied');
@@ -3250,13 +3250,13 @@ export class SupabaseStorageProvider implements IStorageProvider {
       if (error.code === 'PGRST116') return null;
       throw error;
     }
-    
+
     return data ? this.mapOfficialCropFromDB(data) : null;
   }
 
   async searchOfficialCrops(query: string): Promise<OfficialCrop[]> {
     const client = this.ensureClient();
-    
+
     // Se query vuota, restituisci tutti i crops (limitato a 200 per performance fuzzy search)
     if (!query || query.trim().length === 0) {
       const { data, error } = await client
@@ -3264,7 +3264,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
         .select('*')
         .order('name', { ascending: true })
         .limit(200);
-      
+
       // PGRST205 = table not found (migration not applied)
       if (error && error.code === 'PGRST205') {
         console.warn('Table official_crops not found - migration 03_plant_taxonomy.sql may not be applied');
@@ -3273,17 +3273,17 @@ export class SupabaseStorageProvider implements IStorageProvider {
       if (error) throw error;
       return (data || []).map(db => this.mapOfficialCropFromDB(db));
     }
-    
+
     // Cerca su name e normalized_name
     const { normalizeText } = await import('../../utils/textNormalizer');
     const normalizedQuery = normalizeText(query);
-    
+
     const { data, error } = await client
       .from('official_crops')
       .select('*')
       .or(`name.ilike.%${query}%,normalized_name.eq.${normalizedQuery}`)
       .limit(50);
-    
+
     // PGRST205 = table not found (migration not applied)
     if (error && error.code === 'PGRST205') {
       console.warn('Table official_crops not found - migration 03_plant_taxonomy.sql may not be applied');
@@ -3326,7 +3326,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('garden_id', gardenId)
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
     return (data || []).map(db => this.mapIrrigationSystemFromDB(db));
   }
@@ -3338,7 +3338,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') return null;
       throw error;
@@ -3365,7 +3365,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       })
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapIrrigationSystemFromDB(data);
   }
@@ -3383,14 +3383,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (updates.bedIds !== undefined) dbUpdates.bed_ids = updates.bedIds || null;
     if (updates.rowIds !== undefined) dbUpdates.row_ids = updates.rowIds || null;
     if (updates.cultivationType !== undefined) dbUpdates.cultivation_type = updates.cultivationType || null;
-    
+
     const { data, error } = await client
       .from('irrigation_systems')
       .update(dbUpdates)
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapIrrigationSystemFromDB(data);
   }
@@ -3401,7 +3401,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('irrigation_systems')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw error;
   }
 
@@ -3438,7 +3438,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') return null;
       throw error;
@@ -3484,7 +3484,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       })
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapIrrigationZoneFromDB(data);
   }
@@ -3506,14 +3506,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (updates.plantTaskIds !== undefined) dbUpdates.plant_task_ids = updates.plantTaskIds;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes || null;
     if (updates.calculatedFromComponents !== undefined) dbUpdates.calculated_from_components = updates.calculatedFromComponents;
-    
+
     const { data, error } = await client
       .from('irrigation_zones')
       .update(dbUpdates)
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapIrrigationZoneFromDB(data);
   }
@@ -3524,7 +3524,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('irrigation_zones')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw error;
   }
 
@@ -3536,7 +3536,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('zone_id', zoneId)
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
     return (data || []).map(db => this.mapIrrigationComponentFromDB(db));
   }
@@ -3548,7 +3548,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') return null;
       throw error;
@@ -3575,7 +3575,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       })
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapIrrigationComponentFromDB(data);
   }
@@ -3593,14 +3593,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (updates.brand !== undefined) dbUpdates.brand = updates.brand || null;
     if (updates.model !== undefined) dbUpdates.model = updates.model || null;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes || null;
-    
+
     const { data, error } = await client
       .from('irrigation_components')
       .update(dbUpdates)
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapIrrigationComponentFromDB(data);
   }
@@ -3611,7 +3611,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('irrigation_components')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw error;
   }
 
@@ -3665,7 +3665,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') return null;
       throw error;
@@ -3718,7 +3718,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       })
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapWateringLogFromDB(data);
   }
@@ -3743,14 +3743,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes || null;
     if (updates.valveId !== undefined) dbUpdates.valve_id = updates.valveId || null;
     if (updates.completed !== undefined) dbUpdates.completed = updates.completed;
-    
+
     const { data, error } = await client
       .from('watering_logs')
       .update(dbUpdates)
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return this.mapWateringLogFromDB(data);
   }
@@ -3761,7 +3761,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('watering_logs')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw error;
   }
 
@@ -4212,7 +4212,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
     try {
       const dbPlant = this.mapIndividualPlantToDB(plant);
-      
+
       const { data, error } = await this.client
         .from('individual_plants')
         .insert(dbPlant)
@@ -4235,7 +4235,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     try {
       const dbUpdates = this.mapIndividualPlantToDB(updates as any);
       delete dbUpdates.id; // Remove ID from updates
-      
+
       const { data, error } = await this.client
         .from('individual_plants')
         .update(dbUpdates)
@@ -4316,4 +4316,102 @@ export class SupabaseStorageProvider implements IStorageProvider {
       orchestrator_enabled: plant.orchestratorEnabled || false
     };
   }
+
+  // Individual Plant Operations
+  async getPlantOperations(plantId: string): Promise<any[]> {
+    const client = this.ensureClient();
+    console.log('🔍 PLANT OPERATIONS DEBUG - Getting operations for plant:', plantId);
+
+    const { data, error } = await client
+      .from('individual_plant_operations')
+      .select('*')
+      .eq('plant_id', plantId)
+      .order('operation_date', { ascending: false });
+
+    if (error) {
+      // If table doesn't exist yet, return empty array gracefully
+      if (error.code === '42P01') {
+        console.warn('individual_plant_operations table does not exist yet');
+        return [];
+      }
+      console.error('Error fetching plant operations:', error);
+      return [];
+    }
+
+    return (data || []).map(db => ({
+      id: db.id,
+      plantId: db.plant_id,
+      gardenId: db.garden_id,
+      operationType: db.operation_type,
+      operationCategory: this.getOperationCategory(db.operation_type),
+      date: db.operation_date,
+      operationDate: db.operation_date,
+      quantity: db.quantity ? Number(db.quantity) : undefined,
+      unit: db.unit,
+      productName: db.product_name,
+      notes: db.notes,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at
+    }));
+  }
+
+  async createPlantOperation(operation: any): Promise<any> {
+    const client = this.ensureClient();
+    console.log('Creating plant operation:', operation);
+
+    const dbOp = {
+      garden_id: operation.gardenId,
+      plant_id: operation.plantId,
+      operation_type: operation.operationType,
+      operation_date: operation.date || operation.operationDate || new Date().toISOString().split('T')[0],
+      quantity: operation.quantity,
+      unit: operation.unit,
+      product_name: operation.productName,
+      notes: operation.notes,
+      parent_operation_id: operation.parentOperationId,
+      parent_operation_table: operation.parentOperationTable
+    };
+
+    const { data, error } = await client
+      .from('individual_plant_operations')
+      .insert(dbOp)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      plantId: data.plant_id,
+      gardenId: data.garden_id,
+      operationType: data.operation_type,
+      operationCategory: this.getOperationCategory(data.operation_type),
+      date: data.operation_date,
+      operationDate: data.operation_date,
+      quantity: data.quantity ? Number(data.quantity) : undefined,
+      unit: data.unit,
+      productName: data.product_name,
+      notes: data.notes,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
+  }
+
+  // Helper
+  private getOperationCategory(type: string): string {
+    const map: Record<string, string> = {
+      'watering': 'irrigation',
+      'fertilizing': 'nutrition',
+      'treatment': 'protection',
+      'pruning': 'maintenance',
+      'harvest': 'maintenance',
+      'transplanting': 'maintenance',
+      'thinning': 'maintenance',
+      'staking': 'maintenance',
+      'mulching': 'maintenance'
+    };
+    return map[type] || 'maintenance';
+  }
+
 }
+
