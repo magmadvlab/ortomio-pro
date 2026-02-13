@@ -272,6 +272,20 @@ export interface IStorageProvider {
   getPlantOperations?(plantId: string): Promise<any[]>;
   createPlantOperation?(operation: any): Promise<any>;
 
+  // Greenhouse Benches (Bancali Serra)
+  getGreenhouseBenches?(gardenId: string): Promise<import('../../../types/greenhouseBench').GreenhouseBench[]>;
+  getGreenhouseBench?(id: string): Promise<import('../../../types/greenhouseBench').GreenhouseBench | null>;
+  createGreenhouseBench?(bench: Omit<import('../../../types/greenhouseBench').GreenhouseBench, 'id' | 'createdAt' | 'updatedAt'>): Promise<import('../../../types/greenhouseBench').GreenhouseBench>;
+  updateGreenhouseBench?(id: string, updates: Partial<import('../../../types/greenhouseBench').GreenhouseBench>): Promise<import('../../../types/greenhouseBench').GreenhouseBench>;
+  deleteGreenhouseBench?(id: string): Promise<void>;
+
+  // Greenhouse Readings (Letture Parametri Serra)
+  getGreenhouseReadings?(gardenId: string, limit?: number): Promise<import('../../../types/greenhouseReading').GreenhouseReading[]>;
+  getGreenhouseReading?(id: string): Promise<import('../../../types/greenhouseReading').GreenhouseReading | null>;
+  createGreenhouseReading?(reading: Omit<import('../../../types/greenhouseReading').GreenhouseReading, 'id' | 'createdAt' | 'updatedAt'>): Promise<import('../../../types/greenhouseReading').GreenhouseReading>;
+  updateGreenhouseReading?(id: string, updates: Partial<import('../../../types/greenhouseReading').GreenhouseReading>): Promise<import('../../../types/greenhouseReading').GreenhouseReading>;
+  deleteGreenhouseReading?(id: string): Promise<void>;
+
   // Check if provider is available
   isAvailable(): boolean;
 }

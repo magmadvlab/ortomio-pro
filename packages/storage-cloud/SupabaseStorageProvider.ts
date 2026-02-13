@@ -4427,5 +4427,375 @@ export class SupabaseStorageProvider implements IStorageProvider {
     return map[type] || 'maintenance';
   }
 
+  // ========================================
+  // GREENHOUSE BENCHES (Bancali Serra)
+  // ========================================
+
+  async getGreenhouseBenches(gardenId: string): Promise<import('@/types/greenhouseBench').GreenhouseBench[]> {
+    const client = this.ensureClient();
+    
+    try {
+      const { data, error } = await client
+        .from('greenhouse_benches')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .order('bench_number', { ascending: true });
+
+      if (error) {
+        // Se tabella non esiste ancora, ritorna array vuoto
+        if (error.code === '42P01') {
+          console.warn('greenhouse_benches table does not exist yet');
+          return [];
+        }
+        throw error;
+      }
+
+      return (data || []).map(this.mapGreenhouseBenchFromDB);
+    } catch (error) {
+      console.error('Error loading greenhouse benches:', error);
+      return [];
+    }
+  }
+
+  async getGreenhouseBench(id: string): Promise<import('@/types/greenhouseBench').GreenhouseBench | null> {
+    const client = this.ensureClient();
+
+    try {
+      const { data, error } = await client
+        .from('greenhouse_benches')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') return null; // Not found
+        throw error;
+      }
+
+      return this.mapGreenhouseBenchFromDB(data);
+    } catch (error) {
+      console.error('Error loading greenhouse bench:', error);
+      return null;
+    }
+  }
+
+  async createGreenhouseBench(bench: Omit<import('@/types/greenhouseBench').GreenhouseBench, 'id' | 'createdAt' | 'updatedAt'>): Promise<import('@/types/greenhouseBench').GreenhouseBench> {
+    const client = this.ensureClient();
+
+    try {
+      const dbBench = this.mapGreenhouseBenchToDB(bench);
+
+      const { data, error } = await client
+        .from('greenhouse_benches')
+        .insert(dbBench)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Greenhouse bench saved to Supabase:', data.name);
+      return this.mapGreenhouseBenchFromDB(data);
+    } catch (error) {
+      console.error('Error creating greenhouse bench:', error);
+      throw error;
+    }
+  }
+
+  async updateGreenhouseBench(id: string, updates: Partial<import('@/types/greenhouseBench').GreenhouseBench>): Promise<import('@/types/greenhouseBench').GreenhouseBench> {
+    const client = this.ensureClient();
+
+    try {
+      const dbUpdates = this.mapGreenhouseBenchToDB(updates as any);
+      delete dbUpdates.id; // Remove ID from updates
+
+      const { data, error } = await client
+        .from('greenhouse_benches')
+        .update(dbUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Greenhouse bench updated in Supabase:', data.name);
+      return this.mapGreenhouseBenchFromDB(data);
+    } catch (error) {
+      console.error('Error updating greenhouse bench:', error);
+      throw error;
+    }
+  }
+
+  async deleteGreenhouseBench(id: string): Promise<void> {
+    const client = this.ensureClient();
+
+    try {
+      const { error } = await client
+        .from('greenhouse_benches')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      console.log('✅ Greenhouse bench deleted from Supabase:', id);
+    } catch (error) {
+      console.error('Error deleting greenhouse bench:', error);
+      throw error;
+    }
+  }
+
+  private mapGreenhouseBenchFromDB(db: any): import('@/types/greenhouseBench').GreenhouseBench {
+    return {
+      id: db.id,
+      gardenId: db.garden_id,
+      greenhouseId: db.greenhouse_id || undefined,
+      benchNumber: db.bench_number,
+      name: db.name,
+      lengthCm: Number(db.length_cm),
+      widthCm: Number(db.width_cm),
+      heightCm: Number(db.height_cm),
+      rowCount: db.row_count,
+      plantsPerRow: db.plants_per_row,
+      totalCapacity: db.total_capacity,
+      currentPlants: db.current_plants || undefined,
+      material: db.material || undefined,
+      hasDrainage: db.has_drainage,
+      drainageType: db.drainage_type || undefined,
+      position: db.position || undefined,
+      level: db.level || undefined,
+      substrateType: db.substrate_type || undefined,
+      substrateDepthCm: db.substrate_depth_cm ? Number(db.substrate_depth_cm) : undefined,
+      substrateNotes: db.substrate_notes || undefined,
+      hasIrrigation: db.has_irrigation || undefined,
+      irrigationType: db.irrigation_type || undefined,
+      emitterSpacingCm: db.emitter_spacing_cm ? Number(db.emitter_spacing_cm) : undefined,
+      emitterFlowRateLph: db.emitter_flow_rate_lph ? Number(db.emitter_flow_rate_lph) : undefined,
+      hasHeating: db.has_heating || undefined,
+      heatingType: db.heating_type || undefined,
+      isActive: db.is_active,
+      notes: db.notes || undefined,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at
+    };
+  }
+
+  private mapGreenhouseBenchToDB(bench: Partial<import('@/types/greenhouseBench').GreenhouseBench>): any {
+    const db: any = {};
+    
+    if (bench.id !== undefined) db.id = bench.id;
+    if (bench.gardenId !== undefined) db.garden_id = bench.gardenId;
+    if (bench.greenhouseId !== undefined) db.greenhouse_id = bench.greenhouseId;
+    if (bench.benchNumber !== undefined) db.bench_number = bench.benchNumber;
+    if (bench.name !== undefined) db.name = bench.name;
+    if (bench.lengthCm !== undefined) db.length_cm = bench.lengthCm;
+    if (bench.widthCm !== undefined) db.width_cm = bench.widthCm;
+    if (bench.heightCm !== undefined) db.height_cm = bench.heightCm;
+    if (bench.rowCount !== undefined) db.row_count = bench.rowCount;
+    if (bench.plantsPerRow !== undefined) db.plants_per_row = bench.plantsPerRow;
+    if (bench.totalCapacity !== undefined) db.total_capacity = bench.totalCapacity;
+    if (bench.currentPlants !== undefined) db.current_plants = bench.currentPlants;
+    if (bench.material !== undefined) db.material = bench.material;
+    if (bench.hasDrainage !== undefined) db.has_drainage = bench.hasDrainage;
+    if (bench.drainageType !== undefined) db.drainage_type = bench.drainageType;
+    if (bench.position !== undefined) db.position = bench.position;
+    if (bench.level !== undefined) db.level = bench.level;
+    if (bench.substrateType !== undefined) db.substrate_type = bench.substrateType;
+    if (bench.substrateDepthCm !== undefined) db.substrate_depth_cm = bench.substrateDepthCm;
+    if (bench.substrateNotes !== undefined) db.substrate_notes = bench.substrateNotes;
+    if (bench.hasIrrigation !== undefined) db.has_irrigation = bench.hasIrrigation;
+    if (bench.irrigationType !== undefined) db.irrigation_type = bench.irrigationType;
+    if (bench.emitterSpacingCm !== undefined) db.emitter_spacing_cm = bench.emitterSpacingCm;
+    if (bench.emitterFlowRateLph !== undefined) db.emitter_flow_rate_lph = bench.emitterFlowRateLph;
+    if (bench.hasHeating !== undefined) db.has_heating = bench.hasHeating;
+    if (bench.heatingType !== undefined) db.heating_type = bench.heatingType;
+    if (bench.isActive !== undefined) db.is_active = bench.isActive;
+    if (bench.notes !== undefined) db.notes = bench.notes;
+
+    return db;
+  }
+
+  // ========================================
+  // GREENHOUSE READINGS (Letture Parametri Serra)
+  // ========================================
+
+  async getGreenhouseReadings(gardenId: string, limit?: number): Promise<import('@/types/greenhouseReading').GreenhouseReading[]> {
+    const client = this.ensureClient();
+
+    try {
+      let query = client
+        .from('greenhouse_readings')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .order('timestamp', { ascending: false });
+
+      if (limit) {
+        query = query.limit(limit);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        // Se tabella non esiste ancora, ritorna array vuoto
+        if (error.code === '42P01') {
+          console.warn('greenhouse_readings table does not exist yet');
+          return [];
+        }
+        throw error;
+      }
+
+      return (data || []).map(this.mapGreenhouseReadingFromDB);
+    } catch (error) {
+      console.error('Error loading greenhouse readings:', error);
+      return [];
+    }
+  }
+
+  async getGreenhouseReading(id: string): Promise<import('@/types/greenhouseReading').GreenhouseReading | null> {
+    const client = this.ensureClient();
+
+    try {
+      const { data, error } = await client
+        .from('greenhouse_readings')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') return null; // Not found
+        throw error;
+      }
+
+      return this.mapGreenhouseReadingFromDB(data);
+    } catch (error) {
+      console.error('Error loading greenhouse reading:', error);
+      return null;
+    }
+  }
+
+  async createGreenhouseReading(reading: Omit<import('@/types/greenhouseReading').GreenhouseReading, 'id' | 'createdAt' | 'updatedAt'>): Promise<import('@/types/greenhouseReading').GreenhouseReading> {
+    const client = this.ensureClient();
+
+    try {
+      const dbReading = this.mapGreenhouseReadingToDB(reading);
+
+      const { data, error } = await client
+        .from('greenhouse_readings')
+        .insert(dbReading)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Greenhouse reading saved to Supabase:', data.timestamp);
+      return this.mapGreenhouseReadingFromDB(data);
+    } catch (error) {
+      console.error('Error creating greenhouse reading:', error);
+      throw error;
+    }
+  }
+
+  async updateGreenhouseReading(id: string, updates: Partial<import('@/types/greenhouseReading').GreenhouseReading>): Promise<import('@/types/greenhouseReading').GreenhouseReading> {
+    const client = this.ensureClient();
+
+    try {
+      const dbUpdates = this.mapGreenhouseReadingToDB(updates as any);
+      delete dbUpdates.id; // Remove ID from updates
+
+      const { data, error } = await client
+        .from('greenhouse_readings')
+        .update(dbUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Greenhouse reading updated in Supabase:', data.timestamp);
+      return this.mapGreenhouseReadingFromDB(data);
+    } catch (error) {
+      console.error('Error updating greenhouse reading:', error);
+      throw error;
+    }
+  }
+
+  async deleteGreenhouseReading(id: string): Promise<void> {
+    const client = this.ensureClient();
+
+    try {
+      const { error } = await client
+        .from('greenhouse_readings')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      console.log('✅ Greenhouse reading deleted from Supabase:', id);
+    } catch (error) {
+      console.error('Error deleting greenhouse reading:', error);
+      throw error;
+    }
+  }
+
+  private mapGreenhouseReadingFromDB(db: any): import('@/types/greenhouseReading').GreenhouseReading {
+    return {
+      id: db.id,
+      gardenId: db.garden_id,
+      greenhouseId: db.greenhouse_id || undefined,
+      readingDate: db.reading_date,
+      readingTime: db.reading_time,
+      timestamp: db.timestamp,
+      internalTemperature: Number(db.internal_temperature),
+      internalHumidity: Number(db.internal_humidity),
+      co2Level: db.co2_level ? Number(db.co2_level) : undefined,
+      lightIntensity: db.light_intensity ? Number(db.light_intensity) : undefined,
+      externalTemperature: db.external_temperature ? Number(db.external_temperature) : undefined,
+      externalHumidity: db.external_humidity ? Number(db.external_humidity) : undefined,
+      temperatureDelta: db.temperature_delta ? Number(db.temperature_delta) : undefined,
+      humidityDelta: db.humidity_delta ? Number(db.humidity_delta) : undefined,
+      ventilationActive: db.ventilation_active,
+      heatingActive: db.heating_active,
+      shadingActive: db.shading_active,
+      irrigationActive: db.irrigation_active || undefined,
+      benchId: db.bench_id || undefined,
+      position: db.position || undefined,
+      heightCm: db.height_cm ? Number(db.height_cm) : undefined,
+      airQuality: db.air_quality || undefined,
+      notes: db.notes || undefined,
+      observations: db.observations || undefined,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at
+    };
+  }
+
+  private mapGreenhouseReadingToDB(reading: Partial<import('@/types/greenhouseReading').GreenhouseReading>): any {
+    const db: any = {};
+
+    if (reading.id !== undefined) db.id = reading.id;
+    if (reading.gardenId !== undefined) db.garden_id = reading.gardenId;
+    if (reading.greenhouseId !== undefined) db.greenhouse_id = reading.greenhouseId;
+    if (reading.readingDate !== undefined) db.reading_date = reading.readingDate;
+    if (reading.readingTime !== undefined) db.reading_time = reading.readingTime;
+    if (reading.timestamp !== undefined) db.timestamp = reading.timestamp;
+    if (reading.internalTemperature !== undefined) db.internal_temperature = reading.internalTemperature;
+    if (reading.internalHumidity !== undefined) db.internal_humidity = reading.internalHumidity;
+    if (reading.co2Level !== undefined) db.co2_level = reading.co2Level;
+    if (reading.lightIntensity !== undefined) db.light_intensity = reading.lightIntensity;
+    if (reading.externalTemperature !== undefined) db.external_temperature = reading.externalTemperature;
+    if (reading.externalHumidity !== undefined) db.external_humidity = reading.externalHumidity;
+    if (reading.temperatureDelta !== undefined) db.temperature_delta = reading.temperatureDelta;
+    if (reading.humidityDelta !== undefined) db.humidity_delta = reading.humidityDelta;
+    if (reading.ventilationActive !== undefined) db.ventilation_active = reading.ventilationActive;
+    if (reading.heatingActive !== undefined) db.heating_active = reading.heatingActive;
+    if (reading.shadingActive !== undefined) db.shading_active = reading.shadingActive;
+    if (reading.irrigationActive !== undefined) db.irrigation_active = reading.irrigationActive;
+    if (reading.benchId !== undefined) db.bench_id = reading.benchId;
+    if (reading.position !== undefined) db.position = reading.position;
+    if (reading.heightCm !== undefined) db.height_cm = reading.heightCm;
+    if (reading.airQuality !== undefined) db.air_quality = reading.airQuality;
+    if (reading.notes !== undefined) db.notes = reading.notes;
+    if (reading.observations !== undefined) db.observations = reading.observations;
+
+    return db;
+  }
+
 }
 
