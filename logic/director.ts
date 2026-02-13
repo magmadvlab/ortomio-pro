@@ -48,9 +48,9 @@ import { VineCrop } from '../types/vine';
 import { ExoticFruitCrop } from '../types/exoticFruit';
 import { RaspberryCrop } from '../types/raspberry';
 // Advanced growing systems engines (Pro Features)
-import { calculateHydroponicTasks, HydroponicTaskAdvice } from './hydroponicEngine';
-import { calculateAquaponicTasks, AquaponicTaskAdvice } from './aquaponicEngine';
-import { calculateAeroponicTasks, AeroponicTaskAdvice } from './aeroponicEngine';
+import { generateHydroponicSuggestions, HydroponicTaskAdvice } from './hydroponicDirector';
+import { generateAquaponicSuggestions, AquaponicTaskAdvice } from './aquaponicDirector';
+import { generateAeroponicSuggestions, AeroponicTaskAdvice } from './aeroponicDirector';
 import { calculateAccessoryTasks, AccessoryTaskAdvice } from './accessoriesEngine';
 import { GardenAccessory } from '../types/accessories';
 import { HydroponicReading, AquaponicReading } from '../types/indoorGrowing';
@@ -1976,20 +1976,19 @@ export const getDailyGardenPlan = async (
     garden.gardenType === 'Hydroponic'
   )) {
     try {
-      // TODO: Ottenere letture parametri da storage provider quando disponibile
-      const hydroponicReadings: HydroponicReading[] | undefined = undefined;
-      const hydroponicTasks = calculateHydroponicTasks(garden, tasks, currentDate, hydroponicReadings);
-      
-      for (const ht of hydroponicTasks) {
-        advancedSystemTasks.push({
-          taskId: '', // Task a livello giardino, non associato a pianta specifica
-          plantName: `Sistema Idroponico (${garden.hydroponicConfig?.systemType || 'Idroponico'})`,
-          phase: `Idroponica: ${ht.taskType}`,
-          message: ht.isUrgent ? `⚠️ URGENTE: ${ht.message}` : ht.message,
-          priority: ht.priority === 'Critical' ? 'Critical' : (ht.priority === 'High' ? 'High' : 'Medium'),
-          action: ht.instructions.join('; ')
-        });
+      // Ottieni letture parametri da storage provider se disponibile
+      let hydroponicReadings: HydroponicReading[] = [];
+      if (storageProvider?.getHydroponicReadings) {
+        hydroponicReadings = await storageProvider.getHydroponicReadings(garden.id) || [];
       }
+      
+      const hydroponicAdvice = generateHydroponicSuggestions(garden, tasks, hydroponicReadings, currentDate);
+      
+      // Aggiungi alert urgenti
+      urgentAlerts.push(...hydroponicAdvice.urgentAlerts);
+      
+      // Aggiungi prompts come baseline
+      baselinePrompts.push(...hydroponicAdvice.prompts);
     } catch (error) {
       console.error('Error calculating hydroponic tasks:', error);
     }
@@ -1998,20 +1997,19 @@ export const getDailyGardenPlan = async (
   // ACQUAPONICA
   if (garden.gardenType === 'Aquaponic') {
     try {
-      // TODO: Ottenere letture parametri da storage provider quando disponibile
-      const aquaponicReadings: AquaponicReading[] | undefined = undefined;
-      const aquaponicTasks = calculateAquaponicTasks(garden, tasks, currentDate, aquaponicReadings);
-      
-      for (const at of aquaponicTasks) {
-        advancedSystemTasks.push({
-          taskId: '',
-          plantName: 'Sistema Acquaponico',
-          phase: `Acquaponica: ${at.taskType}`,
-          message: at.isUrgent ? `⚠️ URGENTE: ${at.message}` : at.message,
-          priority: at.priority === 'Critical' ? 'Critical' : (at.priority === 'High' ? 'High' : 'Medium'),
-          action: at.instructions.join('; ')
-        });
+      // Ottieni letture parametri da storage provider se disponibile
+      let aquaponicReadings: AquaponicReading[] = [];
+      if (storageProvider?.getAquaponicReadings) {
+        aquaponicReadings = await storageProvider.getAquaponicReadings(garden.id) || [];
       }
+      
+      const aquaponicAdvice = generateAquaponicSuggestions(garden, tasks, aquaponicReadings, currentDate);
+      
+      // Aggiungi alert urgenti
+      urgentAlerts.push(...aquaponicAdvice.urgentAlerts);
+      
+      // Aggiungi prompts come baseline
+      baselinePrompts.push(...aquaponicAdvice.prompts);
     } catch (error) {
       console.error('Error calculating aquaponic tasks:', error);
     }
@@ -2020,18 +2018,13 @@ export const getDailyGardenPlan = async (
   // AEROPONICA
   if (garden.gardenType === 'Aeroponic') {
     try {
-      const aeroponicTasks = calculateAeroponicTasks(garden, tasks, currentDate);
+      const aeroponicAdvice = generateAeroponicSuggestions(garden, tasks, currentDate);
       
-      for (const at of aeroponicTasks) {
-        advancedSystemTasks.push({
-          taskId: '',
-          plantName: 'Sistema Aeroponico',
-          phase: `Aeroponica: ${at.taskType}`,
-          message: at.isUrgent ? `⚠️ URGENTE: ${at.message}` : at.message,
-          priority: at.priority === 'Critical' ? 'Critical' : (at.priority === 'High' ? 'High' : 'Medium'),
-          action: at.instructions.join('; ')
-        });
-      }
+      // Aggiungi alert urgenti
+      urgentAlerts.push(...aeroponicAdvice.urgentAlerts);
+      
+      // Aggiungi prompts come baseline
+      baselinePrompts.push(...aeroponicAdvice.prompts);
     } catch (error) {
       console.error('Error calculating aeroponic tasks:', error);
     }
@@ -2058,9 +2051,6 @@ export const getDailyGardenPlan = async (
   // } catch (error) {
   //   console.error('Error calculating accessory tasks:', error);
   // }
-
-  // Aggiungi task sistemi avanzati al piano
-  lifecycleTasks.push(...advancedSystemTasks);
 
   // GENERAZIONE TIMELINE AUTOMATICA DALLE SEMINE COMPLETATE
   // Quando una semina viene completata, genera automaticamente tutte le fasi successive
@@ -2275,6 +2265,68 @@ export const getDailyGardenPlan = async (
   } catch (error) {
     console.warn('Error calculating irrigation tasks:', error);
     // Continua senza irrigation tasks se errore
+  }
+
+  // IMPORTANTE: Filtra suggerimenti non applicabili per sistemi idroponici/acquaponici/aeroponici
+  // Non suggerire irrigazione/fertilizzazione tradizionale per questi sistemi
+  const isAdvancedGrowingSystem = garden.gardenType && [
+    'Hydroponic', 'NFT', 'DWC', 'EbbFlow', 'Drip', 'Wick', 'Kratky',
+    'Aquaponic', 'Aeroponic'
+  ].includes(garden.gardenType);
+
+  if (isAdvancedGrowingSystem) {
+    // Filtra lifecycle tasks che suggeriscono irrigazione/fertilizzazione tradizionale
+    const filteredLifecycleTasks = lifecycleTasks.filter(task => {
+      const message = task.message.toLowerCase();
+      const action = (task.action || '').toLowerCase();
+      
+      // Rimuovi suggerimenti di irrigazione tradizionale
+      if (message.includes('irrigazione') || message.includes('annaffia') || action.includes('irrigazione')) {
+        return false;
+      }
+      
+      // Rimuovi suggerimenti di fertilizzazione tradizionale (ma mantieni fertirrigazione)
+      if ((message.includes('fertilizza') || action.includes('fertilizza')) && 
+          !message.includes('fertirrigazione') && !action.includes('fertirrigazione')) {
+        return false;
+      }
+      
+      return true;
+    });
+    
+    // Filtra nutrient tasks (fertilizzazione tradizionale non applicabile)
+    const filteredNutrientTasks = nutrientTasks.filter(task => {
+      // Per sistemi idroponici, la gestione nutrienti è tramite EC, non fertilizzazione tradizionale
+      return false; // Rimuovi tutti i nutrient tasks tradizionali
+    });
+    
+    // Filtra baseline prompts che suggeriscono operazioni non applicabili
+    const filteredBaselinePrompts = baselinePrompts.filter(prompt => {
+      const title = prompt.title.toLowerCase();
+      const body = prompt.body.toLowerCase();
+      
+      // Rimuovi prompts di concimazione di fondo
+      if (title.includes('concimazione') || body.includes('concimazione di fondo')) {
+        return false;
+      }
+      
+      // Rimuovi prompts di lavorazione terreno (non applicabili per idroponica)
+      if (title.includes('lavorazione') || title.includes('tempera') || body.includes('lavorazione')) {
+        return false;
+      }
+      
+      return true;
+    });
+    
+    // Sostituisci con versioni filtrate
+    lifecycleTasks.length = 0;
+    lifecycleTasks.push(...filteredLifecycleTasks);
+    
+    nutrientTasks.length = 0;
+    nutrientTasks.push(...filteredNutrientTasks);
+    
+    baselinePrompts.length = 0;
+    baselinePrompts.push(...filteredBaselinePrompts);
   }
 
   return {

@@ -29,6 +29,38 @@
   - [x] 1.4.3 Verificare salvataggio in database
   - [x] 1.4.4 Verificare redirect a dashboard
 
+### 1.5 Operazioni Specifiche Idroponiche (NUOVO - COMPLETATO)
+
+- [x] 1.5.1 Estendere TaskType con tipi idroponici
+  - [x] Aggiungere HydroponicTaskType, AquaponicTaskType, AeroponicTaskType a types.ts
+  - [x] Aggiornare taskTranslations.ts con traduzioni italiane
+  - [x] Verificare nessun errore TypeScript
+
+- [x] 1.5.2 Creare hydroponicDirector.ts
+  - [x] Implementare generateHydroponicSuggestions()
+  - [x] Logica controllo pH/EC fuori range (alert critici)
+  - [x] Promemoria controlli periodici
+  - [x] Promemoria cambio soluzione
+  - [x] Suggerimenti specifici per tipo sistema (NFT/DWC/EbbFlow)
+
+- [x] 1.5.3 Creare aquaponicDirector.ts
+  - [x] Implementare generateAquaponicSuggestions()
+  - [x] Logica controllo ammoniaca/nitriti/nitrati
+  - [x] Promemoria alimentazione pesci
+  - [x] Promemoria pulizia filtri
+
+- [x] 1.5.4 Creare aeroponicDirector.ts
+  - [x] Implementare generateAeroponicSuggestions()
+  - [x] Logica controllo ugelli (critico per aeroponica)
+  - [x] Promemoria pulizia sistema
+  - [x] Controllo pressione (per high pressure)
+
+- [x] 1.5.5 Integrare nel Director principale
+  - [x] Importare director specializzati in logic/director.ts
+  - [x] Chiamare director appropriato in base a gardenType
+  - [x] Filtrare suggerimenti non applicabili (no irrigazione/fertilizzazione tradizionale)
+  - [x] Verificare nessun errore TypeScript
+
 ### 2. Menu Fragole nel Planner
 
 - [ ] 2.1 Aggiungere categoria "Fragole" nel planner

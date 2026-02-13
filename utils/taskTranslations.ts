@@ -64,6 +64,24 @@ export const TASK_TYPE_TRANSLATIONS: Record<string, string> = {
   'Topping': 'Spuntatura',
   'TreePruning': 'Potatura Alberi',
   
+  // Operazioni idroponiche
+  'HydroNutrientCheck': 'Controllo Nutrienti',
+  'HydroSolutionChange': 'Cambio Soluzione',
+  'HydroSystemClean': 'Pulizia Sistema',
+  'HydroPhAdjust': 'Correzione pH',
+  'HydroEcAdjust': 'Correzione EC',
+  'HydroAlgaeControl': 'Controllo Alghe',
+  'HydroEquipmentCheck': 'Controllo Attrezzature',
+  
+  // Operazioni acquaponiche
+  'AquaponicFishFeed': 'Alimentazione Pesci',
+  'AquaponicWaterTest': 'Test Acqua',
+  'AquaponicFilterClean': 'Pulizia Filtri',
+  
+  // Operazioni aeroponiche
+  'AeroponicNozzleClean': 'Pulizia Ugelli',
+  'AeroponicPressureCheck': 'Controllo Pressione',
+  
   // Operazioni di manutenzione
   'Weeding': 'Diserbo',
   'Staking': 'Tutoraggio',
