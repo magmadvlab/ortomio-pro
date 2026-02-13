@@ -649,9 +649,36 @@ export interface HarvestLogData {
     
     // Specialized Crop Harvest Data (Pro Features)
     strawberryHarvest?: {
+      // Tipo raccolto e qualità
       harvestType?: 'FirstFlush' | 'MainHarvest' | 'LateHarvest';
       berrySize?: 'Small' | 'Medium' | 'Large';
       qualityNotes?: string;
+      
+      // NUOVO: Posizione pianta specifica
+      plantPosition?: {
+        rowId?: string;           // ID fila (collegamento a GardenRow o FieldRow)
+        rowNumber?: number;       // Numero fila (1, 2, 3, ...)
+        positionInRow?: number;   // Posizione nella fila (1, 2, 3, ...)
+        plantCode?: string;       // Codice univoco pianta (es. "STRAW-R1-P5")
+      };
+      
+      // NUOVO: Parametri suolo al raccolto
+      soilParameters?: {
+        ph?: number;              // pH suolo (4.5-7.0)
+        moisture?: number;        // Umidità suolo (%)
+        temperature?: number;     // Temperatura suolo (°C)
+        ec?: number;              // EC suolo (mS/cm)
+        readingId?: string;       // ID lettura sensori collegata
+      };
+      
+      // NUOVO: Gestione coltura
+      daysSinceRenovation?: number;      // Giorni da ultimo rinnovo impianto
+      daysSinceRunnerRemoval?: number;   // Giorni da ultima rimozione stoloni
+      mulchingCondition?: 'Good' | 'Fair' | 'Poor'; // Stato pacciamatura
+      
+      // NUOVO: Varietà specifica
+      varietyId?: string;        // ID varietà (da strawberryMasterSheets)
+      varietyName?: string;      // Nome varietà (es. "Elsanta", "Fragola di Bosco")
     };
     fruitTreeHarvest?: {
       treeAge?: number;

@@ -60,6 +60,24 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
     return garden?.gardenType === 'Aeroponic'
   }, [garden])
 
+  // Check if plant is strawberry
+  const isStrawberry = useMemo(() => {
+    const plantNameLower = task.plantName.toLowerCase()
+    return plantNameLower.includes('fragola') || plantNameLower.includes('strawberry')
+  }, [task.plantName])
+
+  // Strawberry-specific fields
+  const [strawberryHarvestType, setStrawberryHarvestType] = useState<'FirstFlush' | 'MainHarvest' | 'LateHarvest'>('MainHarvest')
+  const [strawberryBerrySize, setStrawberryBerrySize] = useState<'Small' | 'Medium' | 'Large'>('Medium')
+  const [strawberryRowNumber, setStrawberryRowNumber] = useState<number>(1)
+  const [strawberryPositionInRow, setStrawberryPositionInRow] = useState<number>(1)
+  const [strawberrySoilPh, setStrawberrySoilPh] = useState<number>(6.0)
+  const [strawberrySoilMoisture, setStrawberrySoilMoisture] = useState<number>(70)
+  const [strawberrySoilTemp, setStrawberrySoilTemp] = useState<number>(18)
+  const [strawberryDaysSinceRenovation, setStrawberryDaysSinceRenovation] = useState<number>(180)
+  const [strawberryDaysSinceRunnerRemoval, setStrawberryDaysSinceRunnerRemoval] = useState<number>(14)
+  const [strawberryMulchingCondition, setStrawberryMulchingCondition] = useState<'Good' | 'Fair' | 'Poor'>('Good')
+
   const qualityOptions = [
     { value: 'excellent', emoji: '😊', label: 'Ottima' },
     { value: 'good', emoji: '🙂', label: 'Buona' },
@@ -124,6 +142,27 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
       notes: notes.trim() || undefined,
       photo: photo || undefined,
       taskId: task.id
+    }
+
+    // Add strawberry data if applicable
+    if (isStrawberry) {
+      harvestData.strawberryHarvest = {
+        harvestType: strawberryHarvestType,
+        berrySize: strawberryBerrySize,
+        plantPosition: {
+          rowNumber: strawberryRowNumber,
+          positionInRow: strawberryPositionInRow,
+          plantCode: `STRAW-R${strawberryRowNumber}-P${strawberryPositionInRow}`
+        },
+        soilParameters: {
+          ph: strawberrySoilPh,
+          moisture: strawberrySoilMoisture,
+          temperature: strawberrySoilTemp
+        },
+        daysSinceRenovation: strawberryDaysSinceRenovation,
+        daysSinceRunnerRemoval: strawberryDaysSinceRunnerRemoval,
+        mulchingCondition: strawberryMulchingCondition
+      }
     }
 
     // Add hydroponic data if applicable
@@ -448,6 +487,172 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
                     />
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Strawberry Fields */}
+          {isStrawberry && (
+            <div className="mb-5 p-4 bg-pink-50 border border-pink-200 rounded-xl">
+              <h3 className="text-sm font-semibold text-pink-900 mb-3">
+                🍓 Dati Fragola
+              </h3>
+              
+              {/* Harvest Type and Berry Size */}
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Tipo Raccolto
+                  </label>
+                  <select
+                    value={strawberryHarvestType}
+                    onChange={(e) => setStrawberryHarvestType(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-500"
+                  >
+                    <option value="FirstFlush">Prima Fioritura</option>
+                    <option value="MainHarvest">Raccolto Principale</option>
+                    <option value="LateHarvest">Raccolto Tardivo</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Dimensione Bacca
+                  </label>
+                  <select
+                    value={strawberryBerrySize}
+                    onChange={(e) => setStrawberryBerrySize(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-500"
+                  >
+                    <option value="Small">Piccola</option>
+                    <option value="Medium">Media</option>
+                    <option value="Large">Grande</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Position Fields */}
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Fila
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={strawberryRowNumber}
+                    onChange={(e) => setStrawberryRowNumber(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Posizione in Fila
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={strawberryPositionInRow}
+                    onChange={(e) => setStrawberryPositionInRow(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-500"
+                  />
+                </div>
+              </div>
+
+              {/* Soil Parameters */}
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    pH Suolo
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="4.5"
+                    max="7"
+                    value={strawberrySoilPh}
+                    onChange={(e) => setStrawberrySoilPh(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Umidità Suolo (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={strawberrySoilMoisture}
+                    onChange={(e) => setStrawberrySoilMoisture(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Temp. Suolo (°C)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="5"
+                    max="35"
+                    value={strawberrySoilTemp}
+                    onChange={(e) => setStrawberrySoilTemp(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-500"
+                  />
+                </div>
+              </div>
+
+              {/* Management Fields */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Giorni da Rinnovo
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="730"
+                    value={strawberryDaysSinceRenovation}
+                    onChange={(e) => setStrawberryDaysSinceRenovation(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Giorni da Stoloni
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="90"
+                    value={strawberryDaysSinceRunnerRemoval}
+                    onChange={(e) => setStrawberryDaysSinceRunnerRemoval(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-500"
+                  />
+                </div>
+                
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Stato Pacciamatura
+                  </label>
+                  <select
+                    value={strawberryMulchingCondition}
+                    onChange={(e) => setStrawberryMulchingCondition(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-500"
+                  >
+                    <option value="Good">Buono</option>
+                    <option value="Fair">Discreto</option>
+                    <option value="Poor">Scarso</option>
+                  </select>
+                </div>
               </div>
             </div>
           )}
