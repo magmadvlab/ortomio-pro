@@ -1519,6 +1519,27 @@ export type {
 } from './types/greenhouse';
 
 export type {
+  GreenhouseBench,
+  BenchWizardConfig,
+  BenchStats,
+  BenchComparison,
+  GreenhouseLayout,
+  BenchBulkOperation,
+  BenchBulkOperationResult
+} from './types/greenhouseBench';
+
+export type {
+  GreenhouseReading,
+  GreenhouseReadingStats,
+  OptimalRanges,
+  GreenhouseAlert,
+  GreenhouseTrend,
+  ParameterCorrelation,
+  ReadingFormData,
+  GreenhouseSensorConfig
+} from './types/greenhouseReading';
+
+export type {
   GardenAccessory,
   AccessoryCategory,
   SupportType,

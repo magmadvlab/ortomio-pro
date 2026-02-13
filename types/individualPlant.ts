@@ -13,9 +13,14 @@ export interface GardenPlant {
   gardenRowId?: string; // garden_rows (bed rows)
   fieldRowId?: string; // field_rows (open field rows)
   
-  // Posizione nel filare
+  // NUOVO: Collegamento bancale serra
+  greenhouseBenchId?: string; // greenhouse_benches (serra)
+  benchRowNumber?: number; // Fila sul bancale (1, 2, 3...)
+  positionInBenchRow?: number; // Posizione nella fila del bancale
+  
+  // Posizione nel filare (campo aperto/aiuole)
   positionInRow: number; // 1, 2, 3, 4...
-  plantCode: string; // "F1-P001", "F2-P015"
+  plantCode: string; // "F1-P001", "F2-P015", "B1-R2-P003"
   
   // Informazioni pianta
   plantName: string;
@@ -60,6 +65,21 @@ export interface GardenPlant {
     };
   };
   
+  // NUOVO: Parametri ambientali serra (snapshot al momento impianto)
+  greenhouseConditions?: {
+    internalTemperature: number; // °C
+    internalHumidity: number; // %
+    co2Level?: number; // ppm
+    lightIntensity?: number; // lux
+    ventilationActive: boolean;
+    heatingActive: boolean;
+    shadingActive: boolean;
+    
+    // Differenziali esterno/interno
+    temperatureDelta?: number; // Interno - Esterno
+    humidityDelta?: number; // Interno - Esterno
+  };
+  
   // Coordinate precise (per mapping futuro)
   coordinates?: {
     x: number; // metri
@@ -72,6 +92,7 @@ export interface GardenPlant {
   
   // Helper fields for display
   fieldRowName?: string; // Nome del filare (per display)
+  benchName?: string; // Nome del bancale (per display)
   
   // Metadata
   createdAt: string;
@@ -146,6 +167,21 @@ export interface PlantOperation {
     };
   };
   
+  // NUOVO: Parametri serra al momento operazione
+  greenhouseConditions?: {
+    internalTemperature: number; // °C
+    internalHumidity: number; // %
+    co2Level?: number; // ppm
+    lightIntensity?: number; // lux
+    ventilationActive: boolean;
+    heatingActive: boolean;
+    shadingActive: boolean;
+    
+    // Differenziali esterno/interno
+    temperatureDelta?: number; // Interno - Esterno
+    humidityDelta?: number; // Interno - Esterno
+  };
+  
   // Condizioni ambientali (legacy)
   weatherConditions?: {
     temp?: number;
@@ -195,6 +231,27 @@ export interface PlantHarvest {
   // Condizioni
   weatherConditions?: Record<string, any>;
   storageMethod?: 'fresh' | 'refrigerated' | 'frozen' | 'dried';
+  
+  // NUOVO: Parametri serra al momento raccolto
+  greenhouseConditions?: {
+    internalTemperature: number; // °C
+    internalHumidity: number; // %
+    co2Level?: number; // ppm
+    
+    // Storico parametri durante crescita
+    avgTemperature?: number;
+    avgHumidity?: number;
+    avgCo2?: number;
+    
+    // Giorni con condizioni ottimali
+    daysOptimalTemp?: number;
+    daysOptimalHumidity?: number;
+    daysOptimalCo2?: number;
+    
+    // Differenziali medi
+    avgTemperatureDelta?: number;
+    avgHumidityDelta?: number;
+  };
   
   // Media
   photos: string[];
