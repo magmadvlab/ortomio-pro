@@ -51,6 +51,7 @@ import { RaspberryCrop } from '../types/raspberry';
 import { generateHydroponicSuggestions, HydroponicTaskAdvice } from './hydroponicDirector';
 import { generateAquaponicSuggestions, AquaponicTaskAdvice } from './aquaponicDirector';
 import { generateAeroponicSuggestions, AeroponicTaskAdvice } from './aeroponicDirector';
+import { generateGreenhouseSuggestions, GreenhouseTaskAdvice } from './greenhouseDirector';
 import { calculateAccessoryTasks, AccessoryTaskAdvice } from './accessoriesEngine';
 import { GardenAccessory } from '../types/accessories';
 import { HydroponicReading, AquaponicReading } from '../types/indoorGrowing';
@@ -2027,6 +2028,33 @@ export const getDailyGardenPlan = async (
       baselinePrompts.push(...aeroponicAdvice.prompts);
     } catch (error) {
       console.error('Error calculating aeroponic tasks:', error);
+    }
+  }
+
+  // SERRA
+  if (garden.gardenType === 'Greenhouse' || garden.greenhouseConfig) {
+    try {
+      // Ottieni forecast meteo per alert serra
+      let weatherForecast = undefined;
+      if (garden.coordinates && forecast7Days.length > 0) {
+        weatherForecast = {
+          tempMin: forecast7Days[0].temp_min,
+          tempMax: forecast7Days[0].temp_max,
+          windSpeed: forecast7Days[0].wind_speed,
+          rainForecastMm: forecast7Days[0].precipitation,
+          snowForecastMm: forecast7Days[0].snowfall
+        };
+      }
+      
+      const greenhouseAdvice = generateGreenhouseSuggestions(garden, tasks, currentDate, weatherForecast);
+      
+      // Aggiungi alert urgenti
+      urgentAlerts.push(...greenhouseAdvice.urgentAlerts);
+      
+      // Aggiungi prompts come baseline
+      baselinePrompts.push(...greenhouseAdvice.prompts);
+    } catch (error) {
+      console.error('Error calculating greenhouse tasks:', error);
     }
   }
 

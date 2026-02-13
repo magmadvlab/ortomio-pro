@@ -19,7 +19,7 @@ interface WeatherData {
   }
 }
 
-interface WeatherForecast {
+export interface WeatherForecast {
   date: string
   tempMin: number
   tempMax: number
@@ -27,6 +27,7 @@ interface WeatherForecast {
   rainMm: number
   windSpeed: number
   humidity: number
+  snowForecastMm?: number
 }
 
 interface WeatherAlert {
@@ -56,7 +57,8 @@ export async function getWeatherForecast(lat: number, lng: number, days: number 
       'precipitation_probability_max',
       'weathercode',
       'wind_speed_10m_max',
-      'uv_index_max'
+      'uv_index_max',
+      'snowfall_sum'
     ].join(','));
     url.searchParams.append('forecast_days', days.toString());
     url.searchParams.append('timezone', 'Europe/Rome');
@@ -93,7 +95,8 @@ export async function getWeatherForecast(lat: number, lng: number, days: number 
       condition: getConditionFromCode(data.daily.weathercode[idx]),
       weathercode: data.daily.weathercode[idx] || 0,
       wind_speed: data.daily.wind_speed_10m_max[idx] || 0,
-      uv_index: data.daily.uv_index_max[idx] || 0
+      uv_index: data.daily.uv_index_max[idx] || 0,
+      snowfall: data.daily.snowfall_sum?.[idx] || 0
     }));
   } catch (error) {
     console.error('Error fetching weather:', error);
