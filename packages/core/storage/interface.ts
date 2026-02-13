@@ -272,6 +272,12 @@ export interface IStorageProvider {
   getPlantOperations?(plantId: string): Promise<any[]>;
   createPlantOperation?(operation: any): Promise<any>;
 
+  // Individual Plant Harvests
+  getPlantHarvests?(plantId: string): Promise<import('../../../types/individualPlant').PlantHarvest[]>;
+  createPlantHarvest?(harvest: Omit<import('../../../types/individualPlant').PlantHarvest, 'id' | 'createdAt'>): Promise<import('../../../types/individualPlant').PlantHarvest>;
+  updatePlantHarvest?(id: string, updates: Partial<import('../../../types/individualPlant').PlantHarvest>): Promise<import('../../../types/individualPlant').PlantHarvest>;
+  deletePlantHarvest?(id: string): Promise<void>;
+
   // Greenhouse Benches (Bancali Serra)
   getGreenhouseBenches?(gardenId: string): Promise<import('../../../types/greenhouseBench').GreenhouseBench[]>;
   getGreenhouseBench?(id: string): Promise<import('../../../types/greenhouseBench').GreenhouseBench | null>;

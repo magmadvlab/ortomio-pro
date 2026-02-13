@@ -4289,8 +4289,18 @@ export class SupabaseStorageProvider implements IStorageProvider {
     return {
       id: db.id,
       gardenId: db.garden_id,
+      
+      // Campo aperto / aiuole
       fieldRowId: db.field_row_id || undefined,
       fieldRowName: db.field_row_name || undefined,
+      gardenRowId: db.garden_row_id || undefined,
+      
+      // Serra (NUOVO)
+      greenhouseBenchId: db.greenhouse_bench_id || undefined,
+      benchRowNumber: db.bench_row_number || undefined,
+      positionInBenchRow: db.position_in_bench_row || undefined,
+      benchName: db.bench_name || undefined,
+      
       positionInRow: db.position_in_row || undefined,
       plantCode: db.plant_code,
       plantName: db.plant_name,
@@ -4301,6 +4311,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
       status: db.status,
       healthScore: db.health_score,
       stage: db.stage,
+      
+      // Parametri serra (NUOVO)
+      greenhouseConditions: db.greenhouse_conditions || undefined,
+      
       photos: db.photos || [],
       operations: db.operations || [],
       orchestratorEnabled: db.orchestrator_enabled || false,
@@ -4310,11 +4324,21 @@ export class SupabaseStorageProvider implements IStorageProvider {
   }
 
   private mapIndividualPlantToDB(plant: Partial<import('@/types/individualPlant').GardenPlant>): any {
-    return {
+    const db: any = {
       id: plant.id,
       garden_id: plant.gardenId,
+      
+      // Campo aperto / aiuole
       field_row_id: plant.fieldRowId || null,
       field_row_name: plant.fieldRowName || null,
+      garden_row_id: plant.gardenRowId || null,
+      
+      // Serra (NUOVO)
+      greenhouse_bench_id: plant.greenhouseBenchId || null,
+      bench_row_number: plant.benchRowNumber || null,
+      position_in_bench_row: plant.positionInBenchRow || null,
+      bench_name: plant.benchName || null,
+      
       position_in_row: plant.positionInRow || null,
       plant_code: plant.plantCode,
       plant_name: plant.plantName,
@@ -4325,10 +4349,16 @@ export class SupabaseStorageProvider implements IStorageProvider {
       status: plant.status,
       health_score: plant.healthScore,
       stage: plant.stage,
+      
+      // Parametri serra (NUOVO) - salva come JSONB
+      greenhouse_conditions: plant.greenhouseConditions || null,
+      
       photos: plant.photos || [],
       operations: plant.operations || [],
       orchestrator_enabled: plant.orchestratorEnabled || false
     };
+    
+    return db;
   }
 
   // Individual Plant Operations
@@ -4363,6 +4393,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       quantity: db.quantity ? Number(db.quantity) : undefined,
       unit: db.unit,
       productName: db.product_name,
+      greenhouseConditions: db.greenhouse_conditions || undefined, // NUOVO
       notes: db.notes,
       createdAt: db.created_at,
       updatedAt: db.updated_at
@@ -4381,6 +4412,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       quantity: operation.quantity,
       unit: operation.unit,
       product_name: operation.productName,
+      greenhouse_conditions: operation.greenhouseConditions || null, // NUOVO
       notes: operation.notes,
       parent_operation_id: operation.parentOperationId,
       parent_operation_table: operation.parentOperationTable
@@ -4405,6 +4437,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       quantity: data.quantity ? Number(data.quantity) : undefined,
       unit: data.unit,
       productName: data.product_name,
+      greenhouseConditions: data.greenhouse_conditions || undefined, // NUOVO
       notes: data.notes,
       createdAt: data.created_at,
       updatedAt: data.updated_at
@@ -4425,6 +4458,148 @@ export class SupabaseStorageProvider implements IStorageProvider {
       'mulching': 'maintenance'
     };
     return map[type] || 'maintenance';
+  }
+
+  // ========================================
+  // INDIVIDUAL PLANT HARVESTS
+  // ========================================
+
+  async getPlantHarvests(plantId: string): Promise<import('@/types/individualPlant').PlantHarvest[]> {
+    const client = this.ensureClient();
+    console.log('🔍 PLANT HARVESTS DEBUG - Getting harvests for plant:', plantId);
+
+    try {
+      const { data, error } = await client
+        .from('plant_harvests')
+        .select('*')
+        .eq('plant_id', plantId)
+        .order('harvest_date', { ascending: false });
+
+      if (error) {
+        // If table doesn't exist yet, return empty array gracefully
+        if (error.code === '42P01') {
+          console.warn('plant_harvests table does not exist yet');
+          return [];
+        }
+        throw error;
+      }
+
+      return (data || []).map(this.mapPlantHarvestFromDB);
+    } catch (error) {
+      console.error('Error loading plant harvests:', error);
+      return [];
+    }
+  }
+
+  async createPlantHarvest(harvest: Omit<import('@/types/individualPlant').PlantHarvest, 'id' | 'createdAt'>): Promise<import('@/types/individualPlant').PlantHarvest> {
+    const client = this.ensureClient();
+
+    try {
+      const dbHarvest = this.mapPlantHarvestToDB(harvest);
+
+      const { data, error } = await client
+        .from('plant_harvests')
+        .insert(dbHarvest)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Plant harvest saved to Supabase:', data.id);
+      return this.mapPlantHarvestFromDB(data);
+    } catch (error) {
+      console.error('Error creating plant harvest:', error);
+      throw error;
+    }
+  }
+
+  async updatePlantHarvest(id: string, updates: Partial<import('@/types/individualPlant').PlantHarvest>): Promise<import('@/types/individualPlant').PlantHarvest> {
+    const client = this.ensureClient();
+
+    try {
+      const dbUpdates = this.mapPlantHarvestToDB(updates as any);
+      delete dbUpdates.id; // Remove ID from updates
+
+      const { data, error } = await client
+        .from('plant_harvests')
+        .update(dbUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Plant harvest updated in Supabase:', data.id);
+      return this.mapPlantHarvestFromDB(data);
+    } catch (error) {
+      console.error('Error updating plant harvest:', error);
+      throw error;
+    }
+  }
+
+  async deletePlantHarvest(id: string): Promise<void> {
+    const client = this.ensureClient();
+
+    try {
+      const { error } = await client
+        .from('plant_harvests')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      console.log('✅ Plant harvest deleted from Supabase:', id);
+    } catch (error) {
+      console.error('Error deleting plant harvest:', error);
+      throw error;
+    }
+  }
+
+  private mapPlantHarvestFromDB(db: any): import('@/types/individualPlant').PlantHarvest {
+    return {
+      id: db.id,
+      plantId: db.plant_id,
+      gardenId: db.garden_id,
+      harvestDate: db.harvest_date,
+      harvestTime: db.harvest_time || undefined,
+      quantityKg: Number(db.quantity_kg),
+      qualityGrade: db.quality_grade || undefined,
+      qualityScore: db.quality_score || undefined,
+      sizeCategory: db.size_category || undefined,
+      ripenessLevel: db.ripeness_level || undefined,
+      destination: db.destination || undefined,
+      marketValue: db.market_value ? Number(db.market_value) : undefined,
+      storageMethod: db.storage_method || undefined,
+      weatherConditions: db.weather_conditions || undefined,
+      greenhouseConditions: db.greenhouse_conditions || undefined, // NUOVO
+      photos: db.photos || [],
+      notes: db.notes || undefined,
+      createdAt: db.created_at
+    };
+  }
+
+  private mapPlantHarvestToDB(harvest: Partial<import('@/types/individualPlant').PlantHarvest>): any {
+    const db: any = {};
+
+    if (harvest.id !== undefined) db.id = harvest.id;
+    if (harvest.plantId !== undefined) db.plant_id = harvest.plantId;
+    if (harvest.gardenId !== undefined) db.garden_id = harvest.gardenId;
+    if (harvest.harvestDate !== undefined) db.harvest_date = harvest.harvestDate;
+    if (harvest.harvestTime !== undefined) db.harvest_time = harvest.harvestTime;
+    if (harvest.quantityKg !== undefined) db.quantity_kg = harvest.quantityKg;
+    if (harvest.qualityGrade !== undefined) db.quality_grade = harvest.qualityGrade;
+    if (harvest.qualityScore !== undefined) db.quality_score = harvest.qualityScore;
+    if (harvest.sizeCategory !== undefined) db.size_category = harvest.sizeCategory;
+    if (harvest.ripenessLevel !== undefined) db.ripeness_level = harvest.ripenessLevel;
+    if (harvest.destination !== undefined) db.destination = harvest.destination;
+    if (harvest.marketValue !== undefined) db.market_value = harvest.marketValue;
+    if (harvest.storageMethod !== undefined) db.storage_method = harvest.storageMethod;
+    if (harvest.weatherConditions !== undefined) db.weather_conditions = harvest.weatherConditions;
+    if (harvest.greenhouseConditions !== undefined) db.greenhouse_conditions = harvest.greenhouseConditions; // NUOVO
+    if (harvest.photos !== undefined) db.photos = harvest.photos;
+    if (harvest.notes !== undefined) db.notes = harvest.notes;
+
+    return db;
   }
 
   // ========================================
