@@ -24,10 +24,11 @@ interface GardenOnboardingProps {
   onComplete: (garden: Garden) => void;
   onCancel: () => void;
   existingGarden?: Garden; // Per edit
-  initialGardenType?: 'Orchard' | 'OliveGrove' | 'Vineyard'; // Tipo pre-selezionato per wizard unificato
+  initialGardenType?: 'Orchard' | 'OliveGrove' | 'Vineyard' | 'Hydroponic' | 'Aquaponic' | 'Aeroponic'; // Tipo pre-selezionato per wizard unificato
+  initialHydroponicType?: 'NFT' | 'DWC' | 'EbbFlow' | 'Drip' | 'Wick' | 'Kratky'; // Tipo sistema idroponico pre-selezionato
 }
 
-const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCancel, existingGarden, initialGardenType }) => {
+const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCancel, existingGarden, initialGardenType, initialHydroponicType }) => {
   const { isPro } = useTier();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -189,6 +190,22 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
       setLongitude(existingGarden.coordinates.longitude.toString());
     }
     
+    // Inizializza configurazione idroponica se tipo pre-selezionato
+    if (initialHydroponicType && !existingGarden && !hydroponicConfig) {
+      setHydroponicConfig({
+        systemType: initialHydroponicType,
+        nutrientSolution: {
+          reservoirCapacity: 50,
+          phTarget: 6.0,
+          ecTarget: 2.0,
+        },
+        maintenance: {
+          changeFrequencyDays: 14,
+          phCheckFrequencyDays: 2,
+        },
+      });
+    }
+    
     // Geolocalizzazione automatica al mount se non esistente e necessario
     if (!existingGarden && !latitude && !longitude && needsLocation && step >= 3) {
       handleGetLocation(false); // Auto-detect senza forzare refresh
@@ -199,7 +216,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
       // Il tipo è già impostato, dopo step 1 vai direttamente allo step 3 (posizione) o 4 (dimensioni)
       // La logica di skip sarà gestita in handleNext
     }
-  }, [existingGarden, initialGardenType, step]);
+  }, [existingGarden, initialGardenType, initialHydroponicType, step]);
 
   // Inizializza stati da structureConfig esistente
   useEffect(() => {
