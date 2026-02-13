@@ -692,6 +692,67 @@ export interface HarvestLogData {
       };
       harvestMethod?: 'Manual' | 'Mechanical';
     };
+    
+    // Hydroponic/Aquaponic/Aeroponic Harvest Data (Pro Features)
+    hydroponicPosition?: {
+      systemType: 'NFT' | 'DWC' | 'EbbFlow' | 'Drip' | 'Wick' | 'Kratky';
+      channelId?: string;       // ID canale (per NFT)
+      channelNumber?: number;   // Numero canale (1, 2, 3, 4) per NFT
+      bucketId?: string;        // ID secchio (per DWC)
+      bucketNumber?: number;    // Numero secchio (1, 2, 3, ...) per DWC
+      bedId?: string;           // ID letto (per Ebb&Flow)
+      position?: number;        // Posizione nella fila/canale (1, 2, 3, ...)
+      plantCode?: string;       // Codice univoco pianta (es. "NFT-C1-P5" = canale 1, posizione 5)
+    };
+    
+    hydroponicParameters?: {
+      ph: number;                    // pH al momento del raccolto
+      ec: number;                    // EC (mS/cm) al momento del raccolto
+      waterTemperature: number;      // Temperatura acqua (°C)
+      reservoirVolume?: number;      // Volume serbatoio (litri)
+      daysSinceLastChange: number;   // Giorni dall'ultimo cambio soluzione
+      nutrientBrand?: string;        // Marca nutrienti usati
+      nutrientFormula?: string;      // Formula NPK
+      readingId?: string;            // ID lettura parametri collegata
+    };
+    
+    aquaponicPosition?: {
+      systemType: 'MediaBed' | 'NFT' | 'DWC' | 'Hybrid';
+      bedId?: string;           // ID letto (per MediaBed)
+      bedNumber?: number;       // Numero letto
+      position?: number;        // Posizione nel letto
+      plantCode?: string;       // Codice univoco pianta
+    };
+    
+    aquaponicParameters?: {
+      ph: number;                    // pH al momento del raccolto
+      ammonia: number;               // Ammoniaca (mg/L)
+      nitrite: number;               // Nitriti (mg/L)
+      nitrate: number;               // Nitrati (mg/L)
+      waterTemperature: number;      // Temperatura acqua (°C)
+      dissolvedOxygen?: number;      // Ossigeno disciolto (mg/L)
+      fishBiomass?: number;          // Biomassa pesci (kg)
+      fishSpecies?: string[];        // Specie pesci
+      readingId?: string;            // ID lettura parametri collegata
+    };
+    
+    aeroponicPosition?: {
+      systemType: 'HighPressure' | 'LowPressure' | 'Ultrasonic';
+      chamberId?: string;       // ID camera radici
+      chamberNumber?: number;   // Numero camera
+      position?: number;        // Posizione nella camera
+      plantCode?: string;       // Codice univoco pianta
+    };
+    
+    aeroponicParameters?: {
+      ph: number;                    // pH al momento del raccolto
+      ec: number;                    // EC (mS/cm)
+      waterTemperature: number;      // Temperatura soluzione (°C)
+      mistingPressure?: number;      // Pressione nebulizzazione (PSI) per high-pressure
+      mistingFrequency?: number;     // Frequenza nebulizzazione (volte/giorno)
+      reservoirVolume?: number;      // Volume serbatoio (litri)
+      readingId?: string;            // ID lettura parametri collegata
+    };
 }
 
 // Type alias for compatibility

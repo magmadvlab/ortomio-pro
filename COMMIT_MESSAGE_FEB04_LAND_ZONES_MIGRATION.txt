@@ -1,0 +1,110 @@
+feat: Sistema Land Zones e Soil Memory - Migrazione Database Applicata
+
+🎯 SISTEMA MACRO-ZONE E MEMORIA TERRENO COMPLETO
+
+## Database Migration Applied ✅
+
+### Nuove Tabelle Create:
+- `land_zones` - Macro-zone stabili (es. "Zona A 2 ha", "Zona B 2 ha")
+- `soil_memory` - Memoria permanente terreno con storico colture
+
+### Modifiche a Tabelle Esistenti:
+- `garden_rows.land_zone_id` - Collega filari temporanei a zone stabili
+- `garden_rows.is_active` - Gestione archiviazione filari
+- Constraint univoco su `row_number` solo per filari attivi (permette riutilizzo)
+
+### Funzioni Helper Create:
+- `get_zone_active_field_rows()` - Ottieni filari attivi di una zona
+- `count_zone_active_field_rows()` - Conta filari attivi
+- `get_zone_history()` - Storico colture zona (ultimi 10 anni)
+- `calculate_zone_soil_health()` - Calcola salute terreno
+- `get_zone_rotation_suggestions()` - Suggerimenti AI per rotazione
+
+### RLS Policies:
+- 8 policies totali (4 per land_zones + 4 per soil_memory)
+- Sicurezza row-level per user_id
+
+## UI e Servizi
+
+### Nuove Pagine:
+- `/app/garden/zones` - Gestione macro-zone terreno
+
+### Nuovi Servizi:
+- `landZoneService.ts` - CRUD land zones e soil memory
+
+## Workflow Operativo
+
+### Anno 1:
+1. Crea "Zona A 2 ha" (attiva) e "Zona B 2 ha" (riposo)
+2. Crea filari e assegnali a Zona A
+3. Coltiva in Zona A, Zona B riposa
+
+### Anno 2:
+1. Clicca "Chiudi Stagione" su Zona A
+2. Filari archiviati (is_active=false)
+3. Storico salvato in soil_memory
+4. Inverti: Zona A→riposo, Zona B→attiva
+5. Crea nuovi filari in Zona B (riusa numeri 1,2,3...)
+
+## Vantaggi
+
+✅ Non perdi la posizione fisica (Zone A/B restano stabili)
+✅ Non perdi lo storico (soil_memory conserva tutto)
+✅ Puoi riutilizzare i numeri filare dopo archiviazione
+✅ Rotazione semplificata (alterna A/B ogni anno)
+✅ AI può suggerire rotazioni basandosi sullo storico
+✅ Calcolo automatico salute terreno
+
+## Compatibilità
+
+- Schema adattato a `garden_zones` esistente
+- Nessun impatto su dati esistenti
+- Colonne opzionali (NULL allowed)
+- Migrazione idempotente (IF NOT EXISTS)
+
+## File Modificati
+
+### Database:
+- supabase/migrations/20260204120000_add_land_zones_and_soil_memory.sql
+
+### Servizi:
+- services/landZoneService.ts (NEW)
+
+### UI:
+- app/app/garden/zones/page.tsx (NEW)
+- app/app/garden/page.tsx (updated - link to zones)
+
+### Documentazione:
+- LAND_ZONES_SYSTEM_COMPLETE.md
+- SISTEMA_ZONE_SEMPLIFICATO.md
+- GUIDA_PRATICA_ZONE_FISSE_ROTAZIONE.md
+- README_CROP_ROTATION_SYSTEMS.md
+
+### Utility:
+- verify-migrations-status.mjs (verifica migrazione)
+- check-real-schema.sql (analisi schema)
+
+## Testing
+
+```bash
+# Verifica migrazione applicata
+node verify-migrations-status.mjs
+
+# Avvia app
+npm run dev
+
+# Vai su
+http://localhost:3000/app/garden/zones
+```
+
+## Next Steps
+
+1. Creare le prime macro-zone via UI
+2. Assegnare filari esistenti alle zone
+3. Testare workflow "Chiudi Stagione"
+4. Verificare storico in soil_memory
+5. Testare suggerimenti AI rotazione
+
+---
+
+Migration verified and applied successfully! ✅

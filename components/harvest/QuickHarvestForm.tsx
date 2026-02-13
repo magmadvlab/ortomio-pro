@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
-import { GardenTask, HarvestLogData } from '@/types'
+import React, { useState, useMemo, useEffect } from 'react'
+import { GardenTask, HarvestLogData, Garden } from '@/types'
 import { X, Camera, Minus, Plus } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
+import { useStorage } from '@/packages/core/hooks/useStorage'
 
 interface QuickHarvestFormProps {
   task: GardenTask
@@ -12,11 +13,52 @@ interface QuickHarvestFormProps {
 }
 
 export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormProps) {
+  const storage = useStorage()
+  const [garden, setGarden] = useState<Garden | null>(null)
   const [quantity, setQuantity] = useState<number>(1)
   const [unit, setUnit] = useState<'kg' | 'g' | 'units'>('kg')
   const [quality, setQuality] = useState<'excellent' | 'good' | 'fair' | 'poor'>('good')
   const [photo, setPhoto] = useState<string | null>(null)
   const [notes, setNotes] = useState<string>('')
+  
+  // Hydroponic fields
+  const [channelNumber, setChannelNumber] = useState<number>(1)
+  const [bucketNumber, setBucketNumber] = useState<number>(1)
+  const [position, setPosition] = useState<number>(1)
+  const [ph, setPh] = useState<number>(6.0)
+  const [ec, setEc] = useState<number>(1.5)
+  const [waterTemp, setWaterTemp] = useState<number>(20)
+  const [daysSinceChange, setDaysSinceChange] = useState<number>(7)
+
+  // Load garden data
+  useEffect(() => {
+    const loadGarden = async () => {
+      if (task.gardenId && storage) {
+        try {
+          const gardenData = await storage.getGarden(task.gardenId)
+          setGarden(gardenData)
+        } catch (error) {
+          console.error('Error loading garden:', error)
+        }
+      }
+    }
+    loadGarden()
+  }, [task.gardenId, storage])
+
+  // Check if garden is hydroponic/aquaponic/aeroponic
+  const isHydroponic = useMemo(() => {
+    if (!garden) return false
+    const hydroTypes = ['Hydroponic', 'NFT', 'DWC', 'EbbFlow', 'Drip', 'Wick', 'Kratky']
+    return hydroTypes.includes(garden.gardenType || '')
+  }, [garden])
+
+  const isAquaponic = useMemo(() => {
+    return garden?.gardenType === 'Aquaponic'
+  }, [garden])
+
+  const isAeroponic = useMemo(() => {
+    return garden?.gardenType === 'Aeroponic'
+  }, [garden])
 
   const qualityOptions = [
     { value: 'excellent', emoji: '😊', label: 'Ottima' },
@@ -73,7 +115,7 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
       'poor': 2
     }[quality] ?? 3) as HarvestLogData['rating']
 
-    onHarvest({
+    const harvestData: Omit<HarvestLogData, 'id' | 'gardenId'> = {
       plantName: task.plantName,
       quantity,
       unit,
@@ -82,7 +124,63 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
       notes: notes.trim() || undefined,
       photo: photo || undefined,
       taskId: task.id
-    })
+    }
+
+    // Add hydroponic data if applicable
+    if (isHydroponic && garden) {
+      const systemType = garden.gardenType as 'NFT' | 'DWC' | 'EbbFlow' | 'Drip' | 'Wick' | 'Kratky'
+      
+      harvestData.hydroponicPosition = {
+        systemType,
+        ...(systemType === 'NFT' && { channelNumber, position }),
+        ...(systemType === 'DWC' && { bucketNumber, position }),
+        plantCode: `${systemType}-${systemType === 'NFT' ? `C${channelNumber}` : `B${bucketNumber}`}-P${position}`
+      }
+
+      harvestData.hydroponicParameters = {
+        ph,
+        ec,
+        waterTemperature: waterTemp,
+        daysSinceLastChange: daysSinceChange
+      }
+    }
+
+    // Add aquaponic data if applicable
+    if (isAquaponic && garden) {
+      harvestData.aquaponicPosition = {
+        systemType: 'MediaBed',
+        bedNumber: bucketNumber,
+        position,
+        plantCode: `AQP-B${bucketNumber}-P${position}`
+      }
+
+      harvestData.aquaponicParameters = {
+        ph,
+        ammonia: 0.5, // Default values - should be from latest reading
+        nitrite: 0.1,
+        nitrate: 40,
+        waterTemperature: waterTemp
+      }
+    }
+
+    // Add aeroponic data if applicable
+    if (isAeroponic && garden) {
+      harvestData.aeroponicPosition = {
+        systemType: 'HighPressure',
+        chamberNumber: channelNumber,
+        position,
+        plantCode: `AER-CH${channelNumber}-P${position}`
+      }
+
+      harvestData.aeroponicParameters = {
+        ph,
+        ec,
+        waterTemperature: waterTemp,
+        mistingPressure: 80 // Default value
+      }
+    }
+
+    onHarvest(harvestData)
   }
 
   const adjustQuantity = (delta: number) => {
@@ -197,6 +295,162 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
               ))}
             </div>
           </div>
+
+          {/* Hydroponic/Aquaponic/Aeroponic Fields */}
+          {(isHydroponic || isAquaponic || isAeroponic) && (
+            <div className="mb-5 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <h3 className="text-sm font-semibold text-blue-900 mb-3">
+                💧 Dati Sistema {isHydroponic ? 'Idroponico' : isAquaponic ? 'Acquaponico' : 'Aeroponico'}
+              </h3>
+              
+              {/* Position Fields */}
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                {(isHydroponic && garden?.gardenType === 'NFT') && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Canale NFT
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={channelNumber}
+                      onChange={(e) => setChannelNumber(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                )}
+                
+                {(isHydroponic && garden?.gardenType === 'DWC') && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Secchio DWC
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={bucketNumber}
+                      onChange={(e) => setBucketNumber(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                )}
+
+                {isAquaponic && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Letto
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={bucketNumber}
+                      onChange={(e) => setBucketNumber(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                )}
+
+                {isAeroponic && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Camera
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={channelNumber}
+                      onChange={(e) => setChannelNumber(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                )}
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Posizione
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={position}
+                    onChange={(e) => setPosition(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Parameters Fields */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    pH
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="4"
+                    max="8"
+                    value={ph}
+                    onChange={(e) => setPh(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                
+                {(isHydroponic || isAeroponic) && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      EC (mS/cm)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="5"
+                      value={ec}
+                      onChange={(e) => setEc(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                )}
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Temp. Acqua (°C)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="10"
+                    max="35"
+                    value={waterTemp}
+                    onChange={(e) => setWaterTemp(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                
+                {isHydroponic && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Giorni da cambio
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="30"
+                      value={daysSinceChange}
+                      onChange={(e) => setDaysSinceChange(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Upload Foto Opzionale */}
           <div className="mb-5">

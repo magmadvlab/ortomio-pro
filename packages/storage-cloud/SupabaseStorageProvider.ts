@@ -1280,6 +1280,13 @@ export class SupabaseStorageProvider implements IStorageProvider {
       aromaticHarvest: db.aromatic_harvest,
       oliveHarvest: db.olive_harvest,
       vineHarvest: db.vine_harvest,
+      // Hydroponic/Aquaponic/Aeroponic data
+      hydroponicPosition: db.hydroponic_position,
+      hydroponicParameters: db.hydroponic_parameters,
+      aquaponicPosition: db.aquaponic_position,
+      aquaponicParameters: db.aquaponic_parameters,
+      aeroponicPosition: db.aeroponic_position,
+      aeroponicParameters: db.aeroponic_parameters,
     };
   }
 
@@ -1301,6 +1308,13 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (log.aromaticHarvest !== undefined) db.aromatic_harvest = log.aromaticHarvest;
     if (log.oliveHarvest !== undefined) db.olive_harvest = log.oliveHarvest;
     if (log.vineHarvest !== undefined) db.vine_harvest = log.vineHarvest;
+    // Hydroponic/Aquaponic/Aeroponic data
+    if (log.hydroponicPosition !== undefined) db.hydroponic_position = log.hydroponicPosition;
+    if (log.hydroponicParameters !== undefined) db.hydroponic_parameters = log.hydroponicParameters;
+    if (log.aquaponicPosition !== undefined) db.aquaponic_position = log.aquaponicPosition;
+    if (log.aquaponicParameters !== undefined) db.aquaponic_parameters = log.aquaponicParameters;
+    if (log.aeroponicPosition !== undefined) db.aeroponic_position = log.aeroponicPosition;
+    if (log.aeroponicParameters !== undefined) db.aeroponic_parameters = log.aeroponicParameters;
     return db;
   }
 
