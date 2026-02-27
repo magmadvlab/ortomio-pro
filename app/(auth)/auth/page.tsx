@@ -39,6 +39,9 @@ function AuthPageContent() {
     hasNumber: false,
     hasSpecial: false
   })
+  const [showVerificationHint, setShowVerificationHint] = useState(false)
+
+  const normalizeEmail = (value: string) => value.trim().toLowerCase()
 
   // Funzione per validare la password
   const validatePassword = (pwd: string): string[] => {
@@ -104,16 +107,25 @@ function AuthPageContent() {
     }
 
     setError(null)
+    setShowVerificationHint(false)
     setLoading(true)
 
     try {
+      const normalizedEmail = normalizeEmail(email)
+      if (!normalizedEmail) {
+        throw new Error('Inserisci un indirizzo email valido')
+      }
+      if (normalizedEmail !== email) {
+        setEmail(normalizedEmail)
+      }
+
       const supabase = getSupabaseClient()
       if (!supabase) {
         throw new Error('Servizio di autenticazione non disponibile')
       }
 
       const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
+        email: normalizedEmail,
         password,
       })
 
@@ -125,8 +137,8 @@ function AuthPageContent() {
         // Controlla se l'email è verificata
         if (!data.user.email_confirmed_at) {
           // Email non verificata, reindirizza alla pagina di verifica
-          localStorage.setItem('ortomio_pending_verification_email', email)
-          router.push(`/verify-email?email=${encodeURIComponent(email)}`)
+          localStorage.setItem('ortomio_pending_verification_email', normalizedEmail)
+          router.push(`/verify-email?email=${encodeURIComponent(normalizedEmail)}`)
           return
         }
         
@@ -134,16 +146,23 @@ function AuthPageContent() {
         router.refresh()
       }
     } catch (err: any) {
-      console.error('Login error:', err)
+      console.error('Login error:', {
+        message: err?.message,
+        code: err?.code,
+        status: err?.status,
+      })
       let errorMessage = 'Errore durante il login. Riprova.'
-      if (err.message?.includes('Invalid login credentials')) {
-        errorMessage = 'Email o password non valide. Verifica le tue credenziali.'
+      if (err.code === 'invalid_credentials' || err.message?.includes('Invalid login credentials')) {
+        errorMessage = 'Credenziali non valide oppure email non ancora verificata. Controlla password o verifica email.'
+        setShowVerificationHint(true)
       } else if (err.message?.includes('Email not confirmed')) {
         errorMessage = 'Email non confermata. Controlla la tua casella di posta e clicca sul link di verifica.'
+        setShowVerificationHint(true)
         // Reindirizza alla pagina di verifica dopo 3 secondi
         setTimeout(() => {
-          localStorage.setItem('ortomio_pending_verification_email', email)
-          router.push(`/verify-email?email=${encodeURIComponent(email)}`)
+          const normalizedEmail = normalizeEmail(email)
+          localStorage.setItem('ortomio_pending_verification_email', normalizedEmail)
+          router.push(`/verify-email?email=${encodeURIComponent(normalizedEmail)}`)
         }, 3000)
       } else if (err.message?.includes('User not found')) {
         errorMessage = 'Utente non trovato. Vuoi registrarti?'
@@ -165,6 +184,7 @@ function AuthPageContent() {
     e.preventDefault()
     setError(null)
     setSuccess(null)
+    setShowVerificationHint(false)
 
     // Validazione password completa lato client
     const passwordErrors = validatePassword(password)
@@ -191,8 +211,16 @@ function AuthPageContent() {
     setLoading(true)
 
     try {
+      const normalizedEmail = normalizeEmail(email)
+      if (!normalizedEmail) {
+        throw new Error('Inserisci un indirizzo email valido')
+      }
+      if (normalizedEmail !== email) {
+        setEmail(normalizedEmail)
+      }
+
       const registrationData: RegistrationData = {
-        email,
+        email: normalizedEmail,
         password,
         confirmPassword,
         firstName,
@@ -231,9 +259,9 @@ function AuthPageContent() {
       if (result.requiresEmailVerification) {
         console.log('Email verification required, redirecting to verify-email page')
         // Salva email per la pagina di verifica
-        localStorage.setItem('ortomio_pending_verification_email', email)
+        localStorage.setItem('ortomio_pending_verification_email', normalizedEmail)
         // Forza il redirect immediatamente
-        window.location.href = `/verify-email?email=${encodeURIComponent(email)}`
+        window.location.href = `/verify-email?email=${encodeURIComponent(normalizedEmail)}`
         return
       }
 
@@ -340,7 +368,22 @@ function AuthPageContent() {
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
             <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-800">{error}</p>
+            <div className="flex-1">
+              <p className="text-sm text-red-800">{error}</p>
+              {mode === 'login' && showVerificationHint && normalizeEmail(email) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const normalizedEmail = normalizeEmail(email)
+                    localStorage.setItem('ortomio_pending_verification_email', normalizedEmail)
+                    router.push(`/verify-email?email=${encodeURIComponent(normalizedEmail)}`)
+                  }}
+                  className="mt-2 text-sm text-green-700 hover:text-green-800 underline font-medium"
+                >
+                  Verifica o reinvia email di conferma
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -364,6 +407,7 @@ function AuthPageContent() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onBlur={(e) => setEmail(normalizeEmail(e.target.value))}
                   required
                   autoComplete="username"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -471,6 +515,7 @@ function AuthPageContent() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onBlur={(e) => setEmail(normalizeEmail(e.target.value))}
                   required
                   autoComplete="email"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"

@@ -29,8 +29,9 @@ export default function ForgotPasswordPage() {
         throw new Error('Servizio di autenticazione non disponibile')
       }
 
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ortomioapp.it'
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${siteUrl}/auth/callback`,
       })
 
       if (resetError) {
