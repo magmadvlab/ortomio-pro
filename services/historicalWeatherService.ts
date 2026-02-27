@@ -83,7 +83,18 @@ export async function getHistoricalWeatherForPeriod(
   }
 
   try {
-    const { start: adjustedStart, end } = periodToDateRange(period, targetYear);
+    const { start: adjustedStart, end: adjustedEnd } = periodToDateRange(period, targetYear);
+
+    // L'archive API accetta solo dati già disponibili (fino a ~5 giorni fa)
+    const maxAvailableDate = new Date();
+    maxAvailableDate.setDate(maxAvailableDate.getDate() - 5);
+    const maxDateStr = maxAvailableDate.toISOString().split('T')[0];
+
+    // Se la data di fine è nel futuro/troppo recente, salta la chiamata
+    if (adjustedEnd > maxDateStr) {
+      console.log(`Historical weather: period ${period} ${targetYear} end date ${adjustedEnd} not yet available, skipping`);
+      return null;
+    }
 
     // Open-Meteo Historical Weather API
     // Endpoint: https://archive-api.open-meteo.com/v1/archive
@@ -93,13 +104,13 @@ export async function getHistoricalWeatherForPeriod(
     url.searchParams.set('latitude', lat.toString());
     url.searchParams.set('longitude', lng.toString());
     url.searchParams.set('start_date', adjustedStart);
-    url.searchParams.set('end_date', end);
+    url.searchParams.set('end_date', adjustedEnd);
     url.searchParams.set('daily', 'temperature_2m_max,temperature_2m_min');
     url.searchParams.set('timezone', 'Europe/Rome');
 
     const response = await fetch(url.toString());
     if (!response.ok) {
-      console.warn(`Historical weather API error: ${response.status} for period ${period} ${targetYear} (${adjustedStart} to ${end})`);
+      console.warn(`Historical weather API error: ${response.status} for period ${period} ${targetYear} (${adjustedStart} to ${adjustedEnd})`);
       return null;
     }
 

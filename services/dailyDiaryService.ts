@@ -944,8 +944,9 @@ class DailyDiaryService {
       this.supabase
         .from('daily_weather_log')
         .select('*')
+        .eq('garden_id', gardenId)
         .eq('log_date', dateStr)
-        .single(),
+        .maybeSingle(),
       this.supabase
         .from('cultivation_daily_tracking')
         .select('*')
