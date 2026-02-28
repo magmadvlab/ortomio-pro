@@ -575,6 +575,19 @@ export class SupabaseStorageProvider implements IStorageProvider {
   async updateGarden(id: string, updates: Partial<Garden>): Promise<Garden> {
     const client = this.ensureClient();
     const dbUpdates = this.mapGardenToDB(updates as Garden);
+    
+    // Se non ci sono campi da aggiornare nel DB, ritorna il garden corrente
+    if (Object.keys(dbUpdates).length === 0) {
+      console.warn('updateGarden: No DB fields to update, fetching current garden');
+      const { data, error } = await client
+        .from('gardens')
+        .select()
+        .eq('id', id)
+        .single();
+      if (error) throw error;
+      return this.mapGardenFromDB(data);
+    }
+    
     const { data, error } = await client
       .from('gardens')
       .update(dbUpdates)
@@ -1020,13 +1033,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
       hydroponicConfig: db.hydroponic_config,
       aquaponicConfig: db.aquaponic_config,
       aeroponicConfig: db.aeroponic_config,
-      // Note: structure_config, orchard_config, olive_grove_config, vineyard_config 
-      // non esistono nello schema del database online
-      structureConfig: undefined, // db.structure_config non esiste nel DB
+      structureConfig: db.structure_config || undefined,
       vacationMode: db.vacation_mode,
-      orchardConfig: undefined, // db.orchard_config non esiste nel DB
-      oliveGroveConfig: undefined, // db.olive_grove_config non esiste nel DB
-      vineyardConfig: undefined, // db.vineyard_config non esiste nel DB
+      orchardConfig: db.orchard_config || undefined,
+      oliveGroveConfig: db.olive_grove_config || undefined,
+      vineyardConfig: db.vineyard_config || undefined,
       createdAt: db.created_at,
     };
   }
@@ -1059,9 +1070,9 @@ export class SupabaseStorageProvider implements IStorageProvider {
     // non esistono nello schema del database online, quindi non vengono inseriti
     // if (garden.structureConfig !== undefined) db.structure_config = garden.structureConfig;
     if (garden.vacationMode !== undefined) db.vacation_mode = garden.vacationMode;
-    // if (garden.orchardConfig !== undefined) db.orchard_config = garden.orchardConfig;
-    // if (garden.oliveGroveConfig !== undefined) db.olive_grove_config = garden.oliveGroveConfig;
-    // if (garden.vineyardConfig !== undefined) db.vineyard_config = garden.vineyardConfig;
+    if (garden.orchardConfig !== undefined) db.orchard_config = garden.orchardConfig;
+    if (garden.oliveGroveConfig !== undefined) db.olive_grove_config = garden.oliveGroveConfig;
+    if (garden.vineyardConfig !== undefined) db.vineyard_config = garden.vineyardConfig;
     return db;
   }
 

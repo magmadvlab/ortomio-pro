@@ -3,7 +3,7 @@
 // Professional service layer for complete orchard operations
 // ============================================================================
 
-import { 
+import {
   OrchardConfiguration,
   OrchardTree,
   TreePhoto,
@@ -544,14 +544,13 @@ class OrchardService {
   async getOrchardDashboardData(gardenId: string): Promise<OrchardDashboardData> {
     try {
       const supabase = getSupabaseClient()
-      
+
       // Try to get basic data directly from tables if RPC fails
       const [orchardsResult, treesResult] = await Promise.all([
         supabase
           .from('orchard_configurations')
           .select('*')
-          .eq('garden_id', gardenId)
-          .eq('is_active', true),
+          .eq('garden_id', gardenId),
         supabase
           .from('orchard_trees')
           .select('*')
@@ -565,7 +564,7 @@ class OrchardService {
       // Calculate basic stats
       const totalOrchards = orchards.length
       const totalTrees = trees.length
-      const treesNeedingAttention = trees.filter(tree => 
+      const treesNeedingAttention = trees.filter(tree =>
         tree.needs_pruning || tree.needs_treatment || tree.health_status === 'Poor'
       ).length
       const healthyTrees = trees.filter(tree => tree.health_status === 'Excellent' || tree.health_status === 'Good').length
@@ -629,7 +628,7 @@ class OrchardService {
   async createOrchardFromWizard(wizardData: OrchardWizardData): Promise<OrchardConfiguration> {
     try {
       const supabase = getSupabaseClient()
-      
+
       // Start transaction
       const { data: orchard, error: orchardError } = await supabase
         .from('orchard_configurations')

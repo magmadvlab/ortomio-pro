@@ -10,6 +10,8 @@ import { useStorage } from '../../packages/core/hooks/useStorage';
 import { X, ArrowRight, ArrowLeft, TreePine, CircleDot, Grape, Calendar, Info, AlertCircle, CheckCircle, Lightbulb } from 'lucide-react';
 import { getCategoryTips, getCategoryRecommendations } from '../../data/orchardCategoryTips';
 import { generateOrchardTasks, getTasksSummary } from '../../data/orchardTaskTemplates';
+import { orchardService } from '../../services/orchardService';
+import { vineyardService } from '../../services/vineyardService';
 
 interface CreateOrchardWizardProps {
   garden: Garden;
@@ -28,10 +30,10 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
 }) => {
   const { storageProvider } = useStorage();
   const [step, setStep] = useState<WizardStep>('category');
-  
+
   // Per frutteto
   const [fruitCategory, setFruitCategory] = useState<FruitTreeCategory | ''>('');
-  
+
   // Per oliveto
   const [oliveType, setOliveType] = useState<'OIL' | 'TABLE' | 'DUAL_PURPOSE'>('OIL');
 
@@ -59,10 +61,10 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
   const [varieties, setVarieties] = useState('');
   const [generateTasks, setGenerateTasks] = useState(true); // Default: genera task automaticamente
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const handleComplete = async () => {
     setIsSaving(true);
-    
+
     try {
       let config: any = {
         establishedDate: establishedDate || new Date().toISOString().split('T')[0],
@@ -95,18 +97,43 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
         config.type = vineType;
         config.trainingSystem = trainingSystem;
       }
-      
-      // Salva config nel garden
-      const updates: Partial<Garden> = {};
-      if (orchardType === 'orchard') {
-        updates.orchardConfig = config;
-      } else if (orchardType === 'oliveGrove') {
-        updates.oliveGroveConfig = config;
+
+      // Salva la configurazione nel servizio corretto invece di aggiornare il garden vuoto
+      if (orchardType === 'orchard' || orchardType === 'oliveGrove') {
+        await orchardService.createOrchardConfiguration({
+          gardenId: garden.id,
+          name: garden.name + (orchardType === 'oliveGrove' ? ' - Oliveto' : ' - Frutteto'),
+          orchardType: orchardType === 'oliveGrove' ? 'olive' : (config.category?.toLowerCase() || 'mixed'),
+          establishedDate: config.establishedDate,
+          totalTrees: config.totalTrees || 0,
+          rowSpacingM: config.rowSpacing,
+          treeSpacingM: config.plantSpacing,
+          trainingSystem: config.plantingSystem,
+          soilType: config.soilType,
+          irrigationSystem: config.irrigationSystem,
+          mainVarieties: config.varieties?.map((v: string) => ({ variety: v, percentage: 100 / config.varieties.length })) || [],
+          rootstockTypes: [],
+          organicCertified: false,
+          precisionManagement: false
+        });
       } else if (orchardType === 'vineyard') {
-        updates.vineyardConfig = config;
+        await vineyardService.createVineyardConfiguration({
+          gardenId: garden.id,
+          name: garden.name + ' - Vigneto',
+          vineyardType: config.type || 'wine',
+          establishedDate: config.establishedDate,
+          totalVines: config.totalTrees || 0,
+          rowSpacingM: config.rowSpacing,
+          vineSpacingM: config.plantSpacing,
+          trainingSystem: config.trainingSystem,
+          soilType: config.soilType,
+          irrigationSystem: config.irrigationSystem,
+          mainVarieties: config.varieties?.map((v: string) => ({ variety: v, percentage: 100 / config.varieties.length })) || [],
+          rootstockTypes: [],
+          organicCertified: false,
+          precisionManagement: false
+        });
       }
-      
-      await storageProvider.updateGarden(garden.id, updates);
 
       // Genera task automatici se richiesto e se è un frutteto
       if (generateTasks && orchardType === 'orchard' && fruitCategory) {
@@ -134,7 +161,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
       setIsSaving(false);
     }
   };
-  
+
   const getTitle = () => {
     switch (orchardType) {
       case 'orchard': return 'Crea Frutteto';
@@ -142,7 +169,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
       case 'vineyard': return 'Crea Vigneto';
     }
   };
-  
+
   const getIcon = () => {
     switch (orchardType) {
       case 'orchard': return <TreePine className="text-green-600" size={32} />;
@@ -150,7 +177,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
       case 'vineyard': return <Grape className="text-green-600" size={32} />;
     }
   };
-  
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
@@ -176,7 +203,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
           {step === 'category' && (
             <div>
               <h3 className="text-lg font-semibold mb-4">Seleziona {orchardType === 'orchard' ? 'Categoria' : 'Tipo'}</h3>
-              
+
               {orchardType === 'orchard' && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 gap-4">
@@ -184,11 +211,10 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                       <button
                         key={category.id}
                         onClick={() => setFruitCategory(category.id)}
-                        className={`p-6 border-2 rounded-lg text-left transition-all ${
-                          fruitCategory === category.id
+                        className={`p-6 border-2 rounded-lg text-left transition-all ${fruitCategory === category.id
                             ? 'border-green-500 bg-green-50 shadow-md'
                             : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                        }`}
+                          }`}
                       >
                         <div className="text-4xl mb-3">{category.icon}</div>
                         <div className="font-semibold text-gray-900 mb-1">{category.label}</div>
@@ -225,40 +251,37 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                   )}
                 </div>
               )}
-              
+
               {orchardType === 'oliveGrove' && (
                 <div className="space-y-4">
                   <div className="space-y-3">
                     <h4 className="font-medium text-gray-700">Destinazione Produzione</h4>
                     <button
                       onClick={() => setOliveType('OIL')}
-                      className={`w-full p-6 border-2 rounded-lg text-left transition-all ${
-                        oliveType === 'OIL'
+                      className={`w-full p-6 border-2 rounded-lg text-left transition-all ${oliveType === 'OIL'
                           ? 'border-green-500 bg-green-50'
                           : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                        }`}
                     >
                       <div className="font-semibold text-gray-900 mb-1">🫒 Da Olio</div>
                       <div className="text-sm text-gray-600">Varietà per produzione olio</div>
                     </button>
                     <button
                       onClick={() => setOliveType('TABLE')}
-                      className={`w-full p-6 border-2 rounded-lg text-left transition-all ${
-                        oliveType === 'TABLE'
+                      className={`w-full p-6 border-2 rounded-lg text-left transition-all ${oliveType === 'TABLE'
                           ? 'border-green-500 bg-green-50'
                           : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                        }`}
                     >
                       <div className="font-semibold text-gray-900 mb-1">🫒 Da Mensa</div>
                       <div className="text-sm text-gray-600">Varietà per consumo diretto</div>
                     </button>
                     <button
                       onClick={() => setOliveType('DUAL_PURPOSE')}
-                      className={`w-full p-6 border-2 rounded-lg text-left transition-all ${
-                        oliveType === 'DUAL_PURPOSE'
+                      className={`w-full p-6 border-2 rounded-lg text-left transition-all ${oliveType === 'DUAL_PURPOSE'
                           ? 'border-green-500 bg-green-50'
                           : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                        }`}
                     >
                       <div className="font-semibold text-gray-900 mb-1">🫒 Dual-Purpose</div>
                       <div className="text-sm text-gray-600">Varietà per olio e mensa</div>
@@ -284,35 +307,33 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                   </div>
                 </div>
               )}
-              
+
               {orchardType === 'vineyard' && (
                 <div className="space-y-4">
                   <div className="space-y-3">
                     <h4 className="font-medium text-gray-700">Tipo Vigneto</h4>
                     <button
                       onClick={() => setVineType('WINE')}
-                      className={`w-full p-6 border-2 rounded-lg text-left transition-all ${
-                        vineType === 'WINE'
+                      className={`w-full p-6 border-2 rounded-lg text-left transition-all ${vineType === 'WINE'
                           ? 'border-green-500 bg-green-50'
                           : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                        }`}
                     >
                       <div className="font-semibold text-gray-900 mb-1">🍷 Da Vino</div>
                       <div className="text-sm text-gray-600">Varietà per produzione vino</div>
                     </button>
                     <button
                       onClick={() => setVineType('TABLE')}
-                      className={`w-full p-6 border-2 rounded-lg text-left transition-all ${
-                        vineType === 'TABLE'
+                      className={`w-full p-6 border-2 rounded-lg text-left transition-all ${vineType === 'TABLE'
                           ? 'border-green-500 bg-green-50'
                           : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                        }`}
                     >
                       <div className="font-semibold text-gray-900 mb-1">🍇 Da Tavola</div>
                       <div className="text-sm text-gray-600">Varietà per consumo diretto</div>
                     </button>
                   </div>
-                  
+
                   <div className="mt-6">
                     <h4 className="font-medium text-gray-700 mb-3">Sistema di Allevamento</h4>
                     <select
@@ -363,7 +384,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                   </div>
                 </div>
               )}
-              
+
               {/* Bottoni Navigazione */}
               <div className="flex justify-between mt-6">
                 <button
@@ -393,7 +414,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
           {step === 'details' && (
             <div>
               <h3 className="text-lg font-semibold mb-4">Dettagli Configurazione</h3>
-              
+
               {/* Data Impianto */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-3">
@@ -532,14 +553,14 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                   <div className="space-y-3">
                     {getCategoryTips(fruitCategory).map((tip, index) => {
                       const bgColor = tip.type === 'warning' ? 'bg-amber-50 border-amber-200' :
-                                     tip.type === 'success' ? 'bg-green-50 border-green-200' :
-                                     'bg-blue-50 border-blue-200';
+                        tip.type === 'success' ? 'bg-green-50 border-green-200' :
+                          'bg-blue-50 border-blue-200';
                       const iconColor = tip.type === 'warning' ? 'text-amber-600' :
-                                       tip.type === 'success' ? 'text-green-600' :
-                                       'text-blue-600';
+                        tip.type === 'success' ? 'text-green-600' :
+                          'text-blue-600';
                       const Icon = tip.type === 'warning' ? AlertCircle :
-                                  tip.type === 'success' ? CheckCircle :
-                                  Info;
+                        tip.type === 'success' ? CheckCircle :
+                          Info;
 
                       return (
                         <div key={index} className={`p-4 rounded-lg border ${bgColor}`}>
@@ -592,7 +613,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               </div>
-              
+
               {/* Varietà Presenti */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
