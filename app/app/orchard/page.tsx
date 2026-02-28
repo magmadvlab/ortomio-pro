@@ -47,7 +47,9 @@ export default function OrchardPage() {
   const loadGardens = async () => {
     try {
       setLoading(true)
-      const gardensList = await storageProvider.getGardens()
+      const allGardens = await storageProvider.getGardens()
+      // Filtra solo i gardens di tipo Frutteto
+      const gardensList = allGardens.filter(g => g.gardenType === 'Orchard')
       setGardens(gardensList)
       
       if (gardensList.length > 0 && !selectedGardenId) {

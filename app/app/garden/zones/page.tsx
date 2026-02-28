@@ -46,7 +46,10 @@ export default function LandZonesPage() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const loadedGardens = await storageProvider.getGardens()
+      const allGardens = await storageProvider.getGardens()
+      // Filtra: escludi colture specializzate (hanno le loro pagine dedicate)
+      const specializedTypes = ['Orchard', 'OliveGrove', 'Vineyard']
+      const loadedGardens = allGardens.filter(g => !specializedTypes.includes(g.gardenType || ''))
       setGardens(loadedGardens)
       
       const garden = gardenId 

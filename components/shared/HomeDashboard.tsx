@@ -795,16 +795,41 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
         )}
 
         {/* Garden Hub Link */}
-        {activeGarden && (
-          <Link href={`/app/garden?garden=${activeGarden.id}`} className="block">
+        {activeGarden && (() => {
+          // Determina la pagina corretta in base al tipo di garden
+          const gardenType = activeGarden.gardenType
+          const isOrchard = gardenType === 'Orchard'
+          const isOliveGrove = gardenType === 'OliveGrove'
+          const isVineyard = gardenType === 'Vineyard'
+          
+          const linkHref = isOrchard 
+            ? '/app/orchard' 
+            : isOliveGrove 
+              ? '/app/olives' 
+              : isVineyard 
+                ? '/app/vineyard'
+                : `/app/garden?garden=${activeGarden.id}`
+          
+          const linkTitle = isOrchard 
+            ? 'Gestione Frutteto' 
+            : isOliveGrove 
+              ? 'Gestione Oliveto' 
+              : isVineyard 
+                ? 'Gestione Vigneto'
+                : 'Gestione Orto'
+          
+          const linkEmoji = isOrchard ? '🍎' : isOliveGrove ? '🫒' : isVineyard ? '🍇' : '🌱'
+
+          return (
+          <Link href={linkHref} className="block">
             <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl border-2 border-green-400 p-6 hover:shadow-xl transition-all duration-300 group">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <span className="text-white text-2xl">🌱</span>
+                    <span className="text-white text-2xl">{linkEmoji}</span>
                   </div>
                   <div className="text-white">
-                    <h3 className="font-bold text-xl mb-1">Gestione Orto</h3>
+                    <h3 className="font-bold text-xl mb-1">{linkTitle}</h3>
                     <p className="text-green-100 text-sm">{activeGarden.name}</p>
                   </div>
                 </div>
@@ -825,7 +850,8 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
               </div>
             </div>
           </Link>
-        )}
+          )
+        })()}
 
         {/* Link Rapidi alle Funzionalità Avanzate */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

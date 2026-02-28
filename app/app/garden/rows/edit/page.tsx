@@ -60,7 +60,10 @@ export default function EditFieldRowPage() {
           return
         }
 
-        const gardens = await storageProvider.getGardens()
+        const allGardens = await storageProvider.getGardens()
+        // Filtra: escludi colture specializzate
+        const specializedTypes = ['Orchard', 'OliveGrove', 'Vineyard']
+        const gardens = allGardens.filter(g => !specializedTypes.includes(g.gardenType || ''))
         const selectedGarden = gardens.find(g => g.id === gardenId)
         
         if (!selectedGarden) {

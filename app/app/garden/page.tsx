@@ -21,7 +21,10 @@ export default function GardenHubPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const loadedGardens = await storageProvider.getGardens()
+        const allGardens = await storageProvider.getGardens()
+        // Filtra: escludi colture specializzate (hanno le loro pagine dedicate)
+        const specializedTypes = ['Orchard', 'OliveGrove', 'Vineyard']
+        const loadedGardens = allGardens.filter(g => !specializedTypes.includes(g.gardenType || ''))
         setGardens(loadedGardens)
         
         const garden = gardenId 

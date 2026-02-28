@@ -52,7 +52,9 @@ export default function OlivesPage() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const gardensList = await storageProvider.getGardens()
+      const allGardens = await storageProvider.getGardens()
+      // Filtra solo i gardens di tipo Oliveto
+      const gardensList = allGardens.filter(g => g.gardenType === 'OliveGrove')
       setGardens(gardensList)
       
       if (gardensList.length > 0 && !selectedGardenId) {
