@@ -8,12 +8,12 @@
 -- =====================================================
 
 ALTER TABLE public.daily_weather_log
-ADD COLUMN IF NOT EXISTS location_name TEXT COMMENT 'Reverse geocoded location name (e.g., "Bologna, BO")',
-ADD COLUMN IF NOT EXISTS location_latitude NUMERIC(9,6) COMMENT 'Latitude reference for location lookup',
-ADD COLUMN IF NOT EXISTS location_longitude NUMERIC(9,6) COMMENT 'Longitude reference for location lookup',
-ADD COLUMN IF NOT EXISTS wind_direction_dominant TEXT COMMENT 'Dominant wind direction (N, NE, E, SE, S, SW, W, NW)',
-ADD COLUMN IF NOT EXISTS wind_gusts_max NUMERIC(6,2) COMMENT 'Wind gusts maximum speed (m/s)',
-ADD COLUMN IF NOT EXISTS wind_direction_degrees NUMERIC(6,2) COMMENT 'Dominant wind direction in degrees (0-360)';
+ADD COLUMN IF NOT EXISTS location_name TEXT,
+ADD COLUMN IF NOT EXISTS location_latitude NUMERIC(9,6),
+ADD COLUMN IF NOT EXISTS location_longitude NUMERIC(9,6),
+ADD COLUMN IF NOT EXISTS wind_direction_dominant TEXT,
+ADD COLUMN IF NOT EXISTS wind_gusts_max NUMERIC(6,2),
+ADD COLUMN IF NOT EXISTS wind_direction_degrees NUMERIC(6,2);
 
 -- =====================================================
 -- CREATE INDEXES FOR LOCATION LOOKUPS
