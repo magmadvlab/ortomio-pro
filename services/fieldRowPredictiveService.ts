@@ -584,15 +584,15 @@ export class FieldRowPredictiveService {
       )
 
       // Estrai insights rilevanti per questo filare
-      const relevantLifecycleTasks = dailyPlan.lifecycleTasks.filter(task => 
-        fieldRow.cultivar && task.plantName.toLowerCase().includes(fieldRow.cultivar.toLowerCase())
+      const relevantLifecycleTasks = (dailyPlan.lifecycleTasks || []).filter(task => 
+        fieldRow.cultivar && task.plantName?.toLowerCase().includes(fieldRow.cultivar.toLowerCase())
       )
 
       const lifecyclePhase = relevantLifecycleTasks.length > 0 
         ? relevantLifecycleTasks[0].phase 
         : 'Fase non determinata'
 
-      const seasonalAdvice = dailyPlan.baselinePrompts
+      const seasonalAdvice = (dailyPlan.baselinePrompts || [])
         .slice(0, 3)
         .map(prompt => prompt.title)
 
@@ -600,7 +600,7 @@ export class FieldRowPredictiveService {
         ? `${dailyPlan.lunarAdvice.phaseName}: ${dailyPlan.lunarAdvice.advice}`
         : 'Informazioni lunari non disponibili'
 
-      const weatherAlerts = dailyPlan.climateWarnings
+      const weatherAlerts = (dailyPlan.climateWarnings || [])
         .slice(0, 2)
         .map(warning => warning.message)
 
