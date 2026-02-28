@@ -14,6 +14,7 @@ import {
   Cloud, CloudRain, Sun, Snowflake, ThermometerSun, Droplets, Wind, 
   AlertTriangle, Loader2, MapPin, Moon, Sprout, Lightbulb, Calendar
 } from 'lucide-react';
+import { getLocationInfo, formatLocationForDisplay } from '@/services/geocodingService';
 
 interface WeatherLunarWidgetProps {
   latitude: number;
@@ -54,6 +55,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedGardenId, setSelectedGardenId] = useState<string | null>(null);
   const [lunarAdvice, setLunarAdvice] = useState<LunarAdvice | null>(null);
+  const [locationName, setLocationName] = useState<string | null>(null);
 
   // Filtra solo i giardini che hanno coordinate
   const gardensWithCoordinates = gardens.filter(g => g.coordinates?.latitude && g.coordinates?.longitude);
@@ -169,6 +171,19 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
         };
     }
   };
+
+  // Reverse geocoding per ottenere il nome della località
+  useEffect(() => {
+    if (weatherLat && weatherLng) {
+      getLocationInfo(weatherLat, weatherLng).then(info => {
+        if (info) {
+          setLocationName(formatLocationForDisplay(info));
+        }
+      }).catch(err => {
+        console.warn('Geocoding fallito:', err);
+      });
+    }
+  }, [weatherLat, weatherLng]);
 
   useEffect(() => {
     const hasAccess = can('advancedWeather');
@@ -363,6 +378,12 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
           <div>
             <h3 className="font-bold text-gray-900">Meteo & Luna</h3>
             <p className="text-sm text-gray-600">Previsioni e consigli</p>
+            {locationName && (
+              <div className="flex items-center gap-1 text-xs text-blue-600 mt-0.5">
+                <MapPin size={11} />
+                <span>{locationName}</span>
+              </div>
+            )}
           </div>
         </div>
         
