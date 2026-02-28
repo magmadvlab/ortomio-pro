@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Garden } from '../types';
 import { X, Sprout, TreePine, CircleDot, Grape, ArrowRight, Droplets } from 'lucide-react';
 import GardenOnboarding from './GardenOnboarding';
-import { CreateOrchardWizard } from './crops/CreateOrchardWizard';
+import OrchardWizard from './orchard/OrchardWizard';
 import { useStorage } from '@/packages/core/hooks/useStorage';
 
 export type SpaceType = 'vegetable' | 'orchard' | 'oliveGrove' | 'vineyard' | 'hydroponic' | 'aquaponic' | 'aeroponic';
@@ -62,7 +62,7 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
     }
   };
 
-  const handleOrchardConfigComplete = () => {
+  const handleOrchardConfigComplete = (_orchardId: string) => {
     if (createdGarden) {
       console.log('🎉 Orchard/Olive/Vineyard configuration complete, calling onComplete');
       onComplete(createdGarden);
@@ -322,14 +322,15 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
 
   // Step 3: Configurazione Impianto Specializzato
   if (createdGarden && (selectedType === 'orchard' || selectedType === 'oliveGrove' || selectedType === 'vineyard')) {
-    const orchardType = selectedType === 'orchard' ? 'orchard' : 
-                        selectedType === 'oliveGrove' ? 'oliveGrove' : 
-                        'vineyard';
+    const presetType = selectedType === 'orchard' ? 'orchard' as const : 
+                        selectedType === 'oliveGrove' ? 'oliveGrove' as const : 
+                        'vineyard' as const;
 
     return (
-      <CreateOrchardWizard
+      <OrchardWizard
+        gardenId={createdGarden.id}
         garden={createdGarden}
-        orchardType={orchardType}
+        presetType={presetType}
         onComplete={handleOrchardConfigComplete}
         onCancel={() => setCreatedGarden(null)}
       />
