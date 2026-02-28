@@ -198,9 +198,34 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <div className="flex items-center gap-3 mb-4">
-        <Cloud size={20} className="text-blue-600" />
-        <h3 className="text-lg font-bold text-gray-800">Previsioni 7 Giorni</h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <Cloud size={20} className="text-blue-600" />
+          <div>
+            <h3 className="text-lg font-bold text-gray-800">Previsioni 7 Giorni</h3>
+            {selectedGarden && (
+              <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
+                <MapPin size={14} />
+                <span>{selectedGarden.name}</span>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Garden Selector */}
+        {gardensWithCoordinates.length > 1 && (
+          <select
+            value={selectedGardenId || (selectedGarden?.id || '')}
+            onChange={(e) => handleGardenSelect(e.target.value)}
+            className="px-3 py-1 text-sm border border-gray-300 rounded-lg bg-white"
+          >
+            {gardensWithCoordinates.map(garden => (
+              <option key={garden.id} value={garden.id}>
+                {garden.name}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Alerts */}

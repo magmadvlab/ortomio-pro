@@ -14,6 +14,7 @@
  */
 
 import { getSupabaseClient } from '@/config/supabase'
+import { getLocationInfo, formatLocationForDisplay } from './geocodingService'
 
 // ============================================================================
 // TYPES
@@ -32,10 +33,16 @@ export interface DailyWeatherLog {
   precipitation_mm: number
   wind_speed_avg?: number
   wind_speed_max?: number
+  wind_gusts_max?: number; // Massimo delle raffiche di vento (m/s)
+  wind_direction_dominant?: string; // Direzione vento dominante (N, NE, E, SE, S, SW, W, NW)
+  wind_direction_degrees?: number; // Direzione in gradi (0-360)
   solar_radiation?: number
   uv_index?: number
   eto_calculated?: number
   weather_conditions?: string
+  location_name?: string; // Nome della località (es: "Bologna, BO")
+  location_latitude?: number; // Latitudine per reference
+  location_longitude?: number; // Longitudine per reference
   data_source: 'api' | 'manual' | 'station'
   raw_data?: Record<string, unknown>
 }
@@ -235,6 +242,9 @@ class DailyDiaryService {
         solar_radiation: weatherData.solar_radiation,
         uv_index: weatherData.uv_index,
         weather_conditions: weatherData.weather_conditions,
+        location_name: weatherData.location_name,
+        location_latitude: weatherData.location_latitude,
+        location_longitude: weatherData.location_longitude,
         eto_calculated: eto,
         data_source: 'api',
         raw_data: weatherData.raw_data
@@ -282,7 +292,7 @@ class DailyDiaryService {
   }
 
   /**
-   * Fetch da Open-Meteo API
+   * Fetch da Open-Meteo API con reverse geocoding della posizione
    */
   private async fetchFromOpenMeteo(lat: number, lon: number, date: string): Promise<Partial<DailyWeatherLog> | null> {
     try {
@@ -296,6 +306,16 @@ class DailyDiaryService {
       const daily = data.daily
       const tempMin = daily.temperature_2m_min[0]
       const tempMax = daily.temperature_2m_max[0]
+
+      // Reverse geocoding per ottenere il nome della località
+      let locationName: string | undefined
+      try {
+        const locationInfo = await getLocationInfo(lat, lon)
+        locationName = formatLocationForDisplay(locationInfo)
+      } catch (geocodingError) {
+        console.warn('Errore geocoding:', geocodingError)
+        // Continua senza nome della località
+      }
 
       return {
         temp_min: tempMin,
@@ -312,6 +332,9 @@ class DailyDiaryService {
         solar_radiation: daily.shortwave_radiation_sum?.[0],
         uv_index: daily.uv_index_max?.[0],
         weather_conditions: this.weatherCodeToCondition(daily.weather_code?.[0]),
+        location_name: locationName,
+        location_latitude: lat,
+        location_longitude: lon,
         raw_data: data
       }
     } catch (err) {

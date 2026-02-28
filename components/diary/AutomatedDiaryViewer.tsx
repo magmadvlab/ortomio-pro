@@ -13,11 +13,13 @@ import {
   AlertTriangle,
   CheckCircle,
   Thermometer,
-  Zap
+  Zap,
+  MapPin
 } from 'lucide-react'
 import { dailyDiaryService, DailyDiaryEntry } from '@/services/dailyDiaryService'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { formatWindDirection } from '@/services/geocodingService'
 
 interface AutomatedDiaryViewerProps {
   gardenId: string
@@ -251,7 +253,20 @@ export default function AutomatedDiaryViewer({ gardenId, gardenName }: Automated
               </div>
 
               {/* Weather data */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                {/* Locality */}
+                {entry.weather_data?.location_name && (
+                  <div className="flex items-center gap-2 col-span-2 md:col-span-1">
+                    <MapPin className="text-purple-600" size={16} />
+                    <div>
+                      <div className="text-xs text-gray-600">Posizione</div>
+                      <div className="text-sm font-semibold text-gray-900">
+                        {entry.weather_data.location_name}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2">
                   <Thermometer className="text-red-600" size={16} />
                   <div>
@@ -277,7 +292,12 @@ export default function AutomatedDiaryViewer({ gardenId, gardenName }: Automated
                   <div>
                     <div className="text-xs text-gray-600">Vento</div>
                     <div className="text-sm font-semibold text-gray-900">
-                      {entry.weather_data?.wind_speed_avg?.toFixed(0)} km/h
+                      {entry.weather_data?.wind_speed_max?.toFixed(1) || entry.weather_data?.wind_speed_avg?.toFixed(1) || '-'} m/s
+                      {entry.weather_data?.wind_direction_dominant && (
+                        <div className="text-xs text-gray-600">
+                          {formatWindDirection(entry.weather_data.wind_direction_degrees)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
