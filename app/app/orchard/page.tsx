@@ -26,10 +26,11 @@ import {
   Eye,
   Plus,
   X,
-  AlertCircle
+  AlertCircle,
+  Rows3
 } from 'lucide-react'
 
-type ViewMode = 'dashboard' | 'trees' | 'individual-plants' | 'pruning' | 'harvest' | 'analytics'
+type ViewMode = 'dashboard' | 'trees' | 'rows' | 'individual-plants' | 'pruning' | 'harvest' | 'analytics'
 
 export default function OrchardPage() {
   const { storageProvider } = useStorage()
@@ -82,6 +83,7 @@ export default function OrchardPage() {
 
     const navItems = [
       { key: 'trees', label: 'Alberi', icon: TreePine },
+      { key: 'rows', label: 'Filari', icon: Rows3 },
       { key: 'individual-plants', label: 'Piante Individuali', icon: Users },
       { key: 'pruning', label: 'Potature', icon: Scissors },
       { key: 'harvest', label: 'Raccolte', icon: Calendar },
@@ -159,6 +161,14 @@ export default function OrchardPage() {
           <TreeManager
             orchardId={selectedOrchard.id}
             gardenId={selectedGardenId}
+          />
+        )
+      case 'rows':
+        return (
+          <OrchardRowsView
+            orchardId={selectedOrchard.id}
+            gardenId={selectedGardenId}
+            onNavigateToTree={() => setViewMode('trees')}
           />
         )
       case 'individual-plants':
@@ -266,6 +276,224 @@ export default function OrchardPage() {
         )}
       </div>
     </FeatureGate>
+  )
+}
+
+// ============================================================================
+// ORCHARD ROWS VIEW - Gestione Filari del Frutteto
+// ============================================================================
+interface OrchardRowsViewProps {
+  orchardId: string
+  gardenId: string
+  onNavigateToTree: () => void
+}
+
+function OrchardRowsView({ orchardId, gardenId, onNavigateToTree }: OrchardRowsViewProps) {
+  const [trees, setTrees] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadTrees()
+  }, [orchardId])
+
+  const loadTrees = async () => {
+    try {
+      setLoading(true)
+      const treesData = await orchardService.getOrchardTrees(orchardId)
+      setTrees(treesData)
+    } catch (error) {
+      console.error('Error loading trees for rows view:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Raggruppa alberi per fila
+  const rowsMap = new Map<number, typeof trees>()
+  trees.forEach(tree => {
+    const row = tree.rowNumber || 0
+    if (!rowsMap.has(row)) rowsMap.set(row, [])
+    rowsMap.get(row)!.push(tree)
+  })
+
+  // Ordina le file
+  const sortedRows = Array.from(rowsMap.entries()).sort((a, b) => a[0] - b[0])
+
+  // Alberi senza fila assegnata
+  const unassigned = rowsMap.get(0) || []
+
+  // Statistiche
+  const totalTrees = trees.length
+  const totalRows = sortedRows.filter(([row]) => row > 0).length
+  const healthyTrees = trees.filter(t => t.healthStatus === 'healthy').length
+  const needsAttention = trees.filter(t => t.needsPruning || t.needsTreatment).length
+
+  // Varietà uniche
+  const varieties = new Set(trees.map(t => t.variety).filter(Boolean))
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <Rows3 className="mx-auto text-gray-400 mb-4 animate-pulse" size={48} />
+          <p className="text-gray-600">Caricamento filari...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Filari del Frutteto</h2>
+          <p className="text-gray-600">{totalRows} file, {totalTrees} alberi totali</p>
+        </div>
+        <button
+          onClick={onNavigateToTree}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
+          <TreePine size={16} />
+          Gestisci Alberi
+        </button>
+      </div>
+
+      {/* Statistiche rapide */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
+          <div className="text-2xl font-bold text-green-600">{totalRows}</div>
+          <div className="text-sm text-gray-600">File</div>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
+          <div className="text-2xl font-bold text-blue-600">{totalTrees}</div>
+          <div className="text-sm text-gray-600">Alberi Totali</div>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
+          <div className="text-2xl font-bold text-green-600">{healthyTrees}</div>
+          <div className="text-sm text-gray-600">Sani</div>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
+          <div className="text-2xl font-bold text-orange-600">{needsAttention}</div>
+          <div className="text-sm text-gray-600">Attenzione</div>
+        </div>
+      </div>
+
+      {/* Varietà presenti */}
+      {varieties.size > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <h3 className="text-sm font-semibold text-gray-900 mb-2">Varietà presenti</h3>
+          <div className="flex flex-wrap gap-2">
+            {Array.from(varieties).map(v => (
+              <span key={v} className="px-3 py-1 bg-green-50 text-green-700 text-sm rounded-full border border-green-200">
+                {v}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Nessun albero */}
+      {totalTrees === 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+          <Rows3 className="mx-auto text-gray-400 mb-4" size={48} />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Nessun filare configurato</h3>
+          <p className="text-gray-600 mb-4">
+            Vai alla sezione &quot;Alberi&quot; e usa &quot;Crea Fila&quot; per aggiungere alberi in blocco
+          </p>
+          <button
+            onClick={onNavigateToTree}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus size={20} />
+            Crea Prima Fila
+          </button>
+        </div>
+      )}
+
+      {/* Lista Filari */}
+      {sortedRows.filter(([row]) => row > 0).map(([rowNum, rowTrees]) => {
+        const rowHealthy = rowTrees.filter((t: any) => t.healthStatus === 'healthy').length
+        const rowNeedsAttention = rowTrees.filter((t: any) => t.needsPruning || t.needsTreatment).length
+        const rowVarieties = [...new Set(rowTrees.map((t: any) => t.variety).filter(Boolean))]
+        const avgYield = rowTrees.reduce((sum: number, t: any) => sum + (t.lastHarvestKg || 0), 0)
+
+        return (
+          <div key={rowNum} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="bg-green-50 border-b border-green-200 px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-600 text-white rounded-lg flex items-center justify-center font-bold">
+                  {rowNum}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Fila {rowNum}</h3>
+                  <p className="text-sm text-gray-600">{rowTrees.length} alberi • {rowVarieties.join(', ') || 'N/D'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {rowNeedsAttention > 0 && (
+                  <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
+                    {rowNeedsAttention} da trattare
+                  </span>
+                )}
+                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                  {rowHealthy}/{rowTrees.length} sani
+                </span>
+              </div>
+            </div>
+            
+            {/* Alberi nella fila - visualizzazione compatta */}
+            <div className="p-4">
+              <div className="flex flex-wrap gap-2">
+                {rowTrees
+                  .sort((a: any, b: any) => (a.positionInRow || 0) - (b.positionInRow || 0))
+                  .map((tree: any) => {
+                    const statusColor = tree.healthStatus === 'healthy' ? 'bg-green-100 border-green-300 text-green-800' :
+                      tree.healthStatus === 'stressed' ? 'bg-yellow-100 border-yellow-300 text-yellow-800' :
+                      tree.healthStatus === 'diseased' ? 'bg-red-100 border-red-300 text-red-800' :
+                      'bg-gray-100 border-gray-300 text-gray-800'
+                    
+                    return (
+                      <div key={tree.id} className={`px-3 py-2 border rounded-lg text-sm ${statusColor} cursor-default`}
+                        title={`${tree.treeNumber} - ${tree.variety} (${tree.healthStatus})`}>
+                        <div className="font-medium">{tree.positionInRow || '?'}</div>
+                        <div className="text-xs opacity-75">{tree.variety?.substring(0, 8)}</div>
+                      </div>
+                    )
+                  })}
+              </div>
+              {avgYield > 0 && (
+                <div className="mt-3 text-sm text-gray-600">
+                  Ultima raccolta totale fila: <strong>{avgYield.toFixed(1)} kg</strong>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })}
+
+      {/* Alberi non assegnati a file */}
+      {unassigned.length > 0 && (
+        <div className="bg-white rounded-lg border border-orange-200 overflow-hidden">
+          <div className="bg-orange-50 border-b border-orange-200 px-4 py-3 flex items-center gap-3">
+            <AlertCircle className="text-orange-600" size={20} />
+            <div>
+              <h3 className="font-semibold text-gray-900">Alberi senza fila</h3>
+              <p className="text-sm text-gray-600">{unassigned.length} alberi non assegnati a una fila</p>
+            </div>
+          </div>
+          <div className="p-4">
+            <div className="flex flex-wrap gap-2">
+              {unassigned.map((tree: any) => (
+                <span key={tree.id} className="px-3 py-1 bg-orange-50 text-orange-700 text-sm rounded border border-orange-200">
+                  {tree.treeNumber} ({tree.variety})
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 

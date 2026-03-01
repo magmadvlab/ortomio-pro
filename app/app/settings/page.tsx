@@ -186,14 +186,38 @@ export default function SettingsPage() {
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 ml-4">
-                                <Link
-                                  href={`/app/plants?garden=${garden.id}`}
-                                  className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium"
-                                  title="Visualizza piante individuali dell'orto"
-                                >
-                                  <span>🌱</span>
-                                  Piante
-                                </Link>
+                                {(() => {
+                                  // Determina link e label in base al tipo di garden
+                                  const gardenType = garden.gardenType
+                                  let href = `/app/plants?garden=${garden.id}`
+                                  let label = 'Piante'
+                                  let icon = '🌱'
+                                  
+                                  if (gardenType === 'Orchard') {
+                                    href = `/app/orchard`
+                                    label = 'Alberi'
+                                    icon = '🌳'
+                                  } else if (gardenType === 'OliveGrove') {
+                                    href = `/app/olives`
+                                    label = 'Alberi'
+                                    icon = '🫒'
+                                  } else if (gardenType === 'Vineyard') {
+                                    href = `/app/vineyard`
+                                    label = 'Viti'
+                                    icon = '🍇'
+                                  }
+                                  
+                                  return (
+                                    <Link
+                                      href={href}
+                                      className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium"
+                                      title={`Gestisci ${label.toLowerCase()} di ${garden.name}`}
+                                    >
+                                      <span>{icon}</span>
+                                      {label}
+                                    </Link>
+                                  )
+                                })()}
                                 <button
                                   onClick={async () => {
                                     if (confirm(`Sei sicuro di voler eliminare "${garden.name}"?\n\nQuesta azione eliminerà anche tutti i dati associati (piante, task, raccolti, ecc.)`)) {

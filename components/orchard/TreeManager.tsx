@@ -41,6 +41,7 @@ export default function TreeManager({ orchardId, gardenId, onTreeSelect }: TreeM
   const [selectedTree, setSelectedTree] = useState<OrchardTree | null>(null)
   const [showTreeModal, setShowTreeModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showBatchModal, setShowBatchModal] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('grid')
 
   useEffect(() => {
@@ -165,6 +166,47 @@ export default function TreeManager({ orchardId, gardenId, onTreeSelect }: TreeM
       setShowAddModal(false)
     } catch (error) {
       console.error('Error adding tree:', error)
+    }
+  }
+
+  const handleBatchAddTrees = async (batchData: {
+    rowNumber: number
+    startPosition: number
+    count: number
+    variety: string
+    rootstock: string
+    plantingDate: string
+    prefix: string
+  }) => {
+    try {
+      const treesToCreate: Omit<OrchardTree, 'id' | 'createdAt' | 'updatedAt'>[] = []
+      for (let i = 0; i < batchData.count; i++) {
+        const pos = batchData.startPosition + i
+        treesToCreate.push({
+          orchardId,
+          gardenId,
+          treeNumber: `${batchData.prefix}${batchData.rowNumber}-${pos}`,
+          variety: batchData.variety,
+          rootstock: batchData.rootstock || undefined,
+          plantingDate: batchData.plantingDate || undefined,
+          rowNumber: batchData.rowNumber,
+          positionInRow: pos,
+          healthStatus: 'healthy' as const,
+          vigorLevel: 'normal' as const,
+          productivityStatus: 'productive' as const,
+          isActive: true,
+          needsPruning: false,
+          needsTreatment: false,
+          needsReplacement: false,
+          cumulativeYieldKg: 0,
+        } as any)
+      }
+      const created = await orchardService.bulkCreateTrees(treesToCreate as any)
+      setTrees(prev => [...prev, ...created])
+      setShowBatchModal(false)
+    } catch (error) {
+      console.error('Error batch creating trees:', error)
+      alert('Errore nella creazione batch. Riprova.')
     }
   }
 
@@ -296,7 +338,7 @@ export default function TreeManager({ orchardId, gardenId, onTreeSelect }: TreeM
       <div className="space-y-2 text-sm text-gray-600">
         {tree.rootstock && (
           <div className="flex items-center gap-2">
-            <Seedling size={14} />
+            <TreePine size={14} />
             <span>Portinnesto: {tree.rootstock}</span>
           </div>
         )}
@@ -432,6 +474,13 @@ export default function TreeManager({ orchardId, gardenId, onTreeSelect }: TreeM
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setShowBatchModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Upload size={16} />
+            Crea Fila
+          </button>
+          <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           >
@@ -547,6 +596,200 @@ export default function TreeManager({ orchardId, gardenId, onTreeSelect }: TreeM
           onAdd={handleAddTree}
         />
       )}
+
+      {/* Batch Add Trees Modal */}
+      {showBatchModal && (
+        <BatchAddTreeModal
+          existingTrees={trees}
+          onClose={() => setShowBatchModal(false)}
+          onBatchAdd={handleBatchAddTrees}
+        />
+      )}
+    </div>
+  )
+}
+
+// Batch Add Trees Modal Component
+interface BatchAddTreeModalProps {
+  existingTrees: OrchardTree[]
+  onClose: () => void
+  onBatchAdd: (data: {
+    rowNumber: number
+    startPosition: number
+    count: number
+    variety: string
+    rootstock: string
+    plantingDate: string
+    prefix: string
+  }) => void
+}
+
+function BatchAddTreeModal({ existingTrees, onClose, onBatchAdd }: BatchAddTreeModalProps) {
+  const [rowNumber, setRowNumber] = useState(1)
+  const [count, setCount] = useState(10)
+  const [variety, setVariety] = useState('')
+  const [rootstock, setRootstock] = useState('')
+  const [plantingDate, setPlantingDate] = useState('')
+  const [prefix, setPrefix] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  // Calcola la prossima fila disponibile
+  useEffect(() => {
+    if (existingTrees.length > 0) {
+      const maxRow = Math.max(...existingTrees.map(t => t.rowNumber || 0))
+      setRowNumber(maxRow + 1)
+    }
+  }, [existingTrees])
+
+  // Calcola la posizione di partenza per la fila selezionata
+  const startPosition = (() => {
+    const treesInRow = existingTrees.filter(t => t.rowNumber === rowNumber)
+    if (treesInRow.length === 0) return 1
+    return Math.max(...treesInRow.map(t => t.positionInRow || 0)) + 1
+  })()
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!variety.trim()) {
+      alert('Inserisci la varietà')
+      return
+    }
+    if (count < 1 || count > 500) {
+      alert('Numero alberi deve essere tra 1 e 500')
+      return
+    }
+    setLoading(true)
+    onBatchAdd({
+      rowNumber,
+      startPosition,
+      count,
+      variety: variety.trim(),
+      rootstock: rootstock.trim(),
+      plantingDate,
+      prefix: prefix.trim(),
+    })
+  }
+
+  // Existing rows summary
+  const rowSummary = new Map<number, number>()
+  existingTrees.forEach(t => {
+    if (t.rowNumber) {
+      rowSummary.set(t.rowNumber, (rowSummary.get(t.rowNumber) || 0) + 1)
+    }
+  })
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-green-600 text-white px-6 py-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold">Crea Fila di Alberi</h2>
+            <p className="text-blue-100 text-sm">Genera automaticamente una fila intera</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Riepilogo file esistenti */}
+          {rowSummary.size > 0 && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <p className="text-xs font-medium text-gray-700 mb-2">File esistenti:</p>
+              <div className="flex flex-wrap gap-2">
+                {Array.from(rowSummary.entries()).sort((a, b) => a[0] - b[0]).map(([row, count]) => (
+                  <span key={row} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                    Fila {row}: {count} alberi
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Numero Fila */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Numero Fila *</label>
+              <input type="number" required value={rowNumber}
+                onChange={(e) => setRowNumber(parseInt(e.target.value) || 1)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                min="1" />
+              <p className="text-xs text-gray-500 mt-1">
+                {existingTrees.filter(t => t.rowNumber === rowNumber).length > 0
+                  ? `Fila ${rowNumber} ha già ${existingTrees.filter(t => t.rowNumber === rowNumber).length} alberi (si aggiunge da pos. ${startPosition})`
+                  : `Nuova fila ${rowNumber}`}
+              </p>
+            </div>
+
+            {/* Numero Alberi */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Numero Alberi *</label>
+              <input type="number" required value={count}
+                onChange={(e) => setCount(parseInt(e.target.value) || 1)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                min="1" max="500" />
+            </div>
+
+            {/* Varietà */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Varietà *</label>
+              <input type="text" required value={variety}
+                onChange={(e) => setVariety(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="es. Golden Delicious, Frantoio, Sangiovese" />
+            </div>
+
+            {/* Portinnesto */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Portinnesto</label>
+              <input type="text" value={rootstock}
+                onChange={(e) => setRootstock(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="es. M9, M26, Franco" />
+            </div>
+
+            {/* Data Impianto */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Data Impianto</label>
+              <input type="date" value={plantingDate}
+                onChange={(e) => setPlantingDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+            </div>
+
+            {/* Prefisso Numerazione */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Prefisso (opzionale)</label>
+              <input type="text" value={prefix}
+                onChange={(e) => setPrefix(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="es. A, F1-" />
+              <p className="text-xs text-gray-500 mt-1">Esempio: prefisso "A" → A1-1, A1-2, A1-3...</p>
+            </div>
+          </div>
+
+          {/* Anteprima */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-blue-900 mb-2">Anteprima creazione</h4>
+            <div className="text-sm text-blue-800 space-y-1">
+              <p>Verranno creati <strong>{count}</strong> alberi nella <strong>Fila {rowNumber}</strong></p>
+              <p>Posizioni: da <strong>{startPosition}</strong> a <strong>{startPosition + count - 1}</strong></p>
+              <p>Numerazione: <strong>{prefix}{rowNumber}-{startPosition}</strong> → <strong>{prefix}{rowNumber}-{startPosition + count - 1}</strong></p>
+              <p>Varietà: <strong>{variety || '(da specificare)'}</strong>{rootstock ? ` su ${rootstock}` : ''}</p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose}
+              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+              Annulla
+            </button>
+            <button type="submit" disabled={loading}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2">
+              {loading ? 'Creazione...' : `Crea ${count} Alberi`}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
