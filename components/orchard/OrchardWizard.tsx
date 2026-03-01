@@ -271,9 +271,17 @@ export default function OrchardWizard({ gardenId, garden, presetType, onComplete
         })
         onComplete(vineConfig.id)
       } else {
+        // Pre-popola dati suolo dal garden se disponibili (raccolti in GardenOnboarding)
+        const managementWithGardenData = {
+          ...wizardData.management,
+          soilType: wizardData.management?.soilType || (garden?.soilType ? garden.soilType.toLowerCase() : undefined),
+          climateZone: wizardData.management?.climateZone || undefined,
+        }
+
         const orchard = await orchardService.createOrchardFromWizard({
           ...wizardData,
           basicInfo: { ...wizardData.basicInfo!, gardenId },
+          management: managementWithGardenData,
         })
 
         if (generateTasksFlag && cropKind === 'orchard' && fruitCategory) {
@@ -291,9 +299,10 @@ export default function OrchardWizard({ gardenId, garden, presetType, onComplete
 
         onComplete(orchard.id)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating configuration:', error)
-      setErrors({ general: 'Errore nella creazione. Riprova.' })
+      const msg = error?.message || error?.details || 'Errore sconosciuto'
+      setErrors({ general: `Errore nella creazione: ${msg}. Riprova.` })
     } finally {
       setLoading(false)
     }
@@ -477,7 +486,7 @@ export default function OrchardWizard({ gardenId, garden, presetType, onComplete
           <input type="number" value={wizardData.basicInfo?.totalAreaSqm || ''}
             onChange={(e) => setWizardData((prev) => ({ ...prev, basicInfo: { ...prev.basicInfo!, totalAreaSqm: parseFloat(e.target.value) || 0 } }))}
             className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 min-h-[44px]"
-            placeholder="0" min="0" inputMode="numeric" style={{ fontSize: '16px' }} />
+            placeholder="0" min="0" inputMode="decimal" style={{ fontSize: '16px' }} />
         </div>
       </div>
 
@@ -855,42 +864,46 @@ export default function OrchardWizard({ gardenId, garden, presetType, onComplete
           </div>
         </div>
 
-        {/* Clima e Suolo */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Zona Climatica</label>
-            <select value={wizardData.management?.climateZone || ''}
-              onChange={(e) => setWizardData((prev) => ({ ...prev, management: { ...prev.management!, climateZone: e.target.value } }))}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" style={{ fontSize: '16px' }}>
-              <option value="">Seleziona</option>
-              <option value="mediterranean">Mediterraneo</option>
-              <option value="continental">Continentale</option>
-              <option value="alpine">Alpino</option>
-              <option value="subtropical">Subtropicale</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Tipo di Suolo</label>
-            <select value={wizardData.management?.soilType || ''}
-              onChange={(e) => setWizardData((prev) => ({ ...prev, management: { ...prev.management!, soilType: e.target.value } }))}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" style={{ fontSize: '16px' }}>
-              <option value="">Seleziona</option>
-              <option value="clay">Argilloso</option>
-              <option value="sandy">Sabbioso</option>
-              <option value="loamy">Franco</option>
-              <option value="rocky">Roccioso</option>
-              <option value="mixed">Misto</option>
-            </select>
-          </div>
-        </div>
+        {/* Clima e Suolo - Solo se non già raccolti in GardenOnboarding */}
+        {!garden && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Zona Climatica</label>
+                <select value={wizardData.management?.climateZone || ''}
+                  onChange={(e) => setWizardData((prev) => ({ ...prev, management: { ...prev.management!, climateZone: e.target.value } }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" style={{ fontSize: '16px' }}>
+                  <option value="">Seleziona</option>
+                  <option value="mediterranean">Mediterraneo</option>
+                  <option value="continental">Continentale</option>
+                  <option value="alpine">Alpino</option>
+                  <option value="subtropical">Subtropicale</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tipo di Suolo</label>
+                <select value={wizardData.management?.soilType || ''}
+                  onChange={(e) => setWizardData((prev) => ({ ...prev, management: { ...prev.management!, soilType: e.target.value } }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" style={{ fontSize: '16px' }}>
+                  <option value="">Seleziona</option>
+                  <option value="clay">Argilloso</option>
+                  <option value="sandy">Sabbioso</option>
+                  <option value="loamy">Franco</option>
+                  <option value="rocky">Roccioso</option>
+                  <option value="mixed">Misto</option>
+                </select>
+              </div>
+            </div>
 
-        {/* pH */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">pH del Suolo (opzionale)</label>
-          <input type="number" value={soilPh} onChange={(e) => setSoilPh(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-            placeholder="6.5" min="0" max="14" step="0.1" style={{ fontSize: '16px' }} />
-        </div>
+            {/* pH */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">pH del Suolo (opzionale)</label>
+              <input type="number" value={soilPh} onChange={(e) => setSoilPh(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                placeholder="6.5" min="0" max="14" step="0.1" inputMode="decimal" style={{ fontSize: '16px' }} />
+            </div>
+          </>
+        )}
 
         {/* Generazione Task */}
         {cropKind === 'orchard' && fruitCategory && (

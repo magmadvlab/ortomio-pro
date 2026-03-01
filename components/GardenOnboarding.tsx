@@ -376,6 +376,17 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
   };
 
   const handlePrevious = () => {
+    // Gestisci correttamente gli step skippati
+    if (step === 4 && initialGardenType) {
+      // Se abbiamo skippato step 2 e 3, torna a step 1
+      setStep(1);
+      return;
+    }
+    if (step === 4 && !needsLocation) {
+      // Se step 3 (posizione) è stato skippato, torna a step 2
+      setStep(2);
+      return;
+    }
     setStep(step - 1);
   };
 
@@ -1063,7 +1074,9 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                   min="0"
                   max="14"
                   step="0.1"
+                  inputMode="decimal"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  style={{ fontSize: '16px' }}
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Il pH del suolo influenza la disponibilità dei nutrienti per le piante. Un pH tra 6.0 e 7.0 è generalmente ottimale per la maggior parte delle colture.
