@@ -153,7 +153,7 @@ export function ProfessionalSidebar() {
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-3 left-3 z-[60] p-2.5 bg-white rounded-lg shadow-md border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation safe-area-inset-top safe-area-inset-left"
+        className="lg:hidden fixed top-3 left-3 z-[45] p-2.5 bg-white rounded-lg shadow-md border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation safe-area-inset-top safe-area-inset-left"
         aria-label="Toggle menu"
       >
         <svg
@@ -176,14 +176,14 @@ export function ProfessionalSidebar() {
       {/* Overlay for mobile */}
       {isMobileMenuOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-[55]"
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-[40]"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:static inset-y-0 left-0 z-[56]
+        fixed lg:static inset-y-0 left-0 z-[41]
         w-[280px] sm:w-[300px] lg:w-64 bg-white border-r border-gray-200 min-h-screen
         transform transition-transform duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
