@@ -4,10 +4,14 @@ import React from 'react'
 import Link from 'next/link'
 import { BookOpen } from 'lucide-react'
 import AuthStatus from './AuthStatus'
+import { UI_LAYERS } from '@/components/shared/uiLayers'
 
 export default function TopBar() {
   return (
-    <div className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-30">
+    <div
+      className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3 flex items-center justify-between sticky top-0"
+      style={{ zIndex: UI_LAYERS.topBar }}
+    >
       {/* Logo/Brand - Hidden on mobile (hamburger menu shows it) */}
       <div className="hidden lg:flex items-center gap-4">
         <h1 className="text-xl font-bold text-green-600">OrtoMio PRO</h1>

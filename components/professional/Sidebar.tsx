@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -33,7 +33,7 @@ import {
   Lightbulb,
 } from 'lucide-react'
 import { useTier } from '@/packages/core/hooks/useTier'
-import { useEffect } from 'react'
+import { UI_LAYERS } from '@/components/shared/uiLayers'
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
@@ -153,7 +153,8 @@ export function ProfessionalSidebar() {
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-3 left-3 z-[45] p-2.5 bg-white rounded-lg shadow-md border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation safe-area-inset-top safe-area-inset-left"
+        className="lg:hidden fixed top-3 left-3 p-2.5 bg-white rounded-lg shadow-md border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation safe-area-inset-top safe-area-inset-left"
+        style={{ zIndex: UI_LAYERS.sidebarToggle }}
         aria-label="Toggle menu"
       >
         <svg
@@ -176,20 +177,22 @@ export function ProfessionalSidebar() {
       {/* Overlay for mobile */}
       {isMobileMenuOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-[40]"
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50"
+          style={{ zIndex: UI_LAYERS.sidebarOverlay }}
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:static inset-y-0 left-0 z-[41]
+        fixed lg:static inset-y-0 left-0
         w-[280px] sm:w-[300px] lg:w-64 bg-white border-r border-gray-200 min-h-screen
         transform transition-transform duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         overflow-y-auto overflow-x-hidden
         safe-area-inset-left
-      `}>
+      `}
+      style={{ zIndex: UI_LAYERS.sidebar }}>
         {/* Header con logo e close button su mobile */}
         <div className="mb-4 sm:mb-6 flex items-center justify-between p-4 sticky top-0 bg-white border-b border-gray-100 z-10 safe-area-inset-top">
           <div className="min-w-0 flex-1 pr-2 flex items-center gap-3">

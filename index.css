@@ -110,6 +110,16 @@
     z-index: 0;
     opacity: 0.8;
   }
+
+  @media (max-width: 768px) {
+    body {
+      background-attachment: scroll;
+    }
+
+    body::before {
+      opacity: 0.45;
+    }
+  }
   
   #root, [data-nextjs-scroll-focus-boundary] {
     position: relative;
@@ -123,13 +133,39 @@
   }
   
   /* Safe area support for iOS */
-  .safe-area-bottom {
+  .safe-area-bottom,
+  .safe-area-inset-bottom {
     padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-inset-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-inset-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-area-inset-right {
+    padding-right: env(safe-area-inset-right);
   }
   
   @supports (padding: max(0px)) {
-    .safe-area-bottom {
+    .safe-area-bottom,
+    .safe-area-inset-bottom {
       padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+
+    .safe-area-inset-top {
+      padding-top: max(0.75rem, env(safe-area-inset-top));
+    }
+
+    .safe-area-inset-left {
+      padding-left: max(0.5rem, env(safe-area-inset-left));
+    }
+
+    .safe-area-inset-right {
+      padding-right: max(0.5rem, env(safe-area-inset-right));
     }
   }
 }

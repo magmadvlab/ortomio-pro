@@ -7,6 +7,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { Bot, Send, Loader2, MessageCircle, X, Sparkles, Lightbulb, Minimize2, Maximize2 } from 'lucide-react'
+import { UI_LAYERS } from '@/components/shared/uiLayers'
 
 interface ChatMessage {
   id: string
@@ -293,7 +294,8 @@ Fai pure la tua domanda specifica!`,
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 bg-gradient-to-r from-green-600 to-blue-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 z-50 group animate-pulse"
+        className="fixed bottom-6 right-6 bg-gradient-to-r from-green-600 to-blue-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 group animate-pulse"
+        style={{ zIndex: UI_LAYERS.floatingChat }}
         title="Apri Chat AI - Fai qualsiasi domanda!"
       >
         <MessageCircle size={24} />
@@ -308,11 +310,14 @@ Fai pure la tua domanda specifica!`,
   }
 
   return (
-    <div className={`fixed bottom-6 right-6 bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col z-50 transition-all duration-300 ${
+    <div
+      className={`fixed bottom-6 right-6 bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col transition-all duration-300 ${
       isMinimized 
         ? 'w-80 h-16' 
         : 'w-96 h-[600px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)]'
-    }`}>
+      }`}
+      style={{ zIndex: UI_LAYERS.floatingChat }}
+    >
       {/* Header */}
       <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white p-4 rounded-t-xl flex items-center justify-between">
         <div className="flex items-center gap-3">

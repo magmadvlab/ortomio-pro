@@ -8,6 +8,7 @@ import { AppTier } from '@/packages/core/config/tiers'
 import { ProfessionalSidebar } from '@/components/professional/Sidebar'
 import GlobalAIChat from '@/components/ai/GlobalAIChat'
 import TopBar from '@/components/shared/TopBar'
+import { MobileBottomNav } from '@/components/shared/MobileBottomNav'
 import AuthGuard from '@/components/auth/AuthGuard'
 
 export default function AppLayout({
@@ -24,11 +25,12 @@ export default function AppLayout({
               <ProfessionalSidebar />
               <div className="flex-1 flex flex-col overflow-hidden">
                 <TopBar />
-                <main className="flex-1 overflow-auto">
+                <main className="flex-1 overflow-auto pb-20 lg:pb-0">
                   {children}
                 </main>
+                <MobileBottomNav />
                 {/* Footer con credits */}
-                <footer className="bg-white border-t border-gray-200 py-2 px-4 text-center">
+                <footer className="hidden lg:block bg-white border-t border-gray-200 py-2 px-4 text-center">
                   <p className="text-xs text-gray-500">
                     OrtoMio © 2024-2026 | Sviluppato da <span className="font-medium">Roberto Lalinga</span> |
                     <a href="mailto:roberto.lalinga@gmail.com" className="text-blue-600 hover:underline ml-1">
