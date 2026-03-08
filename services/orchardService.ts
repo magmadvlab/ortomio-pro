@@ -773,7 +773,7 @@ class OrchardService {
   }
 
   private mapTreeToDatabase(tree: Partial<OrchardTree>): any {
-    return {
+    const payload = {
       orchard_id: tree.orchardId,
       garden_id: tree.gardenId,
       tree_number: tree.treeNumber,
@@ -807,6 +807,11 @@ class OrchardService {
       needs_replacement: tree.needsReplacement,
       is_active: tree.isActive
     }
+
+    // Avoid sending undefined fields to Supabase (prevents schema drift 400 errors).
+    return Object.fromEntries(
+      Object.entries(payload).filter(([, value]) => value !== undefined)
+    )
   }
 
   // Additional mapping methods would be implemented here for other types

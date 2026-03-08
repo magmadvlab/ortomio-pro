@@ -149,6 +149,20 @@ export default function TreeManager({ orchardId, gardenId, onTreeSelect }: TreeM
     onTreeSelect?.(tree)
   }
 
+  const formatErrorMessage = (error: unknown) => {
+    if (typeof error === 'object' && error !== null) {
+      const typedError = error as { message?: string; details?: string; hint?: string; code?: string }
+      const parts = [typedError.message, typedError.details, typedError.hint].filter(Boolean)
+      if (parts.length > 0) {
+        return parts.join(' | ')
+      }
+      if (typedError.code) {
+        return `Codice errore: ${typedError.code}`
+      }
+    }
+    return 'Errore sconosciuto'
+  }
+
   const handleAddTree = async (treeData: Partial<OrchardTree>) => {
     try {
       const newTree = await orchardService.createTree({
@@ -166,13 +180,14 @@ export default function TreeManager({ orchardId, gardenId, onTreeSelect }: TreeM
       setShowAddModal(false)
     } catch (error) {
       console.error('Error adding tree:', error)
+      alert(`Errore nella creazione albero: ${formatErrorMessage(error)}`)
     }
   }
 
   const handleBatchAddTrees = async (batchData: {
-    rowNumber: number
-    startPosition: number
-    count: number
+    startRowNumber: number
+    rowsCount: number
+    treesPerRow: number
     variety: string
     rootstock: string
     plantingDate: string
@@ -180,33 +195,51 @@ export default function TreeManager({ orchardId, gardenId, onTreeSelect }: TreeM
   }) => {
     try {
       const treesToCreate: Omit<OrchardTree, 'id' | 'createdAt' | 'updatedAt'>[] = []
-      for (let i = 0; i < batchData.count; i++) {
-        const pos = batchData.startPosition + i
-        treesToCreate.push({
-          orchardId,
-          gardenId,
-          treeNumber: `${batchData.prefix}${batchData.rowNumber}-${pos}`,
-          variety: batchData.variety,
-          rootstock: batchData.rootstock || undefined,
-          plantingDate: batchData.plantingDate || undefined,
-          rowNumber: batchData.rowNumber,
-          positionInRow: pos,
-          healthStatus: 'healthy' as const,
-          vigorLevel: 'normal' as const,
-          productivityStatus: 'productive' as const,
-          isActive: true,
-          needsPruning: false,
-          needsTreatment: false,
-          needsReplacement: false,
-          cumulativeYieldKg: 0,
-        } as any)
+      const nextPositionByRow = new Map<number, number>()
+
+      trees.forEach((tree) => {
+        if (!tree.rowNumber) return
+        const rowNumber = tree.rowNumber
+        const nextPosition = (tree.positionInRow || 0) + 1
+        const currentMax = nextPositionByRow.get(rowNumber) || 1
+        nextPositionByRow.set(rowNumber, Math.max(currentMax, nextPosition))
+      })
+
+      for (let rowOffset = 0; rowOffset < batchData.rowsCount; rowOffset++) {
+        const currentRow = batchData.startRowNumber + rowOffset
+        const rowStartPosition = nextPositionByRow.get(currentRow) || 1
+
+        for (let i = 0; i < batchData.treesPerRow; i++) {
+          const pos = rowStartPosition + i
+          treesToCreate.push({
+            orchardId,
+            gardenId,
+            treeNumber: `${batchData.prefix}${currentRow}-${pos}`,
+            variety: batchData.variety,
+            rootstock: batchData.rootstock || undefined,
+            plantingDate: batchData.plantingDate || undefined,
+            rowNumber: currentRow,
+            positionInRow: pos,
+            healthStatus: 'healthy' as const,
+            vigorLevel: 'normal' as const,
+            productivityStatus: 'productive' as const,
+            isActive: true,
+            needsPruning: false,
+            needsTreatment: false,
+            needsReplacement: false,
+            cumulativeYieldKg: 0,
+          } as any)
+        }
+
+        nextPositionByRow.set(currentRow, rowStartPosition + batchData.treesPerRow)
       }
+
       const created = await orchardService.bulkCreateTrees(treesToCreate as any)
       setTrees(prev => [...prev, ...created])
       setShowBatchModal(false)
     } catch (error) {
       console.error('Error batch creating trees:', error)
-      alert('Errore nella creazione batch. Riprova.')
+      alert(`Errore nella creazione batch: ${formatErrorMessage(error)}`)
     }
   }
 
@@ -614,18 +647,19 @@ interface BatchAddTreeModalProps {
   existingTrees: OrchardTree[]
   onClose: () => void
   onBatchAdd: (data: {
-    rowNumber: number
-    startPosition: number
-    count: number
+    startRowNumber: number
+    rowsCount: number
+    treesPerRow: number
     variety: string
     rootstock: string
     plantingDate: string
     prefix: string
-  }) => void
+  }) => Promise<void>
 }
 
 function BatchAddTreeModal({ existingTrees, onClose, onBatchAdd }: BatchAddTreeModalProps) {
   const [rowNumber, setRowNumber] = useState(1)
+  const [rowsCount, setRowsCount] = useState(1)
   const [count, setCount] = useState(10)
   const [variety, setVariety] = useState('')
   const [rootstock, setRootstock] = useState('')
@@ -641,14 +675,18 @@ function BatchAddTreeModal({ existingTrees, onClose, onBatchAdd }: BatchAddTreeM
     }
   }, [existingTrees])
 
-  // Calcola la posizione di partenza per la fila selezionata
-  const startPosition = (() => {
-    const treesInRow = existingTrees.filter(t => t.rowNumber === rowNumber)
+  const getStartPositionForRow = (targetRowNumber: number) => {
+    const treesInRow = existingTrees.filter(t => t.rowNumber === targetRowNumber)
     if (treesInRow.length === 0) return 1
     return Math.max(...treesInRow.map(t => t.positionInRow || 0)) + 1
-  })()
+  }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const firstRowStartPosition = getStartPositionForRow(rowNumber)
+  const lastRowNumber = rowNumber + rowsCount - 1
+  const lastRowStartPosition = getStartPositionForRow(lastRowNumber)
+  const totalTrees = rowsCount * count
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!variety.trim()) {
       alert('Inserisci la varietà')
@@ -658,16 +696,29 @@ function BatchAddTreeModal({ existingTrees, onClose, onBatchAdd }: BatchAddTreeM
       alert('Numero alberi deve essere tra 1 e 500')
       return
     }
+    if (rowsCount < 1 || rowsCount > 200) {
+      alert('Numero file consecutive deve essere tra 1 e 200')
+      return
+    }
+    if (totalTrees > 5000) {
+      alert('Massimo 5.000 alberi per singola operazione batch')
+      return
+    }
+
     setLoading(true)
-    onBatchAdd({
-      rowNumber,
-      startPosition,
-      count,
-      variety: variety.trim(),
-      rootstock: rootstock.trim(),
-      plantingDate,
-      prefix: prefix.trim(),
-    })
+    try {
+      await onBatchAdd({
+        startRowNumber: rowNumber,
+        rowsCount,
+        treesPerRow: count,
+        variety: variety.trim(),
+        rootstock: rootstock.trim(),
+        plantingDate,
+        prefix: prefix.trim(),
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Existing rows summary
@@ -716,8 +767,20 @@ function BatchAddTreeModal({ existingTrees, onClose, onBatchAdd }: BatchAddTreeM
                 min="1" />
               <p className="text-xs text-gray-500 mt-1">
                 {existingTrees.filter(t => t.rowNumber === rowNumber).length > 0
-                  ? `Fila ${rowNumber} ha già ${existingTrees.filter(t => t.rowNumber === rowNumber).length} alberi (si aggiunge da pos. ${startPosition})`
+                  ? `Fila ${rowNumber} ha già ${existingTrees.filter(t => t.rowNumber === rowNumber).length} alberi (si aggiunge da pos. ${firstRowStartPosition})`
                   : `Nuova fila ${rowNumber}`}
+              </p>
+            </div>
+
+            {/* Numero File Consecutive */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Numero File Consecutive *</label>
+              <input type="number" required value={rowsCount}
+                onChange={(e) => setRowsCount(parseInt(e.target.value) || 1)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                min="1" max="200" />
+              <p className="text-xs text-gray-500 mt-1">
+                Da Fila {rowNumber} a Fila {lastRowNumber}
               </p>
             </div>
 
@@ -771,9 +834,23 @@ function BatchAddTreeModal({ existingTrees, onClose, onBatchAdd }: BatchAddTreeM
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h4 className="text-sm font-semibold text-blue-900 mb-2">Anteprima creazione</h4>
             <div className="text-sm text-blue-800 space-y-1">
-              <p>Verranno creati <strong>{count}</strong> alberi nella <strong>Fila {rowNumber}</strong></p>
-              <p>Posizioni: da <strong>{startPosition}</strong> a <strong>{startPosition + count - 1}</strong></p>
-              <p>Numerazione: <strong>{prefix}{rowNumber}-{startPosition}</strong> → <strong>{prefix}{rowNumber}-{startPosition + count - 1}</strong></p>
+              <p>
+                Verranno creati <strong>{totalTrees}</strong> alberi in <strong>{rowsCount} {rowsCount === 1 ? 'fila' : 'file'}</strong>
+              </p>
+              <p>
+                Intervallo file: <strong>{rowNumber}</strong> → <strong>{lastRowNumber}</strong> ({count} alberi per fila)
+              </p>
+              <p>
+                Prima fila ({rowNumber}) posizioni: <strong>{firstRowStartPosition}</strong> → <strong>{firstRowStartPosition + count - 1}</strong>
+              </p>
+              <p>
+                Numerazione prima fila: <strong>{prefix}{rowNumber}-{firstRowStartPosition}</strong> → <strong>{prefix}{rowNumber}-{firstRowStartPosition + count - 1}</strong>
+              </p>
+              {rowsCount > 1 && (
+                <p>
+                  Ultima fila ({lastRowNumber}) parte da posizione <strong>{lastRowStartPosition}</strong>
+                </p>
+              )}
               <p>Varietà: <strong>{variety || '(da specificare)'}</strong>{rootstock ? ` su ${rootstock}` : ''}</p>
             </div>
           </div>
@@ -785,7 +862,7 @@ function BatchAddTreeModal({ existingTrees, onClose, onBatchAdd }: BatchAddTreeM
             </button>
             <button type="submit" disabled={loading}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2">
-              {loading ? 'Creazione...' : `Crea ${count} Alberi`}
+              {loading ? 'Creazione...' : `Crea ${totalTrees} Alberi`}
             </button>
           </div>
         </form>
