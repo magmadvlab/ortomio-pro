@@ -19,7 +19,8 @@ export interface SaplingTimeline {
 }
 
 class SaplingService {
-  private preferredSaplingTable: 'sapling_inventory' | 'saplings' | 'sapling_batches' = 'sapling_inventory'
+  private preferredSaplingTable: 'sapling_inventory' | 'saplings' | 'sapling_batches' = 'sapling_batches'
+  private unavailableSaplingTables = new Set<'sapling_inventory' | 'saplings' | 'sapling_batches'>()
 
   private getSupabaseOrThrow() {
     const client = getSupabaseClient()
@@ -40,6 +41,28 @@ class SaplingService {
       message.includes('could not find the table') ||
       details.includes('relation') && details.includes('does not exist')
     )
+  }
+
+  private markSaplingTableUnavailable(table: 'sapling_inventory' | 'saplings' | 'sapling_batches') {
+    this.unavailableSaplingTables.add(table)
+  }
+
+  private markSaplingTableAvailable(table: 'sapling_inventory' | 'saplings' | 'sapling_batches') {
+    this.unavailableSaplingTables.delete(table)
+    this.preferredSaplingTable = table
+  }
+
+  private switchPreferredSaplingTableAfterMissing(current: 'sapling_inventory' | 'saplings' | 'sapling_batches') {
+    this.markSaplingTableUnavailable(current)
+    const candidates: Array<'sapling_inventory' | 'saplings' | 'sapling_batches'> = [
+      'sapling_inventory',
+      'sapling_batches',
+      'saplings'
+    ]
+    const next = candidates.find((table) => !this.unavailableSaplingTables.has(table))
+    if (next) {
+      this.preferredSaplingTable = next
+    }
   }
 
   private mapSaplingFromInventory(data: any): Sapling {
@@ -204,10 +227,11 @@ class SaplingService {
   async getSaplings(gardenId: string, filters?: SaplingFilters): Promise<Sapling[]> {
     try {
       const supabase = this.getSupabaseOrThrow()
-      const orderedTables: Array<'sapling_inventory' | 'saplings' | 'sapling_batches'> = [
+      const orderedTables = [
         this.preferredSaplingTable,
-        ...(['sapling_inventory', 'saplings', 'sapling_batches'] as const).filter(table => table !== this.preferredSaplingTable),
-      ]
+        ...(['sapling_inventory', 'sapling_batches', 'saplings'] as const).filter(table => table !== this.preferredSaplingTable),
+      ].filter((table, index, arr) => arr.indexOf(table) === index)
+        .filter((table) => !this.unavailableSaplingTables.has(table))
 
       const readFromInventory = async () => {
         let query = supabase
@@ -285,10 +309,13 @@ class SaplingService {
       for (const table of orderedTables) {
         try {
           const saplings = await readers[table]()
-          this.preferredSaplingTable = table
+          this.markSaplingTableAvailable(table)
           return saplings
         } catch (error) {
           lastError = error
+          if (this.isMissingTableError(error)) {
+            this.markSaplingTableUnavailable(table)
+          }
           if (!this.isMissingTableError(error)) {
             console.warn(`Errore lettura ${table}, provo fallback:`, error)
           }
@@ -319,7 +346,7 @@ class SaplingService {
           return this.mapSaplingFromInventory(data)
         } catch (error) {
           if (!this.isMissingTableError(error)) throw error
-          this.preferredSaplingTable = 'saplings'
+          this.switchPreferredSaplingTableAfterMissing('sapling_inventory')
         }
       }
 
@@ -330,7 +357,13 @@ class SaplingService {
           .insert([payload])
           .select()
           .single()
-        if (error) throw error
+        if (error) {
+          if (this.isMissingTableError(error)) {
+            this.switchPreferredSaplingTableAfterMissing('sapling_batches')
+          }
+          throw error
+        }
+        this.markSaplingTableAvailable('sapling_batches')
         return this.mapSaplingFromBatch(data)
       }
 
@@ -340,7 +373,13 @@ class SaplingService {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        if (this.isMissingTableError(error)) {
+          this.switchPreferredSaplingTableAfterMissing('saplings')
+        }
+        throw error
+      }
+      this.markSaplingTableAvailable('saplings')
       return this.mapSaplingFromDatabase(data)
     } catch (error) {
       console.error('Error adding sapling:', error)
@@ -373,7 +412,7 @@ class SaplingService {
           return this.mapSaplingFromInventory(data)
         } catch (error) {
           if (!this.isMissingTableError(error)) throw error
-          this.preferredSaplingTable = 'saplings'
+          this.switchPreferredSaplingTableAfterMissing('sapling_inventory')
         }
       }
 
@@ -392,7 +431,13 @@ class SaplingService {
           .eq('id', id)
           .select()
           .single()
-        if (error) throw error
+        if (error) {
+          if (this.isMissingTableError(error)) {
+            this.switchPreferredSaplingTableAfterMissing('sapling_batches')
+          }
+          throw error
+        }
+        this.markSaplingTableAvailable('sapling_batches')
         return this.mapSaplingFromBatch(data)
       }
 
@@ -403,7 +448,13 @@ class SaplingService {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        if (this.isMissingTableError(error)) {
+          this.switchPreferredSaplingTableAfterMissing('saplings')
+        }
+        throw error
+      }
+      this.markSaplingTableAvailable('saplings')
 
       return this.mapSaplingFromDatabase(data)
     } catch (error) {
@@ -425,7 +476,7 @@ class SaplingService {
           return
         } catch (error) {
           if (!this.isMissingTableError(error)) throw error
-          this.preferredSaplingTable = 'saplings'
+          this.switchPreferredSaplingTableAfterMissing('sapling_inventory')
         }
       }
 
@@ -434,7 +485,13 @@ class SaplingService {
           .from('sapling_batches')
           .delete()
           .eq('id', id)
-        if (error) throw error
+        if (error) {
+          if (this.isMissingTableError(error)) {
+            this.switchPreferredSaplingTableAfterMissing('sapling_batches')
+          }
+          throw error
+        }
+        this.markSaplingTableAvailable('sapling_batches')
         return
       }
 
@@ -443,7 +500,13 @@ class SaplingService {
         .delete()
         .eq('id', id)
 
-      if (error) throw error
+      if (error) {
+        if (this.isMissingTableError(error)) {
+          this.switchPreferredSaplingTableAfterMissing('saplings')
+        }
+        throw error
+      }
+      this.markSaplingTableAvailable('saplings')
     } catch (error) {
       console.error('Error deleting sapling:', error)
       throw error

@@ -2197,6 +2197,37 @@ export class LocalStorageProvider implements IStorageProvider {
       const allOps = JSON.parse(raw);
       return allOps
         .filter((op: any) => op.plantId === plantId)
+        .map((op: any) => {
+          const parsedNotes = this.parsePlantOperationNotes(op.notes);
+          const operationContext =
+            op.operationContext ||
+            op.context ||
+            parsedNotes.metadata?.operationContext ||
+            parsedNotes.metadata?.context;
+          const weatherConditions =
+            op.weatherConditions ||
+            parsedNotes.metadata?.weatherConditions;
+          const geoSnapshot =
+            op.geoSnapshot ||
+            parsedNotes.metadata?.geoSnapshot;
+          const actorType =
+            op.actorType ||
+            parsedNotes.metadata?.actorType;
+          const deviceId =
+            op.deviceId ||
+            parsedNotes.metadata?.deviceId;
+
+          return {
+            ...op,
+            notes: parsedNotes.cleanNotes,
+            context: operationContext,
+            operationContext,
+            weatherConditions,
+            geoSnapshot,
+            actorType,
+            deviceId,
+          };
+        })
         .sort((a: any, b: any) => new Date(b.operationDate || b.date).getTime() - new Date(a.operationDate || a.date).getTime());
     } catch (error) {
       console.error('Error loading plant operations:', error);
@@ -2215,6 +2246,21 @@ export class LocalStorageProvider implements IStorageProvider {
       const sourceType = operation.sourceType
         || (operation.parentOperationTable === 'iot_sensor' ? 'iot' : undefined)
         || (operation.parentOperationTable === 'manual_orchestrator' ? 'manual' : 'manual');
+      const operationContext = operation.operationContext || operation.context || undefined;
+      const weatherConditions = operation.weatherConditions || undefined;
+      const geoSnapshot = operation.geoSnapshot || undefined;
+      const actorType = operation.actorType || undefined;
+      const deviceId = operation.deviceId || undefined;
+      const metadata = {
+        operationContext,
+        weatherConditions,
+        geoSnapshot,
+        actorType,
+        deviceId,
+        sourceType: operation.sourceType || undefined,
+      };
+      const hasMetadata = Object.values(metadata).some((value) => value !== undefined && value !== null);
+      const notesWithMetadata = this.composePlantOperationNotes(operation.notes, hasMetadata ? metadata : undefined);
 
       const newOperation = {
         id: operation.id || crypto.randomUUID(),
@@ -2228,11 +2274,17 @@ export class LocalStorageProvider implements IStorageProvider {
         quantity: operation.quantity !== undefined ? Number(operation.quantity) : undefined,
         unit: operation.unit,
         productName: operation.productName,
-        notes: operation.notes,
+        notes: notesWithMetadata,
+        context: operationContext,
+        operationContext,
+        weatherConditions,
+        geoSnapshot,
         photos: operation.photos || [],
         parentOperationId: operation.parentOperationId || undefined,
         parentOperationTable: operation.parentOperationTable || undefined,
         sourceType,
+        actorType,
+        deviceId,
         recordedBy: sourceType === 'iot' ? 'iot' : 'user',
         createdAt: operation.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -2251,5 +2303,43 @@ export class LocalStorageProvider implements IStorageProvider {
     if (operationType === 'fertilizing') return 'nutrition';
     if (operationType === 'treatment') return 'protection';
     return 'maintenance';
+  }
+
+  private composePlantOperationNotes(
+    notes?: string | null,
+    metadata?: Record<string, any>
+  ): string | undefined {
+    const base = (notes || '').trim();
+    if (!metadata || Object.keys(metadata).length === 0) {
+      return base || undefined;
+    }
+
+    const marker = `[ORCH_CTX]${JSON.stringify(metadata)}`;
+    return base ? `${base}\n${marker}` : marker;
+  }
+
+  private parsePlantOperationNotes(notes?: string | null): {
+    cleanNotes?: string;
+    metadata?: Record<string, any>;
+  } {
+    const raw = notes || '';
+    const marker = '[ORCH_CTX]';
+    const markerIndex = raw.lastIndexOf(marker);
+
+    if (markerIndex === -1) {
+      return { cleanNotes: raw || undefined, metadata: undefined };
+    }
+
+    const rawMetadata = raw.slice(markerIndex + marker.length).trim();
+    const cleanNotes = raw.slice(0, markerIndex).trim();
+
+    try {
+      return {
+        cleanNotes: cleanNotes || undefined,
+        metadata: rawMetadata ? JSON.parse(rawMetadata) : undefined,
+      };
+    } catch (_error) {
+      return { cleanNotes: raw || undefined, metadata: undefined };
+    }
   }
 }

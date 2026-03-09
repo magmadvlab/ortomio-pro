@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { UI_LAYERS } from '@/components/shared/uiLayers'
 
 interface AppModalProps {
@@ -22,6 +23,12 @@ export function AppModal({
   panelClassName = '',
   fullScreenOnMobile = false,
 }: AppModalProps) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   useEffect(() => {
     if (!isOpen) return
 
@@ -48,9 +55,9 @@ export function AppModal({
     }
   }, [isOpen, onClose])
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -75,6 +82,7 @@ export function AppModal({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

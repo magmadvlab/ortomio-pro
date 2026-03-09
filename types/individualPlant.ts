@@ -204,7 +204,21 @@ export interface PlantOperation {
   parentOperationId?: string;
   parentOperationTable?: string;
   sourceType?: 'manual' | 'iot' | 'orchestrator_auto' | 'orchestrator_sync';
+  actorType?: 'manual' | 'iot' | 'orchestrator';
+  deviceId?: string;
   recordedBy?: 'user' | 'iot' | 'system';
+  
+  // Snapshot persistito per analytics predittiva (retrocompatibile)
+  operationContext?: PlantOperation['context'];
+  geoSnapshot?: {
+    latitude?: number;
+    longitude?: number;
+    altitudeMeters?: number;
+    sunExposure?: string;
+    aspectDirection?: string;
+    obstacles?: Array<Record<string, any>>;
+    source?: string;
+  };
   
   // Metadata
   createdAt: string;

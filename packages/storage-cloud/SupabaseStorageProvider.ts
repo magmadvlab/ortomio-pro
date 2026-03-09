@@ -4398,7 +4398,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
     if (error) {
       // If table doesn't exist yet, return empty array gracefully
-      if (error.code === '42P01') {
+      if (error.code === '42P01' || error.code === 'PGRST205') {
         console.warn('individual_plant_operations table does not exist yet');
         return [];
       }
@@ -4408,7 +4408,13 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
     return (data || []).map(db => {
       const operationTime = db.operation_time ? String(db.operation_time).slice(0, 5) : undefined;
-      const sourceType = this.inferPlantOperationSourceType(db.parent_operation_table, db.notes);
+      const parsedNotes = this.parsePlantOperationNotes(db.notes);
+      const operationContext = db.operation_context || parsedNotes.metadata?.operationContext || parsedNotes.metadata?.context || undefined;
+      const weatherConditions = db.weather_conditions || parsedNotes.metadata?.weatherConditions || undefined;
+      const geoSnapshot = db.geo_snapshot || parsedNotes.metadata?.geoSnapshot || undefined;
+      const actorType = db.actor_type || parsedNotes.metadata?.actorType || undefined;
+      const deviceId = db.device_id || parsedNotes.metadata?.deviceId || undefined;
+      const sourceType = this.inferPlantOperationSourceType(db.parent_operation_table, parsedNotes.cleanNotes || db.notes);
 
       return {
         id: db.id,
@@ -4423,10 +4429,16 @@ export class SupabaseStorageProvider implements IStorageProvider {
         unit: db.unit,
         productName: db.product_name,
         greenhouseConditions: db.greenhouse_conditions || undefined, // NUOVO
-        notes: db.notes,
+        notes: parsedNotes.cleanNotes,
+        context: operationContext,
+        operationContext,
+        weatherConditions,
+        geoSnapshot,
         parentOperationId: db.parent_operation_id || undefined,
         parentOperationTable: db.parent_operation_table || undefined,
         sourceType,
+        actorType,
+        deviceId,
         recordedBy: sourceType === 'iot' ? 'iot' : sourceType === 'manual' ? 'user' : 'system',
         createdAt: db.created_at,
         updatedAt: db.updated_at
@@ -4438,7 +4450,27 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     console.log('Creating plant operation:', operation);
 
-    const dbOp = {
+    const operationContext = operation.operationContext || operation.context || null;
+    const weatherConditions = operation.weatherConditions || null;
+    const geoSnapshot = operation.geoSnapshot || null;
+    const actorType = operation.actorType || null;
+    const deviceId = operation.deviceId || null;
+    const sourceType = operation.sourceType || null;
+    const hasExtendedMetadata = !!(operationContext || weatherConditions || geoSnapshot || actorType || deviceId || sourceType);
+    const fallbackMetadata = hasExtendedMetadata
+      ? {
+          operationContext,
+          weatherConditions,
+          geoSnapshot,
+          actorType,
+          deviceId,
+          sourceType
+        }
+      : null;
+
+    const fallbackNotes = this.composePlantOperationNotes(operation.notes, fallbackMetadata);
+
+    let dbOp: Record<string, any> = {
       garden_id: operation.gardenId,
       plant_id: operation.plantId,
       operation_type: operation.operationType,
@@ -4448,20 +4480,75 @@ export class SupabaseStorageProvider implements IStorageProvider {
       unit: operation.unit,
       product_name: operation.productName,
       greenhouse_conditions: operation.greenhouseConditions || null, // NUOVO
-      notes: operation.notes,
+      notes: operation.notes || null,
       parent_operation_id: operation.parentOperationId,
-      parent_operation_table: operation.parentOperationTable
+      parent_operation_table: operation.parentOperationTable,
+      operation_context: operationContext,
+      weather_conditions: weatherConditions,
+      geo_snapshot: geoSnapshot,
+      actor_type: actorType,
+      device_id: deviceId,
+      source_type: sourceType
     };
 
-    const { data, error } = await client
-      .from('individual_plant_operations')
-      .insert(dbOp)
-      .select()
-      .single();
+    let data: any = null;
+    let insertError: any = null;
+    let fallbackNotesApplied = false;
 
-    if (error) throw error;
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const result = await client
+        .from('individual_plant_operations')
+        .insert(dbOp)
+        .select()
+        .single();
 
-    const sourceType = this.inferPlantOperationSourceType(data.parent_operation_table, data.notes);
+      data = result.data;
+      insertError = result.error;
+
+      if (!insertError) {
+        break;
+      }
+
+      if (!this.isMissingColumnError(insertError)) {
+        break;
+      }
+
+      const missingColumn = this.extractMissingColumnName(insertError);
+      if (!missingColumn || !(missingColumn in dbOp)) {
+        break;
+      }
+
+      const contextColumns = new Set([
+        'operation_context',
+        'weather_conditions',
+        'geo_snapshot',
+        'actor_type',
+        'device_id',
+        'source_type',
+        'greenhouse_conditions'
+      ]);
+
+      if (!fallbackNotesApplied && hasExtendedMetadata && contextColumns.has(missingColumn)) {
+        dbOp.notes = fallbackNotes;
+        fallbackNotesApplied = true;
+      }
+
+      const next = { ...dbOp };
+      delete next[missingColumn];
+      dbOp = next;
+    }
+
+    if (insertError || !data) {
+      throw insertError || new Error('Unable to create plant operation');
+    }
+
+    const parsedNotes = this.parsePlantOperationNotes(data.notes);
+    const operationContextFromDb = data.operation_context || parsedNotes.metadata?.operationContext || parsedNotes.metadata?.context || undefined;
+    const weatherConditionsFromDb = data.weather_conditions || parsedNotes.metadata?.weatherConditions || undefined;
+    const geoSnapshotFromDb = data.geo_snapshot || parsedNotes.metadata?.geoSnapshot || undefined;
+    const actorTypeFromDb = data.actor_type || parsedNotes.metadata?.actorType || undefined;
+    const deviceIdFromDb = data.device_id || parsedNotes.metadata?.deviceId || undefined;
+    const sourceTypeFromDb = this.inferPlantOperationSourceType(data.parent_operation_table, parsedNotes.cleanNotes || data.notes);
 
     return {
       id: data.id,
@@ -4476,11 +4563,17 @@ export class SupabaseStorageProvider implements IStorageProvider {
       unit: data.unit,
       productName: data.product_name,
       greenhouseConditions: data.greenhouse_conditions || undefined, // NUOVO
-      notes: data.notes,
+      notes: parsedNotes.cleanNotes,
+      context: operationContextFromDb,
+      operationContext: operationContextFromDb,
+      weatherConditions: weatherConditionsFromDb,
+      geoSnapshot: geoSnapshotFromDb,
       parentOperationId: data.parent_operation_id || undefined,
       parentOperationTable: data.parent_operation_table || undefined,
-      sourceType,
-      recordedBy: sourceType === 'iot' ? 'iot' : sourceType === 'manual' ? 'user' : 'system',
+      sourceType: sourceTypeFromDb,
+      actorType: actorTypeFromDb,
+      deviceId: deviceIdFromDb,
+      recordedBy: sourceTypeFromDb === 'iot' ? 'iot' : sourceTypeFromDb === 'manual' ? 'user' : 'system',
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };
@@ -4512,6 +4605,83 @@ export class SupabaseStorageProvider implements IStorageProvider {
       'mulching': 'maintenance'
     };
     return map[type] || 'maintenance';
+  }
+
+  private isMissingColumnError(error: any): boolean {
+    if (!error) return false;
+    const code = String(error.code || '').toUpperCase();
+    const message = String(error.message || '').toLowerCase();
+    const details = String(error.details || '').toLowerCase();
+
+    return (
+      code === 'PGRST204' ||
+      code === '42703' ||
+      message.includes('column') && message.includes('does not exist') ||
+      message.includes('could not find the') && message.includes('column') ||
+      details.includes('column') && details.includes('does not exist')
+    );
+  }
+
+  private extractMissingColumnName(error: any): string | null {
+    const combined = `${error?.message || ''} ${error?.details || ''}`;
+    const patterns = [
+      /column ['"]?([a-zA-Z0-9_]+)['"]? does not exist/i,
+      /could not find the ['"]?([a-zA-Z0-9_]+)['"]? column/i,
+      /column ['"]?([a-zA-Z0-9_]+)['"]? of relation/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = combined.match(pattern);
+      if (match?.[1]) return match[1];
+    }
+
+    return null;
+  }
+
+  private composePlantOperationNotes(
+    notes?: string | null,
+    metadata?: Record<string, any> | null
+  ): string | null {
+    const base = (notes || '').trim();
+    if (!metadata || Object.keys(metadata).length === 0) {
+      return base || null;
+    }
+
+    const serialized = JSON.stringify(metadata);
+    const marker = `[ORCH_CTX]${serialized}`;
+    return base ? `${base}\n${marker}` : marker;
+  }
+
+  private parsePlantOperationNotes(notes?: string | null): {
+    cleanNotes?: string;
+    metadata?: Record<string, any>;
+  } {
+    const raw = notes || '';
+    const marker = '[ORCH_CTX]';
+    const markerIndex = raw.lastIndexOf(marker);
+
+    if (markerIndex === -1) {
+      return {
+        cleanNotes: raw || undefined,
+        metadata: undefined
+      };
+    }
+
+    const serialized = raw.slice(markerIndex + marker.length).trim();
+    const baseNotes = raw.slice(0, markerIndex).trim();
+
+    try {
+      const metadata = serialized ? JSON.parse(serialized) : undefined;
+      return {
+        cleanNotes: baseNotes || undefined,
+        metadata
+      };
+    } catch (_error) {
+      return {
+        cleanNotes: raw || undefined,
+        metadata: undefined
+      };
+    }
   }
 
   // ========================================

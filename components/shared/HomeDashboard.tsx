@@ -537,18 +537,28 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
 
           {/* Weather + Lunar Widget - Unified forecast with lunar advice */}
           {activeGarden && (() => {
-            const fallbackCoordinates =
+            const weatherCoordinates =
               activeGardenCoordinates ||
               gardens
                 .map((g) => normalizeGeoCoordinates(g.coordinates))
-                .find((coords): coords is { latitude: number; longitude: number } => !!coords) || {
-                latitude: 41.9028,
-                longitude: 12.4964,
-              };
+                .find((coords): coords is { latitude: number; longitude: number } => !!coords) ||
+              null;
+
+            if (!weatherCoordinates) {
+              return (
+                <div className="bg-white rounded-xl border-2 border-amber-200 p-5 shadow-sm">
+                  <h3 className="text-base font-semibold text-gray-900 mb-2">Meteo non disponibile</h3>
+                  <p className="text-sm text-gray-700">
+                    Aggiungi coordinate reali al giardino per attivare meteo e consigli lunari contestuali.
+                  </p>
+                </div>
+              );
+            }
+
             return (
               <WeatherLunarWidget
-                latitude={fallbackCoordinates.latitude}
-                longitude={fallbackCoordinates.longitude}
+                latitude={weatherCoordinates.latitude}
+                longitude={weatherCoordinates.longitude}
                 gardens={gardens}
                 activePlants={(currentTasks || [])
                   .filter(t => !t.completed && t.plantName)

@@ -11,7 +11,8 @@ function toFiniteNumber(value: unknown): number | null {
   if (typeof value === 'string') {
     const trimmed = value.trim();
     if (!trimmed) return null;
-    const parsed = Number(trimmed);
+    const normalized = trimmed.replace(',', '.');
+    const parsed = Number(normalized);
     if (Number.isFinite(parsed)) {
       return parsed;
     }
@@ -30,7 +31,37 @@ function isValidCoordinates(latitude: number, longitude: number): boolean {
 }
 
 export function normalizeGeoCoordinates(input: unknown): NormalizedCoordinates | undefined {
-  if (!input || typeof input !== 'object') return undefined;
+  if (!input) return undefined;
+
+  if (typeof input === 'string') {
+    const parts = input
+      .split(/[;, ]+/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (parts.length >= 2) {
+      const lat = toFiniteNumber(parts[0]);
+      const lon = toFiniteNumber(parts[1]);
+      if (lat !== null && lon !== null && isValidCoordinates(lat, lon)) {
+        return { latitude: lat, longitude: lon };
+      }
+    }
+  }
+
+  if (Array.isArray(input) && input.length >= 2) {
+    const first = toFiniteNumber(input[0]);
+    const second = toFiniteNumber(input[1]);
+    if (first !== null && second !== null) {
+      if (isValidCoordinates(first, second)) {
+        return { latitude: first, longitude: second };
+      }
+      if (isValidCoordinates(second, first)) {
+        return { latitude: second, longitude: first };
+      }
+    }
+  }
+
+  if (typeof input !== 'object') return undefined;
 
   const record = input as Record<string, unknown>;
 

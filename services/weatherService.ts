@@ -188,6 +188,31 @@ class WeatherService {
   private readonly CACHE_DURATION = 10 * 60 * 1000 // 10 minuti
   private cache = new Map<string, { data: WeatherData; timestamp: number }>()
 
+  private readSavedUserLocation(): GardenLocation | null {
+    try {
+      const savedLocation = localStorage.getItem('userLocation')
+      if (!savedLocation) return null
+
+      const parsed = JSON.parse(savedLocation)
+      const lat = Number(parsed?.lat)
+      const lon = Number(parsed?.lon)
+      const timestamp = Number(parsed?.timestamp || 0)
+      const isFresh = Date.now() - timestamp < 24 * 60 * 60 * 1000
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lon) || !isFresh) {
+        return null
+      }
+
+      return {
+        lat,
+        lon,
+        name: parsed?.name || 'Posizione salvata'
+      }
+    } catch {
+      return null
+    }
+  }
+
   /**
    * Ottiene dati meteo per una posizione specifica
    */
@@ -224,16 +249,9 @@ class WeatherService {
   async getWeatherForUserLocation(): Promise<WeatherData> {
     try {
       // Prima prova a usare la posizione salvata nel localStorage
-      const savedLocation = localStorage.getItem('userLocation')
-      if (savedLocation) {
-        const location = JSON.parse(savedLocation)
-        if (location.lat && location.lon && Date.now() - location.timestamp < 24 * 60 * 60 * 1000) {
-          return await this.getWeatherForLocation({
-            lat: location.lat,
-            lon: location.lon,
-            name: location.name || 'Posizione salvata'
-          })
-        }
+      const saved = this.readSavedUserLocation()
+      if (saved) {
+        return await this.getWeatherForLocation(saved)
       }
 
       // Se non c'è posizione salvata o è scaduta, richiedi nuova posizione
@@ -255,11 +273,20 @@ class WeatherService {
       return await this.getWeatherForLocation(location)
     } catch (error) {
       console.error('Error getting user location:', error)
-      // Fallback su Roma
-      return await this.getWeatherForLocation({
-        lat: 41.9028,
-        lon: 12.4964,
-        name: 'Roma (default)'
+      const saved = this.readSavedUserLocation()
+      if (saved) {
+        try {
+          return await this.getWeatherForLocation(saved)
+        } catch (savedError) {
+          console.error('Error using saved user location fallback:', savedError)
+        }
+      }
+
+      // Fallback neutro: evita coordinate fisse hardcoded
+      return this.getFallbackWeatherData({
+        lat: 0,
+        lon: 0,
+        name: 'Posizione non disponibile'
       })
     }
   }

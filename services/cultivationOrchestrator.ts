@@ -489,18 +489,43 @@ export class CultivationOrchestrator {
     // Qui potremmo aggiungere validazioni aggiuntive se necessario
     console.log(`Consumo automatico: ${quantity} semi da ${seedId}`);
   }
+
+  private static async resolveGardenOwnerId(gardenId: string): Promise<string | null> {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase client not available');
+    }
+
+    const { data, error } = await supabase
+      .from('gardens')
+      .select('user_id')
+      .eq('id', gardenId)
+      .single();
+
+    if (error) {
+      console.error('Errore risoluzione owner garden:', error);
+      return null;
+    }
+
+    return data?.user_id || null;
+  }
   
   private static async saveCultivationPlan(plan: CultivationPlan) {
     const supabase = getSupabaseClient();
     if (!supabase) {
       throw new Error('Supabase client not available');
     }
+
+    const ownerId = await this.resolveGardenOwnerId(plan.gardenId);
+    if (!ownerId) {
+      throw new Error(`Impossibile risolvere user_id per garden ${plan.gardenId}`);
+    }
     
     const { data, error } = await supabase
       .from('cultivation_plans')
       .insert({
         id: plan.id,
-        user_id: plan.gardenId, // TODO: Ottenere user_id corretto
+        user_id: ownerId,
         garden_id: plan.gardenId,
         archetype_id: plan.archetypeId,
         archetype_category: plan.archetypeCategory,
@@ -574,11 +599,13 @@ export class CultivationOrchestrator {
     if (!supabase) {
       throw new Error('Supabase client not available');
     }
+
+    const ownerId = await this.resolveGardenOwnerId(plan.gardenId);
     
     const { data, error } = await supabase
       .from('custom_crops')
       .insert({
-        user_id: plan.gardenId, // TODO: Ottenere user_id corretto
+        user_id: ownerId,
         garden_id: plan.gardenId,
         common_name: plan.plantName,
         scientific_name: plan.varietyName || `${plan.plantName} sp.`,

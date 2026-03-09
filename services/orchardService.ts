@@ -23,6 +23,48 @@ import {
 import { getSupabaseClient } from '@/config/supabase'
 
 class OrchardService {
+  private readonly BULK_TREE_CHUNK_SIZE = 200
+
+  private isMissingColumnError(error: any): boolean {
+    if (!error) return false
+    const code = String(error.code || '').toUpperCase()
+    const message = String(error.message || '').toLowerCase()
+    const details = String(error.details || '').toLowerCase()
+
+    return (
+      code === 'PGRST204' ||
+      code === 'PGRST205' ||
+      code === '42703' ||
+      message.includes('could not find the') && message.includes('column') ||
+      message.includes('column') && message.includes('does not exist') ||
+      details.includes('column') && details.includes('does not exist')
+    )
+  }
+
+  private extractMissingColumn(error: any): string | null {
+    const combined = `${error?.message || ''} ${error?.details || ''}`
+    const patterns = [
+      /column ['"]?([a-zA-Z0-9_]+)['"]? does not exist/i,
+      /could not find the ['"]?([a-zA-Z0-9_]+)['"]? column/i,
+      /column ['"]?([a-zA-Z0-9_]+)['"]? of relation/i,
+    ]
+
+    for (const pattern of patterns) {
+      const match = combined.match(pattern)
+      if (match?.[1]) return match[1]
+    }
+
+    return null
+  }
+
+  private stripColumnFromRows(rows: any[], column: string): any[] {
+    return rows.map((row) => {
+      if (!(column in row)) return row
+      const copy = { ...row }
+      delete copy[column]
+      return copy
+    })
+  }
   // ============================================================================
   // ORCHARD CONFIGURATION MANAGEMENT
   // ============================================================================
@@ -222,14 +264,47 @@ class OrchardService {
   async bulkCreateTrees(trees: Omit<OrchardTree, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<OrchardTree[]> {
     try {
       const supabase = getSupabaseClient()
-      const { data, error } = await supabase
-        .from('orchard_trees')
-        .insert(trees.map(tree => this.mapTreeToDatabase(tree)))
-        .select()
+      const mappedTrees = trees.map(tree => this.mapTreeToDatabase(tree))
+      if (mappedTrees.length === 0) return []
 
-      if (error) throw error
+      const createdRows: any[] = []
 
-      return data?.map(this.mapTreeFromDatabase) || []
+      for (let i = 0; i < mappedTrees.length; i += this.BULK_TREE_CHUNK_SIZE) {
+        const chunk = mappedTrees.slice(i, i + this.BULK_TREE_CHUNK_SIZE)
+        let sanitizedChunk = [...chunk]
+        let lastError: any = null
+
+        for (let attempt = 0; attempt < 20; attempt++) {
+          const { data, error } = await supabase
+            .from('orchard_trees')
+            .insert(sanitizedChunk)
+            .select()
+
+          if (!error) {
+            createdRows.push(...(data || []))
+            lastError = null
+            break
+          }
+
+          lastError = error
+          if (!this.isMissingColumnError(error)) break
+
+          const missingColumn = this.extractMissingColumn(error)
+          if (!missingColumn) break
+
+          const hasColumn = sanitizedChunk.some((row) => Object.prototype.hasOwnProperty.call(row, missingColumn))
+          if (!hasColumn) break
+
+          console.warn(`orchard_trees schema drift detected, retrying without column: ${missingColumn}`)
+          sanitizedChunk = this.stripColumnFromRows(sanitizedChunk, missingColumn)
+        }
+
+        if (lastError) {
+          throw lastError
+        }
+      }
+
+      return createdRows.map(this.mapTreeFromDatabase)
     } catch (error) {
       console.error('Error bulk creating trees:', error)
       throw error

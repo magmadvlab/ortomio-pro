@@ -15,6 +15,7 @@
 
 import { getSupabaseClient } from '@/config/supabase'
 import { getLocationInfo, formatLocationForDisplay } from './geocodingService'
+import { normalizeGeoCoordinates } from '@/utils/coordinates'
 
 // ============================================================================
 // TYPES
@@ -277,17 +278,72 @@ class DailyDiaryService {
         .eq('id', userId)
         .single()
 
-      if (error || !profile?.latitude || !profile?.longitude) {
-        // Fallback: usa coordinate di default (Roma)
-        const lat = 41.9028
-        const lon = 12.4964
-        return this.fetchFromOpenMeteo(lat, lon, date)
+      const profileLat = profile?.latitude !== undefined ? Number(profile.latitude) : NaN
+      const profileLon = profile?.longitude !== undefined ? Number(profile.longitude) : NaN
+      if (!error && Number.isFinite(profileLat) && Number.isFinite(profileLon)) {
+        return this.fetchFromOpenMeteo(profileLat, profileLon, date)
       }
 
-      return this.fetchFromOpenMeteo(profile.latitude, profile.longitude, date)
+      // Fallback su coordinate del primo giardino dell'utente (evita default hardcoded su Roma)
+      const { data: gardens, error: gardensError } = await this.supabase
+        .from('gardens')
+        .select('name, coordinates, latitude, longitude')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (!gardensError && gardens && gardens.length > 0) {
+        const garden = gardens[0] as any
+        const coords =
+          normalizeGeoCoordinates(garden?.coordinates) ||
+          normalizeGeoCoordinates(garden)
+
+        if (coords) {
+          return this.fetchFromOpenMeteo(coords.latitude, coords.longitude, date)
+        }
+      }
+
+      console.warn('Nessuna coordinata valida disponibile per daily weather log, uso fallback sintetico')
+      return this.getSyntheticWeatherFallback(date)
     } catch (err) {
       console.error('Errore fetch weather:', err)
       return null
+    }
+  }
+
+  private getSyntheticWeatherFallback(date: string): Partial<DailyWeatherLog> {
+    const targetDate = new Date(`${date}T12:00:00`)
+    const month = targetDate.getMonth()
+
+    let tempMin = 8
+    let tempMax = 16
+
+    if (month >= 5 && month <= 8) {
+      tempMin = 18
+      tempMax = 30
+    } else if (month >= 2 && month <= 4) {
+      tempMin = 12
+      tempMax = 22
+    } else if (month >= 9 && month <= 10) {
+      tempMin = 10
+      tempMax = 20
+    } else if (month === 11 || month <= 1) {
+      tempMin = 4
+      tempMax = 12
+    }
+
+    return {
+      temp_min: tempMin,
+      temp_max: tempMax,
+      temp_avg: (tempMin + tempMax) / 2,
+      precipitation_mm: 0,
+      humidity_avg: 60,
+      weather_conditions: 'fallback_synthetic',
+      data_source: 'manual',
+      raw_data: {
+        fallback: true,
+        reason: 'missing_coordinates'
+      }
     }
   }
 
@@ -973,10 +1029,12 @@ class DailyDiaryService {
       this.supabase
         .from('cultivation_daily_tracking')
         .select('*')
+        .eq('garden_id', gardenId)
         .eq('tracking_date', dateStr),
       this.supabase
         .from('diary_events')
         .select('*')
+        .eq('garden_id', gardenId)
         .eq('event_date', dateStr)
     ])
 
