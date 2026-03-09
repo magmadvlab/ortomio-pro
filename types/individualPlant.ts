@@ -97,6 +97,7 @@ export interface GardenPlant {
   // Metadata
   createdAt: string;
   updatedAt: string;
+  orchestratorEnabled?: boolean;
 }
 
 export interface PlantOperation {
@@ -198,6 +199,12 @@ export interface PlantOperation {
   isFieldRowOperation?: boolean;
   fieldRowName?: string;
   fieldRowId?: string;
+
+  // Tracciamento sorgente (orchestratore/manuale/IOT)
+  parentOperationId?: string;
+  parentOperationTable?: string;
+  sourceType?: 'manual' | 'iot' | 'orchestrator_auto' | 'orchestrator_sync';
+  recordedBy?: 'user' | 'iot' | 'system';
   
   // Metadata
   createdAt: string;

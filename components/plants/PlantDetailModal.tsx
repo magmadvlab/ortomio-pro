@@ -6,7 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import { GardenPlant, PlantOperation } from '../../types/individualPlant';
 import { useStorage } from '../../packages/core/hooks/useStorage';
-import { X, Droplets, Zap, Scissors, AlertTriangle, Calendar, TrendingUp, Camera } from 'lucide-react';
+import { createUnifiedOperationsService } from '../../services/unifiedOperationsService';
+import { X, Droplets, Zap, Scissors, AlertTriangle, Calendar, TrendingUp, Camera, Plus, Bot, Cpu, Save } from 'lucide-react';
 
 interface PlantDetailModalProps {
   plant: GardenPlant;
@@ -16,15 +17,46 @@ interface PlantDetailModalProps {
 
 const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onClose }) => {
   const { storageProvider } = useStorage();
+  const unifiedOperationsService = createUnifiedOperationsService(storageProvider);
   const [operations, setOperations] = useState<PlantOperation[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'watering' | 'fertilizing' | 'treatment' | 'work'>('all');
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [savingManualEntry, setSavingManualEntry] = useState(false);
+  const [manualEntry, setManualEntry] = useState<{
+    sourceType: 'manual' | 'iot';
+    operationType: 'watering' | 'fertilizing' | 'treatment' | 'work';
+    operationDate: string;
+    operationTime: string;
+    quantity: string;
+    unit: string;
+    productName: string;
+    notes: string;
+  }>({
+    sourceType: 'manual',
+    operationType: 'watering',
+    operationDate: new Date().toISOString().split('T')[0],
+    operationTime: new Date().toTimeString().slice(0, 5),
+    quantity: '',
+    unit: 'L',
+    productName: '',
+    notes: ''
+  });
 
   useEffect(() => {
     if (isOpen && plant.id) {
       loadOperations();
     }
   }, [isOpen, plant.id]);
+
+  useEffect(() => {
+    setManualEntry(prev => {
+      if (prev.operationType === 'watering') return { ...prev, unit: 'L' };
+      if (prev.operationType === 'fertilizing') return { ...prev, unit: 'g' };
+      if (prev.operationType === 'treatment') return { ...prev, unit: 'ml' };
+      return { ...prev, unit: 'sessione' };
+    });
+  }, [manualEntry.operationType]);
 
   const loadOperations = async () => {
     try {
@@ -64,6 +96,55 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
     }
   };
 
+  const registerManualOperation = async () => {
+    try {
+      if (!plant.id || !plant.gardenId) {
+        alert('Pianta non valida');
+        return;
+      }
+
+      setSavingManualEntry(true);
+      const normalizedQuantity = manualEntry.quantity.trim() !== '' ? Number(manualEntry.quantity) : undefined;
+      const normalizedNotes = manualEntry.notes?.trim();
+
+      const result = await unifiedOperationsService.executeUnifiedOperation({
+        level: 'plant',
+        gardenId: plant.gardenId,
+        plantIds: [plant.id],
+        operationType: manualEntry.operationType,
+        operationDate: manualEntry.operationDate,
+        operationTime: manualEntry.operationTime || undefined,
+        quantity: Number.isFinite(normalizedQuantity as number) ? normalizedQuantity : undefined,
+        unit: manualEntry.unit?.trim() || undefined,
+        productName: manualEntry.productName?.trim() || undefined,
+        notes: normalizedNotes || undefined,
+        sourceType: manualEntry.sourceType,
+        propagateToPlants: false
+      });
+
+      if (!result.success) {
+        alert(`Errore registrazione intervento:\n${(result.errors || ['Errore sconosciuto']).join('\n')}`);
+        return;
+      }
+
+      setShowManualEntry(false);
+      setManualEntry(prev => ({
+        ...prev,
+        operationDate: new Date().toISOString().split('T')[0],
+        operationTime: new Date().toTimeString().slice(0, 5),
+        quantity: '',
+        productName: '',
+        notes: ''
+      }));
+      await loadOperations();
+    } catch (error) {
+      console.error('Error registering manual operation:', error);
+      alert('Errore durante la registrazione dell\'intervento');
+    } finally {
+      setSavingManualEntry(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   const getOperationIcon = (type: string) => {
@@ -93,6 +174,49 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
     return 'text-red-600 bg-red-100';
   };
 
+  const getOperationSourceMeta = (operation: PlantOperation): {
+    label: string;
+    className: string;
+    icon: React.ReactNode;
+  } => {
+    if ((operation as any).isFieldRowOperation) {
+      return {
+        label: 'Orchestratore Filare',
+        className: 'bg-blue-100 text-blue-700',
+        icon: <Bot size={12} />
+      };
+    }
+
+    const sourceType = operation.sourceType
+      || ((operation as any).parentOperationTable === 'iot_sensor' ? 'iot' : undefined)
+      || ((operation as any).parentOperationTable === 'manual_orchestrator' ? 'manual' : undefined)
+      || ((operation.notes || '').includes('[IOT]') ? 'iot' : undefined)
+      || ((operation.notes || '').includes('[MANUAL]') ? 'manual' : undefined)
+      || 'manual';
+
+    if (sourceType === 'iot') {
+      return {
+        label: 'IOT',
+        className: 'bg-violet-100 text-violet-700',
+        icon: <Cpu size={12} />
+      };
+    }
+
+    if (sourceType === 'orchestrator_auto' || sourceType === 'orchestrator_sync') {
+      return {
+        label: 'Orchestratore',
+        className: 'bg-indigo-100 text-indigo-700',
+        icon: <Bot size={12} />
+      };
+    }
+
+    return {
+      label: 'Manuale',
+      className: 'bg-emerald-100 text-emerald-700',
+      icon: <Save size={12} />
+    };
+  };
+
   const filteredOperations = activeTab === 'all' 
     ? operations 
     : operations.filter(op => op.operationType === activeTab);
@@ -100,6 +224,7 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
   const plantingDateValue = plant.plantedDate || plant.plantingDate;
   const plantingDate = plantingDateValue ? new Date(plantingDateValue) : null;
   const hasValidPlantingDate = !!plantingDate && !isNaN(plantingDate.getTime());
+  const orchestratorActive = plant.orchestratorEnabled !== false;
 
   // Statistiche operazioni
   const stats = {
@@ -314,6 +439,142 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
           </div>
         </div>
 
+        {/* Orchestratore + registrazione manuale/IOT */}
+        <div className="border-b border-gray-200 bg-gradient-to-r from-blue-50 to-emerald-50 px-6 py-4">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <Bot size={16} className="text-blue-600" />
+                Orchestratore Interventi Pianta
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${orchestratorActive ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {orchestratorActive ? 'Attivo' : 'Solo Manuale'}
+                </span>
+              </h3>
+              <p className="text-xs text-gray-600 mt-1">
+                Gli eventi automatici (filare/IOT) e quelli manuali sono tracciati nello stesso diario orchestrato.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowManualEntry(prev => !prev)}
+              className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center gap-2"
+            >
+              <Plus size={16} />
+              Registra Intervento
+            </button>
+          </div>
+
+          {showManualEntry && (
+            <div className="bg-white border border-blue-200 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Origine</label>
+                <select
+                  value={manualEntry.sourceType}
+                  onChange={(e) => setManualEntry(prev => ({ ...prev, sourceType: e.target.value as 'manual' | 'iot' }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="manual">Manuale</option>
+                  <option value="iot">IOT</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Tipo intervento</label>
+                <select
+                  value={manualEntry.operationType}
+                  onChange={(e) => setManualEntry(prev => ({ ...prev, operationType: e.target.value as 'watering' | 'fertilizing' | 'treatment' | 'work' }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="watering">Irrigazione</option>
+                  <option value="fertilizing">Fertilizzazione</option>
+                  <option value="treatment">Trattamento</option>
+                  <option value="work">Lavorazione</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Data</label>
+                <input
+                  type="date"
+                  value={manualEntry.operationDate}
+                  onChange={(e) => setManualEntry(prev => ({ ...prev, operationDate: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Ora</label>
+                <input
+                  type="time"
+                  value={manualEntry.operationTime}
+                  onChange={(e) => setManualEntry(prev => ({ ...prev, operationTime: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Quantità</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={manualEntry.quantity}
+                  onChange={(e) => setManualEntry(prev => ({ ...prev, quantity: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  placeholder="es. 2.5"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Unità</label>
+                <input
+                  type="text"
+                  value={manualEntry.unit}
+                  onChange={(e) => setManualEntry(prev => ({ ...prev, unit: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  placeholder="L, g, ml..."
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Prodotto (opzionale)</label>
+                <input
+                  type="text"
+                  value={manualEntry.productName}
+                  onChange={(e) => setManualEntry(prev => ({ ...prev, productName: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  placeholder="es. NPK 20-20-20, rame, ecc."
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Note</label>
+                <textarea
+                  value={manualEntry.notes}
+                  onChange={(e) => setManualEntry(prev => ({ ...prev, notes: e.target.value }))}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none"
+                  placeholder="Dettagli intervento..."
+                />
+              </div>
+
+              <div className="md:col-span-2 flex justify-end gap-2 pt-1">
+                <button
+                  onClick={() => setShowManualEntry(false)}
+                  className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50"
+                >
+                  Annulla
+                </button>
+                <button
+                  onClick={registerManualOperation}
+                  disabled={savingManualEntry || !manualEntry.operationDate || !manualEntry.operationType}
+                  className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {savingManualEntry ? 'Salvataggio...' : 'Salva Intervento'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Tabs */}
         <div className="border-b border-gray-200 bg-gray-50 px-6">
           <div className="flex gap-2 overflow-x-auto">
@@ -366,6 +627,9 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                   key={operation.id}
                   className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
+                  {(() => {
+                    const sourceMeta = getOperationSourceMeta(operation);
+                    return (
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
                       {getOperationIcon(operation.operationType)}
@@ -374,9 +638,13 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                           <h4 className="font-semibold text-gray-900">
                             {getOperationLabel(operation.operationType)}
                           </h4>
+                          <span className={`px-2 py-0.5 text-xs font-medium rounded inline-flex items-center gap-1 ${sourceMeta.className}`}>
+                            {sourceMeta.icon}
+                            {sourceMeta.label}
+                          </span>
                           {(operation as any).isFieldRowOperation && (
                             <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">
-                              🌾 Operazione Filare
+                              🌾 Filare
                             </span>
                           )}
                         </div>
@@ -408,6 +676,8 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                       </div>
                     )}
                   </div>
+                    );
+                  })()}
 
                   {/* Operation Details */}
                   <div className="grid grid-cols-2 gap-4 text-sm">
@@ -443,7 +713,9 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                         </div>
                         <div>
                           <span className="text-gray-600">Quantità:</span>
-                          <span className="ml-2 font-medium">{operation.waterAmount || 'N/A'} L</span>
+                          <span className="ml-2 font-medium">
+                            {operation.waterAmount || operation.quantity || 'N/A'} {operation.unit || 'L'}
+                          </span>
                         </div>
                       </>
                     )}
@@ -452,11 +724,13 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                       <>
                         <div>
                           <span className="text-gray-600">Tipo:</span>
-                          <span className="ml-2 font-medium">{operation.fertilizerType || 'N/A'}</span>
+                          <span className="ml-2 font-medium">{operation.fertilizerType || operation.productName || 'N/A'}</span>
                         </div>
                         <div>
                           <span className="text-gray-600">Dosaggio:</span>
-                          <span className="ml-2 font-medium">{operation.dosage || 'N/A'}</span>
+                          <span className="ml-2 font-medium">
+                            {operation.dosage || (operation.quantity ? `${operation.quantity} ${operation.unit || ''}`.trim() : 'N/A')}
+                          </span>
                         </div>
                         {operation.npkRatio && (
                           <div className="col-span-2">
@@ -477,11 +751,13 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                         </div>
                         <div>
                           <span className="text-gray-600">Prodotto:</span>
-                          <span className="ml-2 font-medium">{operation.product || 'N/A'}</span>
+                          <span className="ml-2 font-medium">{operation.product || operation.productName || 'N/A'}</span>
                         </div>
                         <div>
                           <span className="text-gray-600">Dosaggio:</span>
-                          <span className="ml-2 font-medium">{operation.dosage || 'N/A'}</span>
+                          <span className="ml-2 font-medium">
+                            {operation.dosage || (operation.quantity ? `${operation.quantity} ${operation.unit || ''}`.trim() : 'N/A')}
+                          </span>
                         </div>
                         {operation.targetPest && (
                           <div>
@@ -496,7 +772,7 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                       <>
                         <div>
                           <span className="text-gray-600">Tipo:</span>
-                          <span className="ml-2 font-medium">{operation.workType || 'N/A'}</span>
+                          <span className="ml-2 font-medium">{operation.workType || operation.productName || 'Intervento manuale'}</span>
                         </div>
                         <div>
                           <span className="text-gray-600">Durata:</span>
@@ -510,7 +786,7 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                   {operation.notes && (
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       <p className="text-sm text-gray-700">
-                        <span className="font-medium">Note:</span> {operation.notes}
+                        <span className="font-medium">Note:</span> {operation.notes.replace(/^\[(MANUAL|IOT)\]\s*/i, '')}
                       </p>
                     </div>
                   )}

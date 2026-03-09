@@ -4393,22 +4393,32 @@ export class SupabaseStorageProvider implements IStorageProvider {
       return [];
     }
 
-    return (data || []).map(db => ({
-      id: db.id,
-      plantId: db.plant_id,
-      gardenId: db.garden_id,
-      operationType: db.operation_type,
-      operationCategory: this.getOperationCategory(db.operation_type),
-      date: db.operation_date,
-      operationDate: db.operation_date,
-      quantity: db.quantity ? Number(db.quantity) : undefined,
-      unit: db.unit,
-      productName: db.product_name,
-      greenhouseConditions: db.greenhouse_conditions || undefined, // NUOVO
-      notes: db.notes,
-      createdAt: db.created_at,
-      updatedAt: db.updated_at
-    }));
+    return (data || []).map(db => {
+      const operationTime = db.operation_time ? String(db.operation_time).slice(0, 5) : undefined;
+      const sourceType = this.inferPlantOperationSourceType(db.parent_operation_table, db.notes);
+
+      return {
+        id: db.id,
+        plantId: db.plant_id,
+        gardenId: db.garden_id,
+        operationType: db.operation_type,
+        operationCategory: this.getOperationCategory(db.operation_type),
+        date: operationTime ? `${db.operation_date}T${operationTime}:00` : db.operation_date,
+        operationDate: db.operation_date,
+        operationTime,
+        quantity: db.quantity ? Number(db.quantity) : undefined,
+        unit: db.unit,
+        productName: db.product_name,
+        greenhouseConditions: db.greenhouse_conditions || undefined, // NUOVO
+        notes: db.notes,
+        parentOperationId: db.parent_operation_id || undefined,
+        parentOperationTable: db.parent_operation_table || undefined,
+        sourceType,
+        recordedBy: sourceType === 'iot' ? 'iot' : sourceType === 'manual' ? 'user' : 'system',
+        createdAt: db.created_at,
+        updatedAt: db.updated_at
+      };
+    });
   }
 
   async createPlantOperation(operation: any): Promise<any> {
@@ -4420,6 +4430,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       plant_id: operation.plantId,
       operation_type: operation.operationType,
       operation_date: operation.date || operation.operationDate || new Date().toISOString().split('T')[0],
+      operation_time: operation.operationTime || null,
       quantity: operation.quantity,
       unit: operation.unit,
       product_name: operation.productName,
@@ -4437,25 +4448,44 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
     if (error) throw error;
 
+    const sourceType = this.inferPlantOperationSourceType(data.parent_operation_table, data.notes);
+
     return {
       id: data.id,
       plantId: data.plant_id,
       gardenId: data.garden_id,
       operationType: data.operation_type,
       operationCategory: this.getOperationCategory(data.operation_type),
-      date: data.operation_date,
+      date: data.operation_time ? `${data.operation_date}T${String(data.operation_time).slice(0, 5)}:00` : data.operation_date,
       operationDate: data.operation_date,
+      operationTime: data.operation_time ? String(data.operation_time).slice(0, 5) : undefined,
       quantity: data.quantity ? Number(data.quantity) : undefined,
       unit: data.unit,
       productName: data.product_name,
       greenhouseConditions: data.greenhouse_conditions || undefined, // NUOVO
       notes: data.notes,
+      parentOperationId: data.parent_operation_id || undefined,
+      parentOperationTable: data.parent_operation_table || undefined,
+      sourceType,
+      recordedBy: sourceType === 'iot' ? 'iot' : sourceType === 'manual' ? 'user' : 'system',
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };
   }
 
   // Helper
+  private inferPlantOperationSourceType(parentOperationTable?: string | null, notes?: string | null): 'manual' | 'iot' | 'orchestrator_auto' | 'orchestrator_sync' {
+    if (parentOperationTable === 'iot_sensor') return 'iot';
+    if (parentOperationTable === 'manual_orchestrator') return 'manual';
+    if (parentOperationTable === 'orchestrator_auto') return 'orchestrator_auto';
+    if (parentOperationTable === 'watering_logs' || parentOperationTable === 'fertilizer_logs' || parentOperationTable === 'treatment_logs') {
+      return 'orchestrator_sync';
+    }
+    if ((notes || '').includes('[IOT]')) return 'iot';
+    if ((notes || '').includes('[MANUAL]')) return 'manual';
+    return 'manual';
+  }
+
   private getOperationCategory(type: string): string {
     const map: Record<string, string> = {
       'watering': 'irrigation',
@@ -4984,4 +5014,3 @@ export class SupabaseStorageProvider implements IStorageProvider {
   }
 
 }
-

@@ -2139,5 +2139,70 @@ export class LocalStorageProvider implements IStorageProvider {
       throw error;
     }
   }
-}
 
+  // Individual Plant Operations (local fallback)
+  async getPlantOperations(plantId: string): Promise<any[]> {
+    try {
+      const key = 'ortoIndividualPlantOperations';
+      const raw = localStorage.getItem(key);
+      if (!raw) return [];
+
+      const allOps = JSON.parse(raw);
+      return allOps
+        .filter((op: any) => op.plantId === plantId)
+        .sort((a: any, b: any) => new Date(b.operationDate || b.date).getTime() - new Date(a.operationDate || a.date).getTime());
+    } catch (error) {
+      console.error('Error loading plant operations:', error);
+      return [];
+    }
+  }
+
+  async createPlantOperation(operation: any): Promise<any> {
+    try {
+      const key = 'ortoIndividualPlantOperations';
+      const raw = localStorage.getItem(key);
+      const existing = raw ? JSON.parse(raw) : [];
+
+      const operationDate = operation.date || operation.operationDate || new Date().toISOString().split('T')[0];
+      const operationTime = operation.operationTime || undefined;
+      const sourceType = operation.sourceType
+        || (operation.parentOperationTable === 'iot_sensor' ? 'iot' : undefined)
+        || (operation.parentOperationTable === 'manual_orchestrator' ? 'manual' : 'manual');
+
+      const newOperation = {
+        id: operation.id || crypto.randomUUID(),
+        plantId: operation.plantId,
+        gardenId: operation.gardenId,
+        operationType: operation.operationType,
+        operationCategory: this.getPlantOperationCategory(operation.operationType),
+        date: operationTime ? `${operationDate}T${operationTime}:00` : operationDate,
+        operationDate,
+        operationTime,
+        quantity: operation.quantity !== undefined ? Number(operation.quantity) : undefined,
+        unit: operation.unit,
+        productName: operation.productName,
+        notes: operation.notes,
+        photos: operation.photos || [],
+        parentOperationId: operation.parentOperationId || undefined,
+        parentOperationTable: operation.parentOperationTable || undefined,
+        sourceType,
+        recordedBy: sourceType === 'iot' ? 'iot' : 'user',
+        createdAt: operation.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      localStorage.setItem(key, JSON.stringify([newOperation, ...existing]));
+      return newOperation;
+    } catch (error) {
+      console.error('Error creating plant operation:', error);
+      throw error;
+    }
+  }
+
+  private getPlantOperationCategory(operationType: string): 'irrigation' | 'nutrition' | 'protection' | 'maintenance' {
+    if (operationType === 'watering') return 'irrigation';
+    if (operationType === 'fertilizing') return 'nutrition';
+    if (operationType === 'treatment') return 'protection';
+    return 'maintenance';
+  }
+}
