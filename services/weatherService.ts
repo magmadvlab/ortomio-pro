@@ -175,6 +175,53 @@ export function generateWeatherAlerts(
   return alerts;
 }
 
+export interface CriticalWeatherAlert {
+  type: 'frost' | 'heat' | 'rain'
+  severity: 'LOW' | 'MEDIUM' | 'HIGH'
+  message: string
+}
+
+/**
+ * Verifica allarmi meteo critici per il cron notifiche.
+ * Usa il primo giorno disponibile del forecast (oggi).
+ */
+export function checkCriticalWeatherAlerts(forecast: any[]): CriticalWeatherAlert[] {
+  if (!Array.isArray(forecast) || forecast.length === 0) return []
+
+  const today = forecast[0] || {}
+  const tempMin = Number(today.temp_min ?? today.tempMin ?? today.temp ?? 0)
+  const tempMax = Number(today.temp_max ?? today.tempMax ?? today.temp ?? 0)
+  const rainMm = Number(today.precipitation ?? today.rainMm ?? today.rainForecastMm ?? 0)
+
+  const alerts: CriticalWeatherAlert[] = []
+
+  if (tempMin <= 0) {
+    alerts.push({
+      type: 'frost',
+      severity: tempMin <= -2 ? 'HIGH' : 'MEDIUM',
+      message: `Rischio gelata oggi: minima prevista ${tempMin.toFixed(1)}°C. Proteggi le colture sensibili.`
+    })
+  }
+
+  if (tempMax >= 35) {
+    alerts.push({
+      type: 'heat',
+      severity: tempMax >= 38 ? 'HIGH' : 'MEDIUM',
+      message: `Caldo critico oggi: massima prevista ${tempMax.toFixed(1)}°C. Aumenta monitoraggio e irrigazione.`
+    })
+  }
+
+  if (rainMm >= 20) {
+    alerts.push({
+      type: 'rain',
+      severity: rainMm >= 35 ? 'HIGH' : 'MEDIUM',
+      message: `Pioggia intensa prevista: ${rainMm.toFixed(1)} mm. Valuta drenaggio e sospendi irrigazioni.`
+    })
+  }
+
+  return alerts
+}
+
 function getConditionFromCode(code: number): string {
   if (code <= 3) return 'sunny';
   if (code <= 48) return 'cloudy';
