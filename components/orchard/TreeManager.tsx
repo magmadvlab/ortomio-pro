@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from 'react'
 import { OrchardTree, TreePhoto, TreeSearchCriteria, TreeHealthStatus, TreeVigorLevel } from '@/types/orchard'
 import { orchardService } from '@/services/orchardService'
+import { useStorage } from '@/packages/core/hooks/useStorage'
+import { createUnifiedOperationsService } from '@/services/unifiedOperationsService'
+import { createOperationContextService } from '@/services/operationContextService'
 import { AppModal } from '@/components/shared/AppModal'
 import { 
   TreePine, 
@@ -1288,51 +1291,203 @@ function TreePhotosTab({ tree, photos, onPhotosUpdate }: {
 
 // Tree History Tab Component
 function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
-  const [loading, setLoading] = useState(true)
-  const [timeline, setTimeline] = useState<Array<{
+  const { storageProvider } = useStorage()
+  const unifiedOperationsService = createUnifiedOperationsService(storageProvider)
+  const operationContextService = createOperationContextService()
+
+  type TreeTimelineType = 'pruning' | 'harvest' | 'treatment' | 'irrigation' | 'fertilizing' | 'work'
+  type TreeTimelineSource = 'legacy' | 'manual' | 'iot' | 'orchestrator'
+
+  interface TreeTimelineItem {
     id: string
-    type: 'pruning' | 'harvest' | 'treatment' | 'irrigation'
+    type: TreeTimelineType
     date: string
     title: string
     description?: string
     operator?: string
-  }>>([])
+    source: TreeTimelineSource
+    quantity?: number
+    unit?: string
+    durationMinutes?: number
+    productName?: string
+    operationSubtype?: string
+    weatherSummary?: string
+    geoSummary?: string
+  }
+
+  const [loading, setLoading] = useState(true)
+  const [timeline, setTimeline] = useState<TreeTimelineItem[]>([])
   const [showQuickEntry, setShowQuickEntry] = useState(false)
-  const [entryType, setEntryType] = useState<'irrigation' | 'treatment'>('irrigation')
+  const [entryMode, setEntryMode] = useState<'manual' | 'iot'>('manual')
+  const [entryType, setEntryType] = useState<'watering' | 'fertilizing' | 'treatment' | 'work'>('watering')
   const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0])
-  const [entryNotes, setEntryNotes] = useState('')
+  const [entryTime, setEntryTime] = useState(new Date().toTimeString().slice(0, 5))
+  const [entryQuantity, setEntryQuantity] = useState('')
+  const [entryUnit, setEntryUnit] = useState('L')
+  const [entryDurationMinutes, setEntryDurationMinutes] = useState('')
   const [entryProduct, setEntryProduct] = useState('')
+  const [entrySubtype, setEntrySubtype] = useState('')
+  const [entryNotes, setEntryNotes] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     loadTimeline()
-  }, [tree.id])
+  }, [tree.id, tree.gardenId])
+
+  useEffect(() => {
+    if (entryType === 'watering') {
+      setEntryUnit('L')
+      return
+    }
+    if (entryType === 'fertilizing') {
+      setEntryUnit('g')
+      return
+    }
+    if (entryType === 'treatment') {
+      setEntryUnit('ml')
+      return
+    }
+    setEntryUnit('sessione')
+  }, [entryType])
+
+  const parseNumber = (value?: string | number | null): number | undefined => {
+    if (value === null || value === undefined) return undefined
+    if (typeof value === 'number') return Number.isFinite(value) ? value : undefined
+    const normalized = Number(String(value).replace(',', '.'))
+    return Number.isFinite(normalized) ? normalized : undefined
+  }
+
+  const getCoordinatesFromGarden = (garden: any): { latitude: number; longitude: number } | undefined => {
+    if (!garden) return undefined
+    const coordinates = garden.coordinates || garden.location?.coordinates
+    if (!coordinates) return undefined
+
+    const latitude = parseNumber(coordinates.latitude ?? coordinates.lat)
+    const longitude = parseNumber(coordinates.longitude ?? coordinates.lng ?? coordinates.lon)
+
+    if (latitude === undefined || longitude === undefined) {
+      return undefined
+    }
+    return { latitude, longitude }
+  }
+
+  const formatOperationLabel = (type: string) => {
+    if (type === 'watering') return 'Irrigazione'
+    if (type === 'fertilizing') return 'Fertilizzazione'
+    if (type === 'treatment') return 'Trattamento'
+    if (type === 'work') return 'Lavorazione'
+    if (type === 'pruning') return 'Potatura'
+    if (type === 'harvest') return 'Raccolta'
+    return 'Intervento'
+  }
+
+  const formatTimelineDate = (date: string) => {
+    const parsedDate = new Date(date)
+    if (Number.isNaN(parsedDate.getTime())) return date
+    const includeTime = date.includes('T')
+
+    return includeTime
+      ? parsedDate.toLocaleString('it-IT', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : parsedDate.toLocaleDateString('it-IT')
+  }
+
+  const mapSourceFromOperation = (operation: any): TreeTimelineSource => {
+    const sourceType = operation?.sourceType
+      || (operation?.parentOperationTable === 'iot_sensor' ? 'iot' : undefined)
+      || (operation?.parentOperationTable === 'manual_orchestrator' ? 'manual' : undefined)
+      || (operation?.parentOperationTable === 'orchestrator_auto' ? 'orchestrator_auto' : undefined)
+      || (operation?.parentOperationTable === 'watering_logs' ? 'orchestrator_sync' : undefined)
+      || (operation?.parentOperationTable === 'fertilizer_logs' ? 'orchestrator_sync' : undefined)
+      || (operation?.parentOperationTable === 'treatment_logs' ? 'orchestrator_sync' : undefined)
+
+    if (sourceType === 'iot') return 'iot'
+    if (sourceType === 'manual') return 'manual'
+    if (sourceType === 'orchestrator_auto' || sourceType === 'orchestrator_sync') return 'orchestrator'
+    return 'manual'
+  }
+
+  const getSourceBadge = (source: TreeTimelineSource) => {
+    if (source === 'iot') return { label: 'IOT', className: 'bg-violet-100 text-violet-700' }
+    if (source === 'orchestrator') return { label: 'Orchestratore', className: 'bg-indigo-100 text-indigo-700' }
+    if (source === 'manual') return { label: 'Manuale', className: 'bg-emerald-100 text-emerald-700' }
+    return { label: 'Legacy Frutteto', className: 'bg-gray-100 text-gray-700' }
+  }
+
+  const getWeatherSummary = (operation: any) => {
+    const weather = operation?.weatherConditions || operation?.operationContext?.weather || operation?.context?.weather
+    const temp = parseNumber(weather?.temp ?? weather?.temperature)
+    const humidity = parseNumber(weather?.humidity)
+    const wind = weather?.wind ?? weather?.windSpeed
+    const condition = weather?.condition
+
+    const parts: string[] = []
+    if (temp !== undefined) parts.push(`${temp}°C`)
+    if (humidity !== undefined) parts.push(`UR ${humidity}%`)
+    if (typeof wind === 'number') parts.push(`vento ${wind} km/h`)
+    else if (typeof wind === 'string' && wind.trim()) parts.push(`vento ${wind}`)
+    if (typeof condition === 'string' && condition.trim()) parts.push(condition)
+
+    return parts.length > 0 ? parts.join(' • ') : undefined
+  }
+
+  const getGeoSummary = (operation: any) => {
+    const geo = operation?.geoSnapshot
+    if (!geo) return undefined
+
+    const latitude = parseNumber(geo.latitude)
+    const longitude = parseNumber(geo.longitude)
+    const altitude = parseNumber(geo.altitudeMeters)
+    const sunExposure = typeof geo.sunExposure === 'string' ? geo.sunExposure : undefined
+    const aspectDirection = typeof geo.aspectDirection === 'string' ? geo.aspectDirection : undefined
+
+    const parts: string[] = []
+    if (latitude !== undefined && longitude !== undefined) {
+      parts.push(`GPS ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`)
+    }
+    if (altitude !== undefined) parts.push(`Alt ${altitude} m`)
+    if (sunExposure) parts.push(`Sole ${sunExposure}`)
+    if (aspectDirection) parts.push(`Esposizione ${aspectDirection}`)
+
+    return parts.length > 0 ? parts.join(' • ') : undefined
+  }
 
   const loadTimeline = async () => {
     try {
       setLoading(true)
-      const [pruningRecords, harvestRecords, treatmentRecords] = await Promise.all([
+      const [pruningRecords, harvestRecords, treatmentRecords, plantOperations] = await Promise.all([
         orchardService.getTreePruningRecords(tree.id),
         orchardService.getTreeHarvestRecords(tree.id),
         orchardService.getTreeTreatments(tree.id),
+        storageProvider?.getPlantOperations?.(tree.id) || [],
       ])
 
-      const pruningItems = pruningRecords.map(record => ({
+      const pruningItems: TreeTimelineItem[] = pruningRecords.map(record => ({
         id: `pruning-${record.id}`,
-        type: 'pruning' as const,
+        type: 'pruning',
         date: record.pruningDate,
         title: 'Potatura',
         description: record.notes || record.pruningType,
         operator: record.operatorName,
+        source: 'legacy',
+        durationMinutes: record.durationMinutes,
       }))
 
-      const harvestItems = harvestRecords.map(record => ({
+      const harvestItems: TreeTimelineItem[] = harvestRecords.map(record => ({
         id: `harvest-${record.id}`,
-        type: 'harvest' as const,
+        type: 'harvest',
         date: record.harvestDate,
         title: `Raccolta (${record.quantityKg} kg)`,
         description: record.notes || record.qualityClass,
         operator: record.operatorName,
+        source: 'legacy',
+        quantity: record.quantityKg,
+        unit: 'kg',
       }))
 
       const treatmentTypeLabel: Record<string, string> = {
@@ -1345,24 +1500,84 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
         foliar_nutrition: 'Nutrizione Fogliare',
       }
 
-      const treatmentItems = treatmentRecords.map(record => {
+      const treatmentItems: TreeTimelineItem[] = treatmentRecords.map(record => {
         const isIrrigation =
           (record.applicationMethod || '').toLowerCase().includes('irrig') ||
           (record.treatmentReason || '').toLowerCase().includes('irrig')
+        const isFertilizing = record.treatmentType === 'fertilization' || record.treatmentType === 'foliar_nutrition'
 
         return {
           id: `treatment-${record.id}`,
-          type: (isIrrigation ? 'irrigation' : 'treatment') as 'irrigation' | 'treatment',
+          type: isIrrigation ? 'irrigation' : (isFertilizing ? 'fertilizing' : 'treatment'),
           date: record.treatmentDate,
           title: isIrrigation
             ? 'Irrigazione'
-            : (treatmentTypeLabel[record.treatmentType] || 'Trattamento'),
+            : (isFertilizing ? 'Fertilizzazione' : (treatmentTypeLabel[record.treatmentType] || 'Trattamento')),
           description: record.notes || record.productName || record.treatmentReason,
           operator: record.operatorName,
+          source: 'legacy',
+          quantity: record.dosage,
+          unit: record.dosageUnit,
+          productName: record.productName,
+          weatherSummary: (() => {
+            const weatherParts: string[] = []
+            if (record.temperatureC !== undefined) weatherParts.push(`${record.temperatureC}°C`)
+            if (record.humidityPercent !== undefined) weatherParts.push(`UR ${record.humidityPercent}%`)
+            if (record.windSpeedKmh !== undefined) weatherParts.push(`vento ${record.windSpeedKmh} km/h`)
+            if (record.weatherConditions) weatherParts.push(record.weatherConditions)
+            return weatherParts.length > 0 ? weatherParts.join(' • ') : undefined
+          })(),
         }
       })
 
-      const merged = [...pruningItems, ...harvestItems, ...treatmentItems].sort(
+      const orchestratorItems: TreeTimelineItem[] = (plantOperations || []).map((operation: any) => {
+        const operationType = operation.operationType
+        const mappedType: TreeTimelineType =
+          operationType === 'watering'
+            ? 'irrigation'
+            : operationType === 'fertilizing'
+              ? 'fertilizing'
+              : operationType === 'treatment'
+                ? 'treatment'
+                : operationType === 'work'
+                  ? 'work'
+                  : operationType === 'pruning'
+                    ? 'pruning'
+                    : operationType === 'harvest'
+                      ? 'harvest'
+                      : 'work'
+
+        const details = operation.operationContext?.operationDetails || {}
+        const durationMinutes = parseNumber(
+          details.durationMinutes
+          ?? operation.durationMinutes
+          ?? operation.duration
+        )
+        const quantity = parseNumber(operation.quantity)
+        const dateWithTime =
+          operation.date
+          || (operation.operationDate
+            ? `${operation.operationDate}${operation.operationTime ? `T${operation.operationTime}:00` : ''}`
+            : operation.createdAt)
+
+        return {
+          id: `orchestrator-${operation.id}`,
+          type: mappedType,
+          date: dateWithTime || new Date().toISOString(),
+          title: formatOperationLabel(operationType),
+          description: operation.notes,
+          source: mapSourceFromOperation(operation),
+          quantity,
+          unit: operation.unit,
+          durationMinutes,
+          productName: operation.productName,
+          operationSubtype: details.subtype,
+          weatherSummary: getWeatherSummary(operation),
+          geoSummary: getGeoSummary(operation),
+        }
+      })
+
+      const merged = [...pruningItems, ...harvestItems, ...treatmentItems, ...orchestratorItems].sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
       )
 
@@ -1377,32 +1592,111 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
 
   const handleQuickEntrySubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!entryDate || !entryNotes.trim()) {
-      alert('Inserisci data e note intervento')
+    if (!entryDate) {
+      alert('Inserisci la data intervento')
+      return
+    }
+
+    const normalizedQuantity = parseNumber(entryQuantity)
+    const normalizedDuration = parseNumber(entryDurationMinutes)
+    const normalizedProduct = entryProduct.trim()
+    const normalizedSubtype = entrySubtype.trim()
+    const normalizedNotes = entryNotes.trim()
+
+    if (entryType === 'watering' && normalizedQuantity === undefined && normalizedDuration === undefined) {
+      alert('Per irrigazione inserisci almeno quantità oppure durata')
+      return
+    }
+
+    if ((entryType === 'fertilizing' || entryType === 'treatment') && !normalizedProduct) {
+      alert('Specifica il prodotto/tipo per fertilizzazione o trattamento')
       return
     }
 
     setSaving(true)
     try {
-      const isIrrigation = entryType === 'irrigation'
-      await orchardService.addTreeTreatment({
-        treeId: tree.id,
-        treatmentDate: entryDate,
-        treatmentType: isIrrigation ? 'soil_amendment' : 'disease_control',
-        productName: entryProduct.trim() || undefined,
-        applicationMethod: isIrrigation ? 'irrigation' : undefined,
-        treatmentReason: isIrrigation ? 'Irrigazione' : 'Trattamento generale',
-        severityLevel: 'preventive',
-        followUpRequired: false,
-        organicApproved: true,
-        beforePhotos: [],
-        afterPhotos: [],
-        notes: entryNotes.trim(),
+      const garden = await storageProvider?.getGarden?.(tree.gardenId)
+      const treeCoordinates = tree.gpsLatitude !== undefined && tree.gpsLongitude !== undefined
+        ? { latitude: Number(tree.gpsLatitude), longitude: Number(tree.gpsLongitude), source: 'tree_gps' as const }
+        : undefined
+      const gardenCoordinates = getCoordinatesFromGarden(garden)
+      const coordinates = treeCoordinates || (gardenCoordinates
+        ? { ...gardenCoordinates, source: 'garden_coordinates' as const }
+        : undefined)
+
+      const timestamp = new Date(`${entryDate}T${entryTime || '12:00'}:00`)
+      const validTimestamp = Number.isNaN(timestamp.getTime()) ? new Date() : timestamp
+
+      const context = coordinates
+        ? await operationContextService.getOperationContext(
+            coordinates.latitude,
+            coordinates.longitude,
+            validTimestamp
+          )
+        : undefined
+
+      const operationDetails: Record<string, any> = {
+        durationMinutes: normalizedDuration,
+        subtype: normalizedSubtype || undefined,
+      }
+
+      const composedNotes = [
+        normalizedNotes || undefined,
+        normalizedDuration !== undefined ? `Durata ${normalizedDuration} min` : undefined,
+      ].filter(Boolean).join(' | ') || undefined
+
+      const result = await unifiedOperationsService.executeUnifiedOperation({
+        level: 'plant',
+        gardenId: tree.gardenId,
+        plantIds: [tree.id],
+        operationType: entryType,
+        operationDate: entryDate,
+        operationTime: entryTime || undefined,
+        quantity: normalizedQuantity,
+        unit: entryUnit.trim() || undefined,
+        productName: normalizedProduct || undefined,
+        notes: composedNotes,
+        sourceType: entryMode,
+        actorType: entryMode,
+        propagateToPlants: false,
+        contextSnapshot: context
+          ? ({ ...context, operationDetails } as any)
+          : ({ timestamp: validTimestamp.toISOString(), operationDetails } as any),
+        weatherConditions: context
+          ? ({
+              temp: context.weather.temperature,
+              humidity: context.weather.humidity,
+              wind: `${context.weather.windSpeed} km/h`,
+              condition: context.weather.condition,
+              precipitation: context.weather.precipitation,
+              pressure: context.weather.pressure,
+            } as any)
+          : undefined,
+        geoSnapshot: {
+          latitude: coordinates?.latitude,
+          longitude: coordinates?.longitude,
+          altitudeMeters: garden?.altitudeMeters,
+          sunExposure: garden?.sunExposure,
+          aspectDirection: garden?.aspectDirection,
+          obstacles: Array.isArray(garden?.obstacles) ? garden.obstacles : undefined,
+          source: coordinates?.source || 'not_available',
+        },
       })
+
+      if (!result.success) {
+        alert(`Errore registrazione intervento:\n${(result.errors || ['Errore sconosciuto']).join('\n')}`)
+        return
+      }
 
       setEntryNotes('')
       setEntryProduct('')
-      setEntryType('irrigation')
+      setEntryQuantity('')
+      setEntryDurationMinutes('')
+      setEntrySubtype('')
+      setEntryType('watering')
+      setEntryMode('manual')
+      setEntryDate(new Date().toISOString().split('T')[0])
+      setEntryTime(new Date().toTimeString().slice(0, 5))
       setShowQuickEntry(false)
       await loadTimeline()
     } catch (error) {
@@ -1413,17 +1707,21 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
     }
   }
 
-  const getTimelineIcon = (type: 'pruning' | 'harvest' | 'treatment' | 'irrigation') => {
+  const getTimelineIcon = (type: TreeTimelineType) => {
     if (type === 'irrigation') return <Droplets className="text-blue-600" size={18} />
+    if (type === 'fertilizing') return <TrendingUp className="text-green-700" size={18} />
     if (type === 'pruning') return <Scissors className="text-orange-600" size={18} />
     if (type === 'harvest') return <Calendar className="text-green-600" size={18} />
+    if (type === 'work') return <Activity className="text-slate-700" size={18} />
     return <AlertTriangle className="text-purple-600" size={18} />
   }
 
-  const getTimelineBadge = (type: 'pruning' | 'harvest' | 'treatment' | 'irrigation') => {
+  const getTimelineBadge = (type: TreeTimelineType) => {
     if (type === 'irrigation') return 'bg-blue-100 text-blue-700'
+    if (type === 'fertilizing') return 'bg-green-100 text-green-700'
     if (type === 'pruning') return 'bg-orange-100 text-orange-700'
     if (type === 'harvest') return 'bg-green-100 text-green-700'
+    if (type === 'work') return 'bg-slate-100 text-slate-700'
     return 'bg-purple-100 text-purple-700'
   }
 
@@ -1439,7 +1737,12 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Diario Interventi Albero</h3>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Diario Interventi Albero</h3>
+          <p className="text-xs text-gray-600 mt-1">
+            Registro unico: eventi legacy + operazioni orchestratore (manuali e IOT)
+          </p>
+        </div>
         <button
           onClick={() => setShowQuickEntry(prev => !prev)}
           className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -1450,16 +1753,29 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
 
       {showQuickEntry && (
         <form onSubmit={handleQuickEntrySubmit} className="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Origine</label>
+              <select
+                value={entryMode}
+                onChange={(e) => setEntryMode(e.target.value as 'manual' | 'iot')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="manual">Manuale</option>
+                <option value="iot">IOT</option>
+              </select>
+            </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Tipo intervento</label>
               <select
                 value={entryType}
-                onChange={(e) => setEntryType(e.target.value as 'irrigation' | 'treatment')}
+                onChange={(e) => setEntryType(e.target.value as 'watering' | 'fertilizing' | 'treatment' | 'work')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
-                <option value="irrigation">Irrigazione</option>
+                <option value="watering">Irrigazione</option>
+                <option value="fertilizing">Fertilizzazione</option>
                 <option value="treatment">Trattamento</option>
+                <option value="work">Lavorazione</option>
               </select>
             </div>
             <div>
@@ -1472,15 +1788,82 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Prodotto (opzionale)</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Ora</label>
               <input
-                type="text"
-                value={entryProduct}
-                onChange={(e) => setEntryProduct(e.target.value)}
+                type="time"
+                value={entryTime}
+                onChange={(e) => setEntryTime(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="Es. rame, concime fogliare..."
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Quantità</label>
+              <input
+                type="number"
+                step="0.01"
+                value={entryQuantity}
+                onChange={(e) => setEntryQuantity(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="Es. 12.5"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Unità</label>
+              <input
+                type="text"
+                value={entryUnit}
+                onChange={(e) => setEntryUnit(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="L, g, ml..."
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Durata (min)</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={entryDurationMinutes}
+                onChange={(e) => setEntryDurationMinutes(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="Es. 30"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Metodo/Tipo (opzionale)</label>
+              <input
+                type="text"
+                value={entrySubtype}
+                onChange={(e) => setEntrySubtype(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder={entryType === 'watering' ? 'Es. goccia, microjet' : 'Es. preventivo, sfalcio'}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              {entryType === 'fertilizing'
+                ? 'Tipo concime'
+                : entryType === 'treatment'
+                  ? 'Tipo trattamento fitosanitario'
+                  : 'Prodotto (opzionale)'}
+            </label>
+            <input
+              type="text"
+              value={entryProduct}
+              onChange={(e) => setEntryProduct(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder={
+                entryType === 'fertilizing'
+                  ? 'Es. NPK 20-20-20'
+                  : entryType === 'treatment'
+                    ? 'Es. Rame ossicloruro'
+                    : 'Es. adjuvante / attrezzatura'
+              }
+            />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Note intervento</label>
@@ -1515,13 +1898,50 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
           {timeline.map(item => (
             <div key={item.id} className="border border-gray-200 rounded-lg p-4 bg-white">
               <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3">
                   <div className="mt-0.5">{getTimelineIcon(item.type)}</div>
                   <div>
-                    <div className="font-medium text-gray-900">{item.title}</div>
+                    <div className="flex items-center flex-wrap gap-2">
+                      <div className="font-medium text-gray-900">{item.title}</div>
+                      <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${getTimelineBadge(item.type)}`}>
+                        {item.type === 'irrigation' ? 'Irrigazione' :
+                         item.type === 'fertilizing' ? 'Fertilizzazione' :
+                         item.type === 'pruning' ? 'Potatura' :
+                         item.type === 'harvest' ? 'Raccolta' :
+                         item.type === 'work' ? 'Lavorazione' : 'Trattamento'}
+                      </span>
+                      {(() => {
+                        const sourceBadge = getSourceBadge(item.source)
+                        return (
+                          <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${sourceBadge.className}`}>
+                            {sourceBadge.label}
+                          </span>
+                        )
+                      })()}
+                    </div>
                     {item.description && (
                       <div className="text-sm text-gray-600 mt-1">{item.description}</div>
                     )}
+                    <div className="text-xs text-gray-500 mt-2 space-y-1">
+                      {item.quantity !== undefined && (
+                        <div>Quantità: {item.quantity} {item.unit || ''}</div>
+                      )}
+                      {item.durationMinutes !== undefined && (
+                        <div>Durata: {item.durationMinutes} min</div>
+                      )}
+                      {item.productName && (
+                        <div>Prodotto: {item.productName}</div>
+                      )}
+                      {item.operationSubtype && (
+                        <div>Tipo: {item.operationSubtype}</div>
+                      )}
+                      {item.weatherSummary && (
+                        <div>Meteo: {item.weatherSummary}</div>
+                      )}
+                      {item.geoSummary && (
+                        <div>Geo: {item.geoSummary}</div>
+                      )}
+                    </div>
                     {item.operator && (
                       <div className="text-xs text-gray-500 mt-1">Operatore: {item.operator}</div>
                     )}
@@ -1529,13 +1949,8 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-medium text-gray-900">
-                    {new Date(item.date).toLocaleDateString('it-IT')}
+                    {formatTimelineDate(item.date)}
                   </div>
-                  <span className={`inline-block mt-1 px-2 py-0.5 text-xs rounded-full ${getTimelineBadge(item.type)}`}>
-                    {item.type === 'irrigation' ? 'Irrigazione' :
-                     item.type === 'pruning' ? 'Potatura' :
-                     item.type === 'harvest' ? 'Raccolta' : 'Trattamento'}
-                  </span>
                 </div>
               </div>
             </div>
