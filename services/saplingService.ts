@@ -19,6 +19,121 @@ export interface SaplingTimeline {
 }
 
 class SaplingService {
+  private preferredSaplingTable: 'sapling_inventory' | 'saplings' = 'sapling_inventory'
+
+  private getSupabaseOrThrow() {
+    const client = getSupabaseClient()
+    if (!client) {
+      throw new Error('Supabase client non disponibile')
+    }
+    return client
+  }
+
+  private isMissingTableError(error: any): boolean {
+    if (!error) return false
+    const message = String(error.message || '').toLowerCase()
+    const details = String(error.details || '').toLowerCase()
+    const code = String(error.code || '').toUpperCase()
+    return (
+      code === 'PGRST205' ||
+      code === '42P01' ||
+      message.includes('could not find the table') ||
+      details.includes('relation') && details.includes('does not exist')
+    )
+  }
+
+  private mapSaplingFromInventory(data: any): Sapling {
+    const available = Number(data.quantity_available || 0)
+    const planted = Number(data.quantity_planted || 0)
+
+    let status: Sapling['status'] = 'nursery'
+    if (available > 0 && planted > 0) {
+      status = 'ready_to_plant'
+    } else if (available <= 0 && planted > 0) {
+      status = 'planted'
+    }
+
+    return {
+      id: data.id,
+      plantName: data.species_name,
+      variety: data.variety_name,
+      source: 'nursery',
+      status,
+      purchaseDate: data.purchase_date || new Date().toISOString().slice(0, 10),
+      quantity: available > 0 ? available : Math.max(planted, 1),
+      supplier: data.supplier,
+      rootstockType: data.rootstock,
+      plantingDate: undefined,
+      location: undefined,
+      notes: data.notes,
+      gardenId: data.garden_id
+    }
+  }
+
+  private mapSaplingToInventoryDatabase(sapling: Partial<Sapling>, userId: string, current?: any): any {
+    const quantity = Math.max(1, Number(sapling.quantity || current?.quantity_available || 1))
+    const update: any = {}
+
+    if (!current) {
+      update.user_id = userId
+      update.garden_id = sapling.gardenId
+    }
+
+    if (sapling.plantName !== undefined) update.species_name = sapling.plantName
+    if (sapling.variety !== undefined) update.variety_name = sapling.variety || sapling.plantName || current?.variety_name || 'Varieta'
+    if (!current && update.variety_name === undefined) {
+      update.variety_name = sapling.plantName || 'Varieta'
+    }
+    if (sapling.supplier !== undefined) update.supplier = sapling.supplier
+    if (sapling.rootstockType !== undefined) update.rootstock = sapling.rootstockType
+    if (sapling.purchaseDate !== undefined) update.purchase_date = sapling.purchaseDate
+    if (sapling.notes !== undefined) update.notes = sapling.notes
+
+    if (sapling.quantity !== undefined) {
+      update.quantity_available = quantity
+    }
+
+    if (sapling.status === 'planted') {
+      const currentAvailable = Number(current?.quantity_available || quantity)
+      const currentPlanted = Number(current?.quantity_planted || 0)
+      update.quantity_available = 0
+      update.quantity_planted = currentPlanted + currentAvailable
+    } else if (!current && sapling.status) {
+      update.quantity_available = quantity
+      update.quantity_planted = 0
+    }
+
+    if (!current && update.quantity_available === undefined) {
+      update.quantity_available = quantity
+      update.quantity_planted = sapling.status === 'planted' ? quantity : 0
+    }
+
+    return update
+  }
+
+  private applyClientSideFilters(saplings: Sapling[], filters?: SaplingFilters): Sapling[] {
+    let items = [...saplings]
+
+    if (filters?.status && filters.status !== 'all') {
+      items = items.filter(item => item.status === filters.status)
+    }
+
+    if (filters?.source && filters.source !== 'all') {
+      items = items.filter(item => item.source === filters.source)
+    }
+
+    return items
+  }
+
+  private async getCurrentUserId(): Promise<string> {
+    const supabase = this.getSupabaseOrThrow()
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user?.id) {
+      throw new Error('Utente non autenticato')
+    }
+    return data.user.id
+  }
+
   async getSaplings(gardenId: string, filters?: SaplingFilters): Promise<Sapling[]> {
     try {
       // Dati mock per testare l'interfaccia
@@ -64,42 +179,79 @@ class SaplingService {
         }
       ]
 
-      const supabase = getSupabaseClient()
-      let query = supabase
-        .from('saplings')
-        .select('*')
-        .eq('garden_id', gardenId)
-        .order('created_at', { ascending: false })
+      const supabase = this.getSupabaseOrThrow()
+      const tryInventoryFirst = this.preferredSaplingTable === 'sapling_inventory'
 
-      if (filters?.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status)
+      const readFromInventory = async () => {
+        let query = supabase
+          .from('sapling_inventory')
+          .select('*')
+          .eq('garden_id', gardenId)
+          .order('created_at', { ascending: false })
+
+        if (filters?.plantName) {
+          query = query.ilike('species_name', `%${filters.plantName}%`)
+        }
+        if (filters?.supplier) {
+          query = query.ilike('supplier', `%${filters.supplier}%`)
+        }
+
+        const { data, error } = await query
+        if (error) throw error
+        const mapped = (data || []).map(item => this.mapSaplingFromInventory(item))
+        return this.applyClientSideFilters(mapped, filters)
       }
 
-      if (filters?.plantName) {
-        query = query.ilike('plant_name', `%${filters.plantName}%`)
+      const readFromSaplings = async () => {
+        let query = supabase
+          .from('saplings')
+          .select('*')
+          .eq('garden_id', gardenId)
+          .order('created_at', { ascending: false })
+
+        if (filters?.status && filters.status !== 'all') {
+          query = query.eq('status', filters.status)
+        }
+        if (filters?.plantName) {
+          query = query.ilike('plant_name', `%${filters.plantName}%`)
+        }
+        if (filters?.source && filters.source !== 'all') {
+          query = query.eq('source', filters.source)
+        }
+        if (filters?.supplier) {
+          query = query.ilike('supplier', `%${filters.supplier}%`)
+        }
+
+        const { data, error } = await query
+        if (error) throw error
+        return (data || []).map(item => this.mapSaplingFromDatabase(item))
       }
 
-      if (filters?.source && filters.source !== 'all') {
-        query = query.eq('source', filters.source)
+      let saplings: Sapling[] = []
+      try {
+        saplings = tryInventoryFirst ? await readFromInventory() : await readFromSaplings()
+        this.preferredSaplingTable = tryInventoryFirst ? 'sapling_inventory' : 'saplings'
+      } catch (error) {
+        const missingTable = this.isMissingTableError(error)
+        if (!missingTable) {
+          console.warn('Database error, using mock data:', error)
+          return mockSaplings
+        }
+
+        try {
+          saplings = tryInventoryFirst ? await readFromSaplings() : await readFromInventory()
+          this.preferredSaplingTable = tryInventoryFirst ? 'saplings' : 'sapling_inventory'
+        } catch (fallbackError) {
+          console.warn('Sapling tables unavailable, using mock data:', fallbackError)
+          return mockSaplings
+        }
       }
 
-      if (filters?.supplier) {
-        query = query.ilike('supplier', `%${filters.supplier}%`)
-      }
-
-      const { data, error } = await query
-
-      if (error) {
-        console.warn('Database error, using mock data:', error)
+      if (!saplings || saplings.length === 0) {
         return mockSaplings
       }
 
-      // Se non ci sono dati nel database, restituisci i mock
-      if (!data || data.length === 0) {
-        return mockSaplings
-      }
-
-      return data?.map(this.mapSaplingFromDatabase) || []
+      return saplings
     } catch (error) {
       console.error('Error fetching saplings:', error)
       // Restituisci dati mock in caso di errore
@@ -123,7 +275,24 @@ class SaplingService {
 
   async addSapling(sapling: Omit<Sapling, 'id'>): Promise<Sapling> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getSupabaseOrThrow()
+      if (this.preferredSaplingTable === 'sapling_inventory') {
+        try {
+          const userId = await this.getCurrentUserId()
+          const { data, error } = await supabase
+            .from('sapling_inventory')
+            .insert([this.mapSaplingToInventoryDatabase(sapling, userId)])
+            .select()
+            .single()
+
+          if (error) throw error
+          return this.mapSaplingFromInventory(data)
+        } catch (error) {
+          if (!this.isMissingTableError(error)) throw error
+          this.preferredSaplingTable = 'saplings'
+        }
+      }
+
       const { data, error } = await supabase
         .from('saplings')
         .insert([this.mapSaplingToDatabase(sapling)])
@@ -131,7 +300,6 @@ class SaplingService {
         .single()
 
       if (error) throw error
-
       return this.mapSaplingFromDatabase(data)
     } catch (error) {
       console.error('Error adding sapling:', error)
@@ -141,7 +309,33 @@ class SaplingService {
 
   async updateSapling(id: string, updates: Partial<Sapling>): Promise<Sapling> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getSupabaseOrThrow()
+      if (this.preferredSaplingTable === 'sapling_inventory') {
+        try {
+          const { data: current, error: currentError } = await supabase
+            .from('sapling_inventory')
+            .select('*')
+            .eq('id', id)
+            .single()
+          if (currentError) throw currentError
+
+          const userId = await this.getCurrentUserId()
+          const payload = this.mapSaplingToInventoryDatabase(updates, userId, current)
+          const { data, error } = await supabase
+            .from('sapling_inventory')
+            .update(payload)
+            .eq('id', id)
+            .select()
+            .single()
+
+          if (error) throw error
+          return this.mapSaplingFromInventory(data)
+        } catch (error) {
+          if (!this.isMissingTableError(error)) throw error
+          this.preferredSaplingTable = 'saplings'
+        }
+      }
+
       const { data, error } = await supabase
         .from('saplings')
         .update(this.mapSaplingToDatabase(updates))
@@ -160,7 +354,21 @@ class SaplingService {
 
   async deleteSapling(id: string): Promise<void> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getSupabaseOrThrow()
+      if (this.preferredSaplingTable === 'sapling_inventory') {
+        try {
+          const { error } = await supabase
+            .from('sapling_inventory')
+            .delete()
+            .eq('id', id)
+          if (error) throw error
+          return
+        } catch (error) {
+          if (!this.isMissingTableError(error)) throw error
+          this.preferredSaplingTable = 'saplings'
+        }
+      }
+
       const { error } = await supabase
         .from('saplings')
         .delete()
@@ -175,7 +383,7 @@ class SaplingService {
 
   async getSaplingBatches(gardenId: string): Promise<SaplingBatch[]> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getSupabaseOrThrow()
       const { data, error } = await supabase
         .from('sapling_batches')
         .select(`
@@ -196,7 +404,7 @@ class SaplingService {
 
   async createSaplingBatch(batch: Omit<SaplingBatch, 'id' | 'saplings'>): Promise<SaplingBatch> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getSupabaseOrThrow()
       const { data, error } = await supabase
         .from('sapling_batches')
         .insert([{
@@ -244,13 +452,34 @@ class SaplingService {
 
   async plantSapling(saplingId: string, planting: Omit<SaplingPlanting, 'id' | 'saplingId'>): Promise<SaplingPlanting> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getSupabaseOrThrow()
       // First, update the sapling status
       await this.updateSapling(saplingId, { 
         status: 'planted',
         plantingDate: planting.plantingDate,
         location: planting.location
       })
+
+      // sapling_inventory backend non ha tabella sapling_plantings
+      if (this.preferredSaplingTable === 'sapling_inventory') {
+        const generatedId =
+          typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `sapling-planting-${Date.now()}`
+
+        return {
+          id: generatedId,
+          saplingId,
+          plantingDate: planting.plantingDate,
+          location: planting.location,
+          soilType: planting.soilType,
+          spacing: planting.spacing,
+          irrigation: planting.irrigation,
+          fertilizer: planting.fertilizer,
+          notes: planting.notes,
+          gardenId: planting.gardenId
+        }
+      }
 
       // Then, create the planting record
       const { data, error } = await supabase
@@ -291,15 +520,7 @@ class SaplingService {
 
   async getSaplingStats(gardenId: string): Promise<SaplingStats> {
     try {
-      const supabase = getSupabaseClient()
-      const { data, error } = await supabase
-        .from('saplings')
-        .select('*')
-        .eq('garden_id', gardenId)
-
-      if (error) throw error
-
-      const saplings = data || []
+      const saplings = await this.getSaplings(gardenId, { status: 'all' })
       const totalSaplings = saplings.length
       const inNursery = saplings.filter(s => s.status === 'nursery').length
       const readyToPlant = saplings.filter(s => s.status === 'ready_to_plant').length
@@ -312,7 +533,7 @@ class SaplingService {
       const now = new Date()
       const averageAge = totalSaplings > 0 
         ? saplings.reduce((sum, s) => {
-            const purchaseDate = new Date(s.purchase_date)
+            const purchaseDate = new Date(s.purchaseDate)
             const ageInDays = Math.floor((now.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24))
             return sum + ageInDays
           }, 0) / totalSaplings
@@ -341,17 +562,10 @@ class SaplingService {
 
   async getSaplingsReadyToPlant(gardenId: string): Promise<Sapling[]> {
     try {
-      const supabase = getSupabaseClient()
-      const { data, error } = await supabase
-        .from('saplings')
-        .select('*')
-        .eq('garden_id', gardenId)
-        .eq('status', 'ready_to_plant')
-        .order('purchase_date', { ascending: true })
-
-      if (error) throw error
-
-      return data?.map(this.mapSaplingFromDatabase) || []
+      const allSaplings = await this.getSaplings(gardenId, { status: 'all' })
+      return allSaplings
+        .filter(s => s.status === 'ready_to_plant')
+        .sort((a, b) => new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime())
     } catch (error) {
       console.error('Error fetching ready saplings:', error)
       return []
@@ -427,7 +641,7 @@ class SaplingService {
   // Additional methods for missing functions
   async getSaplingTimeline(saplingId: string): Promise<SaplingTimeline[]> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getSupabaseOrThrow()
       const { data, error } = await supabase
         .from('sapling_timeline')
         .select('*')
@@ -452,7 +666,7 @@ class SaplingService {
 
   async addPhotoToLog(saplingId: string, photoUrl: string, description?: string): Promise<void> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getSupabaseOrThrow()
       const { error } = await supabase
         .from('sapling_timeline')
         .insert([{
@@ -472,7 +686,7 @@ class SaplingService {
 
   async updateSurvivalCount(batchId: string, survivingCount: number): Promise<void> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getSupabaseOrThrow()
       const { error } = await supabase
         .from('sapling_batches')
         .update({ remaining_quantity: survivingCount })
@@ -487,13 +701,10 @@ class SaplingService {
 
   async updateSaplingPhase(saplingId: string, phase: string): Promise<void> {
     try {
-      const supabase = getSupabaseClient()
-      const { error } = await supabase
-        .from('saplings')
-        .update({ status: phase })
-        .eq('id', saplingId)
-
-      if (error) throw error
+      const normalized = phase === 'nursery' || phase === 'ready_to_plant' || phase === 'planted'
+        ? phase
+        : 'nursery'
+      await this.updateSapling(saplingId, { status: normalized })
     } catch (error) {
       console.error('Error updating sapling phase:', error)
       throw error
@@ -511,15 +722,9 @@ class SaplingService {
 
   async linkToSpecializedCrop(saplingId: string, cropType: string, cropId?: string): Promise<void> {
     try {
-      const supabase = getSupabaseClient()
-      const { error } = await supabase
-        .from('saplings')
-        .update({ 
-          notes: `Linked to ${cropType}${cropId ? ` (ID: ${cropId})` : ''}`
-        })
-        .eq('id', saplingId)
-
-      if (error) throw error
+      await this.updateSapling(saplingId, {
+        notes: `Linked to ${cropType}${cropId ? ` (ID: ${cropId})` : ''}`
+      })
     } catch (error) {
       console.error('Error linking to specialized crop:', error)
       throw error
@@ -567,4 +772,4 @@ export const isReadyToOrchard = (sapling: Sapling) =>
   saplingService.isReadyToOrchard(sapling)
 
 // Export types
-export type { SaplingType, SaplingBatch, Sapling, SaplingTimeline }
+export type { SaplingBatch, Sapling }
