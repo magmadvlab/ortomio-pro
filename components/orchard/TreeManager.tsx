@@ -1315,6 +1315,14 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
     geoSummary?: string
   }
 
+  interface TreeWaterEstimate {
+    litersPerTree?: number
+    rowName?: string
+    method?: string
+    pressureBar?: number
+    warning?: string
+  }
+
   const [loading, setLoading] = useState(true)
   const [timeline, setTimeline] = useState<TreeTimelineItem[]>([])
   const [activeTimelineTab, setActiveTimelineTab] = useState<'all' | 'irrigation' | 'fertilizing' | 'treatment' | 'work' | 'pruning' | 'harvest'>('all')
@@ -1330,6 +1338,8 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
   const [entrySubtype, setEntrySubtype] = useState('')
   const [entryNotes, setEntryNotes] = useState('')
   const [saving, setSaving] = useState(false)
+  const [waterEstimate, setWaterEstimate] = useState<TreeWaterEstimate | null>(null)
+  const [estimatingWater, setEstimatingWater] = useState(false)
 
   useEffect(() => {
     loadTimeline()
@@ -1371,6 +1381,136 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
     }
     return { latitude, longitude }
   }
+
+  const getRowIrrigationConfig = (row: any): Record<string, any> | undefined => {
+    const raw = row?.irrigationLine ?? row?.irrigationConfig
+    if (!raw) return undefined
+    if (typeof raw === 'string') {
+      try {
+        return JSON.parse(raw)
+      } catch {
+        return undefined
+      }
+    }
+    return raw
+  }
+
+  const estimateTreeWaterFromRow = async (durationMinutes: number): Promise<TreeWaterEstimate> => {
+    if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
+      return { warning: 'Inserisci una durata valida per stimare i litri.' }
+    }
+
+    let row: any = null
+    if (tree.fieldRowId) {
+      row = await storageProvider?.getFieldRow?.(tree.fieldRowId)
+    }
+
+    if (!row && tree.rowNumber) {
+      const rows = await storageProvider?.getFieldRows?.(tree.gardenId)
+      row = (rows || []).find((r: any) => Number(r.rowNumber) === Number(tree.rowNumber))
+    }
+
+    if (!row) {
+      return { warning: 'Nessun filare collegato all’albero: impossibile stimare automaticamente i litri.' }
+    }
+
+    const config = getRowIrrigationConfig(row)
+    if (!config) {
+      return { rowName: row.name, warning: 'Config irrigazione filare mancante. Imposta passo/portata in Gestione Filari.' }
+    }
+
+    const spacingCm = parseNumber(config.emitterSpacingCm ?? config.emitterSpacing ?? config.dripperSpacing)
+    const emitterFlowRateLph = parseNumber(config.emitterFlowRateLph ?? config.emitterFlowRate ?? config.dripperFlowRate)
+    const flowRatePerMeterLph = parseNumber(config.flowRatePerMeterLph ?? config.flowRatePerMeter)
+    const pressureBar = parseNumber(config.pressureBar ?? config.pressure)
+    const referencePressureBar = parseNumber(config.nominalPressureBar ?? config.referencePressureBar) ?? 1.5
+    const pressureFactor = pressureBar && pressureBar > 0 && referencePressureBar > 0
+      ? Math.sqrt(pressureBar / referencePressureBar)
+      : 1
+
+    if (spacingCm && spacingCm > 0 && emitterFlowRateLph && emitterFlowRateLph > 0) {
+      const plantSpacingCm = parseNumber(row.plantSpacing) ?? spacingCm
+      const emittersPerTree = Math.max(1, plantSpacingCm / spacingCm)
+      const effectiveEmitterFlow = emitterFlowRateLph * pressureFactor
+      const litersPerTree = (effectiveEmitterFlow * emittersPerTree * durationMinutes) / 60
+
+      return {
+        litersPerTree: Math.round(litersPerTree * 100) / 100,
+        rowName: row.name,
+        method: `gocciolatori (${emittersPerTree.toFixed(2)} per albero)`,
+        pressureBar,
+      }
+    }
+
+    if (flowRatePerMeterLph && flowRatePerMeterLph > 0) {
+      const lengthMeters = parseNumber(row.lengthMeters)
+      if (!lengthMeters || lengthMeters <= 0) {
+        return { rowName: row.name, warning: 'Lunghezza filare non valida per stimare i litri.' }
+      }
+
+      const rowFlowLph = flowRatePerMeterLph * lengthMeters
+      const rowLiters = (rowFlowLph * durationMinutes) / 60
+      const plantSpacingCm = parseNumber(row.plantSpacing)
+      const estimatedPlants = parseNumber(row.plantCount)
+        ?? (plantSpacingCm && plantSpacingCm > 0 ? Math.max(1, Math.round((lengthMeters * 100) / plantSpacingCm)) : undefined)
+      if (!estimatedPlants || estimatedPlants <= 0) {
+        return { rowName: row.name, warning: 'Numero piante filare non disponibile per ripartire i litri.' }
+      }
+
+      const litersPerTree = rowLiters / estimatedPlants
+      return {
+        litersPerTree: Math.round(litersPerTree * 100) / 100,
+        rowName: row.name,
+        method: `portata filare (${flowRatePerMeterLph.toFixed(2)} L/h/m)`,
+        pressureBar,
+      }
+    }
+
+    return {
+      rowName: row.name,
+      warning: 'Config filare incompleta: serve portata per metro o coppia passo+portata gocciolatore.',
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false
+
+    const estimate = async () => {
+      if (entryType !== 'watering') {
+        setWaterEstimate(null)
+        return
+      }
+
+      const duration = parseNumber(entryDurationMinutes)
+      if (duration === undefined || duration <= 0) {
+        setWaterEstimate(null)
+        return
+      }
+
+      setEstimatingWater(true)
+      try {
+        const estimateResult = await estimateTreeWaterFromRow(duration)
+        if (!cancelled) {
+          setWaterEstimate(estimateResult)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.warn('Errore stima irrigazione albero:', error)
+          setWaterEstimate({ warning: 'Impossibile stimare i litri automaticamente per questo albero.' })
+        }
+      } finally {
+        if (!cancelled) {
+          setEstimatingWater(false)
+        }
+      }
+    }
+
+    void estimate()
+
+    return () => {
+      cancelled = true
+    }
+  }, [entryType, entryDurationMinutes, tree.fieldRowId, tree.rowNumber, tree.gardenId, storageProvider])
 
   const formatOperationLabel = (type: string) => {
     if (type === 'watering') return 'Irrigazione'
@@ -1604,11 +1744,6 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
     const normalizedSubtype = entrySubtype.trim()
     const normalizedNotes = entryNotes.trim()
 
-    if (entryType === 'watering' && normalizedQuantity === undefined && normalizedDuration === undefined) {
-      alert('Per irrigazione inserisci almeno quantità oppure durata')
-      return
-    }
-
     if ((entryType === 'fertilizing' || entryType === 'treatment') && !normalizedProduct) {
       alert('Specifica il prodotto/tipo per fertilizzazione o trattamento')
       return
@@ -1616,6 +1751,33 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
 
     setSaving(true)
     try {
+      let effectiveQuantity = normalizedQuantity
+      let effectiveUnit = entryUnit.trim() || undefined
+      let autoQuantityEstimate: TreeWaterEstimate | undefined
+
+      if (
+        entryType === 'watering' &&
+        effectiveQuantity === undefined &&
+        normalizedDuration !== undefined &&
+        normalizedDuration > 0
+      ) {
+        autoQuantityEstimate = await estimateTreeWaterFromRow(normalizedDuration)
+        if (autoQuantityEstimate.litersPerTree !== undefined) {
+          effectiveQuantity = autoQuantityEstimate.litersPerTree
+          effectiveUnit = 'L'
+        }
+      }
+
+      if (entryType === 'watering' && effectiveQuantity === undefined && normalizedDuration === undefined) {
+        alert('Per irrigazione inserisci almeno quantità oppure durata')
+        return
+      }
+
+      if (entryType === 'watering' && effectiveQuantity === undefined) {
+        alert('Impossibile calcolare automaticamente i litri: completa la configurazione irrigazione del filare o inserisci la quantità manualmente.')
+        return
+      }
+
       const garden = await storageProvider?.getGarden?.(tree.gardenId)
       const treeCoordinates = tree.gpsLatitude !== undefined && tree.gpsLongitude !== undefined
         ? { latitude: Number(tree.gpsLatitude), longitude: Number(tree.gpsLongitude), source: 'tree_gps' as const }
@@ -1639,11 +1801,23 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
       const operationDetails: Record<string, any> = {
         durationMinutes: normalizedDuration,
         subtype: normalizedSubtype || undefined,
+        irrigationCalculation: autoQuantityEstimate?.litersPerTree !== undefined
+          ? {
+              litersPerTree: autoQuantityEstimate.litersPerTree,
+              method: autoQuantityEstimate.method,
+              rowName: autoQuantityEstimate.rowName,
+              pressureBar: autoQuantityEstimate.pressureBar,
+              mode: 'auto_from_row_config',
+            }
+          : undefined,
       }
 
       const composedNotes = [
         normalizedNotes || undefined,
         normalizedDuration !== undefined ? `Durata ${normalizedDuration} min` : undefined,
+        autoQuantityEstimate?.litersPerTree !== undefined && normalizedQuantity === undefined
+          ? `Quantità auto-calcolata ${autoQuantityEstimate.litersPerTree} L/albero${autoQuantityEstimate.rowName ? ` (${autoQuantityEstimate.rowName})` : ''}`
+          : undefined,
       ].filter(Boolean).join(' | ') || undefined
 
       const result = await unifiedOperationsService.executeUnifiedOperation({
@@ -1653,8 +1827,8 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
         operationType: entryType,
         operationDate: entryDate,
         operationTime: entryTime || undefined,
-        quantity: normalizedQuantity,
-        unit: entryUnit.trim() || undefined,
+        quantity: effectiveQuantity,
+        unit: effectiveUnit,
         productName: normalizedProduct || undefined,
         notes: composedNotes,
         sourceType: entryMode,
@@ -1815,14 +1989,28 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Quantità</label>
-              <input
-                type="number"
-                step="0.01"
-                value={entryQuantity}
-                onChange={(e) => setEntryQuantity(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="Es. 12.5"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  value={entryQuantity}
+                  onChange={(e) => setEntryQuantity(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  placeholder="Es. 12.5"
+                />
+                {entryType === 'watering' && waterEstimate?.litersPerTree !== undefined && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEntryQuantity(String(waterEstimate.litersPerTree))
+                      setEntryUnit('L')
+                    }}
+                    className="px-3 py-2 text-xs font-semibold rounded-lg border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 whitespace-nowrap"
+                  >
+                    Usa stima
+                  </button>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Unità</label>
@@ -1857,6 +2045,26 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
               />
             </div>
           </div>
+          {entryType === 'watering' && (
+            <div className={`text-xs rounded-lg border px-3 py-2 ${
+              waterEstimate?.warning
+                ? 'border-amber-200 bg-amber-50 text-amber-800'
+                : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+            }`}>
+              {estimatingWater ? (
+                'Calcolo litri per albero in corso...'
+              ) : waterEstimate?.litersPerTree !== undefined ? (
+                <>
+                  Stima automatica: <strong>{waterEstimate.litersPerTree} L/albero</strong>
+                  {waterEstimate.rowName ? ` • ${waterEstimate.rowName}` : ''}
+                  {waterEstimate.method ? ` • metodo: ${waterEstimate.method}` : ''}
+                  {waterEstimate.pressureBar ? ` • pressione ${waterEstimate.pressureBar} bar` : ''}
+                </>
+              ) : (
+                waterEstimate?.warning || 'Inserisci durata per stimare automaticamente i litri dal filare.'
+              )}
+            </div>
+          )}
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
               {entryType === 'fertilizing'

@@ -163,6 +163,23 @@ export class PlantRowSyncService {
     try {
       this.syncStatus.isRunning = true;
       const preciseIrrigationService = new PreciseIrrigationService();
+      const toNumber = (value: unknown): number => {
+        if (value === null || value === undefined) return 0;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+      };
+      const parseConfig = (value: unknown): Record<string, any> | undefined => {
+        if (!value) return undefined;
+        if (typeof value === 'string') {
+          try {
+            return JSON.parse(value);
+          } catch {
+            return undefined;
+          }
+        }
+        if (typeof value === 'object') return value as Record<string, any>;
+        return undefined;
+      };
 
       let operationsCreated = 0;
 
@@ -187,8 +204,13 @@ export class PlantRowSyncService {
         // If operation is on a ZONE, we need to find all rows in that zone.
         // This is complex. Let's assume operation might have a 'rowId' or we process all rows in the zone.
 
-        durationMinutes = operationDetails.duration_minutes || 0;
-        totalAmount = operationDetails.liters_total || 0;
+        durationMinutes = toNumber(operationDetails.durationMinutes ?? operationDetails.duration_minutes);
+        totalAmount = toNumber(
+          operationDetails.litersApplied
+          ?? operationDetails.liters_applied
+          ?? operationDetails.litersTotal
+          ?? operationDetails.liters_total
+        );
         unit = 'L';
         notes = operationDetails.notes;
 
@@ -215,7 +237,7 @@ export class PlantRowSyncService {
       // If we can't find specific row info, we fall back to simple distribution.
 
       // Get all plants for the Garden (we can filter by zone/row later)
-      const gardenId = operationDetails?.garden_id;
+      const gardenId = operationDetails?.gardenId || operationDetails?.garden_id;
       if (!gardenId) throw new Error('Garden ID not found in operation');
 
       const mappings = await this.getPlantRowMappings(gardenId);
@@ -223,7 +245,7 @@ export class PlantRowSyncService {
       // Filter mappings that are relevant to this operation
       // This is the tricky part: matching Operation -> Zone -> Rows -> Plants
       // For now, let's try to match by Zone ID if available
-      const zoneId = operationDetails?.zone_id || operationDetails?.bed_id;
+      const zoneId = operationDetails?.zoneId || operationDetails?.zone_id || operationDetails?.bedId || operationDetails?.bed_id;
 
       let targetMappings = mappings;
       if (zoneId) {
@@ -273,11 +295,31 @@ export class PlantRowSyncService {
         };
 
         // Override with real config if available (e.g. from irrigationConfig json)
-        if (row.irrigationConfig) {
-          // Parse if string or use if object
-          const config = typeof row.irrigationConfig === 'string' ? JSON.parse(row.irrigationConfig) : row.irrigationConfig;
-          if (config.dripperFlowRate) dripperConfig.flowRateLph = config.dripperFlowRate;
-          if (config.dripperSpacing) dripperConfig.spacingCm = config.dripperSpacing;
+        const config = parseConfig(row.irrigationLine ?? row.irrigationConfig);
+        if (config) {
+          const spacingCm = toNumber(config.emitterSpacingCm ?? config.emitterSpacing ?? config.dripperSpacing);
+          if (spacingCm > 0) {
+            dripperConfig.spacingCm = spacingCm;
+          }
+
+          const pressureBar = toNumber(config.pressureBar ?? config.pressure);
+          const nominalPressureBar = toNumber(config.nominalPressureBar ?? config.referencePressureBar) || 1.5;
+          const pressureFactor = pressureBar > 0 && nominalPressureBar > 0
+            ? Math.sqrt(pressureBar / nominalPressureBar)
+            : 1;
+
+          const emitterFlowRateLph = toNumber(config.emitterFlowRateLph ?? config.emitterFlowRate ?? config.dripperFlowRate);
+          if (emitterFlowRateLph > 0) {
+            dripperConfig.flowRateLph = emitterFlowRateLph * pressureFactor;
+          }
+
+          const flowRatePerMeterLph = toNumber(config.flowRatePerMeterLph ?? config.flowRatePerMeter);
+          if (flowRatePerMeterLph > 0 && dripperConfig.spacingCm > 0) {
+            const inferredEmitterFlow = flowRatePerMeterLph * (dripperConfig.spacingCm / 100);
+            if (inferredEmitterFlow > 0) {
+              dripperConfig.flowRateLph = inferredEmitterFlow;
+            }
+          }
         }
 
         // Prepare Plant Positions
@@ -290,12 +332,29 @@ export class PlantRowSyncService {
         let distribution: WaterDistributionResult[] = [];
 
         if (operationType === 'watering') {
-          distribution = preciseIrrigationService.calculateWatering(
-            (row.lengthMeters || 10) * 100,
-            dripperConfig,
-            plantPositions,
-            durationMinutes
-          );
+          if (durationMinutes > 0) {
+            distribution = preciseIrrigationService.calculateWatering(
+              (row.lengthMeters || 10) * 100,
+              dripperConfig,
+              plantPositions,
+              durationMinutes
+            );
+          } else if (totalAmount > 0) {
+            // Se manca la durata ma esistono litri totali, distribuisci proporzionalmente tra le piante.
+            const baseDistribution = preciseIrrigationService.calculateWatering(
+              (row.lengthMeters || 10) * 100,
+              dripperConfig,
+              plantPositions,
+              30
+            );
+            const baseTotal = baseDistribution.reduce((sum, p) => sum + p.litersReceived, 0);
+            distribution = baseDistribution.map(p => ({
+              ...p,
+              litersReceived: baseTotal > 0 ? (p.litersReceived / baseTotal) * totalAmount : 0
+            }));
+          } else {
+            distribution = [];
+          }
         } else {
           // For fertilizer, we can use the same distribution logic effectively
           // treating "duration" as "amount" if we normalize, or just applying proportional logic
