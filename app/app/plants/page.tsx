@@ -24,6 +24,7 @@ export default function PlantsPage() {
   const [showGardenWizard, setShowGardenWizard] = useState(false)
   
   // URL parameters
+  const gardenParam = searchParams.get('garden')
   const fieldRowParam = searchParams.get('fieldRow')
   const tabParam = searchParams.get('tab') as TabType | null
 
@@ -37,8 +38,10 @@ export default function PlantsPage() {
         setGardens(loadedGardens)
         setTasks(loadedTasks)
         
-        // Set tab from URL parameter
-        if (tabParam && ['plants', 'seeds', 'saplings', 'trees'].includes(tabParam)) {
+        // If a specific row is requested, force plants tab for coherent navigation
+        if (fieldRowParam) {
+          setActiveTab('plants')
+        } else if (tabParam && ['plants', 'seeds', 'saplings', 'trees'].includes(tabParam)) {
           setActiveTab(tabParam)
         }
       } catch (error) {
@@ -48,7 +51,7 @@ export default function PlantsPage() {
       }
     }
     loadData()
-  }, [storageProvider, tabParam])
+  }, [storageProvider, tabParam, fieldRowParam])
 
   const handleUpdateTask = async (updatedTask: GardenTask) => {
     try {
@@ -67,8 +70,11 @@ export default function PlantsPage() {
     )
   }
 
-  const defaultGarden = gardens[0]
-  if (!defaultGarden) {
+  const activeGarden = gardenParam
+    ? gardens.find(g => g.id === gardenParam) || gardens[0]
+    : gardens[0]
+
+  if (!activeGarden) {
     return (
       <>
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -119,7 +125,7 @@ export default function PlantsPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <Link
-                href="/app/garden/rows"
+                href={`/app/garden/rows?garden=${activeGarden.id}`}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 title="Torna ai filari"
               >
@@ -130,16 +136,16 @@ export default function PlantsPage() {
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
                   {fieldRowParam ? (
-                    <>🌾 Piante del Filare - {defaultGarden.name}</>
+                    <>🌾 Piante del Filare - {activeGarden.name}</>
                   ) : (
                     <>🌱 Gestione Piante Professionale</>
                   )}
                 </h1>
                 <p className="text-gray-600 mt-1">
                   {fieldRowParam ? (
-                    `Visualizzazione piante individuali del filare selezionato in ${defaultGarden.name}`
+                    `Visualizzazione piante individuali del filare selezionato in ${activeGarden.name}`
                   ) : (
-                    `Monitoraggio completo di piante, semi, vivaio e alberi per ${defaultGarden.name}`
+                    `Monitoraggio completo di piante, semi, vivaio e alberi per ${activeGarden.name}`
                   )}
                 </p>
               </div>
@@ -153,7 +159,7 @@ export default function PlantsPage() {
                 Semenzaio
               </Link>
               <Link
-                href="/app/garden?tab=plants"
+                href={`/app/garden?tab=plants&garden=${activeGarden.id}`}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
               >
                 <Plus size={16} />
@@ -203,7 +209,7 @@ export default function PlantsPage() {
                   <div>
                     <p className="text-sm text-gray-600">Piante Attive</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {(tasks || []).filter(t => !t.completed && t.gardenId === defaultGarden.id).length}
+                      {(tasks || []).filter(t => !t.completed && t.gardenId === activeGarden.id).length}
                     </p>
                   </div>
                 </div>
@@ -215,7 +221,7 @@ export default function PlantsPage() {
                   <div>
                     <p className="text-sm text-gray-600">Varietà Coltivate</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {new Set((tasks || []).filter(t => t.gardenId === defaultGarden.id).map(t => t.plantName)).size}
+                      {new Set((tasks || []).filter(t => t.gardenId === activeGarden.id).map(t => t.plantName)).size}
                     </p>
                   </div>
                 </div>
@@ -227,7 +233,7 @@ export default function PlantsPage() {
                   <div>
                     <p className="text-sm text-gray-600">Pronte per Raccolto</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {(tasks || []).filter(t => t.stage === 'Fruiting' && t.gardenId === defaultGarden.id).length}
+                      {(tasks || []).filter(t => t.stage === 'Fruiting' && t.gardenId === activeGarden.id).length}
                     </p>
                   </div>
                 </div>
@@ -242,7 +248,7 @@ export default function PlantsPage() {
                       {(tasks || []).filter(t => {
                         const plantingDate = new Date(t.date)
                         const daysAgo = (new Date().getTime() - plantingDate.getTime()) / (1000 * 60 * 60 * 24)
-                        return daysAgo <= 7 && t.gardenId === defaultGarden.id
+                        return daysAgo <= 7 && t.gardenId === activeGarden.id
                       }).length}
                     </p>
                   </div>
@@ -266,7 +272,7 @@ export default function PlantsPage() {
                     </div>
                   </div>
                   <Link
-                    href="/app/plants?tab=plants"
+                    href={`/app/plants?tab=plants&garden=${activeGarden.id}`}
                     className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     Vedi Tutte
@@ -294,7 +300,7 @@ export default function PlantsPage() {
                       Vivaio
                     </Link>
                     <Link
-                      href="/app/garden?tab=plants"
+                      href={`/app/garden?tab=plants&garden=${activeGarden.id}`}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
                     >
                       <Plus size={16} />
@@ -306,7 +312,7 @@ export default function PlantsPage() {
               
               {/* Smart Plant Manager Component */}
               <SmartPlantManager 
-                garden={defaultGarden} 
+                garden={activeGarden} 
                 fieldRow={fieldRowParam || undefined}
               />
             </div>
@@ -318,8 +324,8 @@ export default function PlantsPage() {
                 <span className="text-sm text-gray-500">Sistema legacy - migrazione in corso</span>
               </div>
               <PlantsView
-                garden={defaultGarden}
-                tasks={(tasks || []).filter(t => t.gardenId === defaultGarden.id)}
+                garden={activeGarden}
+                tasks={(tasks || []).filter(t => t.gardenId === activeGarden.id)}
                 onUpdateTask={handleUpdateTask}
               />
             </div>
@@ -347,7 +353,7 @@ export default function PlantsPage() {
                 </Link>
               </div>
               
-              <SeedInventory garden={defaultGarden} />
+              <SeedInventory garden={activeGarden} />
             </div>
           </div>
         )}
@@ -373,7 +379,7 @@ export default function PlantsPage() {
                 </Link>
               </div>
               
-              <SaplingDashboard garden={defaultGarden} />
+              <SaplingDashboard garden={activeGarden} />
             </div>
           </div>
         )}

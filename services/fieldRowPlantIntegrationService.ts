@@ -4,7 +4,6 @@
  */
 
 import { GardenPlant } from '@/types/individualPlant'
-import { Garden } from '@/types'
 
 export interface FieldRow {
   id: string
@@ -19,10 +18,18 @@ export interface FieldRow {
   orientation?: string
   isActive: boolean
   plantCount?: number
+  // Legacy/snake_case compatibility
+  garden_id?: string
+  row_number?: number
+  length_meters?: number
+  plant_spacing?: number
+  plant_count?: number
+  planted_date?: string
 }
 
 export interface PlantGenerationConfig {
   fieldRowId: string
+  rowNumber?: number
   plantName: string
   variety?: string
   plantingDate: string
@@ -41,11 +48,15 @@ export function generatePlantsFromFieldRow(
   const plants: GardenPlant[] = []
   
   // Calcola numero di piante nel filare
-  const rowLengthCm = config.rowLength * 100
-  const maxPlants = Math.floor(rowLengthCm / config.plantSpacing)
+  const safeSpacing = config.plantSpacing > 0 ? config.plantSpacing : 50
+  const safeRowLength = config.rowLength > 0 ? config.rowLength : 1
+  const rowLengthCm = safeRowLength * 100
+  const maxPlants = Math.max(1, Math.floor(rowLengthCm / safeSpacing))
   
   // Genera codici pianta (es. F1-P001, F1-P002, etc.)
-  const rowNumber = config.fieldRowId.slice(-2) // Usa ultimi 2 caratteri come numero filare
+  const rowNumber = config.rowNumber && config.rowNumber > 0
+    ? config.rowNumber
+    : extractRowNumber(config.fieldRowId)
   
   // Genera contesto di impianto di default
   const plantingDate = new Date(config.plantingDate);
@@ -64,6 +75,7 @@ export function generatePlantsFromFieldRow(
       plantName: config.plantName,
       variety: config.variety,
       plantingDate: config.plantingDate,
+      plantedDate: config.plantingDate,
       plantingContext: defaultContext, // Aggiungi contesto
       source: 'seed', // Default: da seme
       status: 'healthy',
@@ -77,6 +89,52 @@ export function generatePlantsFromFieldRow(
   }
   
   return plants
+}
+
+function toNumber(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : undefined
+  }
+  return undefined
+}
+
+function extractRowNumber(rowIdentifier: string): number {
+  const match = rowIdentifier.match(/(\d+)/g)
+  if (!match || match.length === 0) return 1
+  const parsed = Number(match[match.length - 1])
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1
+}
+
+function normalizeFieldRow(rawRow: any): FieldRow {
+  const rowNumber = toNumber(rawRow.rowNumber ?? rawRow.row_number) || extractRowNumber(rawRow.name || rawRow.id || '1')
+  const lengthMeters = toNumber(rawRow.lengthMeters ?? rawRow.length_meters) || 0
+  const plantSpacing = toNumber(rawRow.plantSpacing ?? rawRow.plant_spacing)
+  const plantCount = toNumber(rawRow.plantCount ?? rawRow.plant_count)
+
+  return {
+    id: rawRow.id || `row_${rowNumber}`,
+    gardenId: rawRow.gardenId ?? rawRow.garden_id ?? '',
+    name: rawRow.name || `Filare ${rowNumber}`,
+    rowNumber,
+    lengthMeters,
+    distanceFromPreviousRow: toNumber(rawRow.distanceFromPreviousRow ?? rawRow.distance_from_previous_row),
+    cultivar: rawRow.cultivar || undefined,
+    plantSpacing,
+    plantedDate: rawRow.plantedDate ?? rawRow.planted_date ?? undefined,
+    orientation: rawRow.orientation ?? undefined,
+    isActive: rawRow.isActive ?? true,
+    plantCount,
+    garden_id: rawRow.garden_id,
+    row_number: toNumber(rawRow.row_number),
+    length_meters: toNumber(rawRow.length_meters),
+    plant_spacing: toNumber(rawRow.plant_spacing),
+    plant_count: toNumber(rawRow.plant_count),
+    planted_date: rawRow.planted_date
+  }
 }
 
 /**
@@ -229,33 +287,57 @@ export function generateDemoPlants(
 ): GardenPlant[] {
   const allPlants: GardenPlant[] = []
   
-  fieldRows.forEach((row, rowIndex) => {
-    if (!row.cultivar || !row.plantSpacing) return
-    
+  fieldRows.forEach((rawRow, rowIndex) => {
+    const row = normalizeFieldRow(rawRow)
+    if (!row.cultivar) return
+
+    // Tolleranza dati incompleti: usa plantCount o fallback spacing standard
+    const fallbackSpacing = 50
+    const estimatedCountFromLegacy = row.plantCount && row.plantCount > 0 ? row.plantCount : undefined
+    const normalizedSpacing = row.plantSpacing && row.plantSpacing > 0
+      ? row.plantSpacing
+      : (
+          estimatedCountFromLegacy && row.lengthMeters > 0
+            ? Math.max(10, Math.round((row.lengthMeters * 100) / estimatedCountFromLegacy))
+            : fallbackSpacing
+        )
+    const estimatedPlants = estimatedCountFromLegacy || Math.max(1, Math.floor((Math.max(row.lengthMeters, 1) * 100) / normalizedSpacing))
+    const normalizedRowLength = Math.max(
+      row.lengthMeters || 0,
+      (estimatedPlants * normalizedSpacing) / 100
+    )
+
     const config: PlantGenerationConfig = {
       fieldRowId: row.id,
+      rowNumber: row.rowNumber,
       plantName: row.cultivar.split(' ')[0] || 'Pianta',
       variety: row.cultivar.includes(' ') ? row.cultivar.split(' ').slice(1).join(' ') : undefined,
       plantingDate: row.plantedDate || new Date().toISOString().split('T')[0],
-      plantSpacing: row.plantSpacing,
-      rowLength: row.lengthMeters
+      plantSpacing: normalizedSpacing,
+      rowLength: normalizedRowLength
     }
     
     const rowPlants = generatePlantsFromFieldRow(config, gardenId)
+      .slice(0, estimatedPlants)
+      .map(plant => ({
+        ...plant,
+        fieldRowName: row.name
+      }))
     
     // Aggiungi variazione realistica alla salute
     rowPlants.forEach((plant, plantIndex) => {
-      // Simula variazione naturale di salute (70-95%)
-      plant.healthScore = Math.floor(70 + Math.random() * 25)
+      // Variazione deterministica: evita numeri casuali diversi a ogni refresh
+      const pattern = (rowIndex * 37 + plantIndex * 13) % 100
+      plant.healthScore = 70 + (pattern % 26)
       
       // Simula alcuni problemi occasionali
-      if (Math.random() < 0.1) { // 10% chance
+      if (pattern < 10) { // ~10%
         plant.status = 'diseased'
-        plant.healthScore = Math.floor(30 + Math.random() * 40)
+        plant.healthScore = 30 + (pattern % 40)
       }
       
       // Simula alcune piante raccolte
-      if (Math.random() < 0.05) { // 5% chance
+      if (pattern >= 10 && pattern < 15) { // ~5%
         plant.status = 'harvested'
         plant.healthScore = 0
       }

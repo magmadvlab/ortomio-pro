@@ -97,6 +97,10 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
     ? operations 
     : operations.filter(op => op.operationType === activeTab);
 
+  const plantingDateValue = plant.plantedDate || plant.plantingDate;
+  const plantingDate = plantingDateValue ? new Date(plantingDateValue) : null;
+  const hasValidPlantingDate = !!plantingDate && !isNaN(plantingDate.getTime());
+
   // Statistiche operazioni
   const stats = {
     watering: operations.filter(op => op.operationType === 'watering').length,
@@ -147,8 +151,8 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
               <div>
                 <div className="text-green-100 text-xs mb-1">📅 Piantata il</div>
                 <div className="font-medium">
-                  {plant.plantedDate && !isNaN(new Date(plant.plantedDate).getTime()) ? (
-                    new Date(plant.plantedDate).toLocaleDateString('it-IT', {
+                  {hasValidPlantingDate ? (
+                    plantingDate!.toLocaleDateString('it-IT', {
                       day: 'numeric',
                       month: 'long',
                       year: 'numeric'
@@ -158,8 +162,8 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                   )}
                 </div>
                 <div className="text-green-100 text-xs mt-1">
-                  {plant.plantedDate && !isNaN(new Date(plant.plantedDate).getTime()) ? (
-                    `${Math.floor((new Date().getTime() - new Date(plant.plantedDate).getTime()) / (1000 * 60 * 60 * 24))} giorni fa`
+                  {hasValidPlantingDate ? (
+                    `${Math.floor((new Date().getTime() - plantingDate!.getTime()) / (1000 * 60 * 60 * 24))} giorni fa`
                   ) : (
                     'N/D'
                   )}
@@ -543,7 +547,7 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-6">
               <div className="text-sm text-gray-600">
-                Piantata il: {new Date(plant.plantedDate).toLocaleDateString('it-IT')}
+                Piantata il: {hasValidPlantingDate ? plantingDate!.toLocaleDateString('it-IT') : 'Data non disponibile'}
               </div>
               {plant.fieldRowId && (
                 <div className="flex items-center gap-4 text-sm">

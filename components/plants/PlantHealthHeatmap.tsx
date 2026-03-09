@@ -178,7 +178,7 @@ const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
             <span className="text-sm">Eccellente (90-100%)</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-4 h-4 rounded-sm bg-yellow-full max-w-sm"></div>
+            <div className="w-4 h-4 rounded-sm bg-yellow-500"></div>
             <span className="text-sm">Buona (70-89%)</span>
           </div>
           <div className="flex items-center gap-3">
@@ -269,7 +269,7 @@ const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({
             if (!plant) return null;
             
             return (
-              <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Basic Info */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">

@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Garden } from '../../types';
-import { GardenPlant, PlantOperation, BulkRowOperation } from '../../types/individualPlant';
+import { GardenPlant, BulkRowOperation } from '../../types/individualPlant';
 import { useStorage } from '../../packages/core/hooks/useStorage';
 import BulkOperationModal from './BulkOperationModal';
 import PlantHealthHeatmap from './PlantHealthHeatmap';
@@ -66,7 +66,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
   const [plants, setPlants] = useState<GardenPlant[]>([]);
   const [filteredPlants, setFilteredPlants] = useState<GardenPlant[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<ViewMode>('heatmap');
+  const [viewMode, setViewMode] = useState<ViewMode>(fieldRow ? 'list' : 'grid');
   const [selection, setSelection] = useState<PlantSelection>({
     mode: 'single',
     plantIds: []
@@ -93,7 +93,11 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
     if (fieldRow) {
       setFieldRowFilter(fieldRow);
       setRowFilter(fieldRow);
+      setViewMode('list');
       console.log('🌾 SmartPlantManager: Filtering by fieldRow:', fieldRow);
+    } else {
+      setFieldRowFilter(null);
+      setRowFilter('all');
     }
   }, [fieldRow]);
   
@@ -115,7 +119,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
 
   useEffect(() => {
     applyFilters();
-  }, [plants, searchTerm, statusFilter, healthFilter, rowFilter]);
+  }, [plants, plantRowMappings, fieldRowFilter, searchTerm, statusFilter, healthFilter, rowFilter]);
 
   const loadPlants = async () => {
     if (!garden?.id) {
@@ -297,6 +301,8 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
       }
     }
 
+    const beforeRowFilter = [...filtered];
+
     // Row filter (IMPROVED - Handle fieldRow parameter from URL)
     if (rowFilter !== 'all') {
       if (rowFilter === 'assigned') {
@@ -321,6 +327,14 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
           const mapping = plantRowMappings.find(m => m.plantId === plant.id);
           return mapping && (mapping.gardenRowId === rowFilter || mapping.fieldRowId === rowFilter);
         });
+
+        // Compatibility fallback:
+        // if user entered from a specific row but legacy plants have no mapping,
+        // keep showing filtered plants instead of an empty screen.
+        if (filtered.length === 0 && fieldRowFilter && rowFilter === fieldRowFilter && beforeRowFilter.length > 0) {
+          console.warn('🌾 SmartPlantManager: no plants mapped to selected row, showing all compatible plants');
+          filtered = beforeRowFilter;
+        }
       }
     }
 
@@ -535,7 +549,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
   return (
     <div className="space-y-6">
       {/* Header con statistiche rapide */}
-      <div className="bg-white rounded-lg shadow-md p-4 sm:p-4 sm:p-6">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <TreePine className="text-green-600" size={28} />
@@ -623,12 +637,12 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
           <div className="bg-yellow-50 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-yellow-full max-w-sm">Senza Filare</p>
-                <p className="text-lg md:text-xl font-bold text-yellow-full max-w-sm">
+                <p className="text-sm text-yellow-600">Senza Filare</p>
+                <p className="text-lg md:text-xl font-bold text-yellow-700">
                   {syncStatistics?.plantsWithoutRows || 0}
                 </p>
               </div>
-              <Unlink className="text-yellow-full max-w-sm" size={24} />
+              <Unlink className="text-yellow-600" size={24} />
             </div>
           </div>
 
@@ -659,13 +673,13 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
       </div>
 
       {/* Filtri e Selezione */}
-      <div className="bg-white rounded-lg shadow-md p-4 sm:p-4 sm:p-6">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Filtri e Selezione</h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-3/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
               placeholder="Cerca pianta (F1-P001, Pomodoro...)"
@@ -883,7 +897,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
 
             {/* Grid View */}
             {viewMode === 'grid' && (
-              <div className="p-4 sm:p-4 sm:p-6">
+              <div className="p-4 sm:p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {filteredPlants.slice(0, 50).map((plant) => {
                     // Calcola info tooltip per filare
@@ -961,7 +975,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
 
             {/* List View */}
             {viewMode === 'list' && (
-              <div className="p-4 sm:p-4 sm:p-6 space-y-2">
+              <div className="p-4 sm:p-6 space-y-2">
                 {filteredPlants.slice(0, 100).map((plant) => {
                   // Calcola info tooltip per filare
                   const fieldRowInfo = plant.fieldRowId ? {
@@ -1047,7 +1061,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
       {showRowAssignment && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-[90vw] md:max-w-md max-h-[95vh] sm:max-h-[95vh] sm:max-h-[90vh] overflow-y-auto w-full">
-            <div className="p-4 sm:p-4 sm:p-6">
+            <div className="p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Assegna Piante a Filare
               </h3>
@@ -1101,7 +1115,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
       {showUnifiedOperationModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-[95vw] sm:max-w-[95vw] sm:max-w-lg w-full">
-            <div className="p-4 sm:p-4 sm:p-6">
+            <div className="p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Operazione Unificata Multi-Livello
               </h3>
