@@ -10,6 +10,7 @@ import { getCachedForecast, cacheForecast } from '@/services/weatherCacheService
 import { calculateMoonPhase } from '@/logic/lunarCalendar';
 import { useTier } from '@/packages/core/hooks/useTier';
 import { Garden } from '../types';
+import { normalizeGeoCoordinates } from '@/utils/coordinates';
 import { 
   Cloud, CloudRain, Sun, Snowflake, ThermometerSun, Droplets, Wind, 
   AlertTriangle, Loader2, MapPin, Moon, Sprout, Lightbulb, Calendar
@@ -57,18 +58,29 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
   const [lunarAdvice, setLunarAdvice] = useState<LunarAdvice | null>(null);
   const [locationName, setLocationName] = useState<string | null>(null);
 
-  // Filtra solo i giardini che hanno coordinate
-  const gardensWithCoordinates = gardens.filter(g => g.coordinates?.latitude && g.coordinates?.longitude);
+  // Filtra solo i giardini con coordinate valide (supporta sia latitude/longitude che lat/lon legacy)
+  const gardensWithCoordinates = gardens
+    .map((garden) => ({
+      garden,
+      coordinates: normalizeGeoCoordinates(garden.coordinates),
+    }))
+    .filter(
+      (
+        entry
+      ): entry is { garden: Garden; coordinates: { latitude: number; longitude: number } } =>
+        !!entry.coordinates
+    );
   
   // Trova il giardino attualmente selezionato per il meteo
   // Se non c'è selezione manuale, usa le coordinate passate come props
-  const selectedGarden = selectedGardenId 
-    ? gardensWithCoordinates.find(g => g.id === selectedGardenId)
+  const selectedGardenEntry = selectedGardenId 
+    ? gardensWithCoordinates.find((entry) => entry.garden.id === selectedGardenId)
     : null;
+  const selectedGarden = selectedGardenEntry?.garden;
 
   // Coordinate da usare per il meteo - priorità alle props se non c'è selezione manuale
-  const weatherLat = selectedGarden?.coordinates?.latitude || latitude;
-  const weatherLng = selectedGarden?.coordinates?.longitude || longitude;
+  const weatherLat = selectedGardenEntry?.coordinates.latitude || latitude;
+  const weatherLng = selectedGardenEntry?.coordinates.longitude || longitude;
 
   // DEBUG: Log dettagliato delle coordinate meteo
   useEffect(() => {
@@ -77,7 +89,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
       propsLongitude: longitude,
       selectedGardenId,
       selectedGardenName: selectedGarden?.name || 'NESSUNO',
-      selectedGardenCoords: selectedGarden?.coordinates || 'N/A',
+      selectedGardenCoords: selectedGardenEntry?.coordinates || 'N/A',
       finalWeatherLat: weatherLat,
       finalWeatherLng: weatherLng,
       gardensCount: gardens.length,
@@ -85,11 +97,11 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
       allGardens: gardens.map(g => ({
         id: g.id,
         name: g.name,
-        lat: g.coordinates?.latitude,
-        lng: g.coordinates?.longitude
+        lat: normalizeGeoCoordinates(g.coordinates)?.latitude,
+        lng: normalizeGeoCoordinates(g.coordinates)?.longitude
       }))
     });
-  }, [latitude, longitude, selectedGardenId, weatherLat, weatherLng, gardens.length]);
+  }, [latitude, longitude, selectedGardenId, weatherLat, weatherLng, gardens, gardensWithCoordinates.length, selectedGardenEntry?.coordinates]);
 
   // Calcola consigli lunari
   const calculateLunarAdvice = (): LunarAdvice => {
@@ -396,9 +408,9 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
               onChange={(e) => setSelectedGardenId(e.target.value)}
               className="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-white"
             >
-              {gardensWithCoordinates.map(garden => (
-                <option key={garden.id} value={garden.id}>
-                  {garden.name}
+              {gardensWithCoordinates.map((entry) => (
+                <option key={entry.garden.id} value={entry.garden.id}>
+                  {entry.garden.name}
                 </option>
               ))}
             </select>

@@ -60,6 +60,7 @@ import { it } from 'date-fns/locale'
 import { Heart, Sparkles } from 'lucide-react'
 import IntegratedFieldOperationsModal from '@/components/fieldrows/IntegratedFieldOperationsModal'
 import QuickOperationModal from '@/components/fieldrows/QuickOperationModal'
+import { normalizeGeoCoordinates } from '@/utils/coordinates'
 
 interface HomeDashboardProps {
   garden?: Garden
@@ -348,13 +349,14 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   }, [activeGarden?.id, storageProvider])
 
   // Load weather when active garden coordinates change - with stable key
-  const weatherKey = activeGarden?.coordinates
-    ? `${activeGarden.coordinates.latitude.toFixed(4)}_${activeGarden.coordinates.longitude.toFixed(4)}`
+  const activeGardenCoordinates = normalizeGeoCoordinates(activeGarden?.coordinates)
+  const weatherKey = activeGardenCoordinates
+    ? `${activeGardenCoordinates.latitude.toFixed(4)}_${activeGardenCoordinates.longitude.toFixed(4)}`
     : null
 
   useEffect(() => {
-    if (activeGarden?.coordinates?.latitude && activeGarden?.coordinates?.longitude) {
-      fetchWeather(activeGarden.coordinates.latitude, activeGarden.coordinates.longitude)
+    if (activeGardenCoordinates) {
+      fetchWeather(activeGardenCoordinates.latitude, activeGardenCoordinates.longitude)
     }
   }, [weatherKey]) // Only re-run if coordinates actually change
 
@@ -502,9 +504,10 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     gardenName: activeGarden.name,
     gardenId: activeGarden.id,
     coordinates: activeGarden.coordinates,
-    latitude: activeGarden.coordinates?.latitude,
-    longitude: activeGarden.coordinates?.longitude,
-    hasCoordinates: !!(activeGarden.coordinates?.latitude && activeGarden.coordinates?.longitude)
+    normalizedCoordinates: activeGardenCoordinates,
+    latitude: activeGardenCoordinates?.latitude,
+    longitude: activeGardenCoordinates?.longitude,
+    hasCoordinates: !!activeGardenCoordinates
   })
 
   return (
@@ -534,12 +537,18 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
 
           {/* Weather + Lunar Widget - Unified forecast with lunar advice */}
           {activeGarden && (() => {
-            const lat = activeGarden.coordinates?.latitude || 41.9028; // Default Rome fallback
-            const lng = activeGarden.coordinates?.longitude || 12.4964;
+            const fallbackCoordinates =
+              activeGardenCoordinates ||
+              gardens
+                .map((g) => normalizeGeoCoordinates(g.coordinates))
+                .find((coords): coords is { latitude: number; longitude: number } => !!coords) || {
+                latitude: 41.9028,
+                longitude: 12.4964,
+              };
             return (
               <WeatherLunarWidget
-                latitude={lat}
-                longitude={lng}
+                latitude={fallbackCoordinates.latitude}
+                longitude={fallbackCoordinates.longitude}
                 gardens={gardens}
                 activePlants={(currentTasks || [])
                   .filter(t => !t.completed && t.plantName)

@@ -30,6 +30,7 @@ import { handleTaskCompletion } from '../services/taskCompletionHook';
 import { GardenStructuresEditor } from './gardens/GardenStructuresEditor';
 import { WateringLogForm } from './irrigation/WateringLogForm';
 import { IrrigationZone } from '../types/irrigation';
+import { normalizeGeoCoordinates } from '../utils/coordinates';
 
 interface DashboardProps {
   tasks: GardenTask[];
@@ -50,6 +51,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const router = useRouter();
   const { tier, isPro, checkLimit, limit } = useTier();
   const activeGarden = gardens.find(g => g.id === activeGardenId);
+  const activeGardenCoordinates = normalizeGeoCoordinates(activeGarden?.coordinates);
   const [isEditingSettings, setIsEditingSettings] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [gardenToDelete, setGardenToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -111,7 +113,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     const now = new Date();
     setCurrentDate(now);
     setCurrentYear(now.getFullYear());
-    const season = getSeasonForDate(now, activeGarden?.coordinates?.latitude || 0);
+    const season = getSeasonForDate(now, activeGardenCoordinates?.latitude || 0);
     setCurrentSeason(season);
     
     // Determina se mostrare analisi stagione (fine stagione o inizio nuova)
@@ -121,7 +123,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       // Fine inverno: marzo, inizio estate: aprile
       setShouldShowSeasonAnalysis(month === 9 || month === 10 || month === 3 || month === 4);
     }
-  }, [activeGarden]);
+  }, [activeGarden, activeGardenCoordinates?.latitude]);
 
   // Initialize form when opening settings or creating new
   useEffect(() => {
@@ -213,9 +215,9 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
     };
 
-    if (activeGarden?.coordinates) {
+    if (activeGardenCoordinates) {
         // Usa coordinate salvate dell'orto
-        fetchWeather(activeGarden.coordinates.latitude, activeGarden.coordinates.longitude);
+        fetchWeather(activeGardenCoordinates.latitude, activeGardenCoordinates.longitude);
     } else {
         // Prova geolocalizzazione con retry (silenzioso - non mostra errori all'utente)
         setWeatherLoading(true);
@@ -234,7 +236,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             }
         });
     }
-  }, [activeGarden]);
+  }, [activeGarden, activeGardenCoordinates?.latitude, activeGardenCoordinates?.longitude]);
 
   // Calculate lifecycle advices for active plants
   useEffect(() => {

@@ -2,6 +2,7 @@
  * Weather Service - Servizio per recuperare dati meteo reali
  * Integra OpenWeatherMap e Open-Meteo per dati accurati
  */
+import { normalizeGeoCoordinates } from '../utils/coordinates';
 
 interface WeatherData {
   temp: number
@@ -267,24 +268,23 @@ class WeatherService {
    * Ottiene dati meteo per un orto specifico
    */
   async getWeatherForGarden(garden: any): Promise<WeatherData> {
-    if (garden?.coordinates?.lat && garden?.coordinates?.lon) {
+    const coordinates =
+      normalizeGeoCoordinates(garden?.coordinates) ??
+      normalizeGeoCoordinates(garden?.location?.coordinates) ??
+      normalizeGeoCoordinates(garden?.location) ??
+      normalizeGeoCoordinates(garden);
+
+    if (coordinates) {
       return await this.getWeatherForLocation({
-        lat: garden.coordinates.lat,
-        lon: garden.coordinates.lon,
-        name: garden.name
-      })
-    } else if (garden?.location?.coordinates) {
-      // Supporta anche formato alternativo
-      return await this.getWeatherForLocation({
-        lat: garden.location.coordinates.lat,
-        lon: garden.location.coordinates.lon,
-        name: garden.name
-      })
-    } else {
-      // Se l'orto non ha coordinate, usa la posizione dell'utente
-      console.log('Garden has no coordinates, using user location for weather')
-      return await this.getWeatherForUserLocation()
+        lat: coordinates.latitude,
+        lon: coordinates.longitude,
+        name: garden?.name
+      });
     }
+
+    // Se l'orto non ha coordinate valide, usa la posizione dell'utente
+    console.log('Garden has no valid coordinates, using user location for weather');
+    return await this.getWeatherForUserLocation();
   }
 
   /**
@@ -697,4 +697,4 @@ export const createWeatherService = () => ({
   getCurrentWeather
 });
 
-export type { WeatherData, WeatherForecast, WeatherAlert, GardenLocation }
+export type { WeatherData, WeatherAlert, GardenLocation }

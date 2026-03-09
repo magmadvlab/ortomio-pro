@@ -54,7 +54,9 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
   const [isRefreshingLocation, setIsRefreshingLocation] = useState(false);
   
   // Determina se Step 3 è necessario
-  const needsLocation = !['Indoor', 'Hydroponic', 'Aquaponic', 'Aeroponic', 'Orchard', 'OliveGrove', 'Vineyard'].includes(gardenType);
+  // La posizione è obbligatoria per tutti gli spazi esterni (orto, frutteto, oliveto, vigneto, etc.)
+  // Per Indoor resta opzionale.
+  const needsLocation = gardenType !== 'Indoor';
 
   // Step 4: Configurazione Strutture e Dimensioni
   const [calculatedSizeSqMeters, setCalculatedSizeSqMeters] = useState<number>(existingGarden?.sizeSqMeters || 0);
@@ -351,9 +353,9 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
     }
     if (step === 2) {
       // Validazione step 2: tipo selezionato (opzionale, può essere vuoto)
-      // Se tipo richiede posizione, vai a Step 3, altrimenti salta a Step 4
+      // Se il tipo richiede posizione, vai a Step 3, altrimenti salta a Step 4
       if (!needsLocation) {
-        // Salta Step 3 (posizione) per indoor/idroponico
+        // Salta Step 3 (posizione) solo per indoor
         setStep(4);
         return;
       }
@@ -788,8 +790,8 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                         Posizione Geografica Opzionale
                       </p>
                       <p className="text-xs text-blue-700">
-                        Per giardini indoor e sistemi idroponici/acquaponici/aeroponici, la posizione geografica 
-                        è opzionale poiché il clima è controllato artificialmente. Puoi comunque inserirla per 
+                        Per giardini indoor, la posizione geografica
+                        è opzionale poiché il clima è controllato artificialmente. Puoi comunque inserirla per
                         statistiche e analisi generali.
                       </p>
                     </div>
@@ -1449,4 +1451,3 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
 };
 
 export default GardenOnboarding;
-

@@ -19,6 +19,7 @@ import { CropArchetype, CropProfile, CropAlias, ArchetypeId, OfficialCrop } from
 import { IrrigationSystem, IrrigationZone, IrrigationComponent, WateringLog } from '@/types/irrigation';
 import { HealthAlert } from '@/types/healthAlert';
 import { sendNotification, createTaskCompletedNotification, createTaskReminderNotification } from '@/services/notificationService';
+import { normalizeGeoCoordinates } from '@/utils/coordinates';
 
 export class SupabaseStorageProvider implements IStorageProvider {
   private client: SupabaseClient | null;
@@ -1009,11 +1010,20 @@ export class SupabaseStorageProvider implements IStorageProvider {
   }
 
   // Mapper functions (DB <-> TypeScript)
+  private normalizeCoordinates(value: any): Garden['coordinates'] | undefined {
+    return normalizeGeoCoordinates(value);
+  }
+
   private mapGardenFromDB(db: any): Garden {
     return {
       id: db.id,
       name: db.name,
-      coordinates: db.coordinates,
+      coordinates:
+        this.normalizeCoordinates(db.coordinates) ??
+        this.normalizeCoordinates({
+          latitude: db.latitude,
+          longitude: db.longitude,
+        }),
       sizeSqMeters: Number(db.size_sq_meters),
       sizeUnit: db.size_unit,
       soilType: db.soil_type,
@@ -1045,7 +1055,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
   private mapGardenToDB(garden: Partial<Garden>): any {
     const db: any = {};
     if (garden.name !== undefined) db.name = garden.name;
-    if (garden.coordinates !== undefined) db.coordinates = garden.coordinates;
+    if (garden.coordinates !== undefined) {
+      db.coordinates =
+        this.normalizeCoordinates(garden.coordinates) ?? garden.coordinates;
+    }
     if (garden.sizeSqMeters !== undefined) db.size_sq_meters = garden.sizeSqMeters;
     if (garden.sizeUnit !== undefined) db.size_unit = garden.sizeUnit;
     if (garden.soilType !== undefined) db.soil_type = garden.soilType;

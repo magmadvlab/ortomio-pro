@@ -19,6 +19,7 @@ import { GardenRow } from '@/types';
 import { CropArchetype, CropProfile, CropAlias, ArchetypeId, OfficialCrop } from '@/types/archetypes';
 import { IrrigationSystem, IrrigationZone, IrrigationComponent, WateringLog } from '@/types/irrigation';
 import { HealthAlert } from '@/types/healthAlert';
+import { normalizeGeoCoordinates } from '@/utils/coordinates';
 
 export class LocalStorageProvider implements IStorageProvider {
   private readonly STORAGE_KEYS = {
@@ -56,6 +57,17 @@ export class LocalStorageProvider implements IStorageProvider {
     return `ortomio_user_pref_${key}`;
   }
 
+  private normalizeGardenCoordinates(value: any): Garden['coordinates'] | undefined {
+    return normalizeGeoCoordinates(value);
+  }
+
+  private normalizeGarden(garden: Garden): Garden {
+    return {
+      ...garden,
+      coordinates: this.normalizeGardenCoordinates((garden as any).coordinates),
+    };
+  }
+
   isAvailable(): boolean {
     try {
       const test = '__storage_test__';
@@ -87,7 +99,38 @@ export class LocalStorageProvider implements IStorageProvider {
 
   // Gardens
   async getGardens(): Promise<Garden[]> {
-    return StorageService.getGardens();
+    const rawGardens = StorageService.getGardens();
+    const gardens = rawGardens.map((garden) => this.normalizeGarden(garden));
+
+    const hasLegacyCoordinates = rawGardens.some((garden, index) => {
+      const original = (garden as any)?.coordinates;
+      const normalized = gardens[index]?.coordinates;
+
+      if (original && typeof original === 'object') {
+        const originalRecord = original as Record<string, unknown>;
+        if (
+          originalRecord.lat !== undefined ||
+          originalRecord.lon !== undefined ||
+          originalRecord.lng !== undefined
+        ) {
+          return true;
+        }
+      }
+
+      const originalLatitude = (original as any)?.latitude;
+      const originalLongitude = (original as any)?.longitude;
+
+      return (
+        normalized?.latitude !== originalLatitude ||
+        normalized?.longitude !== originalLongitude
+      );
+    });
+
+    if (hasLegacyCoordinates) {
+      StorageService.saveGardens(gardens);
+    }
+
+    return gardens;
   }
 
   async getGarden(id: string): Promise<Garden | null> {
@@ -98,6 +141,7 @@ export class LocalStorageProvider implements IStorageProvider {
   async createGarden(garden: Omit<Garden, 'id' | 'createdAt'>): Promise<Garden> {
     const newGarden: Garden = {
       ...garden,
+      coordinates: this.normalizeGardenCoordinates((garden as any).coordinates),
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
     };
@@ -119,7 +163,10 @@ export class LocalStorageProvider implements IStorageProvider {
     if (index === -1) {
       throw new Error(`Garden with id ${id} not found`);
     }
-    gardens[index] = { ...gardens[index], ...updates };
+    gardens[index] = this.normalizeGarden({
+      ...gardens[index],
+      ...updates,
+    });
     StorageService.saveGardens(gardens);
     
     // Trigger backup automatico (non bloccare se fallisce)

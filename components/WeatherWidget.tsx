@@ -10,6 +10,7 @@ import { getWeatherForecast7Days, generateWeatherAlerts } from '../services/weat
 import { getCachedForecast, cacheForecast } from '../services/weatherCacheService';
 import { useTier } from '../packages/core/hooks/useTier';
 import { Garden } from '../types';
+import { normalizeGeoCoordinates } from '../utils/coordinates';
 import { Cloud, CloudRain, Sun, Snowflake, ThermometerSun, Droplets, Wind, AlertTriangle, Loader2, Calendar, MapPin, Sprout, TreePine, Grape } from 'lucide-react';
 
 interface WeatherWidgetProps {
@@ -32,19 +33,30 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedGardenId, setSelectedGardenId] = useState<string | null>(null);
 
-  // Filtra solo i giardini che hanno coordinate
-  const gardensWithCoordinates = gardens.filter(g => g.coordinates?.latitude && g.coordinates?.longitude);
+  // Filtra solo i giardini con coordinate valide (supporta formato legacy lat/lon)
+  const gardensWithCoordinates = gardens
+    .map((garden) => ({
+      garden,
+      coordinates: normalizeGeoCoordinates(garden.coordinates),
+    }))
+    .filter(
+      (
+        entry
+      ): entry is { garden: Garden; coordinates: { latitude: number; longitude: number } } =>
+        !!entry.coordinates
+    );
   
   // Trova il giardino attualmente selezionato per il meteo
-  const selectedGarden = selectedGardenId 
-    ? gardensWithCoordinates.find(g => g.id === selectedGardenId)
-    : gardensWithCoordinates.find(g => 
-        g.coordinates?.latitude === latitude && g.coordinates?.longitude === longitude
+  const selectedGardenEntry = selectedGardenId 
+    ? gardensWithCoordinates.find((entry) => entry.garden.id === selectedGardenId)
+    : gardensWithCoordinates.find((entry) => 
+        entry.coordinates.latitude === latitude && entry.coordinates.longitude === longitude
       ) || gardensWithCoordinates[0];
+  const selectedGarden = selectedGardenEntry?.garden;
 
   // Coordinate da usare per il meteo
-  const weatherLat = selectedGarden?.coordinates?.latitude || latitude;
-  const weatherLng = selectedGarden?.coordinates?.longitude || longitude;
+  const weatherLat = selectedGardenEntry?.coordinates.latitude || latitude;
+  const weatherLng = selectedGardenEntry?.coordinates.longitude || longitude;
 
   useEffect(() => {
     const hasAccess = can('advancedWeather');
@@ -219,9 +231,9 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
             onChange={(e) => handleGardenSelect(e.target.value)}
             className="px-3 py-1 text-sm border border-gray-300 rounded-lg bg-white"
           >
-            {gardensWithCoordinates.map(garden => (
-              <option key={garden.id} value={garden.id}>
-                {garden.name}
+            {gardensWithCoordinates.map((entry) => (
+              <option key={entry.garden.id} value={entry.garden.id}>
+                {entry.garden.name}
               </option>
             ))}
           </select>
@@ -328,18 +340,18 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
           
           {/* Desktop: Bottoni */}
           <div className="hidden md:flex gap-3 flex-wrap">
-            {gardensWithCoordinates.map(garden => (
+            {gardensWithCoordinates.map((entry) => (
               <button
-                key={garden.id}
-                onClick={() => handleGardenSelect(garden.id)}
+                key={entry.garden.id}
+                onClick={() => handleGardenSelect(entry.garden.id)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedGarden?.id === garden.id
+                  selectedGarden?.id === entry.garden.id
                     ? 'bg-green-100 text-green-800 border border-green-300'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
                 }`}
               >
-                {getGardenIcon(garden)}
-                <span className="truncate max-w-24">{garden.name}</span>
+                {getGardenIcon(entry.garden)}
+                <span className="truncate max-w-24">{entry.garden.name}</span>
               </button>
             ))}
           </div>
@@ -351,20 +363,20 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
               onChange={(e) => handleGardenSelect(e.target.value)}
               className="w-full p-3 border border-gray-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
             >
-              {gardensWithCoordinates.map(garden => (
-                <option key={garden.id} value={garden.id}>
-                  {garden.name}
+              {gardensWithCoordinates.map((entry) => (
+                <option key={entry.garden.id} value={entry.garden.id}>
+                  {entry.garden.name}
                 </option>
               ))}
             </select>
           </div>
           
           {/* Coordinate info */}
-          {selectedGarden && (
+          {selectedGardenEntry && (
             <div className="mt-2 text-xs text-gray-500 flex items-center gap-3">
               <MapPin size={12} />
               <span>
-                {selectedGarden.coordinates?.latitude.toFixed(3)}, {selectedGarden.coordinates?.longitude.toFixed(3)}
+                {selectedGardenEntry?.coordinates.latitude.toFixed(3)}, {selectedGardenEntry?.coordinates.longitude.toFixed(3)}
               </span>
             </div>
           )}
