@@ -23,7 +23,9 @@ import {
   Ruler,
   Activity,
   TrendingUp,
-  X
+  X,
+  Droplets,
+  Scissors
 } from 'lucide-react'
 
 interface TreeManagerProps {
@@ -1286,15 +1288,260 @@ function TreePhotosTab({ tree, photos, onPhotosUpdate }: {
 
 // Tree History Tab Component
 function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
+  const [loading, setLoading] = useState(true)
+  const [timeline, setTimeline] = useState<Array<{
+    id: string
+    type: 'pruning' | 'harvest' | 'treatment' | 'irrigation'
+    date: string
+    title: string
+    description?: string
+    operator?: string
+  }>>([])
+  const [showQuickEntry, setShowQuickEntry] = useState(false)
+  const [entryType, setEntryType] = useState<'irrigation' | 'treatment'>('irrigation')
+  const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0])
+  const [entryNotes, setEntryNotes] = useState('')
+  const [entryProduct, setEntryProduct] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    loadTimeline()
+  }, [tree.id])
+
+  const loadTimeline = async () => {
+    try {
+      setLoading(true)
+      const [pruningRecords, harvestRecords, treatmentRecords] = await Promise.all([
+        orchardService.getTreePruningRecords(tree.id),
+        orchardService.getTreeHarvestRecords(tree.id),
+        orchardService.getTreeTreatments(tree.id),
+      ])
+
+      const pruningItems = pruningRecords.map(record => ({
+        id: `pruning-${record.id}`,
+        type: 'pruning' as const,
+        date: record.pruningDate,
+        title: 'Potatura',
+        description: record.notes || record.pruningType,
+        operator: record.operatorName,
+      }))
+
+      const harvestItems = harvestRecords.map(record => ({
+        id: `harvest-${record.id}`,
+        type: 'harvest' as const,
+        date: record.harvestDate,
+        title: `Raccolta (${record.quantityKg} kg)`,
+        description: record.notes || record.qualityClass,
+        operator: record.operatorName,
+      }))
+
+      const treatmentTypeLabel: Record<string, string> = {
+        fertilization: 'Fertilizzazione',
+        pest_control: 'Controllo Parassiti',
+        disease_control: 'Controllo Malattie',
+        weed_control: 'Controllo Erbe Infestanti',
+        growth_regulation: 'Regolazione Crescita',
+        soil_amendment: 'Ammendamento Suolo',
+        foliar_nutrition: 'Nutrizione Fogliare',
+      }
+
+      const treatmentItems = treatmentRecords.map(record => {
+        const isIrrigation =
+          (record.applicationMethod || '').toLowerCase().includes('irrig') ||
+          (record.treatmentReason || '').toLowerCase().includes('irrig')
+
+        return {
+          id: `treatment-${record.id}`,
+          type: (isIrrigation ? 'irrigation' : 'treatment') as 'irrigation' | 'treatment',
+          date: record.treatmentDate,
+          title: isIrrigation
+            ? 'Irrigazione'
+            : (treatmentTypeLabel[record.treatmentType] || 'Trattamento'),
+          description: record.notes || record.productName || record.treatmentReason,
+          operator: record.operatorName,
+        }
+      })
+
+      const merged = [...pruningItems, ...harvestItems, ...treatmentItems].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      )
+
+      setTimeline(merged)
+    } catch (error) {
+      console.error('Error loading tree history:', error)
+      setTimeline([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleQuickEntrySubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!entryDate || !entryNotes.trim()) {
+      alert('Inserisci data e note intervento')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const isIrrigation = entryType === 'irrigation'
+      await orchardService.addTreeTreatment({
+        treeId: tree.id,
+        treatmentDate: entryDate,
+        treatmentType: isIrrigation ? 'soil_amendment' : 'disease_control',
+        productName: entryProduct.trim() || undefined,
+        applicationMethod: isIrrigation ? 'irrigation' : undefined,
+        treatmentReason: isIrrigation ? 'Irrigazione' : 'Trattamento generale',
+        severityLevel: 'preventive',
+        followUpRequired: false,
+        organicApproved: true,
+        beforePhotos: [],
+        afterPhotos: [],
+        notes: entryNotes.trim(),
+      })
+
+      setEntryNotes('')
+      setEntryProduct('')
+      setEntryType('irrigation')
+      setShowQuickEntry(false)
+      await loadTimeline()
+    } catch (error) {
+      console.error('Error saving tree diary entry:', error)
+      alert('Errore nel salvataggio intervento')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const getTimelineIcon = (type: 'pruning' | 'harvest' | 'treatment' | 'irrigation') => {
+    if (type === 'irrigation') return <Droplets className="text-blue-600" size={18} />
+    if (type === 'pruning') return <Scissors className="text-orange-600" size={18} />
+    if (type === 'harvest') return <Calendar className="text-green-600" size={18} />
+    return <AlertTriangle className="text-purple-600" size={18} />
+  }
+
+  const getTimelineBadge = (type: 'pruning' | 'harvest' | 'treatment' | 'irrigation') => {
+    if (type === 'irrigation') return 'bg-blue-100 text-blue-700'
+    if (type === 'pruning') return 'bg-orange-100 text-orange-700'
+    if (type === 'harvest') return 'bg-green-100 text-green-700'
+    return 'bg-purple-100 text-purple-700'
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-10">
+        <Calendar className="mx-auto text-gray-400 mb-3 animate-pulse" size={40} />
+        <p className="text-gray-600">Caricamento diario albero...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-900">Storico Interventi</h3>
-      
-      <div className="text-center py-12 border border-gray-200 rounded-lg">
-        <Calendar className="mx-auto text-gray-400 mb-4" size={48} />
-        <h4 className="text-lg font-semibold text-gray-900 mb-2">Nessuno storico</h4>
-        <p className="text-gray-600">Gli interventi su questo albero appariranno qui</p>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900">Diario Interventi Albero</h3>
+        <button
+          onClick={() => setShowQuickEntry(prev => !prev)}
+          className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          {showQuickEntry ? 'Chiudi' : 'Registra Intervento'}
+        </button>
       </div>
+
+      {showQuickEntry && (
+        <form onSubmit={handleQuickEntrySubmit} className="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Tipo intervento</label>
+              <select
+                value={entryType}
+                onChange={(e) => setEntryType(e.target.value as 'irrigation' | 'treatment')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="irrigation">Irrigazione</option>
+                <option value="treatment">Trattamento</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Data</label>
+              <input
+                type="date"
+                value={entryDate}
+                onChange={(e) => setEntryDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Prodotto (opzionale)</label>
+              <input
+                type="text"
+                value={entryProduct}
+                onChange={(e) => setEntryProduct(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="Es. rame, concime fogliare..."
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Note intervento</label>
+            <textarea
+              value={entryNotes}
+              onChange={(e) => setEntryNotes(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              rows={3}
+              placeholder="Dettagli operazione, dosi, esito..."
+            />
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+            >
+              {saving ? 'Salvataggio...' : 'Salva nel Diario'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {timeline.length === 0 ? (
+        <div className="text-center py-12 border border-gray-200 rounded-lg">
+          <Calendar className="mx-auto text-gray-400 mb-4" size={48} />
+          <h4 className="text-lg font-semibold text-gray-900 mb-2">Nessun intervento registrato</h4>
+          <p className="text-gray-600">Registra irrigazioni, trattamenti, potature e raccolte per questo albero.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {timeline.map(item => (
+            <div key={item.id} className="border border-gray-200 rounded-lg p-4 bg-white">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5">{getTimelineIcon(item.type)}</div>
+                  <div>
+                    <div className="font-medium text-gray-900">{item.title}</div>
+                    {item.description && (
+                      <div className="text-sm text-gray-600 mt-1">{item.description}</div>
+                    )}
+                    {item.operator && (
+                      <div className="text-xs text-gray-500 mt-1">Operatore: {item.operator}</div>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-900">
+                    {new Date(item.date).toLocaleDateString('it-IT')}
+                  </div>
+                  <span className={`inline-block mt-1 px-2 py-0.5 text-xs rounded-full ${getTimelineBadge(item.type)}`}>
+                    {item.type === 'irrigation' ? 'Irrigazione' :
+                     item.type === 'pruning' ? 'Potatura' :
+                     item.type === 'harvest' ? 'Raccolta' : 'Trattamento'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
