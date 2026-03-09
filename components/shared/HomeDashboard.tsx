@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { Garden, GardenTask } from '@/types'
-import { 
-  ChevronDown, MapPin, Droplets, Moon, Sun, Snowflake, 
+import {
+  ChevronDown, MapPin, Droplets, Moon, Sun, Snowflake,
   Package, AlertTriangle, Calendar, Wrench, Info, Plus,
   CheckCircle, X, Loader2, Cloud, CloudRain, ThermometerSun,
   Zap, Satellite, Map, BarChart3, ArrowRight
@@ -85,7 +85,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   const getBaselineDismissPrefKey = (gardenId: string) => `baseline_dismissed_${gardenId}`
   const getBaselineShowAllPrefKey = (gardenId: string) => `baseline_show_all_${gardenId}`
   const [dismissedBaselinePrompts, setDismissedBaselinePrompts] = useState<Record<string, string>>({})
-  
+
   // Auto-sync listener
   useEffect(() => {
     const handleAutoSync = async () => {
@@ -99,10 +99,10 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
         }
       }
     }
-    
+
     // Listen for auto-sync events
     window.addEventListener('ortomio-auto-sync', handleAutoSync)
-    
+
     return () => {
       window.removeEventListener('ortomio-auto-sync', handleAutoSync)
     }
@@ -114,7 +114,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   // Wrapper per setActiveGarden che persiste la selezione
   const setActiveGarden = React.useCallback((garden: Garden | null) => {
     setActiveGardenState(garden)
-    
+
     // Persisti l'orto attivo in localStorage per il meteo
     if (garden) {
       try {
@@ -155,16 +155,16 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   const [fieldRowPlants, setFieldRowPlants] = useState<any[]>([]) // Piante individuali
   const [showQuickOperationModal, setShowQuickOperationModal] = useState(false)
   const [quickOperationType, setQuickOperationType] = useState<'fertilization' | 'treatment' | 'cultivation'>('fertilization')
-  
+
   // States for modals
   const [showVacationMode, setShowVacationMode] = useState(false)
   const [showSeedlingManager, setShowSeedlingManager] = useState(false)
   const [showSaplingManager, setShowSaplingManager] = useState(false)
   const [showSpecializedCropManagement, setShowSpecializedCropManagement] = useState<'FruitTree' | 'Strawberry' | 'Olive' | 'Vine' | 'ExoticFruit' | 'Aromatic' | 'Raspberry' | null>(null)
-  
+
   // States for new garden creation
   const [showGardenTypeWizard, setShowGardenTypeWizard] = useState(false)
-  
+
   // Use tasks prop directly instead of local state to prevent infinite loops
   const currentTasks = tasks || []
 
@@ -179,7 +179,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   useEffect(() => {
     const loadAllData = async () => {
       if (!activeGarden) return;
-      
+
       try {
         // Load all data in parallel to reduce re-renders
         const [batches, packets, zones, rows, plants] = await Promise.all([
@@ -213,7 +213,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
             console.error('Error loading field rows:', err);
             return [];
           }) || Promise.resolve([]),
-          
+
           // Load individual plants
           (async () => {
             try {
@@ -225,20 +225,20 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
             }
           })()
         ]);
-        
+
         setSeedlingBatches(batches);
         setSeedPackets(packets || []);
         setIrrigationZones(zones);
         setFieldRows(rows || []);
         setFieldRowPlants(plants || []);
-        
+
         console.log('✅ HomeDashboard: Loaded field rows:', rows?.length || 0);
         console.log('✅ HomeDashboard: Loaded individual plants:', plants?.length || 0);
       } catch (error) {
         console.error('Error loading garden data:', error);
       }
     };
-    
+
     loadAllData();
   }, [activeGarden?.id, storageProvider]); // Only re-run when garden ID changes
 
@@ -246,7 +246,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   const [gardensLoaded, setGardensLoaded] = useState(false)
   useEffect(() => {
     if (gardensLoaded) return // Prevent multiple loads
-    
+
     const loadGardens = async () => {
       try {
         console.log('🔄 HomeDashboard: Loading gardens internally...')
@@ -254,7 +254,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
         console.log('✅ HomeDashboard: Gardens loaded:', loadedGardens.length)
         setGardens(loadedGardens)
         setGardensLoaded(true)
-        
+
         // Recupera l'ultimo orto usato da localStorage
         let savedGardenId: string | null = null
         try {
@@ -262,14 +262,14 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
         } catch (e) {
           // Ignora errori localStorage
         }
-        
+
         // Only set activeGarden if we don't have one from props and none is set
         if (loadedGardens.length > 0 && !activeGarden && !garden) {
           // Cerca l'orto salvato
-          const savedGarden = savedGardenId 
+          const savedGarden = savedGardenId
             ? loadedGardens.find(g => g.id === savedGardenId)
             : null
-          
+
           if (savedGarden) {
             console.log('✅ HomeDashboard: Ripristinato ultimo orto usato:', savedGarden.name)
             setActiveGarden(savedGarden)
@@ -348,10 +348,10 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   }, [activeGarden?.id, storageProvider])
 
   // Load weather when active garden coordinates change - with stable key
-  const weatherKey = activeGarden?.coordinates 
+  const weatherKey = activeGarden?.coordinates
     ? `${activeGarden.coordinates.latitude.toFixed(4)}_${activeGarden.coordinates.longitude.toFixed(4)}`
     : null
-  
+
   useEffect(() => {
     if (activeGarden?.coordinates?.latitude && activeGarden?.coordinates?.longitude) {
       fetchWeather(activeGarden.coordinates.latitude, activeGarden.coordinates.longitude)
@@ -408,27 +408,27 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
 
   // Load daily plan when dependencies change - debounced to prevent loops
   const [planLoadTimer, setPlanLoadTimer] = useState<NodeJS.Timeout | null>(null)
-  
+
   useEffect(() => {
     if (!activeGarden || !tasks) return
-    
+
     // Clear existing timer
     if (planLoadTimer) {
       clearTimeout(planLoadTimer)
     }
-    
+
     // Debounce plan loading by 500ms
     const timer = setTimeout(async () => {
       setLoadingPlan(true)
       try {
         const plan = await getDailyGardenPlan(
-          activeGarden, 
-          tasks, 
-          new Date(), 
-          undefined, 
-          undefined, 
-          seedlingBatches || [], 
-          storageProvider, 
+          activeGarden,
+          tasks,
+          new Date(),
+          undefined,
+          undefined,
+          seedlingBatches || [],
+          storageProvider,
           seedPackets || []
         )
         setDailyPlan(plan)
@@ -453,9 +453,9 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
         setLoadingPlan(false)
       }
     }, 500)
-    
+
     setPlanLoadTimer(timer)
-    
+
     return () => {
       if (timer) clearTimeout(timer)
     }
@@ -533,21 +533,25 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
           )}
 
           {/* Weather + Lunar Widget - Unified forecast with lunar advice */}
-          {activeGarden && activeGarden.coordinates?.latitude && activeGarden.coordinates?.longitude && (
-            <WeatherLunarWidget
-              latitude={activeGarden.coordinates.latitude}
-              longitude={activeGarden.coordinates.longitude}
-              gardens={gardens}
-              activePlants={(currentTasks || [])
-                .filter(t => !t.completed && t.plantName)
-                .map(t => ({
-                  plantName: t.plantName,
-                  minTemp: undefined
-                }))
-              }
-            />
-          )}
-      </div>
+          {activeGarden && (() => {
+            const lat = activeGarden.coordinates?.latitude || 41.9028; // Default Rome fallback
+            const lng = activeGarden.coordinates?.longitude || 12.4964;
+            return (
+              <WeatherLunarWidget
+                latitude={lat}
+                longitude={lng}
+                gardens={gardens}
+                activePlants={(currentTasks || [])
+                  .filter(t => !t.completed && t.plantName)
+                  .map(t => ({
+                    plantName: t.plantName,
+                    minTemp: undefined
+                  }))
+                }
+              />
+            );
+          })()}
+        </div>
 
         {/* Director Briefing Widget - Orchestratore Predittivo */}
         {activeGarden && (
@@ -599,14 +603,14 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                     <ArrowRight size={16} />
                   </Link>
                 )}
-          </div>
+              </div>
 
               {todayTasks.length === 0 ? (
                 <div className="text-center py-8">
                   <CheckCircle size={48} className="mx-auto text-green-500 mb-3" />
                   <p className="text-gray-600 font-medium">Nessun task per oggi!</p>
                   <p className="text-sm text-gray-500 mt-1">Goditi il tuo orto 🌱</p>
-        </div>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {todayTasks.slice(0, 6).map(task => (
@@ -725,11 +729,10 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                               <span className="px-2 py-0 min-h-[44px] touch-manipulation.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
                                 Stagionale
                               </span>
-                              <span className={`px-2 py-0 min-h-[44px] touch-manipulation.5 rounded text-[10px] font-bold ${
-                                p.priority === 'High' ? 'bg-red-100 text-red-700' :
-                                p.priority === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-blue-100 text-blue-700'
-                              }`}
+                              <span className={`px-2 py-0 min-h-[44px] touch-manipulation.5 rounded text-[10px] font-bold ${p.priority === 'High' ? 'bg-red-100 text-red-700' :
+                                  p.priority === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                                    'bg-blue-100 text-blue-700'
+                                }`}
                               >
                                 {p.priority === 'High' ? 'Alta' : p.priority === 'Medium' ? 'Media' : 'Bassa'}
                               </span>
@@ -743,11 +746,10 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                             <button
                               key={opt.id}
                               onClick={() => handleBaselineOption(p.id, opt)}
-                              className={`text-sm font-semibold px-3 py-2 min-h-[44px] touch-manipulation rounded-lg border transition ${
-                                opt.actionType === 'create_task'
+                              className={`text-sm font-semibold px-3 py-2 min-h-[44px] touch-manipulation rounded-lg border transition ${opt.actionType === 'create_task'
                                   ? 'bg-white border-green-200 text-green-700 hover:bg-green-50'
                                   : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                              }`}
+                                }`}
                             >
                               {opt.label}
                             </button>
@@ -766,12 +768,12 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                             if (activeGarden) {
                               try {
                                 localStorage.setItem(getBaselineShowAllKey(activeGarden.id), next ? '1' : '0')
-                              } catch (e) {}
+                              } catch (e) { }
 
                               if (storageProvider.setUserPreference) {
                                 storageProvider
                                   .setUserPreference(getBaselineShowAllPrefKey(activeGarden.id), next)
-                                  .catch(() => {})
+                                  .catch(() => { })
                               }
                             }
                             return next
@@ -801,55 +803,55 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
           const isOrchard = gardenType === 'Orchard'
           const isOliveGrove = gardenType === 'OliveGrove'
           const isVineyard = gardenType === 'Vineyard'
-          
-          const linkHref = isOrchard 
-            ? '/app/orchard' 
-            : isOliveGrove 
-              ? '/app/olives' 
-              : isVineyard 
+
+          const linkHref = isOrchard
+            ? '/app/orchard'
+            : isOliveGrove
+              ? '/app/olives'
+              : isVineyard
                 ? '/app/vineyard'
                 : `/app/garden?garden=${activeGarden.id}`
-          
-          const linkTitle = isOrchard 
-            ? 'Gestione Frutteto' 
-            : isOliveGrove 
-              ? 'Gestione Oliveto' 
-              : isVineyard 
+
+          const linkTitle = isOrchard
+            ? 'Gestione Frutteto'
+            : isOliveGrove
+              ? 'Gestione Oliveto'
+              : isVineyard
                 ? 'Gestione Vigneto'
                 : 'Gestione Orto'
-          
+
           const linkEmoji = isOrchard ? '🍎' : isOliveGrove ? '🫒' : isVineyard ? '🍇' : '🌱'
 
           return (
-          <Link href={linkHref} className="block">
-            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl border-2 border-green-400 p-6 hover:shadow-xl transition-all duration-300 group">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <span className="text-white text-2xl">{linkEmoji}</span>
+            <Link href={linkHref} className="block">
+              <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl border-2 border-green-400 p-6 hover:shadow-xl transition-all duration-300 group">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <span className="text-white text-2xl">{linkEmoji}</span>
+                    </div>
+                    <div className="text-white">
+                      <h3 className="font-bold text-xl mb-1">{linkTitle}</h3>
+                      <p className="text-green-100 text-sm">{activeGarden.name}</p>
+                    </div>
                   </div>
-                  <div className="text-white">
-                    <h3 className="font-bold text-xl mb-1">{linkTitle}</h3>
-                    <p className="text-green-100 text-sm">{activeGarden.name}</p>
+                  <div className="text-white text-2xl group-hover:translate-x-2 transition-transform">
+                    →
                   </div>
                 </div>
-                <div className="text-white text-2xl group-hover:translate-x-2 transition-transform">
-                  →
+
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+                    <div className="text-white/80 text-xs mb-1">Filari</div>
+                    <div className="text-white font-bold text-lg">{fieldRows.length}</div>
+                  </div>
+                  <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+                    <div className="text-white/80 text-xs mb-1">Piante</div>
+                    <div className="text-white font-bold text-lg">{fieldRowPlants.length}</div>
+                  </div>
                 </div>
               </div>
-              
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
-                  <div className="text-white/80 text-xs mb-1">Filari</div>
-                  <div className="text-white font-bold text-lg">{fieldRows.length}</div>
-                </div>
-                <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
-                  <div className="text-white/80 text-xs mb-1">Piante</div>
-                  <div className="text-white font-bold text-lg">{fieldRowPlants.length}</div>
-                </div>
-              </div>
-            </div>
-          </Link>
+            </Link>
           )
         })()}
 
@@ -1078,7 +1080,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                 onCreateOrchard={async (batch) => {
                   try {
                     if (!activeGarden) return
-                    
+
                     // Create a specialized crop task for the orchard
                     const orchardTask: GardenTask = {
                       id: crypto.randomUUID(),
@@ -1093,10 +1095,10 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                       locationType: 'Ground',
                       stage: 'Vegetative'
                     }
-                    
+
                     // Create the task
                     await storageProvider.createTask(orchardTask)
-                    
+
                     // Update the batch to link it to the created orchard
                     const updatedBatch = {
                       ...batch,
@@ -1104,10 +1106,10 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                       phase: 'ReadyToOrchard' as const
                     }
                     await storageProvider.updateSaplingBatch(batch.id, updatedBatch)
-                    
+
                     // Reload tasks and batches
                     await refreshTasks()
-                    
+
                     alert(`Impianto specializzato creato con successo!\nPianta: ${batch.plantName}\nQuantità: ${batch.quantity} piante\nControlla il Diario per gestire il nuovo impianto.`)
                   } catch (error) {
                     console.error('Error creating orchard:', error)
@@ -1133,8 +1135,8 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
               </button>
             </div>
             <div className="p-4">
-              <VacationMode 
-                garden={activeGarden} 
+              <VacationMode
+                garden={activeGarden}
                 tasks={tasks}
                 onUpdateGarden={onUpdateGarden}
               />
@@ -1311,9 +1313,9 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
           <div className="bg-white rounded-xl max-w-[95vw] sm:max-w-[95vw] sm:max-w-2xl w-full max-h-[95vh] sm:max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
               <h2 className="text-lg md:text-xl font-bold">
-                {showReadingForm === 'hydroponic' ? 'Registra Lettura Idroponica' : 
-                 showReadingForm === 'aquaponic' ? 'Registra Test Acqua Acquaponica' : 
-                 'Registra Lettura Aeroponica'}
+                {showReadingForm === 'hydroponic' ? 'Registra Lettura Idroponica' :
+                  showReadingForm === 'aquaponic' ? 'Registra Test Acqua Acquaponica' :
+                    'Registra Lettura Aeroponica'}
               </h2>
               <button
                 onClick={() => setShowReadingForm(null)}
@@ -1347,10 +1349,10 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
               setGardens(updatedGardens)
               setActiveGarden(garden)
               setShowGardenTypeWizard(false)
-              
+
               // Carica task per il nuovo giardino (saranno vuoti inizialmente)
               await refreshTasks()
-              
+
               if (onUpdateGarden) {
                 onUpdateGarden(garden)
               }
