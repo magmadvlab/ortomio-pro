@@ -1317,6 +1317,7 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
 
   const [loading, setLoading] = useState(true)
   const [timeline, setTimeline] = useState<TreeTimelineItem[]>([])
+  const [activeTimelineTab, setActiveTimelineTab] = useState<'all' | 'irrigation' | 'fertilizing' | 'treatment' | 'work' | 'pruning' | 'harvest'>('all')
   const [showQuickEntry, setShowQuickEntry] = useState(false)
   const [entryMode, setEntryMode] = useState<'manual' | 'iot'>('manual')
   const [entryType, setEntryType] = useState<'watering' | 'fertilizing' | 'treatment' | 'work'>('watering')
@@ -1734,6 +1735,19 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
     )
   }
 
+  const timelineStats = {
+    irrigation: timeline.filter(item => item.type === 'irrigation').length,
+    fertilizing: timeline.filter(item => item.type === 'fertilizing').length,
+    treatment: timeline.filter(item => item.type === 'treatment').length,
+    work: timeline.filter(item => item.type === 'work').length,
+    pruning: timeline.filter(item => item.type === 'pruning').length,
+    harvest: timeline.filter(item => item.type === 'harvest').length,
+  }
+
+  const filteredTimeline = activeTimelineTab === 'all'
+    ? timeline
+    : timeline.filter((item) => item.type === activeTimelineTab)
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1887,15 +1901,45 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
         </form>
       )}
 
-      {timeline.length === 0 ? (
+      <div className="border-b border-gray-200 bg-gray-50 rounded-lg px-3">
+        <div className="flex gap-2 overflow-x-auto">
+          {[
+            { id: 'all', label: 'Tutte', count: timeline.length },
+            { id: 'irrigation', label: 'Irrigazioni', count: timelineStats.irrigation },
+            { id: 'fertilizing', label: 'Fertilizzazioni', count: timelineStats.fertilizing },
+            { id: 'treatment', label: 'Trattamenti', count: timelineStats.treatment },
+            { id: 'work', label: 'Lavorazioni', count: timelineStats.work },
+            { id: 'pruning', label: 'Potature', count: timelineStats.pruning },
+            { id: 'harvest', label: 'Raccolte', count: timelineStats.harvest },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTimelineTab(tab.id as 'all' | 'irrigation' | 'fertilizing' | 'treatment' | 'work' | 'pruning' | 'harvest')}
+              className={`px-3 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTimelineTab === tab.id
+                  ? 'text-green-600 border-green-600'
+                  : 'text-gray-500 border-transparent hover:text-gray-700'
+              }`}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {filteredTimeline.length === 0 ? (
         <div className="text-center py-12 border border-gray-200 rounded-lg">
           <Calendar className="mx-auto text-gray-400 mb-4" size={48} />
           <h4 className="text-lg font-semibold text-gray-900 mb-2">Nessun intervento registrato</h4>
-          <p className="text-gray-600">Registra irrigazioni, trattamenti, potature e raccolte per questo albero.</p>
+          <p className="text-gray-600">
+            {activeTimelineTab === 'all'
+              ? 'Registra irrigazioni, trattamenti, potature e raccolte per questo albero.'
+              : `Nessuna operazione nella categoria selezionata (${activeTimelineTab}).`}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {timeline.map(item => (
+          {filteredTimeline.map(item => (
             <div key={item.id} className="border border-gray-200 rounded-lg p-4 bg-white">
               <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">

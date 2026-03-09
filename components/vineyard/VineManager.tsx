@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from 'react'
 import { VineyardVine, VineSearchCriteria, VineHealthStatus, VineVigorLevel, VineProductivityStatus } from '@/types/vineyard'
 import { vineyardService } from '@/services/vineyardService'
+import { useStorage } from '@/packages/core/hooks/useStorage'
+import { createUnifiedOperationsService } from '@/services/unifiedOperationsService'
+import { createOperationContextService } from '@/services/operationContextService'
 import { 
   Grape, 
   Plus, 
@@ -43,6 +46,25 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
   const [showFilters, setShowFilters] = useState(false)
   const [selectedVine, setSelectedVine] = useState<VineyardVine | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const { storageProvider } = useStorage()
+  const unifiedOperationsService = createUnifiedOperationsService(storageProvider)
+  const operationContextService = createOperationContextService()
+  const [detailTab, setDetailTab] = useState<'info' | 'history'>('info')
+  const [operationsLoading, setOperationsLoading] = useState(false)
+  const [vineOperations, setVineOperations] = useState<any[]>([])
+  const [activeOperationTab, setActiveOperationTab] = useState<'all' | 'watering' | 'fertilizing' | 'treatment' | 'work'>('all')
+  const [showQuickEntry, setShowQuickEntry] = useState(false)
+  const [entryMode, setEntryMode] = useState<'manual' | 'iot'>('manual')
+  const [entryType, setEntryType] = useState<'watering' | 'fertilizing' | 'treatment' | 'work'>('watering')
+  const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0])
+  const [entryTime, setEntryTime] = useState(new Date().toTimeString().slice(0, 5))
+  const [entryQuantity, setEntryQuantity] = useState('')
+  const [entryUnit, setEntryUnit] = useState('L')
+  const [entryDurationMinutes, setEntryDurationMinutes] = useState('')
+  const [entryProduct, setEntryProduct] = useState('')
+  const [entrySubtype, setEntrySubtype] = useState('')
+  const [entryNotes, setEntryNotes] = useState('')
+  const [savingEntry, setSavingEntry] = useState(false)
 
   const [filters, setFilters] = useState<VineSearchCriteria>({
     healthStatus: [],
@@ -60,6 +82,27 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
   useEffect(() => {
     applyFilters()
   }, [vines, searchTerm, filters])
+
+  useEffect(() => {
+    if (!selectedVine?.id) return
+    loadVineOperations(selectedVine.id)
+  }, [selectedVine?.id])
+
+  useEffect(() => {
+    if (entryType === 'watering') {
+      setEntryUnit('L')
+      return
+    }
+    if (entryType === 'fertilizing') {
+      setEntryUnit('g')
+      return
+    }
+    if (entryType === 'treatment') {
+      setEntryUnit('ml')
+      return
+    }
+    setEntryUnit('sessione')
+  }, [entryType])
 
   const loadVines = async () => {
     try {
@@ -197,6 +240,207 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
     if (filters.harvestReady !== undefined) count++
     return count
   }
+
+  const parseNumber = (value?: string | number | null): number | undefined => {
+    if (value === null || value === undefined) return undefined
+    if (typeof value === 'number') return Number.isFinite(value) ? value : undefined
+    const normalized = Number(String(value).replace(',', '.'))
+    return Number.isFinite(normalized) ? normalized : undefined
+  }
+
+  const formatOperationDate = (value?: string) => {
+    if (!value) return 'Data non disponibile'
+    const parsedDate = new Date(value)
+    if (Number.isNaN(parsedDate.getTime())) return value
+    const includeTime = value.includes('T')
+    return includeTime
+      ? parsedDate.toLocaleString('it-IT', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : parsedDate.toLocaleDateString('it-IT')
+  }
+
+  const getSourceBadge = (operation: any) => {
+    const sourceType = operation?.sourceType
+      || (operation?.parentOperationTable === 'iot_sensor' ? 'iot' : undefined)
+      || (operation?.parentOperationTable === 'manual_orchestrator' ? 'manual' : undefined)
+      || (operation?.parentOperationTable === 'orchestrator_auto' ? 'orchestrator_auto' : undefined)
+      || (operation?.parentOperationTable === 'watering_logs' ? 'orchestrator_sync' : undefined)
+      || (operation?.parentOperationTable === 'fertilizer_logs' ? 'orchestrator_sync' : undefined)
+      || (operation?.parentOperationTable === 'treatment_logs' ? 'orchestrator_sync' : undefined)
+
+    if (sourceType === 'iot') return { label: 'IOT', className: 'bg-violet-100 text-violet-700' }
+    if (sourceType === 'orchestrator_auto' || sourceType === 'orchestrator_sync') {
+      return { label: 'Orchestratore', className: 'bg-indigo-100 text-indigo-700' }
+    }
+    return { label: 'Manuale', className: 'bg-emerald-100 text-emerald-700' }
+  }
+
+  const getOperationIcon = (type: string) => {
+    if (type === 'watering') return <Droplets className="text-blue-600" size={18} />
+    if (type === 'fertilizing') return <TrendingUp className="text-green-700" size={18} />
+    if (type === 'work') return <Scissors className="text-slate-700" size={18} />
+    return <AlertCircle className="text-orange-600" size={18} />
+  }
+
+  const getOperationLabel = (type: string) => {
+    if (type === 'watering') return 'Irrigazione'
+    if (type === 'fertilizing') return 'Fertilizzazione'
+    if (type === 'treatment') return 'Trattamento'
+    if (type === 'work') return 'Lavorazione'
+    return 'Intervento'
+  }
+
+  const loadVineOperations = async (vineId: string) => {
+    try {
+      setOperationsLoading(true)
+      const operations = await storageProvider?.getPlantOperations?.(vineId) || []
+      setVineOperations(operations)
+    } catch (error) {
+      console.error('Error loading vine operations:', error)
+      setVineOperations([])
+    } finally {
+      setOperationsLoading(false)
+    }
+  }
+
+  const registerVineOperation = async () => {
+    if (!selectedVine) return
+    if (!entryDate) {
+      alert('Inserisci la data intervento')
+      return
+    }
+
+    const normalizedQuantity = parseNumber(entryQuantity)
+    const normalizedDuration = parseNumber(entryDurationMinutes)
+    const normalizedProduct = entryProduct.trim()
+    const normalizedSubtype = entrySubtype.trim()
+    const normalizedNotes = entryNotes.trim()
+
+    if (entryType === 'watering' && normalizedQuantity === undefined && normalizedDuration === undefined) {
+      alert('Per irrigazione inserisci almeno quantità oppure durata')
+      return
+    }
+    if ((entryType === 'fertilizing' || entryType === 'treatment') && !normalizedProduct) {
+      alert('Specifica il prodotto/tipo per fertilizzazione o trattamento')
+      return
+    }
+
+    try {
+      setSavingEntry(true)
+
+      const garden = await storageProvider?.getGarden?.(selectedVine.gardenId)
+      const timestamp = new Date(`${entryDate}T${entryTime || '12:00'}:00`)
+      const validTimestamp = Number.isNaN(timestamp.getTime()) ? new Date() : timestamp
+
+      const vineCoordinates = selectedVine.gpsLatitude !== undefined && selectedVine.gpsLongitude !== undefined
+        ? { latitude: Number(selectedVine.gpsLatitude), longitude: Number(selectedVine.gpsLongitude), source: 'vine_gps' as const }
+        : undefined
+
+      const gardenCoordinates = garden?.coordinates
+        ? {
+            latitude: parseNumber(garden.coordinates.latitude ?? garden.coordinates.lat),
+            longitude: parseNumber(garden.coordinates.longitude ?? garden.coordinates.lng ?? garden.coordinates.lon),
+            source: 'garden_coordinates' as const,
+          }
+        : undefined
+
+      const coordinates = vineCoordinates || (
+        gardenCoordinates?.latitude !== undefined && gardenCoordinates?.longitude !== undefined
+          ? { latitude: gardenCoordinates.latitude, longitude: gardenCoordinates.longitude, source: gardenCoordinates.source }
+          : undefined
+      )
+
+      const context = coordinates
+        ? await operationContextService.getOperationContext(coordinates.latitude, coordinates.longitude, validTimestamp)
+        : undefined
+
+      const operationDetails: Record<string, any> = {
+        durationMinutes: normalizedDuration,
+        subtype: normalizedSubtype || undefined,
+      }
+
+      const composedNotes = [
+        normalizedNotes || undefined,
+        normalizedDuration !== undefined ? `Durata ${normalizedDuration} min` : undefined,
+      ].filter(Boolean).join(' | ') || undefined
+
+      const result = await unifiedOperationsService.executeUnifiedOperation({
+        level: 'plant',
+        gardenId: selectedVine.gardenId,
+        plantIds: [selectedVine.id],
+        operationType: entryType,
+        operationDate: entryDate,
+        operationTime: entryTime || undefined,
+        quantity: normalizedQuantity,
+        unit: entryUnit.trim() || undefined,
+        productName: normalizedProduct || undefined,
+        notes: composedNotes,
+        sourceType: entryMode,
+        actorType: entryMode,
+        propagateToPlants: false,
+        contextSnapshot: context
+          ? ({ ...context, operationDetails } as any)
+          : ({ timestamp: validTimestamp.toISOString(), operationDetails } as any),
+        weatherConditions: context
+          ? ({
+              temp: context.weather.temperature,
+              humidity: context.weather.humidity,
+              wind: `${context.weather.windSpeed} km/h`,
+              condition: context.weather.condition,
+              precipitation: context.weather.precipitation,
+              pressure: context.weather.pressure,
+            } as any)
+          : undefined,
+        geoSnapshot: {
+          latitude: coordinates?.latitude,
+          longitude: coordinates?.longitude,
+          altitudeMeters: garden?.altitudeMeters,
+          sunExposure: garden?.sunExposure,
+          aspectDirection: garden?.aspectDirection,
+          obstacles: Array.isArray(garden?.obstacles) ? garden.obstacles : undefined,
+          source: coordinates?.source || 'not_available',
+        },
+      })
+
+      if (!result.success) {
+        alert(`Errore registrazione intervento:\n${(result.errors || ['Errore sconosciuto']).join('\n')}`)
+        return
+      }
+
+      setEntryMode('manual')
+      setEntryType('watering')
+      setEntryDate(new Date().toISOString().split('T')[0])
+      setEntryTime(new Date().toTimeString().slice(0, 5))
+      setEntryQuantity('')
+      setEntryDurationMinutes('')
+      setEntryProduct('')
+      setEntrySubtype('')
+      setEntryNotes('')
+      setShowQuickEntry(false)
+      await loadVineOperations(selectedVine.id)
+    } catch (error) {
+      console.error('Error registering vine operation:', error)
+      alert('Errore nel salvataggio intervento')
+    } finally {
+      setSavingEntry(false)
+    }
+  }
+
+  const operationStats = {
+    watering: vineOperations.filter(op => op.operationType === 'watering').length,
+    fertilizing: vineOperations.filter(op => op.operationType === 'fertilizing').length,
+    treatment: vineOperations.filter(op => op.operationType === 'treatment').length,
+    work: vineOperations.filter(op => op.operationType === 'work').length,
+  }
+
+  const filteredOperations = activeOperationTab === 'all'
+    ? vineOperations
+    : vineOperations.filter(op => op.operationType === activeOperationTab)
 
   if (loading) {
     return (
@@ -640,7 +884,7 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
       {/* Modal dettagli vite */}
       {selectedVine && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">
@@ -653,101 +897,380 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
                   ✕
                 </button>
               </div>
+
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() => setDetailTab('info')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    detailTab === 'info'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Informazioni
+                </button>
+                <button
+                  onClick={() => setDetailTab('history')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    detailTab === 'history'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Diario Orchestratore
+                </button>
+              </div>
             </div>
             
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Informazioni base */}
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Informazioni Base</h3>
-                  <div className="space-y-2 text-sm">
+              {detailTab === 'info' ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Informazioni base */}
                     <div>
-                      <span className="text-gray-600">Varietà:</span>
-                      <span className="ml-2 font-medium">{selectedVine.variety}</span>
+                      <h3 className="font-semibold text-gray-900 mb-3">Informazioni Base</h3>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="text-gray-600">Varietà:</span>
+                          <span className="ml-2 font-medium">{selectedVine.variety}</span>
+                        </div>
+                        {selectedVine.rootstock && (
+                          <div>
+                            <span className="text-gray-600">Portinnesto:</span>
+                            <span className="ml-2 font-medium">{selectedVine.rootstock}</span>
+                          </div>
+                        )}
+                        {selectedVine.plantingDate && (
+                          <div>
+                            <span className="text-gray-600">Data Impianto:</span>
+                            <span className="ml-2 font-medium">
+                              {format(new Date(selectedVine.plantingDate), 'dd MMMM yyyy', { locale: it })}
+                            </span>
+                          </div>
+                        )}
+                        {selectedVine.vineAgeYears && (
+                          <div>
+                            <span className="text-gray-600">Età:</span>
+                            <span className="ml-2 font-medium">{selectedVine.vineAgeYears} anni</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {selectedVine.rootstock && (
-                      <div>
-                        <span className="text-gray-600">Portinnesto:</span>
-                        <span className="ml-2 font-medium">{selectedVine.rootstock}</span>
+
+                    {/* Stato e produzione */}
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-3">Stato e Produzione</h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600">Salute:</span>
+                          {getHealthStatusIcon(selectedVine.healthStatus)}
+                          <span className="font-medium">
+                            {selectedVine.healthStatus === 'healthy' ? 'Sana' :
+                             selectedVine.healthStatus === 'stressed' ? 'Stressata' :
+                             selectedVine.healthStatus === 'diseased' ? 'Malata' :
+                             selectedVine.healthStatus === 'pest_damage' ? 'Danni da Parassiti' :
+                             selectedVine.healthStatus === 'weather_damage' ? 'Danni Meteorici' :
+                             'Morta'}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600">Vigore:</span>
+                          {getVigorIcon(selectedVine.vigorLevel)}
+                          <span className="font-medium">
+                            {selectedVine.vigorLevel === 'very_low' ? 'Molto Basso' :
+                             selectedVine.vigorLevel === 'low' ? 'Basso' :
+                             selectedVine.vigorLevel === 'normal' ? 'Normale' :
+                             selectedVine.vigorLevel === 'high' ? 'Alto' :
+                             'Eccessivo'}
+                          </span>
+                        </div>
+                        
+                        {selectedVine.lastHarvestKg && (
+                          <div>
+                            <span className="text-gray-600">Ultima Raccolta:</span>
+                            <span className="ml-2 font-medium">{selectedVine.lastHarvestKg} kg</span>
+                          </div>
+                        )}
+                        
+                        {selectedVine.cumulativeYieldKg > 0 && (
+                          <div>
+                            <span className="text-gray-600">Produzione Totale:</span>
+                            <span className="ml-2 font-medium">{selectedVine.cumulativeYieldKg} kg</span>
+                          </div>
+                        )}
+                        
+                        {selectedVine.sugarContentBrix && (
+                          <div>
+                            <span className="text-gray-600">Brix:</span>
+                            <span className="ml-2 font-medium">{selectedVine.sugarContentBrix}°</span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {selectedVine.plantingDate && (
+                    </div>
+                  </div>
+
+                  {/* Note */}
+                  {selectedVine.notes && (
+                    <div className="mt-6">
+                      <h3 className="font-semibold text-gray-900 mb-2">Note</h3>
+                      <p className="text-gray-700 text-sm bg-gray-50 p-3 rounded">
+                        {selectedVine.notes}
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-5">
+                  <div className="border border-blue-200 rounded-lg bg-blue-50 p-4">
+                    <div className="flex items-center justify-between gap-4 mb-3">
                       <div>
-                        <span className="text-gray-600">Data Impianto:</span>
-                        <span className="ml-2 font-medium">
-                          {format(new Date(selectedVine.plantingDate), 'dd MMMM yyyy', { locale: it })}
-                        </span>
+                        <h3 className="text-sm font-semibold text-gray-900">Orchestratore Interventi Vite</h3>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Eventi automatici (IOT) e manuali tracciati nello stesso diario.
+                        </p>
                       </div>
-                    )}
-                    {selectedVine.vineAgeYears && (
-                      <div>
-                        <span className="text-gray-600">Età:</span>
-                        <span className="ml-2 font-medium">{selectedVine.vineAgeYears} anni</span>
+                      <button
+                        onClick={() => setShowQuickEntry(prev => !prev)}
+                        className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                      >
+                        {showQuickEntry ? 'Chiudi' : 'Registra Intervento'}
+                      </button>
+                    </div>
+
+                    {showQuickEntry && (
+                      <div className="bg-white border border-blue-200 rounded-lg p-4 space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Origine</label>
+                            <select
+                              value={entryMode}
+                              onChange={(e) => setEntryMode(e.target.value as 'manual' | 'iot')}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                            >
+                              <option value="manual">Manuale</option>
+                              <option value="iot">IOT</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Tipo intervento</label>
+                            <select
+                              value={entryType}
+                              onChange={(e) => setEntryType(e.target.value as 'watering' | 'fertilizing' | 'treatment' | 'work')}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                            >
+                              <option value="watering">Irrigazione</option>
+                              <option value="fertilizing">Fertilizzazione</option>
+                              <option value="treatment">Trattamento</option>
+                              <option value="work">Lavorazione</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Data</label>
+                            <input
+                              type="date"
+                              value={entryDate}
+                              onChange={(e) => setEntryDate(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Ora</label>
+                            <input
+                              type="time"
+                              value={entryTime}
+                              onChange={(e) => setEntryTime(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Quantità</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={entryQuantity}
+                              onChange={(e) => setEntryQuantity(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                              placeholder="Es. 2.5"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Unità</label>
+                            <input
+                              type="text"
+                              value={entryUnit}
+                              onChange={(e) => setEntryUnit(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Durata (min)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={entryDurationMinutes}
+                              onChange={(e) => setEntryDurationMinutes(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                              placeholder="Es. 30"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Metodo/Tipo</label>
+                            <input
+                              type="text"
+                              value={entrySubtype}
+                              onChange={(e) => setEntrySubtype(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                              placeholder={entryType === 'watering' ? 'goccia, microjet' : 'preventivo, sfalcio'}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            {entryType === 'fertilizing'
+                              ? 'Tipo concime'
+                              : entryType === 'treatment'
+                                ? 'Tipo trattamento fitosanitario'
+                                : 'Prodotto (opzionale)'}
+                          </label>
+                          <input
+                            type="text"
+                            value={entryProduct}
+                            onChange={(e) => setEntryProduct(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                            placeholder={
+                              entryType === 'fertilizing'
+                                ? 'Es. NPK 20-20-20'
+                                : entryType === 'treatment'
+                                  ? 'Es. Rame ossicloruro'
+                                  : 'Es. attrezzatura / operatore'
+                            }
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Note</label>
+                          <textarea
+                            rows={2}
+                            value={entryNotes}
+                            onChange={(e) => setEntryNotes(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                            placeholder="Dettagli intervento..."
+                          />
+                        </div>
+
+                        <div className="flex justify-end">
+                          <button
+                            onClick={registerVineOperation}
+                            disabled={savingEntry}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                          >
+                            {savingEntry ? 'Salvataggio...' : 'Salva Intervento'}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
-                </div>
 
-                {/* Stato e produzione */}
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Stato e Produzione</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-600">Salute:</span>
-                      {getHealthStatusIcon(selectedVine.healthStatus)}
-                      <span className="font-medium">
-                        {selectedVine.healthStatus === 'healthy' ? 'Sana' :
-                         selectedVine.healthStatus === 'stressed' ? 'Stressata' :
-                         selectedVine.healthStatus === 'diseased' ? 'Malata' :
-                         selectedVine.healthStatus === 'pest_damage' ? 'Danni da Parassiti' :
-                         selectedVine.healthStatus === 'weather_damage' ? 'Danni Meteorici' :
-                         'Morta'}
-                      </span>
+                  <div className="border-b border-gray-200 bg-gray-50 rounded-lg px-3">
+                    <div className="flex gap-2 overflow-x-auto">
+                      {[
+                        { id: 'all', label: 'Tutte', count: vineOperations.length },
+                        { id: 'watering', label: 'Irrigazioni', count: operationStats.watering },
+                        { id: 'fertilizing', label: 'Fertilizzazioni', count: operationStats.fertilizing },
+                        { id: 'treatment', label: 'Trattamenti', count: operationStats.treatment },
+                        { id: 'work', label: 'Lavorazioni', count: operationStats.work },
+                      ].map(tab => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveOperationTab(tab.id as 'all' | 'watering' | 'fertilizing' | 'treatment' | 'work')}
+                          className={`px-3 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                            activeOperationTab === tab.id
+                              ? 'text-purple-600 border-purple-600'
+                              : 'text-gray-500 border-transparent hover:text-gray-700'
+                          }`}
+                        >
+                          {tab.label} ({tab.count})
+                        </button>
+                      ))}
                     </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-600">Vigore:</span>
-                      {getVigorIcon(selectedVine.vigorLevel)}
-                      <span className="font-medium">
-                        {selectedVine.vigorLevel === 'very_low' ? 'Molto Basso' :
-                         selectedVine.vigorLevel === 'low' ? 'Basso' :
-                         selectedVine.vigorLevel === 'normal' ? 'Normale' :
-                         selectedVine.vigorLevel === 'high' ? 'Alto' :
-                         'Eccessivo'}
-                      </span>
-                    </div>
-                    
-                    {selectedVine.lastHarvestKg && (
-                      <div>
-                        <span className="text-gray-600">Ultima Raccolta:</span>
-                        <span className="ml-2 font-medium">{selectedVine.lastHarvestKg} kg</span>
-                      </div>
-                    )}
-                    
-                    {selectedVine.cumulativeYieldKg > 0 && (
-                      <div>
-                        <span className="text-gray-600">Produzione Totale:</span>
-                        <span className="ml-2 font-medium">{selectedVine.cumulativeYieldKg} kg</span>
-                      </div>
-                    )}
-                    
-                    {selectedVine.sugarContentBrix && (
-                      <div>
-                        <span className="text-gray-600">Brix:</span>
-                        <span className="ml-2 font-medium">{selectedVine.sugarContentBrix}°</span>
-                      </div>
-                    )}
                   </div>
-                </div>
-              </div>
 
-              {/* Note */}
-              {selectedVine.notes && (
-                <div className="mt-6">
-                  <h3 className="font-semibold text-gray-900 mb-2">Note</h3>
-                  <p className="text-gray-700 text-sm bg-gray-50 p-3 rounded">
-                    {selectedVine.notes}
-                  </p>
+                  {operationsLoading ? (
+                    <div className="text-center py-10">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-3"></div>
+                      <p className="text-gray-600 text-sm">Caricamento operazioni...</p>
+                    </div>
+                  ) : filteredOperations.length === 0 ? (
+                    <div className="text-center py-12 border border-gray-200 rounded-lg">
+                      <Calendar className="mx-auto text-gray-400 mb-4" size={48} />
+                      <h4 className="text-lg font-semibold text-gray-900 mb-2">Nessuna operazione registrata</h4>
+                      <p className="text-gray-600">
+                        {activeOperationTab === 'all'
+                          ? 'Non ci sono operazioni per questa vite.'
+                          : `Non ci sono ${getOperationLabel(activeOperationTab).toLowerCase()} registrate.`}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {filteredOperations.map((operation) => {
+                        const sourceBadge = getSourceBadge(operation)
+                        const details = operation.operationContext?.operationDetails || {}
+                        const duration = parseNumber(details.durationMinutes ?? operation.duration ?? operation.durationMinutes)
+                        const weather = operation.weatherConditions || operation.operationContext?.weather
+                        const weatherText = weather
+                          ? `${weather.temp ?? weather.temperature ?? 'N/D'}°C • UR ${weather.humidity ?? 'N/D'}%`
+                          : undefined
+
+                        return (
+                          <div key={operation.id} className="border border-gray-200 rounded-lg p-4 bg-white">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5">{getOperationIcon(operation.operationType)}</div>
+                                <div>
+                                  <div className="flex items-center flex-wrap gap-2">
+                                    <div className="font-medium text-gray-900">{getOperationLabel(operation.operationType)}</div>
+                                    <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${sourceBadge.className}`}>
+                                      {sourceBadge.label}
+                                    </span>
+                                  </div>
+                                  {operation.notes && (
+                                    <div className="text-sm text-gray-600 mt-1">{operation.notes}</div>
+                                  )}
+                                  <div className="text-xs text-gray-500 mt-2 space-y-1">
+                                    {operation.quantity !== undefined && (
+                                      <div>Quantità: {operation.quantity} {operation.unit || ''}</div>
+                                    )}
+                                    {duration !== undefined && (
+                                      <div>Durata: {duration} min</div>
+                                    )}
+                                    {operation.productName && (
+                                      <div>Prodotto: {operation.productName}</div>
+                                    )}
+                                    {details.subtype && (
+                                      <div>Tipo: {details.subtype}</div>
+                                    )}
+                                    {weatherText && (
+                                      <div>Meteo: {weatherText}</div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right text-sm font-medium text-gray-900">
+                                {formatOperationDate(operation.date || operation.operationDate)}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
