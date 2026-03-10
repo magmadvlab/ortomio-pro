@@ -23,6 +23,9 @@ import {
 } from 'lucide-react'
 import CropRotationPlanner from '@/components/advice/CropRotationPlanner'
 import BiologicalControlDashboard from '@/components/advice/BiologicalControlDashboard'
+import { useGarden } from '@/packages/core/hooks/useGarden'
+import { useStorage } from '@/packages/core/hooks/useStorage'
+import type { GardenTask } from '@/types'
 
 interface AIAdvice {
   id: string
@@ -53,12 +56,21 @@ interface AdviceAction {
   materials?: string[]
 }
 
+type TaskFeedback = {
+  type: 'success' | 'error' | 'info'
+  message: string
+}
+
 export default function AdvicePage() {
+  const { activeGarden } = useGarden()
+  const { storageProvider } = useStorage()
   const [activeTab, setActiveTab] = useState<'overview' | 'rotation' | 'biological' | 'ai-suggestions' | 'seasonal'>('overview')
   const [advice, setAdvice] = useState<AIAdvice[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPriority, setSelectedPriority] = useState<string>('all')
   const [selectedType, setSelectedType] = useState<string>('all')
+  const [creatingTaskKeys, setCreatingTaskKeys] = useState<Record<string, boolean>>({})
+  const [taskFeedback, setTaskFeedback] = useState<Record<string, TaskFeedback>>({})
 
   useEffect(() => {
     loadAIAdvice()
@@ -227,6 +239,172 @@ export default function AdvicePage() {
     if (selectedType !== 'all' && item.type !== selectedType) return false
     return true
   })
+
+  const getActionKey = (adviceId: string, actionIndex: number) => `${adviceId}:${actionIndex}`
+
+  const toISODate = (date: Date) => date.toISOString().split('T')[0]
+
+  const addDays = (days: number) => {
+    const nextDate = new Date()
+    nextDate.setDate(nextDate.getDate() + days)
+    return nextDate
+  }
+
+  const inferTaskDate = (timing: string, actionType: AdviceAction['type']) => {
+    if (actionType === 'immediate' || /immediat/i.test(timing)) {
+      return toISODate(new Date())
+    }
+
+    const rangeMatch = timing.match(/(\d+)\s*-\s*(\d+)\s*giorni/i)
+    if (rangeMatch) {
+      return toISODate(addDays(parseInt(rangeMatch[1], 10)))
+    }
+
+    const daysMatch = timing.match(/(\d+)\s*giorni/i)
+    if (daysMatch) {
+      return toISODate(addDays(parseInt(daysMatch[1], 10)))
+    }
+
+    if (actionType === 'scheduled') return toISODate(addDays(7))
+    if (actionType === 'preparation') return toISODate(addDays(3))
+    return toISODate(addDays(1))
+  }
+
+  const parseEstimatedMinutes = (estimatedTime: string) => {
+    const hourMatch = estimatedTime.match(/(\d+)\s*ore?/i)
+    if (hourMatch) {
+      return parseInt(hourMatch[1], 10) * 60
+    }
+
+    const minuteMatch = estimatedTime.match(/(\d+)\s*min/i)
+    if (minuteMatch) {
+      return parseInt(minuteMatch[1], 10)
+    }
+
+    return undefined
+  }
+
+  const mapAdviceTypeToTaskType = (type: AIAdvice['type']): GardenTask['taskType'] => {
+    switch (type) {
+      case 'irrigation':
+        return 'Irrigation'
+      case 'nutrition':
+        return 'Fertilize'
+      case 'harvest_timing':
+        return 'Harvest'
+      case 'biological_control':
+      case 'pest_prevention':
+      case 'weather':
+        return 'Treatment'
+      case 'rotation':
+      default:
+        return 'Sowing'
+    }
+  }
+
+  const buildTaskNotes = (item: AIAdvice, action: AdviceAction) => {
+    const lines = [
+      `Consiglio AI: ${item.title}`,
+      action.description,
+      item.zone ? `Zona suggerita: ${item.zone}` : '',
+      item.plantName ? `Coltura/pianta: ${item.plantName}` : '',
+      item.weatherDependent ? 'Attenzione: intervento sensibile alle condizioni meteo.' : '',
+      action.materials && action.materials.length > 0
+        ? `Materiali: ${action.materials.join(', ')}`
+        : '',
+      item.benefits.length > 0 ? `Benefici attesi: ${item.benefits.join(', ')}` : '',
+      item.risks && item.risks.length > 0 ? `Attenzioni: ${item.risks.join(', ')}` : ''
+    ].filter(Boolean)
+
+    return lines.join('\n')
+  }
+
+  const handleCreateTask = async (item: AIAdvice, action: AdviceAction, actionIndex: number) => {
+    const actionKey = getActionKey(item.id, actionIndex)
+
+    if (!activeGarden) {
+      setTaskFeedback(prev => ({
+        ...prev,
+        [actionKey]: {
+          type: 'error',
+          message: 'Seleziona prima un orto attivo.'
+        }
+      }))
+      return
+    }
+
+    try {
+      setCreatingTaskKeys(prev => ({ ...prev, [actionKey]: true }))
+      setTaskFeedback(prev => {
+        const next = { ...prev }
+        delete next[actionKey]
+        return next
+      })
+
+      const suggestedBy = `advice:${item.id}:${actionIndex}`
+      const existingTasks = await storageProvider.getTasks(activeGarden.id)
+      const alreadyCreatedTask = existingTasks.find(task =>
+        task.gardenId === activeGarden.id &&
+        task.suggestedBy === suggestedBy &&
+        !task.completed
+      )
+
+      if (alreadyCreatedTask) {
+        setTaskFeedback(prev => ({
+          ...prev,
+          [actionKey]: {
+            type: 'info',
+            message: 'Task già creato.'
+          }
+        }))
+        return
+      }
+
+      const taskDate = inferTaskDate(item.timing, action.type)
+      const plantName =
+        item.plantName ||
+        item.zone ||
+        activeGarden.primaryCrop?.label ||
+        activeGarden.name
+
+      const taskData: Omit<GardenTask, 'id'> = {
+        gardenId: activeGarden.id,
+        plantName,
+        taskType: mapAdviceTypeToTaskType(item.type),
+        date: taskDate,
+        nextDueDate: taskDate,
+        durationMinutes: parseEstimatedMinutes(action.estimatedTime),
+        completed: false,
+        isSuggested: true,
+        aiGenerated: true,
+        suggestedBy,
+        suggestedDate: taskDate,
+        schedulingType: action.type === 'immediate' ? 'Immediate' : 'Scheduled',
+        notes: buildTaskNotes(item, action)
+      }
+
+      await storageProvider.createTask(taskData)
+
+      setTaskFeedback(prev => ({
+        ...prev,
+        [actionKey]: {
+          type: 'success',
+          message: 'Task creato con successo.'
+        }
+      }))
+    } catch (error) {
+      console.error('Error creating advice task:', error)
+      setTaskFeedback(prev => ({
+        ...prev,
+        [actionKey]: {
+          type: 'error',
+          message: 'Errore nella creazione del task.'
+        }
+      }))
+    } finally {
+      setCreatingTaskKeys(prev => ({ ...prev, [actionKey]: false }))
+    }
+  }
 
   // Configurazione tab per la pagina consigli
   const adviceTabs = [
@@ -573,12 +751,28 @@ export default function AdvicePage() {
                                     ⏱️ {action.estimatedTime}
                                     {action.cost && ` • 💰 €${action.cost}`}
                                   </div>
-                                  
-                                  <button className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700">
+
+                                  <button
+                                    onClick={() => handleCreateTask(item, action, index)}
+                                    disabled={creatingTaskKeys[getActionKey(item.id, index)]}
+                                    className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                                  >
                                     <Plus className="w-3 h-3" />
-                                    Crea Task
+                                    {creatingTaskKeys[getActionKey(item.id, index)] ? 'Creazione...' : 'Crea Task'}
                                   </button>
                                 </div>
+
+                                {taskFeedback[getActionKey(item.id, index)] && (
+                                  <div className={`mt-3 text-xs font-medium ${
+                                    taskFeedback[getActionKey(item.id, index)].type === 'success'
+                                      ? 'text-green-700'
+                                      : taskFeedback[getActionKey(item.id, index)].type === 'info'
+                                        ? 'text-blue-700'
+                                        : 'text-red-700'
+                                  }`}>
+                                    {taskFeedback[getActionKey(item.id, index)].message}
+                                  </div>
+                                )}
 
                                 {action.materials && action.materials.length > 0 && (
                                   <div className="mt-3 pt-3 border-t border-gray-100">
