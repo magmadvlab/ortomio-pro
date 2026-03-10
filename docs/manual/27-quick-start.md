@@ -4,175 +4,74 @@
 
 ---
 
-## ⚡ SETUP INIZIALE (5 MINUTI)
+## ⚡ PARTENZA CONSIGLIATA
 
-### **1. Seleziona il tuo Orto**
-- Usa il selettore orto in alto a destra
-- Crea nuovo orto se necessario
-- Configura dimensioni e caratteristiche
-
-### **2. Attiva le Certificazioni**
-- Vai su **"Certificazioni"** dalla sidebar
-- Inizializza GlobalG.A.P. e HACCP
-- Configura dati azienda e responsabili
-
-### **3. Prima Predizione AI**
-- Vai su **"Predizioni AI"** dalla sidebar
-- Clicca **"Aggiorna"** per prima analisi
-- Esamina raccomandazioni e confidence score
-
-### **4. Testa Chat AI Planner**
-- Vai su **"🤖 Planner AI"** dalla sidebar
-- Clicca pulsante chat (in basso a destra)
-- Fai una domanda di prova: *"Cosa posso piantare questo mese?"*
-
-### **5. Primo Volo Drone**
-- Vai su **"Operazioni Drone"** dalla sidebar
-- Clicca **"Volo Automatico"**
-- Monitora esecuzione e risultati
-
-### **6. Prima Tracciabilità**
-- Vai in **"Il Mio Orto"** → Tab **"Tracciabilità"**
-- Visualizza prodotti tracciati automaticamente
-- Genera QR code per prodotti raccolti
-
-### **7. Esplora Registro Attività**
-- Vai su **"Il Mio Orto"** → Tab **"Registro"**
-- Visualizza cronologia attività esistenti
-- Familiarizza con filtri e export
-
-### **8. Configura Agronomo**
-- Vai su **"Salute"** → Tab **"Agronomi"**
-- Cerca agronomi nella tua zona
-- Salva contatti per future consulenze
-
-### **9. Testa Chat AI Globale**
-- Clicca il pulsante Chat AI (sempre visibile)
-- Fai una domanda di prova: *"Come migliorare la resa?"*
-- Esplora i suggerimenti intelligenti
-
-### **10. Esplora Badge e Achievement**
-- Vai su **"Progressi"** → Tab **"Traguardi"**
-- Visualizza badge disponibili
-- Completa prime attività per sbloccare badge
-
-### **11. Prova Condivisione Social**
-- Vai su **"Progressi"**
-- Clicca **"Condividi"** su un achievement
-- Testa condivisione su piattaforma preferita
+Questa guida rapida è stata riallineata al prodotto reale di marzo 2026. Ti porta prima sulle funzioni oggi più affidabili.
 
 ---
 
-## 📅 WORKFLOW GIORNALIERO CONSIGLIATO
+## ✅ FLUSSO CONSIGLIATO
 
-### **🌅 Mattina (5 minuti)**
-1. Controlla **Predizioni AI** per nuovi alert
-2. Verifica stato **certificazioni** e compliance
-3. **Usa Chat AI Planner** per consigli giornalieri
-4. **Usa Chat AI Globale** per domande rapide
-5. **Visualizza challenge giornaliere** sotto il calendario
-6. **Controlla badge e achievement** per motivazione
-7. **Controlla registro attività** per follow-up
+### **1. Seleziona l'orto attivo**
+- usa il selettore orto
+- verifica di essere nell'orto corretto prima di lavorare
 
-### **🌞 Durante il Giorno**
-1. Registra operazioni per **tracciabilità automatica**
-2. Esegui **voli drone** per monitoraggio
-3. **Tutte le attività vengono registrate automaticamente** nel registro
-4. **Completa challenge giornaliere** per XP e badge
-5. **Usa Chat AI Globale** per domande immediate
-6. **Condividi progressi sui social** per marketing
-7. **Consulta agronomi** per problemi specifici
+### **2. Apri il Planner**
+- controlla task esistenti
+- usa calendario e lista task come base operativa
 
-### **🌙 Sera (5 minuti)**
-1. Rivedi **risultati analisi drone**
-2. Controlla **compliance certificazioni**
-3. **Rivedi registro attività** della giornata
-4. **Verifica progresso challenge** e streak counter
-5. **Controlla nuovi badge** sbloccati
-6. **Pianifica domani con Chat AI** se necessario
-7. **Condividi achievement giornalieri** sui social
+### **3. Usa Advice per creare task**
+- apri `/app/advice`
+- valuta i suggerimenti
+- crea task dai consigli che vuoi trasformare in attività reali
 
----
+### **4. Usa Health per i controlli**
+- apri `/app/health`
+- se compare un alert utile, crea il task di monitoraggio o intervento
+- considera la pagina salute come supporto operativo, non ancora come motore diagnostico definitivo
 
-## 🎯 PRIMI OBIETTIVI CONSIGLIATI
+### **5. Registra irrigazioni e operazioni**
+- usa i moduli tecnici dedicati per tenere uno storico più solido
+- in particolare irrigazione, trattamenti, concimazioni e lavorazioni
 
-### **Settimana 1: Familiarizzazione**
-- [ ] Completa setup iniziale
-- [ ] Esplora tutte le sezioni principali
-- [ ] Attiva almeno 2 certificazioni
-- [ ] Completa 5 challenge giornaliere
-- [ ] Ottieni primi 3 badge
+### **6. Verifica NDVI e Prescription solo come supporto**
+- NDVI: supporto visivo e scouting
+- Prescription Maps: beta per analisi e bozze, non ancora catena produttiva finale
 
-### **Settimana 2: Operatività**
-- [ ] Esegui primo volo drone completo
-- [ ] Configura automazione irrigazione
-- [ ] Genera primo QR code tracciabilità
-- [ ] Prenota consulenza agronomo
-- [ ] Condividi primi risultati sui social
-
-### **Settimana 3: Ottimizzazione**
-- [ ] Analizza dati registro attività
-- [ ] Ottimizza workflow con AI
-- [ ] Configura alert personalizzati
-- [ ] Esporta primi report
-- [ ] Pianifica strategie mensili
-
-### **Mese 1: Padronanza**
-- [ ] Usa tutte le funzionalità principali
-- [ ] Ottieni certificazione completa
-- [ ] Raggiungi streak di 30 giorni
-- [ ] Genera primi report ROI
-- [ ] Condividi success story
+### **7. Tratta Smart Hub come beta**
+- utile per verifiche integrazione e telemetria
+- non ancora come console definitiva di automazione
 
 ---
 
-## 🆘 PROBLEMI COMUNI E SOLUZIONI
+## 🧭 PRIORITÀ D'USO
 
-### **❓ Non vedo i dati**
-**Soluzione**: Verifica di aver selezionato l'orto corretto dal selettore in alto a destra
+Se vuoi lavorare con il sistema già oggi, parti da:
 
-### **❓ Chat AI non risponde**
-**Soluzione**: Controlla connessione internet e riprova. Se persiste, contatta supporto
+- orto attivo corretto
+- planner
+- task persistiti
+- registri operativi
+- storico reale degli interventi
 
-### **❓ Drone non si connette**
-**Soluzione**: Verifica configurazione WiFi e autorizzazioni. Consulta [Guida Droni](./02-drone-operations.md)
+Usa con più cautela:
 
-### **❓ Certificazioni non si attivano**
-**Soluzione**: Completa tutti i dati azienda richiesti nella sezione Impostazioni
-
-### **❓ Badge non si sbloccano**
-**Soluzione**: Verifica di aver completato tutte le azioni richieste. Alcuni badge richiedono tempo
-
----
-
-## 📞 SUPPORTO IMMEDIATO
-
-### **Chat Live**
-- Disponibile 6:00-22:00 tutti i giorni
-- Accesso diretto dall'app
-
-### **Email Supporto**
-- support@ortomio.com
-- Risposta garantita entro 4 ore
-
-### **Telefono**
-- +39 02 1234 5678
-- Lun-Ven 9:00-18:00
-
-### **Video Assistenza**
-- Prenotazione su appuntamento
-- Supporto remoto personalizzato
+- suggerimenti AI
+- health avanzato
+- NDVI quantitativo
+- prescription maps
+- Smart Hub attuativo
 
 ---
 
-## 🔗 LINK UTILI
+## 📌 OBIETTIVO GIUSTO
 
-- [📊 Business Intelligence](./22-business-intelligence.md) - Per analisi avanzate
-- [🤖 Chat AI Globale](./08-global-ai-chat.md) - Per assistenza AI
-- [🏆 Certificazioni](./04-certifications.md) - Per compliance
-- [📱 Interfaccia](./29-interface-navigation.md) - Per navigazione
-- [💰 Vantaggi Economici](./28-economic-benefits.md) - Per ROI
+L'approccio corretto oggi è:
+
+- usare OrtoMio come sistema operativo agricolo già utile
+- costruire storico reale di task e registri
+- usare i moduli AI e smart come supporto progressivo
 
 ---
 
-[← Torna all'Indice](./README.md) | [Prossimo: Vantaggi Economici →](./28-economic-benefits.md)
+[← Torna all'Indice](./README.md)
