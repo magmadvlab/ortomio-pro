@@ -32,7 +32,8 @@ import {
   Clock,
   TrendingUp,
   History,
-  DollarSign
+  DollarSign,
+  X
 } from 'lucide-react';
 
 interface PrescriptionMapsDashboardProps {
