@@ -32,12 +32,11 @@ class AdvancedIrrigationService {
         return []
       }
       
-      // Prima verifica se la tabella esiste
-      const { data: zones, error } = await supabase
+      // Query compatibile con schema legacy e advanced, poi filtra client-side.
+      const { data: zoneRows, error } = await supabase
         .from('irrigation_zones')
         .select('*')
         .eq('garden_id', gardenId)
-        .eq('is_active', true)
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -53,6 +52,8 @@ class AdvancedIrrigationService {
         throw error
       }
 
+      const zones = (zoneRows || []).filter((zone) => zone.is_active !== false)
+
       // Se non ci sono zone, ritorna array vuoto
       if (!zones || zones.length === 0) {
         return []
@@ -60,15 +61,42 @@ class AdvancedIrrigationService {
 
       // Prova a ottenere i sistemi di irrigazione associati
       try {
-        const { data: systems } = await supabase
-          .from('irrigation_systems')
-          .select('*')
-          .in('zone_id', zones.map(z => z.id))
+        let systems: any[] | null = null
+
+        if (Object.prototype.hasOwnProperty.call(zones[0], 'system_id')) {
+          const legacySystemIds = Array.from(
+            new Set(
+              zones
+                .map((zone) => zone.system_id)
+                .filter((systemId) => typeof systemId === 'string' && systemId.length > 0)
+            )
+          )
+
+          if (legacySystemIds.length > 0) {
+            const legacySystemsQuery = await supabase
+              .from('irrigation_systems')
+              .select('*')
+              .in('id', legacySystemIds)
+
+            systems = legacySystemsQuery.data
+          } else {
+            systems = []
+          }
+        } else {
+          const advancedSystemsQuery = await supabase
+            .from('irrigation_systems')
+            .select('*')
+            .in('zone_id', zones.map(z => z.id))
+
+          systems = advancedSystemsQuery.data
+        }
 
         // Mappa i dati combinando zone e sistemi
         return zones.map(zone => ({
           ...this.mapZoneFromDatabase(zone),
-          systems: systems?.filter(s => s.zone_id === zone.id) || []
+          systems: Object.prototype.hasOwnProperty.call(zone, 'system_id')
+            ? systems?.filter(s => s.id === zone.system_id) || []
+            : systems?.filter(s => s.zone_id === zone.id) || []
         }))
       } catch (systemError) {
         console.warn('Error fetching irrigation systems, returning zones without systems:', systemError)
@@ -140,16 +168,52 @@ class AdvancedIrrigationService {
   async getIrrigationSystems(zoneId: string): Promise<IrrigationSystem[]> {
     try {
       const supabase = getSupabaseClient()
-      const { data, error } = await supabase
-        .from('irrigation_systems')
+      let data: any[] | null = null
+      let error: any = null
+
+      const { data: zoneRow, error: zoneError } = await supabase
+        .from('irrigation_zones')
         .select('*')
-        .eq('zone_id', zoneId)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
+        .eq('id', zoneId)
+        .single()
+
+      if (zoneError) throw zoneError
+
+      if (zoneRow && Object.prototype.hasOwnProperty.call(zoneRow, 'system_id')) {
+        if (zoneRow.system_id) {
+          const legacySystemQuery = await supabase
+            .from('irrigation_systems')
+            .select('*')
+            .eq('id', zoneRow.system_id)
+
+          data = legacySystemQuery.data
+          error = legacySystemQuery.error
+        } else if (zoneRow.garden_id) {
+          const legacyGardenQuery = await supabase
+            .from('irrigation_systems')
+            .select('*')
+            .eq('garden_id', zoneRow.garden_id)
+            .order('created_at', { ascending: false })
+
+          data = legacyGardenQuery.data
+          error = legacyGardenQuery.error
+        }
+      } else {
+        const advancedQuery = await supabase
+          .from('irrigation_systems')
+          .select('*')
+          .eq('zone_id', zoneId)
+          .order('created_at', { ascending: false })
+
+        data = advancedQuery.data
+        error = advancedQuery.error
+      }
 
       if (error) throw error
 
-      return data?.map(this.mapSystemFromDatabase) || []
+      return (data || [])
+        .filter((system) => system.is_active !== false)
+        .map(this.mapSystemFromDatabase)
     } catch (error) {
       console.error('Error fetching irrigation systems:', error)
       return []
@@ -758,92 +822,203 @@ class AdvancedIrrigationService {
   async getDashboardData(gardenId: string): Promise<IrrigationDashboardData> {
     try {
       const supabase = getSupabaseClient()
-      
-      // Get active zones count
-      const { data: zones, error: zonesError } = await supabase
-        .from('irrigation_zones')
-        .select('id')
-        .eq('garden_id', gardenId)
-        .eq('is_active', true)
 
-      if (zonesError) {
-        // Check if it's a table not found error
-        const errorMessage = zonesError.message || ''
-        if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
-          console.warn('Irrigation tables not found. Please run the irrigation system migration.')
-          console.warn('Run: supabase migration up --file supabase/migrations/20260117010000_create_advanced_irrigation_system.sql')
-          return {
-            activeZones: 0,
-            activeSystems: 0,
-            todayIrrigations: 0,
-            weeklyConsumption: 0,
-            currentAlerts: [],
-            recentLogs: [],
-            upcomingSchedules: [],
-            systemStatus: []
-          }
+      const today = new Date().toISOString().split('T')[0]
+      const weekAgoIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+
+      // Query base compatibile con entrambi gli schemi.
+      const zonesQuery = await supabase
+        .from('irrigation_zones')
+        .select('*')
+        .eq('garden_id', gardenId)
+
+      if (zonesQuery.error) {
+        if (this.isMissingRelationError(zonesQuery.error, 'irrigation_zones')) {
+          return this.createEmptyDashboardData()
         }
-        throw zonesError
+        throw zonesQuery.error
       }
 
-      // Get active systems count
-      const { data: systems, error: systemsError } = await supabase
-        .from('irrigation_systems')
-        .select('id')
-        .eq('is_active', true)
+      const zones = (zonesQuery.data || []).filter((zone) => zone.is_active !== false)
+      const usesLegacySchema =
+        zones.length > 0 && Object.prototype.hasOwnProperty.call(zones[0], 'system_id')
 
-      if (systemsError) throw systemsError
+      if (zones.length === 0) {
+        return this.createEmptyDashboardData()
+      }
 
-      // Get today's irrigations
-      const today = new Date().toISOString().split('T')[0]
-      const { data: todayLogs, error: logsError } = await supabase
-        .from('irrigation_logs')
-        .select('id')
-        .gte('start_time', today)
-        .lt('start_time', today + 'T23:59:59')
+      // Active systems: derive from schema variant without hitting invalid columns.
+      let systems: any[] | null = null
+      let systemsError: any = null
+      if (usesLegacySchema) {
+        const legacySystemIds = Array.from(
+          new Set(
+            zones
+              .map((zone) => zone.system_id)
+              .filter((systemId) => typeof systemId === 'string' && systemId.length > 0)
+          )
+        )
+        systems = legacySystemIds.map((id) => ({ id }))
+      } else {
+        const advancedSystemsQuery = await supabase
+          .from('irrigation_systems')
+          .select(`
+            id,
+            is_active,
+            irrigation_zones!inner (garden_id)
+          `)
+          .eq('irrigation_zones.garden_id', gardenId)
 
-      if (logsError) throw logsError
+        systems = (advancedSystemsQuery.data || []).filter((system) => system.is_active !== false)
+        systemsError = advancedSystemsQuery.error
+      }
 
-      // Get weekly consumption
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-      const { data: weeklyLogs, error: weeklyError } = await supabase
-        .from('irrigation_logs')
-        .select('actual_volume_liters')
-        .gte('start_time', weekAgo)
-        .not('actual_volume_liters', 'is', null)
+      if (systemsError) {
+        const legacySystemsQuery = await supabase
+          .from('irrigation_systems')
+          .select('id')
+          .eq('garden_id', gardenId)
 
-      if (weeklyError) throw weeklyError
+        systems = legacySystemsQuery.data
+        systemsError = legacySystemsQuery.error
+      }
 
-      const weeklyConsumption = weeklyLogs?.reduce(
-        (sum, log) => sum + (log.actual_volume_liters || 0), 0
-      ) || 0
+      if (systemsError && !this.isMissingRelationError(systemsError, 'irrigation_systems')) {
+        throw systemsError
+      }
 
-      // Get recent logs
-      const { data: recentLogs, error: recentError } = await supabase
-        .from('irrigation_logs')
-        .select(`
-          *,
-          irrigation_zones (name),
-          irrigation_systems (name)
-        `)
-        .order('start_time', { ascending: false })
-        .limit(5)
+      // Irrigation logs: choose source from schema variant.
+      let todayLogs: any[] | null = null
+      let weeklyConsumption = 0
+      let recentLogs: any[] | null = null
+      let upcomingSchedules: any[] | null = []
 
-      if (recentError) throw recentError
+      const canUseLegacyLogs = usesLegacySchema
 
-      // Get upcoming schedules
-      const { data: upcomingSchedules, error: schedulesError } = await supabase
-        .from('irrigation_schedules')
-        .select(`
-          *,
-          irrigation_zones (name)
-        `)
-        .eq('is_active', true)
-        .gte('next_execution_date', today)
-        .order('next_execution_date', { ascending: true })
-        .limit(5)
+      if (!canUseLegacyLogs) {
+        const advancedTodayLogsQuery = await supabase
+          .from('irrigation_logs')
+          .select('id, zone_id')
+          .gte('start_time', today)
+          .lt('start_time', `${today}T23:59:59`)
 
-      if (schedulesError) throw schedulesError
+        if (advancedTodayLogsQuery.error) {
+          throw advancedTodayLogsQuery.error
+        }
+
+        todayLogs = advancedTodayLogsQuery.data
+
+        const weeklyLogsQuery = await supabase
+          .from('irrigation_logs')
+          .select('actual_volume_liters')
+          .gte('start_time', weekAgoIso)
+          .not('actual_volume_liters', 'is', null)
+
+        if (weeklyLogsQuery.error) throw weeklyLogsQuery.error
+
+        weeklyConsumption = weeklyLogsQuery.data?.reduce(
+          (sum, log) => sum + (log.actual_volume_liters || 0),
+          0
+        ) || 0
+
+        const recentLogsQuery = await supabase
+          .from('irrigation_logs')
+          .select(`
+            *,
+            irrigation_zones (name),
+            irrigation_systems (name)
+          `)
+          .order('start_time', { ascending: false })
+          .limit(5)
+
+        if (recentLogsQuery.error) throw recentLogsQuery.error
+        recentLogs = recentLogsQuery.data
+
+        const schedulesQuery = await supabase
+          .from('irrigation_schedules')
+          .select(`
+            *,
+            irrigation_zones (name)
+          `)
+          .eq('is_active', true)
+          .gte('next_execution_date', today)
+          .order('next_execution_date', { ascending: true })
+          .limit(5)
+
+        if (schedulesQuery.error && !this.isMissingRelationError(schedulesQuery.error, 'irrigation_schedules')) {
+          throw schedulesQuery.error
+        }
+
+        upcomingSchedules = schedulesQuery.data || []
+      } else {
+        const legacyTodayLogsQuery = await supabase
+          .from('watering_logs')
+          .select('id, zone_id')
+          .eq('garden_id', gardenId)
+          .eq('date', today)
+
+        if (legacyTodayLogsQuery.error && !this.isMissingRelationError(legacyTodayLogsQuery.error, 'watering_logs')) {
+          throw legacyTodayLogsQuery.error
+        }
+
+        todayLogs = legacyTodayLogsQuery.data || []
+
+        const legacyWeeklyLogsQuery = await supabase
+          .from('watering_logs')
+          .select('liters_applied, watered_at, date')
+          .eq('garden_id', gardenId)
+          .gte('watered_at', weekAgoIso)
+
+        if (legacyWeeklyLogsQuery.error && this.isMissingColumnError(legacyWeeklyLogsQuery.error, 'watered_at')) {
+          const fallbackWeeklyLogsQuery = await supabase
+            .from('watering_logs')
+            .select('liters_applied, date')
+            .eq('garden_id', gardenId)
+            .gte('date', weekAgoIso.split('T')[0])
+
+          if (fallbackWeeklyLogsQuery.error) throw fallbackWeeklyLogsQuery.error
+          weeklyConsumption = fallbackWeeklyLogsQuery.data?.reduce(
+            (sum, log) => sum + (Number(log.liters_applied) || 0),
+            0
+          ) || 0
+        } else {
+          if (legacyWeeklyLogsQuery.error) throw legacyWeeklyLogsQuery.error
+          weeklyConsumption = legacyWeeklyLogsQuery.data?.reduce(
+            (sum, log) => sum + (Number(log.liters_applied) || 0),
+            0
+          ) || 0
+        }
+
+        const legacyRecentLogsQuery = await supabase
+          .from('watering_logs')
+          .select(`
+            *,
+            irrigation_zones (name)
+          `)
+          .eq('garden_id', gardenId)
+          .order('watered_at', { ascending: false })
+          .limit(5)
+
+        if (legacyRecentLogsQuery.error && this.isMissingColumnError(legacyRecentLogsQuery.error, 'watered_at')) {
+          const fallbackRecentLogsQuery = await supabase
+            .from('watering_logs')
+            .select(`
+              *,
+              irrigation_zones (name)
+            `)
+            .eq('garden_id', gardenId)
+            .order('created_at', { ascending: false })
+            .limit(5)
+
+          if (fallbackRecentLogsQuery.error) throw fallbackRecentLogsQuery.error
+          recentLogs = fallbackRecentLogsQuery.data
+        } else {
+          if (legacyRecentLogsQuery.error) throw legacyRecentLogsQuery.error
+          recentLogs = legacyRecentLogsQuery.data
+        }
+
+        upcomingSchedules = []
+      }
 
       return {
         activeZones: zones?.length || 0,
@@ -851,7 +1026,9 @@ class AdvancedIrrigationService {
         todayIrrigations: todayLogs?.length || 0,
         weeklyConsumption,
         currentAlerts: [], // Would need alert system implementation
-        recentLogs: recentLogs?.map(this.mapLogFromDatabase) || [],
+        recentLogs: canUseLegacyLogs
+          ? recentLogs?.map((log) => this.mapLegacyWateringLogToIrrigationLog(log)) || []
+          : recentLogs?.map(this.mapLogFromDatabase) || [],
         upcomingSchedules: upcomingSchedules?.map(this.mapScheduleFromDatabase) || [],
         systemStatus: [] // Would need system status monitoring
       }
@@ -872,16 +1049,7 @@ class AdvancedIrrigationService {
         console.warn('Run: supabase migration up --file supabase/migrations/20260117010000_create_advanced_irrigation_system.sql')
       }
       
-      return {
-        activeZones: 0,
-        activeSystems: 0,
-        todayIrrigations: 0,
-        weeklyConsumption: 0,
-        currentAlerts: [],
-        recentLogs: [],
-        upcomingSchedules: [],
-        systemStatus: []
-      }
+      return this.createEmptyDashboardData()
     }
   }
 
@@ -914,6 +1082,59 @@ class AdvancedIrrigationService {
   // DATABASE MAPPING METHODS
   // ============================================================================
 
+  private createEmptyDashboardData(): IrrigationDashboardData {
+    return {
+      activeZones: 0,
+      activeSystems: 0,
+      todayIrrigations: 0,
+      weeklyConsumption: 0,
+      currentAlerts: [],
+      recentLogs: [],
+      upcomingSchedules: [],
+      systemStatus: []
+    }
+  }
+
+  private isMissingColumnError(error: any, columnName: string): boolean {
+    const message = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`.toLowerCase()
+    const target = columnName.toLowerCase()
+    return (
+      message.includes(target) &&
+      (message.includes('column') ||
+        message.includes('schema cache') ||
+        error?.code === '42703' ||
+        error?.code === 'PGRST204')
+    )
+  }
+
+  private isMissingRelationError(error: any, relationName: string): boolean {
+    const message = `${error?.message || ''} ${error?.details || ''}`.toLowerCase()
+    const target = relationName.toLowerCase()
+    return (
+      (message.includes('relation') && message.includes('does not exist') && message.includes(target)) ||
+      (message.includes('could not find') && message.includes(target)) ||
+      error?.code === '42P01' ||
+      error?.code === 'PGRST205'
+    )
+  }
+
+  private mapLegacySystemType(type?: string): IrrigationSystem['systemType'] {
+    switch ((type || '').toLowerCase()) {
+      case 'manual':
+        return 'manual'
+      case 'sprinkler':
+        return 'sprinkler'
+      case 'micro':
+        return 'micro'
+      case 'subsurface':
+        return 'subsurface'
+      case 'drip':
+      case 'soaker':
+      default:
+        return 'drip'
+    }
+  }
+
   private mapZoneFromDatabase(data: any): IrrigationZone {
     return {
       id: data.id,
@@ -921,14 +1142,14 @@ class AdvancedIrrigationService {
       name: data.name,
       description: data.description,
       areaSqm: data.area_sqm,
-      soilType: data.soil_type,
-      slopePercentage: data.slope_percentage,
-      sunExposure: data.sun_exposure,
-      drainageQuality: data.drainage_quality,
-      waterRetention: data.water_retention,
+      soilType: data.soil_type || 'mixed',
+      slopePercentage: data.slope_percentage ?? 0,
+      sunExposure: data.sun_exposure || 'full',
+      drainageQuality: data.drainage_quality || 'good',
+      waterRetention: data.water_retention || 'medium',
       phLevel: data.ph_level,
       organicMatterPercentage: data.organic_matter_percentage,
-      isActive: data.is_active,
+      isActive: data.is_active ?? true,
       systems: data.irrigation_systems?.map(this.mapSystemFromDatabase) || [],
       createdAt: data.created_at,
       updatedAt: data.updated_at
@@ -955,14 +1176,14 @@ class AdvancedIrrigationService {
   private mapSystemFromDatabase(data: any): IrrigationSystem {
     return {
       id: data.id,
-      zoneId: data.zone_id,
+      zoneId: data.zone_id || '',
       name: data.name,
-      systemType: data.system_type,
+      systemType: data.system_type || this.mapLegacySystemType(data.type),
       brand: data.brand,
       model: data.model,
       installationDate: data.installation_date,
-      flowRateLh: data.flow_rate_lh,
-      pressureBar: data.pressure_bar,
+      flowRateLh: data.flow_rate_lh ?? 0,
+      pressureBar: data.pressure_bar ?? 0,
       operatingPressureMinBar: data.operating_pressure_min_bar,
       operatingPressureMaxBar: data.operating_pressure_max_bar,
       pipeConfig: {
@@ -981,12 +1202,12 @@ class AdvancedIrrigationService {
         angleDegrees: data.coverage_angle_degrees,
         overlapPercentage: data.overlap_percentage
       },
-      efficiencyPercentage: data.efficiency_percentage,
+      efficiencyPercentage: data.efficiency_percentage ?? 85,
       uniformityCoefficient: data.uniformity_coefficient,
-      isActive: data.is_active,
+      isActive: data.is_active ?? true,
       lastMaintenanceDate: data.last_maintenance_date,
       nextMaintenanceDate: data.next_maintenance_date,
-      maintenanceIntervalDays: data.maintenance_interval_days,
+      maintenanceIntervalDays: data.maintenance_interval_days ?? 90,
       notes: data.notes,
       createdAt: data.created_at,
       updatedAt: data.updated_at
@@ -1063,6 +1284,52 @@ class AdvancedIrrigationService {
       waterCostEuros: data.water_cost_euros,
       energyCostEuros: data.energy_cost_euros,
       createdAt: data.created_at
+    }
+  }
+
+  private mapLegacyWateringLogToIrrigationLog(data: any): IrrigationLog {
+    const startTime = data.watered_at || data.created_at || new Date().toISOString()
+    const durationMinutes = data.duration_minutes ?? 0
+    const litersApplied = Number(data.liters_applied) || 0
+
+    return {
+      id: data.id,
+      zoneId: data.zone_id,
+      systemId: undefined,
+      startTime,
+      endTime: undefined,
+      plannedDurationMinutes: durationMinutes,
+      actualDurationMinutes: durationMinutes,
+      plannedVolumeLiters: litersApplied,
+      actualVolumeLiters: litersApplied,
+      flowRateMeasuredLh: durationMinutes > 0 ? litersApplied / (durationMinutes / 60) : undefined,
+      pressureData: {
+        startBar: undefined,
+        endBar: undefined,
+        avgBar: undefined,
+        variations: []
+      },
+      environmentalData: {
+        weatherConditions: data.weather_condition,
+        temperatureCelsius: data.air_temperature_c,
+        humidityPercentage: undefined,
+        windSpeedKmh: undefined,
+        soilMoistureBefore: data.soil_moisture_before,
+        soilMoistureAfter: data.soil_moisture_after,
+        soilTemperatureCelsius: undefined
+      },
+      irrigationType:
+        data.method === 'Automatic' || data.method === 'Timer' ? 'scheduled' : 'manual',
+      triggerSource: data.method || 'legacy',
+      operatorId: undefined,
+      operatorNotes: data.notes,
+      distributionUniformity: undefined,
+      applicationEfficiency: undefined,
+      issuesDetected: [],
+      alertsTriggered: [],
+      waterCostEuros: undefined,
+      energyCostEuros: undefined,
+      createdAt: data.created_at || startTime
     }
   }
 
