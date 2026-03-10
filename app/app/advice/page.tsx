@@ -23,7 +23,6 @@ import {
 } from 'lucide-react'
 import CropRotationPlanner from '@/components/advice/CropRotationPlanner'
 import BiologicalControlDashboard from '@/components/advice/BiologicalControlDashboard'
-import MobileTabNavigation from '@/components/shared/MobileTabNavigation'
 
 interface AIAdvice {
   id: string
@@ -362,15 +361,6 @@ export default function AdvicePage() {
               </nav>
             </div>
           </div>
-        </div>
-
-        {/* Mobile-Friendly Tab Navigation */}
-        <div className="mb-8">
-          <MobileTabNavigation
-            tabs={adviceTabs}
-            activeTab={activeTab}
-            onTabChange={(tabId) => setActiveTab(tabId as any)}
-          />
         </div>
 
         {/* Overview Tab */}

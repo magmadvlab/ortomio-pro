@@ -6,7 +6,6 @@ import TaskList from '@/components/planner/TaskList'
 import PlannerAISuggestions from '@/components/planner/tabs/PlannerAISuggestions'
 import CropRotationPlanner from '@/components/advice/CropRotationPlanner'
 import BiologicalControlDashboard from '@/components/advice/BiologicalControlDashboard'
-import MobileTabNavigation from '@/components/shared/MobileTabNavigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
@@ -274,14 +273,6 @@ export default function PlannerPage() {
           </div>
         </div>
       </div>
-
-      {/* Mobile-Friendly Tab Navigation */}
-      <MobileTabNavigation
-        tabs={plannerTabs}
-        activeTab={activeTab}
-        onTabChange={(tabId) => setActiveTab(tabId as any)}
-        className="mb-6"
-      />
 
       {/* Contenuto Tabs */}
       {activeTab === 'planner' && (
