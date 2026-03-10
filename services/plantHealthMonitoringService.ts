@@ -4,6 +4,7 @@
  */
 
 import { Garden, GardenTask } from '@/types'
+import { weatherService } from '@/services/weatherService'
 
 export interface HealthAlert {
   id: string
@@ -400,19 +401,14 @@ export class PlantHealthMonitoringService {
   private async analyzeWeatherConditions(garden: Garden): Promise<HealthAlert[]> {
     const alerts: HealthAlert[] = []
 
-    // Simula dati meteo (in produzione: API meteo reale)
-    const weatherData = {
-      temperature: 22,
-      humidity: 85,
-      rainfall: 15,
-      forecast: {
-        nextDays: [
-          { temp: 24, humidity: 90, rain: 20 },
-          { temp: 26, humidity: 88, rain: 5 },
-          { temp: 23, humidity: 92, rain: 25 }
-        ]
-      }
-    }
+    const weatherData = await weatherService.getWeatherForGarden(garden)
+    const nextDays = Array.isArray(weatherData.forecast) ? weatherData.forecast.slice(0, 3) : []
+    const maxForecastRain = nextDays.reduce((max, day) => Math.max(max, day.rainMm || 0), 0)
+    const maxForecastHumidity = nextDays.reduce((max, day) => Math.max(max, day.humidity || 0), weatherData.humidity || 0)
+    const avgForecastTemp =
+      nextDays.length > 0
+        ? nextDays.reduce((sum, day) => sum + ((day.tempMin + day.tempMax) / 2), 0) / nextDays.length
+        : weatherData.temp
 
     // Integrazione dati NDVI satellitari
     try {
@@ -455,13 +451,17 @@ export class PlantHealthMonitoringService {
     }
 
     // Condizioni favorevoli a malattie fungine
-    if (weatherData.humidity > 80 && weatherData.temperature > 15 && weatherData.temperature < 28) {
+    const fungalRiskHumidity = Math.max(weatherData.humidity || 0, maxForecastHumidity)
+    const fungalRiskTemperature = Math.round(avgForecastTemp * 10) / 10
+    const precipitationSignal = Math.max(weatherData.rainMm || 0, maxForecastRain)
+
+    if (fungalRiskHumidity > 80 && fungalRiskTemperature > 15 && fungalRiskTemperature < 28 && precipitationSignal > 1) {
       alerts.push({
         id: `fungal_risk_weather_${Date.now()}`,
         type: 'disease_risk',
         severity: 'medium',
         plantName: 'Tutte le piante sensibili',
-        description: `Condizioni meteo favorevoli a malattie fungine: umidità ${weatherData.humidity}%, temperatura ${weatherData.temperature}°C`,
+        description: `Condizioni meteo favorevoli a malattie fungine: umidità ${fungalRiskHumidity}%, temperatura ${fungalRiskTemperature}°C, pioggia fino a ${precipitationSignal.toFixed(1)}mm tra oggi e i prossimi giorni.`,
         detectedAt: new Date().toISOString(),
         suggestedActions: [
           {
@@ -488,7 +488,7 @@ export class PlantHealthMonitoringService {
     }
 
     // Stress da caldo
-    const hotDays = weatherData.forecast.nextDays.filter(d => d.temp > 30).length
+    const hotDays = nextDays.filter(d => d.tempMax > 30).length
     if (hotDays >= 2) {
       alerts.push({
         id: `heat_stress_${Date.now()}`,

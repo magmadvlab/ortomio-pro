@@ -31,6 +31,9 @@ import { plantHealthMonitoringService } from '@/services/plantHealthMonitoringSe
 import { weatherService } from '@/services/weatherService'
 import MobileResponsiveButtonGroup from '@/components/shared/MobileResponsiveButtonGroup'
 import WeatherWidget from '@/components/weather/WeatherWidget'
+import { useGarden } from '@/packages/core/hooks/useGarden'
+import { useStorage } from '@/packages/core/hooks/useStorage'
+import type { GardenTask } from '@/types'
 
 interface HealthAlert {
   id: string
@@ -86,7 +89,14 @@ interface DiagnosisResult {
   }
 }
 
+type TaskFeedback = {
+  type: 'success' | 'error' | 'info'
+  message: string
+}
+
 export default function PlantHealthPage() {
+  const { activeGarden, loading: gardenLoading } = useGarden()
+  const { storageProvider, isInitialized } = useStorage()
   const [alerts, setAlerts] = useState<HealthAlert[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all')
@@ -105,6 +115,8 @@ export default function PlantHealthPage() {
   const [symptomsText, setSymptomsText] = useState('')
   const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisResult | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [creatingActionKeys, setCreatingActionKeys] = useState<Record<string, boolean>>({})
+  const [actionFeedback, setActionFeedback] = useState<Record<string, TaskFeedback>>({})
   
   // Camera refs
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -113,14 +125,22 @@ export default function PlantHealthPage() {
   const streamRef = useRef<MediaStream | null>(null)
 
   useEffect(() => {
+    if (!isInitialized || gardenLoading) {
+      return
+    }
+
     loadHealthAlerts()
+  }, [gardenLoading, isInitialized, activeGarden?.id])
+
+  useEffect(() => {
     loadWeather()
-  }, [])
+  }, [activeGarden?.id])
 
   const loadWeather = async () => {
     try {
-      // Usa il servizio meteo reale
-      const weatherData = await weatherService.getWeatherForUserLocation()
+      const weatherData = activeGarden
+        ? await weatherService.getWeatherForGarden(activeGarden)
+        : await weatherService.getWeatherForUserLocation()
       setWeather({
         temp: weatherData.temp,
         rainMm: weatherData.rainMm,
@@ -200,19 +220,169 @@ export default function PlantHealthPage() {
   const loadHealthAlerts = async () => {
     try {
       setLoading(true)
-      // Simula il caricamento degli alert di salute
-      const mockGarden = { 
-        id: 'garden-1', 
-        name: 'Orto Principale',
-        sizeSqMeters: 100,
-        createdAt: new Date().toISOString()
+      if (!activeGarden) {
+        setAlerts([])
+        return
       }
-      const healthAlerts = await plantHealthMonitoringService.analyzeGardenHealth(mockGarden, [])
-      setAlerts(healthAlerts)
+
+      const tasks = await storageProvider.getTasks(activeGarden.id)
+      const healthAlerts = await plantHealthMonitoringService.analyzeGardenHealth(activeGarden, tasks || [])
+      setAlerts(healthAlerts as HealthAlert[])
     } catch (error) {
       console.error('Error loading health alerts:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const getActionKey = (alertId: string, actionIndex: number) => `${alertId}:${actionIndex}`
+
+  const parseEstimatedMinutes = (estimatedTime?: string) => {
+    if (!estimatedTime) return undefined
+
+    const hourMatch = estimatedTime.match(/(\d+)\s*ore?/i)
+    if (hourMatch) {
+      return parseInt(hourMatch[1], 10) * 60
+    }
+
+    const minuteMatch = estimatedTime.match(/(\d+)\s*min/i)
+    if (minuteMatch) {
+      return parseInt(minuteMatch[1], 10)
+    }
+
+    return undefined
+  }
+
+  const toISODate = (date: Date) => date.toISOString().split('T')[0]
+
+  const addDays = (days: number) => {
+    const nextDate = new Date()
+    nextDate.setDate(nextDate.getDate() + days)
+    return nextDate
+  }
+
+  const inferActionDate = (alert: HealthAlert, action: HealthAction) => {
+    if (/24\s*-\s*48h/i.test(action.description) || /post-pioggia/i.test(action.title)) {
+      return toISODate(addDays(1))
+    }
+
+    if (alert.urgencyDays <= 1 || action.priority === 'high') {
+      return toISODate(new Date())
+    }
+
+    return toISODate(addDays(Math.min(alert.urgencyDays, 7)))
+  }
+
+  const mapHealthActionToTaskType = (actionType: HealthAction['type']): GardenTask['taskType'] => {
+    switch (actionType) {
+      case 'intervention':
+      case 'treatment':
+        return 'Treatment'
+      case 'monitoring':
+      case 'photo_analysis':
+      case 'agronomist_contact':
+      default:
+        return 'Photo'
+    }
+  }
+
+  const buildHealthTaskNotes = (alert: HealthAlert, action: HealthAction) => {
+    const lines = [
+      `Alert salute: ${alert.plantName}`,
+      alert.description,
+      `Azione consigliata: ${action.title}`,
+      action.description,
+      alert.plantCode ? `Codice pianta: ${alert.plantCode}` : '',
+      alert.location ? `Posizione: ${alert.location}` : '',
+      alert.zone ? `Zona: ${alert.zone}` : '',
+      `Severità: ${alert.severity}`,
+      `Confidenza: ${Math.round(alert.confidence * 100)}%`,
+      `Urgenza: ${alert.urgencyDays} giorni`,
+      alert.triggers.length > 0 ? `Trigger: ${alert.triggers.join(', ')}` : '',
+      weather ? `Meteo al momento della creazione: ${weather.temp}°C, ${weather.rainMm}mm, ${weather.condition}` : ''
+    ].filter(Boolean)
+
+    return lines.join('\n')
+  }
+
+  const handleCreateActionTask = async (alert: HealthAlert, action: HealthAction, actionIndex: number) => {
+    const actionKey = getActionKey(alert.id, actionIndex)
+
+    if (!activeGarden) {
+      setActionFeedback(prev => ({
+        ...prev,
+        [actionKey]: {
+          type: 'error',
+          message: 'Seleziona prima un orto attivo.'
+        }
+      }))
+      return
+    }
+
+    try {
+      setCreatingActionKeys(prev => ({ ...prev, [actionKey]: true }))
+      setActionFeedback(prev => {
+        const next = { ...prev }
+        delete next[actionKey]
+        return next
+      })
+
+      const suggestedBy = `health:${alert.id}:${action.type}:${actionIndex}`
+      const existingTasks = await storageProvider.getTasks(activeGarden.id)
+      const alreadyCreatedTask = existingTasks.find(task =>
+        task.gardenId === activeGarden.id &&
+        task.suggestedBy === suggestedBy &&
+        !task.completed
+      )
+
+      if (alreadyCreatedTask) {
+        setActionFeedback(prev => ({
+          ...prev,
+          [actionKey]: {
+            type: 'info',
+            message: 'Task già creato.'
+          }
+        }))
+        return
+      }
+
+      const taskDate = inferActionDate(alert, action)
+      const taskData: Omit<GardenTask, 'id'> = {
+        gardenId: activeGarden.id,
+        plantName: alert.plantName,
+        taskType: mapHealthActionToTaskType(action.type),
+        date: taskDate,
+        nextDueDate: taskDate,
+        durationMinutes: parseEstimatedMinutes(action.estimatedTime),
+        completed: false,
+        isSuggested: true,
+        aiGenerated: true,
+        suggestedBy,
+        suggestedDate: new Date().toISOString(),
+        schedulingType: taskDate === toISODate(new Date()) ? 'Immediate' : 'Scheduled',
+        notes: buildHealthTaskNotes(alert, action)
+      }
+
+      await storageProvider.createTask(taskData)
+
+      setActionFeedback(prev => ({
+        ...prev,
+        [actionKey]: {
+          type: 'success',
+          message: 'Task creato con successo.'
+        }
+      }))
+    } catch (error) {
+      console.error('Error creating health action task:', error)
+      setActionFeedback(prev => ({
+        ...prev,
+        [actionKey]: {
+          type: 'error',
+          message: 'Errore nella creazione del task.'
+        }
+      }))
+    } finally {
+      setCreatingActionKeys(prev => ({ ...prev, [actionKey]: false }))
     }
   }
 
@@ -413,7 +583,7 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
     }
   }
 
-  if (loading) {
+  if (loading || gardenLoading || !isInitialized) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -653,7 +823,12 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
                   <div className="space-y-3">
                     <h4 className="font-medium text-gray-900">Azioni Consigliate:</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {alert.suggestedActions.map((action, index) => (
+                      {alert.suggestedActions.map((action, index) => {
+                        const actionKey = getActionKey(alert.id, index)
+                        const feedback = actionFeedback[actionKey]
+                        const isCreating = Boolean(creatingActionKeys[actionKey])
+
+                        return (
                         <div key={index} className="border border-gray-200 rounded-lg p-4">
                           <div className="flex items-center justify-between mb-2">
                             <h5 className="font-medium text-gray-900">{action.title}</h5>
@@ -694,14 +869,40 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
                             )}
                             
                             {action.type === 'monitoring' && (
-                              <button className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700">
+                              <button
+                                onClick={() => handleCreateActionTask(alert, action, index)}
+                                disabled={isCreating}
+                                className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
                                 <Eye className="w-3 h-3" />
-                                Monitora
+                                {isCreating ? 'Creo...' : 'Monitora'}
+                              </button>
+                            )}
+
+                            {(action.type === 'intervention' || action.type === 'treatment') && (
+                              <button
+                                onClick={() => handleCreateActionTask(alert, action, index)}
+                                disabled={isCreating}
+                                className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                <Plus className="w-3 h-3" />
+                                {isCreating ? 'Creo...' : 'Crea Task'}
                               </button>
                             )}
                           </div>
+
+                          {feedback && (
+                            <p className={`mt-2 text-xs ${
+                              feedback.type === 'success' ? 'text-green-600' :
+                              feedback.type === 'error' ? 'text-red-600' :
+                              'text-gray-500'
+                            }`}>
+                              {feedback.message}
+                            </p>
+                          )}
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 </div>
@@ -713,9 +914,13 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
         {filteredAlerts.length === 0 && (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Nessun alert trovato</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {activeGarden ? 'Nessun alert trovato' : 'Nessun orto attivo'}
+            </h3>
             <p className="text-gray-600">
-              {alerts.length === 0 
+              {!activeGarden
+                ? 'Seleziona o crea un orto per generare controlli salute reali.'
+                : alerts.length === 0 
                 ? 'Tutte le piante sono in salute! 🌱'
                 : 'Prova a modificare i filtri per vedere altri alert.'
               }
