@@ -22,6 +22,40 @@ interface WateringLogFormProps {
 
 export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubmit, onSubmitBatch, onCancel }: WateringLogFormProps) {
   const { storageProvider } = useStorage()
+  const toNumber = (value: unknown): number | undefined => {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : undefined
+    }
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value.replace(',', '.'))
+      return Number.isFinite(parsed) ? parsed : undefined
+    }
+    return undefined
+  }
+  const calculateRowFlowRateLph = (row: GardenRow): number | null => {
+    const line = row.irrigationLine
+    if (!line) return null
+
+    const totalFlowRateLph = toNumber((line as any).totalFlowRate)
+    if (totalFlowRateLph && totalFlowRateLph > 0) {
+      return totalFlowRateLph
+    }
+
+    const lengthMeters = toNumber((row as any).lengthMeters ?? (row as any).length_meters) || 0
+    const flowRatePerMeterLph = toNumber((line as any).flowRatePerMeterLph ?? (line as any).flowRatePerMeter)
+    if (flowRatePerMeterLph && flowRatePerMeterLph > 0 && lengthMeters > 0) {
+      return lengthMeters * flowRatePerMeterLph
+    }
+
+    const emitterSpacingCm = toNumber((line as any).emitterSpacingCm ?? (line as any).emitterSpacing ?? (line as any).dripperSpacing)
+    const emitterFlowRateLph = toNumber((line as any).emitterFlowRateLph ?? (line as any).emitterFlowRate ?? (line as any).dripperFlowRate)
+    if (emitterSpacingCm && emitterSpacingCm > 0 && emitterFlowRateLph && emitterFlowRateLph > 0 && lengthMeters > 0) {
+      const emitterCount = lengthMeters / (emitterSpacingCm / 100)
+      return emitterCount * emitterFlowRateLph
+    }
+
+    return null
+  }
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     zoneId: preselectedZone?.id || '',
@@ -88,41 +122,14 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
   }, [formData.bedId, storageProvider])
 
   const isRowConfigured = (row: GardenRow): boolean => {
-    const line = row.irrigationLine
-    if (!line) return false
-    if (typeof line.flowRatePerMeterLph === 'number' && line.flowRatePerMeterLph > 0) return true
-    if (
-      typeof line.emitterSpacingCm === 'number' &&
-      line.emitterSpacingCm > 0 &&
-      typeof line.emitterFlowRateLph === 'number' &&
-      line.emitterFlowRateLph > 0
-    ) {
-      return true
-    }
-    return false
+    return calculateRowFlowRateLph(row) !== null
   }
 
   const calcMinutesForRow = (row: GardenRow, litersPerRow: number): number | null => {
     if (!isRowConfigured(row)) return null
     if (!Number.isFinite(litersPerRow) || litersPerRow <= 0) return null
-    if (!Number.isFinite(row.lengthMeters) || row.lengthMeters <= 0) return null
-
-    const line = row.irrigationLine
-    let flowRowLph = 0
-    if (typeof line.flowRatePerMeterLph === 'number' && line.flowRatePerMeterLph > 0) {
-      flowRowLph = row.lengthMeters * line.flowRatePerMeterLph
-    } else if (
-      typeof line.emitterSpacingCm === 'number' &&
-      line.emitterSpacingCm > 0 &&
-      typeof line.emitterFlowRateLph === 'number' &&
-      line.emitterFlowRateLph > 0
-    ) {
-      const spacingMeters = line.emitterSpacingCm / 100
-      const emitters = row.lengthMeters / spacingMeters
-      flowRowLph = emitters * line.emitterFlowRateLph
-    }
-
-    if (!Number.isFinite(flowRowLph) || flowRowLph <= 0) return null
+    const flowRowLph = calculateRowFlowRateLph(row)
+    if (flowRowLph === null || !Number.isFinite(flowRowLph) || flowRowLph <= 0) return null
     const minutes = (litersPerRow / flowRowLph) * 60
     if (!Number.isFinite(minutes) || minutes <= 0) return null
     return Math.max(1, Math.round(minutes))

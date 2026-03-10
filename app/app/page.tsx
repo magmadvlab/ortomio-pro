@@ -7,7 +7,7 @@ import HomeDashboard from '@/components/shared/HomeDashboard'
 import { GardenTypeWizard } from '@/components/GardenTypeWizard'
 
 export default function AppPage() {
-  const { storageProvider } = useStorage()
+  const { storageProvider, isInitialized } = useStorage()
   const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
   const [tasks, setTasks] = useState<GardenTask[]>([])
@@ -57,6 +57,10 @@ export default function AppPage() {
   }
 
   useEffect(() => {
+    if (!isInitialized) {
+      return
+    }
+
     const loadData = async () => {
       try {
         console.log('🔍 Loading gardens...')
@@ -83,7 +87,7 @@ export default function AppPage() {
       }
     }
     loadData()
-  }, [storageProvider])
+  }, [storageProvider, isInitialized])
 
   const refreshTasks = async () => {
     if (activeGarden) {
@@ -117,7 +121,7 @@ export default function AppPage() {
     }
   }
 
-  if (loading) {
+  if (loading || !isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

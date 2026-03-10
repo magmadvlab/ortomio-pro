@@ -32,6 +32,7 @@ export interface SyncResult {
   plantsAffected: number;
   errors: string[];
   syncLogId?: string;
+  plantOperationIds?: string[];
 }
 
 export interface PlantRowMapping {
@@ -117,7 +118,7 @@ export class PlantRowSyncService {
           try {
             console.log('🔗 PLANT ROW SYNC DEBUG - Getting field row:', plant.fieldRowId)
             const fieldRows = await this.storageProvider.getFieldRows?.(gardenId);
-            const row = fieldRows?.find(r => r.id === plant.fieldRowId);
+            const row = fieldRows?.find((r: any) => r.id === plant.fieldRowId);
             rowName = row?.name;
             console.log('🔗 PLANT ROW SYNC DEBUG - Field row name:', rowName)
           } catch (error) {
@@ -157,7 +158,8 @@ export class PlantRowSyncService {
       success: false,
       operationsProcessed: 0,
       plantsAffected: 0,
-      errors: []
+      errors: [],
+      plantOperationIds: []
     };
 
     try {
@@ -180,29 +182,32 @@ export class PlantRowSyncService {
         if (typeof value === 'object') return value as Record<string, any>;
         return undefined;
       };
+      const getRowLengthMeters = (row: any): number => {
+        return toNumber(row?.lengthMeters ?? row?.length_meters) || 0;
+      };
+      const getRowPlantSpacingCm = (row: any): number => {
+        return toNumber(row?.plantSpacing ?? row?.plant_spacing) || 30;
+      };
 
       let operationsCreated = 0;
+      const createdPlantOperationIds: string[] = [];
 
       // 1. Get Operation Details
       let operationDetails: any;
-      let rowId: string | undefined;
-      let rowType: 'garden_row' | 'field_row' | undefined;
       let durationMinutes = 0;
       let totalAmount = 0;
       let unit = '';
       let productName = '';
       let notes = '';
+      let operationDate = '';
+      let operationTime: string | undefined;
+      let parentOperationTable: 'watering_logs' | 'fertilizer_application_logs' | 'treatment_register' = 'watering_logs';
+      let derivedOperationType: 'watering' | 'fertilizing' | 'treatment' = 'watering';
+      let weatherConditions: Record<string, any> | undefined;
 
       if (operationType === 'watering') {
         operationDetails = await this.storageProvider.getWateringLog?.(operationId);
         if (!operationDetails) throw new Error(`Watering log ${operationId} not found`);
-
-        // Try to find row ID from zone/bed linkage (simplified for now)
-        // Ideally operationDetails should have rowId or we infer it from zone
-        // Assuming operationDetails has enough info or we can't sync perfectly yet
-        // For FieldRows, they might be directly linked.
-        // If operation is on a ZONE, we need to find all rows in that zone.
-        // This is complex. Let's assume operation might have a 'rowId' or we process all rows in the zone.
 
         durationMinutes = toNumber(operationDetails.durationMinutes ?? operationDetails.duration_minutes);
         totalAmount = toNumber(
@@ -213,28 +218,39 @@ export class PlantRowSyncService {
         );
         unit = 'L';
         notes = operationDetails.notes;
-
-        // If operation is on a zone, find rows
-        const zoneId = operationDetails.zone_id; // Assuming this exists
-        if (zoneId) {
-          // Get all rows in this zone
-          // We'll process each row. But for simplicity, let's just create generic ops if we can't do precise.
-          // But we WANT precise.
-          // Let's defer to a helper that handles "Zone to Rows" distribution?
-          // For now, let's assume we can get a list of rows affected.
-        }
+        operationDate = operationDetails.date || operationDetails.operationDate || new Date().toISOString().split('T')[0];
+        operationTime = typeof operationDetails.wateredAt === 'string' && operationDetails.wateredAt.includes('T')
+          ? operationDetails.wateredAt.split('T')[1]?.slice(0, 5)
+          : undefined;
+        parentOperationTable = 'watering_logs';
+        derivedOperationType = 'watering';
+        weatherConditions = {
+          condition: operationDetails.weatherCondition || operationDetails.weather_condition,
+          temp: toNumber(operationDetails.airTemperatureC ?? operationDetails.air_temperature_c) || undefined
+        };
       } else if (operationType === 'fertilizer') {
         operationDetails = await this.storageProvider.getFertilizerApplicationLog?.(operationId);
         if (!operationDetails) throw new Error(`Fertilizer log ${operationId} not found`);
-        totalAmount = operationDetails.quantity || 0;
-        unit = operationDetails.unit || 'kg';
-        productName = operationDetails.fertilizer_name || 'Fertilizer';
+        totalAmount = toNumber(operationDetails.dosageAmount ?? operationDetails.dosage_amount ?? operationDetails.quantity);
+        unit = operationDetails.dosageUnit || operationDetails.dosage_unit || operationDetails.unit || 'kg';
+        productName = operationDetails.fertilizerProductName || operationDetails.fertilizer_product_name || operationDetails.fertilizer_name || 'Fertilizer';
         notes = operationDetails.notes;
+        operationDate = operationDetails.applicationDate || operationDetails.application_date || new Date().toISOString().split('T')[0];
+        parentOperationTable = 'fertilizer_application_logs';
+        derivedOperationType = 'fertilizing';
+        weatherConditions = operationDetails.weatherConditions || operationDetails.weather_conditions || undefined;
+      } else {
+        operationDetails = await this.storageProvider.getTreatment?.(operationId);
+        if (!operationDetails) throw new Error(`Treatment ${operationId} not found`);
+        totalAmount = toNumber(operationDetails.dosage);
+        unit = operationDetails.dosage_unit || 'ml';
+        productName = operationDetails.product_name || 'Treatment';
+        notes = operationDetails.notes;
+        operationDate = operationDetails.treatment_date || new Date().toISOString().split('T')[0];
+        parentOperationTable = 'treatment_register';
+        derivedOperationType = 'treatment';
+        weatherConditions = operationDetails.weather_conditions || undefined;
       }
-
-      // Hack: To make this work without complex zone logic refactoring,
-      // let's assume we can interact with "Field Rows" directly or via matching.
-      // If we can't find specific row info, we fall back to simple distribution.
 
       // Get all plants for the Garden (we can filter by zone/row later)
       const gardenId = operationDetails?.gardenId || operationDetails?.garden_id;
@@ -242,19 +258,23 @@ export class PlantRowSyncService {
 
       const mappings = await this.getPlantRowMappings(gardenId);
 
-      // Filter mappings that are relevant to this operation
-      // This is the tricky part: matching Operation -> Zone -> Rows -> Plants
-      // For now, let's try to match by Zone ID if available
+      const explicitFieldRowId = operationDetails?.fieldRowId || operationDetails?.field_row_id;
+      const explicitGardenRowId =
+        operationDetails?.bedRowId ||
+        operationDetails?.bed_row_id ||
+        operationDetails?.rowId ||
+        operationDetails?.row_id;
       const zoneId = operationDetails?.zoneId || operationDetails?.zone_id || operationDetails?.bedId || operationDetails?.bed_id;
 
       let targetMappings = mappings;
-      if (zoneId) {
-        // Filter plants in this zone (need to lookup row -> zone)
-        // Mappings have fieldRowId or gardenRowId. We need to check if those rows are in the zone.
-        // This requires fetching rows details.
-        // Optimization: Fetch all rows for the garden once.
+      if (explicitFieldRowId || explicitGardenRowId) {
+        targetMappings = mappings.filter(m =>
+          (explicitFieldRowId && m.fieldRowId === explicitFieldRowId) ||
+          (explicitGardenRowId && m.gardenRowId === explicitGardenRowId)
+        );
+      } else if (zoneId) {
         const fieldRows = await this.storageProvider.getFieldRows?.(gardenId) || [];
-        const gardenRows = await this.storageProvider.getGardenRows?.(zoneId) || []; // gardenRows are per bed/zone usually
+        const gardenRows = await this.storageProvider.getGardenRows?.(zoneId) || [];
 
         const validRowIds = new Set([
           ...fieldRows.filter((r: any) => r.zoneId === zoneId).map((r: any) => r.id),
@@ -320,12 +340,26 @@ export class PlantRowSyncService {
               dripperConfig.flowRateLph = inferredEmitterFlow;
             }
           }
+
+          const totalFlowRateLph = toNumber(config.totalFlowRate);
+          const rowLengthMeters = getRowLengthMeters(row);
+          if (
+            totalFlowRateLph > 0 &&
+            dripperConfig.spacingCm > 0 &&
+            rowLengthMeters > 0 &&
+            !flowRatePerMeterLph
+          ) {
+            const emitterCount = Math.max(1, Math.floor((rowLengthMeters * 100) / dripperConfig.spacingCm));
+            dripperConfig.flowRateLph = totalFlowRateLph / emitterCount;
+          }
         }
 
         // Prepare Plant Positions
+        const plantSpacingCm = getRowPlantSpacingCm(row);
         const plantPositions: PlantPosition[] = plantMappings.map(m => ({
           id: m.plantId,
-          distanceFromStartCm: (m.positionInRow || 0) * (row.plantSpacing ? row.plantSpacing * 100 : 30) // Estimate distance if not explicit
+          // positionInRow is an ordinal index, while plantSpacing is already in cm.
+          distanceFromStartCm: Math.max((m.positionInRow || 1) - 1, 0) * plantSpacingCm
         }));
 
         // Calculate Water Distribution
@@ -334,7 +368,7 @@ export class PlantRowSyncService {
         if (operationType === 'watering') {
           if (durationMinutes > 0) {
             distribution = preciseIrrigationService.calculateWatering(
-              (row.lengthMeters || 10) * 100,
+              Math.max(getRowLengthMeters(row), 10) * 100,
               dripperConfig,
               plantPositions,
               durationMinutes
@@ -342,7 +376,7 @@ export class PlantRowSyncService {
           } else if (totalAmount > 0) {
             // Se manca la durata ma esistono litri totali, distribuisci proporzionalmente tra le piante.
             const baseDistribution = preciseIrrigationService.calculateWatering(
-              (row.lengthMeters || 10) * 100,
+              Math.max(getRowLengthMeters(row), 10) * 100,
               dripperConfig,
               plantPositions,
               30
@@ -361,7 +395,7 @@ export class PlantRowSyncService {
           // Simplest: Distribute Total Amount based on Water Distribution Ratio
           // Simulate a watering event to get ratios
           const waterDist = preciseIrrigationService.calculateWatering(
-            (row.lengthMeters || 10) * 100,
+            Math.max(getRowLengthMeters(row), 10) * 100,
             dripperConfig,
             plantPositions,
             30 // Arbitrary 30 mins to get ratios
@@ -379,26 +413,33 @@ export class PlantRowSyncService {
         for (const dist of distribution) {
           if (dist.litersReceived > 0 || operationType !== 'watering') {
             const plantId = dist.plantId;
-
-            await this.storageProvider.createPlantOperation?.({
+            const createdOperation = await this.storageProvider.createPlantOperation?.({
               gardenId,
               plantId,
-              operationType,
-              operationDate: new Date().toISOString(), // Or operation date
+              operationType: derivedOperationType,
+              operationDate,
+              operationTime,
               quantity: Number(dist.litersReceived.toFixed(3)),
               unit: unit,
               productName: productName,
               notes: notes ? `${notes} (Calc: ${dist.efficiency.toFixed(2)}x eff)` : undefined,
               parentOperationId: operationId,
-              parentOperationTable: operationType === 'watering' ? 'watering_logs' : 'fertilizer_logs'
+              parentOperationTable,
+              sourceType: 'orchestrator_sync',
+              actorType: 'orchestrator',
+              weatherConditions
             });
             operationsCreated++;
+            if (createdOperation?.id) {
+              createdPlantOperationIds.push(createdOperation.id);
+            }
           }
         }
       }
 
       result.operationsProcessed = operationsCreated;
-      result.plantsAffected = operationsCreated;
+      result.plantsAffected = createdPlantOperationIds.length;
+      result.plantOperationIds = createdPlantOperationIds;
       result.success = operationsCreated > 0;
 
       // Update status

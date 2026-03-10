@@ -1422,6 +1422,7 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
     const spacingCm = parseNumber(config.emitterSpacingCm ?? config.emitterSpacing ?? config.dripperSpacing)
     const emitterFlowRateLph = parseNumber(config.emitterFlowRateLph ?? config.emitterFlowRate ?? config.dripperFlowRate)
     const flowRatePerMeterLph = parseNumber(config.flowRatePerMeterLph ?? config.flowRatePerMeter)
+    const totalFlowRateLph = parseNumber(config.totalFlowRate)
     const pressureBar = parseNumber(config.pressureBar ?? config.pressure)
     const referencePressureBar = parseNumber(config.nominalPressureBar ?? config.referencePressureBar) ?? 1.5
     const pressureFactor = pressureBar && pressureBar > 0 && referencePressureBar > 0
@@ -1442,13 +1443,15 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
       }
     }
 
-    if (flowRatePerMeterLph && flowRatePerMeterLph > 0) {
+    if ((flowRatePerMeterLph && flowRatePerMeterLph > 0) || (totalFlowRateLph && totalFlowRateLph > 0)) {
       const lengthMeters = parseNumber(row.lengthMeters)
       if (!lengthMeters || lengthMeters <= 0) {
         return { rowName: row.name, warning: 'Lunghezza filare non valida per stimare i litri.' }
       }
 
-      const rowFlowLph = flowRatePerMeterLph * lengthMeters
+      const rowFlowLph = flowRatePerMeterLph && flowRatePerMeterLph > 0
+        ? flowRatePerMeterLph * lengthMeters
+        : totalFlowRateLph!
       const rowLiters = (rowFlowLph * durationMinutes) / 60
       const plantSpacingCm = parseNumber(row.plantSpacing)
       const estimatedPlants = parseNumber(row.plantCount)
@@ -1461,7 +1464,9 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
       return {
         litersPerTree: Math.round(litersPerTree * 100) / 100,
         rowName: row.name,
-        method: `portata filare (${flowRatePerMeterLph.toFixed(2)} L/h/m)`,
+        method: flowRatePerMeterLph && flowRatePerMeterLph > 0
+          ? `portata filare (${flowRatePerMeterLph.toFixed(2)} L/h/m)`
+          : `portata totale filare (${totalFlowRateLph!.toFixed(2)} L/h)`,
         pressureBar,
       }
     }

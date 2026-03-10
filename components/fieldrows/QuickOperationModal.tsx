@@ -12,6 +12,7 @@ import {
   FieldRowConfiguration,
   IntegratedOperationRequest
 } from '@/services/integratedFieldOperationsService'
+import { createOperationContextService } from '@/services/operationContextService'
 import { 
   Zap, 
   Scissors, 
@@ -52,6 +53,7 @@ export const QuickOperationModal: React.FC<QuickOperationModalProps> = ({
   onOperationComplete
 }) => {
   const { storageProvider } = useStorage()
+  const operationContextService = createOperationContextService()
   
   // State
   const [loading, setLoading] = useState(false)
@@ -130,7 +132,7 @@ export const QuickOperationModal: React.FC<QuickOperationModalProps> = ({
     }
   }
   
-  const getWeatherCondition = (code: number): string => {
+  const getWeatherCondition = (code: number): 'sereno' | 'nuvoloso' | 'pioggia' | 'vento' => {
     if (code <= 1) return 'sereno'
     if (code <= 3) return 'nuvoloso'
     if (code >= 51) return 'pioggia'
@@ -185,6 +187,14 @@ export const QuickOperationModal: React.FC<QuickOperationModalProps> = ({
     setLoading(true)
     
     try {
+      const [latitude, longitude] = garden.coordinates
+        ? [garden.coordinates.latitude, garden.coordinates.longitude]
+        : [undefined, undefined]
+      const validTimestamp = new Date(`${operationData.date}T${operationData.time || '12:00'}:00`)
+      const context = latitude !== undefined && longitude !== undefined
+        ? await operationContextService.getOperationContext(latitude, longitude, validTimestamp)
+        : undefined
+
       // Crea richiesta operazione
       const request: IntegratedOperationRequest = {
         gardenId: garden.id,
@@ -196,27 +206,60 @@ export const QuickOperationModal: React.FC<QuickOperationModalProps> = ({
           fertilizerType: operationType === 'fertilization' ? operationData.fertilizerType : undefined,
           dosagePerPlant: operationType === 'fertilization' ? operationData.dosagePerPlant : undefined,
           totalDosage: operationType === 'fertilization' ? totalDosage : undefined,
+          fertilizerMethod: operationType === 'fertilization' ? operationData.applicationMethod : undefined,
           
           // Trattamento
           treatmentType: operationType === 'treatment' ? operationData.treatmentType : undefined,
           productName: operationType === 'treatment' ? operationData.productName : undefined,
+          activeIngredient: operationType === 'treatment' ? operationData.activeIngredient : undefined,
           concentration: operationType === 'treatment' ? operationData.concentration : undefined,
           applicationMethod: operationType === 'treatment' ? operationData.applicationMethod : undefined,
           
           // Lavorazione
-          cultivationType: operationType === 'cultivation' ? operationData.cultivationType : undefined
+          cultivationType: operationType === 'cultivation' ? operationData.cultivationType : undefined,
+          tools: operationType === 'cultivation' ? operationData.tools : undefined
         },
         plantApplication: {
           applyToAllPlants: true
         },
-        notes: `${operationData.notes}\n\nCondizioni meteo:\n- Temperatura: ${operationData.temperature}°C\n- Umidità: ${operationData.humidity}%\n- Vento: ${operationData.windSpeed} km/h\n- Condizioni: ${operationData.weatherCondition}`
+        notes: `${operationData.notes}\n\nCondizioni meteo:\n- Temperatura: ${operationData.temperature}°C\n- Umidità: ${operationData.humidity}%\n- Vento: ${operationData.windSpeed} km/h\n- Condizioni: ${operationData.weatherCondition}`.trim(),
+        sourceType: 'manual',
+        actorType: 'manual',
+        contextSnapshot: context,
+        weatherConditions: context
+          ? {
+              temp: context.weather.temperature,
+              humidity: context.weather.humidity,
+              wind: `${context.weather.windSpeed} km/h`,
+              condition: context.weather.condition,
+              precipitation: context.weather.precipitation,
+              pressure: context.weather.pressure,
+              source: context.weather.source
+            }
+          : {
+              temp: operationData.temperature,
+              humidity: operationData.humidity,
+              wind: `${operationData.windSpeed} km/h`,
+              condition: operationData.weatherCondition,
+              source: weatherData ? 'forecast' : 'manual'
+            },
+        geoSnapshot: {
+          latitude,
+          longitude,
+          altitudeMeters: garden.altitudeMeters,
+          sunExposure: garden.sunExposure,
+          aspectDirection: garden.aspectDirection,
+          obstacles: Array.isArray(garden.obstacles) ? garden.obstacles : undefined,
+          source: latitude !== undefined && longitude !== undefined ? 'garden_coordinates' : 'not_available'
+        }
       }
       
       // Esegui operazione
       const result = await integratedFieldOperationsService.createIntegratedOperation(
         request,
         fieldRows,
-        plants
+        plants,
+        storageProvider
       )
       
       if (result.success) {

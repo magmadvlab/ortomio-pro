@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
 import { ActionType, ActionContext } from '@/components/actions/ActionButton';
+import { getSupabaseClient } from '@/config/supabase';
 
 export interface InterventionData {
   id: string;
@@ -32,18 +32,22 @@ export interface InterventionFilter {
 }
 
 class InterventionService {
-  private supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  private getSupabase() {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase client not available');
+    }
+    return supabase;
+  }
 
   /**
    * Crea un nuovo intervento
    */
   async createIntervention(intervention: Omit<InterventionData, 'id' | 'createdAt' | 'userId'>): Promise<InterventionData> {
     try {
+      const supabase = this.getSupabase();
       // Ottieni l'utente corrente
-      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('Utente non autenticato');
       }
@@ -63,7 +67,7 @@ class InterventionService {
         garden_id: intervention.gardenId
       };
 
-      const { data, error } = await this.supabase
+      const { data, error } = await supabase
         .from('interventions')
         .insert([interventionData])
         .select()
@@ -86,12 +90,13 @@ class InterventionService {
    */
   async getInterventions(filter?: InterventionFilter): Promise<InterventionData[]> {
     try {
-      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
+      const supabase = this.getSupabase();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('Utente non autenticato');
       }
 
-      let query = this.supabase
+      let query = supabase
         .from('interventions')
         .select('*')
         .eq('user_id', user.id)
@@ -141,12 +146,13 @@ class InterventionService {
    */
   async getIntervention(id: string): Promise<InterventionData | null> {
     try {
-      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
+      const supabase = this.getSupabase();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('Utente non autenticato');
       }
 
-      const { data, error } = await this.supabase
+      const { data, error } = await supabase
         .from('interventions')
         .select('*')
         .eq('id', id)
@@ -173,7 +179,8 @@ class InterventionService {
    */
   async updateIntervention(id: string, updates: Partial<InterventionData>): Promise<InterventionData> {
     try {
-      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
+      const supabase = this.getSupabase();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('Utente non autenticato');
       }
@@ -191,7 +198,7 @@ class InterventionService {
         ...(updates.completedAt !== undefined && { completed_at: updates.completedAt.toISOString() })
       };
 
-      const { data, error } = await this.supabase
+      const { data, error } = await supabase
         .from('interventions')
         .update(updateData)
         .eq('id', id)
@@ -216,12 +223,13 @@ class InterventionService {
    */
   async deleteIntervention(id: string): Promise<void> {
     try {
-      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
+      const supabase = this.getSupabase();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('Utente non autenticato');
       }
 
-      const { error } = await this.supabase
+      const { error } = await supabase
         .from('interventions')
         .delete()
         .eq('id', id)

@@ -24,6 +24,55 @@ interface WateringLogFormProps {
 
 export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows = [], onSubmit, onSubmitBatch, onCancel }: WateringLogFormProps) {
   const { storageProvider } = useStorage()
+  const toNumber = (value: unknown): number | undefined => {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : undefined
+    }
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value.replace(',', '.'))
+      return Number.isFinite(parsed) ? parsed : undefined
+    }
+    return undefined
+  }
+  const getRowIrrigationConfig = (row: any): Record<string, any> | undefined => {
+    const raw = row?.irrigationLine ?? row?.irrigationConfig
+    if (!raw) return undefined
+    if (typeof raw === 'string') {
+      try {
+        return JSON.parse(raw)
+      } catch {
+        return undefined
+      }
+    }
+    return typeof raw === 'object' ? raw : undefined
+  }
+  const getRowLengthMeters = (row: any): number => {
+    return toNumber(row?.lengthMeters ?? row?.length_meters) || 0
+  }
+  const calculateRowFlowRateLph = (row: any): number | null => {
+    const line = getRowIrrigationConfig(row)
+    if (!line) return null
+
+    const totalFlowRateLph = toNumber(line.totalFlowRate)
+    if (totalFlowRateLph && totalFlowRateLph > 0) {
+      return totalFlowRateLph
+    }
+
+    const lengthMeters = getRowLengthMeters(row)
+    const flowRatePerMeterLph = toNumber(line.flowRatePerMeterLph ?? line.flowRatePerMeter)
+    if (flowRatePerMeterLph && flowRatePerMeterLph > 0 && lengthMeters > 0) {
+      return lengthMeters * flowRatePerMeterLph
+    }
+
+    const emitterSpacingCm = toNumber(line.emitterSpacingCm ?? line.emitterSpacing ?? line.dripperSpacing)
+    const emitterFlowRateLph = toNumber(line.emitterFlowRateLph ?? line.emitterFlowRate ?? line.dripperFlowRate)
+    if (emitterSpacingCm && emitterSpacingCm > 0 && emitterFlowRateLph && emitterFlowRateLph > 0 && lengthMeters > 0) {
+      const emitterCount = lengthMeters / (emitterSpacingCm / 100)
+      return emitterCount * emitterFlowRateLph
+    }
+
+    return null
+  }
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     zoneId: preselectedZone?.id || '',
@@ -69,6 +118,16 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
 
   const selectedZone = zones.find(z => z.id === formData.zoneId)
 
+  const selectedRows = useMemo(() => {
+    const map = new Map(rowOptions.map((r) => [r.id, r]))
+    return selectedRowIds.map((id) => map.get(id)).filter((r): r is GardenRow => Boolean(r))
+  }, [rowOptions, selectedRowIds])
+
+  const selectedFieldRows = useMemo(() => {
+    const map = new Map(fieldRows.map((r) => [r.id, r]))
+    return selectedFieldRowIds.map((id) => map.get(id)).filter((r) => Boolean(r))
+  }, [fieldRows, selectedFieldRowIds])
+
   // Calcolo automatico volume/durata per sistemi manuali
   const handleCalculateManual = () => {
     const system: ManualIrrigationSystem = {
@@ -77,7 +136,7 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
       dripperFlowRateLph: formData.dripperFlowRateLph,
       dripperCount: formData.dripperCount,
       dripperSpacingCm: formData.dripperSpacingCm,
-      rowLengthM: selectedRows[0]?.lengthMeters,
+      rowLengthM: selectedFieldRows[0]?.lengthMeters ?? selectedRows[0]?.lengthMeters,
       sprinklerFlowRateLph: formData.sprinklerFlowRateLph,
       sprinklerCount: formData.sprinklerCount,
       sprinklerEfficiency: formData.sprinklerEfficiency,
@@ -113,7 +172,8 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
     formData.furrowLengthM,
     formData.furrowWidthCm,
     formData.infiltrationRateMmh,
-    selectedRows
+    selectedRows,
+    selectedFieldRows
   ])
 
   React.useEffect(() => {
@@ -158,55 +218,18 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
   }, [formData.bedId, storageProvider])
 
   const isRowConfigured = (row: GardenRow): boolean => {
-    const line = row.irrigationLine
-    if (!line) return false
-    if (typeof line.flowRatePerMeterLph === 'number' && line.flowRatePerMeterLph > 0) return true
-    if (
-      typeof line.emitterSpacingCm === 'number' &&
-      line.emitterSpacingCm > 0 &&
-      typeof line.emitterFlowRateLph === 'number' &&
-      line.emitterFlowRateLph > 0
-    ) {
-      return true
-    }
-    return false
+    return calculateRowFlowRateLph(row) !== null
   }
 
   const calcMinutesForRow = (row: GardenRow, litersPerRow: number): number | null => {
     if (!isRowConfigured(row)) return null
     if (!Number.isFinite(litersPerRow) || litersPerRow <= 0) return null
-    if (!Number.isFinite(row.lengthMeters) || row.lengthMeters <= 0) return null
-
-    const line = row.irrigationLine
-    let flowRowLph = 0
-    if (typeof line.flowRatePerMeterLph === 'number' && line.flowRatePerMeterLph > 0) {
-      flowRowLph = row.lengthMeters * line.flowRatePerMeterLph
-    } else if (
-      typeof line.emitterSpacingCm === 'number' &&
-      line.emitterSpacingCm > 0 &&
-      typeof line.emitterFlowRateLph === 'number' &&
-      line.emitterFlowRateLph > 0
-    ) {
-      const spacingMeters = line.emitterSpacingCm / 100
-      const emitters = row.lengthMeters / spacingMeters
-      flowRowLph = emitters * line.emitterFlowRateLph
-    }
-
-    if (!Number.isFinite(flowRowLph) || flowRowLph <= 0) return null
+    const flowRowLph = calculateRowFlowRateLph(row)
+    if (flowRowLph === null || !Number.isFinite(flowRowLph) || flowRowLph <= 0) return null
     const minutes = (litersPerRow / flowRowLph) * 60
     if (!Number.isFinite(minutes) || minutes <= 0) return null
     return Math.max(1, Math.round(minutes))
   }
-
-  const selectedRows = useMemo(() => {
-    const map = new Map(rowOptions.map((r) => [r.id, r]))
-    return selectedRowIds.map((id) => map.get(id)).filter((r): r is GardenRow => Boolean(r))
-  }, [rowOptions, selectedRowIds])
-
-  const selectedFieldRows = useMemo(() => {
-    const map = new Map(fieldRows.map((r) => [r.id, r]))
-    return selectedFieldRowIds.map((id) => map.get(id)).filter((r) => Boolean(r))
-  }, [fieldRows, selectedFieldRowIds])
 
   const minutesByRowId = useMemo(() => {
     const litersPerRow = formData.litersPerRow
@@ -217,6 +240,27 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
     }
     return out
   }, [formData.litersPerRow, selectedRows])
+
+  const minutesByFieldRowId = useMemo(() => {
+    const litersPerRow = formData.litersPerRow
+    const out: Record<string, number> = {}
+    for (const row of selectedFieldRows) {
+      const minutes = calcMinutesForRow(row as GardenRow, litersPerRow)
+      if (typeof minutes === 'number') out[row.id] = minutes
+    }
+    return out
+  }, [formData.litersPerRow, selectedFieldRows])
+
+  const flowRateByFieldRowId = useMemo(() => {
+    const out: Record<string, number> = {}
+    for (const row of selectedFieldRows) {
+      const flowRate = calculateRowFlowRateLph(row)
+      if (typeof flowRate === 'number' && Number.isFinite(flowRate) && flowRate > 0) {
+        out[row.id] = flowRate
+      }
+    }
+    return out
+  }, [selectedFieldRows])
 
   const hasAnyRowMissingConfig = useMemo(() => {
     if (selectedRows.length === 0) return false
@@ -230,6 +274,19 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
     const max = Math.max(...values)
     return { min, max }
   }, [minutesByRowId])
+
+  const hasAnyFieldRowMissingConfig = useMemo(() => {
+    if (selectedFieldRows.length === 0) return false
+    return selectedFieldRows.some((r) => typeof minutesByFieldRowId[r.id] !== 'number')
+  }, [minutesByFieldRowId, selectedFieldRows])
+
+  const fieldDurationSummary = useMemo(() => {
+    const values = Object.values(minutesByFieldRowId)
+    if (values.length === 0) return null
+    const min = Math.min(...values)
+    const max = Math.max(...values)
+    return { min, max }
+  }, [minutesByFieldRowId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -266,8 +323,8 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
       if (formData.irrigationType === 'field') {
         // Irrigazione diretta field rows
         const logsToCreate = selectedFieldRows.map((row) => {
-          // Usa durata calcolata se disponibile, altrimenti default
-          const duration = calculationResult?.durationMinutes || 30
+          const duration = minutesByFieldRowId[row.id] ?? calculationResult?.durationMinutes ?? 30
+          const estimatedFlowRateLph = flowRateByFieldRowId[row.id] ?? calculationResult?.estimatedFlowRateLph
 
           return {
             zoneId: '', // Non collegato a zona
@@ -286,9 +343,13 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
             completed: true,
             // Salva parametri sistema per riferimento futuro
             systemType: formData.useManualCalculation ? formData.manualSystemType : undefined,
-            flowRateLph: calculationResult?.estimatedFlowRateLph,
-            calculationMethod: calculationResult?.method,
-            calculationConfidence: calculationResult?.confidence
+            flowRateLph: estimatedFlowRateLph,
+            calculationMethod: minutesByFieldRowId[row.id]
+              ? 'Configurazione filare'
+              : calculationResult?.method,
+            calculationConfidence: minutesByFieldRowId[row.id]
+              ? 'high'
+              : calculationResult?.confidence
           }
         })
 
@@ -577,6 +638,7 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
                 <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg divide-y">
                   {fieldRows.map((r) => {
                     const checked = selectedFieldRowIds.includes(r.id)
+                    const configured = typeof minutesByFieldRowId[r.id] === 'number' || calculateRowFlowRateLph(r) !== null
                     return (
                       <label key={r.id} className="flex items-center justify-between gap-3 p-3 cursor-pointer hover:bg-gray-50">
                         <div className="flex items-center gap-3">
@@ -599,8 +661,8 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
                             </div>
                           </div>
                         </div>
-                        <span className="text-xs px-2 py-0.5 rounded font-semibold bg-blue-100 text-blue-700">
-                          Campo Aperto
+                        <span className={`text-xs px-2 py-0.5 rounded font-semibold ${configured ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-800'}`}>
+                          {configured ? 'Config OK' : 'Config mancante'}
                         </span>
                       </label>
                     )
@@ -664,15 +726,23 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
                 {formData.irrigationType === 'field' ? (
                   selectedFieldRowIds.length === 0 ? (
                     <span className="text-gray-500">Seleziona filari per calcolare</span>
+                  ) : fieldDurationSummary ? (
+                    fieldDurationSummary.min === fieldDurationSummary.max ? (
+                      <span>{fieldDurationSummary.min} min</span>
+                    ) : (
+                      <span>{fieldDurationSummary.min}-{fieldDurationSummary.max} min</span>
+                    )
                   ) : calculationResult ? (
                     <span className="font-semibold text-green-700">{calculationResult.durationMinutes} min</span>
+                  ) : hasAnyFieldRowMissingConfig ? (
+                    <span className="text-yellow-700">Config mancante su uno o più filari</span>
                   ) : (
                     <span>~30 min per filare</span>
                   )
                 ) : selectedRowIds.length === 0 ? (
                   <span className="text-gray-500">Seleziona filari per calcolare</span>
                 ) : hasAnyRowMissingConfig ? (
-                  <span className="text-yellow-full max-w-sm">Config mancante su uno o più filari</span>
+                  <span className="text-yellow-700 max-w-sm">Config mancante su uno o più filari</span>
                 ) : durationSummary ? (
                   durationSummary.min === durationSummary.max ? (
                     <span>{durationSummary.min} min</span>
@@ -685,7 +755,11 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 {formData.irrigationType === 'field'
-                  ? calculationResult ? calculationResult.method : 'Stima per filari campo aperto'
+                  ? fieldDurationSummary
+                    ? 'Calcolato dalla configurazione reale del filare (portata totale, L/h per metro o passo/portata gocciolatori)'
+                    : calculationResult
+                      ? calculationResult.method
+                      : 'Stima per filari campo aperto'
                   : 'Calcolato dalla configurazione del filare (passo/portata o L/h per metro)'
                 }
               </p>

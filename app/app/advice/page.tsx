@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import CropRotationPlanner from '@/components/advice/CropRotationPlanner'
 import BiologicalControlDashboard from '@/components/advice/BiologicalControlDashboard'
+import MobileTabNavigation from '@/components/shared/MobileTabNavigation'
 
 interface AIAdvice {
   id: string

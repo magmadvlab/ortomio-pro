@@ -2,6 +2,8 @@
  * Weather Service - Servizio per recuperare dati meteo reali
  * Integra OpenWeatherMap e Open-Meteo per dati accurati
  */
+import type { Garden } from '@/types';
+import type { HealthAlert as AgronomicHealthAlert } from '@/logic/healthAlertEngine';
 import { normalizeGeoCoordinates } from '../utils/coordinates';
 
 interface WeatherData {
@@ -41,6 +43,16 @@ interface GardenLocation {
   lat: number
   lon: number
   name?: string
+}
+
+export interface WeatherSnapshot {
+  temperature: number
+  humidity: number
+  precipitation: number
+  windSpeed: number
+  condition: string
+  pressure: number
+  source?: 'current' | 'forecast' | 'historical' | 'fallback'
 }
 
 // Export standalone functions for compatibility
@@ -222,6 +234,58 @@ export function checkCriticalWeatherAlerts(forecast: any[]): CriticalWeatherAler
   return alerts
 }
 
+/**
+ * Adapter legacy usato dall'health system.
+ * Traduce gli alert meteo generici nel formato del motore salute.
+ */
+export async function checkWeatherHealthRisks(garden: Garden): Promise<AgronomicHealthAlert[]> {
+  if (!garden.coordinates) return []
+
+  try {
+    const normalized = normalizeGeoCoordinates({
+      latitude: garden.coordinates.latitude,
+      longitude: garden.coordinates.longitude
+    })
+    const latitude = normalized?.latitude ?? garden.coordinates.latitude
+    const longitude = normalized?.longitude ?? garden.coordinates.longitude
+
+    const forecast = await getWeatherForecast(latitude, longitude, 1)
+    const alerts = generateWeatherAlerts(forecast)
+
+    return alerts.map((alert) => ({
+      type: 'weather',
+      severity:
+        alert.severity === 'HIGH'
+          ? 'high'
+          : alert.severity === 'MEDIUM'
+            ? 'medium'
+            : 'low',
+      message: alert.message,
+      action:
+        alert.type === 'rain'
+          ? 'Riduci o sospendi l’irrigazione e verifica il drenaggio.'
+          : alert.type === 'wind'
+            ? 'Proteggi le piante più esposte e controlla i tutori.'
+            : 'Monitora le colture sensibili e adegua irrigazione o protezioni.',
+      urgency:
+        alert.severity === 'HIGH'
+          ? 'immediate'
+          : alert.severity === 'MEDIUM'
+            ? 'soon'
+            : 'monitor',
+      confidence:
+        alert.severity === 'HIGH'
+          ? 90
+          : alert.severity === 'MEDIUM'
+            ? 80
+            : 70
+    }))
+  } catch (error) {
+    console.error('Error checking weather health risks:', error)
+    return []
+  }
+}
+
 function getConditionFromCode(code: number): string {
   if (code <= 3) return 'sunny';
   if (code <= 48) return 'cloudy';
@@ -362,6 +426,94 @@ class WeatherService {
   }
 
   /**
+   * Snapshot meteo compatto per contesto operazioni.
+   * Usa la data richiesta invece del meteo "di oggi" per mantenere coerenza storica.
+   */
+  async getCurrentWeather(latitude: number, longitude: number): Promise<WeatherSnapshot> {
+    return this.getWeatherForDate(latitude, longitude, new Date())
+  }
+
+  async getWeatherForDate(latitude: number, longitude: number, date: Date): Promise<WeatherSnapshot> {
+    const targetDate = this.formatWeatherDate(date)
+    const today = this.formatWeatherDate(new Date())
+    const source: WeatherSnapshot['source'] =
+      targetDate < today ? 'historical' : targetDate === today ? 'current' : 'forecast'
+
+    try {
+      const url = new URL(
+        source === 'historical'
+          ? 'https://archive-api.open-meteo.com/v1/archive'
+          : 'https://api.open-meteo.com/v1/forecast'
+      )
+
+      url.searchParams.append('latitude', latitude.toString())
+      url.searchParams.append('longitude', longitude.toString())
+      url.searchParams.append('start_date', targetDate)
+      url.searchParams.append('end_date', targetDate)
+      url.searchParams.append(
+        'daily',
+        [
+          'temperature_2m_max',
+          'temperature_2m_min',
+          'precipitation_sum',
+          'weathercode',
+          'wind_speed_10m_max'
+        ].join(',')
+      )
+      url.searchParams.append(
+        'hourly',
+        [
+          'relative_humidity_2m',
+          'wind_speed_10m',
+          'precipitation'
+        ].join(',')
+      )
+      url.searchParams.append('timezone', 'Europe/Rome')
+
+      const response = await fetch(url.toString())
+      if (!response.ok) {
+        throw new Error(`Open-Meteo date weather error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      const daily = data?.daily
+      if (!daily?.time?.length) {
+        throw new Error('Open-Meteo date weather returned no daily data')
+      }
+
+      const humidityAvg = this.averageNumbers(data?.hourly?.relative_humidity_2m)
+      const windMaxHourly = this.maxNumbers(data?.hourly?.wind_speed_10m)
+      const precipitationHourly = this.maxNumbers(data?.hourly?.precipitation)
+      const tempMax = Number(daily.temperature_2m_max?.[0])
+      const tempMin = Number(daily.temperature_2m_min?.[0])
+      const precipitationDaily = Number(daily.precipitation_sum?.[0] ?? 0)
+      const windDaily = Number(daily.wind_speed_10m_max?.[0] ?? 0)
+      const weatherCode = Number(daily.weathercode?.[0] ?? 0)
+
+      return {
+        temperature: Math.round((((tempMax || 20) + (tempMin || 20)) / 2) * 10) / 10,
+        humidity: humidityAvg || 60,
+        precipitation: precipitationDaily || precipitationHourly || 0,
+        windSpeed: windMaxHourly || windDaily || 0,
+        condition: getConditionFromCode(weatherCode),
+        pressure: 1013,
+        source
+      }
+    } catch (error) {
+      console.error(`Error getting weather for ${targetDate}:`, error)
+      return {
+        temperature: 20,
+        humidity: 60,
+        precipitation: 0,
+        windSpeed: 0,
+        condition: 'unknown',
+        pressure: 1013,
+        source: 'fallback'
+      }
+    }
+  }
+
+  /**
    * Fetch da OpenWeatherMap (API premium)
    */
   private async fetchFromOpenWeatherMap(location: GardenLocation): Promise<WeatherData> {
@@ -483,6 +635,31 @@ class WeatherService {
     if (code <= 82) return 'Rovesci'
     if (code <= 99) return 'Temporale'
     return 'Variabile'
+  }
+
+  private formatWeatherDate(date: Date): string {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  private averageNumbers(values: unknown): number {
+    if (!Array.isArray(values) || values.length === 0) return 0
+    const numeric = values
+      .map(value => Number(value))
+      .filter(value => Number.isFinite(value))
+    if (numeric.length === 0) return 0
+    return Math.round((numeric.reduce((sum, value) => sum + value, 0) / numeric.length) * 10) / 10
+  }
+
+  private maxNumbers(values: unknown): number {
+    if (!Array.isArray(values) || values.length === 0) return 0
+    const numeric = values
+      .map(value => Number(value))
+      .filter(value => Number.isFinite(value))
+    if (numeric.length === 0) return 0
+    return Math.round(Math.max(...numeric) * 10) / 10
   }
 
   /**
@@ -727,48 +904,18 @@ export async function checkTransplantConditions(
  * Ottiene dati meteo correnti per coordinate specifiche
  * Funzione helper per operationContextService
  */
-export async function getCurrentWeather(latitude: number, longitude: number): Promise<{
-  temperature: number;
-  humidity: number;
-  precipitation: number;
-  windSpeed: number;
-  condition: string;
-  pressure: number;
-}> {
-  try {
-    const forecast = await getWeatherForecast(latitude, longitude, 1);
-    
-    if (!forecast || forecast.length === 0) {
-      throw new Error('No weather data available');
-    }
-    
-    const today = forecast[0];
-    
-    return {
-      temperature: (today.temp_max + today.temp_min) / 2,
-      humidity: today.humidity || 60,
-      precipitation: today.precipitation || 0,
-      windSpeed: today.wind_speed || 0,
-      condition: today.condition || 'unknown',
-      pressure: 1013 // Default pressure
-    };
-  } catch (error) {
-    console.error('Error getting current weather:', error);
-    // Return fallback data
-    return {
-      temperature: 20,
-      humidity: 60,
-      precipitation: 0,
-      windSpeed: 0,
-      condition: 'unknown',
-      pressure: 1013
-    };
-  }
+export async function getCurrentWeather(latitude: number, longitude: number): Promise<WeatherSnapshot> {
+  return weatherService.getCurrentWeather(latitude, longitude)
+}
+
+export async function getWeatherForDate(latitude: number, longitude: number, date: Date): Promise<WeatherSnapshot> {
+  return weatherService.getWeatherForDate(latitude, longitude, date)
 }
 
 export const weatherService = new WeatherService()
 export const createWeatherService = () => ({
-  getCurrentWeather
+  getCurrentWeather: weatherService.getCurrentWeather.bind(weatherService),
+  getWeatherForDate: weatherService.getWeatherForDate.bind(weatherService)
 });
 
 export type { WeatherData, WeatherAlert, GardenLocation }

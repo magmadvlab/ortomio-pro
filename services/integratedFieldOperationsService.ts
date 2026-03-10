@@ -3,8 +3,8 @@
  * Sistema completo per operazioni integrate: ORTO → FILARI → PIANTE → OPERAZIONI
  */
 
-import { GardenPlant } from '@/types/individualPlant'
-import { Garden } from '@/types'
+import { GardenPlant, PlantOperation } from '@/types/individualPlant'
+import { createUnifiedOperationsService } from '@/services/unifiedOperationsService'
 
 export interface FieldRowConfiguration {
   id: string
@@ -70,15 +70,18 @@ export interface FieldRowOperation {
     fertilizerType?: string
     dosagePerPlant?: number // grammi per pianta
     totalDosage?: number // grammi totali
+    fertilizerMethod?: 'soil' | 'foliar' | 'fertigation'
     
     // Trattamento
     treatmentType?: string
     productName?: string
+    activeIngredient?: string
     concentration?: number // %
-    applicationMethod?: 'spray' | 'soil' | 'systemic'
+    applicationMethod?: 'spray' | 'soil' | 'systemic' | 'foliar' | 'fertigation'
     
     // Lavorazione
     cultivationType?: 'weeding' | 'hoeing' | 'mulching' | 'pruning'
+    tools?: string
     
     // Raccolta
     expectedYield?: number // kg
@@ -114,6 +117,12 @@ export interface IntegratedOperationRequest {
   config: FieldRowOperation['config']
   plantApplication: FieldRowOperation['plantApplication']
   notes?: string
+  sourceType?: 'manual' | 'iot' | 'orchestrator_auto' | 'orchestrator_sync'
+  actorType?: 'manual' | 'iot' | 'orchestrator'
+  deviceId?: string
+  contextSnapshot?: PlantOperation['context']
+  weatherConditions?: PlantOperation['weatherConditions']
+  geoSnapshot?: PlantOperation['geoSnapshot']
 }
 
 export interface IntegratedOperationResult {
@@ -188,9 +197,21 @@ export class IntegratedFieldOperationsService {
   async createIntegratedOperation(
     request: IntegratedOperationRequest,
     fieldRows: FieldRowConfiguration[],
+    plants: GardenPlant[],
+    storageProvider?: any
+  ): Promise<IntegratedOperationResult> {
+    if (storageProvider && request.operationType !== 'harvest') {
+      return this.createPersistedIntegratedOperation(request, fieldRows, plants, storageProvider)
+    }
+
+    return this.createLegacyIntegratedOperation(request, fieldRows, plants)
+  }
+
+  private async createLegacyIntegratedOperation(
+    request: IntegratedOperationRequest,
+    fieldRows: FieldRowConfiguration[],
     plants: GardenPlant[]
   ): Promise<IntegratedOperationResult> {
-    
     try {
       const operationsCreated: string[] = []
       let totalPlantsAffected = 0
@@ -232,16 +253,16 @@ export class IntegratedFieldOperationsService {
         const operation: FieldRowOperation = {
           id: `op_${Date.now()}_${fieldRowId}`,
           fieldRowId,
-          operationType: request.operationType,
-          scheduledDate: request.scheduledDate,
-          status: 'scheduled',
-          config: {
-            ...request.config,
-            totalDosage: operationAmount
-          },
-          plantApplication: {
-            applyToAllPlants: request.plantApplication.applyToAllPlants,
-            specificPlantIds: targetPlants.map(p => p.id),
+        operationType: request.operationType,
+        scheduledDate: request.scheduledDate,
+        status: 'scheduled',
+        config: {
+          ...request.config,
+          totalDosage: request.operationType === 'fertilization' ? operationAmount : request.config.totalDosage
+        },
+        plantApplication: {
+          applyToAllPlants: request.plantApplication.applyToAllPlants,
+          specificPlantIds: targetPlants.map(p => p.id),
             plantPositions: targetPlants.map(p => p.positionInRow || 0)
           },
           createdAt: new Date().toISOString()
@@ -293,7 +314,7 @@ export class IntegratedFieldOperationsService {
       case 'irrigation':
         // Calcola litri necessari
         const duration = config.duration || 30 // minuti
-        const flowRate = fieldRow.irrigationConfig.totalFlowRate || 10 // L/h
+        const flowRate = this.getFieldRowFlowRateLph(fieldRow) || 10 // L/h
         return Math.round((flowRate * duration / 60) * 100) / 100
         
       case 'fertilization':
@@ -309,6 +330,243 @@ export class IntegratedFieldOperationsService {
       default:
         return 0
     }
+  }
+
+  private async createPersistedIntegratedOperation(
+    request: IntegratedOperationRequest,
+    fieldRows: FieldRowConfiguration[],
+    plants: GardenPlant[],
+    storageProvider: any
+  ): Promise<IntegratedOperationResult> {
+    try {
+      const unifiedOperationsService = createUnifiedOperationsService(storageProvider)
+      const operationIds: string[] = []
+      const rowIdsAffected = new Set<string>()
+      const errors: string[] = []
+      let operationsCreated = 0
+      let plantsAffected = 0
+      let totalAmount = 0
+
+      for (const fieldRowId of request.fieldRowIds) {
+        const fieldRow = fieldRows.find(fr => fr.id === fieldRowId)
+        if (!fieldRow) {
+          errors.push(`Filare ${fieldRowId} non trovato`)
+          continue
+        }
+
+        const fieldRowPlants = plants.filter(p => p.fieldRowId === fieldRowId)
+        const targetPlants = this.getTargetPlantsForRow(fieldRowId, plants, request.plantApplication)
+        if (targetPlants.length === 0) continue
+
+        const operationAmount = this.calculateOperationAmount(
+          request.operationType,
+          request.config,
+          targetPlants.length,
+          fieldRow
+        )
+        const unifiedOperationType = this.mapToUnifiedOperationType(request.operationType)
+        if (!unifiedOperationType) {
+          errors.push(`Tipo operazione ${request.operationType} non supportato dal ledger unificato`)
+          continue
+        }
+
+        const { operationDate, operationTime } = this.parseScheduledDateTime(request.scheduledDate)
+        const applyToEntireRow = request.plantApplication.applyToAllPlants || targetPlants.length === fieldRowPlants.length
+        const baseRequest = {
+          gardenId: request.gardenId,
+          operationType: unifiedOperationType,
+          operationDate,
+          operationTime,
+          quantity: applyToEntireRow
+            ? operationAmount
+            : this.roundTo3(operationAmount / Math.max(targetPlants.length, 1)),
+          unit: this.getOperationUnit(request.operationType, request.config),
+          productName: this.getOperationProductName(request.operationType, request.config),
+          notes: this.composeOperationNotes(request, fieldRow),
+          propagateToPlants: applyToEntireRow,
+          sourceType: request.sourceType || 'manual',
+          actorType: request.actorType || 'manual',
+          deviceId: request.deviceId,
+          contextSnapshot: request.contextSnapshot,
+          weatherConditions: request.weatherConditions,
+          geoSnapshot: request.geoSnapshot
+        }
+
+        const response = applyToEntireRow
+          ? await unifiedOperationsService.executeUnifiedOperation({
+              ...baseRequest,
+              level: 'row',
+              fieldRowId
+            })
+          : await unifiedOperationsService.executeUnifiedOperation({
+              ...baseRequest,
+              level: 'plant',
+              plantIds: targetPlants.map(plant => plant.id)
+            })
+
+        if (response.success) {
+          operationsCreated += response.operationsCreated
+          plantsAffected += unifiedOperationType === 'work' && applyToEntireRow
+            ? targetPlants.length
+            : response.plantsAffected
+          totalAmount += operationAmount
+          rowIdsAffected.add(fieldRowId)
+          operationIds.push(...response.rowOperationIds, ...response.plantOperationIds)
+        }
+
+        if (response.errors?.length) {
+          errors.push(...response.errors)
+        }
+      }
+
+      return {
+        success: operationsCreated > 0,
+        operationsCreated,
+        plantsAffected,
+        fieldRowsAffected: rowIdsAffected.size,
+        totalAmount: this.roundTo2(totalAmount),
+        errors: errors.length > 0 ? errors : undefined,
+        operationIds
+      }
+    } catch (error) {
+      return {
+        success: false,
+        operationsCreated: 0,
+        plantsAffected: 0,
+        fieldRowsAffected: 0,
+        totalAmount: 0,
+        errors: [error instanceof Error ? error.message : 'Errore sconosciuto'],
+        operationIds: []
+      }
+    }
+  }
+
+  private getTargetPlantsForRow(
+    fieldRowId: string,
+    plants: GardenPlant[],
+    plantApplication: FieldRowOperation['plantApplication']
+  ): GardenPlant[] {
+    const fieldRowPlants = plants.filter(p => p.fieldRowId === fieldRowId)
+    if (plantApplication.applyToAllPlants) {
+      return fieldRowPlants
+    }
+    if (plantApplication.specificPlantIds?.length) {
+      return fieldRowPlants.filter(p => plantApplication.specificPlantIds!.includes(p.id))
+    }
+    if (plantApplication.plantPositions?.length) {
+      return fieldRowPlants.filter(p => plantApplication.plantPositions!.includes(p.positionInRow || 0))
+    }
+    return []
+  }
+
+  private getFieldRowFlowRateLph(fieldRow: FieldRowConfiguration): number {
+    const irrigation = fieldRow.irrigationConfig
+    if (!irrigation?.enabled) return 0
+    if (irrigation.totalFlowRate > 0) return irrigation.totalFlowRate
+    if (irrigation.flowRatePerMeter > 0 && fieldRow.lengthMeters > 0) {
+      return irrigation.flowRatePerMeter * fieldRow.lengthMeters
+    }
+    if (
+      irrigation.irrigationType === 'drip' &&
+      irrigation.emitterSpacing > 0 &&
+      irrigation.emitterFlowRate > 0 &&
+      fieldRow.lengthMeters > 0
+    ) {
+      const emitterCount = Math.floor((fieldRow.lengthMeters * 100) / irrigation.emitterSpacing)
+      return emitterCount * irrigation.emitterFlowRate
+    }
+    return 0
+  }
+
+  private mapToUnifiedOperationType(
+    operationType: IntegratedOperationRequest['operationType']
+  ): 'watering' | 'fertilizing' | 'treatment' | 'work' | null {
+    if (operationType === 'irrigation') return 'watering'
+    if (operationType === 'fertilization') return 'fertilizing'
+    if (operationType === 'treatment') return 'treatment'
+    if (operationType === 'cultivation') return 'work'
+    return null
+  }
+
+  private getOperationUnit(
+    operationType: IntegratedOperationRequest['operationType'],
+    config: FieldRowOperation['config']
+  ): string {
+    if (operationType === 'irrigation') return 'L'
+    if (operationType === 'fertilization') return 'g'
+    if (operationType === 'treatment') return 'L'
+    if (operationType === 'cultivation') return config.tools ? 'sessione' : 'sessione'
+    return 'unit'
+  }
+
+  private getOperationProductName(
+    operationType: IntegratedOperationRequest['operationType'],
+    config: FieldRowOperation['config']
+  ): string | undefined {
+    if (operationType === 'fertilization') return config.fertilizerType || 'Fertilizzazione'
+    if (operationType === 'treatment') return config.productName || 'Trattamento'
+    if (operationType === 'cultivation') return config.cultivationType || 'Lavorazione'
+    return undefined
+  }
+
+  private composeOperationNotes(
+    request: IntegratedOperationRequest,
+    fieldRow: FieldRowConfiguration
+  ): string | undefined {
+    const details: string[] = [`Filare: ${fieldRow.name}`]
+
+    if (request.operationType === 'irrigation' && request.config.duration) {
+      details.push(`Durata: ${request.config.duration} min`)
+    }
+
+    if (request.operationType === 'fertilization') {
+      if (request.config.dosagePerPlant !== undefined) {
+        details.push(`Dose/pianta: ${request.config.dosagePerPlant} g`)
+      }
+      if (request.config.fertilizerMethod) {
+        details.push(`Metodo: ${request.config.fertilizerMethod}`)
+      }
+    }
+
+    if (request.operationType === 'treatment') {
+      if (request.config.treatmentType) details.push(`Tipo: ${request.config.treatmentType}`)
+      if (request.config.activeIngredient) details.push(`Principio attivo: ${request.config.activeIngredient}`)
+      if (request.config.concentration !== undefined) details.push(`Concentrazione: ${request.config.concentration}%`)
+      if (request.config.applicationMethod) details.push(`Applicazione: ${request.config.applicationMethod}`)
+    }
+
+    if (request.operationType === 'cultivation') {
+      if (request.config.cultivationType) details.push(`Lavorazione: ${request.config.cultivationType}`)
+      if (request.config.tools) details.push(`Attrezzi: ${request.config.tools}`)
+    }
+
+    const detailText = details.join(' | ')
+    return request.notes?.trim()
+      ? `${request.notes.trim()}\n\n${detailText}`
+      : detailText
+  }
+
+  private parseScheduledDateTime(scheduledDate: string): { operationDate: string; operationTime?: string } {
+    if (scheduledDate.includes('T')) {
+      const [operationDate, rawTime] = scheduledDate.split('T')
+      return {
+        operationDate,
+        operationTime: rawTime?.slice(0, 5) || undefined
+      }
+    }
+
+    return {
+      operationDate: scheduledDate,
+      operationTime: '12:00'
+    }
+  }
+
+  private roundTo2(value: number): number {
+    return Math.round(value * 100) / 100
+  }
+
+  private roundTo3(value: number): number {
+    return Math.round(value * 1000) / 1000
   }
   
   /**
@@ -332,8 +590,9 @@ export class IntegratedFieldOperationsService {
     }
     
     // Aggiorna pianta con nuova operazione
-    if (!plant.operations) plant.operations = []
-    plant.operations.push(plantOperation)
+    const plantRecord = plant as any
+    if (!plantRecord.operations) plantRecord.operations = []
+    plantRecord.operations.push(plantOperation)
     plant.updatedAt = new Date().toISOString()
     
     console.log(`✅ Operazione registrata su ${plant.plantCode}:`, plantOperation)

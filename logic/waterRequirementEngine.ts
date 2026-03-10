@@ -158,7 +158,7 @@ export const calculateTotalGardenWaterNeeds = (
     
     // Aggiungi raccomandazioni
     if (waterNeeds.modifiers.criticalPeriod) {
-      recommendations.push(`${task.plantName}: ${waterNeeds.modifiers.criticalPeriod}`);
+      recommendations.push(`${task.plantName}: periodo critico, aumenta irrigazione`);
     }
   }
   
@@ -202,23 +202,22 @@ export const getWateringSchedule = (
     };
   }
   
-  const quantity = task.currentQuantity || task.initialQuantity || 1;
-  const totalLiters = waterNeeds.litersPerDay * quantity;
+  const totalLiters = waterNeeds.litersPerDay;
   
   // Considera meteo
   let nextWatering = 'Oggi';
   let notes: string[] = [];
   
   if (weather) {
-    if (weather.rainForecastMm >= 5) {
+    if (weather.rainMm >= 5) {
       nextWatering = 'Dopo la pioggia';
-      notes.push(`Previsti ${weather.rainForecastMm}mm di pioggia - sospendi irrigazione`);
-    } else if (weather.rainForecastMm > 0 && weather.rainForecastMm < 5) {
+      notes.push(`Previsti ${weather.rainMm}mm di pioggia - sospendi irrigazione`);
+    } else if (weather.rainMm > 0 && weather.rainMm < 5) {
       nextWatering = 'Domani';
-      notes.push(`Pioggia leggera prevista (${weather.rainForecastMm}mm) - riduci irrigazione del 50%`);
-    } else if (weather.temp > 30) {
+      notes.push(`Pioggia leggera prevista (${weather.rainMm}mm) - riduci irrigazione del 50%`);
+    } else if (weather.tempMax > 30) {
       nextWatering = 'Oggi (urgente)';
-      notes.push(`Temperatura alta (${weather.temp}°C) - aumenta irrigazione del 30%`);
+      notes.push(`Temperatura alta (${weather.tempMax}°C) - aumenta irrigazione del 30%`);
     } else {
       nextWatering = 'Oggi';
     }
@@ -243,4 +242,3 @@ export const getWateringSchedule = (
     notes
   };
 };
-

@@ -1353,6 +1353,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
       taskId: db.task_id || null,
       bedId: db.bed_id || null,
       bedRowId: db.bed_row_id || null,
+      zoneId: db.zone_id || null,
+      fieldRowId: db.field_row_id || null,
       fertilizerProductId: db.fertilizer_product_id,
       fertilizerProductName: db.fertilizer_product_name,
       fertilizerType: db.fertilizer_type || null,
@@ -1377,6 +1379,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (log.taskId !== undefined) db.task_id = log.taskId;
     if (log.bedId !== undefined) db.bed_id = log.bedId;
     if (log.bedRowId !== undefined) db.bed_row_id = log.bedRowId;
+    if (log.zoneId !== undefined) db.zone_id = log.zoneId;
+    if (log.fieldRowId !== undefined) db.field_row_id = log.fieldRowId;
     if (log.fertilizerProductId !== undefined) db.fertilizer_product_id = log.fertilizerProductId;
     if (log.fertilizerProductName !== undefined) db.fertilizer_product_name = log.fertilizerProductName;
     if (log.fertilizerType !== undefined) db.fertilizer_type = log.fertilizerType;
@@ -2428,6 +2432,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .insert({
         user_id: user.id,
         garden_id: work.garden_id || null,
+        bed_id: work.bed_id || null,
+        bed_row_id: work.bed_row_id || null,
+        zone_id: work.zone_id || null,
+        field_row_id: work.field_row_id || null,
         work_type: work.work_type,
         work_date: work.work_date,
         area_m2: work.area_m2,
@@ -2451,6 +2459,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const dbData: any = {};
 
     if (updates.garden_id !== undefined) dbData.garden_id = updates.garden_id || null;
+    if (updates.bed_id !== undefined) dbData.bed_id = updates.bed_id || null;
+    if (updates.bed_row_id !== undefined) dbData.bed_row_id = updates.bed_row_id || null;
+    if (updates.zone_id !== undefined) dbData.zone_id = updates.zone_id || null;
+    if (updates.field_row_id !== undefined) dbData.field_row_id = updates.field_row_id || null;
     if (updates.work_type !== undefined) dbData.work_type = updates.work_type;
     if (updates.work_date !== undefined) dbData.work_date = updates.work_date;
     if (updates.area_m2 !== undefined) dbData.area_m2 = updates.area_m2;
@@ -2721,6 +2733,10 @@ export class SupabaseStorageProvider implements IStorageProvider {
       id: db.id,
       user_id: db.user_id,
       garden_id: db.garden_id,
+      bed_id: db.bed_id || undefined,
+      bed_row_id: db.bed_row_id || undefined,
+      zone_id: db.zone_id || undefined,
+      field_row_id: db.field_row_id || undefined,
       work_type: db.work_type,
       work_date: db.work_date,
       area_m2: parseFloat(db.area_m2),
@@ -2778,7 +2794,9 @@ export class SupabaseStorageProvider implements IStorageProvider {
         user_id: user.id,
         garden_id: treatment.garden_id || null,
         bed_id: (treatment as any).bed_id || null,
-        row_id: (treatment as any).row_id || null,
+        bed_row_id: (treatment as any).bed_row_id || null,
+        zone_id: (treatment as any).zone_id || null,
+        field_row_id: (treatment as any).field_row_id || null,
         crop_name: treatment.crop_name,
         treatment_date: treatment.treatment_date,
         product_name: treatment.product_name,
@@ -2805,7 +2823,9 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
     if (updates.garden_id !== undefined) dbData.garden_id = updates.garden_id || null;
     if ((updates as any).bed_id !== undefined) dbData.bed_id = (updates as any).bed_id || null;
-    if ((updates as any).row_id !== undefined) dbData.row_id = (updates as any).row_id || null;
+    if ((updates as any).bed_row_id !== undefined) dbData.bed_row_id = (updates as any).bed_row_id || null;
+    if ((updates as any).zone_id !== undefined) dbData.zone_id = (updates as any).zone_id || null;
+    if ((updates as any).field_row_id !== undefined) dbData.field_row_id = (updates as any).field_row_id || null;
     if (updates.crop_name !== undefined) dbData.crop_name = updates.crop_name;
     if (updates.treatment_date !== undefined) dbData.treatment_date = updates.treatment_date;
     if (updates.product_name !== undefined) dbData.product_name = updates.product_name;
@@ -2847,6 +2867,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
       garden_id: db.garden_id,
       bed_id: db.bed_id || undefined,
       bed_row_id: db.bed_row_id || undefined,
+      zone_id: db.zone_id || undefined,
+      field_row_id: db.field_row_id || undefined,
       crop_name: db.crop_name,
       treatment_date: db.treatment_date,
       product_name: db.product_name,
@@ -4584,7 +4606,13 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (parentOperationTable === 'iot_sensor') return 'iot';
     if (parentOperationTable === 'manual_orchestrator') return 'manual';
     if (parentOperationTable === 'orchestrator_auto') return 'orchestrator_auto';
-    if (parentOperationTable === 'watering_logs' || parentOperationTable === 'fertilizer_logs' || parentOperationTable === 'treatment_logs') {
+    if (
+      parentOperationTable === 'watering_logs' ||
+      parentOperationTable === 'fertilizer_logs' ||
+      parentOperationTable === 'fertilizer_application_logs' ||
+      parentOperationTable === 'treatment_logs' ||
+      parentOperationTable === 'treatment_register'
+    ) {
       return 'orchestrator_sync';
     }
     if ((notes || '').includes('[IOT]')) return 'iot';

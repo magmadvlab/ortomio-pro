@@ -15,6 +15,7 @@ export interface OperationContext {
     windSpeed: number;
     condition: string;
     pressure: number;
+    source?: 'current' | 'forecast' | 'historical' | 'fallback';
   };
   lunar: {
     phase: string;
@@ -46,8 +47,10 @@ class OperationContextService {
     const date = timestamp || new Date();
 
     try {
-      // 1. Ottieni dati meteo
-      const weather = await this.weatherService.getCurrentWeather(latitude, longitude);
+      // 1. Ottieni dati meteo riferiti alla data reale dell'evento
+      const weather = this.weatherService.getWeatherForDate
+        ? await this.weatherService.getWeatherForDate(latitude, longitude, date)
+        : await this.weatherService.getCurrentWeather(latitude, longitude);
 
       // 2. Calcola fase lunare
       const lunar = this.lunarService.getLunarPhase(date);
@@ -67,10 +70,11 @@ class OperationContextService {
           windSpeed: weather.windSpeed || 0,
           condition: weather.condition || 'unknown',
           pressure: weather.pressure || 1013,
+          source: weather.source || 'fallback',
         },
         lunar: {
           phase: lunar.phase,
-          phaseEmoji: lunar.emoji,
+          phaseEmoji: lunar.phaseEmoji,
           illumination: lunar.illumination,
           isWaxing: lunar.isWaxing,
           dayInCycle: lunar.dayInCycle,
@@ -101,10 +105,11 @@ class OperationContextService {
         windSpeed: 0,
         condition: 'unknown',
         pressure: 1013,
+        source: 'fallback',
       },
       lunar: {
         phase: lunar.phase,
-        phaseEmoji: lunar.emoji,
+        phaseEmoji: lunar.phaseEmoji,
         illumination: lunar.illumination,
         isWaxing: lunar.isWaxing,
         dayInCycle: lunar.dayInCycle,

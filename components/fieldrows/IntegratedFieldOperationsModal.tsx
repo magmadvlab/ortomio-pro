@@ -13,6 +13,7 @@ import {
   IntegratedOperationRequest,
   IntegratedOperationResult
 } from '@/services/integratedFieldOperationsService'
+import { createOperationContextService } from '@/services/operationContextService'
 import { 
   Droplets, 
   Zap, 
@@ -48,6 +49,7 @@ export const IntegratedFieldOperationsModal: React.FC<IntegratedFieldOperationsM
   onOperationComplete
 }) => {
   const { storageProvider } = useStorage()
+  const operationContextService = createOperationContextService()
   
   // State
   const [selectedFieldRows, setSelectedFieldRows] = useState<string[]>([])
@@ -96,6 +98,25 @@ export const IntegratedFieldOperationsModal: React.FC<IntegratedFieldOperationsM
     calculateTotals()
   }, [selectedFieldRows, operationType, operationConfig, plantApplication])
 
+  const calculateFieldRowFlowRateLph = (fieldRow: FieldRowConfiguration): number => {
+    const irrigation = fieldRow.irrigationConfig
+    if (!irrigation?.enabled) return 0
+    if (irrigation.totalFlowRate > 0) return irrigation.totalFlowRate
+    if (irrigation.flowRatePerMeter > 0 && fieldRow.lengthMeters > 0) {
+      return irrigation.flowRatePerMeter * fieldRow.lengthMeters
+    }
+    if (
+      irrigation.irrigationType === 'drip' &&
+      irrigation.emitterSpacing > 0 &&
+      irrigation.emitterFlowRate > 0 &&
+      fieldRow.lengthMeters > 0
+    ) {
+      const emitterCount = Math.floor((fieldRow.lengthMeters * 100) / irrigation.emitterSpacing)
+      return emitterCount * irrigation.emitterFlowRate
+    }
+    return 0
+  }
+
   const calculateTotals = () => {
     let totalPlants = 0
     let totalAmount = 0
@@ -115,7 +136,7 @@ export const IntegratedFieldOperationsModal: React.FC<IntegratedFieldOperationsM
       // Calcola quantità per tipo operazione
       switch (operationType) {
         case 'irrigation':
-          const flowRate = fieldRow.irrigationConfig.totalFlowRate || 10
+          const flowRate = calculateFieldRowFlowRateLph(fieldRow)
           totalAmount += (flowRate * operationConfig.duration / 60)
           estimatedDuration = Math.max(estimatedDuration, operationConfig.duration)
           break
@@ -197,6 +218,14 @@ export const IntegratedFieldOperationsModal: React.FC<IntegratedFieldOperationsM
     setLoading(true)
     
     try {
+      const [latitude, longitude] = garden.coordinates
+        ? [garden.coordinates.latitude, garden.coordinates.longitude]
+        : [undefined, undefined]
+      const validTimestamp = new Date(`${scheduledDate}T12:00:00`)
+      const context = latitude !== undefined && longitude !== undefined
+        ? await operationContextService.getOperationContext(latitude, longitude, validTimestamp)
+        : undefined
+
       const request: IntegratedOperationRequest = {
         gardenId: garden.id,
         fieldRowIds: selectedFieldRows,
@@ -219,13 +248,37 @@ export const IntegratedFieldOperationsModal: React.FC<IntegratedFieldOperationsM
         plantApplication: {
           applyToAllPlants: plantApplication.applyToAllPlants,
           plantPositions: plantApplication.applyToAllPlants ? undefined : plantApplication.specificPositions
+        },
+        sourceType: 'manual',
+        actorType: 'manual',
+        contextSnapshot: context,
+        weatherConditions: context
+          ? {
+              temp: context.weather.temperature,
+              humidity: context.weather.humidity,
+              wind: `${context.weather.windSpeed} km/h`,
+              condition: context.weather.condition,
+              precipitation: context.weather.precipitation,
+              pressure: context.weather.pressure,
+              source: context.weather.source
+            }
+          : undefined,
+        geoSnapshot: {
+          latitude,
+          longitude,
+          altitudeMeters: garden.altitudeMeters,
+          sunExposure: garden.sunExposure,
+          aspectDirection: garden.aspectDirection,
+          obstacles: Array.isArray(garden.obstacles) ? garden.obstacles : undefined,
+          source: latitude !== undefined && longitude !== undefined ? 'garden_coordinates' : 'not_available'
         }
       }
       
       const result = await integratedFieldOperationsService.createIntegratedOperation(
         request,
         fieldRows,
-        plants
+        plants,
+        storageProvider
       )
       
       if (result.success) {

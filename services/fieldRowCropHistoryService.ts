@@ -17,6 +17,7 @@ export interface PlantingContext {
     temp: number;
     humidity: number;
     condition: string;
+    source?: 'current' | 'forecast' | 'historical' | 'fallback';
   };
   moon: {
     phase: string;
@@ -119,6 +120,14 @@ export const CROP_TYPES = {
   'legume': ['fagiolo', 'pisello', 'fava', 'cece']
 };
 
+function getRequiredSupabaseClient() {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
+  return supabase;
+}
+
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
@@ -158,10 +167,12 @@ export function getCropType(cropName: string): string {
  */
 export async function capturePlantingContext(
   gardenId: string,
-  gps?: { lat: number; lng: number }
+  gps?: { lat: number; lng: number },
+  plantingDate?: Date
 ): Promise<PlantingContext> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getRequiredSupabaseClient();
+    const effectiveDate = plantingDate || new Date();
     
     // Ottieni coordinate se non fornite
     let coordinates = gps;
@@ -177,14 +188,16 @@ export async function capturePlantingContext(
       }
     }
     
-    // Meteo attuale
+    // Meteo riferito alla data reale dell'impianto
     const weather = coordinates 
-      ? await weatherService.getCurrentWeather(coordinates.lat, coordinates.lng)
-      : { temp: 20, humidity: 60, condition: 'unknown' };
+      ? (weatherService.getWeatherForDate
+          ? await weatherService.getWeatherForDate(coordinates.lat, coordinates.lng, effectiveDate)
+          : await weatherService.getCurrentWeather(coordinates.lat, coordinates.lng))
+      : { temperature: 20, humidity: 60, condition: 'unknown', source: 'fallback' as const };
     
     // Fase lunare
     const lunarService = createLunarService();
-    const lunarPhase = lunarService.getLunarPhase();
+    const lunarPhase = lunarService.getLunarPhase(effectiveDate);
     const moon = {
       phase: lunarPhase.phase,
       emoji: lunarPhase.phaseEmoji,
@@ -193,7 +206,7 @@ export async function capturePlantingContext(
     };
     
     // Stagione
-    const month = new Date().getMonth();
+    const month = effectiveDate.getMonth();
     let season = 'spring';
     if (month >= 2 && month <= 4) season = 'spring';
     else if (month >= 5 && month <= 7) season = 'summer';
@@ -201,13 +214,14 @@ export async function capturePlantingContext(
     else season = 'winter';
     
     // Ore di luce (approssimativo basato su latitudine)
-    const daylight = calculateDaylightHours(coordinates?.lat || 45);
+    const daylight = calculateDaylightHours(coordinates?.lat || 45, effectiveDate);
     
     return {
       weather: {
-        temp: weather.temp,
+        temp: weather.temperature,
         humidity: weather.humidity,
-        condition: weather.condition
+        condition: weather.condition,
+        source: weather.source || 'fallback'
       },
       moon,
       season,
@@ -219,32 +233,35 @@ export async function capturePlantingContext(
     
     // Fallback con dati di default
     const lunarService = createLunarService();
-    const lunarPhase = lunarService.getLunarPhase();
+    const fallbackDate = plantingDate || new Date();
+    const lunarPhase = lunarService.getLunarPhase(fallbackDate);
     
     return {
-      weather: { temp: 20, humidity: 60, condition: 'unknown' },
+      weather: { temp: 20, humidity: 60, condition: 'unknown', source: 'fallback' },
       moon: {
         phase: lunarPhase.phase,
         emoji: lunarPhase.phaseEmoji,
         illumination: lunarPhase.illumination,
         waxing: lunarPhase.isWaxing
       },
-      season: 'spring',
-      daylight: { sunrise: '06:00', sunset: '20:00', hours: 14 }
+      season: fallbackDate.getMonth() >= 2 && fallbackDate.getMonth() <= 4
+        ? 'spring'
+        : fallbackDate.getMonth() >= 5 && fallbackDate.getMonth() <= 7
+          ? 'summer'
+          : fallbackDate.getMonth() >= 8 && fallbackDate.getMonth() <= 10
+            ? 'autumn'
+            : 'winter',
+      daylight: calculateDaylightHours(gps?.lat || 45, fallbackDate)
     };
   }
 }
 
-/**
- * Calcola ore di luce approssimative basate su latitudine
- */
-function calculateDaylightHours(latitude: number): {
+function calculateDaylightHours(latitude: number, date: Date = new Date()): {
   sunrise: string;
   sunset: string;
   hours: number;
 } {
-  const now = new Date();
-  const month = now.getMonth();
+  const month = date.getMonth();
   
   // Approssimazione semplificata
   let hours = 12;
@@ -295,12 +312,13 @@ export async function recordCropPlanting(data: {
   gps?: { lat: number; lng: number };
 }): Promise<CropHistoryEntry | null> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getRequiredSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
     
     // Cattura contesto
-    const context = await capturePlantingContext(data.gardenId, data.gps);
+    const plantingDate = data.plantingDate || new Date();
+    const context = await capturePlantingContext(data.gardenId, data.gps, plantingDate);
     
     // Determina famiglia e tipo
     const cropFamily = getCropFamily(data.cropName);
@@ -320,7 +338,7 @@ export async function recordCropPlanting(data: {
       crop_variety: data.cropVariety,
       crop_family: cropFamily,
       crop_type: cropType,
-      planting_date: (data.plantingDate || new Date()).toISOString(),
+      planting_date: plantingDate.toISOString(),
       planting_context: context,
       rotation_score: rotationScore,
       notes: data.notes,
@@ -361,7 +379,7 @@ export async function recordCropHarvest(
   }
 ): Promise<boolean> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getRequiredSupabaseClient();
     const harvestDate = data.harvestDate || new Date();
     
     // Calcola giorni al raccolto
@@ -408,7 +426,7 @@ export async function getFieldRowHistory(
   rowId: string
 ): Promise<CropHistoryEntry[]> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getRequiredSupabaseClient();
     const { data, error } = await supabase
       .from('field_row_crop_history')
       .select('*')
@@ -432,7 +450,7 @@ export async function calculateRotationScore(
   newCropFamily: string
 ): Promise<number> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getRequiredSupabaseClient();
     const { data, error } = await supabase
       .rpc('calculate_rotation_score', {
         row_id: rowId,
@@ -455,7 +473,7 @@ export async function getRotationSuggestions(
   rowId: string
 ): Promise<RotationSuggestion[]> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getRequiredSupabaseClient();
     const { data, error } = await supabase
       .rpc('get_rotation_suggestions', {
         row_id: rowId
@@ -477,7 +495,7 @@ export async function getGardenRotationAnalysis(
   gardenId: string
 ): Promise<RotationAnalysis[]> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getRequiredSupabaseClient();
     const { data, error } = await supabase
       .from('field_row_rotation_analysis')
       .select('*')
@@ -507,7 +525,7 @@ export async function updateCropPerformance(
   }
 ): Promise<boolean> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getRequiredSupabaseClient();
     const updates: any = {};
     
     if (data.yieldKg !== undefined) updates.yield_kg = data.yieldKg;
@@ -536,7 +554,7 @@ export async function updateCropPerformance(
  */
 export async function getCropFamilyStats(): Promise<any[]> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getRequiredSupabaseClient();
     const { data, error } = await supabase
       .from('crop_performance_by_family')
       .select('*');
