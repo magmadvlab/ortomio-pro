@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { Card } from '@/components/ui/Card'
 import { CardContent, CardHeader, CardTitle, Badge } from '@/components/ui/ortomio-adapter'
 import { Button } from '@/components/ui/Button'
@@ -56,6 +56,7 @@ export default function SeedingProgressCard({
   onTransplant,
   compact = false
 }: SeedingProgressCardProps) {
+  const photoInputRef = useRef<HTMLInputElement | null>(null)
   const [showNotes, setShowNotes] = useState(false)
   const [editingNotes, setEditingNotes] = useState(false)
   const [notesValue, setNotesValue] = useState(batch.notes)
@@ -123,6 +124,14 @@ export default function SeedingProgressCard({
   const handleNotesSubmit = () => {
     onNotesUpdate?.(batch.id, notesValue)
     setEditingNotes(false)
+  }
+
+  const handlePhotoSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      onPhotoAdd?.(batch.id, file)
+    }
+    event.target.value = ''
   }
 
   if (compact) {
@@ -313,13 +322,32 @@ export default function SeedingProgressCard({
               Trapianta
             </Button>
           )}
-          
-          <Button size="sm" variant="outline" onClick={() => setShowNotes(!showNotes)}>
-            <Camera className="w-4 h-4" />
-          </Button>
-          
-          {!showNotes && (
-            <Button size="sm" variant="outline" onClick={() => setShowNotes(true)}>
+
+          {onPhotoAdd && (
+            <>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handlePhotoSelection}
+              />
+              <Button size="sm" variant="outline" onClick={() => photoInputRef.current?.click()}>
+                <Camera className="w-4 h-4" />
+              </Button>
+            </>
+          )}
+
+          {onNotesUpdate && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setShowNotes(true)
+                setEditingNotes(true)
+              }}
+            >
               <Edit3 className="w-4 h-4" />
             </Button>
           )}

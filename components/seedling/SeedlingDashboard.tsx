@@ -8,9 +8,12 @@ import { Button } from '@/components/ui/Button';
 import { useStorage } from '@/packages/core/hooks/useStorage';
 import {
   SeedlingBatch as StoredSeedlingBatch,
+  addPhotoToLog,
+  createPurchasedSeedlingBatch,
+  createSeedlingBatch,
   isReadyToTransplant
 } from '@/services/seedlingService';
-import { getMasterSheetSync } from '@/services/plantMasterService';
+import { getAllMasterSheets, getMasterSheetSync } from '@/services/plantMasterService';
 import { 
   Sprout, 
   Plus,
@@ -74,6 +77,8 @@ export default function SeedlingDashboard({
   maxBatches = 10
 }: SeedlingDashboardProps) {
   const { storageProvider } = useStorage();
+  const masterSheets = getAllMasterSheets();
+  const today = new Date().toISOString().split('T')[0];
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPhase, setFilterPhase] = useState<string>('all');
@@ -81,6 +86,18 @@ export default function SeedlingDashboard({
   const [activeTab, setActiveTab] = useState('active');
   const [loadedBatches, setLoadedBatches] = useState<StoredSeedlingBatch[]>([]);
   const [loadingBatches, setLoadingBatches] = useState(false);
+  const [savingCreate, setSavingCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    source: 'home' as 'home' | 'nursery',
+    plantName: plantName || '',
+    variety: variety || '',
+    quantity: 10,
+    sowingDate: today,
+    purchaseDate: today,
+    location: 'Indoor' as StoredSeedlingBatch['location'],
+    nurseryName: '',
+    notes: ''
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -118,6 +135,28 @@ export default function SeedlingDashboard({
   }, [batches, garden.id, storageProvider]);
 
   const activeStoredBatches = typeof batches !== 'undefined' ? batches : loadedBatches;
+
+  const refreshLoadedBatches = async () => {
+    if (typeof batches !== 'undefined') {
+      return;
+    }
+    const refreshed = await storageProvider.getSeedlingBatches(garden.id);
+    setLoadedBatches(refreshed || []);
+  };
+
+  useEffect(() => {
+    if (shouldCreate) {
+      setShowCreateForm(true);
+    }
+  }, [shouldCreate]);
+
+  useEffect(() => {
+    setCreateForm((current) => ({
+      ...current,
+      plantName: plantName || current.plantName,
+      variety: variety || current.variety
+    }));
+  }, [plantName, variety]);
 
   const mapPhaseToDashboard = (batch: StoredSeedlingBatch): SeedlingDashboardBatch['currentPhase'] => {
     const remaining = batch.currentQuantity ?? batch.initialQuantity ?? batch.quantity;
@@ -252,17 +291,42 @@ export default function SeedlingDashboard({
 
     try {
       await storageProvider.updateSeedlingBatch(batchId, updates);
-      const refreshed = await storageProvider.getSeedlingBatches(garden.id);
-      setLoadedBatches(refreshed || []);
+      await refreshLoadedBatches();
     } catch (error) {
       console.error('Error updating seedling phase:', error);
       alert('Errore durante l\'aggiornamento della fase del batch');
     }
   };
 
-  const handlePhotoAdd = (batchId: string, photo: File) => {
-    // Logica per aggiungere foto
-    console.log('Adding photo to batch:', batchId, photo);
+  const handlePhotoAdd = async (batchId: string, photo: File) => {
+    const batch = activeStoredBatches.find((item) => item.id === batchId);
+    if (!batch) {
+      alert('Batch non trovato');
+      return;
+    }
+
+    try {
+      const image = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('Errore caricamento immagine'));
+        reader.readAsDataURL(photo);
+      });
+
+      const updatedBatch = addPhotoToLog(batch, image);
+      const updates: Partial<StoredSeedlingBatch> = { photoLog: updatedBatch.photoLog };
+
+      if (onBatchUpdate) {
+        await Promise.resolve(onBatchUpdate(batchId, updates));
+        return;
+      }
+
+      await storageProvider.updateSeedlingBatch(batchId, updates);
+      await refreshLoadedBatches();
+    } catch (error) {
+      console.error('Error adding seedling photo:', error);
+      alert('Errore durante il salvataggio della foto del batch');
+    }
   };
 
   const handleNotesUpdate = async (batchId: string, notes: string) => {
@@ -274,11 +338,68 @@ export default function SeedlingDashboard({
 
     try {
       await storageProvider.updateSeedlingBatch(batchId, updates);
-      const refreshed = await storageProvider.getSeedlingBatches(garden.id);
-      setLoadedBatches(refreshed || []);
+      await refreshLoadedBatches();
     } catch (error) {
       console.error('Error updating seedling notes:', error);
       alert('Errore durante l\'aggiornamento delle note del batch');
+    }
+  };
+
+  const handleCreateBatch = async () => {
+    if (!createForm.plantName) {
+      alert('Seleziona una pianta per creare il batch');
+      return;
+    }
+
+    try {
+      setSavingCreate(true);
+
+      const created =
+        createForm.source === 'nursery'
+          ? createPurchasedSeedlingBatch(
+              createForm.plantName,
+              createForm.purchaseDate,
+              createForm.quantity,
+              garden.id,
+              createForm.variety || undefined,
+              createForm.nurseryName || undefined,
+              createForm.notes || undefined
+            )
+          : createSeedlingBatch(
+              createForm.plantName,
+              createForm.sowingDate,
+              createForm.quantity,
+              createForm.location,
+              garden.id,
+              createForm.variety || undefined
+            );
+
+      const { id: _ignored, ...payload } = created;
+
+      if (onBatchCreate) {
+        await Promise.resolve(onBatchCreate(payload));
+      } else {
+        await storageProvider.createSeedlingBatch(payload);
+        await refreshLoadedBatches();
+      }
+
+      setShowCreateForm(false);
+      setCreateForm({
+        source: 'home',
+        plantName: plantName || '',
+        variety: variety || '',
+        quantity: 10,
+        sowingDate: today,
+        purchaseDate: today,
+        location: 'Indoor',
+        nurseryName: '',
+        notes: ''
+      });
+    } catch (error) {
+      console.error('Error creating seedling batch:', error);
+      alert(error instanceof Error ? error.message : 'Errore durante la creazione del batch');
+    } finally {
+      setSavingCreate(false);
     }
   };
 
@@ -601,22 +722,146 @@ export default function SeedlingDashboard({
         </div>
       )}
 
-      {/* Form creazione batch (placeholder) */}
+      {/* Form creazione batch */}
       {showCreateForm && (
         <Card className="border-blue-200">
           <CardHeader>
             <CardTitle>Crea Nuovo Batch</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-gray-600">
-              Form per creare nuovo batch di semenzaio...
-            </p>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Origine</label>
+                <select
+                  value={createForm.source}
+                  onChange={(e) =>
+                    setCreateForm((current) => ({
+                      ...current,
+                      source: e.target.value as 'home' | 'nursery'
+                    }))
+                  }
+                  className="w-full px-4 py-3 border rounded-md text-sm"
+                >
+                  <option value="home">Seme / semina interna</option>
+                  <option value="nursery">Piantina acquistata</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Pianta</label>
+                <select
+                  value={createForm.plantName}
+                  onChange={(e) => setCreateForm((current) => ({ ...current, plantName: e.target.value }))}
+                  className="w-full px-4 py-3 border rounded-md text-sm"
+                >
+                  <option value="">Seleziona pianta</option>
+                  {masterSheets.map((sheet) => (
+                    <option key={sheet.commonName} value={sheet.commonName}>
+                      {sheet.commonName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Varietà</label>
+                <Input
+                  value={createForm.variety}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setCreateForm((current) => ({ ...current, variety: e.target.value }))
+                  }
+                  placeholder="Es. San Marzano"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Quantità</label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={String(createForm.quantity)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setCreateForm((current) => ({
+                      ...current,
+                      quantity: Math.max(1, Number.parseInt(e.target.value || '1', 10))
+                    }))
+                  }
+                />
+              </div>
+            </div>
+
+            {createForm.source === 'home' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Data semina</label>
+                  <Input
+                    type="date"
+                    value={createForm.sowingDate}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setCreateForm((current) => ({ ...current, sowingDate: e.target.value }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Posizione</label>
+                  <select
+                    value={createForm.location}
+                    onChange={(e) =>
+                      setCreateForm((current) => ({
+                        ...current,
+                        location: e.target.value as StoredSeedlingBatch['location']
+                      }))
+                    }
+                    className="w-full px-4 py-3 border rounded-md text-sm"
+                  >
+                    <option value="Indoor">Indoor</option>
+                    <option value="Greenhouse">Serra</option>
+                    <option value="ColdFrame">Cassone</option>
+                  </select>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Data acquisto</label>
+                    <Input
+                      type="date"
+                      value={createForm.purchaseDate}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setCreateForm((current) => ({ ...current, purchaseDate: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Nome vivaio</label>
+                    <Input
+                      value={createForm.nurseryName}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setCreateForm((current) => ({ ...current, nurseryName: e.target.value }))
+                      }
+                      placeholder="Es. Vivaio Rossi"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Note</label>
+                  <textarea
+                    value={createForm.notes}
+                    onChange={(e) => setCreateForm((current) => ({ ...current, notes: e.target.value }))}
+                    className="w-full min-h-24 px-4 py-3 border rounded-md text-sm"
+                    placeholder="Note opzionali sul lotto acquistato"
+                  />
+                </div>
+              </>
+            )}
+
             <div className="flex gap-3 mt-4">
-              <Button onClick={() => setShowCreateForm(false)} variant="outline">
+              <Button onClick={() => setShowCreateForm(false)} variant="outline" disabled={savingCreate}>
                 Annulla
               </Button>
-              <Button onClick={() => setShowCreateForm(false)}>
-                Crea Batch
+              <Button onClick={handleCreateBatch} disabled={savingCreate || !createForm.plantName}>
+                {savingCreate ? 'Salvataggio...' : createForm.source === 'home' ? 'Crea Batch' : 'Aggiungi Piantine'}
               </Button>
             </div>
           </CardContent>
