@@ -70,13 +70,70 @@ const ROTATION_RULES = {
   }
 }
 
+const VIRTUAL_PLAN_PREFIX = 'fallback:rotation:'
+
+export function isVirtualCropRotationPlanId(planId?: string | null): boolean {
+  return typeof planId === 'string' && planId.startsWith(VIRTUAL_PLAN_PREFIX)
+}
+
+const isMissingRelationError = (error: any, relation?: string) => {
+  if (!error) return false
+  const message = String(error.message || '')
+  const hint = String(error.hint || '')
+  const details = String(error.details || '')
+  const haystack = `${message} ${hint} ${details}`
+
+  if (error.code === 'PGRST205') {
+    return !relation || haystack.includes(relation)
+  }
+
+  return !relation
+    ? haystack.includes("Could not find the table 'public.")
+    : haystack.includes(`public.${relation}`)
+}
+
+const getSeasonFromDate = (isoDate?: string): CropRotationHistory['season'] => {
+  const month = isoDate ? new Date(isoDate).getMonth() : new Date().getMonth()
+  if (month >= 2 && month <= 4) return 'Primavera'
+  if (month >= 5 && month <= 7) return 'Estate'
+  if (month >= 8 && month <= 10) return 'Autunno'
+  return 'Inverno'
+}
+
 class CropRotationService {
+  private backendMode: 'field_row_history' | 'legacy_crop_rotation' | null = null
+
   private getClient() {
     const client = getSupabaseClient()
     if (!client) {
       throw new Error('Supabase client not available')
     }
     return client
+  }
+
+  private async getBackendMode(): Promise<'field_row_history' | 'legacy_crop_rotation'> {
+    if (this.backendMode) {
+      return this.backendMode
+    }
+
+    const client = this.getClient()
+
+    const fieldHistoryProbe = await client
+      .from('field_row_crop_history')
+      .select('id')
+      .limit(1)
+
+    if (!fieldHistoryProbe.error) {
+      this.backendMode = 'field_row_history'
+      return this.backendMode
+    }
+
+    if (!isMissingRelationError(fieldHistoryProbe.error, 'field_row_crop_history')) {
+      throw fieldHistoryProbe.error
+    }
+
+    this.backendMode = 'legacy_crop_rotation'
+    return this.backendMode
   }
 
   // ===== HISTORY MANAGEMENT =====
@@ -110,32 +167,57 @@ class CropRotationService {
   }
 
   async getHistory(gardenId: string, fieldRowId?: string): Promise<CropRotationHistory[]> {
-    let query = this.getClient()
-      .from('crop_rotation_history')
-      .select('*')
-      .eq('garden_id', gardenId)
-      .order('harvest_date', { ascending: false, nullsFirst: false })
-
-    if (fieldRowId) {
-      query = query.eq('field_row_id', fieldRowId)
+    const backendMode = await this.getBackendMode()
+    if (backendMode === 'field_row_history') {
+      return this.getHistoryFromFieldRowFallback(gardenId, fieldRowId)
     }
 
-    const { data, error } = await query
+    try {
+      let query = this.getClient()
+        .from('crop_rotation_history')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .order('harvest_date', { ascending: false, nullsFirst: false })
 
-    if (error) throw error
-    return (data || []).map(this.mapHistoryFromDb)
+      if (fieldRowId) {
+        query = query.eq('field_row_id', fieldRowId)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      return (data || []).map(this.mapHistoryFromDb)
+    } catch (error) {
+      if (!isMissingRelationError(error, 'crop_rotation_history')) {
+        throw error
+      }
+
+      return this.getHistoryFromFieldRowFallback(gardenId, fieldRowId)
+    }
   }
 
   async getHistoryByRow(fieldRowId: string): Promise<CropRotationHistory[]> {
-    const { data, error } = await this.getClient()
-      .from('crop_rotation_history')
-      .select('*')
-      .eq('field_row_id', fieldRowId)
-      .order('year', { ascending: false })
-      .order('harvest_date', { ascending: false, nullsFirst: false })
+    const backendMode = await this.getBackendMode()
+    if (backendMode === 'field_row_history') {
+      return this.getHistoryFromFieldRowFallback(undefined, fieldRowId)
+    }
 
-    if (error) throw error
-    return (data || []).map(this.mapHistoryFromDb)
+    try {
+      const { data, error } = await this.getClient()
+        .from('crop_rotation_history')
+        .select('*')
+        .eq('field_row_id', fieldRowId)
+        .order('year', { ascending: false })
+        .order('harvest_date', { ascending: false, nullsFirst: false })
+
+      if (error) throw error
+      return (data || []).map(this.mapHistoryFromDb)
+    } catch (error) {
+      if (!isMissingRelationError(error, 'crop_rotation_history')) {
+        throw error
+      }
+
+      return this.getHistoryFromFieldRowFallback(undefined, fieldRowId)
+    }
   }
 
   // ===== ROTATION PLANNING =====
@@ -177,27 +259,39 @@ class CropRotationService {
       status: 'SUGGESTED'
     }
 
-    // Save to database
-    const { data, error } = await this.getClient()
-      .from('crop_rotation_plans')
-      .insert({
-        garden_id: plan.gardenId,
-        field_row_id: plan.fieldRowId,
-        current_crop: plan.currentCrop,
-        current_family: plan.currentFamily,
-        suggested_next_crops: plan.suggestedNextCrops,
-        rotation_cycle: plan.rotationCycle,
-        reasoning: plan.reasoning,
-        benefits: plan.benefits,
-        risks_to_avoid: plan.risksToAvoid,
-        confidence_score: plan.confidenceScore,
-        status: plan.status
-      })
-      .select()
-      .single()
+    const backendMode = await this.getBackendMode()
+    if (backendMode === 'field_row_history') {
+      return this.buildVirtualPlan(plan as CropRotationPlan)
+    }
 
-    if (error) throw error
-    return this.mapPlanFromDb(data)
+    try {
+      const { data, error } = await this.getClient()
+        .from('crop_rotation_plans')
+        .insert({
+          garden_id: plan.gardenId,
+          field_row_id: plan.fieldRowId,
+          current_crop: plan.currentCrop,
+          current_family: plan.currentFamily,
+          suggested_next_crops: plan.suggestedNextCrops,
+          rotation_cycle: plan.rotationCycle,
+          reasoning: plan.reasoning,
+          benefits: plan.benefits,
+          risks_to_avoid: plan.risksToAvoid,
+          confidence_score: plan.confidenceScore,
+          status: plan.status
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return this.mapPlanFromDb(data)
+    } catch (error) {
+      if (!isMissingRelationError(error, 'crop_rotation_plans')) {
+        throw error
+      }
+
+      return this.buildVirtualPlan(plan as CropRotationPlan)
+    }
   }
 
   private analyzeCropRotation(
@@ -363,23 +457,39 @@ class CropRotationService {
   // ===== PLAN MANAGEMENT =====
 
   async getPlans(gardenId: string, status?: string): Promise<CropRotationPlan[]> {
-    let query = this.getClient()
-      .from('crop_rotation_plans')
-      .select('*')
-      .eq('garden_id', gardenId)
-      .order('created_at', { ascending: false })
-
-    if (status) {
-      query = query.eq('status', status)
+    const backendMode = await this.getBackendMode()
+    if (backendMode === 'field_row_history') {
+      return this.getFallbackPlansFromFieldHistory(gardenId, status)
     }
 
-    const { data, error } = await query
+    try {
+      let query = this.getClient()
+        .from('crop_rotation_plans')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .order('created_at', { ascending: false })
 
-    if (error) throw error
-    return (data || []).map(this.mapPlanFromDb)
+      if (status) {
+        query = query.eq('status', status)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      return (data || []).map(this.mapPlanFromDb)
+    } catch (error) {
+      if (!isMissingRelationError(error, 'crop_rotation_plans')) {
+        throw error
+      }
+
+      return this.getFallbackPlansFromFieldHistory(gardenId, status)
+    }
   }
 
   async acceptPlan(planId: string, acceptedCrop: string): Promise<CropRotationPlan> {
+    if (isVirtualCropRotationPlanId(planId)) {
+      throw new Error('Questo suggerimento è derivato dallo storico filari e non è ancora persistibile come piano. Usa il Planner Classico per creare la pianificazione.')
+    }
+
     const { data, error } = await this.getClient()
       .from('crop_rotation_plans')
       .update({
@@ -396,6 +506,10 @@ class CropRotationService {
   }
 
   async rejectPlan(planId: string): Promise<void> {
+    if (isVirtualCropRotationPlanId(planId)) {
+      return
+    }
+
     const { error } = await this.getClient()
       .from('crop_rotation_plans')
       .update({ status: 'REJECTED' })
@@ -413,6 +527,102 @@ class CropRotationService {
       }
     }
     return null
+  }
+
+  private async getHistoryFromFieldRowFallback(
+    gardenId?: string,
+    fieldRowId?: string
+  ): Promise<CropRotationHistory[]> {
+    let query = this.getClient()
+      .from('field_row_crop_history')
+      .select('*')
+      .order('harvest_date', { ascending: false, nullsFirst: false })
+      .order('planting_date', { ascending: false })
+
+    if (gardenId) {
+      query = query.eq('garden_id', gardenId)
+    }
+
+    if (fieldRowId) {
+      query = query.eq('garden_row_id', fieldRowId)
+    }
+
+    const { data, error } = await query
+    if (error) {
+      if (isMissingRelationError(error, 'field_row_crop_history')) {
+        return []
+      }
+      throw error
+    }
+
+    return (data || []).map(this.mapHistoryFromFieldRowDb)
+  }
+
+  private async getFallbackPlansFromFieldHistory(
+    gardenId: string,
+    status?: string
+  ): Promise<CropRotationPlan[]> {
+    if (status && status !== 'SUGGESTED') {
+      return []
+    }
+
+    const history = await this.getHistoryFromFieldRowFallback(gardenId)
+    if (history.length === 0) {
+      return []
+    }
+
+    const latestByRow = new Map<string, CropRotationHistory>()
+    const historyByRow = new Map<string, CropRotationHistory[]>()
+
+    for (const entry of history) {
+      const rowId = entry.fieldRowId
+      if (!rowId) continue
+
+      if (!latestByRow.has(rowId)) {
+        latestByRow.set(rowId, entry)
+      }
+
+      const rowHistory = historyByRow.get(rowId) || []
+      rowHistory.push(entry)
+      historyByRow.set(rowId, rowHistory)
+    }
+
+    return Array.from(latestByRow.entries()).map(([rowId, currentEntry]) => {
+      const rowHistory = historyByRow.get(rowId) || []
+      const suggestions = this.analyzeCropRotation(currentEntry.plantFamily, rowHistory)
+      const rules = ROTATION_RULES[currentEntry.plantFamily as keyof typeof ROTATION_RULES] || {
+        reasoning: 'Suggerimento derivato dallo storico filari'
+      }
+
+      return this.buildVirtualPlan({
+        id: `${VIRTUAL_PLAN_PREFIX}${rowId}`,
+        gardenId,
+        fieldRowId: rowId,
+        currentCrop: currentEntry.plantName,
+        currentFamily: currentEntry.plantFamily,
+        suggestedNextCrops: suggestions,
+        rotationCycle: 4,
+        reasoning: rules.reasoning,
+        benefits: this.getRotationBenefits(currentEntry.plantFamily, suggestions),
+        risksToAvoid: this.getRotationRisks(currentEntry.plantFamily, rowHistory),
+        confidenceScore: this.calculateConfidence(rowHistory),
+        status: 'SUGGESTED',
+        createdAt: currentEntry.updatedAt || currentEntry.createdAt,
+        updatedAt: currentEntry.updatedAt || currentEntry.createdAt
+      })
+    })
+  }
+
+  private buildVirtualPlan(plan: CropRotationPlan): CropRotationPlan {
+    return {
+      ...plan,
+      id: isVirtualCropRotationPlanId(plan.id)
+        ? plan.id
+        : `${VIRTUAL_PLAN_PREFIX}${plan.fieldRowId || plan.gardenId}:${plan.currentFamily}`,
+      status: 'SUGGESTED',
+      createdAt: plan.createdAt || new Date().toISOString(),
+      updatedAt: plan.updatedAt || new Date().toISOString()
+    }
   }
 
   // ===== MAPPING METHODS =====
@@ -458,6 +668,33 @@ class CropRotationService {
       status: data.status,
       acceptedCrop: data.accepted_crop,
       acceptedDate: data.accepted_date,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    }
+  }
+
+  private mapHistoryFromFieldRowDb(data: any): CropRotationHistory {
+    const plantedDate = data.planting_date
+    const qualityScore = typeof data.quality_rating === 'number'
+      ? Math.max(0, Math.min(100, data.quality_rating * 20))
+      : undefined
+
+    return {
+      id: data.id,
+      gardenId: data.garden_id,
+      fieldRowId: data.garden_row_id,
+      plantName: data.crop_name,
+      plantFamily: data.crop_family || 'Altro',
+      plantedDate,
+      harvestDate: data.harvest_date || undefined,
+      season: getSeasonFromDate(plantedDate),
+      year: plantedDate ? new Date(plantedDate).getFullYear() : new Date().getFullYear(),
+      yieldKg: data.yield_kg || undefined,
+      qualityScore,
+      diseases: Array.isArray(data.health_issues) ? data.health_issues : [],
+      pests: [],
+      nutrientDeficiencies: [],
+      notes: data.notes || undefined,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     }

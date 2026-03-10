@@ -4,7 +4,7 @@
  */
 
 import { getSupabaseClient } from '@/config/supabase'
-import { cropRotationService } from './cropRotationService'
+import { cropRotationService, isVirtualCropRotationPlanId } from './cropRotationService'
 
 export interface PlantingPlan {
   id: string
@@ -162,7 +162,7 @@ class ClassicPlannerService {
         const suggested = relevantPlan.suggestedNextCrops.find(c => c.plantName === plantName)
         if (suggested) {
           return {
-            planId: relevantPlan.id,
+            planId: isVirtualCropRotationPlanId(relevantPlan.id) ? undefined : relevantPlan.id,
             followsAdvice: true,
             score: suggested.score,
             warnings: []

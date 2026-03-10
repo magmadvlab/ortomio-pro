@@ -16,7 +16,7 @@ import {
   Sparkles
 } from 'lucide-react'
 import { useGarden } from '@/packages/core/hooks/useGarden'
-import { cropRotationService } from '@/services/cropRotationService'
+import { cropRotationService, isVirtualCropRotationPlanId } from '@/services/cropRotationService'
 import { CropRotationHistory, CropRotationPlan, SuggestedCrop } from '@/types/activeAIAdvice'
 
 export default function CropRotationPlanner() {
@@ -26,6 +26,7 @@ export default function CropRotationPlanner() {
   const [plans, setPlans] = useState<CropRotationPlan[]>([])
   const [selectedPlan, setSelectedPlan] = useState<CropRotationPlan | null>(null)
   const [showHistory, setShowHistory] = useState(false)
+  const [readOnlyFallback, setReadOnlyFallback] = useState(false)
 
   useEffect(() => {
     if (activeGarden) {
@@ -44,6 +45,7 @@ export default function CropRotationPlanner() {
       ])
       setHistory(historyData)
       setPlans(plansData)
+      setReadOnlyFallback(plansData.some((plan) => isVirtualCropRotationPlanId(plan.id)))
     } catch (error) {
       console.error('Error loading crop rotation data:', error)
     } finally {
@@ -148,6 +150,15 @@ export default function CropRotationPlanner() {
           </div>
         </div>
       </div>
+
+      {readOnlyFallback && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <p className="text-sm text-amber-900">
+            I suggerimenti mostrati ora sono derivati dallo storico filari disponibile nel database.
+            Non sono ancora piani persistiti: usali come supporto decisionale e passa dal Planner Classico per creare la pianificazione effettiva.
+          </p>
+        </div>
+      )}
 
       {/* History Section */}
       {showHistory && (
@@ -308,12 +319,19 @@ export default function CropRotationPlanner() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
-                              handleAcceptPlan(plan.id, crop.plantName)
+                              if (!isVirtualCropRotationPlanId(plan.id)) {
+                                handleAcceptPlan(plan.id, crop.plantName)
+                              }
                             }}
-                            className="ml-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                            disabled={isVirtualCropRotationPlanId(plan.id)}
+                            className={`ml-4 px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                              isVirtualCropRotationPlanId(plan.id)
+                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                : 'bg-green-600 text-white hover:bg-green-700'
+                            }`}
                           >
                             <ThumbsUp size={16} />
-                            Accetta
+                            {isVirtualCropRotationPlanId(plan.id) ? 'Solo consultivo' : 'Accetta'}
                           </button>
                         </div>
                       ))}
@@ -329,11 +347,20 @@ export default function CropRotationPlanner() {
                       Vedi tutti i suggerimenti ({plan.suggestedNextCrops.length})
                     </button>
                     <button
-                      onClick={() => handleRejectPlan(plan.id)}
-                      className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                      onClick={() => {
+                        if (!isVirtualCropRotationPlanId(plan.id)) {
+                          handleRejectPlan(plan.id)
+                        }
+                      }}
+                      disabled={isVirtualCropRotationPlanId(plan.id)}
+                      className={`flex items-center gap-2 px-4 py-2 transition-colors ${
+                        isVirtualCropRotationPlanId(plan.id)
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-gray-600 hover:text-gray-800'
+                      }`}
                     >
                       <ThumbsDown size={16} />
-                      Non interessato
+                      {isVirtualCropRotationPlanId(plan.id) ? 'Piano non persistito' : 'Non interessato'}
                     </button>
                   </div>
                 </div>
@@ -401,11 +428,20 @@ export default function CropRotationPlanner() {
                     </div>
                     
                     <button
-                      onClick={() => handleAcceptPlan(selectedPlan.id, crop.plantName)}
-                      className="ml-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                      onClick={() => {
+                        if (!isVirtualCropRotationPlanId(selectedPlan.id)) {
+                          handleAcceptPlan(selectedPlan.id, crop.plantName)
+                        }
+                      }}
+                      disabled={isVirtualCropRotationPlanId(selectedPlan.id)}
+                      className={`ml-4 px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                        isVirtualCropRotationPlanId(selectedPlan.id)
+                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                          : 'bg-green-600 text-white hover:bg-green-700'
+                      }`}
                     >
                       <ThumbsUp size={16} />
-                      Scegli
+                      {isVirtualCropRotationPlanId(selectedPlan.id) ? 'Solo consultivo' : 'Scegli'}
                     </button>
                   </div>
                 ))}
