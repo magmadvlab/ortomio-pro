@@ -5,6 +5,12 @@ import { Garden } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { CardContent, CardHeader, CardTitle, Badge, Input } from '@/components/ui/ortomio-adapter';
 import { Button } from '@/components/ui/Button';
+import { useStorage } from '@/packages/core/hooks/useStorage';
+import {
+  SeedlingBatch as StoredSeedlingBatch,
+  isReadyToTransplant
+} from '@/services/seedlingService';
+import { getMasterSheetSync } from '@/services/plantMasterService';
 import { 
   Sprout, 
   Plus,
@@ -23,7 +29,7 @@ import {
 } from 'lucide-react';
 import SeedingProgressCard from './SeedingProgressCard';
 
-interface SeedlingBatch {
+interface SeedlingDashboardBatch {
   id: string;
   plantName: string;
   variety: string;
@@ -49,9 +55,9 @@ interface SeedlingDashboardProps {
   shouldCreate?: boolean;
   plantName?: string;
   variety?: string;
-  batches?: SeedlingBatch[];
-  onBatchCreate?: (batch: Partial<SeedlingBatch>) => void;
-  onBatchUpdate?: (batchId: string, updates: Partial<SeedlingBatch>) => void;
+  batches?: StoredSeedlingBatch[];
+  onBatchCreate?: (batch: Partial<StoredSeedlingBatch>) => void;
+  onBatchUpdate?: (batchId: string, updates: Partial<StoredSeedlingBatch>) => void;
   onBatchDelete?: (batchId: string) => void;
   maxBatches?: number; // Limite per versione free
 }
@@ -61,71 +67,98 @@ export default function SeedlingDashboard({
   shouldCreate = false,
   plantName,
   variety,
-  batches = [],
+  batches,
   onBatchCreate,
   onBatchUpdate,
   onBatchDelete,
   maxBatches = 10
 }: SeedlingDashboardProps) {
+  const { storageProvider } = useStorage();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPhase, setFilterPhase] = useState<string>('all');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
-  
-  // Dati mock per testare l'interfaccia
-  const [mockBatches] = useState<SeedlingBatch[]>([
-    {
-      id: '1',
-      plantName: 'Pomodoro',
-      variety: 'San Marzano',
-      source: 'home',
-      currentPhase: 'nursing',
-      startDate: new Date('2024-01-15'),
-      quantity: 24,
-      survivingQuantity: 22,
-      photos: [
-        {
-          id: 'p1',
-          url: '/api/placeholder/200/150?seedling=1',
-          date: new Date('2024-01-20'),
-          phase: 'germination',
-          notes: 'Prima germinazione'
+  const [loadedBatches, setLoadedBatches] = useState<StoredSeedlingBatch[]>([]);
+  const [loadingBatches, setLoadingBatches] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadBatches = async () => {
+      if (typeof batches !== 'undefined') {
+        setLoadedBatches([]);
+        setLoadingBatches(false);
+        return;
+      }
+
+      try {
+        setLoadingBatches(true);
+        const data = await storageProvider.getSeedlingBatches(garden.id);
+        if (!cancelled) {
+          setLoadedBatches(data || []);
         }
-      ],
-      notes: 'Crescita regolare, buona germinazione',
-      expectedTransplantDate: new Date('2024-03-15'),
-    },
-    {
-      id: '2',
-      plantName: 'Basilico',
-      variety: 'Genovese',
-      source: 'nursery',
-      currentPhase: 'ready',
-      startDate: new Date('2024-02-01'),
-      quantity: 12,
-      survivingQuantity: 11,
-      photos: [],
-      notes: 'Pronto per il trapianto',
-      expectedTransplantDate: new Date('2024-03-01'),
-    },
-    {
-      id: '3',
-      plantName: 'Peperone',
-      variety: 'Quadrato d\'Asti',
-      source: 'home',
-      currentPhase: 'germination',
-      startDate: new Date('2024-01-25'),
-      quantity: 18,
-      survivingQuantity: 15,
-      photos: [],
-      notes: 'Germinazione in corso',
-      expectedTransplantDate: new Date('2024-04-01'),
+      } catch (error) {
+        console.error('Error loading real seedling batches:', error);
+        if (!cancelled) {
+          setLoadedBatches([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingBatches(false);
+        }
+      }
+    };
+
+    void loadBatches();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [batches, garden.id, storageProvider]);
+
+  const activeStoredBatches = typeof batches !== 'undefined' ? batches : loadedBatches;
+
+  const mapPhaseToDashboard = (batch: StoredSeedlingBatch): SeedlingDashboardBatch['currentPhase'] => {
+    const remaining = batch.currentQuantity ?? batch.initialQuantity ?? batch.quantity;
+    if (remaining <= 0) {
+      return 'transplanted';
     }
-  ])
-  
-  // Usa i dati mock se non ci sono batch forniti
-  const activeBatches = batches.length > 0 ? batches : mockBatches
+
+    switch (batch.phase) {
+      case 'Nursing':
+        return 'nursing';
+      case 'Hardening':
+        return 'hardening';
+      case 'ReadyToTransplant':
+        return 'ready';
+      case 'Sowing':
+      case 'Germination':
+      default:
+        return 'germination';
+    }
+  };
+
+  const activeBatches: SeedlingDashboardBatch[] = activeStoredBatches.map((batch) => ({
+    id: batch.id,
+    plantName: batch.plantName,
+    variety: batch.variety || 'Varietà non specificata',
+    source: batch.source || 'home',
+    currentPhase: mapPhaseToDashboard(batch),
+    startDate: new Date(batch.purchaseDate || batch.sowingDate),
+    quantity: batch.initialQuantity ?? batch.quantity,
+    survivingQuantity: batch.currentQuantity ?? batch.initialQuantity ?? batch.quantity,
+    photos: (batch.photoLog || []).map((photo, index) => ({
+      id: `${batch.id}-${index}`,
+      url: photo.image,
+      date: new Date(photo.date),
+      phase: batch.phase,
+      notes: photo.notes
+    })),
+    notes: batch.notes || '',
+    expectedTransplantDate: new Date(batch.expectedTransplantDate || batch.purchaseDate || batch.sowingDate),
+    actualTransplantDate: undefined
+  }));
 
   // Filtri e ricerca
   const filteredBatches = activeBatches.filter(batch => {
@@ -148,32 +181,83 @@ export default function SeedlingDashboard({
   };
 
   // Promemoria e avvisi
-  const alerts = [
-    ...activeBatches.filter(b => b.currentPhase === 'ready').map(b => ({
-      type: 'ready',
-      message: `${b.plantName} (${b.variety}) è pronto per il trapianto`,
-      batch: b,
-      priority: 'high'
-    })),
-    ...activeBatches.filter(b => {
-      const daysSinceStart = (new Date().getTime() - b.startDate.getTime()) / (1000 * 60 * 60 * 24);
-      return b.currentPhase === 'germination' && daysSinceStart > 14;
-    }).map(b => ({
-      type: 'delayed',
-      message: `${b.plantName} (${b.variety}) ha germinazione ritardata`,
-      batch: b,
-      priority: 'medium'
-    })),
-    ...activeBatches.filter(b => (b.survivingQuantity / b.quantity) < 0.5).map(b => ({
-      type: 'survival',
-      message: `${b.plantName} (${b.variety}) ha bassa sopravvivenza`,
-      batch: b,
-      priority: 'high'
-    }))
-  ];
+  const alerts = activeStoredBatches.flatMap((batch) => {
+    const items: Array<{
+      type: 'ready' | 'delayed' | 'survival';
+      message: string;
+      batch: StoredSeedlingBatch;
+      priority: 'high' | 'medium';
+    }> = [];
+    const label = batch.variety ? `${batch.plantName} (${batch.variety})` : batch.plantName;
+    const readyCheck = isReadyToTransplant(batch, garden);
+    const initialQuantity = batch.initialQuantity ?? batch.quantity;
+    const currentQuantity = batch.currentQuantity ?? initialQuantity;
+    const survivalRate = initialQuantity > 0 ? currentQuantity / initialQuantity : 1;
+    const startDate = new Date(batch.purchaseDate || batch.sowingDate);
+    const daysSinceStart = Math.floor((Date.now() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const masterData = getMasterSheetSync(batch.plantName);
+    const maxGerminationDays = masterData?.germination.emergenceDays.max ?? 14;
 
-  const handlePhaseUpdate = (batchId: string, newPhase: SeedlingBatch['currentPhase']) => {
-    onBatchUpdate?.(batchId, { currentPhase: newPhase });
+    if (readyCheck.ready && currentQuantity > 0) {
+      items.push({
+        type: 'ready',
+        message: `${label} è pronto per il trapianto`,
+        batch,
+        priority: 'high'
+      });
+    }
+
+    if (
+      batch.source !== 'nursery' &&
+      (batch.phase === 'Sowing' || batch.phase === 'Germination') &&
+      daysSinceStart > maxGerminationDays + 3
+    ) {
+      items.push({
+        type: 'delayed',
+        message: `${label} ha germinazione ritardata rispetto ai tempi attesi`,
+        batch,
+        priority: 'medium'
+      });
+    }
+
+    if (survivalRate < 0.5) {
+      items.push({
+        type: 'survival',
+        message: `${label} ha bassa sopravvivenza (${Math.round(survivalRate * 100)}%)`,
+        batch,
+        priority: 'high'
+      });
+    }
+
+    return items;
+  });
+
+  const handlePhaseUpdate = async (batchId: string, newPhase: SeedlingDashboardBatch['currentPhase']) => {
+    const phaseMap: Record<Exclude<SeedlingDashboardBatch['currentPhase'], 'transplanted'>, StoredSeedlingBatch['phase']> = {
+      germination: 'Germination',
+      nursing: 'Nursing',
+      hardening: 'Hardening',
+      ready: 'ReadyToTransplant'
+    };
+
+    if (newPhase === 'transplanted') {
+      return;
+    }
+
+    const updates: Partial<StoredSeedlingBatch> = { phase: phaseMap[newPhase] };
+    if (onBatchUpdate) {
+      onBatchUpdate(batchId, updates);
+      return;
+    }
+
+    try {
+      await storageProvider.updateSeedlingBatch(batchId, updates);
+      const refreshed = await storageProvider.getSeedlingBatches(garden.id);
+      setLoadedBatches(refreshed || []);
+    } catch (error) {
+      console.error('Error updating seedling phase:', error);
+      alert('Errore durante l\'aggiornamento della fase del batch');
+    }
   };
 
   const handlePhotoAdd = (batchId: string, photo: File) => {
@@ -181,19 +265,33 @@ export default function SeedlingDashboard({
     console.log('Adding photo to batch:', batchId, photo);
   };
 
-  const handleNotesUpdate = (batchId: string, notes: string) => {
-    onBatchUpdate?.(batchId, { notes });
-  };
+  const handleNotesUpdate = async (batchId: string, notes: string) => {
+    const updates: Partial<StoredSeedlingBatch> = { notes };
+    if (onBatchUpdate) {
+      onBatchUpdate(batchId, updates);
+      return;
+    }
 
-  const handleTransplant = (batchId: string) => {
-    onBatchUpdate?.(batchId, { 
-      currentPhase: 'transplanted',
-      actualTransplantDate: new Date()
-    });
+    try {
+      await storageProvider.updateSeedlingBatch(batchId, updates);
+      const refreshed = await storageProvider.getSeedlingBatches(garden.id);
+      setLoadedBatches(refreshed || []);
+    } catch (error) {
+      console.error('Error updating seedling notes:', error);
+      alert('Errore durante l\'aggiornamento delle note del batch');
+    }
   };
 
   return (
     <div className="space-y-6">
+      {loadingBatches && typeof batches === 'undefined' && (
+        <Card>
+          <CardContent className="p-4 text-sm text-gray-600">
+            Caricamento batch semenzaio reali...
+          </CardContent>
+        </Card>
+      )}
+
       {/* Header con statistiche */}
       <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
@@ -360,7 +458,6 @@ export default function SeedlingDashboard({
               onPhaseUpdate={handlePhaseUpdate}
               onPhotoAdd={handlePhotoAdd}
               onNotesUpdate={handleNotesUpdate}
-              onTransplant={handleTransplant}
               compact={viewMode === 'list'}
             />
           ))

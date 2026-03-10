@@ -301,13 +301,13 @@ export default function SeedingProgressCard({
 
         {/* Azioni */}
         <div className="flex gap-2 pt-2 border-t border-gray-200">
-          {batch.currentPhase !== 'transplanted' && batch.currentPhase !== 'ready' && (
+          {onPhaseUpdate && batch.currentPhase !== 'transplanted' && batch.currentPhase !== 'ready' && (
             <Button size="sm" onClick={handlePhaseAdvance} className="flex-1">
               Avanza Fase
             </Button>
           )}
           
-          {batch.currentPhase === 'ready' && (
+          {onTransplant && batch.currentPhase === 'ready' && (
             <Button size="sm" onClick={() => onTransplant?.(batch.id)} className="flex-1">
               <CheckCircle className="w-4 h-4 mr-1" />
               Trapianta
