@@ -740,13 +740,25 @@ class SaplingService {
   }
 
   private mapBatchFromDatabase(data: any): SaplingBatch {
+    const totalQuantity = Number(data.total_quantity || 0)
+    const remainingQuantity = Number(data.remaining_quantity || 0)
+    const items = (data.sapling_items || []) as Array<{ status?: string; planting_date?: string; location?: string }>
+    const plantedItem = items.find((item) => item.status === 'planted')
+    const normalizedName = String(data.plant_name || '').toLowerCase()
+    const saplingType: SaplingBatch['saplingType'] =
+      normalizedName.includes('oliv')
+        ? 'Olive'
+        : normalizedName.includes('vite') || normalizedName.includes('uva')
+          ? 'Vine'
+          : 'FruitTree'
+
     return {
       id: data.id,
       plantName: data.plant_name,
       variety: data.variety,
       source: data.source,
-      totalQuantity: data.total_quantity,
-      remainingQuantity: data.remaining_quantity,
+      totalQuantity,
+      remainingQuantity,
       purchaseDate: data.purchase_date,
       supplier: data.supplier,
       rootstockType: data.rootstock_type,
@@ -754,6 +766,14 @@ class SaplingService {
       totalCost: data.total_cost,
       notes: data.notes,
       gardenId: data.garden_id,
+      initialQuantity: totalQuantity,
+      quantity: totalQuantity,
+      currentQuantity: remainingQuantity,
+      phase: remainingQuantity > 0 ? 'Purchased' : 'Planted',
+      plantingDate: plantedItem?.planting_date,
+      location: plantedItem?.location,
+      photoLog: [],
+      saplingType,
       saplings: data.sapling_items?.map(this.mapItemFromDatabase) || []
     }
   }
@@ -902,6 +922,45 @@ export const linkToSpecializedCrop = (saplingId: string, cropType: string, cropI
 
 export const isReadyToOrchard = (sapling: Sapling) => 
   saplingService.isReadyToOrchard(sapling)
+
+export const useSaplingForPlanting = async (
+  storageProvider: {
+    getSaplingBatch?: (batchId: string) => Promise<SaplingBatch | null | undefined>
+    updateSaplingBatch?: (batchId: string, updates: Partial<SaplingBatch>) => Promise<unknown>
+  },
+  batchId: string,
+  quantity: number
+): Promise<boolean> => {
+  if (!storageProvider.getSaplingBatch || !storageProvider.updateSaplingBatch) {
+    return false
+  }
+
+  const batch = await storageProvider.getSaplingBatch(batchId)
+  if (!batch) {
+    return false
+  }
+
+  const availableQuantity =
+    batch.currentQuantity ??
+    batch.remainingQuantity ??
+    batch.quantity ??
+    batch.totalQuantity
+
+  if (availableQuantity < quantity) {
+    return false
+  }
+
+  const nextQuantity = Math.max(0, availableQuantity - quantity)
+  await storageProvider.updateSaplingBatch(batchId, {
+    ...batch,
+    currentQuantity: nextQuantity,
+    remainingQuantity: nextQuantity,
+    quantity: batch.quantity ?? batch.totalQuantity,
+    phase: nextQuantity > 0 ? 'Purchased' : 'Planted',
+  })
+
+  return true
+}
 
 // Export types
 export type { SaplingBatch, Sapling }

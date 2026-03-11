@@ -28,6 +28,14 @@ export interface SaplingBatch {
   totalCost?: number
   notes?: string
   gardenId: string
+  initialQuantity?: number
+  quantity?: number
+  currentQuantity?: number
+  phase?: 'Purchased' | 'Nursery' | 'ReadyToPlant' | 'Planted'
+  plantingDate?: string
+  location?: string
+  photoLog?: { date: string; image: string; notes?: string }[]
+  saplingType?: 'FruitTree' | 'Olive' | 'Vine'
   
   // Individual saplings in this batch
   saplings: SaplingItem[]

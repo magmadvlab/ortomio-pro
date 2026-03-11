@@ -36,6 +36,9 @@ export interface TransplantResult {
  * Servizio per orchestrare il trapianto dal vivaio all'orto
  */
 export class TransplantOrchestrationService {
+  private getAvailableBatchQuantity(batch: SeedlingBatch): number {
+    return batch.currentQuantity ?? batch.survivingQuantity ?? batch.initialQuantity ?? batch.quantity
+  }
   
   /**
    * Pianifica un trapianto dal vivaio a un filare specifico
@@ -55,7 +58,7 @@ export class TransplantOrchestrationService {
       gardenId,
       fieldRowId,
       transplantDate: new Date().toISOString().split('T')[0],
-      quantityToTransplant: Math.min(quantity, batch.survivingQuantity),
+      quantityToTransplant: Math.min(quantity, this.getAvailableBatchQuantity(batch)),
       startingPosition,
       plantSpacing,
       status: 'planned',
@@ -250,7 +253,7 @@ export class TransplantOrchestrationService {
         }
       ],
       currentPhase: 'post_transplant',
-      startDate: plant.transplantDate || plant.plantingDate,
+      startDate: plant.plantedDate || plant.plantingDate,
       orchestratorActive: true
     }
     

@@ -14,6 +14,7 @@ export interface SeedlingBatch {
   quantity: number; // Mantenuto per retrocompatibilità
   initialQuantity?: number; // Quantità iniziale di piantine (es. 20)
   currentQuantity?: number; // Quantità corrente disponibile (es. 18 dopo averne usate 2)
+  survivingQuantity?: number; // Alias legacy per currentQuantity
   location: 'Indoor' | 'Greenhouse' | 'ColdFrame';
   phase: 'Sowing' | 'Germination' | 'Nursing' | 'Hardening' | 'ReadyToTransplant';
   expectedTransplantDate?: string; // ISO date string
@@ -61,6 +62,7 @@ export const createSeedlingBatch = (
     quantity,
     initialQuantity: quantity, // Imposta initialQuantity = quantity per nuovi batch
     currentQuantity: quantity,
+    survivingQuantity: quantity,
     location,
     phase: 'Sowing',
     expectedTransplantDate: expectedTransplant.toISOString().split('T')[0],
@@ -268,9 +270,11 @@ export const updateSurvivalCount = (
   batch: SeedlingBatch,
   currentQuantity: number
 ): SeedlingBatch => {
+  const nextQuantity = Math.max(0, Math.min(currentQuantity, batch.quantity))
   return {
     ...batch,
-    currentQuantity: Math.max(0, Math.min(currentQuantity, batch.quantity))
+    currentQuantity: nextQuantity,
+    survivingQuantity: nextQuantity
   };
 };
 
@@ -303,6 +307,7 @@ export const createPurchasedSeedlingBatch = (
     location: 'Indoor', // Default, può essere modificato dopo
     phase: 'ReadyToTransplant', // Piantine acquistate sono già pronte
     currentQuantity: quantity, // Tutte disponibili inizialmente
+    survivingQuantity: quantity,
     expectedTransplantDate: purchaseDate, // Può essere trapiantate subito
     gardenId,
     source: 'nursery',
@@ -311,4 +316,3 @@ export const createPurchasedSeedlingBatch = (
     photoLog: []
   };
 };
-
