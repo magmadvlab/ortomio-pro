@@ -1,125 +1,219 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Target, Calendar, TrendingUp, Plus, BarChart3 } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { Target, Calendar, TrendingUp, Plus, BarChart3, TreePine, Save } from 'lucide-react'
+import { orchardService } from '@/services/orchardService'
+import { OrchardTree, QualityClass } from '@/types/orchard'
 
 interface YieldPerTreeTrackerProps {
   orchardId: string
   orchardName?: string
 }
 
-interface TreeYield {
+interface TreeYieldRecord {
   id: string
+  treeId: string
   treeNumber: string
   variety: string
+  harvestDate: string
   year: number
   yieldKg: number
-  quality: 'excellent' | 'good' | 'fair' | 'poor'
+  qualityClass: QualityClass
   notes: string
 }
 
-export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPerTreeTrackerProps) {
-  const [yields, setYields] = useState<TreeYield[]>([
-    {
-      id: '1',
-      treeNumber: 'A-12',
-      variety: 'Melo Golden Delicious',
-      year: 2025,
-      yieldKg: 45,
-      quality: 'excellent',
-      notes: 'Ottima produzione'
-    },
-    {
-      id: '2',
-      treeNumber: 'A-13',
-      variety: 'Melo Golden Delicious',
-      year: 2025,
-      yieldKg: 38,
-      quality: 'good',
-      notes: 'Buona produzione'
-    },
-    {
-      id: '3',
-      treeNumber: 'B-05',
-      variety: 'Pero Conference',
-      year: 2025,
-      yieldKg: 52,
-      quality: 'excellent',
-      notes: 'Produzione eccezionale'
-    }
-  ])
+const DEFAULT_HARVEST_DATE = new Date().toISOString().slice(0, 10)
 
+export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPerTreeTrackerProps) {
+  const [trees, setTrees] = useState<OrchardTree[]>([])
+  const [yields, setYields] = useState<TreeYieldRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [newYield, setNewYield] = useState({
-    treeNumber: '',
-    variety: '',
+    treeId: '',
+    harvestDate: DEFAULT_HARVEST_DATE,
     yieldKg: '',
-    quality: 'good' as 'excellent' | 'good' | 'fair' | 'poor',
+    qualityClass: 'first' as QualityClass,
     notes: ''
   })
 
-  const addYield = () => {
-    if (!newYield.treeNumber || !newYield.variety || !newYield.yieldKg) return
+  useEffect(() => {
+    void loadYieldData()
+  }, [orchardId])
 
-    const yieldRecord: TreeYield = {
-      id: Date.now().toString(),
-      treeNumber: newYield.treeNumber,
-      variety: newYield.variety,
-      year: new Date().getFullYear(),
-      yieldKg: parseFloat(newYield.yieldKg),
-      quality: newYield.quality,
-      notes: newYield.notes
+  const loadYieldData = async () => {
+    if (!orchardId) {
+      setTrees([])
+      setYields([])
+      setLoading(false)
+      return
     }
 
-    setYields([...yields, yieldRecord])
-    setNewYield({ treeNumber: '', variety: '', yieldKg: '', quality: 'good', notes: '' })
-    setShowForm(false)
-  }
+    try {
+      setLoading(true)
+      setError(null)
 
-  const getQualityColor = (quality: string) => {
-    switch (quality) {
-      case 'excellent': return { color: 'text-green-600', bg: 'bg-green-50', label: 'Eccellente' }
-      case 'good': return { color: 'text-blue-600', bg: 'bg-blue-50', label: 'Buona' }
-      case 'fair': return { color: 'text-yellow-600', bg: 'bg-yellow-50', label: 'Discreta' }
-      case 'poor': return { color: 'text-red-600', bg: 'bg-red-50', label: 'Scarsa' }
-      default: return { color: 'text-gray-600', bg: 'bg-gray-50', label: 'N/D' }
+      const [treesData, harvestRecords] = await Promise.all([
+        orchardService.getOrchardTrees(orchardId),
+        orchardService.getOrchardHarvestRecords(orchardId)
+      ])
+
+      const treeMap = new Map(treesData.map((tree) => [tree.id, tree]))
+      const mappedYields = harvestRecords
+        .map((record) => {
+          const tree = treeMap.get(record.treeId)
+          const harvestDate = record.harvestDate || DEFAULT_HARVEST_DATE
+          return {
+            id: record.id,
+            treeId: record.treeId,
+            treeNumber: tree?.treeNumber || 'Albero',
+            variety: tree?.variety || 'Varietà non definita',
+            harvestDate,
+            year: new Date(harvestDate).getFullYear(),
+            yieldKg: Number(record.quantityKg || 0),
+            qualityClass: record.qualityClass,
+            notes: record.notes || ''
+          }
+        })
+        .sort((left, right) => new Date(right.harvestDate).getTime() - new Date(left.harvestDate).getTime())
+
+      setTrees(treesData)
+      setYields(mappedYields)
+
+      if (treesData.length === 1) {
+        setNewYield((current) => ({
+          ...current,
+          treeId: current.treeId || treesData[0].id
+        }))
+      }
+    } catch (loadError) {
+      console.error('Error loading orchard yield tracker data:', loadError)
+      setError('Impossibile caricare le rese del frutteto.')
+    } finally {
+      setLoading(false)
     }
   }
 
-  // Calculate statistics
+  const resetForm = () => {
+    setNewYield({
+      treeId: trees.length === 1 ? trees[0].id : '',
+      harvestDate: DEFAULT_HARVEST_DATE,
+      yieldKg: '',
+      qualityClass: 'first',
+      notes: ''
+    })
+  }
+
+  const addYield = async () => {
+    if (!newYield.treeId || !newYield.yieldKg || !newYield.harvestDate) return
+
+    try {
+      setSaving(true)
+      setError(null)
+
+      await orchardService.addTreeHarvestRecord({
+        treeId: newYield.treeId,
+        harvestDate: newYield.harvestDate,
+        quantityKg: Number(newYield.yieldKg),
+        qualityClass: newYield.qualityClass,
+        notes: newYield.notes || undefined,
+        photos: [],
+        qualityPhotos: []
+      })
+
+      await loadYieldData()
+      resetForm()
+      setShowForm(false)
+    } catch (saveError) {
+      console.error('Error saving orchard yield record:', saveError)
+      setError('Impossibile salvare la resa dell\'albero.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const getQualityInfo = (qualityClass: QualityClass) => {
+    switch (qualityClass) {
+      case 'premium':
+        return { color: 'text-green-700', bg: 'bg-green-50', label: 'Premium' }
+      case 'first':
+        return { color: 'text-blue-700', bg: 'bg-blue-50', label: 'Prima' }
+      case 'second':
+        return { color: 'text-amber-700', bg: 'bg-amber-50', label: 'Seconda' }
+      case 'processing':
+        return { color: 'text-orange-700', bg: 'bg-orange-50', label: 'Trasformazione' }
+      case 'waste':
+        return { color: 'text-red-700', bg: 'bg-red-50', label: 'Scarto' }
+      default:
+        return { color: 'text-gray-700', bg: 'bg-gray-50', label: 'N/D' }
+    }
+  }
+
   const currentYear = new Date().getFullYear()
-  const currentYearYields = yields.filter(y => y.year === currentYear)
+  const currentYearYields = yields.filter((yieldRecord) => yieldRecord.year === currentYear)
   const avgYield = currentYearYields.length > 0
-    ? currentYearYields.reduce((sum, y) => sum + y.yieldKg, 0) / currentYearYields.length
+    ? currentYearYields.reduce((sum, yieldRecord) => sum + yieldRecord.yieldKg, 0) / currentYearYields.length
     : 0
-  const totalYield = currentYearYields.reduce((sum, y) => sum + y.yieldKg, 0)
+  const totalYield = currentYearYields.reduce((sum, yieldRecord) => sum + yieldRecord.yieldKg, 0)
   const topPerformer = currentYearYields.length > 0
-    ? currentYearYields.reduce((max, y) => y.yieldKg > max.yieldKg ? y : max, currentYearYields[0])
+    ? currentYearYields.reduce((max, yieldRecord) => yieldRecord.yieldKg > max.yieldKg ? yieldRecord : max, currentYearYields[0])
     : null
 
-  // Group by variety
-  const yieldsByVariety = currentYearYields.reduce((acc, y) => {
-    if (!acc[y.variety]) {
-      acc[y.variety] = []
+  const yieldsByVariety = currentYearYields.reduce((acc, yieldRecord) => {
+    if (!acc[yieldRecord.variety]) {
+      acc[yieldRecord.variety] = []
     }
-    acc[y.variety].push(y)
+    acc[yieldRecord.variety].push(yieldRecord)
     return acc
-  }, {} as Record<string, TreeYield[]>)
+  }, {} as Record<string, TreeYieldRecord[]>)
+
+  const selectedTree = trees.find((tree) => tree.id === newYield.treeId)
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <Target className="mx-auto text-gray-400 mb-4 animate-pulse" size={48} />
+          <p className="text-gray-600">Caricamento rese per pianta...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!orchardId) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <Target className="mx-auto text-gray-400 mb-4" size={40} />
+        <p className="text-gray-600">Seleziona un frutteto per visualizzare la resa per pianta.</p>
+      </div>
+    )
+  }
+
+  if (trees.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <TreePine className="mx-auto text-gray-400 mb-4" size={40} />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Nessun albero disponibile</h3>
+        <p className="text-gray-600">Aggiungi prima gli alberi del frutteto per registrare le rese.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-200 p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-3">
             <Target className="text-green-600" size={32} />
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Tracciamento Resa per Pianta</h2>
-              <p className="text-gray-600">Monitora la produttività individuale di ogni albero</p>
+              <p className="text-gray-600">Rese registrate sui raccolti reali del frutteto</p>
             </div>
           </div>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => setShowForm((current) => !current)}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           >
             <Plus size={16} />
@@ -134,7 +228,12 @@ export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPer
         )}
       </div>
 
-      {/* Statistics Overview */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
       {currentYearYields.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -145,7 +244,7 @@ export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPer
             <div className="text-3xl font-bold text-blue-600">
               {avgYield.toFixed(1)} kg
             </div>
-            <div className="text-xs text-gray-500 mt-1">per pianta</div>
+            <div className="text-xs text-gray-500 mt-1">per albero raccolto</div>
           </div>
 
           <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -154,7 +253,7 @@ export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPer
               <span className="text-sm font-medium text-gray-700">Produzione Totale</span>
             </div>
             <div className="text-3xl font-bold text-green-600">
-              {totalYield.toFixed(0)} kg
+              {totalYield.toFixed(1)} kg
             </div>
             <div className="text-xs text-gray-500 mt-1">{currentYear}</div>
           </div>
@@ -162,12 +261,12 @@ export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPer
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Target className="text-purple-600" size={16} />
-              <span className="text-sm font-medium text-gray-700">Piante Monitorate</span>
+              <span className="text-sm font-medium text-gray-700">Alberi Monitorati</span>
             </div>
             <div className="text-3xl font-bold text-purple-600">
-              {currentYearYields.length}
+              {new Set(currentYearYields.map((yieldRecord) => yieldRecord.treeId)).size}
             </div>
-            <div className="text-xs text-gray-500 mt-1">quest'anno</div>
+            <div className="text-xs text-gray-500 mt-1">con raccolte registrate</div>
           </div>
 
           {topPerformer && (
@@ -179,55 +278,65 @@ export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPer
               <div className="text-2xl font-bold text-gray-900">
                 {topPerformer.treeNumber}
               </div>
-              <div className="text-xs text-gray-500 mt-1">{topPerformer.yieldKg} kg</div>
+              <div className="text-xs text-gray-500 mt-1">{topPerformer.yieldKg.toFixed(1)} kg</div>
             </div>
           )}
         </div>
       )}
 
-      {/* Add Yield Form */}
       {showForm && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Registra Resa Pianta</h3>
-          
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Registra Raccolta Albero</h3>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Numero/Codice Pianta
+                Albero
               </label>
-              <input
-                type="text"
-                value={newYield.treeNumber}
-                onChange={(e) => setNewYield({ ...newYield, treeNumber: e.target.value })}
-                placeholder="es. A-15, Fila 3-12"
+              <select
+                value={newYield.treeId}
+                onChange={(event) => setNewYield({ ...newYield, treeId: event.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-              />
+              >
+                <option value="">Seleziona albero...</option>
+                {trees.map((tree) => (
+                  <option key={tree.id} value={tree.id}>
+                    {tree.treeNumber} - {tree.variety}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Varietà
+                Data raccolta
               </label>
               <input
-                type="text"
-                value={newYield.variety}
-                onChange={(e) => setNewYield({ ...newYield, variety: e.target.value })}
-                placeholder="es. Melo Golden Delicious"
+                type="date"
+                value={newYield.harvestDate}
+                onChange={(event) => setNewYield({ ...newYield, harvestDate: event.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               />
             </div>
           </div>
 
+          {selectedTree && (
+            <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+              Albero selezionato: <strong>{selectedTree.treeNumber}</strong> · {selectedTree.variety}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Resa (kg)
+                Quantità raccolta (kg)
               </label>
               <input
                 type="number"
                 step="0.1"
+                min="0"
                 value={newYield.yieldKg}
-                onChange={(e) => setNewYield({ ...newYield, yieldKg: e.target.value })}
+                onChange={(event) => setNewYield({ ...newYield, yieldKg: event.target.value })}
                 placeholder="es. 42.5"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               />
@@ -235,17 +344,18 @@ export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPer
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Qualità Frutti
+                Classe qualità
               </label>
               <select
-                value={newYield.quality}
-                onChange={(e) => setNewYield({ ...newYield, quality: e.target.value as any })}
+                value={newYield.qualityClass}
+                onChange={(event) => setNewYield({ ...newYield, qualityClass: event.target.value as QualityClass })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               >
-                <option value="excellent">Eccellente</option>
-                <option value="good">Buona</option>
-                <option value="fair">Discreta</option>
-                <option value="poor">Scarsa</option>
+                <option value="premium">Premium</option>
+                <option value="first">Prima</option>
+                <option value="second">Seconda</option>
+                <option value="processing">Trasformazione</option>
+                <option value="waste">Scarto</option>
               </select>
             </div>
           </div>
@@ -256,8 +366,8 @@ export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPer
             </label>
             <textarea
               value={newYield.notes}
-              onChange={(e) => setNewYield({ ...newYield, notes: e.target.value })}
-              placeholder="Osservazioni sulla produzione..."
+              onChange={(event) => setNewYield({ ...newYield, notes: event.target.value })}
+              placeholder="Osservazioni sulla qualità, difetti, condizioni della raccolta..."
               rows={3}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             />
@@ -266,13 +376,17 @@ export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPer
           <div className="flex gap-2">
             <button
               onClick={addYield}
-              disabled={!newYield.treeNumber || !newYield.variety || !newYield.yieldKg}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300"
+              disabled={!newYield.treeId || !newYield.yieldKg || saving}
+              className="inline-flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300"
             >
-              Salva Registrazione
+              <Save size={16} />
+              {saving ? 'Salvataggio...' : 'Salva Registrazione'}
             </button>
             <button
-              onClick={() => setShowForm(false)}
+              onClick={() => {
+                setShowForm(false)
+                resetForm()
+              }}
               className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
             >
               Annulla
@@ -281,16 +395,15 @@ export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPer
         </div>
       )}
 
-      {/* Yields by Variety */}
       {Object.keys(yieldsByVariety).length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Rese per Varietà ({currentYear})</h3>
-          
+
           <div className="space-y-6">
             {Object.entries(yieldsByVariety).map(([variety, varietyYields]) => {
-              const varietyAvg = varietyYields.reduce((sum, y) => sum + y.yieldKg, 0) / varietyYields.length
-              const varietyTotal = varietyYields.reduce((sum, y) => sum + y.yieldKg, 0)
-              
+              const varietyAvg = varietyYields.reduce((sum, yieldRecord) => sum + yieldRecord.yieldKg, 0) / varietyYields.length
+              const varietyTotal = varietyYields.reduce((sum, yieldRecord) => sum + yieldRecord.yieldKg, 0)
+
               return (
                 <div key={variety} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
@@ -300,17 +413,17 @@ export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPer
                         Media: <span className="font-semibold text-gray-900">{varietyAvg.toFixed(1)} kg</span>
                       </span>
                       <span className="text-gray-600">
-                        Totale: <span className="font-semibold text-gray-900">{varietyTotal.toFixed(0)} kg</span>
+                        Totale: <span className="font-semibold text-gray-900">{varietyTotal.toFixed(1)} kg</span>
                       </span>
                       <span className="text-gray-600">
-                        Piante: <span className="font-semibold text-gray-900">{varietyYields.length}</span>
+                        Alberi: <span className="font-semibold text-gray-900">{varietyYields.length}</span>
                       </span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {varietyYields.map((yieldRecord) => {
-                      const qualityInfo = getQualityColor(yieldRecord.quality)
+                      const qualityInfo = getQualityInfo(yieldRecord.qualityClass)
                       return (
                         <div key={yieldRecord.id} className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                           <div className="flex items-center justify-between mb-2">
@@ -320,7 +433,10 @@ export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPer
                             </span>
                           </div>
                           <div className="text-2xl font-bold text-green-600 mb-1">
-                            {yieldRecord.yieldKg} kg
+                            {yieldRecord.yieldKg.toFixed(1)} kg
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {new Date(yieldRecord.harvestDate).toLocaleDateString('it-IT')}
                           </div>
                           {yieldRecord.notes && (
                             <p className="text-xs text-gray-600 mt-2">{yieldRecord.notes}</p>
@@ -336,55 +452,68 @@ export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPer
         </div>
       )}
 
-      {/* All Yields Table */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Tutte le Registrazioni</h3>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Pianta</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Varietà</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Anno</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Resa (kg)</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Qualità</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Note</th>
-              </tr>
-            </thead>
-            <tbody>
-              {yields.slice().reverse().map((yieldRecord) => {
-                const qualityInfo = getQualityColor(yieldRecord.quality)
-                return (
-                  <tr key={yieldRecord.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4 font-medium text-gray-900">{yieldRecord.treeNumber}</td>
-                    <td className="py-3 px-4 text-gray-700">{yieldRecord.variety}</td>
-                    <td className="py-3 px-4 text-gray-700">{yieldRecord.year}</td>
-                    <td className="py-3 px-4 font-semibold text-green-600">{yieldRecord.yieldKg} kg</td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${qualityInfo.color} ${qualityInfo.bg}`}>
-                        {qualityInfo.label}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-gray-600 text-xs">{yieldRecord.notes || '-'}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Tutte le Registrazioni</h3>
+          <div className="text-sm text-gray-500">
+            {yields.length} registrazioni
+          </div>
         </div>
+
+        {yields.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-300 px-6 py-10 text-center">
+            <Calendar className="mx-auto text-gray-400 mb-3" size={28} />
+            <p className="text-gray-600">Nessuna resa registrata per questo frutteto.</p>
+            <p className="text-sm text-gray-500 mt-1">Usa “Nuova Registrazione” per iniziare a storicizzare i raccolti per albero.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Albero</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Varietà</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Data</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Anno</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Resa (kg)</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Qualità</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {yields.map((yieldRecord) => {
+                  const qualityInfo = getQualityInfo(yieldRecord.qualityClass)
+                  return (
+                    <tr key={yieldRecord.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-4 font-medium text-gray-900">{yieldRecord.treeNumber}</td>
+                      <td className="py-3 px-4 text-gray-700">{yieldRecord.variety}</td>
+                      <td className="py-3 px-4 text-gray-700">
+                        {new Date(yieldRecord.harvestDate).toLocaleDateString('it-IT')}
+                      </td>
+                      <td className="py-3 px-4 text-gray-700">{yieldRecord.year}</td>
+                      <td className="py-3 px-4 font-semibold text-green-600">{yieldRecord.yieldKg.toFixed(1)} kg</td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${qualityInfo.color} ${qualityInfo.bg}`}>
+                          {qualityInfo.label}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-gray-600 text-xs">{yieldRecord.notes || '-'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* Tips */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="font-semibold text-blue-900 mb-2">💡 Consigli per il Tracciamento</h4>
+        <h4 className="font-semibold text-blue-900 mb-2">Consigli per il tracciamento</h4>
         <ul className="space-y-2 text-sm text-blue-800">
-          <li>• Assegna un codice univoco a ogni pianta (es. Fila-Posizione: A-12)</li>
-          <li>• Pesa i frutti subito dopo la raccolta per ogni pianta</li>
-          <li>• Registra anche la qualità per identificare le piante migliori</li>
-          <li>• Monitora le stesse piante per più anni per identificare trend</li>
-          <li>• Usa i dati per decisioni di potatura e diradamento</li>
-          <li>• Le piante con resa costantemente bassa potrebbero necessitare interventi</li>
+          <li>• Registra le rese per albero nello stesso giorno della raccolta per mantenere i dati coerenti.</li>
+          <li>• Usa sempre la classe qualità per confrontare resa e valore commerciale delle stesse piante negli anni.</li>
+          <li>• Le rese persistite qui aggiornano anche l&apos;ultimo raccolto e la resa cumulativa dell&apos;albero.</li>
+          <li>• Se un albero cala di anno in anno, confronta queste rese con potature, trattamenti e condizioni meteo.</li>
         </ul>
       </div>
     </div>

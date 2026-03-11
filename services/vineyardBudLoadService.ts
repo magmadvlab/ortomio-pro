@@ -11,6 +11,14 @@ import {
 import { getSupabaseClient } from '@/config/supabase'
 
 class VineyardBudLoadService {
+  private getClientOrThrow() {
+    const supabase = getSupabaseClient()
+    if (!supabase) {
+      throw new Error('Supabase client not configured')
+    }
+    return supabase
+  }
+
   // ============================================================================
   // RAVAZ INDEX CALCULATION
   // ============================================================================
@@ -111,7 +119,7 @@ class VineyardBudLoadService {
 
   async getBudLoadHistory(vineyardId: string): Promise<BudLoadData[]> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       const { data, error } = await supabase
         .from('vineyard_bud_load')
         .select('*')
@@ -129,7 +137,7 @@ class VineyardBudLoadService {
 
   async getLatestBudLoad(vineyardId: string): Promise<BudLoadData | null> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       const { data, error } = await supabase
         .from('vineyard_bud_load')
         .select('*')
@@ -149,7 +157,7 @@ class VineyardBudLoadService {
 
   async recordBudLoad(budLoad: Omit<BudLoadData, 'id' | 'createdAt' | 'updatedAt'>): Promise<BudLoadData> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       
       // Calculate Ravaz Index if both values are present
       let ravazIndex = budLoad.ravazIndex
@@ -178,7 +186,7 @@ class VineyardBudLoadService {
 
   async updateBudLoad(id: string, updates: Partial<BudLoadData>): Promise<BudLoadData> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       
       // Recalculate Ravaz Index if relevant values changed
       let updateData = this.mapBudLoadToDatabase(updates)
@@ -218,7 +226,7 @@ class VineyardBudLoadService {
 
   async deleteBudLoad(id: string): Promise<void> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       const { error } = await supabase
         .from('vineyard_bud_load')
         .delete()

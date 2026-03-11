@@ -14,13 +14,21 @@ import {
 import { getSupabaseClient } from '@/config/supabase'
 
 class VineyardService {
+  private getClientOrThrow() {
+    const supabase = getSupabaseClient()
+    if (!supabase) {
+      throw new Error('Supabase client not configured')
+    }
+    return supabase
+  }
+
   // ============================================================================
   // VINEYARD CONFIGURATION MANAGEMENT
   // ============================================================================
 
   async getVineyardConfigurations(gardenId: string): Promise<VineyardConfiguration[]> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       const { data, error } = await supabase
         .from('vineyard_configurations')
         .select('*')
@@ -38,7 +46,7 @@ class VineyardService {
 
   async createVineyardConfiguration(config: Omit<VineyardConfiguration, 'id' | 'createdAt' | 'updatedAt'>): Promise<VineyardConfiguration> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       const { data, error } = await supabase
         .from('vineyard_configurations')
         .insert([this.mapVineyardConfigurationToDatabase(config)])
@@ -56,7 +64,7 @@ class VineyardService {
 
   async updateVineyardConfiguration(id: string, updates: Partial<VineyardConfiguration>): Promise<VineyardConfiguration> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       const { data, error } = await supabase
         .from('vineyard_configurations')
         .update(this.mapVineyardConfigurationToDatabase(updates))
@@ -75,7 +83,7 @@ class VineyardService {
 
   async deleteVineyardConfiguration(id: string): Promise<void> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       const { error } = await supabase
         .from('vineyard_configurations')
         .delete()
@@ -94,7 +102,7 @@ class VineyardService {
 
   async getVineyardVines(vineyardId: string, filters?: VineSearchCriteria): Promise<VineyardVine[]> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       let query = supabase
         .from('vineyard_vines')
         .select('*')
@@ -142,7 +150,7 @@ class VineyardService {
 
   async getVineById(vineId: string): Promise<VineyardVine | null> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       const { data, error } = await supabase
         .from('vineyard_vines')
         .select('*')
@@ -160,7 +168,7 @@ class VineyardService {
 
   async createVine(vine: Omit<VineyardVine, 'id' | 'createdAt' | 'updatedAt'>): Promise<VineyardVine> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       const { data, error } = await supabase
         .from('vineyard_vines')
         .insert([this.mapVineToDatabase(vine)])
@@ -178,7 +186,7 @@ class VineyardService {
 
   async updateVine(id: string, updates: Partial<VineyardVine>): Promise<VineyardVine> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       const { data, error } = await supabase
         .from('vineyard_vines')
         .update(this.mapVineToDatabase(updates))
@@ -197,7 +205,7 @@ class VineyardService {
 
   async deleteVine(id: string): Promise<void> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       const { error } = await supabase
         .from('vineyard_vines')
         .update({ is_active: false })
@@ -212,7 +220,7 @@ class VineyardService {
 
   async bulkCreateVines(vines: Omit<VineyardVine, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<VineyardVine[]> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       const { data, error } = await supabase
         .from('vineyard_vines')
         .insert(vines.map(vine => this.mapVineToDatabase(vine)))
@@ -233,7 +241,7 @@ class VineyardService {
 
   async getVineyardDashboardData(gardenId: string): Promise<VineyardDashboardData> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       
       // Get basic counts
       const [vineyardsResult, vinesResult] = await Promise.all([
@@ -302,7 +310,7 @@ class VineyardService {
 
   async createVineyardFromWizard(wizardData: VineyardWizardData): Promise<VineyardConfiguration> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = this.getClientOrThrow()
       
       // Create vineyard configuration
       const { data: vineyard, error: vineyardError } = await supabase

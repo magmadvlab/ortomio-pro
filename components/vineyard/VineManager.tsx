@@ -341,10 +341,12 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
         ? { latitude: Number(selectedVine.gpsLatitude), longitude: Number(selectedVine.gpsLongitude), source: 'vine_gps' as const }
         : undefined
 
-      const gardenCoordinates = garden?.coordinates
+      const rawGardenCoordinates = garden?.coordinates as Record<string, string | number | undefined> | undefined
+
+      const gardenCoordinates = rawGardenCoordinates
         ? {
-            latitude: parseNumber(garden.coordinates.latitude ?? garden.coordinates.lat),
-            longitude: parseNumber(garden.coordinates.longitude ?? garden.coordinates.lng ?? garden.coordinates.lon),
+            latitude: parseNumber(rawGardenCoordinates.latitude ?? rawGardenCoordinates.lat),
+            longitude: parseNumber(rawGardenCoordinates.longitude ?? rawGardenCoordinates.lng ?? rawGardenCoordinates.lon),
             source: 'garden_coordinates' as const,
           }
         : undefined

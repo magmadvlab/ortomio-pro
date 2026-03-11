@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { VineyardWizardData, VineyardType, VarietyInfo, RootstockInfo } from '@/types/vineyard'
+import { VineyardWizardData, VineyardType, VineyardTrainingSystem, VarietyInfo, RootstockInfo } from '@/types/vineyard'
 import { vineyardService } from '@/services/vineyardService'
 import { 
   Grape, 
@@ -66,7 +66,7 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
     { value: 'mixed', label: 'Misto', icon: '🍾' }
   ]
 
-  const trainingSystemOptions = [
+  const trainingSystemOptions: Array<{ value: VineyardTrainingSystem; label: string; description: string }> = [
     { value: 'guyot', label: 'Guyot', description: 'Sistema tradizionale con tralcio a frutto' },
     { value: 'cordon', label: 'Cordone Speronato', description: 'Branche permanenti con speroni' },
     { value: 'pergola', label: 'Pergola', description: 'Sistema tradizionale a pergolato' },

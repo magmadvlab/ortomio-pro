@@ -25,6 +25,22 @@ import { getSupabaseClient } from '@/config/supabase'
 class OrchardService {
   private readonly BULK_TREE_CHUNK_SIZE = 200
 
+  private parseDate(value: unknown): Date | null {
+    if (typeof value !== 'string' || !value.trim()) return null
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? null : parsed
+  }
+
+  private roundToSingleDecimal(value: number): number {
+    if (!Number.isFinite(value)) return 0
+    return Math.round(value * 10) / 10
+  }
+
+  private clampPercentage(value: number): number {
+    if (!Number.isFinite(value)) return 0
+    return Math.max(0, Math.min(100, Math.round(value)))
+  }
+
   private isMissingColumnError(error: any): boolean {
     if (!error) return false
     const code = String(error.code || '').toUpperCase()
@@ -547,6 +563,28 @@ class OrchardService {
     }
   }
 
+  async getOrchardHarvestRecords(orchardId: string): Promise<TreeHarvestRecord[]> {
+    try {
+      const trees = await this.getOrchardTrees(orchardId)
+      const treeIds = trees.map((tree) => tree.id).filter(Boolean)
+      if (treeIds.length === 0) return []
+
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase
+        .from('tree_harvest_records')
+        .select('*')
+        .in('tree_id', treeIds)
+        .order('harvest_date', { ascending: false })
+
+      if (error) throw error
+
+      return data?.map(this.mapTreeHarvestRecordFromDatabase) || []
+    } catch (error) {
+      console.error('Error fetching orchard harvest records:', error)
+      return []
+    }
+  }
+
   async addTreeHarvestRecord(record: Omit<TreeHarvestRecord, 'id' | 'createdAt'>): Promise<TreeHarvestRecord> {
     try {
       const supabase = getSupabaseClient()
@@ -558,11 +596,31 @@ class OrchardService {
 
       if (error) throw error
 
-      // Update tree's last harvest data
+      const { data: treeHarvestRows, error: treeHarvestError } = await supabase
+        .from('tree_harvest_records')
+        .select('quantity_kg, harvest_date')
+        .eq('tree_id', record.treeId)
+
+      if (treeHarvestError) throw treeHarvestError
+
+      const allHarvestRows = treeHarvestRows || []
+      const cumulativeYieldKg = allHarvestRows.reduce((sum, item) => {
+        const quantity = Number(item.quantity_kg || 0)
+        return sum + (Number.isFinite(quantity) ? quantity : 0)
+      }, 0)
+
+      const latestHarvest = allHarvestRows
+        .filter((item) => this.parseDate(item.harvest_date))
+        .sort((left, right) => {
+          const leftTime = this.parseDate(left.harvest_date)?.getTime() || 0
+          const rightTime = this.parseDate(right.harvest_date)?.getTime() || 0
+          return rightTime - leftTime
+        })[0]
+
       await this.updateTree(record.treeId, {
-        lastHarvestKg: record.quantityKg,
-        lastHarvestDate: record.harvestDate,
-        cumulativeYieldKg: 0 // This would be calculated properly
+        lastHarvestKg: Number(latestHarvest?.quantity_kg || record.quantityKg || 0),
+        lastHarvestDate: latestHarvest?.harvest_date || record.harvestDate,
+        cumulativeYieldKg: this.roundToSingleDecimal(cumulativeYieldKg)
       })
 
       return this.mapTreeHarvestRecordFromDatabase(data)
@@ -619,44 +677,401 @@ class OrchardService {
   async getOrchardDashboardData(gardenId: string): Promise<OrchardDashboardData> {
     try {
       const supabase = getSupabaseClient()
+      const safeRows = async (label: string, query: PromiseLike<{ data: any[] | null; error: any }>) => {
+        const result = await query
+        if (result.error) {
+          console.error(`Error loading orchard dashboard ${label}:`, result.error)
+          return []
+        }
+        return result.data || []
+      }
 
-      // Try to get basic data directly from tables if RPC fails
-      const [orchardsResult, treesResult] = await Promise.all([
-        supabase
-          .from('orchard_configurations')
-          .select('*')
-          .eq('garden_id', gardenId),
-        supabase
-          .from('orchard_trees')
-          .select('*')
-          .eq('garden_id', gardenId)
-          .eq('is_active', true)
+      const [orchards, trees] = await Promise.all([
+        safeRows(
+          'orchards',
+          supabase
+            .from('orchard_configurations')
+            .select('*')
+            .eq('garden_id', gardenId)
+        ),
+        safeRows(
+          'trees',
+          supabase
+            .from('orchard_trees')
+            .select('*')
+            .eq('garden_id', gardenId)
+            .eq('is_active', true)
+        )
       ])
 
-      const orchards = orchardsResult.data || []
-      const trees = treesResult.data || []
+      const orchardIds = orchards.map((orchard) => orchard.id).filter(Boolean)
+      const treeIds = trees.map((tree) => tree.id).filter(Boolean)
 
-      // Calculate basic stats
+      const [
+        pruningSchedules,
+        harvestSchedules,
+        pruningRecords,
+        harvestRecords,
+        treatmentRecords
+      ] = await Promise.all([
+        orchardIds.length > 0
+          ? safeRows(
+              'pruning schedules',
+              supabase
+                .from('pruning_schedules')
+                .select('*')
+                .in('orchard_id', orchardIds)
+            )
+          : Promise.resolve([]),
+        orchardIds.length > 0
+          ? safeRows(
+              'harvest schedules',
+              supabase
+                .from('harvest_schedules')
+                .select('*')
+                .in('orchard_id', orchardIds)
+            )
+          : Promise.resolve([]),
+        treeIds.length > 0
+          ? safeRows(
+              'pruning records',
+              supabase
+                .from('tree_pruning_records')
+                .select('*')
+                .in('tree_id', treeIds)
+            )
+          : Promise.resolve([]),
+        treeIds.length > 0
+          ? safeRows(
+              'harvest records',
+              supabase
+                .from('tree_harvest_records')
+                .select('*')
+                .in('tree_id', treeIds)
+            )
+          : Promise.resolve([]),
+        treeIds.length > 0
+          ? safeRows(
+              'tree treatments',
+              supabase
+                .from('tree_treatments')
+                .select('*')
+                .in('tree_id', treeIds)
+            )
+          : Promise.resolve([])
+      ])
+
       const totalOrchards = orchards.length
       const totalTrees = trees.length
-      const treesNeedingAttention = trees.filter(tree =>
-        tree.needs_pruning || tree.needs_treatment || tree.health_status === 'Poor'
+      const attentionHealthStates = new Set(['stressed', 'diseased', 'pest_damage', 'weather_damage', 'dead'])
+      const healthyTrees = trees.filter((tree) => tree.health_status === 'healthy').length
+      const treesNeedingAttention = trees.filter((tree) =>
+        tree.needs_pruning ||
+        tree.needs_treatment ||
+        tree.needs_replacement ||
+        attentionHealthStates.has(tree.health_status)
       ).length
-      const healthyTrees = trees.filter(tree => tree.health_status === 'Excellent' || tree.health_status === 'Good').length
-      const healthyTreesPercentage = totalTrees > 0 ? (healthyTrees / totalTrees) * 100 : 0
+      const healthyTreesPercentage = totalTrees > 0
+        ? this.clampPercentage((healthyTrees / totalTrees) * 100)
+        : 0
+
+      const treeById = new Map(trees.map((tree) => [tree.id, tree]))
+      const today = new Date()
+      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      const nextThirtyDays = new Date(startOfToday)
+      nextThirtyDays.setDate(nextThirtyDays.getDate() + 30)
+      const currentYear = today.getFullYear()
+
+      const isOpenSchedule = (status?: string) => status !== 'completed' && status !== 'cancelled'
+      const getDuePriority = (dateValue?: string): 'low' | 'medium' | 'high' => {
+        const dueDate = this.parseDate(dateValue)
+        if (!dueDate) return 'medium'
+        const diffDays = Math.ceil((dueDate.getTime() - startOfToday.getTime()) / 86400000)
+        if (diffDays <= 7) return 'high'
+        if (diffDays <= 21) return 'medium'
+        return 'low'
+      }
+
+      const upcomingHarvestSchedules = harvestSchedules.filter((schedule) => {
+        if (!isOpenSchedule(schedule.status)) return false
+        const estimatedStart = this.parseDate(schedule.estimated_start_date)
+        if (!estimatedStart) return false
+        return estimatedStart >= startOfToday && estimatedStart <= nextThirtyDays
+      })
+
+      const currentYearHarvestRecords = harvestRecords.filter((record) => {
+        const harvestDate = this.parseDate(record.harvest_date)
+        return harvestDate?.getFullYear() === currentYear
+      })
+
+      let totalYieldThisYear = currentYearHarvestRecords.reduce((sum, record) => {
+        const quantity = Number(record.quantity_kg || 0)
+        return sum + (Number.isFinite(quantity) ? quantity : 0)
+      }, 0)
+
+      let harvestedTreeIds = new Set(currentYearHarvestRecords.map((record) => record.tree_id).filter(Boolean))
+
+      if (totalYieldThisYear === 0) {
+        const lastHarvestFallbackTrees = trees.filter((tree) => {
+          const lastHarvestDate = this.parseDate(tree.last_harvest_date)
+          const lastHarvestKg = Number(tree.last_harvest_kg || 0)
+          return lastHarvestDate?.getFullYear() === currentYear && lastHarvestKg > 0
+        })
+
+        if (lastHarvestFallbackTrees.length > 0) {
+          totalYieldThisYear = lastHarvestFallbackTrees.reduce((sum, tree) => sum + Number(tree.last_harvest_kg || 0), 0)
+          harvestedTreeIds = new Set(lastHarvestFallbackTrees.map((tree) => tree.id))
+        }
+      }
+
+      const averageYieldPerTree = harvestedTreeIds.size > 0
+        ? this.roundToSingleDecimal(totalYieldThisYear / harvestedTreeIds.size)
+        : 0
+
+      const qualityWeights: Record<string, number> = {
+        premium: 100,
+        first: 85,
+        second: 65,
+        processing: 35,
+        waste: 10
+      }
+
+      const qualityWeightTotal = currentYearHarvestRecords.reduce((sum, record) => {
+        const quantity = Number(record.quantity_kg || 0) || 1
+        return sum + quantity
+      }, 0)
+
+      const qualityScore = qualityWeightTotal > 0
+        ? currentYearHarvestRecords.reduce((sum, record) => {
+            const quantity = Number(record.quantity_kg || 0) || 1
+            const score = qualityWeights[record.quality_class] ?? 50
+            return sum + score * quantity
+          }, 0) / qualityWeightTotal
+        : 0
+
+      const expectedYieldTotal = trees.reduce((sum, tree) => {
+        const expectedYield = Number(tree.expected_yield_kg || 0)
+        return sum + (Number.isFinite(expectedYield) ? expectedYield : 0)
+      }, 0)
+
+      const yieldPerformanceScore = expectedYieldTotal > 0 && totalYieldThisYear > 0
+        ? this.clampPercentage((totalYieldThisYear / expectedYieldTotal) * 100)
+        : 0
+
+      const completedHarvestSchedules = harvestSchedules.filter((schedule) => schedule.status === 'completed')
+      const totalRevenue = completedHarvestSchedules.reduce((sum, schedule) => {
+        const directRevenue = Number(schedule.total_revenue || 0)
+        if (directRevenue > 0) return sum + directRevenue
+        const actualYield = Number(schedule.actual_yield_kg || 0)
+        const actualPrice = Number(schedule.actual_price_per_kg || 0)
+        return sum + (actualYield > 0 && actualPrice > 0 ? actualYield * actualPrice : 0)
+      }, 0)
+      const totalCosts = completedHarvestSchedules.reduce((sum, schedule) => {
+        const harvestCosts = Number(schedule.harvest_costs || 0)
+        return sum + (Number.isFinite(harvestCosts) ? harvestCosts : 0)
+      }, 0)
+
+      const profitabilityScore = totalRevenue > 0
+        ? this.clampPercentage(((totalRevenue - totalCosts) / totalRevenue) * 100)
+        : this.clampPercentage(
+            healthyTreesPercentage * 0.45 +
+            qualityScore * 0.3 +
+            yieldPerformanceScore * 0.25
+          )
+
+      const formatPruningType = (value?: string) => {
+        switch (value) {
+          case 'winter': return 'Potatura invernale'
+          case 'summer': return 'Potatura verde'
+          case 'training': return 'Potatura di allevamento'
+          case 'production': return 'Potatura di produzione'
+          case 'renovation': return 'Potatura di rinnovo'
+          case 'corrective': return 'Potatura correttiva'
+          default: return 'Potatura'
+        }
+      }
+
+      const formatTreatmentType = (value?: string) => {
+        switch (value) {
+          case 'fertilization': return 'Fertilizzazione'
+          case 'pest_control': return 'Controllo parassiti'
+          case 'disease_control': return 'Controllo malattie'
+          case 'weed_control': return 'Controllo infestanti'
+          case 'growth_regulation': return 'Regolazione crescita'
+          case 'soil_amendment': return 'Ammendamento suolo'
+          case 'foliar_nutrition': return 'Nutrizione fogliare'
+          default: return 'Trattamento'
+        }
+      }
+
+      const recentActivities = [
+        ...harvestRecords.map((record) => {
+          const tree = treeById.get(record.tree_id)
+          const quantity = Number(record.quantity_kg || 0)
+          return {
+            id: `harvest-${record.id}`,
+            type: 'harvest' as const,
+            date: record.harvest_date,
+            treeNumber: tree?.tree_number,
+            variety: tree?.variety,
+            description: quantity > 0 ? `Raccolta registrata: ${this.roundToSingleDecimal(quantity)} kg` : 'Raccolta registrata',
+            quantityKg: quantity > 0 ? this.roundToSingleDecimal(quantity) : undefined,
+            operator: record.operator_name
+          }
+        }),
+        ...pruningRecords.map((record) => {
+          const tree = treeById.get(record.tree_id)
+          return {
+            id: `pruning-${record.id}`,
+            type: 'pruning' as const,
+            date: record.pruning_date,
+            treeNumber: tree?.tree_number,
+            variety: tree?.variety,
+            description: formatPruningType(record.pruning_type),
+            operator: record.operator_name
+          }
+        }),
+        ...treatmentRecords.map((record) => {
+          const tree = treeById.get(record.tree_id)
+          return {
+            id: `treatment-${record.id}`,
+            type: 'treatment' as const,
+            date: record.treatment_date,
+            treeNumber: tree?.tree_number,
+            variety: tree?.variety,
+            description: formatTreatmentType(record.treatment_type),
+            operator: record.operator_name
+          }
+        })
+      ]
+        .filter((activity) => this.parseDate(activity.date))
+        .sort((left, right) => {
+          const leftTime = this.parseDate(left.date)?.getTime() || 0
+          const rightTime = this.parseDate(right.date)?.getTime() || 0
+          return rightTime - leftTime
+        })
+        .slice(0, 8)
+
+      const upcomingTasks = [
+        ...pruningSchedules
+          .filter((schedule) => isOpenSchedule(schedule.status) && this.parseDate(schedule.scheduled_start_date))
+          .map((schedule) => ({
+            id: `pruning-${schedule.id}`,
+            type: 'pruning' as const,
+            title: schedule.name || 'Intervento di potatura',
+            dueDate: schedule.scheduled_start_date,
+            estimatedDuration: this.roundToSingleDecimal(
+              Number(schedule.total_estimated_hours || 0) ||
+              (Number(schedule.estimated_hours_per_tree || 0) * Number(schedule.estimated_trees || 0)) ||
+              2
+            ),
+            priority: getDuePriority(schedule.scheduled_start_date)
+          })),
+        ...harvestSchedules
+          .filter((schedule) => isOpenSchedule(schedule.status) && this.parseDate(schedule.estimated_start_date))
+          .map((schedule) => ({
+            id: `harvest-${schedule.id}`,
+            type: 'harvest' as const,
+            title: schedule.name || `Raccolta ${schedule.variety || ''}`.trim(),
+            dueDate: schedule.estimated_start_date,
+            estimatedDuration: this.roundToSingleDecimal(Number(schedule.actual_hours || 0) || 4),
+            priority: getDuePriority(schedule.estimated_start_date)
+          }))
+      ]
+        .sort((left, right) => {
+          const leftTime = this.parseDate(left.dueDate)?.getTime() || 0
+          const rightTime = this.parseDate(right.dueDate)?.getTime() || 0
+          return leftTime - rightTime
+        })
+        .slice(0, 6)
+
+      const diseasedTrees = trees.filter((tree) => tree.health_status === 'diseased').length
+      const pestDamageTrees = trees.filter((tree) => tree.health_status === 'pest_damage').length
+      const weatherDamageTrees = trees.filter((tree) => tree.health_status === 'weather_damage').length
+      const replacementTrees = trees.filter((tree) => tree.needs_replacement || tree.health_status === 'dead').length
+      const urgentHarvestSchedules = upcomingHarvestSchedules.filter((schedule) => {
+        const estimatedStart = this.parseDate(schedule.estimated_start_date)
+        if (!estimatedStart) return false
+        const diffDays = Math.ceil((estimatedStart.getTime() - startOfToday.getTime()) / 86400000)
+        return diffDays <= 7
+      })
+      const overduePruningSchedules = pruningSchedules.filter((schedule) => {
+        const scheduledStart = this.parseDate(schedule.scheduled_start_date)
+        return isOpenSchedule(schedule.status) && !!scheduledStart && scheduledStart < startOfToday
+      })
+
+      const criticalAlerts = [
+        diseasedTrees > 0 ? {
+          id: 'disease-alert',
+          type: 'disease' as const,
+          severity: diseasedTrees / Math.max(totalTrees, 1) >= 0.1 ? 'critical' as const : 'high' as const,
+          title: 'Sintomi di malattia rilevati',
+          description: `${diseasedTrees} alberi risultano marcati come malati e richiedono verifica mirata.`,
+          affectedTrees: diseasedTrees,
+          actionRequired: 'Ispezionare i sintomi e pianificare il trattamento.',
+          dueDate: startOfToday.toISOString()
+        } : null,
+        pestDamageTrees > 0 ? {
+          id: 'pest-alert',
+          type: 'pest' as const,
+          severity: pestDamageTrees / Math.max(totalTrees, 1) >= 0.1 ? 'high' as const : 'medium' as const,
+          title: 'Danni da parassiti da verificare',
+          description: `${pestDamageTrees} alberi mostrano danni da parassiti.`,
+          affectedTrees: pestDamageTrees,
+          actionRequired: 'Controllare i focolai e valutare un intervento dedicato.',
+          dueDate: startOfToday.toISOString()
+        } : null,
+        weatherDamageTrees > 0 ? {
+          id: 'weather-alert',
+          type: 'weather' as const,
+          severity: weatherDamageTrees / Math.max(totalTrees, 1) >= 0.1 ? 'high' as const : 'medium' as const,
+          title: 'Danni meteo da verificare',
+          description: `${weatherDamageTrees} alberi hanno danni da eventi meteo registrati.`,
+          affectedTrees: weatherDamageTrees,
+          actionRequired: 'Effettuare un controllo strutturale e fotografico degli alberi colpiti.',
+          dueDate: startOfToday.toISOString()
+        } : null,
+        replacementTrees > 0 || overduePruningSchedules.length > 0 ? {
+          id: 'maintenance-alert',
+          type: 'maintenance' as const,
+          severity: replacementTrees > 0 ? 'critical' as const : 'high' as const,
+          title: 'Manutenzione frutteto prioritaria',
+          description: replacementTrees > 0
+            ? `${replacementTrees} alberi richiedono sostituzione o risultano non più attivi.`
+            : `${overduePruningSchedules.length} interventi di potatura risultano in ritardo.`,
+          affectedTrees: Math.max(
+            replacementTrees,
+            overduePruningSchedules.reduce((sum, schedule) => sum + Number(schedule.estimated_trees || 0), 0)
+          ),
+          actionRequired: replacementTrees > 0
+            ? 'Valutare i reimpianti e aggiornare la configurazione del frutteto.'
+            : 'Riprogrammare e chiudere gli interventi di potatura arretrati.',
+          dueDate: overduePruningSchedules[0]?.scheduled_start_date
+        } : null,
+        urgentHarvestSchedules.length > 0 ? {
+          id: 'harvest-alert',
+          type: 'harvest_ready' as const,
+          severity: urgentHarvestSchedules.length > 1 ? 'high' as const : 'medium' as const,
+          title: 'Raccolte imminenti',
+          description: `${urgentHarvestSchedules.length} raccolte sono previste entro i prossimi 7 giorni.`,
+          affectedTrees: urgentHarvestSchedules.reduce((sum, schedule) => sum + Number(schedule.estimated_trees || 0), 0),
+          actionRequired: 'Confermare squadre, logistica e finestre di raccolta.',
+          dueDate: urgentHarvestSchedules[0]?.estimated_start_date
+        } : null
+      ].filter(Boolean)
 
       return {
         totalOrchards,
         totalTrees,
         treesNeedingAttention,
-        upcomingHarvests: 0, // Would need harvest schedules
-        recentActivities: [],
+        upcomingHarvests: upcomingHarvestSchedules.length,
+        recentActivities,
         healthyTreesPercentage,
-        averageYieldPerTree: 0,
-        totalYieldThisYear: 0,
-        profitabilityScore: 0,
-        criticalAlerts: [],
-        upcomingTasks: []
+        averageYieldPerTree,
+        totalYieldThisYear: this.roundToSingleDecimal(totalYieldThisYear),
+        profitabilityScore,
+        criticalAlerts: criticalAlerts as OrchardDashboardData['criticalAlerts'],
+        upcomingTasks
       }
     } catch (error) {
       console.error('Error fetching orchard dashboard data:', error)
@@ -1334,12 +1749,12 @@ class OrchardService {
       treesNeedingAttention: data.trees_needing_attention || 0,
       upcomingHarvests: data.upcoming_harvests || 0,
       recentActivities: data.recent_activities || [],
-      healthyTreesPercentage: 85, // Would be calculated
-      averageYieldPerTree: 25, // Would be calculated
-      totalYieldThisYear: 1250, // Would be calculated
-      profitabilityScore: 78, // Would be calculated
-      criticalAlerts: [], // Would be populated
-      upcomingTasks: [] // Would be populated
+      healthyTreesPercentage: data.healthy_trees_percentage || 0,
+      averageYieldPerTree: data.average_yield_per_tree || 0,
+      totalYieldThisYear: data.total_yield_this_year || 0,
+      profitabilityScore: data.profitability_score || 0,
+      criticalAlerts: data.critical_alerts || [],
+      upcomingTasks: data.upcoming_tasks || []
     }
   }
 }
