@@ -47,7 +47,7 @@ export default function IrrigationPage() {
   const [irrigationConfigs, setIrrigationConfigs] = useState<IrrigationConfig[]>([])
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [zones, setZones] = useState<IrrigationZone[]>([])
-  const [selectedZoneId, setSelectedZoneId] = useState('')
+  const [selectedZoneId, setSelectedZoneId] = useState('all')
   const [systems, setSystems] = useState<IrrigationSystem[]>([])
   const [systemsLoading, setSystemsLoading] = useState(false)
   const [systemsError, setSystemsError] = useState<string | null>(null)
@@ -70,19 +70,17 @@ export default function IrrigationPage() {
   useEffect(() => {
     if (!activeGarden) {
       setZones([])
-      setSelectedZoneId('')
+      setSelectedZoneId('all')
       return
     }
     loadZones(activeGarden.id)
+    loadSystems(activeGarden.id)
   }, [activeGarden])
 
   useEffect(() => {
-    if (!selectedZoneId) {
-      setSystems([])
-      return
-    }
-    loadSystems(selectedZoneId)
-  }, [selectedZoneId])
+    if (!activeGarden) return
+    loadSystems(activeGarden.id)
+  }, [selectedZoneId, activeGarden])
 
   const loadZones = async (gardenId: string) => {
     try {
@@ -90,24 +88,28 @@ export default function IrrigationPage() {
       setZones(zoneData)
       if (zoneData.length > 0) {
         setSelectedZoneId((current) =>
-          current && zoneData.some((zone) => zone.id === current) ? current : zoneData[0].id
+          current === 'all' || (current && zoneData.some((zone) => zone.id === current)) ? current : 'all'
         )
       } else {
-        setSelectedZoneId('')
+        setSelectedZoneId('all')
       }
     } catch (error) {
       console.error('Error loading irrigation zones:', error)
       setZones([])
-      setSelectedZoneId('')
+      setSelectedZoneId('all')
     }
   }
 
-  const loadSystems = async (zoneId: string) => {
+  const loadSystems = async (gardenId: string) => {
     try {
       setSystemsLoading(true)
       setSystemsError(null)
-      const systemData = await advancedIrrigationService.getIrrigationSystems(zoneId)
-      setSystems(systemData)
+      const allSystems = await storageProvider.getIrrigationSystems(gardenId)
+      const filteredSystems =
+        selectedZoneId === 'all'
+          ? allSystems
+          : allSystems.filter((system) => system.zoneId === selectedZoneId)
+      setSystems(filteredSystems)
     } catch (error) {
       console.error('Error loading irrigation systems:', error)
       setSystems([])
@@ -118,29 +120,27 @@ export default function IrrigationPage() {
   }
 
   const handleCreateSystem = async (system: Omit<IrrigationSystem, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (!selectedZoneId) {
-      throw new Error('Seleziona prima una zona irrigua')
-    }
-
     if (editingSystem) {
       await advancedIrrigationService.updateIrrigationSystem(editingSystem.id, {
         ...system,
         gardenId: activeGarden?.id,
-        zoneId: selectedZoneId,
+        zoneId: selectedZoneId !== 'all' ? selectedZoneId : undefined,
         isActive: true
       })
     } else {
       await advancedIrrigationService.createIrrigationSystem({
         ...system,
         gardenId: activeGarden?.id,
-        zoneId: selectedZoneId,
+        zoneId: selectedZoneId !== 'all' ? selectedZoneId : undefined,
         isActive: true
       })
     }
 
     setEditingSystem(null)
     setShowConfigWizard(false)
-    await loadSystems(selectedZoneId)
+    if (activeGarden) {
+      await loadSystems(activeGarden.id)
+    }
     if (activeGarden) {
       await loadZones(activeGarden.id)
     }
@@ -160,10 +160,8 @@ export default function IrrigationPage() {
     }
 
     await advancedIrrigationService.deleteIrrigationSystem(systemId)
-    if (selectedZoneId) {
-      await loadSystems(selectedZoneId)
-    }
     if (activeGarden) {
+      await loadSystems(activeGarden.id)
       await loadZones(activeGarden.id)
     }
   }
@@ -407,7 +405,6 @@ export default function IrrigationPage() {
                   setEditingSystem(null)
                   setShowConfigWizard(true)
                 }}
-                disabled={!selectedZoneId}
                 className="inline-flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
                 <Plus size={18} />
@@ -424,19 +421,16 @@ export default function IrrigationPage() {
                     onChange={(event) => setSelectedZoneId(event.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
-                    {zones.length === 0 ? (
-                      <option value="">Nessuna zona disponibile</option>
-                    ) : (
-                      zones.map((zone) => (
+                    <option value="all">Tutti i sistemi del giardino</option>
+                    {zones.map((zone) => (
                         <option key={zone.id} value={zone.id}>
                           {zone.name}
                         </option>
-                      ))
-                    )}
+                      ))}
                   </select>
                 </div>
 
-                {selectedZoneId && zones.length > 0 && (
+                {selectedZoneId !== 'all' && zones.length > 0 && (
                   <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
                     {(() => {
                       const selectedZone = zones.find((zone) => zone.id === selectedZoneId)
@@ -451,7 +445,7 @@ export default function IrrigationPage() {
                             Terreno: {selectedZone.soilType || 'non definito'}
                           </p>
                           <p className="text-blue-800">
-                            Sistemi attuali: {systems.length}
+                            Sistemi filtrati: {systems.length}
                           </p>
                         </div>
                       )
@@ -461,15 +455,7 @@ export default function IrrigationPage() {
               </div>
 
               <div className="lg:col-span-2">
-                {zones.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-gray-300 p-10 text-center">
-                    <MapPin className="mx-auto mb-4 text-gray-400" size={40} />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Prima crea una zona</h3>
-                    <p className="text-gray-600">
-                      I sistemi irrigui vanno associati a una zona reale. Crea la zona nella tab `Zone`, poi torna qui.
-                    </p>
-                  </div>
-                ) : systemsLoading ? (
+                {systemsLoading ? (
                   <div className="rounded-lg border border-gray-200 p-10 text-center">
                     <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
                     <p className="text-gray-600">Caricamento sistemi...</p>
@@ -484,7 +470,9 @@ export default function IrrigationPage() {
                     <Settings className="mx-auto mb-4 text-blue-500" size={40} />
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">Nessun sistema configurato</h3>
                     <p className="text-gray-600 mb-6">
-                      Crea il primo impianto per la zona selezionata e collegalo a filari, aiuole o settori reali.
+                      {selectedZoneId === 'all'
+                        ? 'Crea il primo impianto irriguo del giardino. Potrai poi collegarlo a una zona specifica se necessario.'
+                        : 'Crea il primo impianto per la zona selezionata e collegalo a filari, aiuole o settori reali.'}
                     </p>
                     <button
                       onClick={() => {

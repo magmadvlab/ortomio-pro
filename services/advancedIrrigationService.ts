@@ -1185,6 +1185,7 @@ class AdvancedIrrigationService {
   private mapSystemFromDatabase(data: any): IrrigationSystem {
     return {
       id: data.id,
+      gardenId: data.garden_id || '',
       zoneId: data.zone_id || '',
       name: data.name,
       systemType: data.system_type || this.mapLegacySystemType(data.type),
@@ -1225,6 +1226,7 @@ class AdvancedIrrigationService {
 
   private mapSystemToDatabase(system: Partial<IrrigationSystem>): any {
     return {
+      garden_id: system.gardenId,
       zone_id: system.zoneId,
       name: system.name,
       system_type: system.systemType,
