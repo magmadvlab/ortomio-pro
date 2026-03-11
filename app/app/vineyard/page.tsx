@@ -1,58 +1,79 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { VineyardConfiguration } from '@/types/vineyard'
-import { vineyardService } from '@/services/vineyardService'
+import React, { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useStorage } from '@/packages/core/hooks/useStorage'
 import { FeatureGate } from '@/components/shared/FeatureGate'
 import VineyardDashboard from '@/components/vineyard/VineyardDashboard'
 import VineyardWizard from '@/components/vineyard/VineyardWizard'
 import VineManager from '@/components/vineyard/VineManager'
-import VineyardPruningManager from '@/components/vineyard/VineyardPruningManager'
-import VineyardHarvestManager from '@/components/vineyard/VineyardHarvestManager'
-import VineyardManagementDashboard from '@/components/vineyard/VineyardManagementDashboard'
 import SmartPlantManager from '@/components/plants/SmartPlantManager'
-import { 
-  Grape, 
-  ArrowLeft, 
-  Settings, 
-  Users, 
-  Scissors, 
-  Calendar,
-  BarChart3,
-  Eye,
-  Plus,
-  Cog
-} from 'lucide-react'
-import { useStorage } from '@/packages/core/hooks/useStorage'
+import { VineyardConfiguration } from '@/types/vineyard'
+import { Grape, ArrowLeft, Users, Cog, Calendar, Scissors, Plus } from 'lucide-react'
+import {
+  VineyardGardenContext,
+  resolveVineyardGardenContexts,
+} from '@/services/woodyGardenResolverService'
 
-type ViewMode = 'dashboard' | 'management' | 'vines' | 'individual-plants' | 'pruning' | 'harvest' | 'analytics'
+type ViewMode = 'dashboard' | 'vines' | 'individual-plants'
 
 export default function VineyardPage() {
   const { storageProvider } = useStorage()
-  const [gardens, setGardens] = useState<any[]>([])
-  const [selectedGardenId, setSelectedGardenId] = useState<string>('')
+  const [contexts, setContexts] = useState<VineyardGardenContext[]>([])
+  const [selectedGardenId, setSelectedGardenId] = useState('')
   const [selectedVineyard, setSelectedVineyard] = useState<VineyardConfiguration | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard')
   const [showWizard, setShowWizard] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  const selectedContext = useMemo(
+    () => contexts.find((context) => context.garden.id === selectedGardenId),
+    [contexts, selectedGardenId]
+  )
+  const selectedGarden = selectedContext?.garden
+
   useEffect(() => {
     loadGardens()
   }, [storageProvider])
+
+  useEffect(() => {
+    if (contexts.length === 0) {
+      setSelectedGardenId('')
+      setSelectedVineyard(null)
+      return
+    }
+
+    if (!selectedGardenId || !contexts.some((context) => context.garden.id === selectedGardenId)) {
+      setSelectedGardenId(contexts[0].garden.id)
+      setSelectedVineyard(null)
+      setViewMode('dashboard')
+    }
+  }, [contexts, selectedGardenId])
+
+  useEffect(() => {
+    if (!selectedContext) {
+      setSelectedVineyard(null)
+      return
+    }
+
+    if (
+      selectedVineyard &&
+      !selectedContext.vineyards.some((vineyard) => vineyard.id === selectedVineyard.id)
+    ) {
+      setSelectedVineyard(null)
+      setViewMode('dashboard')
+    }
+  }, [selectedContext, selectedVineyard])
 
   const loadGardens = async () => {
     try {
       setLoading(true)
       const allGardens = await storageProvider.getGardens()
-      // Filtra solo i gardens di tipo Vigneto
-      const gardensList = allGardens.filter(g => g.gardenType === 'Vineyard')
-      setGardens(gardensList)
-      
-      if (gardensList.length > 0 && !selectedGardenId) {
-        setSelectedGardenId(gardensList[0].id)
-      }
+      const resolvedContexts = await resolveVineyardGardenContexts(allGardens)
+      setContexts(resolvedContexts)
     } catch (error) {
-      console.error('Error loading gardens:', error)
+      console.error('Error loading vineyard gardens:', error)
+      setContexts([])
     } finally {
       setLoading(false)
     }
@@ -62,14 +83,11 @@ export default function VineyardPage() {
     setShowWizard(true)
   }
 
-  const handleWizardComplete = (vineyardId: string) => {
+  const handleWizardComplete = async (_vineyardId: string) => {
     setShowWizard(false)
-    // Ricarica i dati e seleziona il nuovo vigneto
-    loadVineyardData(vineyardId)
-  }
-
-  const handleWizardCancel = () => {
-    setShowWizard(false)
+    setSelectedVineyard(null)
+    setViewMode('dashboard')
+    await loadGardens()
   }
 
   const handleSelectVineyard = (vineyard: VineyardConfiguration) => {
@@ -77,36 +95,86 @@ export default function VineyardPage() {
     setViewMode('vines')
   }
 
-  const loadVineyardData = async (vineyardId: string) => {
-    try {
-      // In produzione, caricare i dati del vigneto specifico
-      console.log('Loading vineyard data for:', vineyardId)
-    } catch (error) {
-      console.error('Error loading vineyard data:', error)
-    }
-  }
-
   const getViewTitle = () => {
     switch (viewMode) {
-      case 'dashboard': return 'Dashboard Vigneti'
-      case 'management': return `Gestione Completa - ${selectedVineyard?.name || 'Vigneto'}`
-      case 'vines': return `Gestione Viti - ${selectedVineyard?.name || 'Vigneto'}`
-      case 'individual-plants': return `Viti Individuali - ${selectedVineyard?.name || 'Vigneto'}`
-      case 'pruning': return `Potature - ${selectedVineyard?.name || 'Vigneto'}`
-      case 'harvest': return `Vendemmie - ${selectedVineyard?.name || 'Vigneto'}`
-      case 'analytics': return `Analisi - ${selectedVineyard?.name || 'Vigneto'}`
-      default: return 'Gestione Vigneto'
+      case 'dashboard':
+        return 'Dashboard Vigneti'
+      case 'vines':
+        return `Gestione Viti - ${selectedVineyard?.name || 'Vigneto'}`
+      case 'individual-plants':
+        return `Viti Individuali - ${selectedVineyard?.name || 'Vigneto'}`
+      default:
+        return 'Gestione Vigneto'
     }
   }
 
-  const navigationItems = [
-    { id: 'management', label: 'Gestione Completa', icon: <Cog size={16} /> },
-    { id: 'vines', label: 'Viti', icon: <Grape size={16} /> },
-    { id: 'individual-plants', label: 'Viti Individuali', icon: <Users size={16} /> },
-    { id: 'pruning', label: 'Potature', icon: <Scissors size={16} /> },
-    { id: 'harvest', label: 'Vendemmie', icon: <Calendar size={16} /> },
-    { id: 'analytics', label: 'Analisi', icon: <BarChart3 size={16} /> }
-  ]
+  const renderNavigation = () => {
+    if (!selectedVineyard) return null
+
+    const navigationItems = [
+      { id: 'vines' as const, label: 'Viti', icon: <Grape size={16} /> },
+      { id: 'individual-plants' as const, label: 'Viti Individuali', icon: <Users size={16} /> },
+    ]
+
+    return (
+      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+        <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setViewMode('dashboard')
+                setSelectedVineyard(null)
+              }}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft size={16} />
+              Torna alla Dashboard
+            </button>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">{selectedVineyard.name}</h2>
+              <p className="text-sm text-gray-600">
+                {selectedVineyard.totalVines} viti • {selectedVineyard.mainVarieties?.length || 0} varieta
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/app/mechanical-work?filter=Pruning"
+              className="inline-flex items-center gap-2 px-3 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors text-sm"
+            >
+              <Scissors size={16} />
+              Potature
+            </Link>
+            <Link
+              href="/app/harvest"
+              className="inline-flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm"
+            >
+              <Calendar size={16} />
+              Vendemmie
+            </Link>
+          </div>
+        </div>
+
+        <nav className="flex space-x-1">
+          {navigationItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setViewMode(item.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                viewMode === item.id
+                  ? 'bg-purple-100 text-purple-700'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+    )
+  }
 
   if (loading) {
     return (
@@ -119,262 +187,122 @@ export default function VineyardPage() {
   return (
     <FeatureGate feature="VINEYARD">
       <div className="min-h-screen p-4 sm:p-6 max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
             <div className="flex items-center gap-3">
-              {viewMode !== 'dashboard' && (
-                <button
-                  onClick={() => {
-                    setViewMode('dashboard')
-                    setSelectedVineyard(null)
-                  }}
-                  className="p-2 text-gray-400 hover:text-gray-600"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-              )}
               <Grape className="text-purple-600" size={32} />
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">{getViewTitle()}</h1>
                 <p className="text-gray-600">
-                  {viewMode === 'dashboard' 
-                    ? 'Gestione professionale dei tuoi vigneti'
-                    : 'Sistema di gestione avanzato per viticoltura di precisione'
-                  }
+                  {viewMode === 'dashboard'
+                    ? 'Gestione professionale dei tuoi vigneti con dati reali'
+                    : 'Operativita vite per vite sul vigneto selezionato'}
                 </p>
               </div>
             </div>
+
+            {selectedGardenId && viewMode === 'dashboard' && (
+              <button
+                onClick={handleCreateVineyard}
+                className="inline-flex items-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                <Plus size={18} />
+                Nuovo Vigneto
+              </button>
+            )}
           </div>
 
-          {/* Selezione Giardino */}
-          {gardens.length > 1 && (
+          {contexts.length > 1 && (
             <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Seleziona Giardino
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Giardino</label>
               <select
                 value={selectedGardenId}
-                onChange={(e) => setSelectedGardenId(e.target.value)}
+                onChange={(event) => {
+                  setSelectedGardenId(event.target.value)
+                  setSelectedVineyard(null)
+                  setViewMode('dashboard')
+                }}
                 className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
               >
-                {gardens.map(garden => (
-                  <option key={garden.id} value={garden.id}>
-                    {garden.name}
+                {contexts.map((context) => (
+                  <option key={context.garden.id} value={context.garden.id}>
+                    {context.garden.name}
                   </option>
                 ))}
               </select>
             </div>
           )}
 
-          {/* Navigation per vigneto selezionato */}
-          {selectedVineyard && viewMode !== 'dashboard' && (
-            <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="text-2xl">
-                    {selectedVineyard.vineyardType === 'wine' ? '🍷' :
-                     selectedVineyard.vineyardType === 'table' ? '🍇' :
-                     selectedVineyard.vineyardType === 'raisin' ? '🫐' : '🍾'}
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">{selectedVineyard.name}</h2>
-                    <p className="text-sm text-gray-600">
-                      {selectedVineyard.totalVines} viti • {selectedVineyard.mainVarieties?.length || 0} varietà
-                    </p>
-                  </div>
-                </div>
-                
-                <button className="p-2 text-gray-400 hover:text-gray-600">
-                  <Settings size={16} />
-                </button>
-              </div>
-              
-              <nav className="flex space-x-1">
-                {navigationItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setViewMode(item.id as ViewMode)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      viewMode === item.id
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-          )}
+          {renderNavigation()}
         </div>
 
-        {/* Content */}
         {!selectedGardenId ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
             <Grape className="mx-auto text-gray-400 mb-4" size={48} />
-            <p className="text-gray-600 mb-2">Nessun giardino disponibile</p>
-            <p className="text-sm text-gray-500">Crea un giardino dalla Dashboard per iniziare</p>
+            <p className="text-gray-600 mb-2">Nessun vigneto disponibile</p>
+            <p className="text-sm text-gray-500">Configura un giardino o un vigneto per iniziare</p>
           </div>
-        ) : (
-          <>
-            {viewMode === 'dashboard' && (
-              <VineyardDashboard
-                gardenId={selectedGardenId}
-                onCreateVineyard={handleCreateVineyard}
-                onSelectVineyard={handleSelectVineyard}
-              />
-            )}
+        ) : viewMode === 'dashboard' ? (
+          <VineyardDashboard
+            gardenId={selectedGardenId}
+            onCreateVineyard={handleCreateVineyard}
+            onSelectVineyard={handleSelectVineyard}
+          />
+        ) : viewMode === 'vines' && selectedVineyard ? (
+          <div className="space-y-6">
+            <VineManager vineyardId={selectedVineyard.id} />
 
-            {viewMode === 'management' && selectedVineyard && (
-              <VineyardManagementDashboard
-                vineyard={selectedVineyard}
-                onAction={(action, data) => {
-                  console.log('Vineyard action:', action, data)
-                  // Handle various management actions
-                  switch (action) {
-                    case 'schedule-pruning':
-                      setViewMode('pruning')
-                      break
-                    case 'schedule-treatment':
-                      // Open treatment scheduling modal
-                      break
-                    case 'check-irrigation':
-                      // Open irrigation management
-                      break
-                    case 'view-analytics':
-                      setViewMode('analytics')
-                      break
-                    case 'add-task':
-                      // Open task creation modal
-                      break
-                    case 'start-task':
-                    case 'edit-task':
-                    case 'complete-task':
-                      // Handle task management
-                      break
-                    default:
-                      console.log('Unhandled action:', action)
-                  }
-                }}
-              />
-            )}
-
-            {viewMode === 'vines' && selectedVineyard && (
-              <div className="space-y-6">
-                <VineManager
-                  vineyardId={selectedVineyard.id}
-                  onCreateVine={() => {
-                    // Implementare creazione vite
-                    console.log('Create vine for vineyard:', selectedVineyard.id)
-                  }}
-                  onEditVine={(vine) => {
-                    // Implementare modifica vite
-                    console.log('Edit vine:', vine)
-                  }}
-                />
-                
-                {/* Quick Actions */}
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Azioni Rapide</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <button
-                      onClick={() => setViewMode('management')}
-                      className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
-                    >
-                      <Cog className="text-purple-600" size={20} />
-                      <div className="text-left">
-                        <div className="font-medium text-gray-900">Gestione Completa</div>
-                        <div className="text-sm text-gray-600">Dashboard avanzata</div>
-                      </div>
-                    </button>
-                    
-                    <button
-                      onClick={() => setViewMode('pruning')}
-                      className="flex items-center gap-3 p-4 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors"
-                    >
-                      <Scissors className="text-orange-600" size={20} />
-                      <div className="text-left">
-                        <div className="font-medium text-gray-900">Potature</div>
-                        <div className="text-sm text-gray-600">Gestisci potature</div>
-                      </div>
-                    </button>
-                    
-                    <button
-                      onClick={() => setViewMode('harvest')}
-                      className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
-                    >
-                      <Calendar className="text-purple-600" size={20} />
-                      <div className="text-left">
-                        <div className="font-medium text-gray-900">Vendemmie</div>
-                        <div className="text-sm text-gray-600">Pianifica raccolti</div>
-                      </div>
-                    </button>
-                    
-                    <button
-                      onClick={() => setViewMode('individual-plants')}
-                      className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
-                    >
-                      <Users className="text-green-600" size={20} />
-                      <div className="text-left">
-                        <div className="font-medium text-gray-900">Viti Singole</div>
-                        <div className="text-sm text-gray-600">Traccia ogni vite</div>
-                      </div>
-                    </button>
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Cog className="text-purple-600" size={20} />
+                Azioni Operative
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Link
+                  href="/app/mechanical-work?filter=Pruning"
+                  className="flex items-center gap-3 p-4 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors"
+                >
+                  <Scissors className="text-orange-600" size={20} />
+                  <div>
+                    <div className="font-medium text-gray-900">Potature</div>
+                    <div className="text-sm text-gray-600">Usa il registro lavorazioni per interventi reali</div>
                   </div>
+                </Link>
+                <Link
+                  href="/app/harvest"
+                  className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
+                >
+                  <Calendar className="text-purple-600" size={20} />
+                  <div>
+                    <div className="font-medium text-gray-900">Vendemmie</div>
+                    <div className="text-sm text-gray-600">Collega i raccolti al vigneto e allo storico rese</div>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : selectedGarden ? (
+          <div className="space-y-4">
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <Users className="text-purple-600" size={20} />
+                <div>
+                  <h3 className="font-semibold text-purple-900">Gestione Viti Individuali</h3>
+                  <p className="text-sm text-purple-800">
+                    Tracciamento dettagliato di ogni singola vite con foto, salute e operazioni.
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
+            <SmartPlantManager garden={selectedGarden} />
+          </div>
+        ) : null}
 
-            {viewMode === 'individual-plants' && selectedVineyard && (
-              <div className="space-y-4">
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <div className="flex items-center gap-3">
-                    <Users className="text-purple-600" size={20} />
-                    <div>
-                      <h3 className="font-semibold text-purple-900">Gestione Viti Individuali</h3>
-                      <p className="text-sm text-purple-800">
-                        Tracciamento dettagliato di ogni singola vite del vigneto con foto, salute e operazioni
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                {(() => {
-                  const selectedGarden = gardens.find(g => g.id === selectedGardenId)
-                  return selectedGarden ? <SmartPlantManager garden={selectedGarden} /> : null
-                })()}
-              </div>
-            )}
-
-            {viewMode === 'pruning' && selectedVineyard && (
-              <VineyardPruningManager vineyardId={selectedVineyard.id} />
-            )}
-
-            {viewMode === 'harvest' && selectedVineyard && (
-              <VineyardHarvestManager vineyardId={selectedVineyard.id} />
-            )}
-
-            {viewMode === 'analytics' && selectedVineyard && (
-              <div className="bg-white rounded-lg shadow-md p-12 text-center">
-                <BarChart3 className="mx-auto text-gray-400 mb-4" size={48} />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Analisi Avanzate
-                </h3>
-                <p className="text-gray-600">
-                  Dashboard di analisi e reportistica per il vigneto {selectedVineyard.name}
-                </p>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Wizard per nuovo vigneto */}
-        {showWizard && (
+        {showWizard && selectedGardenId && (
           <VineyardWizard
             gardenId={selectedGardenId}
             onComplete={handleWizardComplete}
-            onCancel={handleWizardCancel}
+            onCancel={() => setShowWizard(false)}
           />
         )}
       </div>

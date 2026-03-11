@@ -34,8 +34,8 @@ import { it } from 'date-fns/locale'
 
 interface VineManagerProps {
   vineyardId: string
-  onCreateVine: () => void
-  onEditVine: (vine: VineyardVine) => void
+  onCreateVine?: () => void
+  onEditVine?: (vine: VineyardVine) => void
 }
 
 export default function VineManager({ vineyardId, onCreateVine, onEditVine }: VineManagerProps) {
@@ -486,13 +486,15 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
             </button>
           </div>
           
-          <button
-            onClick={onCreateVine}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-          >
-            <Plus size={16} />
-            Nuova Vite
-          </button>
+          {onCreateVine && (
+            <button
+              onClick={onCreateVine}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              <Plus size={16} />
+              Nuova Vite
+            </button>
+          )}
         </div>
       </div>
 
@@ -675,7 +677,7 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
               : 'Prova a modificare i filtri di ricerca'
             }
           </p>
-          {vines.length === 0 && (
+          {vines.length === 0 && onCreateVine && (
             <button
               onClick={onCreateVine}
               className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
@@ -712,12 +714,14 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
                     </div>
                     
                     <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => onEditVine(vine)}
-                        className="p-1 text-gray-400 hover:text-gray-600"
-                      >
-                        <Edit size={14} />
-                      </button>
+                      {onEditVine && (
+                        <button
+                          onClick={() => onEditVine(vine)}
+                          className="p-1 text-gray-400 hover:text-gray-600"
+                        >
+                          <Edit size={14} />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDeleteVine(vine.id)}
                         className="p-1 text-gray-400 hover:text-red-600"
@@ -860,12 +864,14 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
                     
                     {/* Azioni */}
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => onEditVine(vine)}
-                        className="p-2 text-gray-400 hover:text-gray-600"
-                      >
-                        <Edit size={16} />
-                      </button>
+                      {onEditVine && (
+                        <button
+                          onClick={() => onEditVine(vine)}
+                          className="p-2 text-gray-400 hover:text-gray-600"
+                        >
+                          <Edit size={16} />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDeleteVine(vine.id)}
                         className="p-2 text-gray-400 hover:text-red-600"
