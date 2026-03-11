@@ -172,6 +172,7 @@ export const createBulkOperation = (
       gardenId: plant.gardenId,
       operationType: operation.operationType,
       operationCategory: getOperationCategory(operation.operationType),
+      date: operation.operationDate,
       operationDate: operation.operationDate,
       quantity: operation.quantityPerPlant,
       unit: operation.unit,

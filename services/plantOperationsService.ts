@@ -26,7 +26,8 @@ export const createPlantOperation = async (
     gardenId,
     operationType: operation.operationType!,
     operationCategory: getOperationCategory(operation.operationType!),
-    operationDate: operation.operationDate || new Date().toISOString().split('T')[0],
+    date: operation.date || operation.operationDate || new Date().toISOString().split('T')[0],
+    operationDate: operation.operationDate || operation.date || new Date().toISOString().split('T')[0],
     operationTime: operation.operationTime,
     quantity: operation.quantity,
     unit: operation.unit,
@@ -144,7 +145,7 @@ export const calculateHealthImpact = (
   operationType: PlantOperation['operationType'],
   effectiveness?: number
 ): number => {
-  const baseImpact = {
+  const baseImpact: Partial<Record<PlantOperation['operationType'], number>> = {
     watering: 2,
     fertilizing: 3,
     treatment: 5,
@@ -153,7 +154,9 @@ export const calculateHealthImpact = (
     transplanting: -2,
     thinning: 1,
     staking: 1,
-    mulching: 2
+    mulching: 2,
+    health: 0,
+    work: 0
   };
 
   const impact = baseImpact[operationType] || 0;

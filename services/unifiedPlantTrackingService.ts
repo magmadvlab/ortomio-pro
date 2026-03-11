@@ -47,7 +47,7 @@ export interface PlantTrackingRecord {
   
   // Dati operazione
   operationData?: {
-    operationType: PlantOperation['operationType']
+    operationType: PlantOperation['operationType'] | 'sowing'
     quantity: number
     unit: string
     product?: string
@@ -91,6 +91,7 @@ export interface PlantTrackingRecord {
     soilPH?: number
     ambientLight?: number
   }
+  metadata?: Record<string, any>
 }
 export interface PlantAnalytics {
   plantId: string
@@ -457,8 +458,9 @@ export class UnifiedPlantTrackingService {
    * UTILITY FUNCTIONS
    */
   
-  private mapOperationToCategory(operationType: PlantOperation['operationType']): PlantTrackingRecord['category'] {
+  private mapOperationToCategory(operationType: PlantOperation['operationType'] | 'sowing'): PlantTrackingRecord['category'] {
     const mapping: Record<string, PlantTrackingRecord['category']> = {
+      'sowing': 'seeding',
       'watering': 'care',
       'fertilizing': 'care',
       'treatment': 'protection',
@@ -1003,12 +1005,21 @@ export function calculateOriginSpecificAnalytics(
     .filter(r => r.operationData?.duration)
     .reduce((sum, r) => sum + (r.operationData?.duration || 0), 0) / 60
   
-  const baseAnalysis = {
+  const costEfficiency: 'excellent' | 'good' | 'average' | 'poor' =
+    totalCosts < 2 ? 'excellent' : totalCosts < 4 ? 'good' : totalCosts < 6 ? 'average' : 'poor'
+
+  const baseAnalysis: {
+    initialCost: number
+    costPerSurvivedPlant: number
+    timeToProduction: number
+    totalCareHours: number
+    costEfficiency: 'excellent' | 'good' | 'average' | 'poor'
+  } = {
     initialCost: origin.seedData?.costPerSeed || origin.nurseryData?.costPerSeedling || 0,
     costPerSurvivedPlant: totalCosts, // Assumendo 1 pianta sopravvissuta
     timeToProduction: daysFromPlanting,
     totalCareHours,
-    costEfficiency: totalCosts < 2 ? 'excellent' : totalCosts < 4 ? 'good' : totalCosts < 6 ? 'average' : 'poor' as const
+    costEfficiency
   }
   
   if (origin.type === 'seed') {
@@ -1045,7 +1056,14 @@ export function calculateOriginSpecificAnalytics(
       nurseryMetrics: {
         transplantSuccess: daysFromPlanting > 7, // Se sopravvive 7 giorni = successo
         acclimatizationDays,
-        transplantShock: origin.nurseryData?.transplantShock || 'low',
+        transplantShock:
+          origin.nurseryData?.transplantShock === 'high'
+            ? 'severe'
+            : origin.nurseryData?.transplantShock === 'medium'
+              ? 'moderate'
+              : origin.nurseryData?.transplantShock === 'low'
+                ? 'mild'
+                : 'none',
         seedlingCost: origin.nurseryData?.costPerSeedling || 0,
         rootEstablishmentDays: Math.min(daysFromPlanting, 21), // Max 21 giorni per radicamento
         survivalRate: 100 // Semplificato
@@ -1203,13 +1221,13 @@ export function compareOriginPerformance(
   }
 } {
   // Calcola metriche per entrambi i gruppi
-  const seedAnalytics = seedPlants.map(id => 
-    unifiedPlantTrackingService.getPlantAnalytics(id)
-  ).filter(Boolean)
+  const seedAnalytics = seedPlants
+    .map(id => unifiedPlantTrackingService.getPlantAnalytics(id))
+    .filter((analytics): analytics is PlantAnalytics => analytics !== undefined)
   
-  const nurseryAnalytics = nurseryPlants.map(id => 
-    unifiedPlantTrackingService.getPlantAnalytics(id)
-  ).filter(Boolean)
+  const nurseryAnalytics = nurseryPlants
+    .map(id => unifiedPlantTrackingService.getPlantAnalytics(id))
+    .filter((analytics): analytics is PlantAnalytics => analytics !== undefined)
   
   if (seedAnalytics.length === 0 || nurseryAnalytics.length === 0) {
     return {
@@ -1228,9 +1246,14 @@ export function compareOriginPerformance(
     }
   }
   
+  const getLatestHealthScore = (analytics: PlantAnalytics): number =>
+    analytics.performance.healthTrend.length > 0
+      ? analytics.performance.healthTrend[analytics.performance.healthTrend.length - 1]!.score
+      : 0
+
   // Calcola medie
   const avgSeed = {
-    healthScore: seedAnalytics.reduce((sum, a) => sum + (a.performance.healthTrend[a.performance.healthTrend.length - 1]?.score || 0), 0) / seedAnalytics.length,
+    healthScore: seedAnalytics.reduce((sum, a) => sum + getLatestHealthScore(a), 0) / seedAnalytics.length,
     yieldPerPlant: seedAnalytics.reduce((sum, a) => sum + a.performance.yieldPerPlant, 0) / seedAnalytics.length,
     totalCosts: seedAnalytics.reduce((sum, a) => sum + a.economics.totalCosts, 0) / seedAnalytics.length,
     roi: seedAnalytics.reduce((sum, a) => sum + a.economics.roi, 0) / seedAnalytics.length,
@@ -1238,7 +1261,7 @@ export function compareOriginPerformance(
   }
   
   const avgNursery = {
-    healthScore: nurseryAnalytics.reduce((sum, a) => sum + (a.performance.healthTrend[a.performance.healthTrend.length - 1]?.score || 0), 0) / nurseryAnalytics.length,
+    healthScore: nurseryAnalytics.reduce((sum, a) => sum + getLatestHealthScore(a), 0) / nurseryAnalytics.length,
     yieldPerPlant: nurseryAnalytics.reduce((sum, a) => sum + a.performance.yieldPerPlant, 0) / nurseryAnalytics.length,
     totalCosts: nurseryAnalytics.reduce((sum, a) => sum + a.economics.totalCosts, 0) / nurseryAnalytics.length,
     roi: nurseryAnalytics.reduce((sum, a) => sum + a.economics.roi, 0) / nurseryAnalytics.length,
@@ -1246,7 +1269,13 @@ export function compareOriginPerformance(
   }
   
   // Confronto metriche
-  const comparison = [
+  const comparison: {
+    metric: string
+    seedValue: number
+    nurseryValue: number
+    winner: 'seed' | 'nursery' | 'tie'
+    difference: number
+  }[] = [
     {
       metric: 'Salute Media',
       seedValue: avgSeed.healthScore,
