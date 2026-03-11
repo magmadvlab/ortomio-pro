@@ -12,6 +12,7 @@ import { X, ChevronLeft, ChevronRight, MapPin, Sprout, TreePine, Grape, Leaf, La
 
 interface IrrigationSystemWizardProps {
   gardenId: string
+  initialSystem?: Partial<IrrigationSystem> | null
   onComplete: (system: Omit<IrrigationSystem, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>
   onCancel: () => void
 }
@@ -107,7 +108,7 @@ const cultivationConfigs: Record<CultivationType, CultivationConfig> = {
   }
 }
 
-export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: IrrigationSystemWizardProps) {
+export function IrrigationSystemWizard({ gardenId, initialSystem, onComplete, onCancel }: IrrigationSystemWizardProps) {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [beds, setBeds] = useState<GardenBed[]>([])
@@ -129,6 +130,27 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
     hasValve: false,
     notes: ''
   })
+
+  useEffect(() => {
+    if (!initialSystem) {
+      return
+    }
+
+    setFormData({
+      name: initialSystem.name || '',
+      cultivationType: (initialSystem.cultivationType as CultivationType | undefined) || undefined,
+      location: initialSystem.name || '',
+      area: '',
+      selectedBedIds: initialSystem.bedIds || [],
+      selectedRowIds: initialSystem.rowIds || [],
+      type: initialSystem.type || 'Drip',
+      waterSource: initialSystem.waterSource,
+      pressureBar: initialSystem.pressureBar,
+      hasTimer: Boolean(initialSystem.hasTimer),
+      hasValve: Boolean(initialSystem.hasValve),
+      notes: initialSystem.notes || ''
+    })
+  }, [initialSystem])
 
   // Carica aiuole e filari quando cambia il tipo di coltivazione
   useEffect(() => {

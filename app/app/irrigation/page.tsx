@@ -1,12 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Droplets, Clock, MapPin, Settings, Play, Pause, BarChart3, Plus, X, ArrowLeft, ArrowRight } from 'lucide-react'
+import { Droplets, Clock, MapPin, Settings, BarChart3, Plus, AlertTriangle, X, ArrowLeft, ArrowRight } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
 import IrrigationAISuggestionsWidget from '@/components/irrigation/IrrigationAISuggestionsWidget'
 import ProfessionalIrrigationDashboard from '@/components/irrigation/ProfessionalIrrigationDashboard'
 import IrrigationZoneManager from '@/components/irrigation/IrrigationZoneManager'
+import { IrrigationSystemWizard } from '@/components/irrigation/IrrigationSystemWizard'
+import { IrrigationSystemCard } from '@/components/irrigation/IrrigationSystemCard'
+import { advancedIrrigationService } from '@/services/advancedIrrigationService'
+import type { IrrigationSystem, IrrigationZone } from '@/types/irrigation'
 import LocationSelector from '@/components/shared/LocationSelector'
 
 interface IrrigationConfig {
@@ -21,16 +25,16 @@ interface IrrigationConfig {
   sectionName?: string
   irrigationType: 'drip' | 'sprinkler' | 'micro_sprinkler' | 'flood' | 'manual'
   tubeLength: number
-  tubeDiameter: number // in mm
-  flowRate: number // L/min
-  pressure: number // bar
-  emitterSpacing: number // cm
-  emitterFlowRate: number // L/h
+  tubeDiameter: number
+  flowRate: number
+  pressure: number
+  emitterSpacing: number
+  emitterFlowRate: number
   schedule: {
     frequency: 'daily' | 'every_2_days' | 'every_3_days' | 'weekly' | 'custom'
-    times: string[] // HH:MM format
-    duration: number // minutes
-    daysOfWeek?: number[] // 0-6, Sunday = 0
+    times: string[]
+    duration: number
+    daysOfWeek?: number[]
   }
 }
 
@@ -39,8 +43,14 @@ export default function IrrigationPage() {
   const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
   const [showConfigWizard, setShowConfigWizard] = useState(false)
+  const [editingSystem, setEditingSystem] = useState<IrrigationSystem | null>(null)
   const [irrigationConfigs, setIrrigationConfigs] = useState<IrrigationConfig[]>([])
   const [showAnalytics, setShowAnalytics] = useState(false)
+  const [zones, setZones] = useState<IrrigationZone[]>([])
+  const [selectedZoneId, setSelectedZoneId] = useState('')
+  const [systems, setSystems] = useState<IrrigationSystem[]>([])
+  const [systemsLoading, setSystemsLoading] = useState(false)
+  const [systemsError, setSystemsError] = useState<string | null>(null)
 
   useEffect(() => {
     const loadGardens = async () => {
@@ -50,8 +60,6 @@ export default function IrrigationPage() {
         if (loadedGardens.length > 0) {
           setActiveGarden(loadedGardens[0])
         }
-        // Load existing irrigation configs
-        loadIrrigationConfigs()
       } catch (error) {
         console.error('Error loading gardens:', error)
       }
@@ -59,14 +67,104 @@ export default function IrrigationPage() {
     loadGardens()
   }, [storageProvider])
 
-  const loadIrrigationConfigs = async () => {
+  useEffect(() => {
+    if (!activeGarden) {
+      setZones([])
+      setSelectedZoneId('')
+      return
+    }
+    loadZones(activeGarden.id)
+  }, [activeGarden])
+
+  useEffect(() => {
+    if (!selectedZoneId) {
+      setSystems([])
+      return
+    }
+    loadSystems(selectedZoneId)
+  }, [selectedZoneId])
+
+  const loadZones = async (gardenId: string) => {
     try {
-      // Simulate loading irrigation configs from storage
-      // In a real app, this would load from your database
-      const configs: IrrigationConfig[] = []
-      setIrrigationConfigs(configs)
+      const zoneData = await advancedIrrigationService.getIrrigationZones(gardenId)
+      setZones(zoneData)
+      if (zoneData.length > 0) {
+        setSelectedZoneId((current) =>
+          current && zoneData.some((zone) => zone.id === current) ? current : zoneData[0].id
+        )
+      } else {
+        setSelectedZoneId('')
+      }
     } catch (error) {
-      console.error('Error loading irrigation configs:', error)
+      console.error('Error loading irrigation zones:', error)
+      setZones([])
+      setSelectedZoneId('')
+    }
+  }
+
+  const loadSystems = async (zoneId: string) => {
+    try {
+      setSystemsLoading(true)
+      setSystemsError(null)
+      const systemData = await advancedIrrigationService.getIrrigationSystems(zoneId)
+      setSystems(systemData)
+    } catch (error) {
+      console.error('Error loading irrigation systems:', error)
+      setSystems([])
+      setSystemsError('Errore nel caricamento dei sistemi di irrigazione')
+    } finally {
+      setSystemsLoading(false)
+    }
+  }
+
+  const handleCreateSystem = async (system: Omit<IrrigationSystem, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!selectedZoneId) {
+      throw new Error('Seleziona prima una zona irrigua')
+    }
+
+    if (editingSystem) {
+      await advancedIrrigationService.updateIrrigationSystem(editingSystem.id, {
+        ...system,
+        gardenId: activeGarden?.id,
+        zoneId: selectedZoneId,
+        isActive: true
+      })
+    } else {
+      await advancedIrrigationService.createIrrigationSystem({
+        ...system,
+        gardenId: activeGarden?.id,
+        zoneId: selectedZoneId,
+        isActive: true
+      })
+    }
+
+    setEditingSystem(null)
+    setShowConfigWizard(false)
+    await loadSystems(selectedZoneId)
+    if (activeGarden) {
+      await loadZones(activeGarden.id)
+    }
+  }
+
+  const handleEditSystem = (system: IrrigationSystem) => {
+    setEditingSystem(system)
+    if (system.zoneId) {
+      setSelectedZoneId(system.zoneId)
+    }
+    setShowConfigWizard(true)
+  }
+
+  const handleDeleteSystem = async (systemId: string) => {
+    if (!confirm('Sei sicuro di voler eliminare questo sistema di irrigazione?')) {
+      return
+    }
+
+    await advancedIrrigationService.deleteIrrigationSystem(systemId)
+    if (selectedZoneId) {
+      await loadSystems(selectedZoneId)
+    }
+    if (activeGarden) {
+      await loadZones(activeGarden.id)
     }
   }
 
@@ -288,24 +386,130 @@ export default function IrrigationPage() {
           garden={activeGarden}
           onZoneSelect={(zone) => console.log('Zone selected:', zone)}
           onSystemConfig={(zoneId) => {
-            console.log('Configure systems for zone:', zoneId)
+            setSelectedZoneId(zoneId)
             setActiveTab('systems')
           }}
         />
       )}
 
-      {activeTab === 'systems' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="text-center py-12">
-            <Settings className="mx-auto mb-4 text-blue-500" size={48} />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Configurazione Sistemi</h2>
-            <p className="text-gray-600 mb-6">
-              Configura i sistemi di irrigazione per ogni zona
-            </p>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
-              <p className="text-sm text-blue-800">
-                🚧 Componente in sviluppo - Sarà disponibile nel prossimo aggiornamento
-              </p>
+      {activeTab === 'systems' && activeGarden && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Configurazione Sistemi</h2>
+                <p className="text-gray-600 mt-1">
+                  Associa e gestisci gli impianti irrigui per ogni zona reale del giardino
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setEditingSystem(null)
+                  setShowConfigWizard(true)
+                }}
+                disabled={!selectedZoneId}
+                className="inline-flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                <Plus size={18} />
+                Nuovo Sistema
+              </button>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Zona Irrigua</label>
+                  <select
+                    value={selectedZoneId}
+                    onChange={(event) => setSelectedZoneId(event.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    {zones.length === 0 ? (
+                      <option value="">Nessuna zona disponibile</option>
+                    ) : (
+                      zones.map((zone) => (
+                        <option key={zone.id} value={zone.id}>
+                          {zone.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                {selectedZoneId && zones.length > 0 && (
+                  <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
+                    {(() => {
+                      const selectedZone = zones.find((zone) => zone.id === selectedZoneId)
+                      if (!selectedZone) return null
+                      return (
+                        <div className="space-y-2 text-sm">
+                          <p className="font-medium text-blue-900">{selectedZone.name}</p>
+                          <p className="text-blue-800">
+                            Area: {selectedZone.areaSqm ? `${selectedZone.areaSqm} m²` : 'non definita'}
+                          </p>
+                          <p className="text-blue-800">
+                            Terreno: {selectedZone.soilType || 'non definito'}
+                          </p>
+                          <p className="text-blue-800">
+                            Sistemi attuali: {systems.length}
+                          </p>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+              </div>
+
+              <div className="lg:col-span-2">
+                {zones.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-gray-300 p-10 text-center">
+                    <MapPin className="mx-auto mb-4 text-gray-400" size={40} />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Prima crea una zona</h3>
+                    <p className="text-gray-600">
+                      I sistemi irrigui vanno associati a una zona reale. Crea la zona nella tab `Zone`, poi torna qui.
+                    </p>
+                  </div>
+                ) : systemsLoading ? (
+                  <div className="rounded-lg border border-gray-200 p-10 text-center">
+                    <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
+                    <p className="text-gray-600">Caricamento sistemi...</p>
+                  </div>
+                ) : systemsError ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-6 flex items-start gap-3">
+                    <AlertTriangle className="text-red-500 mt-0.5" size={18} />
+                    <p className="text-red-800">{systemsError}</p>
+                  </div>
+                ) : systems.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-blue-300 bg-blue-50 p-10 text-center">
+                    <Settings className="mx-auto mb-4 text-blue-500" size={40} />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Nessun sistema configurato</h3>
+                    <p className="text-gray-600 mb-6">
+                      Crea il primo impianto per la zona selezionata e collegalo a filari, aiuole o settori reali.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setEditingSystem(null)
+                        setShowConfigWizard(true)
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <Plus size={18} />
+                      Crea Primo Sistema
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {systems.map((system) => (
+                      <IrrigationSystemCard
+                        key={system.id}
+                        system={system}
+                        onEdit={() => handleEditSystem(system)}
+                        onDelete={() => handleDeleteSystem(system.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -346,14 +550,15 @@ export default function IrrigationPage() {
       )}
       
       {/* Irrigation Configuration Wizard */}
-      {showConfigWizard && (
-        <IrrigationConfigWizard
-          gardens={gardens}
-          onClose={() => setShowConfigWizard(false)}
-          onSave={(config) => {
-            setIrrigationConfigs(prev => [...prev, config])
+      {showConfigWizard && activeGarden && (
+        <IrrigationSystemWizard
+          gardenId={activeGarden.id}
+          initialSystem={editingSystem}
+          onCancel={() => {
+            setEditingSystem(null)
             setShowConfigWizard(false)
           }}
+          onComplete={handleCreateSystem}
         />
       )}
 
