@@ -14,7 +14,7 @@ interface IrrigationZoneListProps {
 }
 
 export function IrrigationZoneList({ zones, onEditZone, onDeleteZone, onWaterZone }: IrrigationZoneListProps) {
-  const methodLabels = {
+  const methodLabels: Record<string, string> = {
     Manual: 'Manuale',
     Hose: 'Tubo',
     Dripline: 'Ala Gocciolante',
@@ -56,9 +56,13 @@ export function IrrigationZoneList({ zones, onEditZone, onDeleteZone, onWaterZon
       {zones.map((zone) => {
         const status = getWateringStatus(zone)
         const plants = Array.isArray(zone.plantTypes) ? zone.plantTypes : []
+        const flowRateLph = zone.flowRateLph ?? 0
+        const methodLabel = zone.method ? methodLabels[zone.method] || zone.method : 'Non definito'
+        const scheduleSummary =
+          zone.schedule && typeof zone.schedule !== 'string' ? zone.schedule : null
 
         const hasArea = typeof zone.areaSqm === 'number' && !Number.isNaN(zone.areaSqm)
-        const canComputeMinutesPer5mm = hasArea && zone.flowRateLph > 0
+        const canComputeMinutesPer5mm = hasArea && flowRateLph > 0
 
         // Determine status indicator color and pulse animation
         const isAlert = status.color === 'red' || status.color === 'yellow'
@@ -96,7 +100,7 @@ export function IrrigationZoneList({ zones, onEditZone, onDeleteZone, onWaterZon
                   <h4 className="text-lg font-semibold text-gray-900 mb-1">{zone.name}</h4>
                   <div className="flex items-center gap-3 flex-wrap">
                     <span className="text-xs font-medium text-gray-600">
-                      {methodLabels[zone.method]}
+                      {methodLabel}
                     </span>
                     {zone.isAutomated && (
                       <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-700">
@@ -132,7 +136,7 @@ export function IrrigationZoneList({ zones, onEditZone, onDeleteZone, onWaterZon
                     <Droplets className="text-blue-400" size={14} />
                     <span className="text-xs text-gray-600">Portata</span>
                   </div>
-                  <div className="text-lg font-semibold text-gray-900">{zone.flowRateLph} L/h</div>
+                  <div className="text-lg font-semibold text-gray-900">{flowRateLph} L/h</div>
                 </div>
 
                 {canComputeMinutesPer5mm && (
@@ -142,7 +146,7 @@ export function IrrigationZoneList({ zones, onEditZone, onDeleteZone, onWaterZon
                       <span className="text-xs text-gray-600">Durata per 5mm</span>
                     </div>
                     <div className="text-lg font-semibold text-gray-900">
-                      {Math.round(((zone.areaSqm as number) * 5) / zone.flowRateLph)} minuti
+                      {Math.round(((zone.areaSqm as number) * 5) / flowRateLph)} minuti
                     </div>
                   </div>
                 )}
@@ -171,10 +175,10 @@ export function IrrigationZoneList({ zones, onEditZone, onDeleteZone, onWaterZon
               )}
 
               {/* Schedule */}
-              {zone.schedule && (
+              {scheduleSummary && (
                 <div className="text-xs text-gray-500 bg-purple-50 p-3 rounded">
                   <div className="font-medium text-purple-700 mb-1">Programmazione</div>
-                  {zone.schedule.days?.join(', ')} alle {zone.schedule.time} per {zone.schedule.duration} min
+                  {scheduleSummary.days?.join(', ') || 'Giorni non definiti'} alle {scheduleSummary.time || '--:--'} per {scheduleSummary.duration ?? 0} min
                 </div>
               )}
             </div>

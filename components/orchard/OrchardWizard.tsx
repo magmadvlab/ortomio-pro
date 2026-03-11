@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { OrchardWizardData, OrchardType, VarietyInfo, RootstockInfo } from '@/types/orchard'
+import { VineyardTrainingSystem } from '@/types/vineyard'
 import { FruitTreeCategory, fruitTreeCategories, getCategoryInfo } from '@/types/orchardTypes'
 import { orchardService } from '@/services/orchardService'
 import { vineyardService } from '@/services/vineyardService'
@@ -93,7 +94,7 @@ export default function OrchardWizard({ gardenId, garden, presetType, onComplete
   const [fruitCategory, setFruitCategory] = useState<FruitTreeCategory | ''>('')
   const [oliveType, setOliveType] = useState<'OIL' | 'TABLE' | 'DUAL_PURPOSE'>('OIL')
   const [vineType, setVineType] = useState<'WINE' | 'TABLE'>('WINE')
-  const [vineTrainingSystem, setVineTrainingSystem] = useState<string>('Guyot')
+  const [vineTrainingSystem, setVineTrainingSystem] = useState<VineyardTrainingSystem>('guyot')
   const [plantingSystem, setPlantingSystem] = useState<'TRADITIONAL' | 'INTENSIVE' | 'SUPER_INTENSIVE'>('INTENSIVE')
   const [soilPh, setSoilPh] = useState('')
   const [generateTasksFlag, setGenerateTasksFlag] = useState(true)
@@ -118,16 +119,14 @@ export default function OrchardWizard({ gardenId, garden, presetType, onComplete
 
   const trainingSystemOptions =
     cropKind === 'vineyard'
-      ? [
-          { value: 'Guyot', label: 'Guyot', description: 'Capo a frutto rinnovato annualmente' },
-          { value: 'Cordon', label: 'Cordone Speronato', description: 'Cordone permanente orizzontale' },
-          { value: 'Spalliera', label: 'Spalliera', description: 'Sviluppo verticale generico' },
-          { value: 'Tendone', label: 'Tendone', description: 'Tetto orizzontale, uva da tavola' },
-          { value: 'Pergola', label: 'Pergola', description: 'Sviluppo orizzontale/inclinato' },
-          { value: 'Alberello', label: 'Alberello', description: 'Senza sostegni, tradizionale' },
-          { value: 'Sylvoz', label: 'Sylvoz', description: 'Tralcio ad arco, meccanizzabile' },
-          { value: 'GDC', label: 'GDC - Geneva Double Curtain', description: 'Doppia cortina' },
-        ]
+      ? ([
+          { value: 'guyot', label: 'Guyot', description: 'Capo a frutto rinnovato annualmente' },
+          { value: 'cordon', label: 'Cordone Speronato', description: 'Cordone permanente orizzontale' },
+          { value: 'pergola', label: 'Pergola', description: 'Sviluppo orizzontale/inclinato' },
+          { value: 'tendone', label: 'Tendone', description: 'Tetto orizzontale, uva da tavola' },
+          { value: 'sylvoz', label: 'Sylvoz', description: 'Tralcio ad arco, meccanizzabile' },
+          { value: 'other', label: 'Altro', description: 'Sistema non standard o personalizzato' },
+        ] as Array<{ value: VineyardTrainingSystem; label: string; description: string }>)
       : [
           { value: 'vase', label: 'Vaso', description: 'Forma tradizionale aperta' },
           { value: 'central_leader', label: 'Fusetto', description: 'Asse centrale con branche' },
@@ -276,6 +275,8 @@ export default function OrchardWizard({ gardenId, garden, presetType, onComplete
           ...wizardData.management,
           soilType: wizardData.management?.soilType || (garden?.soilType ? garden.soilType.toLowerCase() : undefined),
           climateZone: wizardData.management?.climateZone || undefined,
+          organicCertified: wizardData.management?.organicCertified ?? false,
+          precisionManagement: wizardData.management?.precisionManagement ?? false,
         }
 
         const orchard = await orchardService.createOrchardFromWizard({
@@ -566,11 +567,11 @@ export default function OrchardWizard({ gardenId, garden, presetType, onComplete
             {trainingSystemOptions.map((system) => (
               <label key={system.value} className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer min-h-[52px] touch-manipulation">
                 <input type="radio" name="trainingSystem" value={system.value}
-                  checked={cropKind === 'vineyard' ? vineTrainingSystem === system.value : wizardData.layout?.trainingSystem === system.value}
-                  onChange={(e) => {
-                    if (cropKind === 'vineyard') setVineTrainingSystem(e.target.value)
-                    else setWizardData((prev) => ({ ...prev, layout: { ...prev.layout!, trainingSystem: e.target.value } }))
-                  }}
+	                  checked={cropKind === 'vineyard' ? vineTrainingSystem === system.value : wizardData.layout?.trainingSystem === system.value}
+	                  onChange={(e) => {
+	                    if (cropKind === 'vineyard') setVineTrainingSystem(e.target.value as VineyardTrainingSystem)
+	                    else setWizardData((prev) => ({ ...prev, layout: { ...prev.layout!, trainingSystem: e.target.value } }))
+	                  }}
                   className="mt-1 w-4 h-4" />
                 <div className="flex-1">
                   <div className="font-medium text-gray-900 text-sm">{system.label}</div>

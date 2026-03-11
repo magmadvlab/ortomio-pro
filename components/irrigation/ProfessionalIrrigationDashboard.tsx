@@ -341,15 +341,16 @@ export default function ProfessionalIrrigationDashboard({
               {dashboardData.upcomingSchedules.slice(0, 5).map((schedule) => {
                 const nextDate = schedule.nextExecutionDate ? parseISO(schedule.nextExecutionDate) : null
                 const isUrgent = nextDate && isToday(nextDate)
+                const durationMinutes = schedule.durationMinutes ?? schedule.suggestedDurationMinutes ?? 0
                 
                 return (
-                  <div key={schedule.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={schedule.id || `${schedule.zoneId}-${schedule.nextExecutionDate || 'unscheduled'}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className={`w-2 h-2 rounded-full ${
                         isUrgent ? 'bg-orange-500' : 'bg-purple-500'
                       }`} />
                       <div>
-                        <p className="font-medium text-gray-900">{schedule.name}</p>
+                        <p className="font-medium text-gray-900">{schedule.name || schedule.zoneName || 'Programmazione irrigua'}</p>
                         <p className="text-sm text-gray-600">
                           {nextDate && format(nextDate, 'dd MMM HH:mm', { locale: it })}
                           {isUrgent && ' • Oggi!'}
@@ -357,9 +358,10 @@ export default function ProfessionalIrrigationDashboard({
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600">{schedule.durationMinutes}min</span>
+                      <span className="text-sm text-gray-600">{durationMinutes}min</span>
                       <button
-                        onClick={() => advancedIrrigationService.executeScheduledIrrigation(schedule.id)}
+                        onClick={() => schedule.id && advancedIrrigationService.executeScheduledIrrigation(schedule.id)}
+                        disabled={!schedule.id}
                         className="p-1 text-purple-600 hover:bg-purple-100 rounded transition-colors"
                         title="Esegui Ora"
                       >

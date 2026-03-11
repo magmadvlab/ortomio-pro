@@ -901,6 +901,7 @@ export interface OrchardWizardData {
   
   // Step 1: Basic Information
   basicInfo?: {
+    gardenId?: string
     name: string
     description?: string
     orchardType: OrchardType

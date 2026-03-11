@@ -436,7 +436,7 @@ export function IrrigationSystemWizard({ gardenId, onComplete, onCancel }: Irrig
                                       <span className="text-xs text-gray-500">
                                         ({bed?.name} - {row.lengthMeters}m)
                                       </span>
-                                      {row.irrigationLine.flowRatePerMeterLph && (
+                                      {row.irrigationLine?.flowRatePerMeterLph && (
                                         <span className="text-xs text-green-600">
                                           ✓ {row.irrigationLine.flowRatePerMeterLph}L/h/m
                                         </span>

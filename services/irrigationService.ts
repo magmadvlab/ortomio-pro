@@ -91,6 +91,7 @@ export async function calculateZoneIrrigationSchedule(
 ): Promise<IrrigationSchedule> {
   // Somma fabbisogno di tutte le piante nella zona
   let totalLiters = 0;
+  const flowRateLph = zone.flowRateLph ?? 0;
   
   for (const taskId of plantTaskIds) {
     const task = tasks.find(t => t.id === taskId);
@@ -119,7 +120,7 @@ export async function calculateZoneIrrigationSchedule(
   
   // Gestione zone manuali
   const isManual = zone.method === 'Manual';
-  const hasNoFlowRate = zone.flowRateLph <= 0;
+  const hasNoFlowRate = flowRateLph <= 0;
   
   // Se zona manuale senza portata, mostra solo litri
   if (isManual && hasNoFlowRate) {
@@ -136,7 +137,7 @@ export async function calculateZoneIrrigationSchedule(
   }
   
   // Calcola durata (per zone con portata o manuali con portata)
-  const durationMinutes = calculateIrrigationDuration(totalLiters, zone.flowRateLph);
+  const durationMinutes = calculateIrrigationDuration(totalLiters, flowRateLph);
   
   // Aggiusta per pioggia
   let weatherAdjustment;
@@ -282,4 +283,3 @@ export function createWateringLog(
     createdAt: new Date().toISOString()
   };
 }
-

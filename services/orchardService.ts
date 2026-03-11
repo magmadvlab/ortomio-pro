@@ -20,7 +20,16 @@ import {
   OrchardWizardData,
   BulkTreeImport
 } from '@/types/orchard'
-import { getSupabaseClient } from '@/config/supabase'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { getSupabaseClient as getSupabaseClientUnsafe } from '@/config/supabase'
+
+const getSupabaseClient = (): SupabaseClient => {
+  const client = getSupabaseClientUnsafe()
+  if (!client) {
+    throw new Error('Supabase client not configured')
+  }
+  return client
+}
 
 class OrchardService {
   private readonly BULK_TREE_CHUNK_SIZE = 200

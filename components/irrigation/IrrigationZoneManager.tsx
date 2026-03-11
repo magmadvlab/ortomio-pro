@@ -94,12 +94,12 @@ export default function IrrigationZoneManager({
     setFormData({
       name: zone.name,
       description: zone.description || '',
-      areaSqm: zone.areaSqm,
-      soilType: zone.soilType,
-      slopePercentage: zone.slopePercentage,
-      sunExposure: zone.sunExposure,
-      drainageQuality: zone.drainageQuality,
-      waterRetention: zone.waterRetention,
+      areaSqm: zone.areaSqm ?? 0,
+      soilType: zone.soilType ?? 'loam',
+      slopePercentage: zone.slopePercentage ?? 0,
+      sunExposure: zone.sunExposure ?? 'full',
+      drainageQuality: zone.drainageQuality ?? 'good',
+      waterRetention: zone.waterRetention ?? 'medium',
       phLevel: zone.phLevel,
       organicMatterPercentage: zone.organicMatterPercentage
     })
@@ -164,42 +164,42 @@ export default function IrrigationZoneManager({
     onZoneSelect?.(zone)
   }
 
-  const getSoilTypeLabel = (type: string) => {
+  const getSoilTypeLabel = (type?: string) => {
     const labels = {
       clay: 'Argilloso',
       loam: 'Franco',
       sand: 'Sabbioso',
       mixed: 'Misto'
     }
-    return labels[type as keyof typeof labels] || type
+    return (type && labels[type as keyof typeof labels]) || type || 'Non definito'
   }
 
-  const getSunExposureLabel = (exposure: string) => {
+  const getSunExposureLabel = (exposure?: string) => {
     const labels = {
       full: 'Pieno Sole',
       partial: 'Parziale',
       shade: 'Ombra'
     }
-    return labels[exposure as keyof typeof labels] || exposure
+    return (exposure && labels[exposure as keyof typeof labels]) || exposure || 'Non definito'
   }
 
-  const getDrainageLabel = (drainage: string) => {
+  const getDrainageLabel = (drainage?: string) => {
     const labels = {
       excellent: 'Eccellente',
       good: 'Buono',
       fair: 'Discreto',
       poor: 'Scarso'
     }
-    return labels[drainage as keyof typeof labels] || drainage
+    return (drainage && labels[drainage as keyof typeof labels]) || drainage || 'Non definito'
   }
 
-  const getWaterRetentionLabel = (retention: string) => {
+  const getWaterRetentionLabel = (retention?: string) => {
     const labels = {
       high: 'Alta',
       medium: 'Media',
       low: 'Bassa'
     }
-    return labels[retention as keyof typeof labels] || retention
+    return (retention && labels[retention as keyof typeof labels]) || retention || 'Non definito'
   }
 
   if (loading) {
@@ -321,10 +321,10 @@ export default function IrrigationZoneManager({
                     </div>
                   </div>
 
-                  {zone.slopePercentage > 0 && (
+                  {(zone.slopePercentage ?? 0) > 0 && (
                     <div className="text-sm">
                       <span className="text-gray-500">Pendenza:</span>
-                      <span className="font-medium ml-1">{zone.slopePercentage}%</span>
+                      <span className="font-medium ml-1">{zone.slopePercentage ?? 0}%</span>
                     </div>
                   )}
 

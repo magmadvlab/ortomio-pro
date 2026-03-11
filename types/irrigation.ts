@@ -17,6 +17,8 @@ export type LegacyIrrigationSystemType =
   | 'Drip'
   | 'Sprinkler'
   | 'MicroSprinkler'
+  | 'Micro'
+  | 'Soaker'
   | 'Manual'
   | 'Mixed'
 
@@ -25,6 +27,8 @@ export type IrrigationWaterSource =
   | 'Well'
   | 'Consortium'
   | 'Rainwater'
+  | 'River'
+  | 'Pond'
   | 'Tank'
 
 export type IrrigationCultivationType =
@@ -33,7 +37,14 @@ export type IrrigationCultivationType =
   | 'uliveto'
   | 'vigneto'
   | 'serra'
+  | 'giardino'
   | 'campo_aperto'
+
+export interface IrrigationZoneScheduleSummary {
+  days?: string[]
+  time?: string
+  duration?: number
+}
 
 export type IrrigationComponentType =
   | 'Dripline'
@@ -118,7 +129,7 @@ export interface IrrigationZone {
   plantTaskIds?: string[]
   plantTypes?: string[]
   isAutomated?: boolean
-  schedule?: string
+  schedule?: IrrigationZoneScheduleSummary | string
   lastWateredAt?: string
   notes?: string
   calculatedFromComponents?: boolean
@@ -149,7 +160,7 @@ export interface IrrigationSystem {
   id: string
   gardenId?: string
   zoneId?: string
-  name: string
+  name?: string
   systemType?: 'drip' | 'sprinkler' | 'micro' | 'subsurface' | 'manual'
   type?: LegacyIrrigationSystemType
   waterSource?: IrrigationWaterSource
@@ -277,7 +288,7 @@ export interface IrrigationSchedule {
   systemId?: string
   zoneName?: string
   
-  name: string
+  name?: string
   description?: string
   isActive?: boolean
   

@@ -45,7 +45,7 @@ export function IrrigationZonesWidget({ garden, tasks, onOpenManager }: Irrigati
           const schedulesPromises = zonesData.map(async (zone: IrrigationZone) => {
             return await calculateZoneIrrigationSchedule(
               zone,
-              zone.plantTaskIds,
+              zone.plantTaskIds ?? [],
               tasks,
               garden,
               weather
@@ -76,12 +76,12 @@ export function IrrigationZonesWidget({ garden, tasks, onOpenManager }: Irrigati
       // Ricalcola schedule
       const schedule = await calculateZoneIrrigationSchedule(
         zone,
-        zone.plantTaskIds,
+        zone.plantTaskIds ?? [],
         tasks,
         garden,
         weather
       );
-      if (schedule.litersNeeded > 0) {
+      if ((schedule.litersNeeded ?? 0) > 0) {
         setSchedules([...schedules, schedule]);
       }
     } catch (error) {
@@ -103,9 +103,9 @@ export function IrrigationZonesWidget({ garden, tasks, onOpenManager }: Irrigati
     );
   }
 
-  const activeSchedules = schedules.filter(s => s.suggestedDurationMinutes > 0);
-  const totalMinutes = activeSchedules.reduce((sum, s) => sum + s.suggestedDurationMinutes, 0);
-  const totalLiters = activeSchedules.reduce((sum, s) => sum + s.litersNeeded, 0);
+  const activeSchedules = schedules.filter(s => (s.suggestedDurationMinutes ?? 0) > 0);
+  const totalMinutes = activeSchedules.reduce((sum, s) => sum + (s.suggestedDurationMinutes ?? 0), 0);
+  const totalLiters = activeSchedules.reduce((sum, s) => sum + (s.litersNeeded ?? 0), 0);
 
   return (
     <>
@@ -180,7 +180,7 @@ export function IrrigationZonesWidget({ garden, tasks, onOpenManager }: Irrigati
                             <>
                               <Clock size={12} />
                               <span className="text-xs font-semibold">
-                                {Math.round(schedule.suggestedDurationMinutes)} min
+                                {Math.round(schedule.suggestedDurationMinutes ?? 0)} min
                               </span>
                             </>
                           )}
@@ -216,4 +216,3 @@ export function IrrigationZonesWidget({ garden, tasks, onOpenManager }: Irrigati
     </>
   );
 }
-

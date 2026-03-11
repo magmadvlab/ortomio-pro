@@ -3,6 +3,51 @@
 // Professional types for olive grove operations
 // ============================================================================
 
+import { GardenTask, HarvestLogData, PlantMasterSheet } from '../types'
+
+export type OliveVarietyType = 'Oil' | 'Table' | 'Dual-purpose'
+export type OliveHarvestMethod = 'Manual' | 'Mechanical' | 'Shaking'
+export type OlivePruningType = 'Winter' | 'Summer'
+export type OliveMilling = 'Traditional' | 'Continuous' | 'Two-phase'
+
+export interface OliveCrop extends PlantMasterSheet {
+  cropType: 'Olive'
+  varietyType: OliveVarietyType
+  treeAge: number
+  treeDensity: number
+  harvestMethod: OliveHarvestMethod
+  harvestWindow: {
+    startMonth: number
+    endMonth: number
+  }
+  oilYieldExpected: number
+  millingType: OliveMilling
+}
+
+export interface OliveTask extends GardenTask {
+  oliveData?: {
+    varietyType: OliveVarietyType
+    harvestMethod?: OliveHarvestMethod
+    pruningType?: OlivePruningType
+  }
+}
+
+export interface OilQuality {
+  acidity?: number
+  peroxide?: number
+  polyphenols?: number
+}
+
+export interface OliveHarvest extends HarvestLogData {
+  oliveQuantity: number
+  harvestMethod?: OliveHarvestMethod
+  millingDate?: string
+  millingType?: OliveMilling
+  oilProduced?: number
+  oilQuality?: OilQuality
+  millingNotes?: string
+}
+
 export interface OliveGroveConfiguration {
   id: string
   gardenId: string
