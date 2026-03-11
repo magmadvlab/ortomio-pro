@@ -388,12 +388,19 @@ function IrrigationConfigWizard({ gardens, onClose, onSave }: IrrigationConfigWi
     emitterSpacing: 30,
     emitterFlowRate: 2.0
   })
-  const [scheduleConfig, setScheduleConfig] = useState({
-    frequency: 'daily' as const,
+  const [scheduleConfig, setScheduleConfig] = useState<IrrigationConfig['schedule']>({
+    frequency: 'daily',
     times: ['08:00'],
     duration: 30,
     daysOfWeek: [1, 2, 3, 4, 5, 6, 0] // All days
   })
+
+  const formatGardenLocation = (garden: Garden) => {
+    if (garden.coordinates?.latitude !== undefined && garden.coordinates?.longitude !== undefined) {
+      return `${garden.coordinates.latitude.toFixed(4)}, ${garden.coordinates.longitude.toFixed(4)}`
+    }
+    return 'Posizione non specificata'
+  }
 
   const handleNext = () => {
     if (step === 'garden' && selectedGarden) {
@@ -498,7 +505,7 @@ function IrrigationConfigWizard({ gardens, onClose, onSave }: IrrigationConfigWi
                         <div>
                           <h4 className="font-semibold text-gray-900">{garden.name}</h4>
                           <p className="text-sm text-gray-600">
-                            {garden.location || 'Posizione non specificata'}
+                            {formatGardenLocation(garden)}
                           </p>
                         </div>
                       </div>

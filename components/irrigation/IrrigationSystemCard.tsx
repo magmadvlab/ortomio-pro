@@ -19,7 +19,7 @@ export function IrrigationSystemCard({ system, onEdit, onDelete }: IrrigationSys
     Sprinkler: '🌧️',
     Micro: '🌊',
     Soaker: '🚿'
-  }
+  } as const
 
   const typeLabels = {
     Manual: 'Manuale',
@@ -27,13 +27,14 @@ export function IrrigationSystemCard({ system, onEdit, onDelete }: IrrigationSys
     Sprinkler: 'Irrigatori',
     Micro: 'Micro-irrigazione',
     Soaker: 'Tubo Poroso'
-  }
+  } as const
 
-  const sourceLabels = {
+  const sourceLabels: Record<string, string> = {
     Municipal: 'Acquedotto',
     Consortium: 'Consorzio di Bonifica',
     Well: 'Pozzo',
     Rainwater: 'Raccolta Piovana',
+    Tank: 'Serbatoio',
     River: 'Fiume/Canale',
     Pond: 'Laghetto'
   }
@@ -75,7 +76,7 @@ export function IrrigationSystemCard({ system, onEdit, onDelete }: IrrigationSys
               <div>
                 <p className="text-xs text-gray-500">Fonte Acqua</p>
                 <p className="text-sm font-medium text-gray-900">
-                  {sourceLabels[system.waterSource]}
+                  {sourceLabels[system.waterSource] || system.waterSource}
                 </p>
               </div>
             </div>

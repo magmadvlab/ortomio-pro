@@ -72,6 +72,9 @@ export interface UnifiedOperationRequest {
   quantity?: number;
   unit?: string;
   productName?: string;
+  durationMinutes?: number;
+  method?: string;
+  areaSqm?: number;
 
   // Options
   propagateToPlants?: boolean;
@@ -369,6 +372,10 @@ export class UnifiedOperationsService {
    * Create watering operation
    */
   private async createWateringOperation(request: UnifiedOperationRequest): Promise<string> {
+    const wateringMethod = request.method === 'Automatic' || request.method === 'Timer'
+      ? request.method
+      : 'Manual';
+
     const wateringLog = await this.storageProvider.createWateringLog({
       gardenId: request.gardenId,
       zoneId: '', // Not zone-based
@@ -377,9 +384,9 @@ export class UnifiedOperationsService {
       fieldRowId: request.fieldRowId,
       wateredAt: `${request.operationDate}T${request.operationTime || '12:00'}:00`,
       date: request.operationDate,
-      durationMinutes: 30, // Default duration
+      durationMinutes: request.durationMinutes ?? 30,
       litersApplied: request.quantity || 0,
-      method: 'Manual',
+      method: wateringMethod,
       weatherCondition: typeof request.weatherConditions?.condition === 'string'
         ? request.weatherConditions.condition
         : undefined,
@@ -410,8 +417,10 @@ export class UnifiedOperationsService {
       dosageAmount: request.quantity || 0,
       dosageUnit: request.unit || 'g',
       applicationDate: request.operationDate,
-      method: 'surface',
-      areaSqm: 1, // Will be calculated based on row
+      method: request.method === 'incorporated' || request.method === 'fertigation' || request.method === 'foliar'
+        ? request.method
+        : 'surface',
+      areaSqm: request.areaSqm ?? 1,
       weatherConditions: request.weatherConditions || null,
       notes: request.notes
     });

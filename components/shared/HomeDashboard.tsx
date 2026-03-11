@@ -61,6 +61,7 @@ import { Heart, Sparkles } from 'lucide-react'
 import IntegratedFieldOperationsModal from '@/components/fieldrows/IntegratedFieldOperationsModal'
 import QuickOperationModal from '@/components/fieldrows/QuickOperationModal'
 import { normalizeGeoCoordinates } from '@/utils/coordinates'
+import { executeTaskFertilizationThroughUnifiedService } from '@/services/operationExecutionBridgeService'
 
 interface HomeDashboardProps {
   garden?: Garden
@@ -664,9 +665,14 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                         } as any)
                       }}
                       onFertilize={async (fertData) => {
-                        await storageProvider.createFertilizerApplicationLog(fertData)
-                        // Ricarica tasks dopo fertilizzazione
-                        await refreshTasks()
+                        try {
+                          await executeTaskFertilizationThroughUnifiedService(storageProvider, task, fertData)
+                          await refreshTasks()
+                        } catch (error) {
+                          console.error('Error executing fertilizer task through unified service:', error)
+                          alert(error instanceof Error ? error.message : 'Errore durante la registrazione della fertilizzazione')
+                          throw error
+                        }
                       }}
                       showSuggestions={true}
                     />

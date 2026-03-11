@@ -5,24 +5,31 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
-import { IrrigationZone, WateringLog } from '@/types/irrigation'
+import { IrrigationZone } from '@/types/irrigation'
 import { GardenBed } from '@/types/gardenBed'
 import { GardenRow } from '@/types'
+import type { WateringLog } from '@/types/microzoneTracking'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { X, Calculator, Info } from 'lucide-react'
 import { irrigationCalculatorService, ManualIrrigationSystem } from '@/services/irrigationCalculatorService'
-import { autoSyncRowOperation } from '@/services/plantRowSyncService'
+import { executeWateringLogThroughUnifiedService } from '@/services/operationExecutionBridgeService'
+
+type WateringZone = IrrigationZone & {
+  bedIds?: string[]
+  method?: string
+}
 
 interface WateringLogFormProps {
-  zones: IrrigationZone[]
-  preselectedZone?: IrrigationZone
+  zones: WateringZone[]
+  preselectedZone?: WateringZone
   fieldRows?: any[] // Field rows del garden per irrigazione diretta
   onSubmit: (log: Omit<WateringLog, 'id' | 'createdAt'>) => Promise<void>
   onSubmitBatch?: (logs: Array<Omit<WateringLog, 'id' | 'createdAt'>>) => Promise<void>
+  onExecuted?: () => Promise<void> | void
   onCancel: () => void
 }
 
-export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows = [], onSubmit, onSubmitBatch, onCancel }: WateringLogFormProps) {
+export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows = [], onSubmit, onSubmitBatch, onExecuted, onCancel }: WateringLogFormProps) {
   const { storageProvider } = useStorage()
   const toNumber = (value: unknown): number | undefined => {
     if (typeof value === 'number') {
@@ -187,7 +194,7 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
       if (!Array.isArray(selectedZone.bedIds) || selectedZone.bedIds.length === 0) return
 
       try {
-        const beds = (await Promise.all(selectedZone.bedIds.map((id) => storageProvider.getGardenBed(id))))
+        const beds = (await Promise.all(selectedZone.bedIds.map((id: string) => storageProvider.getGardenBed(id))))
           .filter((b): b is GardenBed => Boolean(b))
         setBedOptions(beds)
         if (beds.length === 1) {
@@ -353,33 +360,23 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
           }
         })
 
-        if (onSubmitBatch) {
-          await onSubmitBatch(logsToCreate)
-        } else {
-          for (const l of logsToCreate) {
-            await onSubmit(l)
-          }
+        for (const log of logsToCreate) {
+          await executeWateringLogThroughUnifiedService(storageProvider, log as any)
         }
 
-        // TRIGGER PRECISE PER-PLANT SYNC for each field row
-        console.log('🌱 Triggering precise plant sync for field rows...')
-        for (const log of logsToCreate) {
-          if (log.fieldRowId) {
-            try {
-              // Note: We need the log ID from the created record
-              // For now, we sync based on the most recent operation for this row
-              // In production, onSubmit should return the created log ID
-              await autoSyncRowOperation(storageProvider, 'watering', log.fieldRowId)
-              console.log(`✅ Synced precise irrigation for row ${log.fieldRowId}`)
-            } catch (syncError) {
-              console.warn(`⚠️ Failed to sync precise irrigation for row ${log.fieldRowId}:`, syncError)
-            }
-          }
+        if (onExecuted) {
+          await onExecuted()
+        } else {
+          onCancel()
         }
       } else {
         // Irrigazione per zone (logica esistente)
         const zone = zones.find(z => z.id === formData.zoneId)
         if (!zone) return
+        if (!zone.gardenId) {
+          alert('La zona irrigua non ha un gardenId associato')
+          return
+        }
 
         if (!selectedZone?.bedIds?.length || selectedRowIds.length === 0) {
           await onSubmit({
@@ -419,18 +416,20 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
             }
           })
 
-          if (onSubmitBatch) {
-            await onSubmitBatch(logsToCreate)
+          for (const log of logsToCreate) {
+            await executeWateringLogThroughUnifiedService(storageProvider, log as any)
+          }
+
+          if (onExecuted) {
+            await onExecuted()
           } else {
-            for (const l of logsToCreate) {
-              await onSubmit(l)
-            }
+            onCancel()
           }
         }
       }
     } catch (error) {
       console.error('Error saving watering log:', error)
-      alert('Errore durante il salvataggio')
+      alert(error instanceof Error ? error.message : 'Errore durante il salvataggio')
     } finally {
       setLoading(false)
     }

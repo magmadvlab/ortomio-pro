@@ -31,6 +31,8 @@ import { GardenStructuresEditor } from './gardens/GardenStructuresEditor';
 import { WateringLogForm } from './irrigation/WateringLogForm';
 import { IrrigationZone } from '../types/irrigation';
 import { normalizeGeoCoordinates } from '../utils/coordinates';
+import { useStorage } from '../packages/core/hooks/useStorage';
+import { executeWateringLogThroughUnifiedService } from '../services/operationExecutionBridgeService';
 
 interface DashboardProps {
   tasks: GardenTask[];
@@ -50,6 +52,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const router = useRouter();
   const { tier, isPro, checkLimit, limit } = useTier();
+  const { storageProvider } = useStorage();
   const activeGarden = gardens.find(g => g.id === activeGardenId);
   const activeGardenCoordinates = normalizeGeoCoordinates(activeGarden?.coordinates);
   const [isEditingSettings, setIsEditingSettings] = useState(false);
@@ -1243,11 +1246,17 @@ const Dashboard: React.FC<DashboardProps> = ({
         <WateringLogForm
           zones={irrigationZones}
           preselectedZone={selectedZoneForLog}
+          onExecuted={async () => {
+            setShowWateringLogForm(false);
+            setSelectedZoneForLog(null);
+            setIrrigationZones([]);
+            if (activeGarden) {
+              const plan = await getDailyGardenPlan(activeGarden, tasks);
+              setDailyPlan(plan);
+            }
+          }}
           onSubmit={async (log) => {
-            // Salva log
-            const { getDefaultStorageProvider } = await import('../packages/core/storage/factory');
-            const storageProvider = getDefaultStorageProvider();
-            await storageProvider.logWatering(log);
+            await executeWateringLogThroughUnifiedService(storageProvider, log as any);
             setShowWateringLogForm(false);
             setSelectedZoneForLog(null);
             setIrrigationZones([]);

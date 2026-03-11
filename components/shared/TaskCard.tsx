@@ -400,8 +400,8 @@ export function TaskCard({
       {showHarvestPrompt && completedTask && onHarvest && (
         <QuickHarvestForm
           task={completedTask}
-          onHarvest={(harvestData) => {
-            onHarvest(harvestData)
+          onHarvest={async (harvestData) => {
+            await onHarvest(harvestData)
             setShowHarvestPrompt(false)
             setCompletedTask(null)
           }}
@@ -416,8 +416,8 @@ export function TaskCard({
       {showFertilizerPrompt && completedTask && onFertilize && (
         <FertilizerApplicationModal
           task={completedTask}
-          onApply={(fertData) => {
-            onFertilize(fertData)
+          onApply={async (fertData) => {
+            await onFertilize(fertData)
             setShowFertilizerPrompt(false)
             setCompletedTask(null)
           }}
@@ -449,4 +449,3 @@ export function TaskCard({
     </div>
   )
 }
-

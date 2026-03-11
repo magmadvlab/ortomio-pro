@@ -11,7 +11,6 @@ import {
   FertilizerProduct
 } from '@/data/fertilizers'
 import { useStorage } from '@/packages/core/hooks/useStorage'
-import { autoSyncRowOperation } from '@/services/plantRowSyncService'
 
 interface FertilizerApplicationModalProps {
   task: GardenTask
@@ -125,40 +124,34 @@ export function FertilizerApplicationModal({
       ? new Date(Date.now() + frequencyDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       : undefined
 
-    onApply({
-      gardenId: task.gardenId,
-      taskId: task.id,
-      bedId: selectedBed || null,
-      bedRowId: selectedRow || null,
+    try {
+      await onApply({
+        gardenId: task.gardenId,
+        taskId: task.id,
+        bedId: selectedBed || null,
+        bedRowId: selectedRow || null,
 
-      fertilizerProductId: selectedProduct.id,
-      fertilizerProductName: selectedProduct.name,
-      fertilizerType: selectedProduct.type,
-      npk: selectedProduct.npk || null,
+        fertilizerProductId: selectedProduct.id,
+        fertilizerProductName: selectedProduct.name,
+        fertilizerType: selectedProduct.type,
+        npk: selectedProduct.npk || null,
 
-      applicationDate,
-      areaSqm: (task as any).bed?.size || null,
-      dosageAmount: amount,
-      dosageUnit: selectedProduct.dosagePerSqm.unit,
-      method,
+        applicationDate,
+        areaSqm: (task as any).bed?.size || null,
+        dosageAmount: amount,
+        dosageUnit: selectedProduct.dosagePerSqm.unit,
+        method,
 
-      growthPhase: (task as any).stage || null,
+        growthPhase: (task as any).stage || null,
 
-      nextApplicationDate: nextDate || null,
-      frequencyDays: shouldRepeat ? frequencyDays : null,
+        nextApplicationDate: nextDate || null,
+        frequencyDays: shouldRepeat ? frequencyDays : null,
 
-      notes: notes.trim() || null
-    })
-
-    // TRIGGER PRECISE PER-PLANT SYNC for fertigation
-    if (method === 'fertigation' && selectedRow) {
-      console.log('🌱 Triggering precise plant sync for fertigation...')
-      try {
-        await autoSyncRowOperation(storageProvider, 'fertilizer', selectedRow)
-        console.log(`✅ Synced precise fertigation for row ${selectedRow}`)
-      } catch (syncError) {
-        console.warn(`⚠️ Failed to sync precise fertigation:`, syncError)
-      }
+        notes: notes.trim() || null
+      })
+    } catch (error) {
+      console.error('Error applying fertilizer through unified flow:', error)
+      alert(error instanceof Error ? error.message : 'Errore durante la registrazione della fertilizzazione')
     }
   }
 

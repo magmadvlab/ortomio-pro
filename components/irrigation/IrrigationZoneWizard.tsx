@@ -191,7 +191,7 @@ export const IrrigationZoneWizard: React.FC<IrrigationZoneWizardProps> = ({
   };
 
   const getMethodLabel = (method: WateringMethod) => {
-    const labels = {
+    const labels: Partial<Record<WateringMethod, string>> = {
       'Manual': 'Manuale',
       'Hose': 'Tubo + Lancia',
       'Dripline': 'Ala Gocciolante',
@@ -199,9 +199,9 @@ export const IrrigationZoneWizard: React.FC<IrrigationZoneWizardProps> = ({
       'MicroSprinkler': 'Micro-Sprinkler',
       'Sprinkler': 'Sprinkler',
       'Mixed': 'Misto'
-    };
-    return labels[method];
-  };
+    }
+    return labels[method] || method
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -671,4 +671,3 @@ export const IrrigationZoneWizard: React.FC<IrrigationZoneWizardProps> = ({
     </div>
   );
 };
-

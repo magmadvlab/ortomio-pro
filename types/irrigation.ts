@@ -1,20 +1,145 @@
-// Advanced Irrigation System Types
-// Comprehensive type definitions for professional irrigation management
+// Advanced + legacy irrigation system types
+// This file intentionally models both the new "advanced irrigation" domain
+// and the still-active legacy UI/storage contracts used across the app.
+
+export type WateringMethod =
+  | 'Manual'
+  | 'Automatic'
+  | 'Timer'
+  | 'Hose'
+  | 'Dripline'
+  | 'Drippers'
+  | 'MicroSprinkler'
+  | 'Sprinkler'
+  | 'Mixed'
+
+export type LegacyIrrigationSystemType =
+  | 'Drip'
+  | 'Sprinkler'
+  | 'MicroSprinkler'
+  | 'Manual'
+  | 'Mixed'
+
+export type IrrigationWaterSource =
+  | 'Municipal'
+  | 'Well'
+  | 'Consortium'
+  | 'Rainwater'
+  | 'Tank'
+
+export type IrrigationCultivationType =
+  | 'orto'
+  | 'frutteto'
+  | 'uliveto'
+  | 'vigneto'
+  | 'serra'
+  | 'campo_aperto'
+
+export type IrrigationComponentType =
+  | 'Dripline'
+  | 'Dripper'
+  | 'MicroSprinkler'
+  | 'Sprinkler'
+  | 'Valve'
+  | 'Filter'
+  | 'Pump'
+
+export interface IrrigationComponent {
+  id: string
+  zoneId: string
+  type: IrrigationComponentType
+  lengthMeters?: number
+  flowRatePerMeterLph?: number
+  dripperSpacing?: number
+  dripperFlowRateLph?: number
+  quantity?: number
+  flowRateLph?: number
+  brand?: string
+  model?: string
+  notes?: string
+  createdAt: string
+}
+
+export interface IrrigationTemplateComponent {
+  type: IrrigationComponentType
+  defaultDripperSpacing?: number
+  defaultFlowRate?: number
+  defaultQuantity?: number
+}
+
+export interface IrrigationTemplate {
+  id: string
+  name?: string
+  icon: string
+  description: string
+  method: WateringMethod
+  defaultFlowRateLph: number
+  typicalUse: string[]
+  components: IrrigationTemplateComponent[]
+}
+
+export interface IrrigationTask {
+  zoneId: string
+  zoneName: string
+  litersNeeded: number
+  durationMinutes: number
+  priority: 'Critical' | 'High' | 'Medium' | 'Low'
+  valveId?: string
+  manualMode?: 'liters' | 'minutes'
+  showLitersOnly?: boolean
+  weatherAdjustment?: {
+    action: 'PROCEED' | 'REDUCE' | 'CANCEL'
+    adjustedDuration?: number
+    reason?: string
+  }
+  fertigationInfo?: Record<string, unknown>
+}
 
 export interface IrrigationZone {
   id: string
-  gardenId: string
+  gardenId?: string
+  systemId?: string
   name: string
   description?: string
-  areaSqm: number
-  soilType: 'clay' | 'loam' | 'sand' | 'mixed'
-  slopePercentage: number
-  sunExposure: 'full' | 'partial' | 'shade'
-  drainageQuality: 'excellent' | 'good' | 'fair' | 'poor'
-  waterRetention: 'high' | 'medium' | 'low'
+  areaSqm?: number
+  soilType?: 'clay' | 'loam' | 'sand' | 'mixed'
+  slopePercentage?: number
+  sunExposure?: 'full' | 'partial' | 'shade'
+  drainageQuality?: 'excellent' | 'good' | 'fair' | 'poor'
+  waterRetention?: 'high' | 'medium' | 'low'
   phLevel?: number
   organicMatterPercentage?: number
-  isActive: boolean
+  isActive?: boolean
+  method?: WateringMethod
+  flowRateLph?: number
+  valveId?: string
+  bedIds?: string[]
+  rowIds?: string[]
+  plantTaskIds?: string[]
+  plantTypes?: string[]
+  isAutomated?: boolean
+  schedule?: string
+  lastWateredAt?: string
+  notes?: string
+  calculatedFromComponents?: boolean
+  manualConfig?: {
+    mode: 'liters' | 'minutes'
+    estimatedFlowRateLph?: number
+  }
+  driplineConfig?: {
+    lengthMeters: number
+    spacing?: number
+    dripperFlowRate?: number
+    flowRatePerMeter?: number
+  }
+  drippersConfig?: {
+    count: number
+    flowRateLph: number
+  }
+  microSprinklerConfig?: {
+    count: number
+    flowRateLph: number
+  }
   systems?: IrrigationSystem[]
   createdAt: string
   updatedAt: string
@@ -22,16 +147,19 @@ export interface IrrigationZone {
 
 export interface IrrigationSystem {
   id: string
-  zoneId: string
+  gardenId?: string
+  zoneId?: string
   name: string
-  systemType: 'drip' | 'sprinkler' | 'micro' | 'subsurface' | 'manual'
+  systemType?: 'drip' | 'sprinkler' | 'micro' | 'subsurface' | 'manual'
+  type?: LegacyIrrigationSystemType
+  waterSource?: IrrigationWaterSource
   brand?: string
   model?: string
   installationDate?: string
   
   // Flow and pressure specifications
-  flowRateLh: number
-  pressureBar: number
+  flowRateLh?: number
+  pressureBar?: number
   operatingPressureMinBar?: number
   operatingPressureMaxBar?: number
   
@@ -45,14 +173,19 @@ export interface IrrigationSystem {
   coverageConfig?: CoverageConfiguration
   
   // Performance metrics
-  efficiencyPercentage: number
+  efficiencyPercentage?: number
   uniformityCoefficient?: number
   
   // Status and maintenance
-  isActive: boolean
+  isActive?: boolean
+  hasTimer?: boolean
+  hasValve?: boolean
+  bedIds?: string[]
+  rowIds?: string[]
+  cultivationType?: IrrigationCultivationType
   lastMaintenanceDate?: string
   nextMaintenanceDate?: string
-  maintenanceIntervalDays: number
+  maintenanceIntervalDays?: number
   
   notes?: string
   createdAt: string
@@ -139,23 +272,24 @@ export interface EnvironmentalData {
 }
 
 export interface IrrigationSchedule {
-  id: string
+  id?: string
   zoneId: string
   systemId?: string
+  zoneName?: string
   
   name: string
   description?: string
-  isActive: boolean
+  isActive?: boolean
   
   // Schedule type and timing
-  scheduleType: 'daily' | 'weekly' | 'interval' | 'conditional'
-  startDate: string
+  scheduleType?: 'daily' | 'weekly' | 'interval' | 'conditional'
+  startDate?: string
   endDate?: string
   
   // Daily/Weekly scheduling
   daysOfWeek?: number[] // 0=Sunday, 1=Monday, etc.
   timeSlots?: string[] // array of start times
-  durationMinutes: number
+  durationMinutes?: number
   
   // Interval scheduling
   frequencyDays?: number
@@ -166,14 +300,54 @@ export interface IrrigationSchedule {
   conditions?: ScheduleConditions
   
   // Override settings
-  allowManualOverride: boolean
-  priorityLevel: number // 1=low, 5=high
+  allowManualOverride?: boolean
+  priorityLevel?: number // 1=low, 5=high
   
   // Seasonal adjustments
-  seasonalAdjustmentPercentage: number
+  seasonalAdjustmentPercentage?: number
+
+  // Legacy irrigation planner output
+  litersNeeded?: number
+  suggestedDurationMinutes?: number
+  priority?: 'Critical' | 'High' | 'Medium' | 'Low'
+  nextWatering?: string
+  manualMode?: 'liters' | 'minutes'
+  showLitersOnly?: boolean
+  weatherAdjustment?: {
+    action: 'PROCEED' | 'REDUCE' | 'CANCEL'
+    adjustedDuration?: number
+    reason?: string
+  }
+  fertigationInfo?: Record<string, unknown>
   
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface WateringLog {
+  id: string
+  zoneId: string
+  gardenId?: string
+  bedId?: string
+  rowId?: string
+  bedRowId?: string
+  fieldRowId?: string
+  plantIds?: string[]
+  plantsAffected?: number
+  waterPerPlantLiters?: number
+  wateredAt?: string
+  date: string
+  durationMinutes: number
+  litersApplied: number
+  method: 'Manual' | 'Automatic' | 'Timer'
+  weatherCondition?: string
+  soilMoistureBefore?: number
+  soilMoistureAfter?: number
+  airTemperatureC?: number
+  notes?: string
+  valveId?: string
+  completed: boolean
   createdAt: string
-  updatedAt: string
 }
 
 export interface ScheduleConditions {
