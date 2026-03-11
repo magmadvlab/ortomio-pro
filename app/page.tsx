@@ -1,13 +1,32 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
 export default function HomePage() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search)
+    const code = searchParams.get('code')
+    const tokenHash = searchParams.get('token_hash')
+    const type = searchParams.get('type')
+    const error = searchParams.get('error')
+    const errorDescription = searchParams.get('error_description')
+
+    // Fallback di sicurezza per link auth Supabase che arrivano sulla root
+    if (code || tokenHash || error) {
+      const callbackParams = new URLSearchParams()
+      if (code) callbackParams.set('code', code)
+      if (tokenHash) callbackParams.set('token_hash', tokenHash)
+      if (type) callbackParams.set('type', type)
+      if (error) callbackParams.set('error', error)
+      if (errorDescription) callbackParams.set('error_description', errorDescription)
+
+      router.replace(`/auth/callback?${callbackParams.toString()}`)
+      return
+    }
+
     // Semplice timeout per evitare loop immediato
     const timer = setTimeout(() => {
       console.log('Redirecting to /app...')

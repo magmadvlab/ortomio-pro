@@ -72,11 +72,16 @@ function VerifyEmailPageContent() {
         throw new Error('Servizio di autenticazione non disponibile')
       }
 
+      const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim()
+      const baseUrl = configuredSiteUrl
+        ? configuredSiteUrl.replace(/\/+$/, '')
+        : window.location.origin
+
       const { error: resendError } = await supabase.auth.resend({
         type: 'signup',
         email: email,
         options: {
-          emailRedirectTo: `${window.location.origin}/app`
+          emailRedirectTo: `${baseUrl}/auth/callback`
         }
       })
 
