@@ -12,7 +12,7 @@
 
 import { Garden, GardenTask } from '@/types'
 import { GardenPlant, PlantOperation } from '@/types/individualPlant'
-import { getDailyGardenPlan, generateUrgentAlerts } from '@/logic/director'
+import { generateUrgentAlerts } from '@/logic/director'
 import { sendNotification, NotificationData } from './notificationService'
 import { getWeatherForecast } from './weatherService'
 
@@ -57,6 +57,17 @@ export interface PlantHealthStatus {
 export interface MonitoringConfig {
   gardenId: string
   enabled: boolean
+  storageProvider?: {
+    getGarden: (gardenId: string) => Promise<Garden | null>
+    getTasks: (gardenId?: string) => Promise<GardenTask[]>
+    getIndividualPlants?: (gardenId: string) => Promise<GardenPlant[]>
+    getPlantOperations?: (plantId: string) => Promise<PlantOperation[]>
+    createTask?: (task: Omit<GardenTask, 'id'>) => Promise<GardenTask>
+  }
+  notificationTarget?: {
+    userId: string
+    userEmail: string
+  }
   checkIntervalMinutes: number
   alertThresholds: {
     healthScoreWarning: number // sotto questo valore = warning
@@ -122,6 +133,10 @@ export class ContinuousMonitoringService {
 
   constructor(config: MonitoringConfig) {
     this.config = config
+  }
+
+  private getOperationDate(operation: PlantOperation): string {
+    return operation.operationDate || operation.date
   }
 
   /**
@@ -213,13 +228,39 @@ export class ContinuousMonitoringService {
     tasks: GardenTask[]
     operations: PlantOperation[]
   }> {
-    // TODO: Implementare caricamento da database
-    // Per ora ritorna dati mock
+    const storageProvider = this.config.storageProvider
+    if (!storageProvider) {
+      throw new Error('Monitoring storageProvider non configurato')
+    }
+
+    const garden = await storageProvider.getGarden(this.config.gardenId)
+    if (!garden) {
+      throw new Error(`Giardino ${this.config.gardenId} non trovato`)
+    }
+
+    const plants = storageProvider.getIndividualPlants
+      ? await storageProvider.getIndividualPlants(this.config.gardenId)
+      : []
+
+    const tasks = await storageProvider.getTasks(this.config.gardenId)
+    const operations = storageProvider.getPlantOperations
+      ? (await Promise.all(
+          plants.map(async (plant) => {
+            try {
+              return await storageProvider.getPlantOperations!(plant.id)
+            } catch (error) {
+              console.error(`Error loading operations for plant ${plant.id}:`, error)
+              return []
+            }
+          })
+        )).flat()
+      : []
+
     return {
-      garden: {} as Garden,
-      plants: [],
-      tasks: [],
-      operations: []
+      garden,
+      plants,
+      tasks,
+      operations
     }
   }
 
@@ -255,13 +296,13 @@ export class ContinuousMonitoringService {
     // Controlla ultima irrigazione
     const lastWatering = operations
       .filter(op => op.operationType === 'watering')
-      .sort((a, b) => new Date(b.operationDate).getTime() - new Date(a.operationDate).getTime())[0]
+      .sort((a, b) => new Date(this.getOperationDate(b)).getTime() - new Date(this.getOperationDate(a)).getTime())[0]
     
-    if (!lastWatering || this.daysSince(lastWatering.operationDate) > this.config.alertThresholds.daysWithoutWater) {
+    if (!lastWatering || this.daysSince(this.getOperationDate(lastWatering)) > this.config.alertThresholds.daysWithoutWater) {
       issues.push({
         type: 'irrigation',
         severity: 'high',
-        description: `Nessuna irrigazione da ${lastWatering ? this.daysSince(lastWatering.operationDate) : 'mai'} giorni`,
+        description: `Nessuna irrigazione da ${lastWatering ? this.daysSince(this.getOperationDate(lastWatering)) : 'mai'} giorni`,
         detectedAt: now.toISOString()
       })
       
@@ -276,13 +317,13 @@ export class ContinuousMonitoringService {
     // Controlla ultima fertilizzazione
     const lastFertilizing = operations
       .filter(op => op.operationType === 'fertilizing')
-      .sort((a, b) => new Date(b.operationDate).getTime() - new Date(a.operationDate).getTime())[0]
+      .sort((a, b) => new Date(this.getOperationDate(b)).getTime() - new Date(this.getOperationDate(a)).getTime())[0]
     
-    if (!lastFertilizing || this.daysSince(lastFertilizing.operationDate) > this.config.alertThresholds.daysWithoutFertilizer) {
+    if (!lastFertilizing || this.daysSince(this.getOperationDate(lastFertilizing)) > this.config.alertThresholds.daysWithoutFertilizer) {
       issues.push({
         type: 'nutrition',
         severity: 'medium',
-        description: `Nessuna fertilizzazione da ${lastFertilizing ? this.daysSince(lastFertilizing.operationDate) : 'mai'} giorni`,
+        description: `Nessuna fertilizzazione da ${lastFertilizing ? this.daysSince(this.getOperationDate(lastFertilizing)) : 'mai'} giorni`,
         detectedAt: now.toISOString()
       })
       
@@ -339,22 +380,30 @@ export class ContinuousMonitoringService {
     }
     
     try {
-      const weather = await getWeatherForecast(
+      const forecast = await getWeatherForecast(
         garden.coordinates.latitude,
         garden.coordinates.longitude
       )
       
-      if (!weather) return alerts
+      const todayForecast = forecast[0]
+      if (!todayForecast) return alerts
+
+      const temperature = typeof todayForecast.temp_max === 'number'
+        ? todayForecast.temp_max
+        : typeof todayForecast.temp_min === 'number'
+          ? todayForecast.temp_min
+          : undefined
+      const humidity = typeof todayForecast.humidity === 'number' ? todayForecast.humidity : undefined
       
       // Controllo temperatura
-      if (weather.temperature < this.config.alertThresholds.temperatureMin) {
+      if (typeof temperature === 'number' && temperature < this.config.alertThresholds.temperatureMin) {
         alerts.push({
           id: `temp-low-${Date.now()}`,
           gardenId: this.config.gardenId,
           type: 'warning',
           category: 'weather',
           title: 'Temperatura troppo bassa',
-          message: `Temperatura attuale: ${weather.temperature}°C. Rischio danni da freddo.`,
+          message: `Temperatura prevista: ${temperature}°C. Rischio danni da freddo.`,
           actionRequired: true,
           suggestedActions: [
             'Coprire piante sensibili al freddo',
@@ -364,18 +413,18 @@ export class ContinuousMonitoringService {
           priority: 2,
           createdAt: new Date().toISOString(),
           autoResolvable: false,
-          metadata: { temperature: weather.temperature, threshold: this.config.alertThresholds.temperatureMin }
+          metadata: { temperature, threshold: this.config.alertThresholds.temperatureMin, forecastDate: todayForecast.date }
         })
       }
       
-      if (weather.temperature > this.config.alertThresholds.temperatureMax) {
+      if (typeof temperature === 'number' && temperature > this.config.alertThresholds.temperatureMax) {
         alerts.push({
           id: `temp-high-${Date.now()}`,
           gardenId: this.config.gardenId,
           type: 'warning',
           category: 'weather',
           title: 'Temperatura troppo alta',
-          message: `Temperatura attuale: ${weather.temperature}°C. Rischio stress idrico.`,
+          message: `Temperatura prevista: ${temperature}°C. Rischio stress idrico.`,
           actionRequired: true,
           suggestedActions: [
             'Aumentare frequenza irrigazione',
@@ -385,20 +434,20 @@ export class ContinuousMonitoringService {
           priority: 2,
           createdAt: new Date().toISOString(),
           autoResolvable: false,
-          metadata: { temperature: weather.temperature, threshold: this.config.alertThresholds.temperatureMax }
+          metadata: { temperature, threshold: this.config.alertThresholds.temperatureMax, forecastDate: todayForecast.date }
         })
       }
       
       // Controllo umidità se disponibile
-      if (weather.humidity !== undefined) {
-        if (weather.humidity < this.config.alertThresholds.humidityMin) {
+      if (humidity !== undefined) {
+        if (humidity < this.config.alertThresholds.humidityMin) {
           alerts.push({
             id: `humidity-low-${Date.now()}`,
             gardenId: this.config.gardenId,
             type: 'info',
             category: 'weather',
             title: 'Umidità bassa',
-            message: `Umidità attuale: ${weather.humidity}%. Possibile stress idrico.`,
+            message: `Umidità prevista: ${humidity}%. Possibile stress idrico.`,
             actionRequired: false,
             suggestedActions: [
               'Considerare irrigazione aggiuntiva',
@@ -407,18 +456,18 @@ export class ContinuousMonitoringService {
             priority: 4,
             createdAt: new Date().toISOString(),
             autoResolvable: true,
-            metadata: { humidity: weather.humidity, threshold: this.config.alertThresholds.humidityMin }
+            metadata: { humidity, threshold: this.config.alertThresholds.humidityMin, forecastDate: todayForecast.date }
           })
         }
         
-        if (weather.humidity > this.config.alertThresholds.humidityMax) {
+        if (humidity > this.config.alertThresholds.humidityMax) {
           alerts.push({
             id: `humidity-high-${Date.now()}`,
             gardenId: this.config.gardenId,
             type: 'warning',
             category: 'weather',
             title: 'Umidità alta',
-            message: `Umidità attuale: ${weather.humidity}%. Rischio malattie fungine.`,
+            message: `Umidità prevista: ${humidity}%. Rischio malattie fungine.`,
             actionRequired: true,
             suggestedActions: [
               'Migliorare ventilazione',
@@ -428,7 +477,7 @@ export class ContinuousMonitoringService {
             priority: 3,
             createdAt: new Date().toISOString(),
             autoResolvable: false,
-            metadata: { humidity: weather.humidity, threshold: this.config.alertThresholds.humidityMax }
+            metadata: { humidity, threshold: this.config.alertThresholds.humidityMax, forecastDate: todayForecast.date }
           })
         }
       }
@@ -511,21 +560,21 @@ export class ContinuousMonitoringService {
   /**
    * Ottiene allerte dal Director
    */
-  private async getDirectorAlerts(garden: Garden, tasks: GardenTask[]): Promise<MonitoringAlert[]> {
+  private async getDirectorAlerts(garden: Garden, _tasks: GardenTask[]): Promise<MonitoringAlert[]> {
     const alerts: MonitoringAlert[] = []
     
     try {
       const urgentAlerts = await generateUrgentAlerts(garden)
       
-      urgentAlerts.forEach(alert => {
+      urgentAlerts.forEach((alert, index) => {
         alerts.push({
-          id: `director-${alert.id || Date.now()}`,
+          id: `director-${Date.now()}-${index}`,
           gardenId: this.config.gardenId,
           type: alert.blockOperations ? 'critical' : 'warning',
           category: 'weather', // La maggior parte degli alert del Director sono meteo
           title: alert.message,
           message: alert.action,
-          actionRequired: alert.blockOperations,
+          actionRequired: Boolean(alert.blockOperations),
           suggestedActions: [alert.action],
           priority: alert.blockOperations ? 1 : 2,
           createdAt: new Date().toISOString(),
@@ -573,9 +622,29 @@ export class ContinuousMonitoringService {
    * Invia notifica per alert
    */
   private async sendAlertNotification(alert: MonitoringAlert): Promise<void> {
-    // TODO: Implementare invio notifiche
-    // Richiede integrazione con sistema utenti
-    console.log(`📧 Would send notification for alert: ${alert.title}`)
+    const target = this.config.notificationTarget
+    if (!target) {
+      console.log(`📧 Notification target non configurato per alert: ${alert.title}`)
+      return
+    }
+
+    const notification: NotificationData = {
+      userId: target.userId,
+      userEmail: target.userEmail,
+      type: 'weather_alert',
+      subject: alert.title,
+      templateData: {
+        title: alert.title,
+        message: alert.message,
+        suggestedActions: alert.suggestedActions,
+        priority: alert.priority
+      }
+    }
+
+    console.log(`📧 Notification prepared for alert: ${alert.title}`)
+    void sendNotification(notification, {}).catch((error) => {
+      console.error('Error sending monitoring notification:', error)
+    })
   }
 
   /**
@@ -591,6 +660,11 @@ export class ContinuousMonitoringService {
    * Esegue azioni automatiche
    */
   private async executeAutoActions(alerts: MonitoringAlert[]): Promise<void> {
+    const storageProvider = this.config.storageProvider
+    if (!storageProvider?.createTask) {
+      return
+    }
+
     for (const alert of alerts) {
       if (!alert.actionRequired || !this.config.autoActions.createTasks) {
         continue
@@ -598,8 +672,30 @@ export class ContinuousMonitoringService {
       
       // Crea task automatici per alert critici
       if (alert.type === 'critical' && alert.suggestedActions.length > 0) {
-        console.log(`🤖 Would create automatic task for: ${alert.title}`)
-        // TODO: Implementare creazione task automatica
+        const dueDate = new Date()
+        const taskType: GardenTask['taskType'] =
+          alert.category === 'irrigation'
+            ? 'Irrigation'
+            : alert.category === 'nutrition'
+              ? 'Fertilize'
+              : alert.category === 'harvest'
+                ? 'Harvest'
+                : alert.category === 'weather' || alert.category === 'health' || alert.category === 'disease' || alert.category === 'pest'
+                  ? 'Treatment'
+                  : 'Treatment'
+
+        await storageProvider.createTask({
+          gardenId: this.config.gardenId,
+          plantName: 'Monitoraggio automatico',
+          taskType,
+          date: dueDate.toISOString().split('T')[0],
+          completed: false,
+          aiGenerated: true,
+          isSuggested: true,
+          notes: [alert.title, alert.message, ...alert.suggestedActions].join('\n'),
+          suggestedBy: 'continuousMonitoringService'
+        })
+        console.log(`🤖 Automatic task created for: ${alert.title}`)
       }
     }
   }

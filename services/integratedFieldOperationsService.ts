@@ -200,104 +200,19 @@ export class IntegratedFieldOperationsService {
     plants: GardenPlant[],
     storageProvider?: any
   ): Promise<IntegratedOperationResult> {
-    if (storageProvider && request.operationType !== 'harvest') {
-      return this.createPersistedIntegratedOperation(request, fieldRows, plants, storageProvider)
-    }
-
-    return this.createLegacyIntegratedOperation(request, fieldRows, plants)
-  }
-
-  private async createLegacyIntegratedOperation(
-    request: IntegratedOperationRequest,
-    fieldRows: FieldRowConfiguration[],
-    plants: GardenPlant[]
-  ): Promise<IntegratedOperationResult> {
-    try {
-      const operationsCreated: string[] = []
-      let totalPlantsAffected = 0
-      let totalAmount = 0
-      
-      // Per ogni filare selezionato
-      for (const fieldRowId of request.fieldRowIds) {
-        const fieldRow = fieldRows.find(fr => fr.id === fieldRowId)
-        if (!fieldRow) continue
-        
-        // Trova piante nel filare
-        const fieldRowPlants = plants.filter(p => p.fieldRowId === fieldRowId)
-        
-        // Determina piante da trattare
-        let targetPlants: GardenPlant[] = []
-        if (request.plantApplication.applyToAllPlants) {
-          targetPlants = fieldRowPlants
-        } else if (request.plantApplication.specificPlantIds) {
-          targetPlants = fieldRowPlants.filter(p => 
-            request.plantApplication.specificPlantIds!.includes(p.id)
-          )
-        } else if (request.plantApplication.plantPositions) {
-          targetPlants = fieldRowPlants.filter(p => 
-            request.plantApplication.plantPositions!.includes(p.positionInRow || 0)
-          )
-        }
-        
-        if (targetPlants.length === 0) continue
-        
-        // Calcola quantità per questo filare
-        const operationAmount = this.calculateOperationAmount(
-          request.operationType,
-          request.config,
-          targetPlants.length,
-          fieldRow
-        )
-        
-        // Crea operazione per il filare
-        const operation: FieldRowOperation = {
-          id: `op_${Date.now()}_${fieldRowId}`,
-          fieldRowId,
-        operationType: request.operationType,
-        scheduledDate: request.scheduledDate,
-        status: 'scheduled',
-        config: {
-          ...request.config,
-          totalDosage: request.operationType === 'fertilization' ? operationAmount : request.config.totalDosage
-        },
-        plantApplication: {
-          applyToAllPlants: request.plantApplication.applyToAllPlants,
-          specificPlantIds: targetPlants.map(p => p.id),
-            plantPositions: targetPlants.map(p => p.positionInRow || 0)
-          },
-          createdAt: new Date().toISOString()
-        }
-        
-        operationsCreated.push(operation.id)
-        totalPlantsAffected += targetPlants.length
-        totalAmount += operationAmount
-        
-        // Registra operazione su ogni pianta individuale
-        for (const plant of targetPlants) {
-          await this.registerPlantOperation(plant, operation, request)
-        }
-      }
-      
-      return {
-        success: true,
-        operationsCreated: operationsCreated.length,
-        plantsAffected: totalPlantsAffected,
-        fieldRowsAffected: request.fieldRowIds.length,
-        totalAmount,
-        operationIds: operationsCreated
-      }
-      
-    } catch (error) {
+    if (!storageProvider) {
       return {
         success: false,
         operationsCreated: 0,
         plantsAffected: 0,
         fieldRowsAffected: 0,
         totalAmount: 0,
-        errors: [error instanceof Error ? error.message : 'Errore sconosciuto'],
+        errors: ['Storage provider richiesto: il circuito legacy in memoria è stato dismesso'],
         operationIds: []
       }
     }
+
+    return this.createPersistedIntegratedOperation(request, fieldRows, plants, storageProvider)
   }
   
   /**
@@ -567,55 +482,6 @@ export class IntegratedFieldOperationsService {
 
   private roundTo3(value: number): number {
     return Math.round(value * 1000) / 1000
-  }
-  
-  /**
-   * Registra operazione su pianta individuale
-   */
-  private async registerPlantOperation(
-    plant: GardenPlant,
-    fieldRowOperation: FieldRowOperation,
-    request: IntegratedOperationRequest
-  ): Promise<void> {
-    
-    const plantOperation = {
-      id: `plant_op_${Date.now()}_${plant.id}`,
-      type: fieldRowOperation.operationType,
-      date: fieldRowOperation.scheduledDate,
-      fieldRowOperationId: fieldRowOperation.id,
-      notes: `${this.getOperationDescription(fieldRowOperation)} - Filare: ${plant.fieldRowName}`,
-      operatorId: 'system',
-      success: true,
-      config: fieldRowOperation.config
-    }
-    
-    // Aggiorna pianta con nuova operazione
-    const plantRecord = plant as any
-    if (!plantRecord.operations) plantRecord.operations = []
-    plantRecord.operations.push(plantOperation)
-    plant.updatedAt = new Date().toISOString()
-    
-    console.log(`✅ Operazione registrata su ${plant.plantCode}:`, plantOperation)
-  }
-  
-  /**
-   * Genera descrizione operazione
-   */
-  private getOperationDescription(operation: FieldRowOperation): string {
-    switch (operation.operationType) {
-      case 'irrigation':
-        return `Irrigazione ${operation.config.duration}min (${operation.config.waterAmount}L)`
-      case 'fertilization':
-        return `Fertilizzazione ${operation.config.fertilizerType} (${operation.config.dosagePerPlant}g/pianta)`
-      case 'treatment':
-        return `Trattamento ${operation.config.productName} (${operation.config.concentration}%)`
-      case 'cultivation':
-        return `Lavorazione ${operation.config.cultivationType}`
-      case 'harvest':
-        return `Raccolta (${operation.config.expectedYield}kg stimati)`
-      default:
-        return 'Operazione'
-    }
   }
   
   /**
