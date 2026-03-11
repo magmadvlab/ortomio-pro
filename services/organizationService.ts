@@ -4,6 +4,7 @@
  */
 
 import {
+  Action,
   Organization,
   OrganizationMember,
   Role,
@@ -14,6 +15,20 @@ import {
 } from '@/types/organization';
 import { getSupabaseClient } from '@/config/supabase';
 
+const getSupabase = (): NonNullable<ReturnType<typeof getSupabaseClient>> => {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
+  return supabase;
+};
+
+const matchesResource = (permission: Permission, resource: string): boolean =>
+  (permission.resource as string) === '*' || permission.resource === resource;
+
+const hasAction = (permission: Permission, action: string): boolean =>
+  permission.actions.includes('manage' as Action) || permission.actions.includes(action as Action);
+
 /**
  * Create a new organization
  */
@@ -23,7 +38,7 @@ export const createOrganization = async (
   type: Organization['type'],
   data?: Partial<Organization>
 ): Promise<Organization> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
   
   const organization: Organization = {
     id: crypto.randomUUID(),
@@ -81,7 +96,7 @@ export const createOrganization = async (
  * Get organizations for a user
  */
 export const getUserOrganizations = async (userId: string): Promise<Organization[]> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const { data, error } = await supabase
     .from('organizations')
@@ -114,7 +129,7 @@ export const getUserOrganizations = async (userId: string): Promise<Organization
  * Helper function to get organization IDs where user is a member
  */
 const getUserOrganizationIds = async (userId: string): Promise<string> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
   
   const { data } = await supabase
     .from('organization_members')
@@ -130,7 +145,7 @@ const getUserOrganizationIds = async (userId: string): Promise<string> => {
  * Get organization by ID
  */
 export const getOrganization = async (organizationId: string): Promise<Organization | null> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const { data, error } = await supabase
     .from('organizations')
@@ -168,17 +183,18 @@ export const updateOrganization = async (
   organizationId: string,
   updates: Partial<Organization>
 ): Promise<void> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   // Convert camelCase to snake_case for database
   const dbUpdates: any = {};
-  Object.keys(updates).forEach(key => {
+  (Object.keys(updates) as Array<keyof Organization>).forEach(key => {
+    const value = updates[key];
     switch (key) {
-      case 'ownerId': dbUpdates.owner_id = updates[key]; break;
-      case 'vatNumber': dbUpdates.vat_number = updates[key]; break;
-      case 'createdAt': dbUpdates.created_at = updates[key]; break;
-      case 'updatedAt': dbUpdates.updated_at = updates[key]; break;
-      default: dbUpdates[key] = updates[key];
+      case 'ownerId': dbUpdates.owner_id = value; break;
+      case 'vatNumber': dbUpdates.vat_number = value; break;
+      case 'createdAt': dbUpdates.created_at = value; break;
+      case 'updatedAt': dbUpdates.updated_at = value; break;
+      default: dbUpdates[key] = value;
     }
   });
 
@@ -199,7 +215,7 @@ export const updateOrganization = async (
  * Delete organization
  */
 export const deleteOrganization = async (organizationId: string): Promise<void> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const { error } = await supabase
     .from('organizations')
@@ -216,7 +232,7 @@ export const deleteOrganization = async (organizationId: string): Promise<void> 
  * Create system roles for organization
  */
 export const createSystemRoles = async (organizationId: string): Promise<Role[]> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
   const roles: Role[] = [];
 
   for (const [key, roleData] of Object.entries(SYSTEM_ROLES)) {
@@ -225,7 +241,7 @@ export const createSystemRoles = async (organizationId: string): Promise<Role[]>
       organizationId,
       name: roleData.name,
       description: roleData.description,
-      permissions: roleData.permissions,
+      permissions: [...roleData.permissions] as Permission[],
       isSystem: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -270,7 +286,7 @@ export const createSystemRoles = async (organizationId: string): Promise<Role[]>
  * Get roles for organization
  */
 export const getOrganizationRoles = async (organizationId: string): Promise<Role[]> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const { data, error } = await supabase
     .from('roles')
@@ -304,7 +320,7 @@ export const createRole = async (
   description: string,
   permissions: Permission[]
 ): Promise<Role> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const role: Role = {
     id: crypto.randomUUID(),
@@ -356,17 +372,18 @@ export const updateRole = async (
   roleId: string,
   updates: Partial<Role>
 ): Promise<void> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   // Convert camelCase to snake_case for database
   const dbUpdates: any = {};
-  Object.keys(updates).forEach(key => {
+  (Object.keys(updates) as Array<keyof Role>).forEach(key => {
+    const value = updates[key];
     switch (key) {
-      case 'organizationId': dbUpdates.organization_id = updates[key]; break;
-      case 'isSystem': dbUpdates.is_system = updates[key]; break;
-      case 'createdAt': dbUpdates.created_at = updates[key]; break;
-      case 'updatedAt': dbUpdates.updated_at = updates[key]; break;
-      default: dbUpdates[key] = updates[key];
+      case 'organizationId': dbUpdates.organization_id = value; break;
+      case 'isSystem': dbUpdates.is_system = value; break;
+      case 'createdAt': dbUpdates.created_at = value; break;
+      case 'updatedAt': dbUpdates.updated_at = value; break;
+      default: dbUpdates[key] = value;
     }
   });
 
@@ -387,7 +404,7 @@ export const updateRole = async (
  * Delete role
  */
 export const deleteRole = async (roleId: string): Promise<void> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const { error } = await supabase
     .from('roles')
@@ -410,7 +427,7 @@ export const addMember = async (
   roleId: string,
   invitedBy: string
 ): Promise<OrganizationMember> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const member: OrganizationMember = {
     id: crypto.randomUUID(),
@@ -464,7 +481,7 @@ export const addMember = async (
 export const getOrganizationMembers = async (
   organizationId: string
 ): Promise<OrganizationMember[]> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const { data, error } = await supabase
     .from('organization_members')
@@ -498,7 +515,7 @@ export const updateMemberRole = async (
   memberId: string,
   roleId: string
 ): Promise<void> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const { error } = await supabase
     .from('organization_members')
@@ -518,7 +535,7 @@ export const updateMemberRole = async (
  * Remove member from organization
  */
 export const removeMember = async (memberId: string): Promise<void> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const { error } = await supabase
     .from('organization_members')
@@ -538,7 +555,7 @@ export const updateMemberStatus = async (
   memberId: string,
   status: OrganizationMember['status']
 ): Promise<void> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const { error } = await supabase
     .from('organization_members')
@@ -563,7 +580,7 @@ export const createInvitation = async (
   roleId: string,
   invitedBy: string
 ): Promise<OrganizationInvitation> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const invitation: OrganizationInvitation = {
     id: crypto.randomUUID(),
@@ -621,7 +638,7 @@ export const createInvitation = async (
 export const getPendingInvitations = async (
   organizationId: string
 ): Promise<OrganizationInvitation[]> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const { data, error } = await supabase
     .from('organization_invitations')
@@ -656,7 +673,7 @@ export const acceptInvitation = async (
   token: string,
   userId: string
 ): Promise<OrganizationMember> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   // First, get the invitation
   const { data: invitation, error: inviteError } = await supabase
@@ -699,7 +716,7 @@ export const acceptInvitation = async (
  * Decline invitation
  */
 export const declineInvitation = async (token: string): Promise<void> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const { error } = await supabase
     .from('organization_invitations')
@@ -726,7 +743,7 @@ export const assignGarden = async (
   accessLevel: GardenAssignment['accessLevel'],
   assignedBy: string
 ): Promise<GardenAssignment> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const assignment: GardenAssignment = {
     id: crypto.randomUUID(),
@@ -774,7 +791,7 @@ export const assignGarden = async (
 export const getMemberGardenAssignments = async (
   memberId: string
 ): Promise<GardenAssignment[]> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const { data, error } = await supabase
     .from('garden_assignments')
@@ -802,7 +819,7 @@ export const getMemberGardenAssignments = async (
  * Remove garden assignment
  */
 export const removeGardenAssignment = async (assignmentId: string): Promise<void> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   const { error } = await supabase
     .from('garden_assignments')
@@ -825,7 +842,7 @@ export const hasPermission = async (
   action: string,
   gardenId?: string
 ): Promise<boolean> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   try {
     // Get user's role in organization
@@ -850,10 +867,9 @@ export const hasPermission = async (
     // Check permissions
     for (const permission of permissions) {
       // Check if resource matches (wildcard or exact match)
-      if (permission.resource === '*' || permission.resource === resource) {
+      if (matchesResource(permission, resource)) {
         // Check if action is allowed
-        if (permission.actions.includes('manage' as Action) || 
-            permission.actions.includes(action as Action)) {
+        if (hasAction(permission, action)) {
           
           // Check scope if specified
           if (permission.scope) {
@@ -903,7 +919,7 @@ export const getUserAccessibleGardens = async (
   userId: string,
   organizationId: string
 ): Promise<string[]> => {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
 
   try {
     // Get user's member record
@@ -924,8 +940,7 @@ export const getUserAccessibleGardens = async (
 
     // Check if user has access to all gardens
     for (const permission of permissions) {
-      if ((permission.resource === '*' || permission.resource === 'gardens') &&
-          (permission.actions.includes('manage' as Action) || permission.actions.includes('read' as Action))) {
+      if (matchesResource(permission, 'gardens') && hasAction(permission, 'read')) {
         
         if (!permission.scope || permission.scope.type === 'All') {
           // User has access to all gardens - return all garden IDs for this organization

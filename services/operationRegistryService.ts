@@ -3,6 +3,10 @@
  * Servizio per registrare e tracciare tutte le operazioni sui filari
  */
 
+import type { IStorageProvider } from '@/packages/core/storage/interface'
+import type { FieldRow, HarvestLogData, MechanicalWorkRecord, TreatmentRecordDB, FertilizerApplicationLogDB } from '@/types'
+import type { WateringLog } from '@/types/irrigation'
+
 export interface OperationRecord {
   id: string
   type: 'irrigation' | 'fertilization' | 'treatment' | 'cultivation' | 'harvest'
@@ -106,6 +110,24 @@ export interface OperationFilter {
  */
 export class OperationRegistryService {
   private operations: Map<string, OperationRecord[]> = new Map()
+  private storageProvider?: Pick<
+    IStorageProvider,
+    | 'getGarden'
+    | 'getFieldRows'
+    | 'getWateringLogs'
+    | 'getFertilizerApplicationLogs'
+    | 'getTreatments'
+    | 'getMechanicalWorks'
+    | 'getHarvestLogs'
+  >
+
+  constructor(storageProvider?: OperationRegistryService['storageProvider']) {
+    this.storageProvider = storageProvider
+  }
+
+  setStorageProvider(storageProvider: OperationRegistryService['storageProvider']): void {
+    this.storageProvider = storageProvider
+  }
   
   /**
    * Registra una nuova operazione
@@ -114,9 +136,53 @@ export class OperationRegistryService {
     const gardenOperations = this.operations.get(operation.gardenId) || []
     gardenOperations.push(operation)
     this.operations.set(operation.gardenId, gardenOperations)
-    
-    // TODO: Salvare nel database
     console.log('📋 Operazione registrata:', operation)
+  }
+
+  async hydrateGardenOperations(gardenId: string): Promise<OperationRecord[]> {
+    if (!this.storageProvider) {
+      return this.getOperations(gardenId)
+    }
+
+    const [garden, fieldRows, wateringLogs, fertilizerLogs, treatments, mechanicalWorks, harvestLogs] = await Promise.all([
+      this.storageProvider.getGarden(gardenId),
+      this.storageProvider.getFieldRows(gardenId),
+      this.storageProvider.getWateringLogs(undefined, gardenId),
+      this.storageProvider.getFertilizerApplicationLogs(gardenId),
+      this.storageProvider.getTreatments(gardenId),
+      this.storageProvider.getMechanicalWorks(gardenId),
+      this.storageProvider.getHarvestLogs(gardenId)
+    ])
+
+    const rowNameById = new Map<string, string>(
+      fieldRows.map((fieldRow: FieldRow) => [fieldRow.id, fieldRow.name || `Filare ${fieldRow.rowNumber || ''}`.trim()])
+    )
+    const gardenName = garden?.name || 'Orto'
+
+    const records: OperationRecord[] = [
+      ...wateringLogs.map(log => this.mapWateringLog(log, gardenId, gardenName, rowNameById)),
+      ...fertilizerLogs.map(log => this.mapFertilizerLog(log, gardenName, rowNameById)),
+      ...treatments.map(treatment => this.mapTreatmentLog(treatment, gardenName, rowNameById)),
+      ...mechanicalWorks.map(work => this.mapMechanicalWork(work, gardenName, rowNameById)),
+      ...harvestLogs.map(harvest => this.mapHarvestLog(harvest, gardenId, gardenName, rowNameById))
+    ]
+
+    this.operations.set(
+      gardenId,
+      records.sort((a, b) => new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime())
+    )
+
+    return this.getOperations(gardenId)
+  }
+
+  async getOperationsAsync(gardenId: string, filter?: OperationFilter): Promise<OperationRecord[]> {
+    await this.hydrateGardenOperations(gardenId)
+    return this.getOperations(gardenId, filter)
+  }
+
+  async getFieldRowOperationsAsync(gardenId: string, fieldRowId: string): Promise<OperationRecord[]> {
+    await this.hydrateGardenOperations(gardenId)
+    return this.getFieldRowOperations(fieldRowId)
   }
   
   /**
@@ -325,6 +391,252 @@ export class OperationRegistryService {
     return [headers, ...rows]
       .map(row => row.map(cell => `"${cell}"`).join(','))
       .join('\n')
+  }
+
+  private getRowName(fieldRowId: string | undefined, rowNameById: Map<string, string>): string {
+    if (!fieldRowId) {
+      return 'Filare non associato'
+    }
+    return rowNameById.get(fieldRowId) || `Filare ${fieldRowId.slice(0, 8)}`
+  }
+
+  private normalizeCultivationType(
+    workType?: string
+  ): NonNullable<OperationRecord['details']['cultivation']>['type'] {
+    switch (workType) {
+      case 'weeding':
+      case 'hoeing':
+      case 'mulching':
+      case 'pruning':
+        return workType
+      default:
+        return 'weeding'
+    }
+  }
+
+  private mapWateringLog(
+    log: WateringLog,
+    gardenId: string,
+    gardenName: string,
+    rowNameById: Map<string, string>
+  ): OperationRecord {
+    const fieldRowId = log.fieldRowId || log.rowId || log.bedRowId || 'unknown'
+    return {
+      id: log.id,
+      type: 'irrigation',
+      gardenId,
+      gardenName,
+      fieldRowId,
+      fieldRowName: this.getRowName(fieldRowId, rowNameById),
+      executedAt: log.wateredAt || log.date,
+      executedBy: 'system',
+      details: {
+        irrigation: {
+          duration: log.durationMinutes,
+          waterAmount: log.litersApplied,
+          flowRate: log.durationMinutes > 0 ? (log.litersApplied / log.durationMinutes) * 60 : 0
+        }
+      },
+      weatherConditions: {
+        temperature: log.airTemperatureC || 0,
+        humidity: 0,
+        windSpeed: 0,
+        condition: (log.weatherCondition?.toLowerCase().includes('piogg') ? 'pioggia' : 'sereno') as OperationRecord['weatherConditions']['condition'],
+        source: 'manual'
+      },
+      results: {
+        plantsAffected: log.plantsAffected || log.plantIds?.length || 0,
+        fieldRowsAffected: 1,
+        totalAmount: log.litersApplied,
+        estimatedCost: 0,
+        duration: log.durationMinutes
+      },
+      notes: log.notes,
+      photosCount: 0,
+      createdAt: log.createdAt,
+      status: log.completed ? 'completed' : 'scheduled'
+    }
+  }
+
+  private mapFertilizerLog(
+    log: FertilizerApplicationLogDB,
+    gardenName: string,
+    rowNameById: Map<string, string>
+  ): OperationRecord {
+    const fieldRowId = log.fieldRowId || log.bedRowId || 'unknown'
+    return {
+      id: log.id,
+      type: 'fertilization',
+      gardenId: log.gardenId,
+      gardenName,
+      fieldRowId,
+      fieldRowName: this.getRowName(fieldRowId, rowNameById),
+      executedAt: log.applicationDate,
+      executedBy: 'system',
+      details: {
+        fertilization: {
+          type: log.fertilizerProductName,
+          dosagePerPlant: 0,
+          totalDosage: log.dosageAmount,
+          applicationMethod: log.method === 'foliar' ? 'foliar' : log.method === 'fertigation' ? 'fertigation' : 'soil'
+        }
+      },
+      weatherConditions: {
+        temperature: log.weatherConditions?.temp || 0,
+        humidity: log.weatherConditions?.humidity || 0,
+        windSpeed: 0,
+        condition: 'sereno',
+        source: 'manual'
+      },
+      results: {
+        plantsAffected: 0,
+        fieldRowsAffected: 1,
+        totalAmount: log.dosageAmount,
+        estimatedCost: 0
+      },
+      notes: undefined,
+      photosCount: 0,
+      createdAt: log.applicationDate,
+      status: 'completed'
+    }
+  }
+
+  private mapTreatmentLog(
+    treatment: TreatmentRecordDB,
+    gardenName: string,
+    rowNameById: Map<string, string>
+  ): OperationRecord {
+    const fieldRowId = treatment.field_row_id || treatment.bed_row_id || 'unknown'
+    return {
+      id: treatment.id,
+      type: 'treatment',
+      gardenId: treatment.garden_id || 'unknown',
+      gardenName,
+      fieldRowId,
+      fieldRowName: this.getRowName(fieldRowId, rowNameById),
+      executedAt: treatment.treatment_date,
+      executedBy: treatment.operator_name || 'system',
+      details: {
+        treatment: {
+          productName: treatment.product_name,
+          activeIngredient: treatment.active_ingredient || '',
+          concentration: treatment.dosage || 0,
+          treatmentType:
+            treatment.treatment_type === 'organic'
+              ? 'biologico'
+              : treatment.reason === 'pest_control'
+                ? 'insetticida'
+                : treatment.reason === 'nutrient'
+                  ? 'biologico'
+                  : 'fungicida',
+          applicationMethod:
+            treatment.method === 'spray' || treatment.method === 'soil'
+              ? treatment.method
+              : 'systemic'
+        }
+      },
+      weatherConditions: {
+        temperature: treatment.weather_conditions?.temp || 0,
+        humidity: treatment.weather_conditions?.humidity || 0,
+        windSpeed: 0,
+        condition: 'sereno',
+        source: 'manual'
+      },
+      results: {
+        plantsAffected: 0,
+        fieldRowsAffected: 1,
+        totalAmount: treatment.dosage || 0,
+        estimatedCost: 0
+      },
+      notes: treatment.notes,
+      photosCount: 0,
+      createdAt: treatment.created_at,
+      status: 'completed'
+    }
+  }
+
+  private mapMechanicalWork(
+    work: MechanicalWorkRecord,
+    gardenName: string,
+    rowNameById: Map<string, string>
+  ): OperationRecord {
+    const fieldRowId = work.field_row_id || work.bed_row_id || 'unknown'
+    return {
+      id: work.id,
+      type: 'cultivation',
+      gardenId: work.garden_id || 'unknown',
+      gardenName,
+      fieldRowId,
+      fieldRowName: this.getRowName(fieldRowId, rowNameById),
+      executedAt: work.work_date,
+      executedBy: work.operator_name || 'system',
+      details: {
+        cultivation: {
+          type: this.normalizeCultivationType(work.work_type),
+          tools: work.equipment_type || work.equipment_attachment || 'attrezzatura'
+        }
+      },
+      weatherConditions: {
+        temperature: work.weather_conditions?.temp || 0,
+        humidity: work.weather_conditions?.humidity || 0,
+        windSpeed: 0,
+        condition: work.weather_conditions?.rain ? 'pioggia' : 'sereno',
+        source: 'manual'
+      },
+      results: {
+        plantsAffected: 0,
+        fieldRowsAffected: 1,
+        totalAmount: work.area_m2,
+        estimatedCost: 0
+      },
+      notes: work.notes,
+      photosCount: 0,
+      createdAt: work.created_at,
+      status: 'completed'
+    }
+  }
+
+  private mapHarvestLog(
+    harvest: HarvestLogData,
+    gardenId: string,
+    gardenName: string,
+    rowNameById: Map<string, string>
+  ): OperationRecord {
+    const fieldRowId = harvest.strawberryHarvest?.plantPosition?.rowId || 'unknown'
+    return {
+      id: harvest.id || `harvest-${gardenId}-${harvest.date}-${harvest.quantity}`,
+      type: 'harvest',
+      gardenId,
+      gardenName,
+      fieldRowId,
+      fieldRowName: this.getRowName(fieldRowId, rowNameById),
+      executedAt: harvest.date,
+      executedBy: 'system',
+      details: {
+        harvest: {
+          expectedYield: harvest.quantity,
+          actualYield: harvest.quantity,
+          qualityGrade: harvest.rating >= 4 ? 'A' : harvest.rating >= 3 ? 'B' : 'C'
+        }
+      },
+      weatherConditions: {
+        temperature: 0,
+        humidity: 0,
+        windSpeed: 0,
+        condition: 'sereno',
+        source: 'manual'
+      },
+      results: {
+        plantsAffected: 1,
+        fieldRowsAffected: fieldRowId === 'unknown' ? 0 : 1,
+        totalAmount: harvest.quantity,
+        estimatedCost: 0
+      },
+      notes: harvest.notes,
+      photosCount: 0,
+      createdAt: harvest.date,
+      status: 'completed'
+    }
   }
 }
 

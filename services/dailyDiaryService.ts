@@ -136,8 +136,12 @@ export interface PredictiveInsight {
 
 class DailyDiaryService {
   // Helper per ottenere il client Supabase
-  private get supabase() {
-    return getSupabaseClient()
+  private get supabase(): NonNullable<ReturnType<typeof getSupabaseClient>> {
+    const supabase = getSupabaseClient()
+    if (!supabase) {
+      throw new Error('Supabase client not available')
+    }
+    return supabase
   }
 
   // --------------------------------------------------------------------------

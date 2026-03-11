@@ -16,7 +16,7 @@ import {
   Zap,
   MapPin
 } from 'lucide-react'
-import { dailyDiaryService, DailyDiaryEntry } from '@/services/dailyDiaryService'
+import { dailyDiaryService, type DailyWeatherLog, type CultivationDailyTracking, type DiaryEvent } from '@/services/dailyDiaryService'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { formatWindDirection } from '@/services/geocodingService'
@@ -24,6 +24,29 @@ import { formatWindDirection } from '@/services/geocodingService'
 interface AutomatedDiaryViewerProps {
   gardenId: string
   gardenName?: string
+}
+
+interface DailyDiaryEntry {
+  id: string
+  date: string
+  weather_data?: (DailyWeatherLog & {
+    conditions?: string
+    uv_index_max?: number
+  }) | null
+  agronomic_data?: {
+    gdd_base_10: number
+    chill_hours: number
+    water_stress_index: number
+  } | null
+  lunar_phase?: {
+    phase: string
+    illumination: number
+  } | null
+  automated_events?: {
+    irrigations: number
+    treatments: number
+    alerts: DiaryEvent[]
+  } | null
 }
 
 export default function AutomatedDiaryViewer({ gardenId, gardenName }: AutomatedDiaryViewerProps) {
@@ -56,12 +79,68 @@ export default function AutomatedDiaryViewer({ gardenId, gardenName }: Automated
       }
       
       const data = await dailyDiaryService.getDiaryEntries(gardenId, startDate, endDate)
-      setEntries(data)
+      setEntries(buildDiaryEntries(data.weather, data.tracking, data.events))
     } catch (error) {
       console.error('Error loading diary entries:', error)
     } finally {
       setLoading(false)
     }
+  }
+
+  const buildDiaryEntries = (
+    weather: DailyWeatherLog[],
+    tracking: CultivationDailyTracking[],
+    events: DiaryEvent[]
+  ): DailyDiaryEntry[] => {
+    const trackingByDate = new Map<string, CultivationDailyTracking[]>()
+    const eventsByDate = new Map<string, DiaryEvent[]>()
+
+    tracking.forEach((entry) => {
+      const items = trackingByDate.get(entry.tracking_date) || []
+      items.push(entry)
+      trackingByDate.set(entry.tracking_date, items)
+    })
+
+    events.forEach((entry) => {
+      const items = eventsByDate.get(entry.event_date) || []
+      items.push(entry)
+      eventsByDate.set(entry.event_date, items)
+    })
+
+    return weather.map((weatherEntry) => {
+      const trackingEntries = trackingByDate.get(weatherEntry.log_date) || []
+      const dayEvents = eventsByDate.get(weatherEntry.log_date) || []
+      const avgGdd = trackingEntries.length
+        ? trackingEntries.reduce((sum, item) => sum + item.daily_gdd, 0) / trackingEntries.length
+        : 0
+      const avgChillHours = trackingEntries.length
+        ? trackingEntries.reduce((sum, item) => sum + (item.daily_chill_hours || 0), 0) / trackingEntries.length
+        : 0
+      const avgWaterStress = trackingEntries.length
+        ? trackingEntries.reduce((sum, item) => sum + item.water_stress_index, 0) / trackingEntries.length
+        : 0
+
+      return {
+        id: weatherEntry.id || `diary-${weatherEntry.user_id}-${weatherEntry.log_date}`,
+        date: weatherEntry.log_date,
+        weather_data: {
+          ...weatherEntry,
+          conditions: weatherEntry.weather_conditions || 'clear',
+          uv_index_max: weatherEntry.uv_index
+        },
+        agronomic_data: {
+          gdd_base_10: avgGdd,
+          chill_hours: avgChillHours,
+          water_stress_index: avgWaterStress
+        },
+        lunar_phase: null,
+        automated_events: {
+          irrigations: dayEvents.filter((event) => event.event_type === 'irrigation').length,
+          treatments: dayEvents.filter((event) => event.event_type === 'treatment').length,
+          alerts: dayEvents.filter((event) => event.severity === 'warning' || event.severity === 'critical')
+        }
+      }
+    })
   }
 
   const getMoonPhaseIcon = (phase: string) => {

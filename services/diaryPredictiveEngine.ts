@@ -89,14 +89,30 @@ export interface ActionRecommendation {
   data_basis: string[]
 }
 
+interface CultivationRecord {
+  id: string
+  crop_type: string
+  status?: string
+}
+
+interface TrackingWithCultivation extends CultivationDailyTracking {
+  cultivations?: {
+    crop_type?: string
+  } | null
+}
+
 // ============================================================================
 // PREDICTIVE ENGINE
 // ============================================================================
 
 class DiaryPredictiveEngine {
   // Helper per ottenere il client Supabase
-  private get supabase() {
-    return getSupabaseClient()
+  private get supabase(): NonNullable<ReturnType<typeof getSupabaseClient>> {
+    const supabase = getSupabaseClient()
+    if (!supabase) {
+      throw new Error('Supabase client not available')
+    }
+    return supabase
   }
 
   // --------------------------------------------------------------------------
@@ -114,7 +130,7 @@ class DiaryPredictiveEngine {
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - days)
 
-    const { data: weather } = await supabase
+    const { data: weatherData } = await this.supabase
       .from('daily_weather_log')
       .select('*')
       .eq('user_id', userId)
@@ -122,7 +138,8 @@ class DiaryPredictiveEngine {
       .lte('log_date', endDate.toISOString().split('T')[0])
       .order('log_date')
 
-    if (!weather || weather.length < 3) return []
+    const weather = (weatherData || []) as DailyWeatherLog[]
+    if (weather.length < 3) return []
 
     const patterns: WeatherPattern[] = []
 
@@ -200,7 +217,7 @@ class DiaryPredictiveEngine {
 
     // Rileva rischio gelata (previsione basata su trend)
     const recentWeather = weather.slice(-5)
-    const tempTrend = this.calculateTrend(recentWeather.map(w => w.temp_min))
+    const tempTrend = this.calculateTrend(recentWeather.map((w: DailyWeatherLog) => w.temp_min))
     if (tempTrend < -1 && recentWeather[recentWeather.length - 1].temp_min < 5) {
       patterns.push({
         pattern_type: 'frost_risk',
@@ -212,7 +229,7 @@ class DiaryPredictiveEngine {
     }
 
     // Rileva periodo ottimale
-    const optimalDays = weather.filter(w =>
+    const optimalDays = weather.filter((w: DailyWeatherLog) =>
       w.temp_min >= 10 &&
       w.temp_max <= 30 &&
       w.temp_max >= 20 &&
@@ -258,7 +275,7 @@ class DiaryPredictiveEngine {
     cultivationId: string
   ): Promise<CropPrediction | null> {
     // Ottieni dati coltivazione
-    const { data: cultivation } = await supabase
+    const { data: cultivation } = await this.supabase
       .from('cultivations')
       .select('*')
       .eq('id', cultivationId)
@@ -267,21 +284,22 @@ class DiaryPredictiveEngine {
     if (!cultivation) return null
 
     // Ottieni tracking recente
-    const { data: tracking } = await supabase
+    const { data: trackingData } = await this.supabase
       .from('cultivation_daily_tracking')
       .select('*')
       .eq('cultivation_id', cultivationId)
       .order('tracking_date', { ascending: false })
       .limit(30)
 
-    if (!tracking || tracking.length === 0) return null
+    const tracking = (trackingData || []) as CultivationDailyTracking[]
+    if (tracking.length === 0) return null
 
     const latest = tracking[0]
     const gddParams = await dailyDiaryService.getGDDParameters(cultivation.crop_type)
 
     // Calcola data raccolta prevista
     const remainingGDD = (gddParams.gdd_to_harvest || 1000) - (latest.accumulated_gdd || 0)
-    const avgDailyGDD = tracking.reduce((sum, t) => sum + t.daily_gdd, 0) / tracking.length
+    const avgDailyGDD = tracking.reduce((sum: number, t: CultivationDailyTracking) => sum + t.daily_gdd, 0) / tracking.length
     const daysToHarvest = Math.max(0, Math.round(remainingGDD / (avgDailyGDD || 10)))
 
     const harvestDate = new Date()
@@ -355,15 +373,16 @@ class DiaryPredictiveEngine {
     }
 
     // Rischio malattie fungine (umidità + temperatura)
-    const { data: weather } = await supabase
+    const { data: weatherData } = await this.supabase
       .from('daily_weather_log')
       .select('*')
       .eq('user_id', userId)
       .order('log_date', { ascending: false })
       .limit(7)
 
-    if (weather) {
-      const fungalRiskDays = weather.filter(w =>
+    const weather = (weatherData || []) as DailyWeatherLog[]
+    if (weather.length > 0) {
+      const fungalRiskDays = weather.filter((w: DailyWeatherLog) =>
         (w.humidity_avg || 60) > 80 &&
         w.temp_avg >= 15 &&
         w.temp_avg <= 25
@@ -528,7 +547,7 @@ class DiaryPredictiveEngine {
     const endDate = `${year}-12-31`
 
     // Ottieni tutti i dati meteo dell'anno
-    const { data: weather } = await supabase
+    const { data: weatherData } = await this.supabase
       .from('daily_weather_log')
       .select('*')
       .eq('user_id', userId)
@@ -536,10 +555,11 @@ class DiaryPredictiveEngine {
       .lte('log_date', endDate)
       .order('log_date')
 
-    if (!weather || weather.length < 30) return null
+    const weather = (weatherData || []) as DailyWeatherLog[]
+    if (weather.length < 30) return null
 
     // Ottieni tracking coltivazioni
-    const { data: tracking } = await supabase
+    const { data: trackingData } = await this.supabase
       .from('cultivation_daily_tracking')
       .select('*, cultivations(crop_type)')
       .eq('user_id', userId)
@@ -547,11 +567,12 @@ class DiaryPredictiveEngine {
       .lte('tracking_date', endDate)
 
     // Calcola statistiche meteo
-    const totalPrecip = weather.reduce((sum, w) => sum + (w.precipitation_mm || 0), 0)
-    const avgTemp = weather.reduce((sum, w) => sum + (w.temp_avg || 0), 0) / weather.length
+    const tracking = (trackingData || []) as TrackingWithCultivation[]
+    const totalPrecip = weather.reduce((sum: number, w: DailyWeatherLog) => sum + (w.precipitation_mm || 0), 0)
+    const avgTemp = weather.reduce((sum: number, w: DailyWeatherLog) => sum + (w.temp_avg || 0), 0) / weather.length
 
     // Trova inizio/fine stagione vegetativa (prima/ultima giornata con GDD > 0)
-    const growingDays = weather.filter(w => {
+    const growingDays = weather.filter((w: DailyWeatherLog) => {
       const avgT = (w.temp_min + w.temp_max) / 2
       return avgT > 10 // Base temperature comune
     })
@@ -666,7 +687,7 @@ class DiaryPredictiveEngine {
     const today = new Date().toISOString().split('T')[0]
 
     // Ottieni meteo recente
-    const { data: weather } = await supabase
+    const { data: weatherData } = await this.supabase
       .from('daily_weather_log')
       .select('*')
       .eq('user_id', userId)
@@ -674,16 +695,18 @@ class DiaryPredictiveEngine {
       .limit(7)
 
     // Ottieni coltivazioni attive
-    const { data: cultivations } = await supabase
+    const { data: cultivationsData } = await this.supabase
       .from('cultivations')
       .select('id, crop_type, status')
       .eq('user_id', userId)
       .in('status', ['active', 'growing', 'flowering', 'fruiting'])
 
-    if (!cultivations || cultivations.length === 0) return recommendations
+    const weather = (weatherData || []) as DailyWeatherLog[]
+    const cultivations = (cultivationsData || []) as CultivationRecord[]
+    if (cultivations.length === 0) return recommendations
 
     // Ottieni tracking recente per tutte le coltivazioni
-    const { data: allTracking } = await supabase
+    const { data: allTrackingData } = await this.supabase
       .from('cultivation_daily_tracking')
       .select('*')
       .eq('user_id', userId)
@@ -694,10 +717,11 @@ class DiaryPredictiveEngine {
     const patterns = await this.detectWeatherPatterns(userId, 7)
 
     // Raccomandazione irrigazione basata su stress idrico
-    if (allTracking) {
-      const waterStressedCrops = cultivations.filter(c => {
-        const cropTracking = allTracking.filter(t => t.cultivation_id === c.id).slice(0, 3)
-        const avgStress = cropTracking.reduce((s, t) => s + t.water_stress_index, 0) / (cropTracking.length || 1)
+    const allTracking = (allTrackingData || []) as CultivationDailyTracking[]
+    if (allTracking.length > 0) {
+      const waterStressedCrops = cultivations.filter((c: CultivationRecord) => {
+        const cropTracking = allTracking.filter((t: CultivationDailyTracking) => t.cultivation_id === c.id).slice(0, 3)
+        const avgStress = cropTracking.reduce((s: number, t: CultivationDailyTracking) => s + t.water_stress_index, 0) / (cropTracking.length || 1)
         return avgStress > 0.4
       })
 
@@ -709,7 +733,7 @@ class DiaryPredictiveEngine {
           description: `${waterStressedCrops.length} coltivazioni mostrano stress idrico. Irrigare per prevenire danni.`,
           urgency: 'today',
           confidence: 0.85,
-          affected_cultivations: waterStressedCrops.map(c => c.id),
+          affected_cultivations: waterStressedCrops.map((c: CultivationRecord) => c.id),
           data_basis: ['tracking_water_stress', 'weather_eto']
         })
       }
@@ -718,7 +742,7 @@ class DiaryPredictiveEngine {
     // Raccomandazione protezione gelo
     const frostPattern = patterns.find(p => p.pattern_type === 'frost_risk')
     if (frostPattern) {
-      const sensitiveCrops = cultivations.filter(c =>
+      const sensitiveCrops = cultivations.filter((c: CultivationRecord) =>
         ['pomodoro', 'peperone', 'melanzana', 'zucchina', 'basilico'].includes(c.crop_type.toLowerCase())
       )
 
@@ -730,15 +754,15 @@ class DiaryPredictiveEngine {
           description: 'Rischio gelata rilevato. Proteggere le colture sensibili con tessuto non tessuto.',
           urgency: 'immediate',
           confidence: frostPattern.severity,
-          affected_cultivations: sensitiveCrops.map(c => c.id),
+          affected_cultivations: sensitiveCrops.map((c: CultivationRecord) => c.id),
           data_basis: ['weather_trend', 'temp_min_forecast']
         })
       }
     }
 
     // Raccomandazione trattamento preventivo (umidità alta)
-    if (weather && weather.length > 0) {
-      const highHumidityDays = weather.filter(w => (w.humidity_avg || 60) > 80).length
+    if (weather.length > 0) {
+      const highHumidityDays = weather.filter((w: DailyWeatherLog) => (w.humidity_avg || 60) > 80).length
       if (highHumidityDays >= 3) {
         recommendations.push({
           id: `fungal-${Date.now()}`,
@@ -747,7 +771,7 @@ class DiaryPredictiveEngine {
           description: 'Alta umidità persistente. Considerare trattamento preventivo contro malattie fungine.',
           urgency: 'this_week',
           confidence: 0.75,
-          affected_cultivations: cultivations.map(c => c.id),
+          affected_cultivations: cultivations.map((c: CultivationRecord) => c.id),
           weather_window: this.findDryWindow(weather),
           data_basis: ['humidity_trend', 'fungal_risk_model']
         })
@@ -756,7 +780,7 @@ class DiaryPredictiveEngine {
 
     // Raccomandazione raccolta basata su GDD
     for (const cultivation of cultivations) {
-      const cropTracking = allTracking?.filter(t => t.cultivation_id === cultivation.id) || []
+      const cropTracking = allTracking.filter((t: CultivationDailyTracking) => t.cultivation_id === cultivation.id)
       if (cropTracking.length > 0) {
         const latest = cropTracking[0]
         const gddParams = await dailyDiaryService.getGDDParameters(cultivation.crop_type)
