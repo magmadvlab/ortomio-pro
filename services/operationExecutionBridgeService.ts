@@ -1,6 +1,10 @@
 import type { FertilizerApplicationLogDB, GardenTask } from '../types'
 import type { WateringLog } from '../types/microzoneTracking'
-import { createUnifiedOperationsService } from './unifiedOperationsService'
+import {
+  createUnifiedOperationsService,
+  type UnifiedOperationRequest,
+  type UnifiedOperationResponse
+} from './unifiedOperationsService'
 
 type LegacyWateringExecutionInput = Omit<WateringLog, 'id' | 'createdAt'> & {
   rowId?: string
@@ -64,6 +68,74 @@ const resolveFertilizerTarget = (
   return null
 }
 
+type FieldRowUnifiedExecutionInput = {
+  gardenId: string
+  fieldRowId?: string
+  gardenRowId?: string
+  plantIds?: string[]
+  operationType: 'watering' | 'fertilizing' | 'treatment' | 'work'
+  operationDate: string
+  operationTime?: string
+  quantity?: number
+  unit?: string
+  productName?: string
+  durationMinutes?: number
+  method?: string
+  areaSqm?: number
+  notes?: string
+  propagateToPlants?: boolean
+  sourceType?: UnifiedOperationRequest['sourceType']
+  actorType?: UnifiedOperationRequest['actorType']
+  deviceId?: string
+  contextSnapshot?: UnifiedOperationRequest['contextSnapshot']
+  weatherConditions?: UnifiedOperationRequest['weatherConditions']
+  geoSnapshot?: UnifiedOperationRequest['geoSnapshot']
+}
+
+export async function executeFieldRowOperationThroughUnifiedService(
+  storageProvider: any,
+  input: FieldRowUnifiedExecutionInput
+): Promise<UnifiedOperationResponse> {
+  if (!input.gardenRowId && !input.fieldRowId && (!input.plantIds || input.plantIds.length === 0)) {
+    throw new Error('Target spaziale mancante per l’operazione filare')
+  }
+
+  const unifiedOperationsService = createUnifiedOperationsService(storageProvider)
+  const level: UnifiedOperationRequest['level'] =
+    input.plantIds?.length ? 'plant' : 'row'
+
+  const response = await unifiedOperationsService.executeUnifiedOperation({
+    level,
+    gardenId: input.gardenId,
+    gardenRowId: input.gardenRowId,
+    fieldRowId: input.fieldRowId,
+    plantIds: input.plantIds,
+    operationType: input.operationType,
+    operationDate: input.operationDate,
+    operationTime: input.operationTime,
+    quantity: input.quantity,
+    unit: input.unit,
+    productName: input.productName,
+    durationMinutes: input.durationMinutes,
+    method: input.method,
+    areaSqm: input.areaSqm,
+    notes: input.notes,
+    propagateToPlants: input.propagateToPlants,
+    sourceType: input.sourceType || 'manual',
+    actorType: input.actorType || 'manual',
+    deviceId: input.deviceId,
+    contextSnapshot: input.contextSnapshot,
+    weatherConditions: input.weatherConditions,
+    geoSnapshot: input.geoSnapshot
+  })
+
+  if (!response.success) {
+    throw new Error((response.errors || ['Errore esecuzione operazione unificata']).join('\n'))
+  }
+
+  return response
+}
+
 export async function executeWateringLogThroughUnifiedService(
   storageProvider: any,
   log: LegacyWateringExecutionInput
@@ -75,10 +147,9 @@ export async function executeWateringLogThroughUnifiedService(
     )
   }
 
-  const unifiedOperationsService = createUnifiedOperationsService(storageProvider)
-  const response = await unifiedOperationsService.executeUnifiedOperation({
-    level: 'row',
+  const response = await executeFieldRowOperationThroughUnifiedService(storageProvider, {
     gardenId: log.gardenId,
+    ...target,
     operationType: 'watering',
     operationDate: log.date,
     operationTime: normalizeTimeFromTimestamp(log.wateredAt),
@@ -95,13 +166,8 @@ export async function executeWateringLogThroughUnifiedService(
     }),
     propagateToPlants: true,
     sourceType: 'manual',
-    actorType: 'manual',
-    ...target
+    actorType: 'manual'
   })
-
-  if (!response.success) {
-    throw new Error((response.errors || ['Errore esecuzione irrigazione']).join('\n'))
-  }
 
   return response
 }
@@ -118,10 +184,9 @@ export async function executeTaskFertilizationThroughUnifiedService(
     )
   }
 
-  const unifiedOperationsService = createUnifiedOperationsService(storageProvider)
-  const response = await unifiedOperationsService.executeUnifiedOperation({
-    level: 'row',
+  const response = await executeFieldRowOperationThroughUnifiedService(storageProvider, {
     gardenId: log.gardenId,
+    ...target,
     operationType: 'fertilizing',
     operationDate: log.applicationDate,
     quantity: log.dosageAmount,
@@ -139,13 +204,8 @@ export async function executeTaskFertilizationThroughUnifiedService(
     }),
     propagateToPlants: true,
     sourceType: 'manual',
-    actorType: 'manual',
-    ...target
+    actorType: 'manual'
   })
-
-  if (!response.success) {
-    throw new Error((response.errors || ['Errore esecuzione fertilizzazione']).join('\n'))
-  }
 
   return response
 }

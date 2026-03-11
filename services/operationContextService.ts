@@ -6,6 +6,13 @@
 import { createWeatherService } from './weatherService';
 import { createLunarService } from './lunarService';
 
+export type OperationContextWeatherSource =
+  | 'current'
+  | 'forecast'
+  | 'historical'
+  | 'estimated'
+  | 'fallback';
+
 export interface OperationContext {
   timestamp: string;
   weather: {
@@ -15,7 +22,7 @@ export interface OperationContext {
     windSpeed: number;
     condition: string;
     pressure: number;
-    source?: 'current' | 'forecast' | 'historical' | 'fallback';
+    source?: OperationContextWeatherSource;
   };
   lunar: {
     phase: string;
@@ -35,6 +42,34 @@ export interface OperationContext {
 class OperationContextService {
   private weatherService = createWeatherService();
   private lunarService = createLunarService();
+
+  buildEstimatedContext(
+    date: Date,
+    latitude: number = 45,
+    overrides?: Partial<OperationContext['weather']>
+  ): OperationContext {
+    return this.buildDerivedContext(date, latitude, {
+      temperature: overrides?.temperature ?? 20,
+      humidity: overrides?.humidity ?? 60,
+      precipitation: overrides?.precipitation ?? 0,
+      windSpeed: overrides?.windSpeed ?? 0,
+      condition: overrides?.condition ?? 'estimated',
+      pressure: overrides?.pressure ?? 1013,
+      source: 'estimated'
+    })
+  }
+
+  buildFallbackContext(date: Date, latitude: number = 45): OperationContext {
+    return this.buildDerivedContext(date, latitude, {
+      temperature: 20,
+      humidity: 60,
+      precipitation: 0,
+      windSpeed: 0,
+      condition: 'unknown',
+      pressure: 1013,
+      source: 'fallback'
+    })
+  }
 
   /**
    * Ottiene il contesto completo per un'operazione
@@ -56,57 +91,32 @@ class OperationContextService {
       const lunar = this.lunarService.getLunarPhase(date);
 
       // 3. Determina stagione
-      const season = this.getSeason(date);
-
-      // 4. Calcola ore di luce
-      const daylight = this.calculateDaylight(latitude, date);
-
-      return {
-        timestamp: date.toISOString(),
-        weather: {
-          temperature: weather.temperature,
-          humidity: weather.humidity,
-          precipitation: weather.precipitation || 0,
-          windSpeed: weather.windSpeed || 0,
-          condition: weather.condition || 'unknown',
-          pressure: weather.pressure || 1013,
-          source: weather.source || 'fallback',
-        },
-        lunar: {
-          phase: lunar.phase,
-          phaseEmoji: lunar.phaseEmoji,
-          illumination: lunar.illumination,
-          isWaxing: lunar.isWaxing,
-          dayInCycle: lunar.dayInCycle,
-        },
-        season,
-        daylight,
-      };
+      return this.buildDerivedContext(date, latitude, {
+        temperature: weather.temperature,
+        humidity: weather.humidity,
+        precipitation: weather.precipitation || 0,
+        windSpeed: weather.windSpeed || 0,
+        condition: weather.condition || 'unknown',
+        pressure: weather.pressure || 1013,
+        source: weather.source || 'fallback',
+      }, lunar);
     } catch (error) {
       console.error('Error getting operation context:', error);
       
       // Fallback con dati minimi
-      return this.getMinimalContext(date);
+      return this.buildFallbackContext(date, latitude);
     }
   }
 
-  /**
-   * Contesto minimo quando i servizi non sono disponibili
-   */
-  private getMinimalContext(date: Date): OperationContext {
-    const lunar = this.lunarService.getLunarPhase(date);
-    
+  private buildDerivedContext(
+    date: Date,
+    latitude: number,
+    weather: OperationContext['weather'],
+    lunar = this.lunarService.getLunarPhase(date)
+  ): OperationContext {
     return {
       timestamp: date.toISOString(),
-      weather: {
-        temperature: 20,
-        humidity: 60,
-        precipitation: 0,
-        windSpeed: 0,
-        condition: 'unknown',
-        pressure: 1013,
-        source: 'fallback',
-      },
+      weather,
       lunar: {
         phase: lunar.phase,
         phaseEmoji: lunar.phaseEmoji,
@@ -115,11 +125,7 @@ class OperationContextService {
         dayInCycle: lunar.dayInCycle,
       },
       season: this.getSeason(date),
-      daylight: {
-        sunrise: '06:00',
-        sunset: '18:00',
-        hoursOfLight: 12,
-      },
+      daylight: this.calculateDaylight(latitude, date),
     };
   }
 

@@ -8,11 +8,10 @@ import { Garden } from '@/types'
 import { GardenPlant } from '@/types/individualPlant'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { 
-  integratedFieldOperationsService, 
-  FieldRowConfiguration,
-  IntegratedOperationRequest
+  FieldRowConfiguration
 } from '@/services/integratedFieldOperationsService'
 import { createOperationContextService } from '@/services/operationContextService'
+import { executeFieldRowOperationThroughUnifiedService } from '@/services/operationExecutionBridgeService'
 import { 
   Zap, 
   Scissors, 
@@ -195,72 +194,111 @@ export const QuickOperationModal: React.FC<QuickOperationModalProps> = ({
         ? await operationContextService.getOperationContext(latitude, longitude, validTimestamp)
         : undefined
 
-      // Crea richiesta operazione
-      const request: IntegratedOperationRequest = {
-        gardenId: garden.id,
-        fieldRowIds: [fieldRowId],
-        operationType,
-        scheduledDate: `${operationData.date}T${operationData.time}:00`,
-        config: {
-          // Fertilizzazione
-          fertilizerType: operationType === 'fertilization' ? operationData.fertilizerType : undefined,
-          dosagePerPlant: operationType === 'fertilization' ? operationData.dosagePerPlant : undefined,
-          totalDosage: operationType === 'fertilization' ? totalDosage : undefined,
-          fertilizerMethod: operationType === 'fertilization' ? operationData.applicationMethod : undefined,
-          
-          // Trattamento
-          treatmentType: operationType === 'treatment' ? operationData.treatmentType : undefined,
-          productName: operationType === 'treatment' ? operationData.productName : undefined,
-          activeIngredient: operationType === 'treatment' ? operationData.activeIngredient : undefined,
-          concentration: operationType === 'treatment' ? operationData.concentration : undefined,
-          applicationMethod: operationType === 'treatment' ? operationData.applicationMethod : undefined,
-          
-          // Lavorazione
-          cultivationType: operationType === 'cultivation' ? operationData.cultivationType : undefined,
-          tools: operationType === 'cultivation' ? operationData.tools : undefined
-        },
-        plantApplication: {
-          applyToAllPlants: true
-        },
-        notes: `${operationData.notes}\n\nCondizioni meteo:\n- Temperatura: ${operationData.temperature}°C\n- Umidità: ${operationData.humidity}%\n- Vento: ${operationData.windSpeed} km/h\n- Condizioni: ${operationData.weatherCondition}`.trim(),
-        sourceType: 'manual',
-        actorType: 'manual',
-        contextSnapshot: context,
-        weatherConditions: context
-          ? {
-              temp: context.weather.temperature,
-              humidity: context.weather.humidity,
-              wind: `${context.weather.windSpeed} km/h`,
-              condition: context.weather.condition,
-              precipitation: context.weather.precipitation,
-              pressure: context.weather.pressure,
-              source: context.weather.source
-            }
-          : {
-              temp: operationData.temperature,
-              humidity: operationData.humidity,
-              wind: `${operationData.windSpeed} km/h`,
-              condition: operationData.weatherCondition,
-              source: weatherData ? 'forecast' : 'manual'
-            },
-        geoSnapshot: {
-          latitude,
-          longitude,
-          altitudeMeters: garden.altitudeMeters,
-          sunExposure: garden.sunExposure,
-          aspectDirection: garden.aspectDirection,
-          obstacles: Array.isArray(garden.obstacles) ? garden.obstacles : undefined,
-          source: latitude !== undefined && longitude !== undefined ? 'garden_coordinates' : 'not_available'
+      const weatherConditions = context
+        ? {
+            temp: context.weather.temperature,
+            humidity: context.weather.humidity,
+            wind: `${context.weather.windSpeed} km/h`,
+            condition: context.weather.condition,
+            precipitation: context.weather.precipitation,
+            pressure: context.weather.pressure,
+            source: context.weather.source
+          }
+        : {
+            temp: operationData.temperature,
+            humidity: operationData.humidity,
+            wind: `${operationData.windSpeed} km/h`,
+            condition: operationData.weatherCondition,
+            source: weatherData ? 'forecast' : 'manual'
+          }
+
+      const unifiedOperationType =
+        operationType === 'fertilization'
+          ? 'fertilizing'
+          : operationType === 'treatment'
+            ? 'treatment'
+            : 'work'
+
+      const quantity =
+        operationType === 'fertilization'
+          ? totalDosage
+          : operationType === 'treatment'
+            ? Math.round(fieldRowPlants.length * 0.5 * 100) / 100
+            : 1
+
+      const unit =
+        operationType === 'fertilization'
+          ? 'g'
+          : operationType === 'treatment'
+            ? 'L'
+            : 'sessione'
+
+      const productName =
+        operationType === 'fertilization'
+          ? operationData.fertilizerType
+          : operationType === 'treatment'
+            ? operationData.productName
+            : operationData.cultivationType
+
+      const notes = [
+        operationData.notes || undefined,
+        `Filare: ${fieldRow.name}`,
+        operationType === 'fertilization'
+          ? `Dose/pianta: ${operationData.dosagePerPlant} g | Metodo: ${operationData.applicationMethod}`
+          : undefined,
+        operationType === 'treatment'
+          ? `Tipo: ${operationData.treatmentType} | Principio attivo: ${operationData.activeIngredient} | Concentrazione: ${operationData.concentration}% | Applicazione: ${operationData.applicationMethod}`
+          : undefined,
+        operationType === 'cultivation'
+          ? `Lavorazione: ${operationData.cultivationType} | Attrezzi: ${operationData.tools}`
+          : undefined,
+        `Meteo: ${weatherConditions.temp}°C, ${weatherConditions.humidity}% umidità, ${weatherConditions.wind}, ${weatherConditions.condition}`
+      ].filter(Boolean).join('\n')
+
+      const unifiedResponse = await executeFieldRowOperationThroughUnifiedService(
+        storageProvider,
+        {
+          gardenId: garden.id,
+          fieldRowId,
+          operationType: unifiedOperationType,
+          operationDate: operationData.date,
+          operationTime: operationData.time,
+          quantity,
+          unit,
+          productName,
+          method:
+            operationType === 'fertilization' || operationType === 'treatment'
+              ? operationData.applicationMethod
+              : undefined,
+          notes,
+          propagateToPlants: operationType !== 'cultivation',
+          sourceType: 'manual',
+          actorType: 'manual',
+          contextSnapshot: context,
+          weatherConditions,
+          geoSnapshot: {
+            latitude,
+            longitude,
+            altitudeMeters: garden.altitudeMeters,
+            sunExposure: garden.sunExposure,
+            aspectDirection: garden.aspectDirection,
+            obstacles: Array.isArray(garden.obstacles) ? garden.obstacles : undefined,
+            source: latitude !== undefined && longitude !== undefined ? 'garden_coordinates' : 'not_available'
+          }
         }
-      }
-      
-      // Esegui operazione
-      const result = await integratedFieldOperationsService.createIntegratedOperation(
-        request,
-        fieldRows,
-        plants,
-        storageProvider
       )
+
+      const result = {
+        success: unifiedResponse.success,
+        operationsCreated: unifiedResponse.operationsCreated,
+        plantsAffected: operationType === 'cultivation'
+          ? fieldRowPlants.length
+          : unifiedResponse.plantsAffected,
+        fieldRowsAffected: unifiedResponse.rowsAffected || 1,
+        totalAmount: quantity,
+        operationIds: [...unifiedResponse.rowOperationIds, ...unifiedResponse.plantOperationIds],
+        errors: unifiedResponse.errors
+      }
       
       if (result.success) {
         // Salva foto se presenti

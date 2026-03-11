@@ -5,8 +5,7 @@
  */
 
 import { getSupabaseClient } from '@/config/supabase';
-import { weatherService } from './weatherService';
-import { createLunarService } from './lunarService';
+import { createOperationContextService, OperationContext, OperationContextWeatherSource } from './operationContextService';
 
 // ============================================
 // TYPES
@@ -17,7 +16,7 @@ export interface PlantingContext {
     temp: number;
     humidity: number;
     condition: string;
-    source?: 'current' | 'forecast' | 'historical' | 'fallback';
+    source?: OperationContextWeatherSource;
   };
   moon: {
     phase: string;
@@ -128,6 +127,33 @@ function getRequiredSupabaseClient() {
   return supabase;
 }
 
+function mapOperationContextToPlantingContext(
+  context: OperationContext,
+  gps?: { lat: number; lng: number }
+): PlantingContext {
+  return {
+    weather: {
+      temp: context.weather.temperature,
+      humidity: context.weather.humidity,
+      condition: context.weather.condition,
+      source: context.weather.source
+    },
+    moon: {
+      phase: context.lunar.phase,
+      emoji: context.lunar.phaseEmoji,
+      illumination: context.lunar.illumination,
+      waxing: context.lunar.isWaxing
+    },
+    season: context.season,
+    daylight: {
+      sunrise: context.daylight.sunrise,
+      sunset: context.daylight.sunset,
+      hours: context.daylight.hoursOfLight
+    },
+    gps
+  };
+}
+
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
@@ -170,9 +196,11 @@ export async function capturePlantingContext(
   gps?: { lat: number; lng: number },
   plantingDate?: Date
 ): Promise<PlantingContext> {
+  const operationContextService = createOperationContextService();
+  const effectiveDate = plantingDate || new Date();
+
   try {
     const supabase = getRequiredSupabaseClient();
-    const effectiveDate = plantingDate || new Date();
     
     // Ottieni coordinate se non fornite
     let coordinates = gps;
@@ -187,112 +215,24 @@ export async function capturePlantingContext(
         coordinates = garden.gps_coordinates;
       }
     }
-    
-    // Meteo riferito alla data reale dell'impianto
-    const weather = coordinates 
-      ? (weatherService.getWeatherForDate
-          ? await weatherService.getWeatherForDate(coordinates.lat, coordinates.lng, effectiveDate)
-          : await weatherService.getCurrentWeather(coordinates.lat, coordinates.lng))
-      : { temperature: 20, humidity: 60, condition: 'unknown', source: 'fallback' as const };
-    
-    // Fase lunare
-    const lunarService = createLunarService();
-    const lunarPhase = lunarService.getLunarPhase(effectiveDate);
-    const moon = {
-      phase: lunarPhase.phase,
-      emoji: lunarPhase.phaseEmoji,
-      illumination: lunarPhase.illumination,
-      waxing: lunarPhase.isWaxing
-    };
-    
-    // Stagione
-    const month = effectiveDate.getMonth();
-    let season = 'spring';
-    if (month >= 2 && month <= 4) season = 'spring';
-    else if (month >= 5 && month <= 7) season = 'summer';
-    else if (month >= 8 && month <= 10) season = 'autumn';
-    else season = 'winter';
-    
-    // Ore di luce (approssimativo basato su latitudine)
-    const daylight = calculateDaylightHours(coordinates?.lat || 45, effectiveDate);
-    
-    return {
-      weather: {
-        temp: weather.temperature,
-        humidity: weather.humidity,
-        condition: weather.condition,
-        source: weather.source || 'fallback'
-      },
-      moon,
-      season,
-      daylight,
-      gps: coordinates
-    };
+
+    const context = coordinates
+      ? await operationContextService.getOperationContext(
+          coordinates.lat,
+          coordinates.lng,
+          effectiveDate
+        )
+      : operationContextService.buildEstimatedContext(effectiveDate, gps?.lat || 45);
+
+    return mapOperationContextToPlantingContext(context, coordinates);
   } catch (error) {
     console.error('Error capturing planting context:', error);
-    
-    // Fallback con dati di default
-    const lunarService = createLunarService();
-    const fallbackDate = plantingDate || new Date();
-    const lunarPhase = lunarService.getLunarPhase(fallbackDate);
-    
-    return {
-      weather: { temp: 20, humidity: 60, condition: 'unknown', source: 'fallback' },
-      moon: {
-        phase: lunarPhase.phase,
-        emoji: lunarPhase.phaseEmoji,
-        illumination: lunarPhase.illumination,
-        waxing: lunarPhase.isWaxing
-      },
-      season: fallbackDate.getMonth() >= 2 && fallbackDate.getMonth() <= 4
-        ? 'spring'
-        : fallbackDate.getMonth() >= 5 && fallbackDate.getMonth() <= 7
-          ? 'summer'
-          : fallbackDate.getMonth() >= 8 && fallbackDate.getMonth() <= 10
-            ? 'autumn'
-            : 'winter',
-      daylight: calculateDaylightHours(gps?.lat || 45, fallbackDate)
-    };
-  }
-}
 
-function calculateDaylightHours(latitude: number, date: Date = new Date()): {
-  sunrise: string;
-  sunset: string;
-  hours: number;
-} {
-  const month = date.getMonth();
-  
-  // Approssimazione semplificata
-  let hours = 12;
-  
-  // Estate: più ore di luce
-  if (month >= 5 && month <= 7) {
-    hours = 14 + (latitude / 45) * 2;
+    return mapOperationContextToPlantingContext(
+      operationContextService.buildFallbackContext(effectiveDate, gps?.lat || 45),
+      gps
+    );
   }
-  // Inverno: meno ore di luce
-  else if (month >= 11 || month <= 1) {
-    hours = 10 - (latitude / 45) * 2;
-  }
-  // Primavera/Autunno: ore medie
-  else {
-    hours = 12 + (latitude / 45);
-  }
-  
-  const sunriseHour = 12 - hours / 2;
-  const sunsetHour = 12 + hours / 2;
-  
-  const formatHour = (h: number) => {
-    const hour = Math.floor(h);
-    const minutes = Math.floor((h - hour) * 60);
-    return `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-  };
-  
-  return {
-    sunrise: formatHour(sunriseHour),
-    sunset: formatHour(sunsetHour),
-    hours: Math.round(hours * 10) / 10
-  };
 }
 
 // ============================================
