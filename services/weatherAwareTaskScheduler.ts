@@ -293,10 +293,10 @@ export function analyzeTaskWeatherSuitability(
   }
 
   // Verifica pioggia
-  if (taskReqs.noRainRequired && dayForecast.rainForecastMm > 0) {
-    issues.push(`Pioggia prevista: ${dayForecast.rainForecastMm.toFixed(1)}mm (richiesto 0mm)`)
-  } else if (taskReqs.maxRain !== undefined && dayForecast.rainForecastMm > taskReqs.maxRain) {
-    issues.push(`Pioggia eccessiva: ${dayForecast.rainForecastMm.toFixed(1)}mm (max: ${taskReqs.maxRain}mm)`)
+  if (taskReqs.noRainRequired && dayForecast.rainMm > 0) {
+    issues.push(`Pioggia prevista: ${dayForecast.rainMm.toFixed(1)}mm (richiesto 0mm)`)
+  } else if (taskReqs.maxRain !== undefined && dayForecast.rainMm > taskReqs.maxRain) {
+    issues.push(`Pioggia eccessiva: ${dayForecast.rainMm.toFixed(1)}mm (max: ${taskReqs.maxRain}mm)`)
   }
 
   // Verifica vento (se disponibile)
@@ -309,7 +309,7 @@ export function analyzeTaskWeatherSuitability(
     const dayIndex = forecast.findIndex(f => f.date === dateStr)
     if (dayIndex >= 0 && dayIndex < forecast.length - 1) {
       const daysAfter = forecast.slice(dayIndex + 1, dayIndex + 1 + taskReqs.dryDaysAfter)
-      const rainAfter = daysAfter.filter(d => d.rainForecastMm > 5)
+      const rainAfter = daysAfter.filter(d => d.rainMm > 5)
       if (rainAfter.length > 0) {
         issues.push(`Pioggia prevista nelle prossime ${taskReqs.dryDaysAfter} ore (necessario tempo asciutto dopo)`)
       }
@@ -321,7 +321,7 @@ export function analyzeTaskWeatherSuitability(
     const dayIndex = forecast.findIndex(f => f.date === dateStr)
     if (dayIndex > 0) {
       const daysBefore = forecast.slice(Math.max(0, dayIndex - taskReqs.dryDaysBefore), dayIndex)
-      const rainBefore = daysBefore.filter(d => d.rainForecastMm > 10)
+      const rainBefore = daysBefore.filter(d => d.rainMm > 10)
       if (rainBefore.length > 0) {
         issues.push(`Pioggia intensa nei giorni precedenti (terreno troppo bagnato)`)
       }

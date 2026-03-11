@@ -7,6 +7,16 @@
 import { getActiveAPIConfiguration, type WeatherServiceType } from './apiConfigurationService';
 import { WeatherForecast } from './weatherService';
 
+function getConditionFromCode(code: number): string {
+  if (code === 0) return 'Sereno';
+  if ([1, 2, 3].includes(code)) return 'Parzialmente nuvoloso';
+  if ([45, 48].includes(code)) return 'Nebbia';
+  if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return 'Pioggia';
+  if ([71, 73, 75, 85, 86].includes(code)) return 'Neve';
+  if ([95, 96, 99].includes(code)) return 'Temporale';
+  return 'Variabile';
+}
+
 /**
  * Provider Open-Meteo (default, gratuito, no API key)
  */
@@ -38,11 +48,12 @@ async function getOpenMeteoForecast(
   }
 
   return data.daily.time.map((date: string, i: number) => ({
-    temp: (data.daily.temperature_2m_max[i] + data.daily.temperature_2m_min[i]) / 2,
     tempMin: data.daily.temperature_2m_min[i],
     tempMax: data.daily.temperature_2m_max[i],
-    code: data.daily.weathercode[i],
-    rainForecastMm: data.daily.precipitation_sum[i] || 0,
+    condition: getConditionFromCode(data.daily.weathercode[i] || 0),
+    rainMm: data.daily.precipitation_sum[i] || 0,
+    windSpeed: 0,
+    humidity: 0,
     date,
   }));
 }
@@ -73,11 +84,10 @@ async function getWeatherAPIForecast(
   }
 
   return data.forecast.forecastday.map((day: any) => ({
-    temp: day.day.avgtemp_c,
     tempMin: day.day.mintemp_c,
     tempMax: day.day.maxtemp_c,
-    code: day.day.condition.code, // WeatherAPI usa codici diversi
-    rainForecastMm: day.day.totalprecip_mm || 0,
+    condition: day.day.condition?.text || getConditionFromCode(day.day.condition?.code || 0),
+    rainMm: day.day.totalprecip_mm || 0,
     date: day.date,
     humidity: day.day.avghumidity,
     windSpeed: day.day.maxwind_kph,
@@ -135,11 +145,12 @@ async function getOpenWeatherMapForecast(
   });
 
   return Array.from(dailyData.entries()).map(([date, dayData]) => ({
-    temp: dayData.temps.reduce((a, b) => a + b, 0) / dayData.temps.length,
     tempMin: dayData.min,
     tempMax: dayData.max,
-    code: dayData.code,
-    rainForecastMm: dayData.rain,
+    condition: getConditionFromCode(dayData.code),
+    rainMm: dayData.rain,
+    windSpeed: 0,
+    humidity: 0,
     date,
   }));
 }
@@ -195,4 +206,3 @@ export async function getWeatherForecastWithProvider(
   // Fallback a Open-Meteo (default, gratuito)
   return getOpenMeteoForecast(lat, lng, days);
 }
-

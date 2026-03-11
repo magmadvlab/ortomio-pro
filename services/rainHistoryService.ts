@@ -35,20 +35,20 @@ export const aggregateRainHistory = (
   const recentForecasts = forecasts.slice(0, days);
   
   const rainDays: RainHistoryDay[] = recentForecasts
-    .filter(f => f.rainForecastMm > 0)
+    .filter(f => f.rainMm > 0)
     .map(f => {
       const rainEvent: RainEvent = {
         date: f.date || new Date().toISOString().split('T')[0],
-        precipitationMM: f.rainForecastMm,
+        precipitationMM: f.rainMm,
         duration: 60,
-        intensity: f.rainForecastMm > 10 ? 'heavy' : f.rainForecastMm > 5 ? 'moderate' : 'light',
+        intensity: f.rainMm > 10 ? 'heavy' : f.rainMm > 5 ? 'moderate' : 'light',
       };
 
       const effective = calculateEffectiveRain([rainEvent], garden.soilType);
 
       return {
         date: rainEvent.date,
-        precipitationMM: f.rainForecastMm,
+        precipitationMM: f.rainMm,
         effectiveWaterMM: effective.effectiveWater,
         intensity: rainEvent.intensity,
       };
@@ -104,4 +104,3 @@ export const shouldSkipIrrigation = (
     reason: 'Nessuna pioggia significativa. Irrigazione necessaria.',
   };
 };
-
