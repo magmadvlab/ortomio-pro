@@ -65,7 +65,7 @@ export default function TreatmentTracker({
     return colors[severity]
   }
 
-  const getOutcomeIcon = (status: TreatmentTracking['outcome']['status']) => {
+  const getOutcomeIcon = (status: NonNullable<TreatmentTracking['outcome']>['status']) => {
     switch (status) {
       case 'resolved': return <CheckCircle className="text-green-600" size={20} />
       case 'improving': return <TrendingUp className="text-blue-600" size={20} />

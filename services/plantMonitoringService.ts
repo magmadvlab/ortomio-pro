@@ -1,6 +1,6 @@
 /**
  * Plant Monitoring Service
- * Servizio per gestione foto, maturazione, Brix e tracking cure
+ * Persistenza pragmatica lato client per foto, maturazione, Brix e tracking trattamenti.
  */
 
 import {
@@ -15,23 +15,220 @@ import {
   BrixMeasurementRequest
 } from '@/types/plantMonitoring'
 
-/**
- * GESTIONE FOTO
- */
+type MonitoringStore = {
+  photos: PlantPhoto[]
+  maturityStages: MaturityStage[]
+  treatments: TreatmentTracking[]
+  brixHistory: BrixHistory[]
+}
+
+const STORE_KEY = 'ortomio:plant-monitoring:v1'
+
+const emptyStore = (): MonitoringStore => ({
+  photos: [],
+  maturityStages: [],
+  treatments: [],
+  brixHistory: []
+})
+
+let memoryStore: MonitoringStore = emptyStore()
+
+function isBrowser(): boolean {
+  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+}
+
+function readStore(): MonitoringStore {
+  if (!isBrowser()) {
+    return memoryStore
+  }
+
+  const raw = window.localStorage.getItem(STORE_KEY)
+  if (!raw) {
+    return emptyStore()
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<MonitoringStore>
+    return {
+      photos: parsed.photos || [],
+      maturityStages: parsed.maturityStages || [],
+      treatments: parsed.treatments || [],
+      brixHistory: parsed.brixHistory || []
+    }
+  } catch (error) {
+    console.error('Error parsing plant monitoring store:', error)
+    return emptyStore()
+  }
+}
+
+function writeStore(store: MonitoringStore): void {
+  memoryStore = store
+  if (!isBrowser()) {
+    return
+  }
+
+  window.localStorage.setItem(STORE_KEY, JSON.stringify(store))
+}
+
+function updateStore<T>(updater: (store: MonitoringStore) => T): T {
+  const store = readStore()
+  const result = updater(store)
+  writeStore(store)
+  return result
+}
+
+function sortByDateDesc<T>(items: T[], selector: (item: T) => string): T[] {
+  return [...items].sort((a, b) => new Date(selector(b)).getTime() - new Date(selector(a)).getTime())
+}
+
+function createPhotoTypeStats(): Record<PlantPhoto['photoType'], number> {
+  return {
+    general: 0,
+    health_issue: 0,
+    treatment_before: 0,
+    treatment_after: 0,
+    maturity_check: 0,
+    harvest: 0,
+    growth_progress: 0,
+    brix_measurement: 0
+  }
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value))
+}
+
+function hashString(value: string): number {
+  let hash = 0
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) % 100000
+  }
+  return Math.abs(hash)
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '')
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
+}
+
+function inferPhotoWeather(capturedAt: string): PlantPhoto['weather'] {
+  const captured = new Date(capturedAt)
+  const month = captured.getMonth() + 1
+  const hour = captured.getHours()
+  const tempBase = month >= 6 && month <= 8 ? 28 : month >= 3 && month <= 5 ? 20 : 12
+  const humidityBase = month >= 6 && month <= 8 ? 55 : 70
+
+  return {
+    temp: clamp(tempBase + (hour >= 12 && hour <= 16 ? 4 : 0), 4, 40),
+    humidity: clamp(humidityBase - (hour >= 12 && hour <= 16 ? 8 : 0), 30, 95),
+    conditions: month >= 10 || month <= 3 ? 'variabile' : 'sereno'
+  }
+}
+
+function getPhoto(plantId: string, photoId: string): PlantPhoto | undefined {
+  return readStore().photos.find(photo => photo.plantId === plantId && photo.id === photoId)
+}
+
+function updatePhoto(photoId: string, updater: (photo: PlantPhoto) => PlantPhoto): PlantPhoto | null {
+  return updateStore((store) => {
+    const index = store.photos.findIndex(photo => photo.id === photoId)
+    if (index === -1) {
+      return null
+    }
+
+    const updated = updater(store.photos[index])
+    store.photos[index] = updated
+    return updated
+  })
+}
+
+function buildDeterministicAnalysis(photo: PlantPhoto, analysisType: AIPhotoAnalysisRequest['analysisType']): NonNullable<PlantPhoto['aiAnalysis']> {
+  const seed = hashString(`${photo.id}:${analysisType}:${photo.photoType}:${photo.notes || ''}:${(photo.tags || []).join(',')}`)
+  const photoPenalty =
+    photo.photoType === 'health_issue'
+      ? 20
+      : photo.photoType === 'treatment_before'
+        ? 15
+        : photo.photoType === 'treatment_after'
+          ? 5
+          : 0
+
+  const healthScore = clamp(92 - photoPenalty - (seed % 18), 45, 98)
+  const detectedIssues: string[] = []
+
+  if (analysisType === 'disease' || photo.photoType === 'health_issue') {
+    detectedIssues.push('possible_leaf_stress')
+  }
+  if (analysisType === 'pest' && seed % 3 === 0) {
+    detectedIssues.push('possible_pest_damage')
+  }
+  if (analysisType === 'health' && healthScore < 70) {
+    detectedIssues.push('possible_nutrient_deficiency')
+  }
+
+  const recommendations =
+    detectedIssues.length === 0
+      ? ['Continuare il monitoraggio fotografico periodico']
+      : [
+          'Verificare la pianta in campo entro 24-48 ore',
+          'Confrontare la foto con osservazioni precedenti',
+          'Collegare l esito a una osservazione o trattamento reale'
+        ]
+
+  return {
+    healthScore,
+    detectedIssues,
+    confidence: Number((0.62 + (seed % 25) / 100).toFixed(2)),
+    recommendations,
+    analyzedAt: new Date().toISOString()
+  }
+}
+
+function buildDeterministicBrix(photo: PlantPhoto): NonNullable<PlantPhoto['brixMeasurement']> {
+  const seed = hashString(`${photo.id}:brix:${photo.photoType}`)
+  const value = Number((10 + (seed % 90) / 10).toFixed(1))
+
+  return {
+    value,
+    measurementMethod: 'ai_estimation',
+    confidence: Number((0.55 + (seed % 20) / 100).toFixed(2)),
+    location: 'fruit_center',
+    measuredAt: new Date().toISOString()
+  }
+}
+
+function buildDeterministicMaturity(photo: PlantPhoto): {
+  stage: MaturityStage['stage']
+  percentage: number
+  confidence: number
+} {
+  const seed = hashString(`${photo.id}:maturity:${photo.photoType}`)
+  const percentage = clamp(25 + (seed % 71), 0, 100)
+
+  let stage: MaturityStage['stage'] = 'immature'
+  if (percentage >= 95) stage = 'overripe'
+  else if (percentage >= 80) stage = 'mature'
+  else if (percentage >= 60) stage = 'veraison'
+  else if (percentage >= 35) stage = 'fruit_set'
+
+  return {
+    stage,
+    percentage,
+    confidence: Number((0.6 + (seed % 18) / 100).toFixed(2))
+  }
+}
+
 export const plantPhotoService = {
-  /**
-   * Carica foto pianta
-   */
   async uploadPhoto(request: PhotoUploadRequest): Promise<PlantPhoto> {
-    // TODO: Implementare upload su Supabase Storage
-    const photoId = crypto.randomUUID()
     const now = new Date().toISOString()
-    
-    // Simula upload
-    const url = URL.createObjectURL(request.file)
-    
+    const url = await readFileAsDataUrl(request.file)
+
     const photo: PlantPhoto = {
-      id: photoId,
+      id: crypto.randomUUID(),
       plantId: request.plantId,
       gardenId: request.gardenId,
       url,
@@ -41,146 +238,136 @@ export const plantPhotoService = {
       linkedOperationId: request.linkedOperationId,
       isBeforePhoto: request.isBeforePhoto,
       notes: request.notes,
-      tags: request.tags
+      tags: request.tags,
+      weather: inferPhotoWeather(now)
     }
-    
-    // TODO: Salvare in database
-    // await supabase.from('plant_photos').insert(photo)
-    
+
+    updateStore((store) => {
+      store.photos.unshift(photo)
+      return photo
+    })
+
     return photo
   },
 
-  /**
-   * Ottieni foto pianta
-   */
-  async getPlantPhotos(plantId: string, filters?: {
-    photoType?: PlantPhoto['photoType']
-    startDate?: string
-    endDate?: string
-    hasAIAnalysis?: boolean
-    hasBrixMeasurement?: boolean
-  }): Promise<PlantPhoto[]> {
-    // TODO: Implementare query Supabase
-    return []
+  async getPlantPhotos(
+    plantId: string,
+    filters?: {
+      photoType?: PlantPhoto['photoType']
+      startDate?: string
+      endDate?: string
+      hasAIAnalysis?: boolean
+      hasBrixMeasurement?: boolean
+    }
+  ): Promise<PlantPhoto[]> {
+    let photos = readStore().photos.filter(photo => photo.plantId === plantId)
+
+    if (filters?.photoType) {
+      photos = photos.filter(photo => photo.photoType === filters.photoType)
+    }
+    if (filters?.startDate) {
+      photos = photos.filter(photo => photo.capturedAt >= filters.startDate!)
+    }
+    if (filters?.endDate) {
+      photos = photos.filter(photo => photo.capturedAt <= filters.endDate!)
+    }
+    if (filters?.hasAIAnalysis !== undefined) {
+      photos = photos.filter(photo => Boolean(photo.aiAnalysis) === filters.hasAIAnalysis)
+    }
+    if (filters?.hasBrixMeasurement !== undefined) {
+      photos = photos.filter(photo => Boolean(photo.brixMeasurement) === filters.hasBrixMeasurement)
+    }
+
+    return sortByDateDesc(photos, photo => photo.capturedAt)
   },
 
-  /**
-   * Ottieni timeline foto
-   */
-  async getPhotoTimeline(plantId: string): Promise<Array<{
-    date: string
-    photos: PlantPhoto[]
-    events: string[]
-  }>> {
+  async getPhotoTimeline(plantId: string): Promise<Array<{ date: string; photos: PlantPhoto[]; events: string[] }>> {
     const photos = await this.getPlantPhotos(plantId)
-    
-    // Raggruppa per data
-    const grouped = photos.reduce((acc, photo) => {
+    const grouped = photos.reduce<Record<string, PlantPhoto[]>>((accumulator, photo) => {
       const date = photo.capturedAt.split('T')[0]
-      if (!acc[date]) {
-        acc[date] = []
+      if (!accumulator[date]) {
+        accumulator[date] = []
       }
-      acc[date].push(photo)
-      return acc
-    }, {} as Record<string, PlantPhoto[]>)
-    
-    // Converti in array ordinato
+      accumulator[date].push(photo)
+      return accumulator
+    }, {})
+
     return Object.entries(grouped)
-      .map(([date, photos]) => ({
+      .map(([date, dailyPhotos]) => ({
         date,
-        photos,
-        events: photos.map(p => p.photoType)
+        photos: sortByDateDesc(dailyPhotos, photo => photo.capturedAt),
+        events: dailyPhotos.map(photo => photo.photoType)
       }))
       .sort((a, b) => b.date.localeCompare(a.date))
   },
 
-  /**
-   * Elimina foto
-   */
   async deletePhoto(photoId: string): Promise<void> {
-    // TODO: Implementare eliminazione da Storage e DB
+    updateStore((store) => {
+      store.photos = store.photos.filter(photo => photo.id !== photoId)
+      store.maturityStages = store.maturityStages.map(stage => ({
+        ...stage,
+        photoIds: stage.photoIds.filter(id => id !== photoId)
+      }))
+      store.treatments = store.treatments.map(tracking => ({
+        ...tracking,
+        beforePhotos: tracking.beforePhotos.filter(id => id !== photoId),
+        afterPhotos: tracking.afterPhotos.filter(item => item.photoId !== photoId)
+      }))
+      store.brixHistory = store.brixHistory.filter(entry => entry.photoId !== photoId)
+    })
   }
 }
 
-/**
- * ANALISI AI FOTO
- */
 export const aiPhotoAnalysisService = {
-  /**
-   * Analizza foto con AI
-   */
   async analyzePhoto(request: AIPhotoAnalysisRequest): Promise<PlantPhoto['aiAnalysis']> {
-    // TODO: Implementare chiamata a servizio AI (OpenAI Vision, Google Vision, etc.)
-    
-    // Simulazione analisi
-    const analysis: PlantPhoto['aiAnalysis'] = {
-      healthScore: Math.floor(Math.random() * 30) + 70, // 70-100
-      detectedIssues: [],
-      confidence: 0.85,
-      recommendations: [],
-      analyzedAt: new Date().toISOString()
+    const photo = readStore().photos.find(item => item.id === request.photoId)
+    if (!photo) {
+      return undefined
     }
-    
-    // Simula rilevamento problemi
-    if (analysis.healthScore! < 80) {
-      analysis.detectedIssues = ['leaf_yellowing', 'possible_nutrient_deficiency']
-      analysis.recommendations = [
-        'Verificare livelli azoto nel terreno',
-        'Considerare concimazione fogliare',
-        'Monitorare irrigazione'
-      ]
-    }
-    
+
+    const analysis = buildDeterministicAnalysis(photo, request.analysisType)
+    updatePhoto(request.photoId, currentPhoto => ({
+      ...currentPhoto,
+      aiAnalysis: analysis
+    }))
+
     return analysis
   },
 
-  /**
-   * Stima Brix da foto (ML avanzato)
-   */
   async estimateBrixFromPhoto(photoId: string): Promise<PlantPhoto['brixMeasurement']> {
-    // TODO: Implementare ML model per stima Brix
-    // Richiede training su dataset foto + misurazioni reali
-    
-    // Simulazione
-    return {
-      value: Math.random() * 10 + 10, // 10-20 Brix
-      measurementMethod: 'ai_estimation',
-      confidence: 0.65, // Bassa confidence per AI estimation
-      location: 'fruit_center',
-      measuredAt: new Date().toISOString()
+    const photo = readStore().photos.find(item => item.id === photoId)
+    if (!photo) {
+      return undefined
     }
+
+    const measurement = buildDeterministicBrix(photo)
+    updatePhoto(photoId, currentPhoto => ({
+      ...currentPhoto,
+      brixMeasurement: measurement
+    }))
+
+    return measurement
   },
 
-  /**
-   * Rileva stadio maturazione da foto
-   */
   async detectMaturityFromPhoto(photoId: string): Promise<{
     stage: MaturityStage['stage']
     percentage: number
     confidence: number
   }> {
-    // TODO: Implementare ML model per rilevamento maturazione
-    
-    // Simulazione
-    const stages: MaturityStage['stage'][] = [
-      'immature', 'veraison', 'mature', 'overripe'
-    ]
-    
-    return {
-      stage: stages[Math.floor(Math.random() * stages.length)],
-      percentage: Math.floor(Math.random() * 100),
-      confidence: 0.75
+    const photo = readStore().photos.find(item => item.id === photoId)
+    if (!photo) {
+      return {
+        stage: 'immature',
+        percentage: 0,
+        confidence: 0
+      }
     }
+
+    return buildDeterministicMaturity(photo)
   }
 }
 
-/**
- * GESTIONE MATURAZIONE
- */
 export const maturityTrackingService = {
-  /**
-   * Registra stadio maturazione
-   */
   async recordMaturityStage(
     plantId: string,
     gardenId: string,
@@ -204,44 +391,38 @@ export const maturityTrackingService = {
       assessedBy: 'user',
       notes: data.notes
     }
-    
-    // Calcola stima giorni a raccolta
+
     if (data.maturityPercentage < 100) {
-      const daysPerPercent = 0.5 // Stima: 0.5 giorni per 1% maturazione
-      maturityStage.daysToOptimalHarvest = Math.ceil(
-        (100 - data.maturityPercentage) * daysPerPercent
-      )
-      
+      const daysPerPercent = 0.5
+      maturityStage.daysToOptimalHarvest = Math.ceil((100 - data.maturityPercentage) * daysPerPercent)
       const optimalDate = new Date()
       optimalDate.setDate(optimalDate.getDate() + maturityStage.daysToOptimalHarvest)
       maturityStage.optimalHarvestDate = optimalDate.toISOString().split('T')[0]
+    } else {
+      maturityStage.daysToOptimalHarvest = 0
+      maturityStage.optimalHarvestDate = new Date().toISOString().split('T')[0]
     }
-    
-    // TODO: Salvare in database
-    // await supabase.from('maturity_stages').insert(maturityStage)
-    
+
+    updateStore((store) => {
+      store.maturityStages.unshift(maturityStage)
+      return maturityStage
+    })
+
     return maturityStage
   },
 
-  /**
-   * Ottieni storico maturazione
-   */
   async getMaturityHistory(plantId: string): Promise<MaturityStage[]> {
-    // TODO: Implementare query Supabase
-    return []
+    return sortByDateDesc(
+      readStore().maturityStages.filter(stage => stage.plantId === plantId),
+      stage => stage.assessedAt
+    )
   },
 
-  /**
-   * Ottieni stadio maturazione corrente
-   */
   async getCurrentMaturityStage(plantId: string): Promise<MaturityStage | null> {
     const history = await this.getMaturityHistory(plantId)
-    return history.length > 0 ? history[0] : null
+    return history[0] || null
   },
 
-  /**
-   * Calcola trend maturazione
-   */
   async getMaturityTrend(plantId: string): Promise<{
     currentPercentage: number
     weeklyIncrease: number
@@ -249,41 +430,34 @@ export const maturityTrackingService = {
     trend: 'fast' | 'normal' | 'slow'
   }> {
     const history = await this.getMaturityHistory(plantId)
-    
+
     if (history.length < 2) {
       return {
         currentPercentage: history[0]?.maturityPercentage || 0,
         weeklyIncrease: 0,
-        projectedHarvestDate: new Date().toISOString().split('T')[0],
+        projectedHarvestDate: history[0]?.optimalHarvestDate || new Date().toISOString().split('T')[0],
         trend: 'normal'
       }
     }
-    
-    // Calcola incremento settimanale
+
     const recent = history.slice(0, 2)
-    const daysDiff = Math.abs(
-      new Date(recent[0].assessedAt).getTime() - 
-      new Date(recent[1].assessedAt).getTime()
-    ) / (1000 * 60 * 60 * 24)
-    
+    const daysDiff = Math.max(
+      1,
+      Math.abs(new Date(recent[0].assessedAt).getTime() - new Date(recent[1].assessedAt).getTime()) / (1000 * 60 * 60 * 24)
+    )
     const percentageDiff = recent[0].maturityPercentage - recent[1].maturityPercentage
     const weeklyIncrease = (percentageDiff / daysDiff) * 7
-    
-    // Proietta data raccolta
-    const currentPercentage = recent[0].maturityPercentage
-    const remainingPercentage = 100 - currentPercentage
-    const daysToHarvest = (remainingPercentage / weeklyIncrease) * 7
-    
+    const remainingPercentage = Math.max(0, 100 - recent[0].maturityPercentage)
+    const daysToHarvest = weeklyIncrease > 0 ? (remainingPercentage / weeklyIncrease) * 7 : 7
     const projectedDate = new Date()
-    projectedDate.setDate(projectedDate.getDate() + daysToHarvest)
-    
-    // Determina trend
+    projectedDate.setDate(projectedDate.getDate() + Math.max(0, Math.ceil(daysToHarvest)))
+
     let trend: 'fast' | 'normal' | 'slow' = 'normal'
     if (weeklyIncrease > 15) trend = 'fast'
     else if (weeklyIncrease < 5) trend = 'slow'
-    
+
     return {
-      currentPercentage,
+      currentPercentage: recent[0].maturityPercentage,
       weeklyIncrease: Math.round(weeklyIncrease * 10) / 10,
       projectedHarvestDate: projectedDate.toISOString().split('T')[0],
       trend
@@ -291,13 +465,7 @@ export const maturityTrackingService = {
   }
 }
 
-/**
- * TRACKING CURE E TRATTAMENTI
- */
 export const treatmentTrackingService = {
-  /**
-   * Inizia tracking trattamento
-   */
   async startTreatmentTracking(
     plantId: string,
     gardenId: string,
@@ -328,16 +496,15 @@ export const treatmentTrackingService = {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
-    
-    // TODO: Salvare in database
-    // await supabase.from('treatment_tracking').insert(tracking)
-    
+
+    updateStore((store) => {
+      store.treatments.unshift(tracking)
+      return tracking
+    })
+
     return tracking
   },
 
-  /**
-   * Aggiungi foto after
-   */
   async addAfterPhoto(
     trackingId: string,
     photoId: string,
@@ -345,35 +512,46 @@ export const treatmentTrackingService = {
     improvementScore?: number,
     notes?: string
   ): Promise<void> {
-    // TODO: Implementare update in database
-    // await supabase.from('treatment_tracking')
-    //   .update({
-    //     after_photos: [...existing, { photoId, daysAfterTreatment, improvementScore, notes }]
-    //   })
-    //   .eq('id', trackingId)
+    updateStore((store) => {
+      store.treatments = store.treatments.map(tracking =>
+        tracking.id === trackingId
+          ? {
+              ...tracking,
+              afterPhotos: [
+                ...tracking.afterPhotos,
+                { photoId, daysAfterTreatment, improvementScore, notes }
+              ],
+              updatedAt: new Date().toISOString()
+            }
+          : tracking
+      )
+    })
   },
 
-  /**
-   * Completa tracking con outcome
-   */
   async completeTreatmentTracking(
     trackingId: string,
     outcome: TreatmentTracking['outcome']
   ): Promise<void> {
-    // TODO: Implementare update in database
+    updateStore((store) => {
+      store.treatments = store.treatments.map(tracking =>
+        tracking.id === trackingId
+          ? {
+              ...tracking,
+              outcome,
+              updatedAt: new Date().toISOString()
+            }
+          : tracking
+      )
+    })
   },
 
-  /**
-   * Ottieni tracking attivi
-   */
   async getActiveTreatments(plantId: string): Promise<TreatmentTracking[]> {
-    // TODO: Implementare query Supabase
-    return []
+    const treatments = readStore().treatments.filter(tracking =>
+      tracking.plantId === plantId && tracking.outcome?.status !== 'resolved'
+    )
+    return sortByDateDesc(treatments, tracking => tracking.updatedAt)
   },
 
-  /**
-   * Calcola efficacia trattamenti
-   */
   async calculateTreatmentEffectiveness(plantId: string): Promise<{
     totalTreatments: number
     resolved: number
@@ -383,26 +561,32 @@ export const treatmentTrackingService = {
     avgEffectiveness: number
     avgDaysToResolution: number
   }> {
-    // TODO: Implementare analisi da database
+    const treatments = readStore().treatments.filter(tracking => tracking.plantId === plantId)
+    const completed = treatments.filter(tracking => tracking.outcome)
+    const effectivenessValues = completed.map(tracking => tracking.outcome?.effectiveness || 0)
+    const resolutionDays = completed
+      .filter(tracking => tracking.outcome?.daysToResolution !== undefined)
+      .map(tracking => tracking.outcome!.daysToResolution!)
+
     return {
-      totalTreatments: 0,
-      resolved: 0,
-      improving: 0,
-      noChange: 0,
-      worsening: 0,
-      avgEffectiveness: 0,
-      avgDaysToResolution: 0
+      totalTreatments: treatments.length,
+      resolved: completed.filter(tracking => tracking.outcome?.status === 'resolved').length,
+      improving: completed.filter(tracking => tracking.outcome?.status === 'improving').length,
+      noChange: completed.filter(tracking => tracking.outcome?.status === 'no_change').length,
+      worsening: completed.filter(tracking => tracking.outcome?.status === 'worsening').length,
+      avgEffectiveness:
+        effectivenessValues.length > 0
+          ? Math.round(effectivenessValues.reduce((sum, value) => sum + value, 0) / effectivenessValues.length)
+          : 0,
+      avgDaysToResolution:
+        resolutionDays.length > 0
+          ? Math.round(resolutionDays.reduce((sum, value) => sum + value, 0) / resolutionDays.length)
+          : 0
     }
   }
 }
 
-/**
- * GESTIONE BRIX
- */
 export const brixManagementService = {
-  /**
-   * Registra misurazione Brix
-   */
   async recordBrixMeasurement(request: BrixMeasurementRequest): Promise<BrixHistory> {
     const measurement: BrixHistory = {
       id: crypto.randomUUID(),
@@ -416,27 +600,37 @@ export const brixManagementService = {
         fruitNumber: request.fruitNumber
       },
       photoId: request.photoId,
-      measuredBy: 'current_user', // TODO: Get from auth
+      measuredBy: 'current_user',
       notes: request.notes
     }
-    
-    // TODO: Salvare in database
-    // await supabase.from('brix_history').insert(measurement)
-    
+
+    updateStore((store) => {
+      store.brixHistory.unshift(measurement)
+      return measurement
+    })
+
+    if (request.photoId) {
+      updatePhoto(request.photoId, photo => ({
+        ...photo,
+        brixMeasurement: {
+          value: request.value,
+          measurementMethod: request.method,
+          location: 'fruit_center',
+          measuredAt: measurement.measurementDate
+        }
+      }))
+    }
+
     return measurement
   },
 
-  /**
-   * Ottieni storico Brix
-   */
   async getBrixHistory(plantId: string): Promise<BrixHistory[]> {
-    // TODO: Implementare query Supabase
-    return []
+    return sortByDateDesc(
+      readStore().brixHistory.filter(item => item.plantId === plantId),
+      item => item.measurementDate
+    )
   },
 
-  /**
-   * Calcola trend Brix
-   */
   async getBrixTrend(plantId: string): Promise<{
     current: number
     average: number
@@ -446,42 +640,32 @@ export const brixManagementService = {
     weeklyIncrease: number
   }> {
     const history = await this.getBrixHistory(plantId)
-    
     if (history.length === 0) {
-      return {
-        current: 0,
-        average: 0,
-        min: 0,
-        max: 0,
-        trend: 'stable',
-        weeklyIncrease: 0
-      }
+      return { current: 0, average: 0, min: 0, max: 0, trend: 'stable', weeklyIncrease: 0 }
     }
-    
-    const values = history.map(h => h.brixValue)
+
+    const values = history.map(item => item.brixValue)
     const current = values[0]
-    const average = values.reduce((sum, v) => sum + v, 0) / values.length
+    const average = values.reduce((sum, value) => sum + value, 0) / values.length
     const min = Math.min(...values)
     const max = Math.max(...values)
-    
-    // Calcola trend
+
     let trend: 'increasing' | 'stable' | 'decreasing' = 'stable'
     let weeklyIncrease = 0
-    
+
     if (history.length >= 2) {
       const recent = history.slice(0, 2)
-      const daysDiff = Math.abs(
-        new Date(recent[0].measurementDate).getTime() - 
-        new Date(recent[1].measurementDate).getTime()
-      ) / (1000 * 60 * 60 * 24)
-      
+      const daysDiff = Math.max(
+        1,
+        Math.abs(new Date(recent[0].measurementDate).getTime() - new Date(recent[1].measurementDate).getTime()) / (1000 * 60 * 60 * 24)
+      )
       const brixDiff = recent[0].brixValue - recent[1].brixValue
       weeklyIncrease = (brixDiff / daysDiff) * 7
-      
+
       if (weeklyIncrease > 0.5) trend = 'increasing'
       else if (weeklyIncrease < -0.5) trend = 'decreasing'
     }
-    
+
     return {
       current: Math.round(current * 10) / 10,
       average: Math.round(average * 10) / 10,
@@ -493,60 +677,46 @@ export const brixManagementService = {
   }
 }
 
-/**
- * RACCOMANDAZIONI RACCOLTA
- */
 export const harvestRecommendationService = {
-  /**
-   * Genera raccomandazione raccolta
-   */
   async generateHarvestRecommendation(
     plantId: string,
     gardenId: string
   ): Promise<HarvestRecommendation> {
-    // Ottieni dati necessari
     const [maturityStage, brixTrend] = await Promise.all([
       maturityTrackingService.getCurrentMaturityStage(plantId),
       brixManagementService.getBrixTrend(plantId)
     ])
-    
+
     const reasons: HarvestRecommendation['reasons'] = []
     let confidence = 50
-    
-    // Analizza Brix
+
     if (brixTrend.current > 0) {
-      const brixFactor = {
-        factor: 'brix_level' as const,
+      reasons.push({
+        factor: 'brix_level',
         value: brixTrend.current,
         weight: 0.4,
         description: `Livello Brix attuale: ${brixTrend.current}°`
-      }
-      reasons.push(brixFactor)
-      
+      })
       if (brixTrend.current >= 14) confidence += 20
       else if (brixTrend.current >= 12) confidence += 10
     }
-    
-    // Analizza maturazione
+
     if (maturityStage) {
-      const maturityFactor = {
-        factor: 'maturity_stage' as const,
+      reasons.push({
+        factor: 'maturity_stage',
         value: maturityStage.maturityPercentage,
         weight: 0.3,
         description: `Maturazione: ${maturityStage.maturityPercentage}%`
-      }
-      reasons.push(maturityFactor)
-      
+      })
       if (maturityStage.maturityPercentage >= 90) confidence += 20
       else if (maturityStage.maturityPercentage >= 80) confidence += 10
     }
-    
-    // Calcola data raccolta
+
     const daysToHarvest = maturityStage?.daysToOptimalHarvest || 7
     const recommendedDate = new Date()
     recommendedDate.setDate(recommendedDate.getDate() + daysToHarvest)
-    
-    const recommendation: HarvestRecommendation = {
+
+    return {
       id: crypto.randomUUID(),
       plantId,
       gardenId,
@@ -560,7 +730,7 @@ export const harvestRecommendationService = {
       },
       expectedQuality: {
         grade: brixTrend.current >= 14 ? 'premium' : brixTrend.current >= 12 ? 'excellent' : 'good',
-        brixRange: { min: brixTrend.current - 1, max: brixTrend.current + 1 },
+        brixRange: { min: Math.max(0, brixTrend.current - 1), max: brixTrend.current + 1 },
         shelfLife: 7,
         marketValue: brixTrend.current >= 14 ? 3.5 : brixTrend.current >= 12 ? 2.8 : 2.2
       },
@@ -569,47 +739,77 @@ export const harvestRecommendationService = {
       generatedBy: 'ai',
       lastUpdated: new Date().toISOString()
     }
-    
-    return recommendation
   }
 }
 
-/**
- * DASHBOARD MONITORAGGIO
- */
 export const monitoringDashboardService = {
-  /**
-   * Ottieni dashboard completa
-   */
   async getPlantMonitoringDashboard(plantId: string): Promise<PlantMonitoringDashboard> {
-    // TODO: Implementare aggregazione dati da database
-    
+    const [photos, currentMaturity, brixTrend, activeTreatments, effectiveness, recommendation] = await Promise.all([
+      plantPhotoService.getPlantPhotos(plantId),
+      maturityTrackingService.getCurrentMaturityStage(plantId),
+      brixManagementService.getBrixTrend(plantId),
+      treatmentTrackingService.getActiveTreatments(plantId),
+      treatmentTrackingService.calculateTreatmentEffectiveness(plantId),
+      harvestRecommendationService.generateHarvestRecommendation(plantId, '')
+    ])
+
+    const photoStats = createPhotoTypeStats()
+    photos.forEach(photo => {
+      photoStats[photo.photoType] += 1
+    })
+
+    const recommendationDate = new Date(recommendation.recommendedDate)
+    const daysUntil = Math.ceil((recommendationDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    const harvestStatus: PlantMonitoringDashboard['harvestRecommendation'] = {
+      daysUntil,
+      confidence: recommendation.confidence,
+      status:
+        daysUntil > 7 ? 'too_early'
+        : daysUntil > 2 ? 'approaching'
+        : daysUntil >= 0 ? 'optimal'
+        : daysUntil >= -3 ? 'urgent'
+        : 'overdue'
+    }
+
+    const healthHistory = photos
+      .filter(photo => photo.aiAnalysis?.healthScore !== undefined)
+      .map(photo => ({
+        date: photo.capturedAt,
+        score: photo.aiAnalysis!.healthScore!,
+        source: 'ai' as const
+      }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
     return {
       plantId,
-      plantCode: 'F1-P001',
-      plantName: 'Pomodoro',
+      plantCode: `PL-${plantId.slice(0, 8)}`,
+      plantName: 'Pianta monitorata',
       photoStats: {
-        total: 0,
-        byType: {} as any,
-        hasAIAnalysis: 0,
-        hasBrixMeasurements: 0
+        total: photos.length,
+        byType: photoStats,
+        lastPhotoDate: photos[0]?.capturedAt,
+        hasAIAnalysis: photos.filter(photo => photo.aiAnalysis).length,
+        hasBrixMeasurements: photos.filter(photo => photo.brixMeasurement).length
       },
       currentMaturity: {
-        stage: 'immature',
-        percentage: 0,
-        lastAssessment: new Date().toISOString()
+        stage: currentMaturity?.stage || 'immature',
+        percentage: currentMaturity?.maturityPercentage || 0,
+        daysToHarvest: currentMaturity?.daysToOptimalHarvest,
+        lastAssessment: currentMaturity?.assessedAt || new Date().toISOString()
       },
       brixTrend: {
-        average: 0,
-        min: 0,
-        max: 0,
-        trend: 'stable',
-        measurements: 0
+        current: brixTrend.current || undefined,
+        average: brixTrend.average,
+        min: brixTrend.min,
+        max: brixTrend.max,
+        trend: brixTrend.trend,
+        measurements: (await brixManagementService.getBrixHistory(plantId)).length
       },
-      activeIssues: 0,
-      resolvedIssues: 0,
-      treatmentEffectiveness: 0,
-      healthHistory: []
+      activeIssues: activeTreatments.length,
+      resolvedIssues: effectiveness.resolved,
+      treatmentEffectiveness: effectiveness.avgEffectiveness,
+      harvestRecommendation: harvestStatus,
+      healthHistory
     }
   }
 }
