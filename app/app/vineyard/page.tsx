@@ -9,6 +9,7 @@ import VineyardWizard from '@/components/vineyard/VineyardWizard'
 import VineManager from '@/components/vineyard/VineManager'
 import SmartPlantManager from '@/components/plants/SmartPlantManager'
 import { VineyardConfiguration } from '@/types/vineyard'
+import { Garden } from '@/types'
 import { Grape, ArrowLeft, Users, Cog, Calendar, Scissors, Plus } from 'lucide-react'
 import {
   VineyardGardenContext,
@@ -19,8 +20,10 @@ type ViewMode = 'dashboard' | 'vines' | 'individual-plants'
 
 export default function VineyardPage() {
   const { storageProvider } = useStorage()
+  const [allGardens, setAllGardens] = useState<Garden[]>([])
   const [contexts, setContexts] = useState<VineyardGardenContext[]>([])
   const [selectedGardenId, setSelectedGardenId] = useState('')
+  const [creationGardenId, setCreationGardenId] = useState('')
   const [selectedVineyard, setSelectedVineyard] = useState<VineyardConfiguration | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard')
   const [showWizard, setShowWizard] = useState(false)
@@ -69,10 +72,15 @@ export default function VineyardPage() {
     try {
       setLoading(true)
       const allGardens = await storageProvider.getGardens()
+      setAllGardens(allGardens)
       const resolvedContexts = await resolveVineyardGardenContexts(allGardens)
       setContexts(resolvedContexts)
+      if (!creationGardenId && allGardens.length > 0) {
+        setCreationGardenId(allGardens[0].id)
+      }
     } catch (error) {
       console.error('Error loading vineyard gardens:', error)
+      setAllGardens([])
       setContexts([])
     } finally {
       setLoading(false)
@@ -80,6 +88,9 @@ export default function VineyardPage() {
   }
 
   const handleCreateVineyard = () => {
+    if (!selectedGardenId && !creationGardenId) {
+      return
+    }
     setShowWizard(true)
   }
 
@@ -201,7 +212,7 @@ export default function VineyardPage() {
               </div>
             </div>
 
-            {selectedGardenId && viewMode === 'dashboard' && (
+            {(selectedGardenId || creationGardenId) && viewMode === 'dashboard' && (
               <button
                 onClick={handleCreateVineyard}
                 className="inline-flex items-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
@@ -240,7 +251,42 @@ export default function VineyardPage() {
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
             <Grape className="mx-auto text-gray-400 mb-4" size={48} />
             <p className="text-gray-600 mb-2">Nessun vigneto disponibile</p>
-            <p className="text-sm text-gray-500">Configura un giardino o un vigneto per iniziare</p>
+            <p className="text-sm text-gray-500 mb-6">
+              {allGardens.length > 0
+                ? 'Seleziona un giardino esistente e crea il primo vigneto da questa pagina'
+                : 'Prima crea un giardino, poi potrai configurare uno o piu vigneti'}
+            </p>
+            {allGardens.length > 0 ? (
+              <div className="max-w-md mx-auto space-y-4">
+                <select
+                  value={creationGardenId}
+                  onChange={(event) => setCreationGardenId(event.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                >
+                  {allGardens.map((garden) => (
+                    <option key={garden.id} value={garden.id}>
+                      {garden.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleCreateVineyard}
+                  disabled={!creationGardenId}
+                  className="inline-flex items-center justify-center gap-2 w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+                >
+                  <Plus size={18} />
+                  Crea Nuovo Vigneto
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/app/garden?tab=list&action=add"
+                className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Plus size={18} />
+                Crea Nuovo Giardino
+              </Link>
+            )}
           </div>
         ) : viewMode === 'dashboard' ? (
           <VineyardDashboard
@@ -298,9 +344,9 @@ export default function VineyardPage() {
           </div>
         ) : null}
 
-        {showWizard && selectedGardenId && (
+        {showWizard && (selectedGardenId || creationGardenId) && (
           <VineyardWizard
-            gardenId={selectedGardenId}
+            gardenId={selectedGardenId || creationGardenId}
             onComplete={handleWizardComplete}
             onCancel={() => setShowWizard(false)}
           />

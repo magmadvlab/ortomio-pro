@@ -7,6 +7,7 @@ import ProductManager from '@/components/nutrition/ProductManager'
 import TreatmentPlanner from '@/components/nutrition/TreatmentPlanner'
 import NutritionAnalytics from '@/components/nutrition/NutritionAnalytics'
 import InventoryManager from '@/components/nutrition/InventoryManager'
+import type { TreatmentPlannerLaunchRequest } from '@/components/nutrition/TreatmentPlanner'
 import { useState, useEffect } from 'react'
 import { FlaskConical, Droplets, Leaf, Calendar, Plus, BarChart3, X, ArrowLeft, ArrowRight, MapPin, Settings } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
@@ -43,9 +44,9 @@ export default function NutritionPage() {
   const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
   const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'products' | 'treatments' | 'schedule' | 'analytics' | 'inventory'>('dashboard')
-  const [showTreatmentWizard, setShowTreatmentWizard] = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [treatmentConfigs, setTreatmentConfigs] = useState<TreatmentConfig[]>([])
+  const [plannerLaunchRequest, setPlannerLaunchRequest] = useState<TreatmentPlannerLaunchRequest | null>(null)
 
   useEffect(() => {
     const loadGardens = async () => {
@@ -55,7 +56,6 @@ export default function NutritionPage() {
         if (loadedGardens.length > 0) {
           setActiveGarden(loadedGardens[0])
         }
-        // Load existing treatment configs
         loadTreatmentConfigs()
       } catch (error) {
         console.error('Error loading gardens:', error)
@@ -94,6 +94,14 @@ export default function NutritionPage() {
 
   const handleNavigateToInventory = () => {
     setActiveTab('inventory')
+  }
+
+  const openPlanner = (request: Omit<TreatmentPlannerLaunchRequest, 'key'>) => {
+    setActiveTab('treatments')
+    setPlannerLaunchRequest({
+      key: Date.now(),
+      ...request
+    })
   }
 
   return (
@@ -220,7 +228,7 @@ export default function NutritionPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Azioni Rapide</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <button 
-                onClick={() => setShowTreatmentWizard(true)}
+                onClick={() => openPlanner({ viewMode: 'treatments' })}
                 className="flex items-center gap-3 p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
               >
                 <Plus className="text-green-600" size={20} />
@@ -230,7 +238,20 @@ export default function NutritionPage() {
                 </div>
               </button>
               
-              <button className="flex items-center gap-3 p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+              <button
+                onClick={() =>
+                  openPlanner({
+                    viewMode: 'treatments',
+                    initialData: {
+                      treatmentType: 'fertilization',
+                      applicationMethod: 'fertigation',
+                      dosageUnit: 'ml_per_liter',
+                      notes: 'Intervento aperto da azione rapida di irrigazione nutritiva.'
+                    }
+                  })
+                }
+                className="flex items-center gap-3 p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+              >
                 <Droplets className="text-blue-600" size={20} />
                 <div className="text-left">
                   <p className="font-medium text-blue-900">Irrigazione Nutritiva</p>
@@ -238,7 +259,10 @@ export default function NutritionPage() {
                 </div>
               </button>
               
-              <button className="flex items-center gap-3 p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className="flex items-center gap-3 p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+              >
                 <Leaf className="text-purple-600" size={20} />
                 <div className="text-left">
                   <p className="font-medium text-purple-900">Analisi Fogliare</p>
@@ -254,7 +278,11 @@ export default function NutritionPage() {
         <ProductManager garden={activeGarden} />
       )}
       {activeTab === 'treatments' && activeGarden && (
-        <TreatmentPlanner garden={activeGarden} />
+        <TreatmentPlanner
+          garden={activeGarden}
+          launchRequest={plannerLaunchRequest}
+          onLaunchHandled={() => setPlannerLaunchRequest(null)}
+        />
       )}
       {activeTab === 'analytics' && activeGarden && (
         <NutritionAnalytics garden={activeGarden} />
@@ -271,7 +299,7 @@ export default function NutritionPage() {
               Programma e monitora i trattamenti nutrizionali delle tue piante
             </p>
             <button 
-              onClick={() => setShowTreatmentWizard(true)}
+              onClick={() => openPlanner({ viewMode: 'treatments' })}
               className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
             >
               Aggiungi Trattamento
@@ -296,18 +324,6 @@ export default function NutritionPage() {
             </button>
           </div>
         </div>
-      )}
-
-      {/* Treatment Configuration Wizard */}
-      {showTreatmentWizard && (
-        <TreatmentConfigWizard
-          gardens={gardens}
-          onClose={() => setShowTreatmentWizard(false)}
-          onSave={(config) => {
-            setTreatmentConfigs(prev => [...prev, config])
-            setShowTreatmentWizard(false)
-          }}
-        />
       )}
 
       {/* Analytics Modal */}

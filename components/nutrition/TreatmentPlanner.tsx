@@ -38,12 +38,24 @@ import { it } from 'date-fns/locale'
 
 interface TreatmentPlannerProps {
   garden: Garden
+  launchRequest?: TreatmentPlannerLaunchRequest | null
+  onLaunchHandled?: () => void
 }
 
 type ViewMode = 'treatments' | 'schedules'
 type TreatmentStatus = 'all' | 'planned' | 'in_progress' | 'completed' | 'cancelled'
 
-export default function TreatmentPlanner({ garden }: TreatmentPlannerProps) {
+export interface TreatmentPlannerLaunchRequest {
+  key: number
+  viewMode: ViewMode
+  initialData?: Partial<NutritionTreatment> | Partial<NutritionSchedule>
+}
+
+export default function TreatmentPlanner({
+  garden,
+  launchRequest,
+  onLaunchHandled
+}: TreatmentPlannerProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('treatments')
   const [treatments, setTreatments] = useState<NutritionTreatment[]>([])
   const [schedules, setSchedules] = useState<NutritionSchedule[]>([])
@@ -54,10 +66,26 @@ export default function TreatmentPlanner({ garden }: TreatmentPlannerProps) {
   const [showModal, setShowModal] = useState(false)
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create')
   const [selectedItem, setSelectedItem] = useState<NutritionTreatment | NutritionSchedule | null>(null)
+  const [initialModalData, setInitialModalData] = useState<
+    Partial<NutritionTreatment> | Partial<NutritionSchedule> | null
+  >(null)
 
   useEffect(() => {
     loadData()
   }, [garden.id, viewMode])
+
+  useEffect(() => {
+    if (!launchRequest) {
+      return
+    }
+
+    setViewMode(launchRequest.viewMode)
+    setSelectedItem(null)
+    setInitialModalData(launchRequest.initialData || null)
+    setModalMode('create')
+    setShowModal(true)
+    onLaunchHandled?.()
+  }, [launchRequest, onLaunchHandled])
 
   const loadData = async () => {
     try {
@@ -87,18 +115,21 @@ export default function TreatmentPlanner({ garden }: TreatmentPlannerProps) {
 
   const handleCreateTreatment = () => {
     setSelectedItem(null)
+    setInitialModalData(null)
     setModalMode('create')
     setShowModal(true)
   }
 
   const handleEditItem = (item: NutritionTreatment | NutritionSchedule) => {
     setSelectedItem(item)
+    setInitialModalData(null)
     setModalMode('edit')
     setShowModal(true)
   }
 
   const handleViewItem = (item: NutritionTreatment | NutritionSchedule) => {
     setSelectedItem(item)
+    setInitialModalData(null)
     setModalMode('view')
     setShowModal(true)
   }
@@ -353,6 +384,7 @@ export default function TreatmentPlanner({ garden }: TreatmentPlannerProps) {
           mode={modalMode}
           viewMode={viewMode}
           item={selectedItem}
+          initialData={modalMode === 'create' ? initialModalData : null}
           garden={garden}
           products={products}
           onClose={() => setShowModal(false)}
@@ -595,21 +627,50 @@ interface TreatmentModalProps {
   mode: 'create' | 'edit' | 'view'
   viewMode: ViewMode
   item: NutritionTreatment | NutritionSchedule | null
+  initialData?: Partial<NutritionTreatment> | Partial<NutritionSchedule> | null
   garden: Garden
   products: (FertilizerProduct | TreatmentProduct)[]
   onClose: () => void
   onSave: () => void
 }
 
-function TreatmentModal({ mode, viewMode, item, garden, products, onClose, onSave }: TreatmentModalProps) {
+function TreatmentModal({
+  mode,
+  viewMode,
+  item,
+  initialData,
+  garden,
+  products,
+  onClose,
+  onSave
+}: TreatmentModalProps) {
   const [formData, setFormData] = useState<any>({})
   const [saving, setSaving] = useState(false)
 
+  const treatmentProducts = products.filter((product): product is TreatmentProduct => 'treatmentType' in product)
+  const fertilizerProducts = products.filter((product): product is FertilizerProduct => 'fertilizerType' in product)
+  const selectedProduct = products.find((product) => product.id === formData.productId)
+  const selectedScheduleProduct = products.find((product) => product.id === formData.scheduleProductId)
+
   useEffect(() => {
     if (item) {
-      setFormData(item)
+      if (viewMode === 'treatments') {
+        setFormData(item)
+      } else {
+        const schedule = item as NutritionSchedule
+        const primaryTreatment = schedule.treatments[0]
+        setFormData({
+          ...schedule,
+          primaryTimeSlot: schedule.timeSlots?.[0] || '08:00',
+          scheduleProductId: primaryTreatment?.productId || '',
+          scheduleProductName: primaryTreatment?.productName || '',
+          scheduleTreatmentType: primaryTreatment?.treatmentType || 'fertilization',
+          scheduleDosage: primaryTreatment?.dosage || 0,
+          scheduleDosageUnit: primaryTreatment?.dosageUnit || 'ml_per_liter',
+          scheduleApplicationMethod: primaryTreatment?.applicationMethod || 'soil'
+        })
+      }
     } else {
-      // Initialize with default values
       if (viewMode === 'treatments') {
         setFormData({
           gardenId: garden.id,
@@ -623,36 +684,126 @@ function TreatmentModal({ mode, viewMode, item, garden, products, onClose, onSav
           status: 'planned',
           organicCompliant: false,
           followUpRequired: false,
-          calibrationCheck: false
+          calibrationCheck: false,
+          ...initialData
         })
       } else {
         setFormData({
           gardenId: garden.id,
           name: '',
+          description: '',
           scheduleType: 'recurring',
           frequency: 'weekly',
           isActive: true,
-          treatments: []
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: '',
+          primaryTimeSlot: '08:00',
+          scheduleProductId: '',
+          scheduleProductName: '',
+          scheduleTreatmentType: 'fertilization',
+          scheduleDosage: 0,
+          scheduleDosageUnit: 'ml_per_liter',
+          scheduleApplicationMethod: 'soil',
+          treatments: [],
+          executionCount: 0,
+          ...initialData
         })
       }
     }
-  }, [item, viewMode, garden.id])
+  }, [item, viewMode, garden.id, initialData])
 
   const handleSave = async () => {
     try {
       setSaving(true)
       
       if (viewMode === 'treatments') {
+        const treatmentPayload: Omit<NutritionTreatment, 'id' | 'createdAt' | 'updatedAt'> = {
+          gardenId: formData.gardenId || garden.id,
+          zoneId: formData.zoneId,
+          fieldRowId: formData.fieldRowId,
+          sectionId: formData.sectionId,
+          plantIds: formData.plantIds || [],
+          treatmentType: formData.treatmentType,
+          productId: formData.productId,
+          productName: selectedProduct?.name || formData.productName,
+          dosage: Number(formData.dosage) || 0,
+          dosageUnit: formData.dosageUnit,
+          applicationMethod: formData.applicationMethod,
+          mixingInstructions: formData.mixingInstructions,
+          scheduledDate: formData.scheduledDate,
+          actualApplicationDate: formData.actualApplicationDate,
+          applicationTime: formData.applicationTime,
+          weatherConditions: formData.weatherConditions,
+          soilConditions: formData.soilConditions,
+          operatorId: formData.operatorId,
+          operatorName: formData.operatorName,
+          equipmentUsed: formData.equipmentUsed,
+          applicationDurationMinutes: formData.applicationDurationMinutes,
+          calibrationCheck: Boolean(formData.calibrationCheck),
+          mixingRatio: formData.mixingRatio,
+          actualCoverage: formData.actualCoverage,
+          effectiveness: formData.effectiveness,
+          sideEffects: formData.sideEffects || [],
+          plantResponse: formData.plantResponse,
+          followUpRequired: Boolean(formData.followUpRequired),
+          followUpDate: formData.followUpDate,
+          organicCompliant: Boolean(formData.organicCompliant),
+          certificationNotes: formData.certificationNotes,
+          photosBeforeIds: formData.photosBeforeIds || [],
+          photosAfterIds: formData.photosAfterIds || [],
+          productCost: formData.productCost,
+          laborCost: formData.laborCost,
+          equipmentCost: formData.equipmentCost,
+          totalCost: formData.totalCost,
+          notes: formData.notes,
+          status: formData.status
+        }
+
         if (mode === 'create') {
-          await advancedNutritionService.createNutritionTreatment(formData)
+          await advancedNutritionService.createNutritionTreatment(treatmentPayload)
         } else {
-          await advancedNutritionService.updateNutritionTreatment(formData.id, formData)
+          await advancedNutritionService.updateNutritionTreatment(formData.id, treatmentPayload)
         }
       } else {
+        const schedulePayload: Omit<NutritionSchedule, 'id' | 'createdAt' | 'updatedAt'> = {
+          gardenId: formData.gardenId || garden.id,
+          name: formData.name,
+          description: formData.description,
+          zoneId: formData.zoneId,
+          fieldRowId: formData.fieldRowId,
+          sectionId: formData.sectionId,
+          cropType: formData.cropType,
+          scheduleType: formData.scheduleType,
+          isActive: Boolean(formData.isActive),
+          frequency: formData.frequency,
+          interval: formData.interval,
+          daysOfWeek: formData.daysOfWeek || [],
+          timeSlots: formData.primaryTimeSlot ? [formData.primaryTimeSlot] : [],
+          startDate: formData.startDate,
+          endDate: formData.endDate || undefined,
+          seasonalPattern: formData.seasonalPattern,
+          growthStages: formData.growthStages || [],
+          conditions: formData.conditions,
+          treatments: formData.scheduleProductId
+            ? [{
+                productId: formData.scheduleProductId,
+                productName: selectedScheduleProduct?.name || formData.scheduleProductName,
+                treatmentType: formData.scheduleTreatmentType,
+                dosage: Number(formData.scheduleDosage) || 0,
+                dosageUnit: formData.scheduleDosageUnit,
+                applicationMethod: formData.scheduleApplicationMethod,
+                priority: 'medium'
+              }]
+            : [],
+          lastExecutionDate: formData.lastExecutionDate,
+          nextExecutionDate: formData.nextExecutionDate,
+          executionCount: Number(formData.executionCount) || 0
+        }
+
         if (mode === 'create') {
-          await advancedNutritionService.createNutritionSchedule(formData)
+          await advancedNutritionService.createNutritionSchedule(schedulePayload)
         } else {
-          await advancedNutritionService.updateNutritionSchedule(formData.id, formData)
+          await advancedNutritionService.updateNutritionSchedule(formData.id, schedulePayload)
         }
       }
       
@@ -690,15 +841,387 @@ function TreatmentModal({ mode, viewMode, item, garden, products, onClose, onSav
           </button>
         </div>
 
-        {/* Form Content - Simplified for now */}
+        {/* Form Content */}
         <div className="p-6">
-          <div className="text-center py-8">
-            <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Form in sviluppo</h3>
-            <p className="text-gray-600">
-              Il form completo per {viewMode === 'treatments' ? 'trattamenti' : 'programmazioni'} sarà implementato nel prossimo step
-            </p>
-          </div>
+          {viewMode === 'treatments' ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo trattamento</label>
+                  <select
+                    value={formData.treatmentType || 'fertilization'}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, treatmentType: e.target.value }))}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  >
+                    <option value="fertilization">Fertilizzazione</option>
+                    <option value="pest_control">Controllo parassiti</option>
+                    <option value="disease_control">Controllo malattie</option>
+                    <option value="weed_control">Controllo infestanti</option>
+                    <option value="growth_regulation">Regolazione crescita</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Prodotto</label>
+                  <select
+                    value={formData.productId || ''}
+                    onChange={(e) => {
+                      const product = products.find((item) => item.id === e.target.value)
+                      setFormData((prev: any) => ({
+                        ...prev,
+                        productId: e.target.value,
+                        productName: product?.name || '',
+                        dosage: prev.dosage || product?.recommendedDosage || 0,
+                        dosageUnit: prev.dosageUnit || product?.dosageUnit || 'ml_per_liter',
+                        applicationMethod: prev.applicationMethod || product?.applicationMethod || 'spray',
+                        organicCompliant: product ? ('organicApproved' in product ? product.organicApproved : prev.organicCompliant) : prev.organicCompliant
+                      }))
+                    }}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  >
+                    <option value="">Seleziona prodotto</option>
+                    {fertilizerProducts.length > 0 && (
+                      <optgroup label="Fertilizzanti">
+                        {fertilizerProducts.map((product) => (
+                          <option key={product.id} value={product.id}>
+                            {product.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {treatmentProducts.length > 0 && (
+                      <optgroup label="Trattamenti">
+                        {treatmentProducts.map((product) => (
+                          <option key={product.id} value={product.id}>
+                            {product.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Dose</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={formData.dosage ?? 0}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, dosage: Number(e.target.value) || 0 }))}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Unità dose</label>
+                  <select
+                    value={formData.dosageUnit || 'ml_per_liter'}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, dosageUnit: e.target.value }))}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  >
+                    <option value="ml_per_liter">ml/L</option>
+                    <option value="g_per_liter">g/L</option>
+                    <option value="g_per_sqm">g/m²</option>
+                    <option value="kg_per_ha">kg/ha</option>
+                    <option value="l_per_ha">L/ha</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Metodo</label>
+                  <select
+                    value={formData.applicationMethod || 'spray'}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, applicationMethod: e.target.value }))}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  >
+                    <option value="spray">Irrorazione</option>
+                    <option value="soil">Terreno</option>
+                    <option value="foliar">Fogliare</option>
+                    <option value="fertigation">Fertirrigazione</option>
+                    <option value="soil_drench">Soil drench</option>
+                    <option value="granular_broadcast">Granulare</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Data prevista</label>
+                  <input
+                    type="date"
+                    value={formData.scheduledDate || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, scheduledDate: e.target.value }))}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Ora</label>
+                  <input
+                    type="time"
+                    value={formData.applicationTime || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, applicationTime: e.target.value }))}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Stato</label>
+                  <select
+                    value={formData.status || 'planned'}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, status: e.target.value }))}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  >
+                    <option value="planned">Pianificato</option>
+                    <option value="in_progress">In corso</option>
+                    <option value="completed">Completato</option>
+                    <option value="cancelled">Annullato</option>
+                    <option value="postponed">Posticipato</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(formData.organicCompliant)}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, organicCompliant: e.target.checked }))}
+                    disabled={isReadOnly}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  Conforme biologico
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(formData.calibrationCheck)}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, calibrationCheck: e.target.checked }))}
+                    disabled={isReadOnly}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  Calibrazione verificata
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(formData.followUpRequired)}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, followUpRequired: e.target.checked }))}
+                    disabled={isReadOnly}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  Serve follow-up
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Note operative</label>
+                <textarea
+                  rows={4}
+                  value={formData.notes || ''}
+                  onChange={(e) => setFormData((prev: any) => ({ ...prev, notes: e.target.value }))}
+                  disabled={isReadOnly}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  placeholder="Indicazioni applicative, miscela, osservazioni..."
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nome programmazione</label>
+                  <input
+                    type="text"
+                    value={formData.name || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, name: e.target.value }))}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    placeholder="Es. Piano fertirrigazione primavera"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Frequenza</label>
+                  <select
+                    value={formData.frequency || 'weekly'}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, frequency: e.target.value }))}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  >
+                    <option value="daily">Giornaliera</option>
+                    <option value="weekly">Settimanale</option>
+                    <option value="biweekly">Ogni 2 settimane</option>
+                    <option value="monthly">Mensile</option>
+                    <option value="custom">Personalizzata</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Descrizione</label>
+                <textarea
+                  rows={3}
+                  value={formData.description || ''}
+                  onChange={(e) => setFormData((prev: any) => ({ ...prev, description: e.target.value }))}
+                  disabled={isReadOnly}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  placeholder="Obiettivo della programmazione e condizioni di utilizzo"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Data inizio</label>
+                  <input
+                    type="date"
+                    value={formData.startDate || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, startDate: e.target.value }))}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Data fine</label>
+                  <input
+                    type="date"
+                    value={formData.endDate || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, endDate: e.target.value }))}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Ora</label>
+                  <input
+                    type="time"
+                    value={formData.primaryTimeSlot || '08:00'}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, primaryTimeSlot: e.target.value }))}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Prodotto</label>
+                  <select
+                    value={formData.scheduleProductId || ''}
+                    onChange={(e) => {
+                      const product = products.find((item) => item.id === e.target.value)
+                      setFormData((prev: any) => ({
+                        ...prev,
+                        scheduleProductId: e.target.value,
+                        scheduleProductName: product?.name || '',
+                        scheduleDosage: prev.scheduleDosage || product?.recommendedDosage || 0,
+                        scheduleDosageUnit: prev.scheduleDosageUnit || product?.dosageUnit || 'ml_per_liter',
+                        scheduleApplicationMethod: prev.scheduleApplicationMethod || product?.applicationMethod || 'soil'
+                      }))
+                    }}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  >
+                    <option value="">Seleziona prodotto</option>
+                    {fertilizerProducts.length > 0 && (
+                      <optgroup label="Fertilizzanti">
+                        {fertilizerProducts.map((product) => (
+                          <option key={product.id} value={product.id}>
+                            {product.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {treatmentProducts.length > 0 && (
+                      <optgroup label="Trattamenti">
+                        {treatmentProducts.map((product) => (
+                          <option key={product.id} value={product.id}>
+                            {product.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+                  <select
+                    value={formData.scheduleTreatmentType || 'fertilization'}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, scheduleTreatmentType: e.target.value }))}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  >
+                    <option value="fertilization">Fertilizzazione</option>
+                    <option value="pest_control">Controllo parassiti</option>
+                    <option value="disease_control">Controllo malattie</option>
+                    <option value="weed_control">Controllo infestanti</option>
+                    <option value="growth_regulation">Regolazione crescita</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Dose</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={formData.scheduleDosage ?? 0}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, scheduleDosage: Number(e.target.value) || 0 }))}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Unità dose</label>
+                  <select
+                    value={formData.scheduleDosageUnit || 'ml_per_liter'}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, scheduleDosageUnit: e.target.value }))}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  >
+                    <option value="ml_per_liter">ml/L</option>
+                    <option value="g_per_liter">g/L</option>
+                    <option value="g_per_sqm">g/m²</option>
+                    <option value="kg_per_ha">kg/ha</option>
+                    <option value="l_per_ha">L/ha</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Metodo</label>
+                  <select
+                    value={formData.scheduleApplicationMethod || 'soil'}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, scheduleApplicationMethod: e.target.value }))}
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                  >
+                    <option value="soil">Terreno</option>
+                    <option value="foliar">Fogliare</option>
+                    <option value="fertigation">Fertirrigazione</option>
+                    <option value="spray">Irrorazione</option>
+                    <option value="soil_drench">Soil drench</option>
+                  </select>
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={Boolean(formData.isActive)}
+                  onChange={(e) => setFormData((prev: any) => ({ ...prev, isActive: e.target.checked }))}
+                  disabled={isReadOnly}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Programmazione attiva
+              </label>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
