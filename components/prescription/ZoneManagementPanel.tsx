@@ -54,7 +54,7 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
   const loadZoneAnalysis = async (zone: PrescriptionZone) => {
     try {
       setLoading(true);
-      const analysis = await zoneService.analyzeZone(zone, [], []); // TODO: Pass actual NDVI and plant data
+      const analysis = await zoneService.analyzeZone(zone.id);
       setZoneAnalysis(analysis);
     } catch (error) {
       console.error('Error loading zone analysis:', error);
@@ -66,21 +66,30 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
   const handleOptimizeZones = async () => {
     try {
       setLoading(true);
-      const result = await zoneService.optimizeZones(zones);
-      
-      if (result.optimizedZones < zones.length) {
-        const message = `Ottimizzazione completata!\n` +
-          `Zone ridotte: ${zones.length} → ${result.optimizedZones}\n` +
-          `Risparmio stimato: €${result.costSavings}\n` +
-          `Miglioramento qualità: ${result.qualityImprovement}%`;
-        
-        if (confirm(`${message}\n\nApplicare le ottimizzazioni?`)) {
-          // TODO: Apply optimizations
-          alert('Ottimizzazioni applicate con successo!');
-          onUpdate();
-        }
+      const mergeCandidates = zones.filter((zone) => zone.areaSqm < 500);
+      const splitCandidates = zones.filter(
+        (zone) => zone.areaSqm > 20000 || zone.dataQuality < 50 || zone.confidence < 50
+      );
+
+      if (mergeCandidates.length === 0 && splitCandidates.length === 0) {
+        alert('Le zone risultano gia bilanciate. Nessuna ottimizzazione prioritaria rilevata.');
       } else {
-        alert('Le zone sono già ottimizzate al meglio.');
+        const lines = [
+          'Ottimizzazione analitica completata.',
+          '',
+          `Zone da valutare per accorpamento: ${mergeCandidates.length}`,
+          `Zone da valutare per suddivisione o rilievo aggiuntivo: ${splitCandidates.length}`
+        ];
+
+        if (mergeCandidates.length > 0) {
+          lines.push('', `Accorpamento suggerito: ${mergeCandidates.map((zone) => zone.zoneName).join(', ')}`);
+        }
+
+        if (splitCandidates.length > 0) {
+          lines.push('', `Approfondimento suggerito: ${splitCandidates.map((zone) => zone.zoneName).join(', ')}`);
+        }
+
+        alert(lines.join('\n'));
       }
     } catch (error) {
       console.error('Error optimizing zones:', error);
@@ -93,26 +102,48 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
   const handleValidateZones = async () => {
     try {
       setLoading(true);
-      const validation = await zoneService.validateZoneConfiguration(zones);
+      const errors: string[] = [];
+      const warnings: string[] = [];
+      const suggestions: string[] = [];
+
+      zones.forEach((zone) => {
+        if (!zone.prescription?.applicationRate || zone.prescription.applicationRate <= 0) {
+          errors.push(`${zone.zoneName}: dose applicativa non valida`);
+        }
+        if (!zone.areaSqm || zone.areaSqm <= 0) {
+          errors.push(`${zone.zoneName}: area non valida`);
+        }
+        if (zone.confidence < 50) {
+          warnings.push(`${zone.zoneName}: confidenza bassa (${zone.confidence}%)`);
+        }
+        if (zone.dataQuality < 60) {
+          warnings.push(`${zone.zoneName}: qualita dati bassa (${zone.dataQuality}%)`);
+        }
+        if (zone.areaSqm < 500) {
+          suggestions.push(`${zone.zoneName}: area molto piccola, valutare accorpamento`);
+        }
+      });
+
+      const isValid = errors.length === 0;
       
       let message = `Validazione completata!\n\n`;
       
-      if (validation.isValid) {
+      if (isValid) {
         message += '✅ Configurazione valida per l\'applicazione';
       } else {
         message += '⚠️ Problemi rilevati:';
       }
       
-      if (validation.errors.length > 0) {
-        message += `\n\nErrori:\n${validation.errors.join('\n')}`;
+      if (errors.length > 0) {
+        message += `\n\nErrori:\n${errors.join('\n')}`;
       }
       
-      if (validation.warnings.length > 0) {
-        message += `\n\nAvvertenze:\n${validation.warnings.join('\n')}`;
+      if (warnings.length > 0) {
+        message += `\n\nAvvertenze:\n${warnings.join('\n')}`;
       }
       
-      if (validation.suggestions.length > 0) {
-        message += `\n\nSuggerimenti:\n${validation.suggestions.join('\n')}`;
+      if (suggestions.length > 0) {
+        message += `\n\nSuggerimenti:\n${suggestions.join('\n')}`;
       }
       
       alert(message);
@@ -389,78 +420,36 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
                       </div>
                     ) : zoneAnalysis ? (
                       <>
-                        {/* Recommendations */}
                         <div className="bg-green-50 p-4 rounded-lg">
                           <h4 className="font-medium text-green-900 mb-3">Raccomandazioni</h4>
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="text-green-700">Dose raccomandata:</span>
-                              <span className="font-bold text-green-800">
-                                {zoneAnalysis.recommendations.applicationRate} {selectedZone.prescription.unit}
-                              </span>
+                              <span className="text-green-700">Campi rilevati:</span>
+                              <span className="font-bold text-green-800">{zoneAnalysis.statistics.fieldCount}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-green-700">Confidenza:</span>
-                              <span className="font-bold text-green-800">{zoneAnalysis.recommendations.confidence}%</span>
+                              <span className="text-green-700">Filari rilevati:</span>
+                              <span className="font-bold text-green-800">{zoneAnalysis.statistics.rowCount}</span>
                             </div>
                           </div>
-                          
-                          {zoneAnalysis.recommendations.reasoning.length > 0 && (
-                            <div className="mt-4">
-                              <p className="text-sm text-green-700 font-medium mb-2">Motivazioni:</p>
-                              <ul className="text-sm text-green-600 space-y-1">
-                                {zoneAnalysis.recommendations.reasoning.map((reason, index) => (
-                                  <li key={index} className="flex items-start gap-3">
-                                    <span className="text-green-500 mt-1">•</span>
-                                    {reason}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
                         </div>
 
-                        {/* Risk Factors */}
-                        {zoneAnalysis.riskFactors.length > 0 && (
-                          <div className="bg-yellow-50 p-4 rounded-lg">
-                            <h4 className="font-medium text-yellow-full max-w-sm mb-3">Fattori di Rischio</h4>
-                            <div className="space-y-3">
-                              {zoneAnalysis.riskFactors.map((risk, index) => (
-                                <div key={index} className="flex items-start gap-3">
-                                  <AlertTriangle 
-                                    size={16} 
-                                    className={`mt-1 ${
-                                      risk.severity === 'high' ? 'text-red-500' :
-                                      risk.severity === 'medium' ? 'text-yellow-500' :
-                                      'text-blue-500'
-                                    }`}
-                                  />
-                                  <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-900">{risk.description}</p>
-                                    <p className="text-xs text-gray-600 mt-1">{risk.mitigation}</p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Alternative Approaches */}
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <h4 className="font-medium text-gray-900 mb-3">Approcci Alternativi</h4>
-                          <div className="space-y-3">
-                            {zoneAnalysis.recommendations.alternatives.map((alt, index) => (
-                              <div key={index} className="border border-gray-200 rounded-lg p-3 bg-white">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="font-medium text-gray-900">{alt.description}</span>
-                                  <span className="text-sm font-bold text-blue-600">
-                                    {alt.rate} {selectedZone.prescription.unit}
-                                  </span>
-                                </div>
-                                <p className="text-sm text-gray-600">{alt.expectedOutcome}</p>
-                              </div>
-                            ))}
-                          </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <RecommendationCard
+                            title="Ottimizzazione"
+                            items={zoneAnalysis.recommendations.optimizationSuggestions}
+                            accent="green"
+                          />
+                          <RecommendationCard
+                            title="Irrigazione"
+                            items={zoneAnalysis.recommendations.irrigationRecommendations}
+                            accent="blue"
+                          />
+                          <RecommendationCard
+                            title="Impianto"
+                            items={zoneAnalysis.recommendations.plantingRecommendations}
+                            accent="purple"
+                          />
                         </div>
                       </>
                     ) : (
@@ -504,15 +493,15 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
 
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <h4 className="font-medium text-gray-900 mb-3">Azioni Zone</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <button className="flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
-                          <Merge size={16} />
-                          Unisci Zone
-                        </button>
-                        <button className="flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
-                          <Split size={16} />
-                          Dividi Zona
-                        </button>
+                      <div className="space-y-3 text-sm text-gray-700">
+                        <div className="flex items-start gap-3">
+                          <Merge size={16} className="text-gray-500 mt-0.5" />
+                          <span>Accorpa zone molto piccole o con prescrizioni quasi identiche prima dell'esportazione.</span>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <Split size={16} className="text-gray-500 mt-0.5" />
+                          <span>Suddividi le zone molto estese o a bassa qualita dati dopo un nuovo rilievo NDVI o da campo.</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -534,6 +523,36 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+const RecommendationCard: React.FC<{
+  title: string;
+  items: string[];
+  accent: 'green' | 'blue' | 'purple';
+}> = ({ title, items, accent }) => {
+  const accentClasses = {
+    green: 'bg-green-50 text-green-900',
+    blue: 'bg-blue-50 text-blue-900',
+    purple: 'bg-purple-50 text-purple-900'
+  };
+
+  return (
+    <div className={`${accentClasses[accent]} p-4 rounded-lg`}>
+      <h4 className="font-medium mb-3">{title}</h4>
+      {items.length > 0 ? (
+        <ul className="space-y-2 text-sm">
+          {items.map((item, index) => (
+            <li key={index} className="flex items-start gap-2">
+              <span className="mt-1">•</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm opacity-75">Nessuna raccomandazione specifica.</p>
+      )}
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import type { FertilizerApplicationLogDB, GardenTask } from '../types'
 import type { WateringLog } from '../types/microzoneTracking'
+import type { NutritionTreatment } from '../types/nutrition'
 import {
   createUnifiedOperationsService,
   type UnifiedOperationRequest,
@@ -206,6 +207,59 @@ export async function executeTaskFertilizationThroughUnifiedService(
     sourceType: 'manual',
     actorType: 'manual'
   })
+
+  return response
+}
+
+export async function executeNutritionTreatmentThroughUnifiedService(
+  storageProvider: any,
+  treatment: NutritionTreatment
+) {
+  const unifiedOperationsService = createUnifiedOperationsService(storageProvider)
+
+  const level: UnifiedOperationRequest['level'] =
+    treatment.plantIds && treatment.plantIds.length > 0
+      ? 'plant'
+      : treatment.fieldRowId
+        ? 'row'
+        : 'garden'
+
+  const response = await unifiedOperationsService.executeUnifiedOperation({
+    level,
+    gardenId: treatment.gardenId,
+    fieldRowId: treatment.fieldRowId,
+    plantIds: treatment.plantIds,
+    operationType: treatment.treatmentType === 'fertilization' ? 'fertilizing' : 'treatment',
+    operationDate: treatment.actualApplicationDate || treatment.scheduledDate,
+    operationTime: treatment.applicationTime,
+    quantity: treatment.dosage,
+    unit: treatment.dosageUnit,
+    productName: treatment.productName,
+    durationMinutes: treatment.applicationDurationMinutes,
+    method: treatment.applicationMethod,
+    notes: [
+      treatment.notes,
+      `Nutrition treatment source: ${treatment.id}`,
+      treatment.operatorName ? `Operatore: ${treatment.operatorName}` : undefined
+    ].filter(Boolean).join(' | ') || undefined,
+    weatherConditions: treatment.weatherConditions
+      ? {
+          condition: treatment.weatherConditions.conditions,
+          temperature: treatment.weatherConditions.temperatureCelsius,
+          humidity: treatment.weatherConditions.humidityPercentage,
+          windSpeed: treatment.weatherConditions.windSpeedKmh,
+          rainfall: treatment.weatherConditions.rainfall24h,
+          pressure: treatment.weatherConditions.pressure
+        }
+      : undefined,
+    propagateToPlants: true,
+    sourceType: 'manual',
+    actorType: 'manual'
+  })
+
+  if (!response.success) {
+    throw new Error((response.errors || ['Errore registrazione operazione nutrizione']).join('\n'))
+  }
 
   return response
 }

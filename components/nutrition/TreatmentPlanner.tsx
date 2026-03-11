@@ -33,6 +33,8 @@ import {
   NutritionFilters 
 } from '@/types/nutrition'
 import { advancedNutritionService } from '@/services/advancedNutritionService'
+import { useStorage } from '@/packages/core/hooks/useStorage'
+import { executeNutritionTreatmentThroughUnifiedService } from '@/services/operationExecutionBridgeService'
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns'
 import { it } from 'date-fns/locale'
 
@@ -56,6 +58,7 @@ export default function TreatmentPlanner({
   launchRequest,
   onLaunchHandled
 }: TreatmentPlannerProps) {
+  const { storageProvider } = useStorage()
   const [viewMode, setViewMode] = useState<ViewMode>('treatments')
   const [treatments, setTreatments] = useState<NutritionTreatment[]>([])
   const [schedules, setSchedules] = useState<NutritionSchedule[]>([])
@@ -161,11 +164,19 @@ export default function TreatmentPlanner({
     }
   }
 
-  const handleCompleteTreatment = async (treatmentId: string) => {
+  const handleCompleteTreatment = async (treatment: NutritionTreatment) => {
     try {
-      await advancedNutritionService.updateNutritionTreatment(treatmentId, {
+      const executionDate = new Date().toISOString().split('T')[0]
+      const treatmentForExecution: NutritionTreatment = {
+        ...treatment,
+        actualApplicationDate: treatment.actualApplicationDate || executionDate,
+        status: 'completed'
+      }
+
+      await executeNutritionTreatmentThroughUnifiedService(storageProvider, treatmentForExecution)
+      await advancedNutritionService.updateNutritionTreatment(treatment.id, {
         status: 'completed',
-        actualApplicationDate: new Date().toISOString().split('T')[0]
+        actualApplicationDate: treatmentForExecution.actualApplicationDate
       })
       await loadData()
     } catch (error) {
@@ -337,7 +348,7 @@ export default function TreatmentPlanner({
                     onView={() => handleViewItem(treatment)}
                     onDelete={() => handleDeleteItem(treatment.id)}
                     onExecute={() => handleExecuteTreatment(treatment.id)}
-                    onComplete={() => handleCompleteTreatment(treatment.id)}
+                    onComplete={() => handleCompleteTreatment(treatment)}
                     getStatusColor={getStatusColor}
                     getTreatmentTypeIcon={getTreatmentTypeIcon}
                     formatDate={formatDate}

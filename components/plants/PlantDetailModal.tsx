@@ -69,8 +69,7 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
       let fieldRowOps: PlantOperation[] = [];
       if (plant.fieldRowId) {
         try {
-          // Carica operazioni del filare dal database
-          const rowOperations = await storageProvider.getFieldRowOperations?.(plant.fieldRowId) || [];
+          const rowOperations = await (storageProvider as any).getFieldRowOperations?.(plant.fieldRowId) || [];
           
           // Converti operazioni filare in formato PlantOperation con flag speciale
           fieldRowOps = rowOperations.map((op: any) => ({
@@ -87,7 +86,11 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
       
       // 3. Combina e ordina tutte le operazioni
       const allOps = [...plantOps, ...fieldRowOps];
-      setOperations(allOps.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setOperations(allOps.sort((a, b) => {
+        const aDate = a.operationDate || a.date;
+        const bDate = b.operationDate || b.date;
+        return new Date(bDate).getTime() - new Date(aDate).getTime();
+      }));
     } catch (error) {
       console.error('Error loading operations:', error);
       setOperations([]);
@@ -298,17 +301,14 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
               {plant.plantingContext ? (
                 <>
                   {/* Meteo */}
-                  {(plant.plantingContext.weather?.temp || plant.plantingContext.weather?.temperature) && (
+                  {typeof plant.plantingContext.weather?.temperature === 'number' && (
                     <div>
                       <div className="text-green-100 text-xs mb-1">🌡️ Meteo Impianto</div>
-                      <div className="font-medium">
-                        {plant.plantingContext.weather?.temp || plant.plantingContext.weather?.temperature}°C
-                      </div>
+                      <div className="font-medium">{plant.plantingContext.weather.temperature}°C</div>
                       <div className="text-green-100 text-xs mt-1">
-                        {plant.plantingContext.weather?.condition || 
-                         plant.plantingContext.weather?.description || 'N/D'}
+                        {plant.plantingContext.weather.condition || 'N/D'}
                       </div>
-                      {plant.plantingContext.weather?.humidity && (
+                      {plant.plantingContext.weather.humidity && (
                         <div className="text-green-100 text-xs">
                           💧 {plant.plantingContext.weather.humidity}%
                         </div>
@@ -317,19 +317,18 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                   )}
                   
                   {/* Fase Lunare */}
-                  {(plant.plantingContext.lunar || plant.plantingContext.moon) && (
+                  {plant.plantingContext.lunar && (
                     <div>
                       <div className="text-green-100 text-xs mb-1">🌙 Fase Lunare</div>
                       <div className="font-medium">
-                        {(plant.plantingContext.lunar?.phaseEmoji || plant.plantingContext.moon?.emoji || '🌙')} {' '}
-                        {plant.plantingContext.lunar?.phase || plant.plantingContext.moon?.phase || 'N/D'}
+                        {plant.plantingContext.lunar.phaseEmoji || '🌙'} {plant.plantingContext.lunar.phase || 'N/D'}
                       </div>
                       <div className="text-green-100 text-xs mt-1">
-                        {(plant.plantingContext.lunar?.isWaxing || plant.plantingContext.moon?.waxing) ? 'Crescente' : 'Calante'}
+                        {plant.plantingContext.lunar.isWaxing ? 'Crescente' : 'Calante'}
                       </div>
-                      {(plant.plantingContext.lunar?.illumination || plant.plantingContext.moon?.illumination) && (
+                      {plant.plantingContext.lunar.illumination && (
                         <div className="text-green-100 text-xs">
-                          ✨ {plant.plantingContext.lunar?.illumination || plant.plantingContext.moon?.illumination}% illuminata
+                          ✨ {plant.plantingContext.lunar.illumination}% illuminata
                         </div>
                       )}
                     </div>
@@ -353,8 +352,9 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                     <div>
                       <div className="text-green-100 text-xs mb-1">☀️ Ore di Luce</div>
                       <div className="font-medium">
-                        {plant.plantingContext.daylight.hours ? 
-                          `${plant.plantingContext.daylight.hours.toFixed(1)}h` : 'N/D'}
+                        {typeof plant.plantingContext.daylight.hoursOfLight === 'number'
+                          ? `${plant.plantingContext.daylight.hoursOfLight.toFixed(1)}h`
+                          : 'N/D'}
                       </div>
                       {plant.plantingContext.daylight.sunrise && plant.plantingContext.daylight.sunset && (
                         <div className="text-green-100 text-xs mt-1">
@@ -384,7 +384,8 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                       const photoOps = operations.filter(op => op.photos && op.photos.length > 0);
                       if (photoOps.length > 0) {
                         const lastPhotoOp = photoOps[0]; // Già ordinato per data
-                        const daysSince = Math.floor((new Date().getTime() - new Date(lastPhotoOp.date).getTime()) / (1000 * 60 * 60 * 24));
+                        const operationDate = lastPhotoOp.operationDate || lastPhotoOp.date;
+                        const daysSince = Math.floor((new Date().getTime() - new Date(operationDate).getTime()) / (1000 * 60 * 60 * 24));
                         return `${daysSince} giorni fa`;
                       }
                       return 'Nessuna foto';
