@@ -19,11 +19,11 @@ import {
   BarChart3,
   RefreshCw,
   Download,
-  Upload,
   ShoppingCart,
   Warehouse,
   Clock,
-  MapPin
+  MapPin,
+  X
 } from 'lucide-react'
 import { Garden } from '@/types'
 import { 
@@ -53,6 +53,11 @@ export default function InventoryManager({ garden }: InventoryManagerProps) {
   const [stockFilter, setStockFilter] = useState<StockLevel>('all')
   const [showStockModal, setShowStockModal] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<ProductInventory | null>(null)
+  const [stockModalDefaults, setStockModalDefaults] = useState<{
+    productId?: string
+    movementType?: 'purchase' | 'usage' | 'adjustment'
+    notes?: string
+  } | null>(null)
 
   useEffect(() => {
     loadInventoryData()
@@ -62,8 +67,9 @@ export default function InventoryManager({ garden }: InventoryManagerProps) {
     try {
       setLoading(true)
       
-      const [inventoryData, productsData] = await Promise.all([
+      const [inventoryData, movementData, productsData] = await Promise.all([
         advancedNutritionService.getProductInventory(garden.id),
+        advancedNutritionService.getStockMovements(garden.id),
         Promise.all([
           advancedNutritionService.getFertilizerProducts(garden.id),
           advancedNutritionService.getTreatmentProducts(garden.id)
@@ -71,6 +77,7 @@ export default function InventoryManager({ garden }: InventoryManagerProps) {
       ])
       
       setInventory(inventoryData)
+      setMovements(movementData)
       setProducts([...productsData[0], ...productsData[1]])
       
     } catch (error) {
@@ -87,6 +94,51 @@ export default function InventoryManager({ garden }: InventoryManagerProps) {
     } catch (error) {
       console.error('Error updating stock:', error)
     }
+  }
+
+  const openStockModal = (
+    product: ProductInventory | null,
+    defaults?: {
+      movementType?: 'purchase' | 'usage' | 'adjustment'
+      notes?: string
+    }
+  ) => {
+    setSelectedProduct(product)
+    setStockModalDefaults({
+      productId: product?.productId,
+      movementType: defaults?.movementType,
+      notes: defaults?.notes
+    })
+    setShowStockModal(true)
+  }
+
+  const exportInventory = () => {
+    const rows = [
+      ['Prodotto', 'Tipo', 'Stock Attuale', 'Unita', 'Minimo', 'Massimo', 'Costo Unita', 'Valore Totale', 'Fornitore'],
+      ...inventory.map((item) => [
+        item.productName,
+        item.productType,
+        item.currentStock,
+        item.stockUnit,
+        item.minimumStock,
+        item.maximumStock,
+        item.costPerUnit,
+        item.totalValue,
+        item.supplier || ''
+      ])
+    ]
+    const csv = rows
+      .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `inventario-nutrizione-${garden.name}-${new Date().toISOString().split('T')[0]}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   const getStockStatus = (item: ProductInventory) => {
@@ -164,14 +216,17 @@ export default function InventoryManager({ garden }: InventoryManagerProps) {
           
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setShowStockModal(true)}
+              onClick={() => openStockModal(null, { movementType: 'purchase', notes: 'Carico merce manuale' })}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <Plus size={16} />
               Carico Merce
             </button>
             
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <button
+              onClick={exportInventory}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
               <Download size={16} />
               Esporta
             </button>
@@ -326,14 +381,16 @@ export default function InventoryManager({ garden }: InventoryManagerProps) {
             <InventoryView 
               inventory={filteredInventory}
               onStockUpdate={handleStockUpdate}
+              onOpenStockModal={openStockModal}
               getStockStatus={getStockStatus}
               getExpiryStatus={getExpiryStatus}
             />
           ) : viewMode === 'movements' ? (
-            <MovementsView movements={movements} />
+            <MovementsView movements={movements} inventory={inventory} />
           ) : (
             <AlertsView 
               inventory={inventory}
+              onManageAlert={openStockModal}
               getStockStatus={getStockStatus}
               getExpiryStatus={getExpiryStatus}
             />
@@ -345,6 +402,8 @@ export default function InventoryManager({ garden }: InventoryManagerProps) {
       {showStockModal && (
         <StockUpdateModal
           products={products}
+          selectedProduct={selectedProduct}
+          defaults={stockModalDefaults}
           onClose={() => setShowStockModal(false)}
           onUpdate={handleStockUpdate}
         />
@@ -357,11 +416,15 @@ export default function InventoryManager({ garden }: InventoryManagerProps) {
 interface InventoryViewProps {
   inventory: ProductInventory[]
   onStockUpdate: (productId: string, quantity: number, type: 'purchase' | 'usage' | 'adjustment', notes?: string) => void
+  onOpenStockModal: (
+    product: ProductInventory | null,
+    defaults?: { movementType?: 'purchase' | 'usage' | 'adjustment'; notes?: string }
+  ) => void
   getStockStatus: (item: ProductInventory) => any
   getExpiryStatus: (expiryDate?: string) => any
 }
 
-function InventoryView({ inventory, onStockUpdate, getStockStatus, getExpiryStatus }: InventoryViewProps) {
+function InventoryView({ inventory, onStockUpdate, onOpenStockModal, getStockStatus, getExpiryStatus }: InventoryViewProps) {
   if (inventory.length === 0) {
     return (
       <div className="text-center py-12">
@@ -461,7 +524,11 @@ function InventoryView({ inventory, onStockUpdate, getStockStatus, getExpiryStat
                   <Minus size={16} />
                 </button>
                 
-                <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                <button
+                  onClick={() => onOpenStockModal(item, { movementType: 'adjustment', notes: `Rettifica stock per ${item.productName}` })}
+                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  title="Rettifica stock"
+                >
                   <Edit size={16} />
                 </button>
               </div>
@@ -495,12 +562,49 @@ function InventoryView({ inventory, onStockUpdate, getStockStatus, getExpiryStat
 }
 
 // Movements View Component
-function MovementsView({ movements }: { movements: StockMovement[] }) {
+function MovementsView({ movements, inventory }: { movements: StockMovement[]; inventory: ProductInventory[] }) {
+  const productNames = new Map(inventory.map((item) => [item.productId, item.productName]))
+
+  if (movements.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <BarChart3 className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Nessun movimento registrato</h3>
+        <p className="text-gray-600">I carichi e gli scarichi appariranno qui nello storico di magazzino</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="text-center py-12">
-      <BarChart3 className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-      <h3 className="text-lg font-medium text-gray-900 mb-2">Movimenti di Magazzino</h3>
-      <p className="text-gray-600">Funzionalità in sviluppo - Storico movimenti e analisi</p>
+    <div className="space-y-3">
+      {movements.map((movement) => {
+        const positive = movement.movementType === 'purchase' || movement.movementType === 'adjustment'
+        return (
+          <div key={movement.id} className="border border-gray-200 rounded-lg p-4 bg-white">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${positive ? 'bg-green-100' : 'bg-red-100'}`}>
+                  {positive ? <TrendingUp className="text-green-600" size={18} /> : <TrendingDown className="text-red-600" size={18} />}
+                </div>
+                <div className="min-w-0">
+                  <div className="font-medium text-gray-900 truncate">{productNames.get(movement.productId) || movement.productId}</div>
+                  <div className="text-sm text-gray-600">
+                    {format(parseISO(movement.date), 'dd MMM yyyy', { locale: it })} {'•'} {movement.notes || 'Movimento inventario'}
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className={`font-semibold ${positive ? 'text-green-600' : 'text-red-600'}`}>
+                  {positive ? '+' : '-'}{movement.quantity} {movement.unit}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {movement.movementType === 'purchase' ? 'Carico' : movement.movementType === 'usage' ? 'Utilizzo' : movement.movementType === 'adjustment' ? 'Rettifica' : movement.movementType}
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -508,11 +612,15 @@ function MovementsView({ movements }: { movements: StockMovement[] }) {
 // Alerts View Component
 interface AlertsViewProps {
   inventory: ProductInventory[]
+  onManageAlert: (
+    product: ProductInventory | null,
+    defaults?: { movementType?: 'purchase' | 'usage' | 'adjustment'; notes?: string }
+  ) => void
   getStockStatus: (item: ProductInventory) => any
   getExpiryStatus: (expiryDate?: string) => any
 }
 
-function AlertsView({ inventory, getStockStatus, getExpiryStatus }: AlertsViewProps) {
+function AlertsView({ inventory, onManageAlert, getStockStatus, getExpiryStatus }: AlertsViewProps) {
   const alerts = inventory.map(item => {
     const stockStatus = getStockStatus(item)
     const expiryStatus = getExpiryStatus(item.expiryDate)
@@ -589,7 +697,10 @@ function AlertsView({ inventory, getStockStatus, getExpiryStatus }: AlertsViewPr
                     <p className="font-medium text-red-900">{alert.message}</p>
                     <p className="text-sm text-red-700 mt-1">{alert.action}</p>
                   </div>
-                  <button className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700">
+                  <button
+                    onClick={() => onManageAlert(alert.item, { movementType: 'purchase', notes: alert.action })}
+                    className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+                  >
                     Risolvi
                   </button>
                 </div>
@@ -613,7 +724,10 @@ function AlertsView({ inventory, getStockStatus, getExpiryStatus }: AlertsViewPr
                     <p className="font-medium text-yellow-900">{alert.message}</p>
                     <p className="text-sm text-yellow-700 mt-1">{alert.action}</p>
                   </div>
-                  <button className="px-3 py-1 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700">
+                  <button
+                    onClick={() => onManageAlert(alert.item, { movementType: 'purchase', notes: alert.action })}
+                    className="px-3 py-1 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700"
+                  >
                     Gestisci
                   </button>
                 </div>
@@ -629,15 +743,27 @@ function AlertsView({ inventory, getStockStatus, getExpiryStatus }: AlertsViewPr
 // Stock Update Modal Component
 interface StockUpdateModalProps {
   products: (FertilizerProduct | TreatmentProduct)[]
+  selectedProduct?: ProductInventory | null
+  defaults?: {
+    productId?: string
+    movementType?: 'purchase' | 'usage' | 'adjustment'
+    notes?: string
+  } | null
   onClose: () => void
   onUpdate: (productId: string, quantity: number, type: 'purchase' | 'usage' | 'adjustment', notes?: string) => void
 }
 
-function StockUpdateModal({ products, onClose, onUpdate }: StockUpdateModalProps) {
+function StockUpdateModal({ products, selectedProduct, defaults, onClose, onUpdate }: StockUpdateModalProps) {
   const [selectedProductId, setSelectedProductId] = useState('')
   const [quantity, setQuantity] = useState(0)
   const [movementType, setMovementType] = useState<'purchase' | 'usage' | 'adjustment'>('purchase')
   const [notes, setNotes] = useState('')
+
+  useEffect(() => {
+    setSelectedProductId(defaults?.productId || selectedProduct?.productId || '')
+    setMovementType(defaults?.movementType || 'purchase')
+    setNotes(defaults?.notes || '')
+  }, [defaults, selectedProduct])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -670,6 +796,7 @@ function StockUpdateModal({ products, onClose, onUpdate }: StockUpdateModalProps
               onChange={(e) => setSelectedProductId(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
               required
+              disabled={Boolean(selectedProduct?.productId)}
             >
               <option value="">Seleziona prodotto...</option>
               {products.map((product) => (

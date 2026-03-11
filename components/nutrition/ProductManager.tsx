@@ -33,6 +33,7 @@ interface ProductManagerProps {
 }
 
 type ProductType = 'fertilizer' | 'treatment'
+type ProductFormData = Record<string, any>
 
 export default function ProductManager({ garden }: ProductManagerProps) {
   const [activeTab, setActiveTab] = useState<ProductType>('fertilizer')
@@ -360,7 +361,7 @@ interface ProductModalProps {
 }
 
 function ProductModal({ mode, productType, product, garden, onClose, onSave }: ProductModalProps) {
-  const [formData, setFormData] = useState<any>({})
+  const [formData, setFormData] = useState<ProductFormData>({})
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -403,13 +404,13 @@ function ProductModal({ mode, productType, product, garden, onClose, onSave }: P
       
       if (productType === 'fertilizer') {
         if (mode === 'create') {
-          await advancedNutritionService.createFertilizerProduct(formData)
+          await advancedNutritionService.createFertilizerProduct(formData as Omit<FertilizerProduct, 'id' | 'createdAt' | 'updatedAt'>)
         } else {
           await advancedNutritionService.updateFertilizerProduct(formData.id, formData)
         }
       } else {
         if (mode === 'create') {
-          await advancedNutritionService.createTreatmentProduct(formData)
+          await advancedNutritionService.createTreatmentProduct(formData as Omit<TreatmentProduct, 'id' | 'createdAt' | 'updatedAt'>)
         } else {
           await advancedNutritionService.updateTreatmentProduct(formData.id, formData)
         }
@@ -460,7 +461,7 @@ function ProductModal({ mode, productType, product, garden, onClose, onSave }: P
               <input
                 type="text"
                 value={formData.name || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) => setFormData((prev: ProductFormData) => ({ ...prev, name: e.target.value }))}
                 disabled={isReadOnly}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 disabled:bg-gray-50"
                 placeholder="Es: NPK 20-20-20"
@@ -474,7 +475,7 @@ function ProductModal({ mode, productType, product, garden, onClose, onSave }: P
               <input
                 type="text"
                 value={formData.brand || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
+                onChange={(e) => setFormData((prev: ProductFormData) => ({ ...prev, brand: e.target.value }))}
                 disabled={isReadOnly}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 disabled:bg-gray-50"
                 placeholder="Es: Compo, Valagro"
@@ -503,7 +504,7 @@ function ProductModal({ mode, productType, product, garden, onClose, onSave }: P
               type="checkbox"
               id="organicApproved"
               checked={formData.organicApproved || false}
-              onChange={(e) => setFormData(prev => ({ ...prev, organicApproved: e.target.checked }))}
+              onChange={(e) => setFormData((prev: ProductFormData) => ({ ...prev, organicApproved: e.target.checked }))}
               disabled={isReadOnly}
               className="rounded border-gray-300 text-green-600 focus:ring-green-500"
             />
@@ -558,7 +559,7 @@ function FertilizerFields({ formData, setFormData, isReadOnly }: any) {
           </label>
           <select
             value={formData.fertilizerType || 'organic'}
-            onChange={(e) => setFormData(prev => ({ ...prev, fertilizerType: e.target.value }))}
+            onChange={(e) => setFormData((prev: ProductFormData) => ({ ...prev, fertilizerType: e.target.value as FertilizerProduct['fertilizerType'] }))}
             disabled={isReadOnly}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 disabled:bg-gray-50"
           >
@@ -577,7 +578,7 @@ function FertilizerFields({ formData, setFormData, isReadOnly }: any) {
           <input
             type="text"
             value={formData.npkRatio || ''}
-            onChange={(e) => setFormData(prev => ({ ...prev, npkRatio: e.target.value }))}
+            onChange={(e) => setFormData((prev: ProductFormData) => ({ ...prev, npkRatio: e.target.value }))}
             disabled={isReadOnly}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 disabled:bg-gray-50"
             placeholder="Es: 20-20-20"
@@ -593,7 +594,7 @@ function FertilizerFields({ formData, setFormData, isReadOnly }: any) {
           <input
             type="number"
             value={formData.recommendedDosage || ''}
-            onChange={(e) => setFormData(prev => ({ ...prev, recommendedDosage: parseFloat(e.target.value) || 0 }))}
+            onChange={(e) => setFormData((prev: ProductFormData) => ({ ...prev, recommendedDosage: parseFloat(e.target.value) || 0 }))}
             disabled={isReadOnly}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 disabled:bg-gray-50"
             min="0"
@@ -607,7 +608,7 @@ function FertilizerFields({ formData, setFormData, isReadOnly }: any) {
           </label>
           <select
             value={formData.dosageUnit || 'g_per_sqm'}
-            onChange={(e) => setFormData(prev => ({ ...prev, dosageUnit: e.target.value }))}
+            onChange={(e) => setFormData((prev: ProductFormData) => ({ ...prev, dosageUnit: e.target.value as FertilizerProduct['dosageUnit'] }))}
             disabled={isReadOnly}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 disabled:bg-gray-50"
           >
@@ -633,7 +634,7 @@ function TreatmentFields({ formData, setFormData, isReadOnly }: any) {
           </label>
           <select
             value={formData.treatmentType || 'pesticide'}
-            onChange={(e) => setFormData(prev => ({ ...prev, treatmentType: e.target.value }))}
+            onChange={(e) => setFormData((prev: ProductFormData) => ({ ...prev, treatmentType: e.target.value as TreatmentProduct['treatmentType'] }))}
             disabled={isReadOnly}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 disabled:bg-gray-50"
           >
@@ -652,7 +653,7 @@ function TreatmentFields({ formData, setFormData, isReadOnly }: any) {
           <input
             type="text"
             value={formData.activeIngredient || ''}
-            onChange={(e) => setFormData(prev => ({ ...prev, activeIngredient: e.target.value }))}
+            onChange={(e) => setFormData((prev: ProductFormData) => ({ ...prev, activeIngredient: e.target.value }))}
             disabled={isReadOnly}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 disabled:bg-gray-50"
             placeholder="Es: Rame ossicloruro"
@@ -668,7 +669,7 @@ function TreatmentFields({ formData, setFormData, isReadOnly }: any) {
           <input
             type="number"
             value={formData.preharvest_interval_days || ''}
-            onChange={(e) => setFormData(prev => ({ ...prev, preharvest_interval_days: parseInt(e.target.value) || 0 }))}
+            onChange={(e) => setFormData((prev: ProductFormData) => ({ ...prev, preharvest_interval_days: parseInt(e.target.value) || 0 }))}
             disabled={isReadOnly}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 disabled:bg-gray-50"
             min="0"
@@ -682,7 +683,7 @@ function TreatmentFields({ formData, setFormData, isReadOnly }: any) {
           <input
             type="number"
             value={formData.reentry_interval_hours || ''}
-            onChange={(e) => setFormData(prev => ({ ...prev, reentry_interval_hours: parseInt(e.target.value) || 0 }))}
+            onChange={(e) => setFormData((prev: ProductFormData) => ({ ...prev, reentry_interval_hours: parseInt(e.target.value) || 0 }))}
             disabled={isReadOnly}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 disabled:bg-gray-50"
             min="0"
@@ -696,7 +697,7 @@ function TreatmentFields({ formData, setFormData, isReadOnly }: any) {
             type="checkbox"
             id="beeHazard"
             checked={formData.beeHazard || false}
-            onChange={(e) => setFormData(prev => ({ ...prev, beeHazard: e.target.checked }))}
+            onChange={(e) => setFormData((prev: ProductFormData) => ({ ...prev, beeHazard: e.target.checked }))}
             disabled={isReadOnly}
             className="rounded border-gray-300 text-red-600 focus:ring-red-500"
           />
@@ -710,7 +711,7 @@ function TreatmentFields({ formData, setFormData, isReadOnly }: any) {
             type="checkbox"
             id="aquaticHazard"
             checked={formData.aquaticHazard || false}
-            onChange={(e) => setFormData(prev => ({ ...prev, aquaticHazard: e.target.checked }))}
+            onChange={(e) => setFormData((prev: ProductFormData) => ({ ...prev, aquaticHazard: e.target.checked }))}
             disabled={isReadOnly}
             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />

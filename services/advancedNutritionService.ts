@@ -469,6 +469,36 @@ class AdvancedNutritionService {
     }
   }
 
+  async getStockMovements(gardenId: string): Promise<StockMovement[]> {
+    try {
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase
+        .from('stock_movements')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      return (data || []).map((movement) => ({
+        id: movement.id,
+        productId: movement.product_id,
+        movementType: movement.movement_type,
+        quantity: movement.quantity,
+        unit: movement.unit,
+        date: movement.date,
+        reference: movement.reference,
+        notes: movement.notes,
+        operatorId: movement.operator_id,
+        createdAt: movement.created_at
+      }))
+    } catch (error) {
+      console.error('Error fetching stock movements:', error)
+      return []
+    }
+  }
+
   private async updateInventoryAfterTreatment(productId: string, dosageUsed: number, gardenId: string): Promise<void> {
     try {
       // Convert dosage to stock units and update inventory
