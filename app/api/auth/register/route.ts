@@ -9,6 +9,7 @@ import { RegistrationData, RegistrationResponse, RegistrationErrorType } from '@
 import { registrationValidator } from '@/services/registrationValidator'
 import { authErrorHandler } from '@/services/authErrorHandler'
 import { resolveAuthSiteUrl as resolveConfiguredAuthSiteUrl } from '@/lib/auth-site-url'
+import { getSupabaseServerClient } from '@/lib/supabase-server'
 
 const resolveRegistrationAuthSiteUrl = (): string => {
   return resolveConfiguredAuthSiteUrl(
@@ -18,6 +19,16 @@ const resolveRegistrationAuthSiteUrl = (): string => {
     process.env.VERCEL_PROJECT_PRODUCTION_URL
       ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
       : null
+  )
+}
+
+const isConfirmationEmailError = (error: unknown): error is { message: string } => {
+  return Boolean(
+    error &&
+      typeof error === 'object' &&
+      'message' in error &&
+      typeof (error as { message?: unknown }).message === 'string' &&
+      (error as { message: string }).message.includes('Error sending confirmation email')
   )
 }
 
@@ -55,6 +66,17 @@ export async function POST(request: NextRequest) {
 
     const normalizedBirthDate = registrationValidator.normalizeBirthDate(sanitizedBody.birthDate) ?? undefined
 
+    const profileUpdateData = {
+      first_name: sanitizedBody.firstName,
+      last_name: sanitizedBody.lastName,
+      phone: sanitizedBody.phone || null,
+      birth_date: normalizedBirthDate || null,
+      company: sanitizedBody.company || null,
+      terms_accepted_at: new Date().toISOString(),
+      privacy_accepted_at: new Date().toISOString(),
+      marketing_consent: sanitizedBody.marketingConsent
+    }
+
     // Get Supabase client
     const supabase = getSupabaseClient()
     if (!supabase) {
@@ -72,7 +94,11 @@ export async function POST(request: NextRequest) {
     // Create Supabase auth user
     const authSiteUrl = resolveRegistrationAuthSiteUrl()
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    let authData: any = null
+    let authError: any = null
+    let registrationMessage: string | undefined
+
+    const signUpResult = await supabase.auth.signUp({
       email: body.email,
       password: body.password,
       options: {
@@ -88,10 +114,59 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    authData = signUpResult.data
+    authError = signUpResult.error
+
     if (authError) {
       console.error('Supabase auth error:', JSON.stringify(authError, null, 2))
       console.error('Auth error message:', authError.message)
       console.error('Auth error status:', authError.status)
+
+      if (isConfirmationEmailError(authError)) {
+        const adminSupabase = getSupabaseServerClient()
+
+        if (adminSupabase) {
+          console.warn('Falling back to admin user creation because confirmation email delivery failed')
+          const fallbackMetadata = {
+            first_name: sanitizedBody.firstName,
+            last_name: sanitizedBody.lastName,
+            phone: sanitizedBody.phone,
+            company: sanitizedBody.company,
+            birth_date: normalizedBirthDate,
+            marketing_consent: sanitizedBody.marketingConsent
+          }
+
+          const existingUserId = authData?.user?.id
+          const adminAuthResult = existingUserId
+            ? await adminSupabase.auth.admin.updateUserById(existingUserId, {
+                email_confirm: true,
+                user_metadata: fallbackMetadata
+              })
+            : await adminSupabase.auth.admin.createUser({
+                email: body.email,
+                password: body.password,
+                email_confirm: true,
+                user_metadata: fallbackMetadata
+              })
+
+          const adminAuthData = adminAuthResult.data
+          const adminAuthError = adminAuthResult.error
+
+          if (!adminAuthError && adminAuthData.user) {
+            authData = {
+              user: adminAuthData.user,
+              session: null
+            }
+            authError = null
+            registrationMessage = 'Registrazione completata con successo! Puoi accedere subito.'
+          } else {
+            console.error('Admin fallback createUser error:', JSON.stringify(adminAuthError, null, 2))
+          }
+        }
+      }
+    }
+
+    if (authError) {
       
       const handledError = authErrorHandler.handleRegistrationError(authError)
       authErrorHandler.logError(handledError, 'registration_api')
@@ -127,19 +202,9 @@ export async function POST(request: NextRequest) {
     // Aspettiamo un momento per permettere al trigger di completare
     await new Promise(resolve => setTimeout(resolve, 100))
 
-    // Aggiorna il profilo con i dati aggiuntivi (il trigger crea solo i dati base)
-    const profileUpdateData = {
-      first_name: sanitizedBody.firstName,
-      last_name: sanitizedBody.lastName,
-      phone: sanitizedBody.phone || null,
-      birth_date: normalizedBirthDate || null,
-      company: sanitizedBody.company || null,
-      terms_accepted_at: new Date().toISOString(),
-      privacy_accepted_at: new Date().toISOString(),
-      marketing_consent: sanitizedBody.marketingConsent
-    }
+    const profileClient = getSupabaseServerClient() || supabase
 
-    const { data: profileResult, error: profileError } = await supabase
+    const { data: profileResult, error: profileError } = await profileClient
       .from('profiles')
       .update(profileUpdateData)
       .eq('id', authData.user.id)
@@ -161,9 +226,9 @@ export async function POST(request: NextRequest) {
       user: authData.user,
       profile: profileResult,
       requiresEmailVerification,
-      message: requiresEmailVerification 
+      message: registrationMessage || (requiresEmailVerification 
         ? 'Registrazione completata! Controlla la tua email per verificare l\'account.'
-        : 'Registrazione completata con successo!'
+        : 'Registrazione completata con successo!')
     } as RegistrationResponse, { status: 201 })
 
   } catch (error: any) {
