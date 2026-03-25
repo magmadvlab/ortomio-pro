@@ -9,6 +9,8 @@ import { RegistrationData, AuthError, RegistrationErrorType, FormValidation } fr
  * Classe per validazione registrazione
  */
 export class RegistrationValidator {
+  private static readonly ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+  private static readonly ITALIAN_DATE_PATTERN = /^(\d{2})[\/-](\d{2})[\/-](\d{4})$/;
   
   /**
    * Validazione completa dati registrazione
@@ -233,14 +235,85 @@ export class RegistrationValidator {
    * Validazione data di nascita
    */
   private isValidBirthDate(birthDate: string): boolean {
-    if (!birthDate) return true; // Opzionale
-    
-    const date = new Date(birthDate);
-    const now = new Date();
-    const minAge = new Date(now.getFullYear() - 120, now.getMonth(), now.getDate());
-    const maxAge = new Date(now.getFullYear() - 13, now.getMonth(), now.getDate());
-    
-    return date >= minAge && date <= maxAge;
+    return this.normalizeBirthDate(birthDate) !== null;
+  }
+
+  /**
+   * Normalizza la data di nascita in formato YYYY-MM-DD.
+   */
+  public normalizeBirthDate(birthDate?: string | null): string | null {
+    if (!birthDate) return null;
+
+    const trimmedBirthDate = birthDate.trim();
+    if (!trimmedBirthDate) return null;
+
+    const dateParts = this.extractBirthDateParts(trimmedBirthDate);
+    if (!dateParts) return null;
+
+    const { year, month, day } = dateParts;
+    const date = new Date(Date.UTC(year, month - 1, day));
+
+    if (
+      Number.isNaN(date.getTime()) ||
+      date.getUTCFullYear() !== year ||
+      date.getUTCMonth() !== month - 1 ||
+      date.getUTCDate() !== day
+    ) {
+      return null;
+    }
+
+    const today = new Date();
+    const todayUtc = Date.UTC(
+      today.getUTCFullYear(),
+      today.getUTCMonth(),
+      today.getUTCDate()
+    );
+    const minBirthDateUtc = Date.UTC(
+      today.getUTCFullYear() - 120,
+      today.getUTCMonth(),
+      today.getUTCDate()
+    );
+    const maxBirthDateUtc = Date.UTC(
+      today.getUTCFullYear() - 13,
+      today.getUTCMonth(),
+      today.getUTCDate()
+    );
+    const birthDateUtc = date.getTime();
+
+    if (birthDateUtc < minBirthDateUtc || birthDateUtc > maxBirthDateUtc) {
+      return null;
+    }
+
+    return `${year.toString().padStart(4, '0')}-${month
+      .toString()
+      .padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+  }
+
+  private extractBirthDateParts(value: string): { year: number; month: number; day: number } | null {
+    const isoMatch = value.match(RegistrationValidator.ISO_DATE_PATTERN);
+    if (isoMatch) {
+      return {
+        year: Number(isoMatch[1]),
+        month: Number(isoMatch[2]),
+        day: Number(isoMatch[3])
+      };
+    }
+
+    const isoDateTimePrefix = value.match(/^(\d{4}-\d{2}-\d{2})T/);
+    if (isoDateTimePrefix) {
+      return this.extractBirthDateParts(isoDateTimePrefix[1]);
+    }
+
+    const italianMatch = value.match(RegistrationValidator.ITALIAN_DATE_PATTERN);
+    if (italianMatch) {
+      return {
+        day: Number(italianMatch[1]),
+        month: Number(italianMatch[2]),
+        year: Number(italianMatch[3])
+      };
+    }
+
+    return null;
   }
   
   /**

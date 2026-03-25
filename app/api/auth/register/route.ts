@@ -53,12 +53,16 @@ export async function POST(request: NextRequest) {
   try {
     // Parse request body
     const body: RegistrationData = await request.json()
+    const sanitizedBody: RegistrationData = {
+      ...body,
+      birthDate: body.birthDate?.trim() || undefined
+    }
     
     // Log per debug
-    console.log('Registration request body:', JSON.stringify(body, null, 2))
+    console.log('Registration request body:', JSON.stringify(sanitizedBody, null, 2))
     
     // Validazione registration data
-    const validation = registrationValidator.validate(body)
+    const validation = registrationValidator.validate(sanitizedBody)
     console.log('Validation result:', JSON.stringify(validation, null, 2))
     
     if (!validation.isValid) {
@@ -76,6 +80,8 @@ export async function POST(request: NextRequest) {
         requiresEmailVerification: false
       } as RegistrationResponse, { status: 400 })
     }
+
+    const normalizedBirthDate = registrationValidator.normalizeBirthDate(sanitizedBody.birthDate) ?? undefined
 
     // Get Supabase client
     const supabase = getSupabaseClient()
@@ -100,12 +106,12 @@ export async function POST(request: NextRequest) {
       options: {
         emailRedirectTo: `${authSiteUrl}/auth/callback`,
         data: {
-          first_name: body.firstName,
-          last_name: body.lastName,
-          phone: body.phone,
-          company: body.company,
-          birth_date: body.birthDate,
-          marketing_consent: body.marketingConsent
+          first_name: sanitizedBody.firstName,
+          last_name: sanitizedBody.lastName,
+          phone: sanitizedBody.phone,
+          company: sanitizedBody.company,
+          birth_date: normalizedBirthDate,
+          marketing_consent: sanitizedBody.marketingConsent
         }
       }
     })
@@ -151,14 +157,14 @@ export async function POST(request: NextRequest) {
 
     // Aggiorna il profilo con i dati aggiuntivi (il trigger crea solo i dati base)
     const profileUpdateData = {
-      first_name: body.firstName,
-      last_name: body.lastName,
-      phone: body.phone || null,
-      birth_date: body.birthDate || null,
-      company: body.company || null,
+      first_name: sanitizedBody.firstName,
+      last_name: sanitizedBody.lastName,
+      phone: sanitizedBody.phone || null,
+      birth_date: normalizedBirthDate || null,
+      company: sanitizedBody.company || null,
       terms_accepted_at: new Date().toISOString(),
       privacy_accepted_at: new Date().toISOString(),
-      marketing_consent: body.marketingConsent
+      marketing_consent: sanitizedBody.marketingConsent
     }
 
     const { data: profileResult, error: profileError } = await supabase
