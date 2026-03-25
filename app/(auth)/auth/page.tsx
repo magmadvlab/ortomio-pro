@@ -247,7 +247,7 @@ function AuthPageContent() {
 
       if (!response.ok || !result.success) {
         // Mostra errore specifico dal server
-        const errorMsg = result.error?.originalMessage || result.error?.message || 'Errore durante la registrazione'
+        const errorMsg = result.error?.message || result.error?.originalMessage || 'Errore durante la registrazione'
         const errorField = result.error?.field
         if (errorField) {
           console.log('Validation error on field:', errorField)

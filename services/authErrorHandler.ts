@@ -25,6 +25,14 @@ export class AuthErrorHandler {
    * Gestione errori registrazione
    */
   public handleRegistrationError(error: any): AuthError {
+    if (error?.message?.includes('Error sending confirmation email')) {
+      return {
+        type: RegistrationErrorType.DATABASE_ERROR,
+        message: 'Impossibile inviare l\'email di conferma. Riprova piu tardi o contatta il supporto.',
+        code: 'SUPABASE_005'
+      };
+    }
+
     // Errori Supabase specifici
     if (error?.code) {
       switch (error.code) {

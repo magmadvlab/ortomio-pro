@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { getSupabaseClient } from '@/config/supabase'
 import { Mail, CheckCircle, AlertCircle, Loader2, RefreshCw, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { resolveAuthSiteUrl } from '@/lib/auth-site-url'
 
 function VerifyEmailPageContent() {
   const router = useRouter()
@@ -72,10 +73,10 @@ function VerifyEmailPageContent() {
         throw new Error('Servizio di autenticazione non disponibile')
       }
 
-      const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim()
-      const baseUrl = configuredSiteUrl
-        ? configuredSiteUrl.replace(/\/+$/, '')
-        : window.location.origin
+      const baseUrl = resolveAuthSiteUrl(
+        process.env.NEXT_PUBLIC_SITE_URL,
+        process.env.NEXTAUTH_URL
+      )
 
       const { error: resendError } = await supabase.auth.resend({
         type: 'signup',

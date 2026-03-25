@@ -8,45 +8,17 @@ import { getSupabaseClient } from '@/config/supabase'
 import { RegistrationData, RegistrationResponse, RegistrationErrorType } from '@/types/auth'
 import { registrationValidator } from '@/services/registrationValidator'
 import { authErrorHandler } from '@/services/authErrorHandler'
+import { resolveAuthSiteUrl as resolveConfiguredAuthSiteUrl } from '@/lib/auth-site-url'
 
-const normalizeBaseUrl = (value?: string | null): string | null => {
-  if (!value) return null
-
-  const trimmed = value.trim()
-  if (!trimmed) return null
-
-  try {
-    const withProtocol = trimmed.startsWith('http://') || trimmed.startsWith('https://')
-      ? trimmed
-      : `https://${trimmed}`
-    return new URL(withProtocol).origin
-  } catch {
-    return null
-  }
-}
-
-const resolveAuthSiteUrl = (request: NextRequest): string => {
-  const configuredUrl =
-    normalizeBaseUrl(process.env.NEXT_PUBLIC_SITE_URL) ||
-    normalizeBaseUrl(process.env.SITE_URL) ||
-    normalizeBaseUrl(process.env.NEXTAUTH_URL) ||
-    normalizeBaseUrl(
-      process.env.VERCEL_PROJECT_PRODUCTION_URL
-        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-        : null
-    ) ||
-    normalizeBaseUrl(process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-
-  if (configuredUrl) return configuredUrl
-
-  const forwardedHost = request.headers.get('x-forwarded-host')
-  if (forwardedHost) {
-    const forwardedProto = request.headers.get('x-forwarded-proto') || 'https'
-    const forwardedUrl = normalizeBaseUrl(`${forwardedProto}://${forwardedHost}`)
-    if (forwardedUrl) return forwardedUrl
-  }
-
-  return request.nextUrl.origin
+const resolveRegistrationAuthSiteUrl = (): string => {
+  return resolveConfiguredAuthSiteUrl(
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.SITE_URL,
+    process.env.NEXTAUTH_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : null
+  )
 }
 
 export async function POST(request: NextRequest) {
@@ -98,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create Supabase auth user
-    const authSiteUrl = resolveAuthSiteUrl(request)
+    const authSiteUrl = resolveRegistrationAuthSiteUrl()
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: body.email,

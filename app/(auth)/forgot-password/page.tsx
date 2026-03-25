@@ -5,6 +5,7 @@ import { Mail, Loader2, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react
 import Link from 'next/link'
 import { getSupabaseClient } from '@/config/supabase'
 import { authErrorHandler } from '@/services/authErrorHandler'
+import { resolveAuthSiteUrl } from '@/lib/auth-site-url'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -29,7 +30,10 @@ export default function ForgotPasswordPage() {
         throw new Error('Servizio di autenticazione non disponibile')
       }
 
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ortomioapp.it'
+      const siteUrl = resolveAuthSiteUrl(
+        process.env.NEXT_PUBLIC_SITE_URL,
+        process.env.NEXTAUTH_URL
+      )
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${siteUrl}/auth/callback`,
       })
