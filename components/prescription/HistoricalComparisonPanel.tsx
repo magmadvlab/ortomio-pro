@@ -3,13 +3,12 @@
  * Pannello per confronto storico mappe prescrizione e analisi trend
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useStorage } from '../../packages/core/hooks/useStorage';
 import { 
   PrescriptionMap,
   HistoricalComparisonRequest,
-  HistoricalComparisonResult,
-  TrendAnalysis
+  HistoricalComparisonResult
 } from '../../types/prescriptionMaps';
 import { createHistoricalComparisonService } from '../../services/historicalComparisonService';
 import { 
@@ -53,6 +52,45 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
   const [loading, setLoading] = useState(false);
   const [comparisonResult, setComparisonResult] = useState<HistoricalComparisonResult | null>(null);
   const [activeTab, setActiveTab] = useState<'trends' | 'zones' | 'seasonal' | 'insights'>('trends');
+
+  const comparisonTypeOptions: Array<{
+    value: HistoricalComparisonRequest['comparisonType']
+    label: string
+    desc: string
+  }> = [
+    { value: 'temporal', label: 'Trend Temporali', desc: 'Analisi evoluzione nel tempo' },
+    { value: 'seasonal', label: 'Pattern Stagionali', desc: 'Confronto per stagioni' },
+    { value: 'treatment_response', label: 'Risposta Trattamenti', desc: 'Efficacia trattamenti' },
+    { value: 'yield_correlation', label: 'Correlazione Resa', desc: 'Relazione dose-resa' }
+  ]
+
+  const resultTabs: Array<{
+    key: 'trends' | 'zones' | 'seasonal' | 'insights'
+    label: string
+    icon: typeof TrendingUp
+  }> = [
+    { key: 'trends', label: 'Trend Temporali', icon: TrendingUp },
+    { key: 'zones', label: 'Evoluzione Zone', icon: Target },
+    { key: 'seasonal', label: 'Pattern Stagionali', icon: Calendar },
+    { key: 'insights', label: 'Insights', icon: Zap }
+  ]
+
+  const getMetricLabel = (metric: string) => {
+    switch (metric) {
+      case 'application_rate':
+        return 'Dose Media'
+      case 'yield':
+        return 'Resa / Outcome'
+      case 'cost':
+        return 'Risparmio Economico'
+      case 'quality':
+        return 'Qualita Post-Intervento'
+      case 'environmental':
+        return 'Riduzione Input'
+      default:
+        return metric
+    }
+  }
 
   const handleRunComparison = async () => {
     if (selectedMaps.length < 2) {
@@ -163,19 +201,14 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
               <div>
                 <h4 className="font-medium text-gray-900 mb-3">Tipo Confronto</h4>
                 <div className="space-y-2">
-                  {[
-                    { value: 'temporal', label: 'Trend Temporali', desc: 'Analisi evoluzione nel tempo' },
-                    { value: 'seasonal', label: 'Pattern Stagionali', desc: 'Confronto per stagioni' },
-                    { value: 'treatment_response', label: 'Risposta Trattamenti', desc: 'Efficacia trattamenti' },
-                    { value: 'yield_correlation', label: 'Correlazione Resa', desc: 'Relazione dose-resa' }
-                  ].map((type) => (
+                  {comparisonTypeOptions.map((type) => (
                     <label key={type.value} className="flex items-start p-3 border rounded-lg cursor-pointer">
                       <input
                         type="radio"
                         name="comparisonType"
                         value={type.value}
                         checked={comparisonType === type.value}
-                        onChange={(e) => setComparisonType(e.target.value as any)}
+                        onChange={() => setComparisonType(type.value)}
                         className="mt-1 mr-3"
                       />
                       <div>
@@ -274,15 +307,10 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
                 {/* Tabs */}
                 <div className="border-b border-gray-200 mb-6">
                   <nav className="flex space-x-8">
-                    {[
-                      { key: 'trends', label: 'Trend Temporali', icon: TrendingUp },
-                      { key: 'zones', label: 'Evoluzione Zone', icon: Target },
-                      { key: 'seasonal', label: 'Pattern Stagionali', icon: Calendar },
-                      { key: 'insights', label: 'Insights', icon: Zap }
-                    ].map(({ key, label, icon: Icon }) => (
+                    {resultTabs.map(({ key, label, icon: Icon }) => (
                       <button
                         key={key}
-                        onClick={() => setActiveTab(key as any)}
+                        onClick={() => setActiveTab(key)}
                         className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
                           activeTab === key
                             ? 'border-blue-500 text-blue-600'
@@ -307,7 +335,7 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3">
                               {getTrendIcon(trend.trend)}
-                              <span className="font-medium text-gray-900">{trend.metric}</span>
+                              <span className="font-medium text-gray-900">{getMetricLabel(trend.metric)}</span>
                             </div>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTrendColor(trend.trend)}`}>
                               {trend.trend}

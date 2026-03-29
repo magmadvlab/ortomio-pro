@@ -1,753 +1,818 @@
 /**
  * Historical Comparison Service
- * Servizio per confronto storico mappe prescrizione e analisi trend
+ * Confronto storico reale tra strategie prescrittive basato su ledger operativo
  */
 
 import {
+  getPrescriptionExecutionEfficacySummary,
+  getPrescriptionExecutionOutcomeSummary,
+  getPrescriptionExecutionVarianceSummary,
+  type PrescriptionExecutionEfficacySummary,
+  type PrescriptionExecutionOutcomeSummary,
+  type PrescriptionExecutionVarianceSummary,
+} from './prescriptionExecutionService'
+import { buildPrescriptionAgronomicIntelligenceSummary } from './prescriptionAgronomicIntelligenceService'
+import type { IStorageProvider } from '../packages/core/storage/interface'
+import type {
+  HistoricalComparisonRequest,
+  HistoricalComparisonResult,
   PrescriptionMap,
-  PrescriptionZone,
-  NDVIDataPoint,
-  PlantDataPoint
-} from '../types/prescriptionMaps';
-
-export interface HistoricalComparisonRequest {
-  gardenId: string;
-  mapIds: string[];
-  comparisonType: 'temporal' | 'seasonal' | 'treatment_response' | 'yield_correlation';
-  timeRange: {
-    startDate: string;
-    endDate: string;
-  };
-  analysisMetrics: string[];
-}
-
-export interface HistoricalComparisonResult {
-  success: boolean;
-  comparisonId: string;
-  
-  // Temporal analysis
-  temporalTrends: {
-    metric: string;
-    trend: 'increasing' | 'decreasing' | 'stable' | 'cyclical';
-    changeRate: number; // % change per period
-    confidence: number;
-    dataPoints: Array<{
-      date: string;
-      value: number;
-      mapId: string;
-    }>;
-  }[];
-  
-  // Zone evolution
-  zoneEvolution: {
-    zoneId: string;
-    zoneName: string;
-    evolution: Array<{
-      date: string;
-      mapId: string;
-      applicationRate: number;
-      dataQuality: number;
-      expectedOutcome: number;
-      actualOutcome?: number;
-    }>;
-    performanceScore: number;
-    recommendations: string[];
-  }[];
-  
-  // Seasonal patterns
-  seasonalPatterns: {
-    season: 'spring' | 'summer' | 'autumn' | 'winter';
-    averageApplicationRate: number;
-    variability: number;
-    effectiveness: number;
-    recommendations: string[];
-  }[];
-  
-  // Treatment response analysis
-  treatmentResponse: {
-    treatmentType: string;
-    responseTime: number; // days
-    effectivenessScore: number;
-    optimalDosage: number;
-    costEffectiveness: number;
-    sideEffects: string[];
-  }[];
-  
-  // Yield correlation
-  yieldCorrelation: {
-    correlationCoefficient: number;
-    significanceLevel: number;
-    predictiveAccuracy: number;
-    optimalRateRange: {
-      min: number;
-      max: number;
-      unit: string;
-    };
-    yieldImpactAnalysis: Array<{
-      applicationRate: number;
-      expectedYield: number;
-      actualYield?: number;
-      variance: number;
-    }>;
-  };
-  
-  // Summary insights
-  insights: {
-    keyFindings: string[];
-    recommendations: string[];
-    riskFactors: string[];
-    opportunities: string[];
-    nextActions: string[];
-  };
-  
-  // Quality metrics
-  quality: {
-    dataCompleteness: number;
-    temporalCoverage: number;
-    spatialAccuracy: number;
-    confidenceScore: number;
-  };
-}
+  TrendAnalysis,
+} from '../types/prescriptionMaps'
 
 export interface SeasonalOptimizationSuggestion {
-  season: string;
-  mapType: string;
+  season: string
+  mapType: string
   suggestedChanges: {
-    zoneId: string;
-    currentRate: number;
-    suggestedRate: number;
-    reasoning: string;
-    expectedImprovement: number;
-    confidence: number;
-  }[];
+    zoneId: string
+    currentRate: number
+    suggestedRate: number
+    reasoning: string
+    expectedImprovement: number
+    confidence: number
+  }[]
   estimatedBenefits: {
-    costSavings: number;
-    yieldIncrease: number;
-    environmentalImpact: number;
-  };
+    costSavings: number
+    yieldIncrease: number
+    environmentalImpact: number
+  }
 }
 
-export interface TrendAnalysis {
-  metric: string;
-  timeframe: string;
-  trend: {
-    direction: 'up' | 'down' | 'stable';
-    magnitude: number;
-    acceleration: number;
-    seasonality: boolean;
-  };
-  forecast: {
-    nextPeriod: number;
-    confidence: number;
-    range: { min: number; max: number };
-  };
-  drivers: {
-    factor: string;
-    impact: number;
-    confidence: number;
-  }[];
+interface HistoricalMapSnapshot {
+  map: PrescriptionMap
+  varianceSummary: PrescriptionExecutionVarianceSummary
+  outcomeSummary: PrescriptionExecutionOutcomeSummary
+  efficacySummary: PrescriptionExecutionEfficacySummary
+  averageApplicationRate: number
+  averageExpectedOutcome: number
+  averageYieldKg?: number
+  latestOutcomeAt?: string
 }
 
-/**
- * HISTORICAL COMPARISON SERVICE
- */
-export class HistoricalComparisonService {
-  private storageProvider: any;
+type HistoricalComparisonStorage = Pick<
+  IStorageProvider,
+  'getGarden' | 'getPrescriptionMap' | 'getPrescriptionMaps' | 'getPrescriptionExecutionRecords' | 'getQualityResults'
+>
 
-  constructor(storageProvider: any) {
-    this.storageProvider = storageProvider;
+const METRIC_FALLBACKS = ['application_rate', 'quality', 'cost'] as const
+
+const SEVERITY_SCORE: Record<'urgent' | 'high' | 'medium' | 'low', number> = {
+  urgent: 4,
+  high: 3,
+  medium: 2,
+  low: 1,
+}
+
+const getSeasonKey = (
+  dateString: string
+): HistoricalComparisonResult['seasonalPatterns'][number]['season'] => {
+  const month = new Date(dateString).getUTCMonth() + 1
+  if (month === 12 || month <= 2) return 'winter'
+  if (month <= 5) return 'spring'
+  if (month <= 8) return 'summer'
+  return 'autumn'
+}
+
+const average = (values: number[]) => (
+  values.length > 0
+    ? Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(2))
+    : 0
+)
+
+const stdDeviation = (values: number[]) => {
+  if (values.length <= 1) {
+    return 0
   }
 
-  /**
-   * Perform comprehensive historical comparison analysis
-   */
+  const avg = average(values)
+  const variance = values.reduce((sum, value) => sum + ((value - avg) ** 2), 0) / values.length
+  return Number(Math.sqrt(variance).toFixed(2))
+}
+
+const clamp = (value: number, min: number, max: number) => (
+  Math.min(Math.max(value, min), max)
+)
+
+const normalizedZoneKey = (zoneName: string, zoneNumber?: number) => (
+  `${String(zoneNumber || '').trim()}::${zoneName.trim().toLowerCase()}`
+)
+
+const getMetricValue = (snapshot: HistoricalMapSnapshot, metric: string) => {
+  switch (metric) {
+    case 'application_rate':
+      return snapshot.averageApplicationRate
+    case 'yield':
+      return snapshot.averageYieldKg ?? snapshot.outcomeSummary.averageOutcomeScore
+    case 'cost':
+      return snapshot.map.costSavings || 0
+    case 'quality':
+      return snapshot.outcomeSummary.averageOutcomeScore || snapshot.map.qualityScore || 0
+    case 'environmental':
+      return snapshot.map.inputReduction || 0
+    default:
+      return snapshot.efficacySummary.averageEfficacyScore
+  }
+}
+
+const calculateChangeRate = (values: number[]) => {
+  if (values.length < 2) {
+    return 0
+  }
+
+  const first = values[0] ?? 0
+  const last = values[values.length - 1] ?? 0
+
+  if (first === 0) {
+    return Number(last.toFixed(2))
+  }
+
+  return Number((((last - first) / Math.abs(first)) * 100).toFixed(2))
+}
+
+const calculateTrendDirection = (
+  values: number[]
+): HistoricalComparisonResult['temporalTrends'][number]['trend'] => {
+  if (values.length < 2) {
+    return 'stable'
+  }
+
+  const deltas = values.slice(1).map((value, index) => value - values[index]!)
+  const positives = deltas.filter((delta) => delta > 0.5).length
+  const negatives = deltas.filter((delta) => delta < -0.5).length
+  const range = Math.max(...values) - Math.min(...values)
+
+  if (positives > 0 && negatives > 0 && range >= 5) {
+    return 'cyclical'
+  }
+
+  const changeRate = calculateChangeRate(values)
+  if (changeRate >= 5) {
+    return 'increasing'
+  }
+  if (changeRate <= -5) {
+    return 'decreasing'
+  }
+
+  return 'stable'
+}
+
+const calculateTrendConfidence = (values: number[], sourceScores: number[]) => {
+  if (values.length === 0) {
+    return 0
+  }
+
+  const coverage = Math.min(1, values.length / 4)
+  const spread = Math.min(1, Math.abs(calculateChangeRate(values)) / 40)
+  const quality = Math.min(1, average(sourceScores) / 100)
+  return Number(clamp((coverage * 0.35) + (spread * 0.2) + (quality * 0.45), 0.45, 0.97).toFixed(2))
+}
+
+const pearsonCorrelation = (pairs: Array<{ x: number; y: number }>) => {
+  if (pairs.length < 2) {
+    return 0
+  }
+
+  const meanX = average(pairs.map((pair) => pair.x))
+  const meanY = average(pairs.map((pair) => pair.y))
+
+  const numerator = pairs.reduce((sum, pair) => (
+    sum + ((pair.x - meanX) * (pair.y - meanY))
+  ), 0)
+  const denominatorX = Math.sqrt(pairs.reduce((sum, pair) => sum + ((pair.x - meanX) ** 2), 0))
+  const denominatorY = Math.sqrt(pairs.reduce((sum, pair) => sum + ((pair.y - meanY) ** 2), 0))
+
+  if (denominatorX === 0 || denominatorY === 0) {
+    return 0
+  }
+
+  return Number((numerator / (denominatorX * denominatorY)).toFixed(2))
+}
+
+const getDaysBetween = (start: string, end?: string) => {
+  if (!end) {
+    return undefined
+  }
+
+  const delta = new Date(end).getTime() - new Date(start).getTime()
+  if (Number.isNaN(delta) || delta < 0) {
+    return undefined
+  }
+
+  return Number((delta / (1000 * 60 * 60 * 24)).toFixed(1))
+}
+
+export class HistoricalComparisonService {
+  private storageProvider: HistoricalComparisonStorage
+
+  constructor(storageProvider: HistoricalComparisonStorage) {
+    this.storageProvider = storageProvider
+  }
+
   async performHistoricalComparison(
     request: HistoricalComparisonRequest
   ): Promise<HistoricalComparisonResult> {
-    try {
-      // 1. Load historical prescription maps
-      const maps = await this.loadHistoricalMaps(request.mapIds);
-      
-      // 2. Load associated data (NDVI, plant health, yield)
-      const historicalData = await this.loadHistoricalData(
-        request.gardenId,
-        request.timeRange
-      );
-      
-      // 3. Perform temporal trend analysis
-      const temporalTrends = await this.analyzeTemporalTrends(
-        maps,
-        historicalData,
-        request.analysisMetrics
-      );
-      
-      // 4. Analyze zone evolution
-      const zoneEvolution = await this.analyzeZoneEvolution(maps, historicalData);
-      
-      // 5. Identify seasonal patterns
-      const seasonalPatterns = await this.identifySeasonalPatterns(maps, historicalData);
-      
-      // 6. Analyze treatment response
-      const treatmentResponse = await this.analyzeTreatmentResponse(maps, historicalData);
-      
-      // 7. Calculate yield correlation
-      const yieldCorrelation = await this.calculateYieldCorrelation(maps, historicalData);
-      
-      // 8. Generate insights and recommendations
-      const insights = await this.generateInsights(
-        temporalTrends,
-        zoneEvolution,
-        seasonalPatterns,
-        treatmentResponse,
-        yieldCorrelation
-      );
-      
-      // 9. Calculate quality metrics
-      const quality = this.calculateQualityMetrics(maps, historicalData);
-      
-      return {
-        success: true,
-        comparisonId: crypto.randomUUID(),
-        temporalTrends,
-        zoneEvolution,
-        seasonalPatterns,
-        treatmentResponse,
-        yieldCorrelation,
-        insights,
-        quality
-      };
-      
-    } catch (error) {
-      console.error('Error performing historical comparison:', error);
-      throw error;
+    const snapshots = await this.loadHistoricalSnapshots(request)
+
+    if (snapshots.length < 2) {
+      throw new Error('Servono almeno 2 mappe storiche nello stesso periodo per il confronto')
+    }
+
+    const temporalTrends = this.buildTemporalTrends(
+      snapshots,
+      request.analysisMetrics.length > 0 ? request.analysisMetrics : [...METRIC_FALLBACKS]
+    )
+    const zoneEvolution = this.buildZoneEvolution(snapshots)
+    const seasonalPatterns = this.buildSeasonalPatterns(snapshots)
+    const treatmentResponse = this.buildTreatmentResponse(snapshots)
+    const yieldCorrelation = this.buildYieldCorrelation(snapshots)
+    const insights = this.buildInsights(
+      request.comparisonType,
+      snapshots,
+      temporalTrends,
+      zoneEvolution,
+      seasonalPatterns,
+      treatmentResponse,
+      yieldCorrelation
+    )
+    const quality = this.buildQualityMetrics(request, snapshots)
+
+    return {
+      success: true,
+      comparisonId: crypto.randomUUID(),
+      temporalTrends,
+      zoneEvolution,
+      seasonalPatterns,
+      treatmentResponse,
+      yieldCorrelation,
+      insights,
+      quality,
     }
   }
 
-  /**
-   * Generate seasonal optimization suggestions
-   */
   async generateSeasonalOptimizations(
     gardenId: string,
     mapType: string,
     seasons: string[]
   ): Promise<SeasonalOptimizationSuggestion[]> {
-    try {
-      const suggestions: SeasonalOptimizationSuggestion[] = [];
-      
-      for (const season of seasons) {
-        // Load historical data for the season
-        const seasonalData = await this.loadSeasonalData(gardenId, mapType, season);
-        
-        // Analyze performance patterns
-        const patterns = await this.analyzeSeasonalPatterns(seasonalData);
-        
-        // Generate optimization suggestions
-        const suggestedChanges = await this.generateSeasonalChanges(patterns);
-        
-        // Calculate estimated benefits
-        const estimatedBenefits = await this.calculateSeasonalBenefits(suggestedChanges);
-        
-        suggestions.push({
-          season,
-          mapType,
-          suggestedChanges,
-          estimatedBenefits
-        });
-      }
-      
-      return suggestions;
-      
-    } catch (error) {
-      console.error('Error generating seasonal optimizations:', error);
-      throw error;
+    if (!this.storageProvider?.getPrescriptionMaps) {
+      return []
     }
+
+    const maps: PrescriptionMap[] = await this.storageProvider.getPrescriptionMaps(gardenId)
+    const relevantMaps = maps.filter((map) => map.mapType === mapType)
+    const snapshots = await Promise.all(relevantMaps.map((map) => this.buildHistoricalSnapshot(map)))
+
+    return seasons.map((season) => {
+      const seasonalSnapshots = snapshots.filter((snapshot) => getSeasonKey(snapshot.map.generationDate) === season)
+      const avgRate = average(seasonalSnapshots.map((snapshot) => snapshot.averageApplicationRate))
+      const avgEfficacy = average(seasonalSnapshots.map((snapshot) => snapshot.efficacySummary.averageEfficacyScore))
+      const weakestMap = [...seasonalSnapshots].sort(
+        (left, right) => left.efficacySummary.averageEfficacyScore - right.efficacySummary.averageEfficacyScore
+      )[0]
+
+      return {
+        season,
+        mapType,
+        suggestedChanges: weakestMap?.map.zones.slice(0, 3).map((zone) => ({
+          zoneId: zone.id,
+          currentRate: zone.prescription.applicationRate,
+          suggestedRate: Number((zone.prescription.applicationRate * (avgEfficacy < 60 ? 0.92 : 1.03)).toFixed(2)),
+          reasoning: avgEfficacy < 60
+            ? 'La stagione mostra efficacia debole: conviene rientrare verso una dose piu prudente e controllabile.'
+            : 'La stagione risponde bene: si puo consolidare la dose performante come riferimento operativo.',
+          expectedImprovement: Number(Math.abs(avgEfficacy - 70).toFixed(1)),
+          confidence: Number(clamp(avgEfficacy / 100, 0.45, 0.92).toFixed(2)),
+        })) || [],
+        estimatedBenefits: {
+          costSavings: Number((avgRate * 0.08).toFixed(2)),
+          yieldIncrease: Number((avgEfficacy * 0.12).toFixed(2)),
+          environmentalImpact: Number(clamp(100 - avgRate / 2, 20, 90).toFixed(2)),
+        },
+      }
+    })
   }
 
-  /**
-   * Analyze trends for specific metrics
-   */
   async analyzeTrends(
     gardenId: string,
     metrics: string[],
     timeframe: string
   ): Promise<TrendAnalysis[]> {
-    try {
-      const analyses: TrendAnalysis[] = [];
-      
-      for (const metric of metrics) {
-        // Load time series data for metric
-        const timeSeries = await this.loadTimeSeriesData(gardenId, metric, timeframe);
-        
-        // Perform trend analysis
-        const trend = this.calculateTrend(timeSeries);
-        
-        // Generate forecast
-        const forecast = this.generateForecast(timeSeries, trend);
-        
-        // Identify driving factors
-        const drivers = await this.identifyDrivers(metric, timeSeries);
-        
-        analyses.push({
-          metric,
-          timeframe,
-          trend,
-          forecast,
-          drivers
-        });
-      }
-      
-      return analyses;
-      
-    } catch (error) {
-      console.error('Error analyzing trends:', error);
-      throw error;
+    if (!this.storageProvider?.getPrescriptionMaps) {
+      return []
     }
+
+    const maps: PrescriptionMap[] = await this.storageProvider.getPrescriptionMaps(gardenId)
+    const snapshots = await Promise.all(maps.map((map) => this.buildHistoricalSnapshot(map)))
+    const sortedSnapshots = snapshots.sort(
+      (left, right) => new Date(left.map.generationDate).getTime() - new Date(right.map.generationDate).getTime()
+    )
+
+    return metrics.map((metric) => {
+      const values = sortedSnapshots.map((snapshot) => getMetricValue(snapshot, metric))
+      const direction = calculateTrendDirection(values)
+      const magnitude = Math.abs(calculateChangeRate(values))
+      const lastValue = values[values.length - 1] ?? 0
+      const nextPeriod = Number((lastValue * (1 + (magnitude / 100))).toFixed(2))
+
+      return {
+        metric,
+        timeframe,
+        trend: {
+          direction: direction === 'increasing' ? 'up' : direction === 'decreasing' ? 'down' : 'stable',
+          magnitude: Number(magnitude.toFixed(2)),
+          acceleration: Number((magnitude / Math.max(values.length, 1)).toFixed(2)),
+          seasonality: direction === 'cyclical',
+        },
+        forecast: {
+          nextPeriod,
+          confidence: calculateTrendConfidence(
+            values,
+            sortedSnapshots.map((snapshot) => snapshot.map.qualityScore)
+          ),
+          range: {
+            min: Number((nextPeriod * 0.92).toFixed(2)),
+            max: Number((nextPeriod * 1.08).toFixed(2)),
+          },
+        },
+        drivers: [
+          {
+            factor: 'efficacia_esecuzione',
+            impact: Number((average(sortedSnapshots.map((snapshot) => snapshot.efficacySummary.averageEfficacyScore)) / 100).toFixed(2)),
+            confidence: 0.82,
+          },
+          {
+            factor: 'coerenza_operativa',
+            impact: Number((average(sortedSnapshots.map((snapshot) => snapshot.varianceSummary.averageAdherenceScore)) / 100).toFixed(2)),
+            confidence: 0.79,
+          },
+        ],
+      }
+    })
   }
 
-  /**
-   * PRIVATE HELPER METHODS
-   */
+  private async loadHistoricalSnapshots(
+    request: HistoricalComparisonRequest
+  ): Promise<HistoricalMapSnapshot[]> {
+    const maps = await this.loadHistoricalMaps(request.mapIds)
+    const filteredMaps = maps
+      .filter((map) => {
+        const timestamp = new Date(map.generationDate).getTime()
+        return (
+          timestamp >= new Date(request.timeRange.startDate).getTime()
+          && timestamp <= new Date(request.timeRange.endDate).getTime()
+        )
+      })
+      .sort((left, right) => new Date(left.generationDate).getTime() - new Date(right.generationDate).getTime())
+
+    return Promise.all(filteredMaps.map((map) => this.buildHistoricalSnapshot(map)))
+  }
 
   private async loadHistoricalMaps(mapIds: string[]): Promise<PrescriptionMap[]> {
-    // This would load from storage provider
-    // For now, return mock data
-    return [];
+    const getPrescriptionMap = this.storageProvider?.getPrescriptionMap
+    if (!getPrescriptionMap) {
+      throw new Error('Storage provider non supporta getPrescriptionMap')
+    }
+
+    const maps = await Promise.all(
+      mapIds.map((mapId: string) => getPrescriptionMap(mapId))
+    )
+    return maps.filter((map: PrescriptionMap | null): map is PrescriptionMap => Boolean(map))
   }
 
-  private async loadHistoricalData(gardenId: string, timeRange: any): Promise<{
-    ndviData: NDVIDataPoint[];
-    plantData: PlantDataPoint[];
-    yieldData: any[];
-    weatherData: any[];
-  }> {
-    // This would load comprehensive historical data
+  private async buildHistoricalSnapshot(map: PrescriptionMap): Promise<HistoricalMapSnapshot> {
+    const [varianceSummary, outcomeSummary, efficacySummary] = await Promise.all([
+      getPrescriptionExecutionVarianceSummary(this.storageProvider, map),
+      getPrescriptionExecutionOutcomeSummary(this.storageProvider, map),
+      getPrescriptionExecutionEfficacySummary(this.storageProvider, map),
+    ])
+
+    const averageApplicationRate = average(
+      map.zones.map((zone) => zone.prescription.applicationRate)
+    )
+    const averageExpectedOutcome = average(
+      map.zones
+        .map((zone) => zone.prescription.expectedOutcome?.yieldIncrease ?? zone.prescription.expectedOutcome?.costReduction)
+        .filter((value): value is number => typeof value === 'number')
+    )
+    const yieldValues = outcomeSummary.zoneOutcomes
+      .map((zone) => zone.latestQualityResult?.marketableYieldKg)
+      .filter((value): value is number => typeof value === 'number')
+    const latestOutcomeAt = outcomeSummary.zoneOutcomes
+      .map((zone) => zone.outcomeRecordedAt)
+      .filter((value): value is string => Boolean(value))
+      .sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0]
+
     return {
-      ndviData: [],
-      plantData: [],
-      yieldData: [],
-      weatherData: []
-    };
+      map,
+      varianceSummary,
+      outcomeSummary,
+      efficacySummary,
+      averageApplicationRate,
+      averageExpectedOutcome,
+      averageYieldKg: yieldValues.length > 0 ? average(yieldValues) : undefined,
+      latestOutcomeAt,
+    }
   }
 
-  private async analyzeTemporalTrends(
-    maps: PrescriptionMap[],
-    data: any,
+  private buildTemporalTrends(
+    snapshots: HistoricalMapSnapshot[],
     metrics: string[]
-  ): Promise<HistoricalComparisonResult['temporalTrends']> {
-    const trends: HistoricalComparisonResult['temporalTrends'] = [];
-    
-    for (const metric of metrics) {
-      // Extract time series for metric
-      const timeSeries = this.extractTimeSeries(maps, data, metric);
-      
-      // Calculate trend
-      const trend = this.calculateTrendDirection(timeSeries);
-      const changeRate = this.calculateChangeRate(timeSeries);
-      const confidence = this.calculateTrendConfidence(timeSeries);
-      
-      trends.push({
+  ): HistoricalComparisonResult['temporalTrends'] {
+    return metrics.map((metric) => {
+      const dataPoints = snapshots.map((snapshot) => ({
+        date: snapshot.map.generationDate,
+        value: getMetricValue(snapshot, metric),
+        mapId: snapshot.map.id,
+      }))
+      const values = dataPoints.map((point) => point.value)
+
+      return {
         metric,
-        trend,
-        changeRate,
-        confidence,
-        dataPoints: timeSeries
-      });
-    }
-    
-    return trends;
-  }
-
-  private async analyzeZoneEvolution(
-    maps: PrescriptionMap[],
-    data: any
-  ): Promise<HistoricalComparisonResult['zoneEvolution']> {
-    const evolution: HistoricalComparisonResult['zoneEvolution'] = [];
-    
-    // Group zones by spatial location
-    const zoneGroups = this.groupZonesBySpatialLocation(maps);
-    
-    for (const [zoneId, zones] of Object.entries(zoneGroups)) {
-      const zoneEvolution = zones.map(zone => ({
-        date: zone.createdAt,
-        mapId: zone.prescriptionMapId,
-        applicationRate: zone.prescription.applicationRate,
-        dataQuality: zone.dataQuality,
-        expectedOutcome: this.calculateExpectedOutcome(zone),
-        actualOutcome: this.getActualOutcome(zone, data)
-      }));
-      
-      const performanceScore = this.calculateZonePerformanceScore(zoneEvolution);
-      const recommendations = this.generateZoneRecommendations(zoneEvolution);
-      
-      evolution.push({
-        zoneId,
-        zoneName: zones[0]?.zoneName || `Zone ${zoneId}`,
-        evolution: zoneEvolution,
-        performanceScore,
-        recommendations
-      });
-    }
-    
-    return evolution;
-  }
-
-  private async identifySeasonalPatterns(
-    maps: PrescriptionMap[],
-    data: any
-  ): Promise<HistoricalComparisonResult['seasonalPatterns']> {
-    const seasons = ['spring', 'summer', 'autumn', 'winter'] as const;
-    const patterns: HistoricalComparisonResult['seasonalPatterns'] = [];
-    
-    for (const season of seasons) {
-      const seasonalMaps = this.filterMapsBySeason(maps, season);
-      
-      if (seasonalMaps.length > 0) {
-        const avgRate = this.calculateAverageApplicationRate(seasonalMaps);
-        const variability = this.calculateVariability(seasonalMaps);
-        const effectiveness = this.calculateSeasonalEffectiveness(seasonalMaps, data);
-        const recommendations = this.generateSeasonalRecommendations(season, seasonalMaps);
-        
-        patterns.push({
-          season,
-          averageApplicationRate: avgRate,
-          variability,
-          effectiveness,
-          recommendations
-        });
+        trend: calculateTrendDirection(values),
+        changeRate: calculateChangeRate(values),
+        confidence: calculateTrendConfidence(
+          values,
+          snapshots.map((snapshot) => snapshot.map.qualityScore)
+        ),
+        dataPoints,
       }
-    }
-    
-    return patterns;
+    })
   }
 
-  private async analyzeTreatmentResponse(
-    maps: PrescriptionMap[],
-    data: any
-  ): Promise<HistoricalComparisonResult['treatmentResponse']> {
-    const treatmentTypes = this.extractTreatmentTypes(maps);
-    const responses: HistoricalComparisonResult['treatmentResponse'] = [];
-    
-    for (const treatmentType of treatmentTypes) {
-      const treatmentMaps = maps.filter(m => m.mapType === treatmentType);
-      
-      const responseTime = this.calculateAverageResponseTime(treatmentMaps, data);
-      const effectivenessScore = this.calculateTreatmentEffectiveness(treatmentMaps, data);
-      const optimalDosage = this.calculateOptimalDosage(treatmentMaps, data);
-      const costEffectiveness = this.calculateCostEffectiveness(treatmentMaps, data);
-      const sideEffects = this.identifySideEffects(treatmentMaps, data);
-      
-      responses.push({
+  private buildZoneEvolution(
+    snapshots: HistoricalMapSnapshot[]
+  ): HistoricalComparisonResult['zoneEvolution'] {
+    const groupedZones = new Map<string, Array<{
+      zoneId: string
+      zoneName: string
+      zoneNumber: number
+      map: PrescriptionMap
+      variance?: PrescriptionExecutionVarianceSummary['zoneVariances'][number]
+      outcome?: PrescriptionExecutionOutcomeSummary['zoneOutcomes'][number]
+      efficacy?: PrescriptionExecutionEfficacySummary['zoneScores'][number]
+      zoneDataQuality: number
+      applicationRate: number
+      expectedOutcome: number
+    }>>()
+
+    snapshots.forEach((snapshot) => {
+      snapshot.map.zones.forEach((zone) => {
+        const key = normalizedZoneKey(zone.zoneName, zone.zoneNumber)
+        const current = groupedZones.get(key) || []
+        current.push({
+          zoneId: zone.id,
+          zoneName: zone.zoneName,
+          zoneNumber: zone.zoneNumber,
+          map: snapshot.map,
+          variance: snapshot.varianceSummary.zoneVariances.find((item) => item.zoneId === zone.id),
+          outcome: snapshot.outcomeSummary.zoneOutcomes.find((item) => item.zoneId === zone.id),
+          efficacy: snapshot.efficacySummary.zoneScores.find((item) => item.zoneId === zone.id),
+          zoneDataQuality: zone.dataQuality,
+          applicationRate: zone.prescription.applicationRate,
+          expectedOutcome: zone.prescription.expectedOutcome?.yieldIncrease
+            ?? zone.prescription.expectedOutcome?.costReduction
+            ?? snapshot.map.qualityScore,
+        })
+        groupedZones.set(key, current)
+      })
+    })
+
+    return [...groupedZones.values()]
+      .map((group) => {
+        const evolution = group
+          .sort((left, right) => new Date(left.map.generationDate).getTime() - new Date(right.map.generationDate).getTime())
+          .map((entry) => ({
+            date: entry.map.generationDate,
+            mapId: entry.map.id,
+            applicationRate: entry.applicationRate,
+            dataQuality: entry.zoneDataQuality,
+            expectedOutcome: Number(entry.expectedOutcome.toFixed(2)),
+            actualOutcome: entry.outcome?.outcomeScore,
+          }))
+
+        const actualScores = evolution
+          .map((entry) => entry.actualOutcome)
+          .filter((value): value is number => typeof value === 'number')
+        const performanceScore = actualScores.length > 0
+          ? average(actualScores)
+          : average(group.map((entry) => entry.variance?.adherenceScore || 0))
+
+        const recommendations: string[] = []
+        const latest = group[group.length - 1]
+        const oldest = group[0]
+
+        if (performanceScore < 55) {
+          recommendations.push('Zona storicamente debole: conviene ritarare dose e copertura prima del prossimo ciclo.')
+        }
+        if ((latest?.variance?.varianceStatus === 'off_target' || latest?.variance?.varianceStatus === 'partial')) {
+          recommendations.push('L’aderenza esecutiva recente non e sufficiente: verificare macchina, operatore o regola automatica.')
+        }
+        if ((latest?.efficacy?.efficacyScore || 0) >= ((oldest?.efficacy?.efficacyScore || 0) + 12)) {
+          recommendations.push('La zona sta migliorando: usare questa configurazione come benchmark interno.')
+        } else if ((latest?.efficacy?.efficacyScore || 0) <= ((oldest?.efficacy?.efficacyScore || 0) - 12)) {
+          recommendations.push('La zona mostra peggioramento nel tempo: confrontare microclima e risposta del suolo rispetto alle mappe migliori.')
+        }
+
+        return {
+          zoneId: latest?.zoneId || group[0]?.zoneId || crypto.randomUUID(),
+          zoneName: latest?.zoneName || group[0]?.zoneName || 'Zona',
+          evolution,
+          performanceScore: Number(performanceScore.toFixed(2)),
+          recommendations: recommendations.slice(0, 3),
+        }
+      })
+      .sort((left, right) => left.performanceScore - right.performanceScore)
+  }
+
+  private buildSeasonalPatterns(
+    snapshots: HistoricalMapSnapshot[]
+  ): HistoricalComparisonResult['seasonalPatterns'] {
+    const seasonalGroups = new Map<
+      HistoricalComparisonResult['seasonalPatterns'][number]['season'],
+      HistoricalMapSnapshot[]
+    >()
+
+    snapshots.forEach((snapshot) => {
+      const season = getSeasonKey(snapshot.map.generationDate)
+      const current = seasonalGroups.get(season) || []
+      current.push(snapshot)
+      seasonalGroups.set(season, current)
+    })
+
+    const order: HistoricalComparisonResult['seasonalPatterns'][number]['season'][] = ['spring', 'summer', 'autumn', 'winter']
+
+    return order
+      .filter((season) => seasonalGroups.has(season))
+      .map((season) => {
+        const seasonalSnapshots = seasonalGroups.get(season) || []
+        const rates = seasonalSnapshots.map((snapshot) => snapshot.averageApplicationRate)
+        const effectiveness = average(
+          seasonalSnapshots.map((snapshot) => snapshot.efficacySummary.averageEfficacyScore)
+        )
+        const recommendations: string[] = []
+
+        if (effectiveness >= 75) {
+          recommendations.push('Stagione storicamente solida: utile come riferimento per le finestre operative future.')
+        } else if (effectiveness < 55) {
+          recommendations.push('Stagione debole: anticipare verifica aderenza e stress microclimatico prima dell’esecuzione.')
+        }
+
+        const avgYield = average(
+          seasonalSnapshots
+            .map((snapshot) => snapshot.averageYieldKg)
+            .filter((value): value is number => typeof value === 'number')
+        )
+        if (avgYield > 0) {
+          recommendations.push(`La stagione mostra resa media ${avgYield.toFixed(1)} kg: utile per calibrare il target atteso.`)
+        }
+
+        return {
+          season,
+          averageApplicationRate: average(rates),
+          variability: Number((rates.length > 1
+            ? (stdDeviation(rates) / Math.max(average(rates), 1)) * 100
+            : 0).toFixed(2)),
+          effectiveness,
+          recommendations: recommendations.slice(0, 3),
+        }
+      })
+  }
+
+  private buildTreatmentResponse(
+    snapshots: HistoricalMapSnapshot[]
+  ): HistoricalComparisonResult['treatmentResponse'] {
+    const typeGroups = new Map<PrescriptionMap['mapType'], HistoricalMapSnapshot[]>()
+
+    snapshots.forEach((snapshot) => {
+      const current = typeGroups.get(snapshot.map.mapType) || []
+      current.push(snapshot)
+      typeGroups.set(snapshot.map.mapType, current)
+    })
+
+    return [...typeGroups.entries()].map(([treatmentType, groupedSnapshots]) => {
+      const responseTimes = groupedSnapshots
+        .map((snapshot) => getDaysBetween(snapshot.map.generationDate, snapshot.latestOutcomeAt))
+        .filter((value): value is number => typeof value === 'number')
+      const effectivenessScore = average(
+        groupedSnapshots.map((snapshot) => snapshot.efficacySummary.averageEfficacyScore)
+      )
+      const topSnapshots = [...groupedSnapshots]
+        .sort((left, right) => right.efficacySummary.averageEfficacyScore - left.efficacySummary.averageEfficacyScore)
+        .slice(0, Math.max(1, Math.ceil(groupedSnapshots.length / 2)))
+      const optimalDosage = average(topSnapshots.map((snapshot) => snapshot.averageApplicationRate))
+      const costEffectiveness = average(
+        groupedSnapshots.map((snapshot) => {
+          const perHa = snapshot.map.areaHectares > 0
+            ? snapshot.map.costSavings / snapshot.map.areaHectares
+            : snapshot.map.costSavings
+          return perHa * (snapshot.efficacySummary.averageEfficacyScore / 100)
+        })
+      )
+
+      const sideEffects: string[] = []
+      if (average(groupedSnapshots.map((snapshot) => snapshot.efficacySummary.averageMicroclimateScore)) < 45) {
+        sideEffects.push('stress microclimatico elevato dopo l’intervento')
+      }
+      if (average(groupedSnapshots.map((snapshot) => snapshot.varianceSummary.averageAdherenceScore)) < 60) {
+        sideEffects.push('aderenza operativa insufficiente rispetto alla prescrizione')
+      }
+
+      return {
         treatmentType,
-        responseTime,
+        responseTime: average(responseTimes),
         effectivenessScore,
         optimalDosage,
-        costEffectiveness,
-        sideEffects
-      });
-    }
-    
-    return responses;
+        costEffectiveness: Number(costEffectiveness.toFixed(2)),
+        sideEffects,
+      }
+    })
   }
 
-  private async calculateYieldCorrelation(
-    maps: PrescriptionMap[],
-    data: any
-  ): Promise<HistoricalComparisonResult['yieldCorrelation']> {
-    // Extract application rates and corresponding yields
-    const rateYieldPairs = this.extractRateYieldPairs(maps, data);
-    
-    // Calculate correlation coefficient
-    const correlationCoefficient = this.calculateCorrelation(rateYieldPairs);
-    
-    // Calculate significance level
-    const significanceLevel = this.calculateSignificance(rateYieldPairs);
-    
-    // Calculate predictive accuracy
-    const predictiveAccuracy = this.calculatePredictiveAccuracy(rateYieldPairs);
-    
-    // Find optimal rate range
-    const optimalRateRange = this.findOptimalRateRange(rateYieldPairs);
-    
-    // Generate yield impact analysis
-    const yieldImpactAnalysis = this.generateYieldImpactAnalysis(rateYieldPairs);
-    
+  private buildYieldCorrelation(
+    snapshots: HistoricalMapSnapshot[]
+  ): HistoricalComparisonResult['yieldCorrelation'] {
+    const pairs = snapshots
+      .map((snapshot) => ({
+        x: snapshot.averageApplicationRate,
+        y: snapshot.averageYieldKg ?? snapshot.outcomeSummary.averageOutcomeScore,
+      }))
+      .filter((pair) => Number.isFinite(pair.x) && Number.isFinite(pair.y))
+
+    const correlationCoefficient = pearsonCorrelation(pairs)
+    const topPairs = [...pairs]
+      .sort((left, right) => right.y - left.y)
+      .slice(0, Math.max(1, Math.ceil(pairs.length / 2)))
+    const optimalRates = topPairs.map((pair) => pair.x)
+    const unit = snapshots[0]?.map.applicationRate.unit || 'unit'
+
     return {
       correlationCoefficient,
-      significanceLevel,
-      predictiveAccuracy,
-      optimalRateRange,
-      yieldImpactAnalysis
-    };
+      significanceLevel: Number(clamp(0.45 + (Math.abs(correlationCoefficient) * 0.35) + (pairs.length * 0.04), 0.5, 0.99).toFixed(2)),
+      predictiveAccuracy: Number((Math.abs(correlationCoefficient) * 100).toFixed(2)),
+      optimalRateRange: {
+        min: optimalRates.length > 0 ? Number(Math.min(...optimalRates).toFixed(2)) : 0,
+        max: optimalRates.length > 0 ? Number(Math.max(...optimalRates).toFixed(2)) : 0,
+        unit,
+      },
+      yieldImpactAnalysis: snapshots.map((snapshot) => ({
+        applicationRate: snapshot.averageApplicationRate,
+        expectedYield: snapshot.averageExpectedOutcome,
+        actualYield: snapshot.averageYieldKg ?? snapshot.outcomeSummary.averageOutcomeScore,
+        variance: Number((
+          (snapshot.averageYieldKg ?? snapshot.outcomeSummary.averageOutcomeScore)
+          - snapshot.averageExpectedOutcome
+        ).toFixed(2)),
+      })),
+    }
   }
 
-  private async generateInsights(
-    temporalTrends: any,
-    zoneEvolution: any,
-    seasonalPatterns: any,
-    treatmentResponse: any,
-    yieldCorrelation: any
-  ): Promise<HistoricalComparisonResult['insights']> {
-    const keyFindings: string[] = [];
-    const recommendations: string[] = [];
-    const riskFactors: string[] = [];
-    const opportunities: string[] = [];
-    const nextActions: string[] = [];
-    
-    // Analyze temporal trends
-    for (const trend of temporalTrends) {
-      if (trend.trend === 'increasing' && trend.changeRate > 10) {
-        keyFindings.push(`${trend.metric} shows strong upward trend (+${trend.changeRate}%)`);
-        opportunities.push(`Leverage positive trend in ${trend.metric} for optimization`);
-      } else if (trend.trend === 'decreasing' && trend.changeRate < -10) {
-        keyFindings.push(`${trend.metric} shows concerning downward trend (${trend.changeRate}%)`);
-        riskFactors.push(`Declining ${trend.metric} requires immediate attention`);
-        nextActions.push(`Investigate causes of ${trend.metric} decline`);
-      }
+  private buildInsights(
+    comparisonType: HistoricalComparisonRequest['comparisonType'],
+    snapshots: HistoricalMapSnapshot[],
+    temporalTrends: HistoricalComparisonResult['temporalTrends'],
+    zoneEvolution: HistoricalComparisonResult['zoneEvolution'],
+    seasonalPatterns: HistoricalComparisonResult['seasonalPatterns'],
+    treatmentResponse: HistoricalComparisonResult['treatmentResponse'],
+    yieldCorrelation: HistoricalComparisonResult['yieldCorrelation']
+  ): HistoricalComparisonResult['insights'] {
+    const intelligenceEntries = snapshots.map((snapshot) => ({
+      map: snapshot.map,
+      intelligence: buildPrescriptionAgronomicIntelligenceSummary(
+        snapshot.map,
+        snapshot.efficacySummary,
+        snapshot.varianceSummary,
+        snapshot.outcomeSummary
+      ),
+    }))
+
+    const bestMap = [...snapshots].sort(
+      (left, right) => right.efficacySummary.averageEfficacyScore - left.efficacySummary.averageEfficacyScore
+    )[0]
+    const weakestMap = [...snapshots].sort(
+      (left, right) => left.efficacySummary.averageEfficacyScore - right.efficacySummary.averageEfficacyScore
+    )[0]
+    const bestSeason = [...seasonalPatterns].sort((left, right) => right.effectiveness - left.effectiveness)[0]
+    const weakestZones = zoneEvolution.filter((zone) => zone.performanceScore < 55).slice(0, 3)
+    const highestSeverityRecommendation = intelligenceEntries
+      .flatMap((entry) => entry.intelligence.recommendations)
+      .sort((left, right) => SEVERITY_SCORE[right.severity] - SEVERITY_SCORE[left.severity])[0]
+
+    const keyFindings: string[] = []
+    const recommendations: string[] = []
+    const riskFactors: string[] = []
+    const opportunities: string[] = []
+    const nextActions: string[] = []
+
+    const applicationTrend = temporalTrends.find((trend) => trend.metric === 'application_rate')
+    if (applicationTrend) {
+      keyFindings.push(
+        `La dose media storica e ${applicationTrend.trend} con variazione ${applicationTrend.changeRate >= 0 ? '+' : ''}${applicationTrend.changeRate.toFixed(1)}%.`
+      )
     }
-    
-    // Analyze zone performance
-    const underperformingZones = zoneEvolution.filter((z: any) => z.performanceScore < 60);
-    if (underperformingZones.length > 0) {
-      keyFindings.push(`${underperformingZones.length} zones showing suboptimal performance`);
-      recommendations.push('Focus optimization efforts on underperforming zones');
-      nextActions.push('Conduct detailed analysis of underperforming zones');
+
+    if (bestMap) {
+      keyFindings.push(
+        `La strategia migliore e "${bestMap.map.name}" con efficacia media ${bestMap.efficacySummary.averageEfficacyScore.toFixed(0)}.`
+      )
+      opportunities.push(
+        `Usare "${bestMap.map.name}" come benchmark operativo per dose, copertura e timing.`
+      )
     }
-    
-    // Analyze seasonal effectiveness
-    const bestSeason = seasonalPatterns.reduce((best: any, current: any) => 
-      current.effectiveness > best.effectiveness ? current : best
-    );
+
     if (bestSeason) {
-      keyFindings.push(`${bestSeason.season} shows highest treatment effectiveness (${bestSeason.effectiveness}%)`);
-      opportunities.push(`Optimize timing to leverage ${bestSeason.season} effectiveness`);
+      keyFindings.push(
+        `La stagione con risposta migliore e ${bestSeason.season} con efficacia ${bestSeason.effectiveness.toFixed(0)}.`
+      )
     }
-    
-    // Analyze yield correlation
-    if (yieldCorrelation.correlationCoefficient > 0.7) {
-      keyFindings.push(`Strong positive correlation between application rate and yield (r=${yieldCorrelation.correlationCoefficient.toFixed(2)})`);
-      recommendations.push('Maintain current application strategy with fine-tuning');
-    } else if (yieldCorrelation.correlationCoefficient < 0.3) {
-      keyFindings.push(`Weak correlation suggests need for strategy revision (r=${yieldCorrelation.correlationCoefficient.toFixed(2)})`);
-      riskFactors.push('Current application strategy may not be optimal');
-      nextActions.push('Revise application strategy based on data analysis');
+
+    if (weakestMap && weakestMap !== bestMap) {
+      riskFactors.push(
+        `La strategia "${weakestMap.map.name}" resta la piu fragile con efficacia ${weakestMap.efficacySummary.averageEfficacyScore.toFixed(0)}.`
+      )
     }
-    
+
+    weakestZones.forEach((zone) => {
+      riskFactors.push(`La zona ${zone.zoneName} resta sotto soglia storica con performance ${zone.performanceScore.toFixed(0)}.`)
+    })
+
+    if (yieldCorrelation.correlationCoefficient >= 0.45) {
+      opportunities.push(
+        `La relazione dose-risultato e leggibile (r=${yieldCorrelation.correlationCoefficient.toFixed(2)}): si puo ottimizzare il range ${yieldCorrelation.optimalRateRange.min}-${yieldCorrelation.optimalRateRange.max} ${yieldCorrelation.optimalRateRange.unit}.`
+      )
+    } else {
+      riskFactors.push(
+        'La relazione dose-risultato e ancora debole: serve piu disciplina esecutiva o piu dati outcome per distinguere le strategie.'
+      )
+    }
+
+    if (highestSeverityRecommendation) {
+      recommendations.push(highestSeverityRecommendation.message)
+    }
+
+    const weakestTreatment = [...treatmentResponse].sort(
+      (left, right) => left.effectivenessScore - right.effectivenessScore
+    )[0]
+    if (weakestTreatment) {
+      recommendations.push(
+        `Per il tipo ${weakestTreatment.treatmentType} conviene convergere verso dose ottimale ${weakestTreatment.optimalDosage.toFixed(1)} e ridurre le esecuzioni fuori soglia.`
+      )
+    }
+
+    if (comparisonType === 'seasonal' && bestSeason) {
+      nextActions.push(`Allinea il prossimo piano stagionale alla finestra ${bestSeason.season} che oggi risulta la piu efficiente.`)
+    }
+    if (comparisonType === 'yield_correlation') {
+      nextActions.push('Conferma il range ottimale su una nuova mappa pilota e misura resa commerciale per zona.')
+    }
+    if (comparisonType === 'treatment_response') {
+      nextActions.push('Controlla i tempi tra applicazione e primo outcome registrato per eliminare risposte lente o incoerenti.')
+    }
+
+    if (weakestZones.length > 0) {
+      nextActions.push(`Rivedi subito ${weakestZones[0]!.zoneName} confrontando aderenza, outcome e stress post-intervento.`)
+    }
+    if (bestMap) {
+      nextActions.push(`Replica gli elementi vincenti di "${bestMap.map.name}" sulle aree che oggi performano peggio.`)
+    }
+
     return {
-      keyFindings,
-      recommendations,
-      riskFactors,
-      opportunities,
-      nextActions
-    };
+      keyFindings: keyFindings.slice(0, 5),
+      recommendations: recommendations.slice(0, 5),
+      riskFactors: riskFactors.slice(0, 5),
+      opportunities: opportunities.slice(0, 5),
+      nextActions: nextActions.slice(0, 5),
+    }
   }
 
-  private calculateQualityMetrics(maps: PrescriptionMap[], data: any): HistoricalComparisonResult['quality'] {
-    const dataCompleteness = this.calculateDataCompleteness(maps, data);
-    const temporalCoverage = this.calculateTemporalCoverage(maps);
-    const spatialAccuracy = this.calculateSpatialAccuracy(maps);
-    const confidenceScore = (dataCompleteness + temporalCoverage + spatialAccuracy) / 3;
-    
+  private buildQualityMetrics(
+    request: HistoricalComparisonRequest,
+    snapshots: HistoricalMapSnapshot[]
+  ): HistoricalComparisonResult['quality'] {
+    const dataCompleteness = average(snapshots.map((snapshot) => snapshot.map.dataCompleteness))
+    const spatialAccuracy = average(snapshots.map((snapshot) => snapshot.map.qualityScore))
+    const timeStart = new Date(request.timeRange.startDate).getTime()
+    const timeEnd = new Date(request.timeRange.endDate).getTime()
+    const requestedSpanDays = Math.max(1, (timeEnd - timeStart) / (1000 * 60 * 60 * 24))
+    const actualSpanDays = snapshots.length > 1
+      ? (
+        new Date(snapshots[snapshots.length - 1]!.map.generationDate).getTime()
+        - new Date(snapshots[0]!.map.generationDate).getTime()
+      ) / (1000 * 60 * 60 * 24)
+      : 0
+    const temporalCoverage = Number(clamp((actualSpanDays / requestedSpanDays) * 100, 20, 100).toFixed(2))
+    const confidenceScore = Number(average([dataCompleteness, spatialAccuracy, temporalCoverage]).toFixed(2))
+
     return {
       dataCompleteness,
       temporalCoverage,
       spatialAccuracy,
-      confidenceScore
-    };
-  }
-
-  // Additional helper methods would be implemented here...
-  private extractTimeSeries(maps: any[], data: any, metric: string): any[] {
-    // Implementation for extracting time series data
-    return [];
-  }
-
-  private calculateTrendDirection(timeSeries: any[]): 'increasing' | 'decreasing' | 'stable' | 'cyclical' {
-    // Implementation for trend direction calculation
-    return 'stable';
-  }
-
-  private calculateChangeRate(timeSeries: any[]): number {
-    // Implementation for change rate calculation
-    return 0;
-  }
-
-  private calculateTrendConfidence(timeSeries: any[]): number {
-    // Implementation for trend confidence calculation
-    return 0.8;
-  }
-
-  private groupZonesBySpatialLocation(maps: PrescriptionMap[]): Record<string, PrescriptionZone[]> {
-    // Implementation for grouping zones by spatial location
-    return {};
-  }
-
-  private calculateExpectedOutcome(zone: PrescriptionZone): number {
-    // Implementation for expected outcome calculation
-    return 0;
-  }
-
-  private getActualOutcome(zone: PrescriptionZone, data: any): number | undefined {
-    // Implementation for actual outcome retrieval
-    return undefined;
-  }
-
-  private calculateZonePerformanceScore(evolution: any[]): number {
-    // Implementation for zone performance score calculation
-    return 75;
-  }
-
-  private generateZoneRecommendations(evolution: any[]): string[] {
-    // Implementation for zone recommendations generation
-    return [];
-  }
-
-  private filterMapsBySeason(maps: PrescriptionMap[], season: string): PrescriptionMap[] {
-    // Implementation for filtering maps by season
-    return [];
-  }
-
-  private calculateAverageApplicationRate(maps: PrescriptionMap[]): number {
-    // Implementation for average application rate calculation
-    return 0;
-  }
-
-  private calculateVariability(maps: PrescriptionMap[]): number {
-    // Implementation for variability calculation
-    return 0;
-  }
-
-  private calculateSeasonalEffectiveness(maps: PrescriptionMap[], data: any): number {
-    // Implementation for seasonal effectiveness calculation
-    return 0;
-  }
-
-  private generateSeasonalRecommendations(season: string, maps: PrescriptionMap[]): string[] {
-    // Implementation for seasonal recommendations generation
-    return [];
-  }
-
-  private extractTreatmentTypes(maps: PrescriptionMap[]): string[] {
-    // Implementation for treatment types extraction
-    return [];
-  }
-
-  private calculateAverageResponseTime(maps: PrescriptionMap[], data: any): number {
-    // Implementation for average response time calculation
-    return 0;
-  }
-
-  private calculateTreatmentEffectiveness(maps: PrescriptionMap[], data: any): number {
-    // Implementation for treatment effectiveness calculation
-    return 0;
-  }
-
-  private calculateOptimalDosage(maps: PrescriptionMap[], data: any): number {
-    // Implementation for optimal dosage calculation
-    return 0;
-  }
-
-  private calculateCostEffectiveness(maps: PrescriptionMap[], data: any): number {
-    // Implementation for cost effectiveness calculation
-    return 0;
-  }
-
-  private identifySideEffects(maps: PrescriptionMap[], data: any): string[] {
-    // Implementation for side effects identification
-    return [];
-  }
-
-  private extractRateYieldPairs(maps: PrescriptionMap[], data: any): Array<{rate: number, yield: number}> {
-    // Implementation for rate-yield pairs extraction
-    return [];
-  }
-
-  private calculateCorrelation(pairs: Array<{rate: number, yield: number}>): number {
-    // Implementation for correlation calculation
-    return 0.75;
-  }
-
-  private calculateSignificance(pairs: Array<{rate: number, yield: number}>): number {
-    // Implementation for significance calculation
-    return 0.95;
-  }
-
-  private calculatePredictiveAccuracy(pairs: Array<{rate: number, yield: number}>): number {
-    // Implementation for predictive accuracy calculation
-    return 0.85;
-  }
-
-  private findOptimalRateRange(pairs: Array<{rate: number, yield: number}>): {min: number, max: number, unit: string} {
-    // Implementation for optimal rate range finding
-    return { min: 80, max: 120, unit: 'kg/ha' };
-  }
-
-  private generateYieldImpactAnalysis(pairs: Array<{rate: number, yield: number}>): any[] {
-    // Implementation for yield impact analysis generation
-    return [];
-  }
-
-  private calculateDataCompleteness(maps: PrescriptionMap[], data: any): number {
-    // Implementation for data completeness calculation
-    return 85;
-  }
-
-  private calculateTemporalCoverage(maps: PrescriptionMap[]): number {
-    // Implementation for temporal coverage calculation
-    return 90;
-  }
-
-  private calculateSpatialAccuracy(maps: PrescriptionMap[]): number {
-    // Implementation for spatial accuracy calculation
-    return 88;
-  }
-
-  private async loadSeasonalData(gardenId: string, mapType: string, season: string): Promise<any> {
-    // Implementation for seasonal data loading
-    return {};
-  }
-
-  private async analyzeSeasonalPatterns(data: any): Promise<any> {
-    // Implementation for seasonal patterns analysis
-    return {};
-  }
-
-  private async generateSeasonalChanges(patterns: any): Promise<any[]> {
-    // Implementation for seasonal changes generation
-    return [];
-  }
-
-  private async calculateSeasonalBenefits(changes: any[]): Promise<any> {
-    // Implementation for seasonal benefits calculation
-    return {};
-  }
-
-  private async loadTimeSeriesData(gardenId: string, metric: string, timeframe: string): Promise<any[]> {
-    // Implementation for time series data loading
-    return [];
-  }
-
-  private calculateTrend(timeSeries: any[]): any {
-    // Implementation for trend calculation
-    return { direction: 'up', magnitude: 0.15, acceleration: 0.02, seasonality: true };
-  }
-
-  private generateForecast(timeSeries: any[], trend: any): any {
-    // Implementation for forecast generation
-    return { nextPeriod: 105, confidence: 0.8, range: { min: 95, max: 115 } };
-  }
-
-  private async identifyDrivers(metric: string, timeSeries: any[]): Promise<any[]> {
-    // Implementation for drivers identification
-    return [];
+      confidenceScore,
+    }
   }
 }
 
-/**
- * UTILITY FUNCTIONS
- */
+export const createHistoricalComparisonService = (storageProvider: HistoricalComparisonStorage) => (
+  new HistoricalComparisonService(storageProvider)
+)
 
-export const createHistoricalComparisonService = (storageProvider: any) => {
-  return new HistoricalComparisonService(storageProvider);
-};
-
-export default HistoricalComparisonService;
+export default HistoricalComparisonService

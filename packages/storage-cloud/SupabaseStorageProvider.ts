@@ -4,7 +4,7 @@
  */
 
 import { IStorageProvider } from '../core/storage/interface';
-import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB, GardenRow, GardenZone, FieldRow, PlantingBatch } from '@/types';
+import { Garden, GardenTask, SmartDevice, SmartDeviceAutomationLog, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB, GardenRow, GardenZone, FieldRow, PlantingBatch, PhenologyObservation, QualityResult } from '@/types';
 import { CustomCrop, CropLearningEvent } from '@/types/customCrop';
 import { CustomPlan } from '@/types/customPlan';
 import { Agronomist, AgronomistConsultation, AgronomistAdvice } from '@/types/agronomist';
@@ -20,12 +20,64 @@ import { IrrigationSystem, IrrigationZone, IrrigationComponent, WateringLog } fr
 import { HealthAlert } from '@/types/healthAlert';
 import { sendNotification, createTaskCompletedNotification, createTaskReminderNotification } from '@/services/notificationService';
 import { normalizeGeoCoordinates } from '@/utils/coordinates';
+import {
+  hasAgronomicScope,
+  normalizeSmartDeviceScope,
+  touchesAgronomicScope,
+  validateSmartDeviceScope,
+} from '@/utils/smartDeviceScope';
+import { mapSmartDeviceFromDb, mapSmartDeviceToDb } from '@/utils/smartDeviceDb';
+import {
+  mapSmartDeviceAutomationLogFromDb,
+  mapSmartDeviceAutomationLogToDb,
+} from '@/utils/smartDeviceAutomationLogDb';
+import {
+  mapPhenologyObservationFromDb,
+  mapPhenologyObservationToDb,
+} from '@/utils/phenologyObservationDb';
+import {
+  mapQualityResultFromDb,
+  mapQualityResultToDb,
+} from '@/utils/qualityResultDb';
+import {
+  mapPrescriptionMapFromDb,
+  mapPrescriptionMapToDb,
+  mapPrescriptionZoneFromDb,
+  mapPrescriptionZoneToDb,
+} from '@/utils/prescriptionMapDb';
+import {
+  mapPrescriptionExecutionFromDb,
+  mapPrescriptionExecutionToDb,
+} from '@/utils/prescriptionExecutionDb';
+import {
+  mapPrescriptionMapExportRecordFromDb,
+  mapPrescriptionMapExportRecordToDb,
+} from '@/utils/prescriptionMapExportDb';
+import type { PrescriptionExecutionRecord, PrescriptionMap, PrescriptionMapExportRecord, PrescriptionZone } from '@/types/prescriptionMaps';
+import type { PlantOperation } from '@/types/individualPlant';
+import { StoragePersistenceError, StorageReadError } from '../core/storage/errors';
 
 export class SupabaseStorageProvider implements IStorageProvider {
   private client: SupabaseClient | null;
 
   constructor() {
     this.client = getSupabaseClient();
+  }
+
+  private buildCloudPersistenceError(
+    operation: string,
+    userMessage: string,
+    cause?: unknown
+  ): StoragePersistenceError {
+    return new StoragePersistenceError(operation, userMessage, cause);
+  }
+
+  private buildCloudReadError(
+    operation: string,
+    userMessage: string,
+    cause?: unknown
+  ): StorageReadError {
+    return new StorageReadError(operation, userMessage, cause);
   }
 
   // Garden Rows (Filari)
@@ -287,6 +339,34 @@ export class SupabaseStorageProvider implements IStorageProvider {
       throw new Error('Supabase client not available. Check configuration.');
     }
     return this.client;
+  }
+
+  private getLocalStoredDevices(): SmartDevice[] {
+    const saved = localStorage.getItem('ortoDevices');
+    if (!saved) return [];
+    try {
+      return (JSON.parse(saved) as SmartDevice[]).map(device => normalizeSmartDeviceScope(device));
+    } catch {
+      return [];
+    }
+  }
+
+  private saveLocalStoredDevices(devices: SmartDevice[]) {
+    localStorage.setItem('ortoDevices', JSON.stringify(devices.map(device => normalizeSmartDeviceScope(device))));
+  }
+
+  private getLocalStoredAutomationLogs(): SmartDeviceAutomationLog[] {
+    const saved = localStorage.getItem('ortoSmartDeviceAutomationLogs');
+    if (!saved) return [];
+    try {
+      return JSON.parse(saved) as SmartDeviceAutomationLog[];
+    } catch {
+      return [];
+    }
+  }
+
+  private saveLocalStoredAutomationLogs(logs: SmartDeviceAutomationLog[]) {
+    localStorage.setItem('ortoSmartDeviceAutomationLogs', JSON.stringify(logs));
   }
 
   async getUserPreference<T = any>(key: string): Promise<T | null> {
@@ -759,20 +839,49 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (error) throw error;
   }
 
-  // Smart Devices (stored in localStorage for now, can be migrated later)
+  // Smart Devices
   async getDevices(gardenId?: string): Promise<SmartDevice[]> {
-    // TODO: Implement Supabase table for devices
-    // For now, fallback to localStorage
-    const saved = localStorage.getItem('ortoDevices');
-    if (!saved) return [];
+    if (!this.client) {
+      const devices = this.getLocalStoredDevices();
+      return gardenId ? devices.filter(device => device.gardenId === gardenId) : devices;
+    }
+
     try {
-      const devices = JSON.parse(saved) as SmartDevice[];
-      if (gardenId) {
-        return devices.filter(d => d.gardenId === gardenId);
+      const client = this.ensureClient();
+      const { data: { user } } = await client.auth.getUser();
+
+      if (!user) {
+        throw this.buildCloudReadError(
+          'getDevices',
+          'Lettura cloud non disponibile: sessione Supabase non valida per i device smart.'
+        );
       }
-      return devices;
-    } catch {
-      return [];
+
+      let query = client.from('smart_devices').select('*');
+      if (gardenId) {
+        query = query.eq('garden_id', gardenId);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+      if (error || !data) {
+        throw this.buildCloudReadError(
+          'getDevices',
+          'Lettura cloud fallita: impossibile caricare i device smart da Supabase.',
+          error ?? undefined
+        );
+      }
+
+      return data.map(device => mapSmartDeviceFromDb(device));
+    } catch (error) {
+      if (error instanceof StorageReadError) {
+        throw error;
+      }
+
+      throw this.buildCloudReadError(
+        'getDevices',
+        'Lettura cloud fallita durante il caricamento dei device smart.',
+        error
+      );
     }
   }
 
@@ -782,33 +891,1290 @@ export class SupabaseStorageProvider implements IStorageProvider {
   }
 
   async createDevice(device: Omit<SmartDevice, 'id' | 'lastUpdate'>): Promise<SmartDevice> {
-    // TODO: Implement Supabase table for devices
+    const normalizedDevice = validateSmartDeviceScope(device, { requireScope: true })
+
+    if (this.client) {
+      try {
+        const client = this.ensureClient();
+        const { data: { user } } = await client.auth.getUser();
+
+        if (!user) {
+          throw this.buildCloudPersistenceError(
+            'createDevice',
+            'Persistenza cloud non disponibile: sessione Supabase non valida. Il dispositivo non e stato salvato.'
+          );
+        }
+
+        const { data, error } = await client
+          .from('smart_devices')
+          .insert({
+            ...mapSmartDeviceToDb({
+              ...normalizedDevice,
+              lastUpdate: new Date().toISOString(),
+            }),
+            user_id: user.id,
+          })
+          .select()
+          .single();
+
+        if (!error && data) {
+          return mapSmartDeviceFromDb(data);
+        }
+
+        throw this.buildCloudPersistenceError(
+          'createDevice',
+          'Persistenza cloud fallita: il dispositivo non e stato salvato su Supabase.',
+          error ?? undefined
+        );
+      } catch (error) {
+        if (error instanceof StoragePersistenceError) {
+          throw error;
+        }
+
+        throw this.buildCloudPersistenceError(
+          'createDevice',
+          'Persistenza cloud fallita durante il salvataggio del dispositivo.',
+          error
+        );
+      }
+    }
+
     const newDevice: SmartDevice = {
-      ...device,
+      ...normalizedDevice,
       id: crypto.randomUUID(),
       lastUpdate: new Date().toISOString(),
     };
-    const devices = await this.getDevices();
+    const devices = this.getLocalStoredDevices();
     devices.push(newDevice);
-    localStorage.setItem('ortoDevices', JSON.stringify(devices));
+    this.saveLocalStoredDevices(devices);
     return newDevice;
   }
 
   async updateDevice(id: string, updates: Partial<SmartDevice>): Promise<SmartDevice> {
-    // TODO: Implement Supabase table for devices
-    const devices = await this.getDevices();
+    if (this.client) {
+      try {
+        const client = this.ensureClient();
+        const { data: { user } } = await client.auth.getUser();
+
+        if (!user) {
+          throw this.buildCloudPersistenceError(
+            'updateDevice',
+            'Persistenza cloud non disponibile: sessione Supabase non valida. Le modifiche non sono state salvate.'
+          );
+        }
+
+        const { data: existingDevice, error: existingError } = await client
+          .from('smart_devices')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (existingError || !existingDevice) {
+          throw this.buildCloudPersistenceError(
+            'updateDevice',
+            'Persistenza cloud fallita: dispositivo non trovato su Supabase.',
+            existingError ?? undefined
+          );
+        }
+
+        const currentDevice = mapSmartDeviceFromDb(existingDevice)
+        const mergedDevice = normalizeSmartDeviceScope({
+          ...currentDevice,
+          ...updates,
+          lastUpdate: new Date().toISOString(),
+        })
+        const shouldRequireScope = hasAgronomicScope(currentDevice) || touchesAgronomicScope(updates)
+        const validatedDevice = validateSmartDeviceScope(mergedDevice, { requireScope: shouldRequireScope }) as SmartDevice
+
+        const { data, error } = await client
+          .from('smart_devices')
+          .update(mapSmartDeviceToDb(validatedDevice))
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (!error && data) {
+          return mapSmartDeviceFromDb(data);
+        }
+
+        throw this.buildCloudPersistenceError(
+          'updateDevice',
+          'Persistenza cloud fallita: le modifiche del device non sono state salvate su Supabase.',
+          error ?? undefined
+        );
+      } catch (error) {
+        if (error instanceof StoragePersistenceError) {
+          throw error;
+        }
+
+        throw this.buildCloudPersistenceError(
+          'updateDevice',
+          'Persistenza cloud fallita durante l aggiornamento del dispositivo.',
+          error
+        );
+      }
+    }
+
+    const devices = this.getLocalStoredDevices();
     const index = devices.findIndex(d => d.id === id);
     if (index === -1) throw new Error(`Device with id ${id} not found`);
-    devices[index] = { ...devices[index], ...updates, lastUpdate: new Date().toISOString() };
-    localStorage.setItem('ortoDevices', JSON.stringify(devices));
+    const currentDevice = normalizeSmartDeviceScope(devices[index])
+    const mergedDevice = normalizeSmartDeviceScope({
+      ...currentDevice,
+      ...updates,
+      lastUpdate: new Date().toISOString(),
+    })
+    const shouldRequireScope = hasAgronomicScope(currentDevice) || touchesAgronomicScope(updates)
+    devices[index] = validateSmartDeviceScope(mergedDevice, { requireScope: shouldRequireScope }) as SmartDevice
+    this.saveLocalStoredDevices(devices);
     return devices[index];
   }
 
   async deleteDevice(id: string): Promise<void> {
-    // TODO: Implement Supabase table for devices
-    const devices = await this.getDevices();
+    if (this.client) {
+      try {
+        const client = this.ensureClient();
+        const { data: { user } } = await client.auth.getUser();
+
+        if (!user) {
+          throw this.buildCloudPersistenceError(
+            'deleteDevice',
+            'Persistenza cloud non disponibile: sessione Supabase non valida. Il device non e stato eliminato.'
+          );
+        }
+
+        const { error } = await client
+          .from('smart_devices')
+          .delete()
+          .eq('id', id);
+
+        if (!error) {
+          return;
+        }
+
+        throw this.buildCloudPersistenceError(
+          'deleteDevice',
+          'Persistenza cloud fallita: il device non e stato eliminato su Supabase.',
+          error
+        );
+      } catch (error) {
+        if (error instanceof StoragePersistenceError) {
+          throw error;
+        }
+
+        throw this.buildCloudPersistenceError(
+          'deleteDevice',
+          'Persistenza cloud fallita durante l eliminazione del device.',
+          error
+        );
+      }
+    }
+
+    const devices = this.getLocalStoredDevices();
     const filtered = devices.filter(d => d.id !== id);
-    localStorage.setItem('ortoDevices', JSON.stringify(filtered));
+    this.saveLocalStoredDevices(filtered);
+  }
+
+  async getSmartDeviceAutomationLogs(gardenId?: string, deviceId?: string): Promise<SmartDeviceAutomationLog[]> {
+    if (!this.client) {
+      const logs = this.getLocalStoredAutomationLogs();
+      return logs.filter(log => {
+        if (gardenId && log.gardenId !== gardenId) return false;
+        if (deviceId && log.deviceId !== deviceId) return false;
+        return true;
+      });
+    }
+
+    try {
+      const client = this.ensureClient();
+      const { data: { user } } = await client.auth.getUser();
+
+      if (!user) {
+        throw this.buildCloudReadError(
+          'getSmartDeviceAutomationLogs',
+          'Lettura cloud non disponibile: sessione Supabase non valida per i log automazione.'
+        );
+      }
+
+      let query = client
+        .from('smart_device_automation_logs')
+        .select('*')
+        .order('event_at', { ascending: false })
+        .limit(300);
+
+      if (gardenId) {
+        query = query.eq('garden_id', gardenId);
+      }
+
+      if (deviceId) {
+        query = query.eq('device_id', deviceId);
+      }
+
+      const { data, error } = await query;
+      if (error || !data) {
+        throw this.buildCloudReadError(
+          'getSmartDeviceAutomationLogs',
+          'Lettura cloud fallita: impossibile caricare i log di automazione da Supabase.',
+          error ?? undefined
+        );
+      }
+
+      return data.map(log => mapSmartDeviceAutomationLogFromDb(log));
+    } catch (error) {
+      if (error instanceof StorageReadError) {
+        throw error;
+      }
+
+      throw this.buildCloudReadError(
+        'getSmartDeviceAutomationLogs',
+        'Lettura cloud fallita durante il caricamento dei log automazione.',
+        error
+      );
+    }
+  }
+
+  async createSmartDeviceAutomationLog(
+    log: Omit<SmartDeviceAutomationLog, 'id' | 'createdAt'>
+  ): Promise<SmartDeviceAutomationLog> {
+    if (this.client) {
+      try {
+        const client = this.ensureClient();
+        const { data: { user } } = await client.auth.getUser();
+
+        if (!user) {
+          throw this.buildCloudPersistenceError(
+            'createSmartDeviceAutomationLog',
+            'Persistenza cloud non disponibile: sessione Supabase non valida. Il log automazione non e stato salvato.'
+          );
+        }
+
+        const { data, error } = await client
+          .from('smart_device_automation_logs')
+          .insert({
+            ...mapSmartDeviceAutomationLogToDb({
+              ...log,
+              createdAt: new Date().toISOString(),
+            }),
+            user_id: user.id,
+          })
+          .select()
+          .single();
+
+        if (!error && data) {
+          return mapSmartDeviceAutomationLogFromDb(data);
+        }
+
+        throw this.buildCloudPersistenceError(
+          'createSmartDeviceAutomationLog',
+          'Persistenza cloud fallita: il log di automazione non e stato salvato su Supabase.',
+          error ?? undefined
+        );
+      } catch (error) {
+        if (error instanceof StoragePersistenceError) {
+          throw error;
+        }
+
+        throw this.buildCloudPersistenceError(
+          'createSmartDeviceAutomationLog',
+          'Persistenza cloud fallita durante il salvataggio del log automazione.',
+          error
+        );
+      }
+    }
+
+    const newLog: SmartDeviceAutomationLog = {
+      ...log,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    const logs = this.getLocalStoredAutomationLogs();
+    logs.unshift(newLog);
+    this.saveLocalStoredAutomationLogs(logs.slice(0, 500));
+    return newLog;
+  }
+
+  async getPhenologyObservations(
+    gardenId: string,
+    options?: {
+      cropContextId?: PhenologyObservation['cropContextId']
+      scopeType?: PhenologyObservation['scopeType']
+      scopeId?: string
+      zoneId?: string
+      fieldRowId?: string
+      treeId?: string
+      plantId?: string
+      limit?: number
+    }
+  ): Promise<PhenologyObservation[]> {
+    if (!this.client) {
+      return []
+    }
+
+    try {
+      const client = this.ensureClient()
+      const { data: { user } } = await client.auth.getUser()
+
+      if (!user) {
+        return []
+      }
+
+      let query = client
+        .from('phenology_observations')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .order('observed_at', { ascending: false })
+
+      if (options?.cropContextId) {
+        query = query.eq('crop_context_id', options.cropContextId)
+      }
+
+      if (options?.scopeType) {
+        query = query.eq('scope_type', options.scopeType)
+      }
+
+      if (options?.scopeId) {
+        query = query.eq('scope_id', options.scopeId)
+      }
+
+      if (options?.zoneId) {
+        query = query.eq('zone_id', options.zoneId)
+      }
+
+      if (options?.fieldRowId) {
+        query = query.eq('field_row_id', options.fieldRowId)
+      }
+
+      if (options?.treeId) {
+        query = query.eq('tree_id', options.treeId)
+      }
+
+      if (options?.plantId) {
+        query = query.eq('plant_id', options.plantId)
+      }
+
+      if (typeof options?.limit === 'number') {
+        query = query.limit(options.limit)
+      }
+
+      const { data, error } = await query
+      if (!error && data) {
+        return data.map(observation => mapPhenologyObservationFromDb(observation))
+      }
+
+      if (error) {
+        console.warn('Phenology observations table unavailable, fallback a lista vuota:', error.message)
+      }
+    } catch (error) {
+      console.warn('Phenology observations fallback vuoto:', error)
+    }
+
+    return []
+  }
+
+  async createPhenologyObservation(
+    observation: Omit<PhenologyObservation, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<PhenologyObservation> {
+    if (!this.client) {
+      throw this.buildCloudPersistenceError(
+        'createPhenologyObservation',
+        'Persistenza cloud non disponibile: nessun client Supabase attivo per le osservazioni fenologiche.'
+      )
+    }
+
+    try {
+      const client = this.ensureClient()
+      const { data: { user } } = await client.auth.getUser()
+
+      if (!user) {
+        throw this.buildCloudPersistenceError(
+          'createPhenologyObservation',
+          'Persistenza cloud non disponibile: sessione Supabase non valida. L osservazione fenologica non e stata salvata.'
+        )
+      }
+
+      const now = new Date().toISOString()
+      const { data, error } = await client
+        .from('phenology_observations')
+        .insert({
+          ...mapPhenologyObservationToDb({
+            ...observation,
+            createdAt: now,
+            updatedAt: now,
+          }),
+          user_id: user.id,
+        })
+        .select()
+        .single()
+
+      if (!error && data) {
+        return mapPhenologyObservationFromDb(data)
+      }
+
+      throw this.buildCloudPersistenceError(
+        'createPhenologyObservation',
+        'Persistenza cloud fallita: l osservazione fenologica non e stata salvata su Supabase.',
+        error ?? undefined
+      )
+    } catch (error) {
+      if (error instanceof StoragePersistenceError) {
+        throw error
+      }
+
+      throw this.buildCloudPersistenceError(
+        'createPhenologyObservation',
+        'Persistenza cloud fallita durante il salvataggio dell osservazione fenologica.',
+        error
+      )
+    }
+  }
+
+  async getQualityResults(
+    gardenId: string,
+    options?: {
+      cropContextId?: QualityResult['cropContextId']
+      scopeType?: QualityResult['scopeType']
+      scopeId?: string
+      zoneId?: string
+      fieldRowId?: string
+      treeId?: string
+      plantId?: string
+      harvestLogId?: string
+      lotCode?: string
+      limit?: number
+    }
+  ): Promise<QualityResult[]> {
+    if (!this.client) {
+      return []
+    }
+
+    try {
+      const client = this.ensureClient()
+      const { data: { user } } = await client.auth.getUser()
+
+      if (!user) {
+        return []
+      }
+
+      let query = client
+        .from('quality_results')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .order('recorded_at', { ascending: false })
+
+      if (options?.cropContextId) query = query.eq('crop_context_id', options.cropContextId)
+      if (options?.scopeType) query = query.eq('scope_type', options.scopeType)
+      if (options?.scopeId) query = query.eq('scope_id', options.scopeId)
+      if (options?.zoneId) query = query.eq('zone_id', options.zoneId)
+      if (options?.fieldRowId) query = query.eq('field_row_id', options.fieldRowId)
+      if (options?.treeId) query = query.eq('tree_id', options.treeId)
+      if (options?.plantId) query = query.eq('plant_id', options.plantId)
+      if (options?.harvestLogId) query = query.eq('harvest_log_id', options.harvestLogId)
+      if (options?.lotCode) query = query.eq('lot_code', options.lotCode)
+      if (typeof options?.limit === 'number') query = query.limit(options.limit)
+
+      const { data, error } = await query
+      if (!error && data) {
+        return data.map((result) => mapQualityResultFromDb(result))
+      }
+
+      if (error) {
+        console.warn('Quality results table unavailable, fallback a lista vuota:', error.message)
+      }
+    } catch (error) {
+      console.warn('Quality results fallback vuoto:', error)
+    }
+
+    return []
+  }
+
+  async createQualityResult(
+    result: Omit<QualityResult, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<QualityResult> {
+    if (!this.client) {
+      throw this.buildCloudPersistenceError(
+        'createQualityResult',
+        'Persistenza cloud non disponibile: nessun client Supabase attivo per i risultati qualita.'
+      )
+    }
+
+    try {
+      const client = this.ensureClient()
+      const { data: { user } } = await client.auth.getUser()
+
+      if (!user) {
+        throw this.buildCloudPersistenceError(
+          'createQualityResult',
+          'Persistenza cloud non disponibile: sessione Supabase non valida. Il risultato qualita non e stato salvato.'
+        )
+      }
+
+      const now = new Date().toISOString()
+      const { data, error } = await client
+        .from('quality_results')
+        .insert({
+          ...mapQualityResultToDb({
+            ...result,
+            createdAt: now,
+            updatedAt: now,
+          }),
+          user_id: user.id,
+        })
+        .select()
+        .single()
+
+      if (!error && data) {
+        return mapQualityResultFromDb(data)
+      }
+
+      throw this.buildCloudPersistenceError(
+        'createQualityResult',
+        'Persistenza cloud fallita: il risultato qualita non e stato salvato su Supabase.',
+        error ?? undefined
+      )
+    } catch (error) {
+      if (error instanceof StoragePersistenceError) {
+        throw error
+      }
+
+      throw this.buildCloudPersistenceError(
+        'createQualityResult',
+        'Persistenza cloud fallita durante il salvataggio del risultato qualita.',
+        error
+      )
+    }
+  }
+
+  async updateQualityResult(
+    id: string,
+    updates: Partial<QualityResult>
+  ): Promise<QualityResult> {
+    if (!this.client) {
+      throw this.buildCloudPersistenceError(
+        'updateQualityResult',
+        'Persistenza cloud non disponibile: nessun client Supabase attivo per aggiornare il risultato qualita.'
+      )
+    }
+
+    try {
+      const client = this.ensureClient()
+      const { data: { user } } = await client.auth.getUser()
+
+      if (!user) {
+        throw this.buildCloudPersistenceError(
+          'updateQualityResult',
+          'Persistenza cloud non disponibile: sessione Supabase non valida. Il risultato qualita non e stato aggiornato.'
+        )
+      }
+
+      const { data, error } = await client
+        .from('quality_results')
+        .update(mapQualityResultToDb({
+          ...updates,
+          updatedAt: new Date().toISOString(),
+        }))
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (!error && data) {
+        return mapQualityResultFromDb(data)
+      }
+
+      throw this.buildCloudPersistenceError(
+        'updateQualityResult',
+        'Persistenza cloud fallita: il risultato qualita non e stato aggiornato su Supabase.',
+        error ?? undefined
+      )
+    } catch (error) {
+      if (error instanceof StoragePersistenceError) {
+        throw error
+      }
+
+      throw this.buildCloudPersistenceError(
+        'updateQualityResult',
+        'Persistenza cloud fallita durante l aggiornamento del risultato qualita.',
+        error
+      )
+    }
+  }
+
+  async getPrescriptionMaps(gardenId: string): Promise<PrescriptionMap[]> {
+    if (!this.client) {
+      return []
+    }
+
+    try {
+      const client = this.ensureClient()
+      const { data: { user } } = await client.auth.getUser()
+      if (!user) {
+        throw this.buildCloudReadError(
+          'getPrescriptionMaps',
+          'Lettura cloud non disponibile: sessione Supabase non valida per le prescription maps.'
+        )
+      }
+
+      const { data: mapRows, error: mapsError } = await client
+        .from('prescription_maps')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .order('generation_date', { ascending: false })
+
+      if (mapsError || !mapRows) {
+        throw this.buildCloudReadError(
+          'getPrescriptionMaps',
+          'Lettura cloud fallita: impossibile caricare le prescription maps da Supabase.',
+          mapsError ?? undefined
+        )
+      }
+
+      const mapIds = mapRows.map((row) => String(row.id))
+      let zonesByMapId = new Map<string, PrescriptionZone[]>()
+
+      if (mapIds.length > 0) {
+        const { data: zoneRows, error: zonesError } = await client
+          .from('prescription_zones')
+          .select('*')
+          .in('prescription_map_id', mapIds)
+          .order('zone_number', { ascending: true })
+
+        if (zonesError) {
+          throw this.buildCloudReadError(
+            'getPrescriptionMaps',
+            'Lettura cloud fallita: le mappe sono presenti ma il caricamento delle zone non e riuscito.',
+            zonesError
+          )
+        } else if (zoneRows) {
+          zonesByMapId = zoneRows.reduce((acc, row) => {
+            const mapId = String(row.prescription_map_id)
+            if (!acc.has(mapId)) acc.set(mapId, [])
+            acc.get(mapId)?.push(mapPrescriptionZoneFromDb(row))
+            return acc
+          }, new Map<string, PrescriptionZone[]>())
+        }
+      }
+
+      return mapRows.map((row) => mapPrescriptionMapFromDb(row, zonesByMapId.get(String(row.id)) || []))
+    } catch (error) {
+      if (error instanceof StorageReadError) {
+        throw error
+      }
+
+      throw this.buildCloudReadError(
+        'getPrescriptionMaps',
+        'Lettura cloud fallita durante il caricamento delle prescription maps.',
+        error
+      )
+    }
+  }
+
+  async getPrescriptionMap(id: string): Promise<PrescriptionMap | null> {
+    if (!this.client) {
+      return null
+    }
+
+    try {
+      const client = this.ensureClient()
+      const { data: { user } } = await client.auth.getUser()
+      if (!user) {
+        throw this.buildCloudReadError(
+          'getPrescriptionMap',
+          'Lettura cloud non disponibile: sessione Supabase non valida per la prescription map.'
+        )
+      }
+
+      const { data: mapRow, error: mapError } = await client
+        .from('prescription_maps')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (mapError || !mapRow) {
+        throw this.buildCloudReadError(
+          'getPrescriptionMap',
+          'Lettura cloud fallita: prescription map non trovata su Supabase.',
+          mapError ?? undefined
+        )
+      }
+
+      const { data: zoneRows, error: zoneError } = await client
+        .from('prescription_zones')
+        .select('*')
+        .eq('prescription_map_id', id)
+        .order('zone_number', { ascending: true })
+
+      if (zoneError) {
+        throw this.buildCloudReadError(
+          'getPrescriptionMap',
+          'Lettura cloud fallita: impossibile caricare le zone della prescription map.',
+          zoneError
+        )
+      }
+
+      return mapPrescriptionMapFromDb(mapRow, (zoneRows || []).map((row) => mapPrescriptionZoneFromDb(row)))
+    } catch (error) {
+      if (error instanceof StorageReadError) {
+        throw error
+      }
+
+      throw this.buildCloudReadError(
+        'getPrescriptionMap',
+        'Lettura cloud fallita durante il caricamento della prescription map.',
+        error
+      )
+    }
+  }
+
+  async createPrescriptionMap(
+    map: Omit<PrescriptionMap, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<PrescriptionMap> {
+    if (!this.client) {
+      throw this.buildCloudPersistenceError(
+        'createPrescriptionMap',
+        'Persistenza cloud non disponibile: nessun client Supabase attivo per le prescription maps.'
+      )
+    }
+
+    try {
+      const client = this.ensureClient()
+      const { data: { user } } = await client.auth.getUser()
+      if (!user) {
+        throw this.buildCloudPersistenceError(
+          'createPrescriptionMap',
+          'Persistenza cloud non disponibile: sessione Supabase non valida. La prescription map non e stata salvata.'
+        )
+      }
+
+      const now = new Date().toISOString()
+      const { data: mapRow, error: mapError } = await client
+        .from('prescription_maps')
+        .insert({
+          ...mapPrescriptionMapToDb({
+            ...map,
+            generationDate: map.generationDate || now,
+            createdAt: now,
+            updatedAt: now,
+            createdBy: user.id,
+          }),
+        })
+        .select()
+        .single()
+
+      if (mapError || !mapRow) {
+        throw this.buildCloudPersistenceError(
+          'createPrescriptionMap',
+          'Persistenza cloud fallita: la prescription map non e stata salvata su Supabase.',
+          mapError ?? undefined
+        )
+      }
+
+      const mapId = String(mapRow.id)
+      const zoneRows = map.zones.map((zone, index) => ({
+        ...mapPrescriptionZoneToDb({
+          ...zone,
+          prescriptionMapId: mapId,
+          zoneNumber: zone.zoneNumber || index + 1,
+          createdAt: zone.createdAt || now,
+          updatedAt: zone.updatedAt || now,
+        }),
+      }))
+
+      if (zoneRows.length > 0) {
+        const { error: zonesError } = await client.from('prescription_zones').insert(zoneRows)
+        if (zonesError) {
+          await client.from('prescription_maps').delete().eq('id', mapId)
+          throw this.buildCloudPersistenceError(
+            'createPrescriptionMap',
+            'Persistenza cloud fallita: la prescription map e stata creata ma il salvataggio delle zone non e riuscito.',
+            zonesError
+          )
+        }
+      }
+
+      return mapPrescriptionMapFromDb(mapRow, map.zones.map((zone, index) => ({
+        ...zone,
+        id: zone.id || crypto.randomUUID(),
+        prescriptionMapId: mapId,
+        zoneNumber: zone.zoneNumber || index + 1,
+        createdAt: zone.createdAt || now,
+        updatedAt: zone.updatedAt || now,
+      })))
+    } catch (error) {
+      if (error instanceof StoragePersistenceError) {
+        throw error
+      }
+
+      throw this.buildCloudPersistenceError(
+        'createPrescriptionMap',
+        'Persistenza cloud fallita durante il salvataggio della prescription map.',
+        error
+      )
+    }
+  }
+
+  async updatePrescriptionMap(id: string, updates: Partial<PrescriptionMap>): Promise<PrescriptionMap> {
+    if (!this.client) {
+      throw this.buildCloudPersistenceError(
+        'updatePrescriptionMap',
+        'Persistenza cloud non disponibile: nessun client Supabase attivo per aggiornare la prescription map.'
+      )
+    }
+
+    try {
+      const client = this.ensureClient()
+      const { data: { user } } = await client.auth.getUser()
+      if (!user) {
+        throw this.buildCloudPersistenceError(
+          'updatePrescriptionMap',
+          'Persistenza cloud non disponibile: sessione Supabase non valida. La prescription map non e stata aggiornata.'
+        )
+      }
+
+      const { data: mapRow, error: mapError } = await client
+        .from('prescription_maps')
+        .update(mapPrescriptionMapToDb({
+          ...updates,
+          updatedAt: new Date().toISOString(),
+        }))
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (mapError || !mapRow) {
+        throw this.buildCloudPersistenceError(
+          'updatePrescriptionMap',
+          'Persistenza cloud fallita: la prescription map non e stata aggiornata su Supabase.',
+          mapError ?? undefined
+        )
+      }
+
+      if (updates.zones) {
+        await client.from('prescription_zones').delete().eq('prescription_map_id', id)
+        if (updates.zones.length > 0) {
+          const now = new Date().toISOString()
+          const { error: zonesError } = await client
+            .from('prescription_zones')
+            .insert(updates.zones.map((zone, index) => ({
+              ...mapPrescriptionZoneToDb({
+                ...zone,
+                prescriptionMapId: id,
+                zoneNumber: zone.zoneNumber || index + 1,
+                createdAt: zone.createdAt || now,
+                updatedAt: now,
+              }),
+            })))
+
+          if (zonesError) {
+            throw this.buildCloudPersistenceError(
+              'updatePrescriptionMap',
+              'Persistenza cloud fallita: la prescription map e stata aggiornata ma il refresh delle zone non e riuscito.',
+              zonesError
+            )
+          }
+        }
+      }
+
+      const finalZones = updates.zones
+        ? updates.zones.map((zone) => ({
+            ...zone,
+            prescriptionMapId: id,
+          }))
+        : (await this.getPrescriptionMap(id))?.zones || []
+
+      return mapPrescriptionMapFromDb(mapRow, finalZones)
+    } catch (error) {
+      if (error instanceof StoragePersistenceError) {
+        throw error
+      }
+
+      throw this.buildCloudPersistenceError(
+        'updatePrescriptionMap',
+        'Persistenza cloud fallita durante l aggiornamento della prescription map.',
+        error
+      )
+    }
+  }
+
+  async deletePrescriptionMap(id: string): Promise<void> {
+    if (!this.client) {
+      throw this.buildCloudPersistenceError(
+        'deletePrescriptionMap',
+        'Persistenza cloud non disponibile: nessun client Supabase attivo per eliminare la prescription map.'
+      )
+    }
+
+    try {
+      const client = this.ensureClient()
+      const { error } = await client
+        .from('prescription_maps')
+        .delete()
+        .eq('id', id)
+
+      if (error) {
+        throw this.buildCloudPersistenceError(
+          'deletePrescriptionMap',
+          'Persistenza cloud fallita: la prescription map non e stata eliminata su Supabase.',
+          error
+        )
+      }
+    } catch (error) {
+      if (error instanceof StoragePersistenceError) {
+        throw error
+      }
+
+      throw this.buildCloudPersistenceError(
+        'deletePrescriptionMap',
+        'Persistenza cloud fallita durante l eliminazione della prescription map.',
+        error
+      )
+    }
+  }
+
+  async getPrescriptionExecutionRecords(
+    prescriptionMapId: string,
+    options?: {
+      prescriptionZoneId?: string
+      executionStatus?: PrescriptionExecutionRecord['executionStatus']
+      limit?: number
+    }
+  ): Promise<PrescriptionExecutionRecord[]> {
+    if (!this.client) {
+      return []
+    }
+
+    try {
+      const client = this.ensureClient()
+      const { data: { user } } = await client.auth.getUser()
+      if (!user) {
+        throw this.buildCloudReadError(
+          'getPrescriptionExecutionRecords',
+          'Lettura cloud non disponibile: sessione Supabase non valida per le esecuzioni prescrittive.'
+        )
+      }
+
+      let query = client
+        .from('variable_rate_applications')
+        .select('*')
+        .eq('prescription_map_id', prescriptionMapId)
+        .order('application_date', { ascending: false })
+
+      if (options?.prescriptionZoneId) {
+        query = query.eq('prescription_zone_id', options.prescriptionZoneId)
+      }
+
+      if (options?.executionStatus) {
+        query = query.eq('execution_status', options.executionStatus)
+      }
+
+      if (typeof options?.limit === 'number') {
+        query = query.limit(options.limit)
+      }
+
+      const { data, error } = await query
+
+      if (error || !data) {
+        throw this.buildCloudReadError(
+          'getPrescriptionExecutionRecords',
+          'Lettura cloud fallita: impossibile caricare le esecuzioni prescrittive da Supabase.',
+          error ?? undefined
+        )
+      }
+
+      return data.map((row) => mapPrescriptionExecutionFromDb(row))
+    } catch (error) {
+      if (error instanceof StorageReadError) {
+        throw error
+      }
+
+      throw this.buildCloudReadError(
+        'getPrescriptionExecutionRecords',
+        'Lettura cloud fallita durante il caricamento delle esecuzioni prescrittive.',
+        error
+      )
+    }
+  }
+
+  async createPrescriptionExecutionRecord(
+    record: Omit<PrescriptionExecutionRecord, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<PrescriptionExecutionRecord> {
+    if (!this.client) {
+      throw this.buildCloudPersistenceError(
+        'createPrescriptionExecutionRecord',
+        'Persistenza cloud non disponibile: nessun client Supabase attivo per le esecuzioni prescrittive.'
+      )
+    }
+
+    try {
+      const client = this.ensureClient()
+      const { data: { user } } = await client.auth.getUser()
+      if (!user) {
+        throw this.buildCloudPersistenceError(
+          'createPrescriptionExecutionRecord',
+          'Persistenza cloud non disponibile: sessione Supabase non valida. L esecuzione prescrittiva non e stata salvata.'
+        )
+      }
+
+      const now = new Date().toISOString()
+      const { data, error } = await client
+        .from('variable_rate_applications')
+        .insert({
+          ...mapPrescriptionExecutionToDb({
+            ...record,
+            createdAt: now,
+            updatedAt: now,
+          }),
+        })
+        .select()
+        .single()
+
+      if (!error && data) {
+        return mapPrescriptionExecutionFromDb(data)
+      }
+
+      throw this.buildCloudPersistenceError(
+        'createPrescriptionExecutionRecord',
+        'Persistenza cloud fallita: l esecuzione prescrittiva non e stata salvata su Supabase.',
+        error ?? undefined
+      )
+    } catch (error) {
+      if (error instanceof StoragePersistenceError) {
+        throw error
+      }
+
+      throw this.buildCloudPersistenceError(
+        'createPrescriptionExecutionRecord',
+        'Persistenza cloud fallita durante il salvataggio dell esecuzione prescrittiva.',
+        error
+      )
+    }
+  }
+
+  async updatePrescriptionExecutionRecord(
+    id: string,
+    updates: Partial<PrescriptionExecutionRecord>
+  ): Promise<PrescriptionExecutionRecord> {
+    if (!this.client) {
+      throw this.buildCloudPersistenceError(
+        'updatePrescriptionExecutionRecord',
+        'Persistenza cloud non disponibile: nessun client Supabase attivo per aggiornare l esecuzione prescrittiva.'
+      )
+    }
+
+    try {
+      const client = this.ensureClient()
+      const { data: { user } } = await client.auth.getUser()
+      if (!user) {
+        throw this.buildCloudPersistenceError(
+          'updatePrescriptionExecutionRecord',
+          'Persistenza cloud non disponibile: sessione Supabase non valida. L esecuzione prescrittiva non e stata aggiornata.'
+        )
+      }
+
+      const { data, error } = await client
+        .from('variable_rate_applications')
+        .update(mapPrescriptionExecutionToDb({
+          ...updates,
+          updatedAt: new Date().toISOString(),
+        }))
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (!error && data) {
+        return mapPrescriptionExecutionFromDb(data)
+      }
+
+      throw this.buildCloudPersistenceError(
+        'updatePrescriptionExecutionRecord',
+        'Persistenza cloud fallita: l esecuzione prescrittiva non e stata aggiornata su Supabase.',
+        error ?? undefined
+      )
+    } catch (error) {
+      if (error instanceof StoragePersistenceError) {
+        throw error
+      }
+
+      throw this.buildCloudPersistenceError(
+        'updatePrescriptionExecutionRecord',
+        'Persistenza cloud fallita durante l aggiornamento dell esecuzione prescrittiva.',
+        error
+      )
+    }
+  }
+
+  async getPrescriptionMapExportRecords(
+    prescriptionMapId: string,
+    options?: {
+      format?: PrescriptionMapExportRecord['format']
+      status?: PrescriptionMapExportRecord['status']
+      limit?: number
+    }
+  ): Promise<PrescriptionMapExportRecord[]> {
+    if (!this.client) {
+      return []
+    }
+
+    try {
+      const client = this.ensureClient()
+      const { data: { user } } = await client.auth.getUser()
+      if (!user) {
+        throw this.buildCloudReadError(
+          'getPrescriptionMapExportRecords',
+          'Lettura cloud non disponibile: sessione Supabase non valida per gli export prescrittivi.'
+        )
+      }
+
+      let query = client
+        .from('prescription_map_exports')
+        .select('*')
+        .eq('prescription_map_id', prescriptionMapId)
+        .order('created_at', { ascending: false })
+
+      if (options?.format) {
+        query = query.eq('export_format', options.format)
+      }
+
+      if (options?.status) {
+        query = query.eq('field_status', options.status)
+      }
+
+      if (typeof options?.limit === 'number') {
+        query = query.limit(options.limit)
+      }
+
+      const { data, error } = await query
+      if (error || !data) {
+        throw this.buildCloudReadError(
+          'getPrescriptionMapExportRecords',
+          'Lettura cloud fallita: impossibile caricare gli export della prescription map.',
+          error ?? undefined
+        )
+      }
+
+      return data.map((row) => mapPrescriptionMapExportRecordFromDb(row))
+    } catch (error) {
+      if (error instanceof StorageReadError) {
+        throw error
+      }
+
+      throw this.buildCloudReadError(
+        'getPrescriptionMapExportRecords',
+        'Lettura cloud fallita durante il caricamento degli export prescrittivi.',
+        error
+      )
+    }
+  }
+
+  async createPrescriptionMapExportRecord(
+    record: Omit<PrescriptionMapExportRecord, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<PrescriptionMapExportRecord> {
+    if (!this.client) {
+      throw this.buildCloudPersistenceError(
+        'createPrescriptionMapExportRecord',
+        'Persistenza cloud non disponibile: nessun client Supabase attivo per gli export prescrittivi.'
+      )
+    }
+
+    try {
+      const client = this.ensureClient()
+      const { data: { user } } = await client.auth.getUser()
+      if (!user) {
+        throw this.buildCloudPersistenceError(
+          'createPrescriptionMapExportRecord',
+          'Persistenza cloud non disponibile: sessione Supabase non valida. L export prescrittivo non e stato salvato.'
+        )
+      }
+
+      const now = new Date().toISOString()
+      const { data, error } = await client
+        .from('prescription_map_exports')
+        .insert(mapPrescriptionMapExportRecordToDb({
+          ...record,
+          createdAt: now,
+          updatedAt: now,
+        }))
+        .select()
+        .single()
+
+      if (error || !data) {
+        throw this.buildCloudPersistenceError(
+          'createPrescriptionMapExportRecord',
+          'Persistenza cloud fallita: l export prescrittivo non e stato salvato su Supabase.',
+          error ?? undefined
+        )
+      }
+
+      await client
+        .from('prescription_maps')
+        .update({
+          last_exported_at: record.exportedAt,
+        })
+        .eq('id', record.prescriptionMapId)
+
+      return mapPrescriptionMapExportRecordFromDb(data)
+    } catch (error) {
+      if (error instanceof StoragePersistenceError) {
+        throw error
+      }
+
+      throw this.buildCloudPersistenceError(
+        'createPrescriptionMapExportRecord',
+        'Persistenza cloud fallita durante il salvataggio dell export prescrittivo.',
+        error
+      )
+    }
+  }
+
+  async updatePrescriptionMapExportRecord(
+    id: string,
+    updates: Partial<PrescriptionMapExportRecord>
+  ): Promise<PrescriptionMapExportRecord> {
+    if (!this.client) {
+      throw this.buildCloudPersistenceError(
+        'updatePrescriptionMapExportRecord',
+        'Persistenza cloud non disponibile: nessun client Supabase attivo per aggiornare l export prescrittivo.'
+      )
+    }
+
+    try {
+      const client = this.ensureClient()
+      const { data: { user } } = await client.auth.getUser()
+      if (!user) {
+        throw this.buildCloudPersistenceError(
+          'updatePrescriptionMapExportRecord',
+          'Persistenza cloud non disponibile: sessione Supabase non valida. L export prescrittivo non e stato aggiornato.'
+        )
+      }
+
+      const { data, error } = await client
+        .from('prescription_map_exports')
+        .update(mapPrescriptionMapExportRecordToDb({
+          ...updates,
+          updatedAt: new Date().toISOString(),
+        }))
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error || !data) {
+        throw this.buildCloudPersistenceError(
+          'updatePrescriptionMapExportRecord',
+          'Persistenza cloud fallita: l export prescrittivo non e stato aggiornato su Supabase.',
+          error ?? undefined
+        )
+      }
+
+      return mapPrescriptionMapExportRecordFromDb(data)
+    } catch (error) {
+      if (error instanceof StoragePersistenceError) {
+        throw error
+      }
+
+      throw this.buildCloudPersistenceError(
+        'updatePrescriptionMapExportRecord',
+        'Persistenza cloud fallita durante l aggiornamento dell export prescrittivo.',
+        error
+      )
+    }
   }
 
   // Seed Inventory
@@ -2289,6 +3655,9 @@ export class SupabaseStorageProvider implements IStorageProvider {
       id: db.id,
       plantName: db.plant_name,
       variety: db.variety,
+      source: db.source || 'nursery',
+      totalQuantity: db.total_quantity ?? db.initial_quantity ?? db.quantity ?? 0,
+      remainingQuantity: db.remaining_quantity ?? db.current_quantity ?? db.quantity ?? 0,
       saplingType: db.sapling_type,
       purchaseDate: db.purchase_date,
       plantingDate: db.planting_date,
@@ -2304,6 +3673,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       photoLog: db.photo_log || [],
       gardenId: db.garden_id,
       specializedCropId: db.specialized_crop_id,
+      saplings: Array.isArray(db.saplings) ? db.saplings : [],
     };
   }
 
@@ -4412,6 +5782,133 @@ export class SupabaseStorageProvider implements IStorageProvider {
   }
 
   // Individual Plant Operations
+  async getFieldRowOperations(fieldRowId: string, gardenId: string): Promise<PlantOperation[]> {
+    try {
+      const [wateringLogs, fertilizerLogs, treatmentLogs, mechanicalWorks] = await Promise.all([
+        this.getWateringLogs(undefined, gardenId).catch(() => []),
+        this.getFertilizerApplicationLogs(gardenId).catch(() => []),
+        this.getTreatments(gardenId).catch(() => []),
+        this.getMechanicalWorks(gardenId).catch(() => []),
+      ]);
+
+      const operations: PlantOperation[] = [
+        ...wateringLogs
+          .filter(log => log.fieldRowId === fieldRowId)
+          .map((log): PlantOperation => ({
+            id: `watering-${log.id}`,
+            plantId: fieldRowId,
+            gardenId,
+            fieldRowId,
+            operationType: 'watering',
+            operationCategory: 'irrigation',
+            date: log.wateredAt || log.date,
+            operationDate: log.date,
+            operationTime: log.wateredAt ? String(log.wateredAt).slice(11, 16) : undefined,
+            quantity: log.litersApplied,
+            waterAmount: log.litersApplied,
+            unit: 'L',
+            duration: log.durationMinutes,
+            weatherConditions: {
+              condition: log.weatherCondition,
+              temperature: log.airTemperatureC,
+            },
+            photos: [],
+            notes: log.notes,
+            parentOperationId: log.id,
+            parentOperationTable: 'watering_logs',
+            sourceType: 'orchestrator_sync',
+            actorType: 'orchestrator',
+            recordedBy: 'system',
+            createdAt: log.createdAt,
+            updatedAt: log.createdAt,
+          })),
+        ...fertilizerLogs
+          .filter(log => log.fieldRowId === fieldRowId)
+          .map((log): PlantOperation => ({
+            id: `fertilizer-${log.id}`,
+            plantId: fieldRowId,
+            gardenId,
+            fieldRowId,
+            operationType: 'fertilizing',
+            operationCategory: 'nutrition',
+            date: log.applicationDate,
+            operationDate: log.applicationDate,
+            quantity: log.dosageAmount,
+            unit: log.dosageUnit,
+            productName: log.fertilizerProductName,
+            notes: log.notes || undefined,
+            weatherConditions: log.weatherConditions || undefined,
+            photos: [],
+            parentOperationId: log.id,
+            parentOperationTable: 'fertilizer_application_logs',
+            sourceType: 'orchestrator_sync',
+            actorType: 'orchestrator',
+            recordedBy: 'system',
+            createdAt: log.createdAt,
+            updatedAt: log.createdAt,
+          })),
+        ...treatmentLogs
+          .filter(log => log.field_row_id === fieldRowId)
+          .map((log): PlantOperation => ({
+            id: `treatment-${log.id}`,
+            plantId: fieldRowId,
+            gardenId,
+            fieldRowId,
+            operationType: 'treatment',
+            operationCategory: 'protection',
+            date: log.treatment_date,
+            operationDate: log.treatment_date,
+            quantity: log.dosage,
+            unit: log.dosage_unit,
+            productName: log.product_name,
+            targetPest: log.reason,
+            treatmentType: log.reason === 'preventive' ? 'preventive' : 'curative',
+            weatherConditions: log.weather_conditions || undefined,
+            photos: [],
+            notes: log.notes,
+            parentOperationId: log.id,
+            parentOperationTable: 'treatment_register',
+            sourceType: 'orchestrator_sync',
+            actorType: 'orchestrator',
+            recordedBy: 'system',
+            createdAt: log.created_at,
+            updatedAt: log.created_at,
+          })),
+        ...mechanicalWorks
+          .filter(log => log.field_row_id === fieldRowId)
+          .map((log): PlantOperation => ({
+            id: `work-${log.id}`,
+            plantId: fieldRowId,
+            gardenId,
+            fieldRowId,
+            operationType: 'work',
+            operationCategory: 'maintenance',
+            date: log.work_date,
+            operationDate: log.work_date,
+            quantity: log.area_m2,
+            unit: 'm²',
+            productName: log.equipment_type || log.work_type,
+            workType: log.work_type,
+            weatherConditions: log.weather_conditions || undefined,
+            photos: [],
+            notes: log.notes,
+            parentOperationId: log.id,
+            parentOperationTable: 'mechanical_work_register',
+            sourceType: 'orchestrator_sync',
+            actorType: 'orchestrator',
+            recordedBy: 'system',
+            createdAt: log.created_at,
+            updatedAt: log.created_at,
+          })),
+      ];
+
+      return operations.sort((a, b) => new Date(b.operationDate || b.date).getTime() - new Date(a.operationDate || a.date).getTime());
+    } catch (error) {
+      console.error('Error fetching field row operations:', error);
+      return [];
+    }
+  }
+
   async getPlantOperations(plantId: string): Promise<any[]> {
     const client = this.ensureClient();
     console.log('🔍 PLANT OPERATIONS DEBUG - Getting operations for plant:', plantId);

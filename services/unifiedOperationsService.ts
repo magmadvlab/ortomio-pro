@@ -11,20 +11,38 @@ import {
   BulkOperationResult
 } from '../types/individualPlant';
 import { autoSyncRowOperation } from './plantRowSyncService';
+import { createControlledEnvironmentExecutionService } from './controlledEnvironmentExecutionService';
+import type {
+  ControlledEnvironmentExecutionMode,
+  ControlledEnvironmentOperationType,
+  SolutionSnapshot,
+} from '../types/controlledEnvironment';
 
 
 export interface UnifiedOperation {
   id: string;
   operationLevel: 'garden' | 'row' | 'plant';
   granularityLevel: 'garden' | 'row' | 'plant';
-  operationType: 'watering' | 'fertilizing' | 'treatment' | 'work' | 'pruning' | 'harvest';
+  operationType:
+    | 'watering'
+    | 'fertilizing'
+    | 'treatment'
+    | 'work'
+    | 'pruning'
+    | 'harvest'
+    | ControlledEnvironmentOperationType;
   operationCategory: 'irrigation' | 'nutrition' | 'protection' | 'maintenance';
+  executionMode?: ControlledEnvironmentExecutionMode;
 
   // Context
   gardenId: string;
   gardenRowId?: string;
   fieldRowId?: string;
   plantId?: string;
+  environmentProfileId?: string;
+  reservoirId?: string;
+  loopId?: string;
+  growSiteIds?: string[];
 
   // Operation details
   operationDate: string;
@@ -56,15 +74,25 @@ export interface OperationSyncLog {
 export interface UnifiedOperationRequest {
   // Target level
   level: 'garden' | 'row' | 'plant';
+  executionMode?: ControlledEnvironmentExecutionMode;
 
   // Target identifiers
   gardenId: string;
   gardenRowId?: string;
   fieldRowId?: string;
   plantIds?: string[];
+  environmentProfileId?: string;
+  reservoirId?: string;
+  loopId?: string;
+  growSiteIds?: string[];
 
   // Operation details
-  operationType: 'watering' | 'fertilizing' | 'treatment' | 'work';
+  operationType:
+    | 'watering'
+    | 'fertilizing'
+    | 'treatment'
+    | 'work'
+    | ControlledEnvironmentOperationType;
   operationDate: string;
   operationTime?: string;
 
@@ -75,6 +103,17 @@ export interface UnifiedOperationRequest {
   durationMinutes?: number;
   method?: string;
   areaSqm?: number;
+  solutionSnapshot?: SolutionSnapshot;
+  waterAddedLiters?: number;
+  solutionRemovedLiters?: number;
+  nutrientProductId?: string;
+  nutrientDoseAmount?: number;
+  nutrientDoseUnit?: string;
+  phAdjusterProductId?: string;
+  phAdjusterAmount?: number;
+  bufferAdded?: string;
+  fishFeedType?: string;
+  fishFeedAmountGrams?: number;
 
   // Options
   propagateToPlants?: boolean;
@@ -96,6 +135,7 @@ export interface UnifiedOperationResponse {
   // Created operation IDs
   rowOperationIds: string[];
   plantOperationIds: string[];
+  controlledEnvironmentExecutionIds?: string[];
 
   // Sync information
   syncLogId?: string;
@@ -136,6 +176,10 @@ export class UnifiedOperationsService {
         return response;
       }
 
+      if (request.executionMode === 'recirculating') {
+        return await this.executeRecirculatingOperation(request);
+      }
+
       // Execute based on target level
       switch (request.level) {
         case 'garden':
@@ -162,6 +206,67 @@ export class UnifiedOperationsService {
         plantOperationIds: [],
         errors: [error instanceof Error ? error.message : 'Unknown error']
       };
+    }
+  }
+
+  private async executeRecirculatingOperation(
+    request: UnifiedOperationRequest
+  ): Promise<UnifiedOperationResponse> {
+    const response: UnifiedOperationResponse = {
+      success: false,
+      operationsCreated: 0,
+      plantsAffected: request.plantIds?.length || 0,
+      rowsAffected: 0,
+      rowOperationIds: [],
+      plantOperationIds: [],
+      controlledEnvironmentExecutionIds: [],
+      errors: []
+    };
+
+    try {
+      const executionService = createControlledEnvironmentExecutionService(this.storageProvider);
+      const created = await executionService.createExecution({
+        gardenId: request.gardenId,
+        environmentProfileId: request.environmentProfileId || `ce-env-${request.gardenId}`,
+        reservoirId: request.reservoirId,
+        loopId: request.loopId,
+        growSiteIds: request.growSiteIds,
+        plantIds: request.plantIds,
+        executionMode: 'recirculating',
+        operationType: request.operationType as ControlledEnvironmentOperationType,
+        operationDate: request.operationDate,
+        operationTime: request.operationTime,
+        sourceType: request.sourceType || 'manual',
+        actorType: request.actorType
+          || (request.sourceType === 'iot'
+            ? 'iot'
+            : request.sourceType === 'manual'
+              ? 'manual'
+              : 'orchestrator'),
+        notes: request.notes,
+        solutionSnapshot: request.solutionSnapshot,
+        waterAddedLiters: request.waterAddedLiters
+          ?? (request.operationType === 'solution_top_up' ? request.quantity : undefined),
+        solutionRemovedLiters: request.solutionRemovedLiters,
+        nutrientProductId: request.nutrientProductId,
+        nutrientProductName: request.productName,
+        nutrientDoseAmount: request.nutrientDoseAmount ?? request.quantity,
+        nutrientDoseUnit: request.nutrientDoseUnit ?? request.unit,
+        phAdjusterProductId: request.phAdjusterProductId,
+        phAdjusterAmount: request.phAdjusterAmount,
+        bufferAdded: request.bufferAdded,
+        fishFeedType: request.fishFeedType || request.productName,
+        fishFeedAmountGrams: request.fishFeedAmountGrams
+          ?? (request.operationType === 'fish_feed' ? request.quantity : undefined),
+      });
+
+      response.success = true;
+      response.operationsCreated = 1;
+      response.controlledEnvironmentExecutionIds = [created.id];
+      return response;
+    } catch (error) {
+      response.errors = [error instanceof Error ? error.message : 'Recirculating operation failed'];
+      return response;
     }
   }
 
@@ -600,7 +705,9 @@ export class UnifiedOperationsService {
     }
 
     if (request.level === 'row' && !request.gardenRowId && !request.fieldRowId) {
+      if (request.executionMode !== 'recirculating') {
       errors.push('Row ID is required for row-level operations');
+      }
     }
 
     if (request.level === 'plant' && (!request.plantIds || request.plantIds.length === 0)) {

@@ -16,6 +16,7 @@ export interface ExportResult {
   filePath?: string;
   downloadUrl?: string;
   fileSize?: number;
+  exportRecordId?: string;
   errors?: string[];
   warnings?: string[];
   metadata: {
@@ -123,7 +124,10 @@ export class GeoExportService {
       result.metadata = this.createMetadata(prescriptionMap, config);
       
       // Log export for tracking
-      await this.logExport(prescriptionMap.id, config, result);
+      const exportRecordId = await this.logExport(prescriptionMap, config, result);
+      if (exportRecordId) {
+        result.exportRecordId = exportRecordId;
+      }
       
       return result;
 
@@ -744,9 +748,51 @@ export class GeoExportService {
     };
   }
 
-  private async logExport(prescriptionMapId: string, config: ExportConfiguration, result: ExportResult): Promise<void> {
-    // Log export for tracking and analytics
-    // Implementation would save to database
+  private async logExport(
+    prescriptionMap: PrescriptionMap,
+    config: ExportConfiguration,
+    result: ExportResult
+  ): Promise<string | undefined> {
+    if (!this.storageProvider?.createPrescriptionMapExportRecord) {
+      return undefined
+    }
+
+    const exportedAt = new Date().toISOString()
+    const exportRecord = await this.storageProvider.createPrescriptionMapExportRecord({
+      prescriptionMapId: prescriptionMap.id,
+      gardenId: prescriptionMap.gardenId,
+      versionNumber: prescriptionMap.versionNumber || 1,
+      format: config.format,
+      coordinateSystem: config.coordinateSystem,
+      compression: config.compression,
+      includeMetadata: config.includeMetadata,
+      includePreview: config.includePreview,
+      fileName: result.fileName,
+      filePath: result.filePath,
+      downloadUrl: result.downloadUrl,
+      fileSize: result.fileSize,
+      status: result.downloadUrl ? 'downloaded' : 'generated',
+      machineryBrand: config.machineryBrand,
+      machineryModel: config.machineryModel,
+      machineryProfileId: config.isoxmlOptions?.machineryProfile,
+      warnings: result.warnings,
+      metadata: {
+        zoneCount: prescriptionMap.totalZones,
+        totalArea: prescriptionMap.totalAreaSqm,
+        coordinateSystem: config.coordinateSystem,
+      },
+      exportedAt,
+      downloadedAt: result.downloadUrl ? exportedAt : undefined,
+    })
+
+    if (this.storageProvider?.updatePrescriptionMap) {
+      await this.storageProvider.updatePrescriptionMap(prescriptionMap.id, {
+        lastExportedAt: exportedAt,
+        exportCount: (prescriptionMap.exportCount || 0) + 1,
+      }).catch(() => undefined)
+    }
+
+    return exportRecord.id
   }
 }
 

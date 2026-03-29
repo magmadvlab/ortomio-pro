@@ -27,11 +27,14 @@ export interface GardenPlant {
   variety?: string;
   plantingDate?: string; // ISO date
   plantedDate?: string; // Alias for compatibility
+  transplantDate?: string; // Alias legacy compatibilita trapianto
   expectedHarvestDate?: string; // ISO date
+  sourceVivaio?: string; // Origine vivaio legacy
   
   // Stato e salute
   status: 'healthy' | 'diseased' | 'dead' | 'harvested' | 'transplanted';
   healthScore: number; // 0-100
+  stage?: string; // Stato fenologico/operativo legacy
   
   // Origine tracciabilità
   seedlingBatchId?: string;
@@ -88,6 +91,7 @@ export interface GardenPlant {
   
   // Media e note
   photos: string[]; // URLs
+  operations?: PlantOperation[];
   notes?: string;
   
   // Helper fields for display

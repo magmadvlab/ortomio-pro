@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Garden, GardenTask } from '@/types'
 import { plantHealthMonitoringService, HealthAlert, HealthAction } from '@/services/plantHealthMonitoringService'
+import { useStorage } from '@/packages/core/hooks/useStorage'
 import { 
   Camera, 
   UserCheck, 
@@ -14,7 +15,6 @@ import {
   TrendingDown,
   Eye,
   Phone,
-  FileText,
   Zap,
   CheckCircle,
   ArrowRight,
@@ -28,22 +28,22 @@ interface PlannerHealthSuggestionsProps {
 }
 
 export default function PlannerHealthSuggestions({ garden, tasks, onCreateTask }: PlannerHealthSuggestionsProps) {
+  const { storageProvider } = useStorage()
   const [healthAlerts, setHealthAlerts] = useState<HealthAlert[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedAlert, setSelectedAlert] = useState<HealthAlert | null>(null)
   const [showAgronomistModal, setShowAgronomistModal] = useState(false)
   const [showPhotoAnalysisModal, setShowPhotoAnalysisModal] = useState(false)
 
-  useEffect(() => {
-    generateHealthAlerts()
-  }, [garden, tasks])
-
-  const generateHealthAlerts = async () => {
+  const generateHealthAlerts = useCallback(async () => {
     setLoading(true)
     
     try {
       // Utilizza il servizio di monitoraggio per analizzare il giardino
-      const alerts = await plantHealthMonitoringService.analyzeGardenHealth(garden, tasks)
+      const devices = storageProvider?.getDevices
+        ? await storageProvider.getDevices(garden.id).catch(() => [])
+        : []
+      const alerts = await plantHealthMonitoringService.analyzeGardenHealth(garden, tasks, { devices })
       setHealthAlerts(alerts)
     } catch (error) {
       console.error('Error analyzing garden health:', error)
@@ -51,7 +51,11 @@ export default function PlannerHealthSuggestions({ garden, tasks, onCreateTask }
     } finally {
       setLoading(false)
     }
-  }
+  }, [garden, tasks, storageProvider])
+
+  useEffect(() => {
+    generateHealthAlerts()
+  }, [generateHealthAlerts])
 
   const getSeverityColor = (severity: HealthAlert['severity']) => {
     switch (severity) {
@@ -117,7 +121,7 @@ export default function PlannerHealthSuggestions({ garden, tasks, onCreateTask }
     }
   }
 
-  const handlePhotoAnalysis = async (photos: File[]) => {
+  const handlePhotoAnalysis = async () => {
     if (!selectedAlert) return
     
     // Simula analisi AI
@@ -369,7 +373,7 @@ export default function PlannerHealthSuggestions({ garden, tasks, onCreateTask }
                     multiple
                     onChange={(e) => {
                       if (e.target.files && e.target.files.length > 0) {
-                        handlePhotoAnalysis(Array.from(e.target.files))
+                        void handlePhotoAnalysis()
                       }
                     }}
                     className="hidden"

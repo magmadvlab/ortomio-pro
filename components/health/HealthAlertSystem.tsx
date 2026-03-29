@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { Garden, GardenTask } from '@/types'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { checkWeatherHealthRisks } from '@/services/weatherService'
+import { getScopedHealthMicroclimateSnapshot } from '@/services/healthMicroclimateService'
 import { getSeasonalHealthAlerts } from '@/services/seasonalHealthService'
 import { getSeasonForDate } from '@/utils/seasonalAdjustment'
 import { analyzeHealthRisks } from '@/logic/healthAlertEngine'
@@ -130,8 +131,13 @@ export function HealthAlertSystem({
       const newAlerts: HealthAlert[] = []
       
       try {
+        const devices = storageProvider?.getDevices
+          ? await storageProvider.getDevices(garden.id).catch(() => [])
+          : []
+        const microclimate = await getScopedHealthMicroclimateSnapshot(garden, { devices }).catch(() => null)
+
         // 1. Analisi proattiva con healthAlertEngine
-        const proactiveAlerts = await analyzeHealthRisks(garden, tasks)
+        const proactiveAlerts = await analyzeHealthRisks(garden, tasks, new Date(), { devices })
         newAlerts.push(...proactiveAlerts)
 
         // 1b. Alert irrigazione da log/zone (se disponibili)
@@ -163,7 +169,7 @@ export function HealthAlertSystem({
         // 3. Alert Stagionali (legacy, mantenuto per compatibilità)
         if (garden.coordinates) {
           const season = getSeasonForDate(new Date(), garden.coordinates.latitude)
-          const seasonalAlerts = getSeasonalHealthAlerts(season, garden, tasks)
+          const seasonalAlerts = getSeasonalHealthAlerts(season, garden, tasks, microclimate)
           newAlerts.push(...seasonalAlerts)
         }
         

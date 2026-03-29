@@ -3,10 +3,13 @@
  * Analisi proattiva dei rischi sanitari e generazione consigli automatici
  */
 
-import { Garden, GardenTask } from '@/types'
+import { Garden, GardenTask, SmartDevice } from '@/types'
 import { getSeasonForDate } from '@/utils/seasonalAdjustment'
 import { getMasterSheetSync } from '@/services/plantMasterService'
+import { weatherService } from '@/services/weatherService'
+import { getScopedHealthMicroclimateSnapshot } from '@/services/healthMicroclimateService'
 import { parseISO, differenceInDays } from 'date-fns'
+import { inferHealthCropContext } from '@/utils/healthCropContext'
 
 export interface HealthAlert {
   type: 'weather' | 'disease' | 'pest' | 'nutrient' | 'stress' | 'maintenance'
@@ -18,20 +21,146 @@ export interface HealthAlert {
   confidence?: number // 0-100, quanto siamo sicuri del rischio
 }
 
+export interface HealthRiskAnalysisOptions {
+  devices?: SmartDevice[]
+}
+
+function getHealthRelevantTasks(garden: Garden, tasks: GardenTask[]): GardenTask[] {
+  const activeTasks = tasks.filter((task) => !task.completed && Boolean(task.plantName))
+  const cropContext = inferHealthCropContext(garden)
+
+  if (cropContext.id !== 'generic') {
+    return activeTasks
+  }
+
+  const growingTasks = activeTasks.filter(
+    (task) => task.taskType === 'Sowing' || task.taskType === 'Transplant'
+  )
+
+  return growingTasks.length > 0 ? growingTasks : activeTasks
+}
+
+function uniquePlantNames(plants: GardenTask[], fallback: string[]): string[] {
+  const names = Array.from(new Set(plants.map((plant) => plant.plantName).filter(Boolean)))
+  return names.length > 0 ? names : fallback
+}
+
+function getWoodySeasonalRisks(plants: GardenTask[], season: string, garden: Garden): HealthAlert[] {
+  const cropContext = inferHealthCropContext(garden)
+  const plantNames = uniquePlantNames(
+    plants,
+    cropContext.id === 'vineyard'
+      ? ['Vite']
+      : cropContext.id === 'olive'
+        ? ['Olivo']
+        : ['Alberi da frutto']
+  )
+
+  if (cropContext.id === 'vineyard') {
+    if (season === 'Spring') {
+      return [
+        {
+          type: 'disease',
+          severity: 'high',
+          message: 'Primavera umida: aumenta la pressione di peronospora e oidio nel vigneto.',
+          affectedPlants: plantNames,
+          action: 'Controlla i filari piu chiusi, verifica foglie basali e grappolini, programma un controllo post-pioggia.',
+          urgency: 'soon',
+          confidence: 84,
+        },
+      ]
+    }
+
+    if (season === 'Summer') {
+      return [
+        {
+          type: 'stress',
+          severity: 'high',
+          message: 'Nel vigneto cresce il rischio di stress idrico e scottature sui grappoli.',
+          affectedPlants: plantNames,
+          action: 'Controlla turgore fogliare, stato dei grappoli e uniformita della parete vegetativa.',
+          urgency: 'immediate',
+          confidence: 88,
+        },
+      ]
+    }
+  }
+
+  if (cropContext.id === 'olive') {
+    if (season === 'Summer') {
+      return [
+        {
+          type: 'pest',
+          severity: 'high',
+          message: 'Estate favorevole alla mosca olearia nelle zone piu umide e fitte.',
+          affectedPlants: plantNames,
+          action: 'Controlla trappole, punture sui frutti e differenze tra parcelle esposte e ombreggiate.',
+          urgency: 'soon',
+          confidence: 82,
+        },
+      ]
+    }
+
+    if (season === 'Fall') {
+      return [
+        {
+          type: 'maintenance',
+          severity: 'medium',
+          message: 'Avvicinandosi alla raccolta, l oliveto richiede controlli piu ravvicinati su invaiatura e sanita del frutto.',
+          affectedPlants: plantNames,
+          action: 'Rivedi il ritmo dei controlli e allinea i rilievi con la finestra di raccolta.',
+          urgency: 'soon',
+          confidence: 78,
+        },
+      ]
+    }
+  }
+
+  if (cropContext.id === 'orchard') {
+    if (season === 'Spring') {
+      return [
+        {
+          type: 'pest',
+          severity: 'medium',
+          message: 'Nel frutteto va monitorata la pressione su germogli, fiori e primi frutti.',
+          affectedPlants: plantNames,
+          action: 'Controlla allegagione, giovani getti e sintomi precoci su foglie e frutti.',
+          urgency: 'soon',
+          confidence: 76,
+        },
+      ]
+    }
+
+    if (season === 'Summer') {
+      return [
+        {
+          type: 'stress',
+          severity: 'high',
+          message: 'I frutti sono esposti a stress idrico, cascola e scottature nelle giornate piu calde.',
+          affectedPlants: plantNames,
+          action: 'Verifica uniformita irrigua, carico produttivo e frutti piu esposti al sole.',
+          urgency: 'immediate',
+          confidence: 86,
+        },
+      ]
+    }
+  }
+
+  return []
+}
+
 /**
  * Analizza proattivamente i rischi sanitari per il giardino
  */
 export async function analyzeHealthRisks(
   garden: Garden,
   tasks: GardenTask[],
-  currentDate: Date = new Date()
+  currentDate: Date = new Date(),
+  options: HealthRiskAnalysisOptions = {}
 ): Promise<HealthAlert[]> {
   const alerts: HealthAlert[] = []
   
-  // Filtra piante attive
-  const activePlants = tasks.filter(
-    t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant')
-  )
+  const activePlants = getHealthRelevantTasks(garden, tasks)
   
   if (activePlants.length === 0) {
     return alerts
@@ -50,17 +179,15 @@ export async function analyzeHealthRisks(
   alerts.push(...ageAlerts)
   
   // 3. Analisi rischi meteo (se disponibili coordinate)
-  if (garden.coordinates) {
-    const weatherAlerts = await analyzeWeatherRisks(garden, activePlants, currentDate)
-    alerts.push(...weatherAlerts)
-  }
+  const weatherAlerts = await analyzeWeatherRisks(garden, activePlants, options)
+  alerts.push(...weatherAlerts)
   
   // 4. Analisi rischi da pattern storici
-  const patternAlerts = analyzeHistoricalPatterns(activePlants, garden)
+  const patternAlerts = analyzeHistoricalPatterns()
   alerts.push(...patternAlerts)
   
   // 5. Analisi rischi da stress
-  const stressAlerts = analyzeStressRisks(activePlants, tasks, currentDate)
+  const stressAlerts = analyzeStressRisks(activePlants, tasks)
   alerts.push(...stressAlerts)
   
   return prioritizeAlerts(alerts)
@@ -75,6 +202,11 @@ function analyzeSeasonalRisks(
   garden: Garden
 ): HealthAlert[] {
   const alerts: HealthAlert[] = []
+  const cropContext = inferHealthCropContext(garden)
+
+  if (cropContext.id !== 'generic') {
+    return getWoodySeasonalRisks(plants, season, garden)
+  }
   
   if (season === 'Spring') {
     // Afidi primaverili
@@ -235,23 +367,126 @@ function analyzePlantAgeRisks(
 async function analyzeWeatherRisks(
   garden: Garden,
   plants: GardenTask[],
-  currentDate: Date
+  options: HealthRiskAnalysisOptions = {}
 ): Promise<HealthAlert[]> {
   const alerts: HealthAlert[] = []
-  
-  // TODO: Integrare con weatherService per ottenere previsioni
-  // Per ora, generiamo alert generici basati su stagione
-  
+  const cropContext = inferHealthCropContext(garden)
+  const plantNames = uniquePlantNames(
+    plants,
+    cropContext.id === 'vineyard'
+      ? ['Vite']
+      : cropContext.id === 'olive'
+        ? ['Olivo']
+        : cropContext.id === 'orchard'
+          ? ['Alberi da frutto']
+          : plants.map((plant) => plant.plantName)
+  )
+
+  const [weatherData, microclimate] = await Promise.all([
+    garden.coordinates ? weatherService.getWeatherForGarden(garden).catch(() => null) : Promise.resolve(null),
+    getScopedHealthMicroclimateSnapshot(garden, { devices: options.devices || [] }).catch(() => null),
+  ])
+
+  const nextDays = Array.isArray(weatherData?.forecast) ? weatherData?.forecast.slice(0, 3) : []
+  const avgForecastTemp =
+    nextDays.length > 0
+      ? nextDays.reduce((sum, day) => sum + ((day.tempMin + day.tempMax) / 2), 0) / nextDays.length
+      : weatherData?.temp
+  const maxRain = nextDays.reduce((max, day) => Math.max(max, day.rainMm || 0), weatherData?.rainMm || 0)
+  const maxHumidity = nextDays.reduce((max, day) => Math.max(max, day.humidity || 0), weatherData?.humidity || 0)
+  const effectiveTemp = microclimate?.metrics.airTemperature ?? avgForecastTemp
+  const effectiveRain = Math.max(microclimate?.metrics.rainGaugeLocalMm || 0, maxRain || 0)
+  const effectiveHumidity = microclimate?.metrics.airHumidity ?? maxHumidity
+  const signalSuffix =
+    microclimate?.supportingSignals && microclimate.supportingSignals.length > 0
+      ? ` Segnali: ${microclimate.supportingSignals.slice(0, 4).join(', ')}.`
+      : ''
+
+  if (
+    effectiveTemp !== undefined &&
+    effectiveHumidity !== undefined &&
+    (microclimate?.fungalPressure === 'high' ||
+      (effectiveHumidity >= 80 && effectiveTemp >= 12 && effectiveTemp <= 28 && effectiveRain >= 1))
+  ) {
+    alerts.push({
+      type: 'disease',
+      severity:
+        cropContext.id === 'vineyard' && microclimate?.fungalPressure === 'high'
+          ? 'critical'
+          : cropContext.id === 'vineyard' || microclimate?.fungalPressure === 'high'
+            ? 'high'
+            : 'medium',
+      message:
+        cropContext.id === 'vineyard'
+          ? `Finestra infettiva nel vigneto: peronospora e oidio favoriti da umidita, bagnatura fogliare e pioggia locale.${signalSuffix}`
+          : cropContext.id === 'olive'
+            ? `Microclima favorevole a occhio di pavone e ristagni di umidita nell oliveto.${signalSuffix}`
+            : cropContext.id === 'orchard'
+              ? `Microclima favorevole a ticchiolatura e altre pressioni fungine nel frutteto.${signalSuffix}`
+              : `Condizioni meteo favorevoli a malattie fungine.${signalSuffix}`,
+      affectedPlants: plantNames,
+      action:
+        cropContext.id === 'vineyard'
+          ? 'Controlla foglie basali, grappolini e parcelle chiuse entro 24 ore.'
+          : cropContext.id === 'olive'
+            ? 'Verifica chioma interna, foglie persistenti umide e differenze tra aree ventilate e chiuse.'
+            : cropContext.id === 'orchard'
+              ? 'Controlla foglie e frutti nelle aree piu fitte o bagnate dopo pioggia.'
+              : 'Programma un controllo post-pioggia ed evita bagnature fogliari non necessarie.',
+      urgency: microclimate?.fungalPressure === 'high' ? 'immediate' : 'soon',
+      confidence: microclimate?.hasRecentData ? 92 : 81,
+    })
+  }
+
+  if (
+    microclimate?.waterStress === 'high' ||
+    microclimate?.heatStress === 'high' ||
+    (effectiveTemp !== undefined && effectiveTemp >= 32)
+  ) {
+    alerts.push({
+      type: 'stress',
+      severity: microclimate?.waterStress === 'high' || microclimate?.heatStress === 'high' ? 'high' : 'medium',
+      message:
+        cropContext.id === 'vineyard'
+          ? `Stress idrico o termico in crescita nel vigneto, con rischio su parete vegetativa e grappoli.${signalSuffix}`
+          : cropContext.id === 'olive'
+            ? `Stress idrico o termico nell oliveto, con rischio di rallentamento e cascola.${signalSuffix}`
+            : cropContext.id === 'orchard'
+              ? `Stress idrico o termico nel frutteto, con rischio di cascola e scottature.${signalSuffix}`
+              : `Stress idrico o termico in aumento sulle colture.${signalSuffix}`,
+      affectedPlants: plantNames,
+      action:
+        cropContext.id === 'vineyard'
+          ? 'Verifica umidita del profilo, delta chioma-aria e uniformita di distribuzione lungo i filari.'
+          : cropContext.id === 'olive'
+            ? 'Controlla tensione idrica, stato delle drupe e uniformita irrigua tra le zone.'
+            : cropContext.id === 'orchard'
+              ? 'Controlla profondita radicale, chioma esposta e tenuta dei frutti nelle ore piu calde.'
+              : 'Controlla umidita suolo, VPD e stress visivo prima di aumentare l irrigazione.',
+      urgency: 'immediate',
+      confidence: microclimate?.hasRecentData ? 90 : 76,
+    })
+  }
+
+  if (weatherData && weatherData.temp < 2) {
+    alerts.push({
+      type: 'weather',
+      severity: 'high',
+      message: `Rischio gelo con temperatura prevista ${weatherData.temp}°C.`,
+      affectedPlants: plantNames,
+      action: 'Proteggi le colture sensibili e sospendi interventi fogliari non indispensabili.',
+      urgency: 'immediate',
+      confidence: 88,
+    })
+  }
+
   return alerts
 }
 
 /**
  * Analizza pattern storici (placeholder - da integrare con gardenMemoryService)
  */
-function analyzeHistoricalPatterns(
-  plants: GardenTask[],
-  garden: Garden
-): HealthAlert[] {
+function analyzeHistoricalPatterns(): HealthAlert[] {
   const alerts: HealthAlert[] = []
   
   // TODO: Integrare con gardenMemoryService per analizzare pattern storici
@@ -265,8 +500,7 @@ function analyzeHistoricalPatterns(
  */
 function analyzeStressRisks(
   plants: GardenTask[],
-  tasks: GardenTask[],
-  currentDate: Date
+  tasks: GardenTask[]
 ): HealthAlert[] {
   const alerts: HealthAlert[] = []
   
@@ -315,4 +549,3 @@ function prioritizeAlerts(alerts: HealthAlert[]): HealthAlert[] {
     return (b.confidence || 0) - (a.confidence || 0)
   })
 }
-

@@ -62,6 +62,15 @@ export interface PrescriptionMap {
   
   // Status
   status: 'pending' | 'generating' | 'completed' | 'failed';
+
+  // Operational versioning
+  versionNumber?: number;
+  versionLabel?: string;
+  rootVersionId?: string;
+  parentVersionId?: string;
+  lastExportedAt?: string;
+  exportCount?: number;
+  lastExecutedAt?: string;
   
   // Validation and quality
   validationStatus: 'pending' | 'valid' | 'invalid' | 'warning';
@@ -299,6 +308,8 @@ export interface ExportConfiguration {
   compression: boolean;
   includeMetadata: boolean;
   includePreview: boolean;
+  machineryBrand?: string;
+  machineryModel?: string;
   
   // Format-specific options
   shapefileOptions?: {
@@ -350,6 +361,86 @@ export interface PrescriptionMapStats {
   activeUsers: number;
   mapsDownloaded: number;
   machineryIntegrations: number;
+}
+
+export type PrescriptionExecutionStatus =
+  | 'planned'
+  | 'completed'
+  | 'partial'
+  | 'missed';
+
+export type PrescriptionExecutionScopeType =
+  | 'garden'
+  | 'zone'
+  | 'field_row'
+  | 'tree'
+  | 'plant';
+
+export interface PrescriptionExecutionRecord {
+  id: string;
+  prescriptionMapId: string;
+  prescriptionZoneId?: string;
+  applicationDate: string;
+  productName: string;
+  productType?: string;
+  plannedRate: number;
+  actualRate?: number;
+  unit: string;
+  plannedAreaSqm?: number;
+  areaAppliedSqm?: number;
+  totalProductUsed?: number;
+  machineryUsed?: string;
+  operatorName?: string;
+  gpsTrack?: Array<{
+    latitude: number;
+    longitude: number;
+    timestamp: string;
+  }>;
+  applicationAccuracy?: number;
+  applicationQuality?: number;
+  notes?: string;
+  weatherConditions?: Record<string, unknown>;
+  productCost?: number;
+  applicationCost?: number;
+  totalCost?: number;
+  executionStatus: PrescriptionExecutionStatus;
+  executionScopeType?: PrescriptionExecutionScopeType;
+  executionScopeId?: string;
+  sourceOperationType?: 'irrigation' | 'fertilization' | 'treatment' | 'manual' | 'export';
+  sourceOperationId?: string;
+  prescriptionExportId?: string;
+  smartDeviceId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PrescriptionMapExportRecord {
+  id: string;
+  prescriptionMapId: string;
+  gardenId: string;
+  versionNumber: number;
+  format: ExportConfiguration['format'];
+  coordinateSystem: ExportConfiguration['coordinateSystem'];
+  compression: boolean;
+  includeMetadata: boolean;
+  includePreview: boolean;
+  fileName: string;
+  filePath?: string;
+  downloadUrl?: string;
+  fileSize?: number;
+  status: 'generated' | 'downloaded' | 'field_imported' | 'field_applied';
+  machineryBrand?: string;
+  machineryModel?: string;
+  machineryProfileId?: string;
+  compatibilityScore?: number;
+  warnings?: string[];
+  metadata?: Record<string, string | number | boolean | null>;
+  exportedAt: string;
+  downloadedAt?: string;
+  fieldImportedAt?: string;
+  appliedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Utility types for calculations

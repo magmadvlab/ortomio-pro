@@ -3,12 +3,22 @@
  * Pannello per gestione avanzata delle zone prescription maps
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   PrescriptionMap, 
-  PrescriptionZone 
+  PrescriptionZone,
+  PrescriptionExecutionStatus,
 } from '../../types/prescriptionMaps';
 import { createZoneManagementService, ZoneAnalysis } from '../../services/zoneManagementService';
+import { createPrescriptionMapsService } from '../../services/prescriptionMapsService';
+import type { PrescriptionMapFieldOpsSummary } from '../../services/prescriptionMapsService';
+import type {
+  PrescriptionExecutionEfficacySummary,
+  PrescriptionExecutionOutcomeSummary,
+  PrescriptionExecutionSummary,
+  PrescriptionExecutionVarianceSummary,
+} from '../../services/prescriptionExecutionService';
+import type { PrescriptionAgronomicIntelligenceSummary } from '../../services/prescriptionAgronomicIntelligenceService';
 import { useStorage } from '../../packages/core/hooks/useStorage';
 import { 
   Layers, 
@@ -20,7 +30,6 @@ import {
   Merge,
   Split,
   Eye,
-  Download,
   X
 } from 'lucide-react';
 
@@ -30,6 +39,16 @@ interface ZoneManagementPanelProps {
   onUpdate: () => void;
 }
 
+const TABS: Array<{
+  key: 'zones' | 'analysis' | 'optimization'
+  label: string
+  icon: typeof Layers
+}> = [
+  { key: 'zones', label: 'Dettagli Zona', icon: Layers },
+  { key: 'analysis', label: 'Analisi', icon: BarChart3 },
+  { key: 'optimization', label: 'Ottimizzazione', icon: Target },
+];
+
 const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
   prescriptionMap,
   onClose,
@@ -37,21 +56,74 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
 }) => {
   const { storageProvider } = useStorage();
   const zoneService = createZoneManagementService(storageProvider);
+  const prescriptionService = createPrescriptionMapsService(storageProvider);
   
   // State
   const [zones, setZones] = useState<PrescriptionZone[]>(prescriptionMap.zones);
   const [selectedZone, setSelectedZone] = useState<PrescriptionZone | null>(null);
   const [zoneAnalysis, setZoneAnalysis] = useState<ZoneAnalysis | null>(null);
+  const [executionSummary, setExecutionSummary] = useState<PrescriptionExecutionSummary | null>(null);
+  const [executionVarianceSummary, setExecutionVarianceSummary] = useState<PrescriptionExecutionVarianceSummary | null>(null);
+  const [executionOutcomeSummary, setExecutionOutcomeSummary] = useState<PrescriptionExecutionOutcomeSummary | null>(null);
+  const [executionEfficacySummary, setExecutionEfficacySummary] = useState<PrescriptionExecutionEfficacySummary | null>(null);
+  const [agronomicIntelligenceSummary, setAgronomicIntelligenceSummary] = useState<PrescriptionAgronomicIntelligenceSummary | null>(null);
+  const [fieldOpsSummary, setFieldOpsSummary] = useState<PrescriptionMapFieldOpsSummary | null>(null);
   const [loading, setLoading] = useState(false);
+  const [executionLoading, setExecutionLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'zones' | 'analysis' | 'optimization'>('zones');
 
   useEffect(() => {
-    if (selectedZone) {
-      loadZoneAnalysis(selectedZone);
-    }
-  }, [selectedZone]);
+    setZones(prescriptionMap.zones);
+  }, [prescriptionMap.zones]);
 
-  const loadZoneAnalysis = async (zone: PrescriptionZone) => {
+  const loadExecutionSummary = useCallback(async () => {
+    try {
+      const summary = await prescriptionService.getPrescriptionExecutionSummary({
+        ...prescriptionMap,
+        zones,
+      });
+      setExecutionSummary(summary);
+      const varianceSummary = await prescriptionService.getPrescriptionExecutionVarianceSummary({
+        ...prescriptionMap,
+        zones,
+      });
+      setExecutionVarianceSummary(varianceSummary);
+      const outcomeSummary = await prescriptionService.getPrescriptionExecutionOutcomeSummary({
+        ...prescriptionMap,
+        zones,
+      });
+      setExecutionOutcomeSummary(outcomeSummary);
+      const efficacySummary = await prescriptionService.getPrescriptionExecutionEfficacySummary({
+        ...prescriptionMap,
+        zones,
+      });
+      setExecutionEfficacySummary(efficacySummary);
+      const intelligenceSummary = await prescriptionService.getPrescriptionAgronomicIntelligenceSummary({
+        ...prescriptionMap,
+        zones,
+      });
+      setAgronomicIntelligenceSummary(intelligenceSummary);
+      const opsSummary = await prescriptionService.getPrescriptionMapFieldOpsSummary({
+        ...prescriptionMap,
+        zones,
+      });
+      setFieldOpsSummary(opsSummary);
+    } catch (error) {
+      console.error('Error loading execution summary:', error);
+      setExecutionSummary(null);
+      setExecutionVarianceSummary(null);
+      setExecutionOutcomeSummary(null);
+      setExecutionEfficacySummary(null);
+      setAgronomicIntelligenceSummary(null);
+      setFieldOpsSummary(null);
+    }
+  }, [prescriptionMap, prescriptionService, zones]);
+
+  useEffect(() => {
+    loadExecutionSummary();
+  }, [loadExecutionSummary]);
+
+  const loadZoneAnalysis = useCallback(async (zone: PrescriptionZone) => {
     try {
       setLoading(true);
       const analysis = await zoneService.analyzeZone(zone.id);
@@ -61,7 +133,13 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [zoneService]);
+
+  useEffect(() => {
+    if (selectedZone) {
+      loadZoneAnalysis(selectedZone);
+    }
+  }, [loadZoneAnalysis, selectedZone]);
 
   const handleOptimizeZones = async () => {
     try {
@@ -169,6 +247,113 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
     if (quality >= 80) return 'text-green-600';
     if (quality >= 60) return 'text-yellow-600';
     return 'text-red-600';
+  };
+
+  const selectedZoneExecution = selectedZone
+    ? executionSummary?.zoneSummaries.find((summary) => summary.zoneId === selectedZone.id)
+    : undefined;
+  const selectedZoneVariance = selectedZone
+    ? executionVarianceSummary?.zoneVariances.find((summary) => summary.zoneId === selectedZone.id)
+    : undefined;
+  const selectedZoneOutcome = selectedZone
+    ? executionOutcomeSummary?.zoneOutcomes.find((summary) => summary.zoneId === selectedZone.id)
+    : undefined;
+  const selectedZoneEfficacy = selectedZone
+    ? executionEfficacySummary?.zoneScores.find((summary) => summary.zoneId === selectedZone.id)
+    : undefined;
+  const selectedZoneRecommendations = selectedZone
+    ? agronomicIntelligenceSummary?.recommendations.filter(
+        (recommendation) => !recommendation.scopeLabel || recommendation.scopeLabel === selectedZone.zoneName
+      ) || []
+    : [];
+  const selectedZonePriority = selectedZone
+    ? agronomicIntelligenceSummary?.operationalPriorities.find(
+        (priority) => priority.zoneId === selectedZone.id
+      )
+    : undefined;
+
+  const getVarianceBadgeClasses = (varianceStatus: string | undefined) => {
+    switch (varianceStatus) {
+      case 'aligned':
+        return 'bg-lime-100 text-lime-800 border-lime-300';
+      case 'partial':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'off_target':
+        return 'bg-red-100 text-red-800 border-red-300';
+      case 'missed':
+        return 'bg-rose-100 text-rose-800 border-rose-300';
+      default:
+        return 'bg-slate-100 text-slate-700 border-slate-300';
+    }
+  };
+
+  const getOutcomeBadgeClasses = (outcomeStatus: string | undefined) => {
+    switch (outcomeStatus) {
+      case 'positive':
+        return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+      case 'mixed':
+        return 'bg-amber-100 text-amber-800 border-amber-300';
+      case 'negative':
+        return 'bg-red-100 text-red-800 border-red-300';
+      default:
+        return 'bg-slate-100 text-slate-700 border-slate-300';
+    }
+  };
+
+  const getEfficacyBadgeClasses = (efficacyStatus: string | undefined) => {
+    switch (efficacyStatus) {
+      case 'high':
+        return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+      case 'medium':
+        return 'bg-amber-100 text-amber-800 border-amber-300';
+      case 'low':
+        return 'bg-rose-100 text-rose-800 border-rose-300';
+      default:
+        return 'bg-slate-100 text-slate-700 border-slate-300';
+    }
+  };
+
+  const getPriorityClasses = (urgency: 'immediate' | 'next_cycle' | 'monitor' | undefined) => {
+    switch (urgency) {
+      case 'immediate':
+        return 'bg-rose-100 text-rose-800 border-rose-300'
+      case 'next_cycle':
+        return 'bg-amber-100 text-amber-800 border-amber-300'
+      default:
+        return 'bg-sky-100 text-sky-800 border-sky-300'
+    }
+  };
+
+  const handleRegisterExecution = async (executionStatus: PrescriptionExecutionStatus) => {
+    if (!selectedZone) {
+      return;
+    }
+
+    try {
+      setExecutionLoading(true);
+      await prescriptionService.recordZoneExecution(
+        {
+          ...prescriptionMap,
+          zones,
+        },
+        selectedZone,
+        {
+          executionStatus,
+          operatorName: 'Operatore OrtoMio',
+          notes: `Registrazione manuale stato ${executionStatus}`,
+          sourceOperationType: fieldOpsSummary?.latestExport ? 'export' : 'manual',
+          sourceOperationId: fieldOpsSummary?.latestExport?.id,
+          prescriptionExportId: fieldOpsSummary?.latestExport?.id,
+        }
+      );
+      await loadExecutionSummary();
+      await onUpdate();
+    } catch (error) {
+      console.error('Error recording prescription execution:', error);
+      alert('Errore durante la registrazione dell esecuzione prescrittiva');
+    } finally {
+      setExecutionLoading(false);
+    }
   };
 
   return (
@@ -307,19 +492,120 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
                       <p className="font-bold text-orange-700">{selectedZone.confidence}%</p>
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-emerald-50 p-3 rounded-lg">
+                      <p className="text-sm text-emerald-600">Eseguite</p>
+                      <p className="font-bold text-emerald-700">{executionSummary?.completedZones ?? 0}</p>
+                    </div>
+                    <div className="bg-amber-50 p-3 rounded-lg">
+                      <p className="text-sm text-amber-600">Parziali</p>
+                      <p className="font-bold text-amber-700">{executionSummary?.partialZones ?? 0}</p>
+                    </div>
+                    <div className="bg-rose-50 p-3 rounded-lg">
+                      <p className="text-sm text-rose-600">Mancate</p>
+                      <p className="font-bold text-rose-700">{executionSummary?.missedZones ?? 0}</p>
+                    </div>
+                    <div className="bg-sky-50 p-3 rounded-lg">
+                      <p className="text-sm text-sky-600">In attesa</p>
+                      <p className="font-bold text-sky-700">{executionSummary?.pendingZones ?? zones.length}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-lime-50 p-3 rounded-lg">
+                      <p className="text-sm text-lime-600">Aderenti</p>
+                      <p className="font-bold text-lime-700">{executionVarianceSummary?.alignedZones ?? 0}</p>
+                    </div>
+                    <div className="bg-yellow-50 p-3 rounded-lg">
+                      <p className="text-sm text-yellow-600">Parziali</p>
+                      <p className="font-bold text-yellow-700">{executionVarianceSummary?.partialZones ?? 0}</p>
+                    </div>
+                    <div className="bg-red-50 p-3 rounded-lg">
+                      <p className="text-sm text-red-600">Fuori soglia</p>
+                      <p className="font-bold text-red-700">{executionVarianceSummary?.offTargetZones ?? 0}</p>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <p className="text-sm text-slate-600">Aderenza media</p>
+                      <p className="font-bold text-slate-700">{executionVarianceSummary?.averageAdherenceScore ?? 0}%</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-emerald-50 p-3 rounded-lg">
+                      <p className="text-sm text-emerald-600">Outcome positivi</p>
+                      <p className="font-bold text-emerald-700">{executionOutcomeSummary?.positiveZones ?? 0}</p>
+                    </div>
+                    <div className="bg-amber-50 p-3 rounded-lg">
+                      <p className="text-sm text-amber-600">Outcome misti</p>
+                      <p className="font-bold text-amber-700">{executionOutcomeSummary?.mixedZones ?? 0}</p>
+                    </div>
+                    <div className="bg-red-50 p-3 rounded-lg">
+                      <p className="text-sm text-red-600">Outcome negativi</p>
+                      <p className="font-bold text-red-700">{executionOutcomeSummary?.negativeZones ?? 0}</p>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <p className="text-sm text-slate-600">Score outcome</p>
+                      <p className="font-bold text-slate-700">{executionOutcomeSummary?.averageOutcomeScore ?? 0}%</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-teal-50 p-3 rounded-lg">
+                      <p className="text-sm text-teal-600">Efficacia media</p>
+                      <p className="font-bold text-teal-700">{executionEfficacySummary?.averageEfficacyScore ?? 0}%</p>
+                    </div>
+                    <div className="bg-emerald-50 p-3 rounded-lg">
+                      <p className="text-sm text-emerald-600">Zone alte</p>
+                      <p className="font-bold text-emerald-700">{executionEfficacySummary?.highZones ?? 0}</p>
+                    </div>
+                    <div className="bg-amber-50 p-3 rounded-lg">
+                      <p className="text-sm text-amber-600">Zone medie</p>
+                      <p className="font-bold text-amber-700">{executionEfficacySummary?.mediumZones ?? 0}</p>
+                    </div>
+                    <div className="bg-rose-50 p-3 rounded-lg">
+                      <p className="text-sm text-rose-600">Zone basse</p>
+                      <p className="font-bold text-rose-700">{executionEfficacySummary?.lowZones ?? 0}</p>
+                    </div>
+                    <div className="bg-cyan-50 p-3 rounded-lg">
+                      <p className="text-sm text-cyan-600">Microclima medio</p>
+                      <p className="font-bold text-cyan-700">{executionEfficacySummary?.averageMicroclimateScore ?? 0}%</p>
+                    </div>
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <p className="text-sm text-blue-600">Risposta suolo</p>
+                      <p className="font-bold text-blue-700">{executionEfficacySummary?.averageSoilResponseScore ?? 0}%</p>
+                    </div>
+                  </div>
+
+                  {fieldOpsSummary && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                      <div className="bg-violet-50 p-3 rounded-lg">
+                        <p className="text-sm text-violet-600">Versione</p>
+                        <p className="font-bold text-violet-700">{prescriptionMap.versionLabel || `v${prescriptionMap.versionNumber || 1}`}</p>
+                      </div>
+                      <div className="bg-indigo-50 p-3 rounded-lg">
+                        <p className="text-sm text-indigo-600">Ultimo export</p>
+                        <p className="font-bold text-indigo-700">{fieldOpsSummary.latestExport?.format?.toUpperCase() || 'N/D'}</p>
+                      </div>
+                      <div className="bg-cyan-50 p-3 rounded-lg">
+                        <p className="text-sm text-cyan-600">Export tracciati</p>
+                        <p className="font-bold text-cyan-700">{fieldOpsSummary.totalExports}</p>
+                      </div>
+                      <div className="bg-slate-50 p-3 rounded-lg">
+                        <p className="text-sm text-slate-600">Exec collegate</p>
+                        <p className="font-bold text-slate-700">{fieldOpsSummary.linkedExecutions}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Tabs */}
                 <div className="border-b border-gray-200 mb-6">
                   <nav className="flex space-x-8">
-                    {[
-                      { key: 'zones', label: 'Dettagli Zona', icon: Layers },
-                      { key: 'analysis', label: 'Analisi', icon: BarChart3 },
-                      { key: 'optimization', label: 'Ottimizzazione', icon: Target }
-                    ].map(({ key, label, icon: Icon }) => (
+                    {TABS.map(({ key, label, icon: Icon }) => (
                       <button
                         key={key}
-                        onClick={() => setActiveTab(key as any)}
+                        onClick={() => setActiveTab(key)}
                         className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
                           activeTab === key
                             ? 'border-green-500 text-green-600'
@@ -408,6 +694,226 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
                         </div>
                       </div>
                     )}
+
+                    <div className="bg-white border border-gray-200 p-4 rounded-lg">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                        <div>
+                          <h4 className="font-medium text-gray-900">Esecuzione zona</h4>
+                          <p className="text-sm text-gray-600">
+                            Stato corrente: <span className="font-medium text-gray-900">{selectedZoneExecution?.latestStatus || 'pending'}</span>
+                          </p>
+                          <div className="mt-2">
+                            <span className={`inline-flex px-2 py-1 rounded-full border text-xs font-medium ${getVarianceBadgeClasses(selectedZoneVariance?.varianceStatus)}`}>
+                              {selectedZoneVariance?.varianceStatus || 'pending'}
+                            </span>
+                            <span className={`inline-flex ml-2 px-2 py-1 rounded-full border text-xs font-medium ${getOutcomeBadgeClasses(selectedZoneOutcome?.outcomeStatus)}`}>
+                              {selectedZoneOutcome?.outcomeStatus || 'no_data'}
+                            </span>
+                            <span className={`inline-flex ml-2 px-2 py-1 rounded-full border text-xs font-medium ${getEfficacyBadgeClasses(selectedZoneEfficacy?.efficacyStatus)}`}>
+                              {selectedZoneEfficacy?.efficacyStatus || 'unknown'}
+                            </span>
+                          </div>
+                          {selectedZoneExecution?.latestExecution?.applicationDate && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Ultimo aggiornamento: {new Date(selectedZoneExecution.latestExecution.applicationDate).toLocaleString('it-IT')}
+                            </p>
+                          )}
+                          {fieldOpsSummary?.latestExport && (
+                            <p className="text-xs text-violet-700 mt-1">
+                              Export operativo attivo: {fieldOpsSummary.latestExport.format.toUpperCase()} • Trace {fieldOpsSummary.latestExport.id}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => handleRegisterExecution('completed')}
+                            disabled={executionLoading}
+                            className="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            Segna completa
+                          </button>
+                          <button
+                            onClick={() => handleRegisterExecution('partial')}
+                            disabled={executionLoading}
+                            className="px-3 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50"
+                          >
+                            Segna parziale
+                          </button>
+                          <button
+                            onClick={() => handleRegisterExecution('missed')}
+                            disabled={executionLoading}
+                            className="px-3 py-2 rounded-lg bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
+                          >
+                            Segna mancata
+                          </button>
+                        </div>
+                      </div>
+
+                      {selectedZoneExecution?.latestExecution && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">Dose pianificata:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneExecution.latestExecution.plannedRate} {selectedZoneExecution.latestExecution.unit}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Dose eseguita:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneExecution.latestExecution.actualRate ?? 0} {selectedZoneExecution.latestExecution.unit}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Area coperta:</span>
+                            <span className="ml-2 font-medium">
+                              {((selectedZoneExecution.latestExecution.areaAppliedSqm ?? 0) / 10000).toFixed(2)} ha
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Scostamento dose:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneVariance?.rateDeviationPercent ?? 0}%
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Copertura area:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneVariance?.areaCoveragePercent ?? 0}%
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Aderenza:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneVariance?.adherenceScore ?? 0}%
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Efficacia:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneEfficacy?.efficacyScore ?? 0}%
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Microclima:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneEfficacy?.microclimateScore ?? 0}%
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Suolo:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneEfficacy?.soilResponseScore ?? 0}%
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedZoneOutcome?.latestQualityResult && (
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-4 text-sm border-t pt-4">
+                          <div>
+                            <span className="text-gray-600">Score qualità:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneOutcome.latestQualityResult.qualityScore ?? 'n/d'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Brix:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneOutcome.latestQualityResult.brix ?? 'n/d'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Difetti:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneOutcome.latestQualityResult.defectIncidencePercentage ?? 'n/d'}%
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Resa commerciabile:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneOutcome.latestQualityResult.marketableYieldKg ?? 'n/d'} kg
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Coltura:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneEfficacy?.cropContextId || 'n/d'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Stagione:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneEfficacy?.seasonLabel || 'n/d'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Fungino:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneEfficacy?.fungalPressure || 'n/d'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Idrico:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneEfficacy?.waterStress || 'n/d'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Termico:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneEfficacy?.heatStress || 'n/d'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Risposta suolo:</span>
+                            <span className="ml-2 font-medium">
+                              {selectedZoneEfficacy?.soilResponseStatus || 'n/d'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedZonePriority && (
+                        <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4">
+                          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div>
+                              <p className="text-sm font-semibold text-rose-900">Priorita operativa per questa zona</p>
+                              <p className="text-xs text-rose-700">
+                                Score {selectedZonePriority.priorityScore} • Efficacia {selectedZonePriority.efficacyScore}% • {selectedZonePriority.rationale}
+                              </p>
+                            </div>
+                            <span className={`inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${getPriorityClasses(selectedZonePriority.urgency)}`}>
+                              {selectedZonePriority.urgency === 'immediate' ? 'intervento immediato' : selectedZonePriority.urgency === 'next_cycle' ? 'prossimo ciclo' : 'monitoraggio'}
+                            </span>
+                          </div>
+                          <p className="mt-3 text-sm text-gray-700">{selectedZonePriority.recommendedAction}</p>
+                          {selectedZonePriority.drivers.length > 0 && (
+                            <p className="mt-2 text-xs text-rose-700">
+                              Driver: {selectedZonePriority.drivers.join(' • ')}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {selectedZoneRecommendations.length > 0 && (
+                        <div className="mt-4 rounded-xl border border-teal-200 bg-teal-50 p-4">
+                          <p className="text-sm font-semibold text-teal-900">Suggerimenti automatici per questa zona</p>
+                          <div className="mt-3 space-y-2">
+                            {selectedZoneRecommendations.slice(0, 3).map((recommendation) => (
+                              <div key={recommendation.id} className="rounded-lg border border-white/80 bg-white/80 p-3 text-sm">
+                                <div className="flex items-center justify-between gap-3">
+                                  <p className="font-medium text-gray-900">{recommendation.title}</p>
+                                  <span className="rounded-full bg-teal-100 px-2 py-1 text-[11px] font-semibold text-teal-800">
+                                    {recommendation.severity}
+                                  </span>
+                                </div>
+                                <p className="mt-1 text-gray-700">{recommendation.message}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 

@@ -3,7 +3,7 @@
  * Abstract interface for storage operations (localStorage or Supabase)
  */
 
-import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB, GardenRow, GardenZone, FieldRow, PlantingBatch } from '../../../types';
+import { Garden, GardenTask, SmartDevice, SmartDeviceAutomationLog, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB, GardenRow, GardenZone, FieldRow, PlantingBatch, PhenologyObservation, QualityResult } from '../../../types';
 import { CustomPlan } from '../../../types/customPlan';
 import { Agronomist, AgronomistConsultation, AgronomistAdvice } from '../../../types/agronomist';
 import { SeedlingBatch } from '../../../services/seedlingService';
@@ -15,6 +15,8 @@ import { CustomCrop, CropLearningEvent } from '../../../types/customCrop';
 import { CropArchetype, CropProfile, CropAlias, ArchetypeId, OfficialCrop } from '../../../types/archetypes';
 import { IrrigationSystem, IrrigationZone, IrrigationComponent, WateringLog } from '../../../types/irrigation';
 import { HealthAlert } from '../../../types/healthAlert';
+import { PrescriptionExecutionRecord, PrescriptionMap, PrescriptionMapExportRecord } from '../../../types/prescriptionMaps';
+import type { PlantOperation } from '../../../types/individualPlant';
 
 export interface IStorageProvider {
   // Gardens
@@ -40,6 +42,83 @@ export interface IStorageProvider {
   createDevice(device: Omit<SmartDevice, 'id' | 'lastUpdate'>): Promise<SmartDevice>;
   updateDevice(id: string, updates: Partial<SmartDevice>): Promise<SmartDevice>;
   deleteDevice(id: string): Promise<void>;
+  getSmartDeviceAutomationLogs?(gardenId?: string, deviceId?: string): Promise<SmartDeviceAutomationLog[]>;
+  createSmartDeviceAutomationLog?(log: Omit<SmartDeviceAutomationLog, 'id' | 'createdAt'>): Promise<SmartDeviceAutomationLog>;
+  getPhenologyObservations?(
+    gardenId: string,
+    options?: {
+      cropContextId?: PhenologyObservation['cropContextId'];
+      scopeType?: PhenologyObservation['scopeType'];
+      scopeId?: string;
+      zoneId?: string;
+      fieldRowId?: string;
+      treeId?: string;
+      plantId?: string;
+      limit?: number;
+    }
+  ): Promise<PhenologyObservation[]>;
+  createPhenologyObservation?(
+    observation: Omit<PhenologyObservation, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<PhenologyObservation>;
+  getQualityResults?(
+    gardenId: string,
+    options?: {
+      cropContextId?: QualityResult['cropContextId'];
+      scopeType?: QualityResult['scopeType'];
+      scopeId?: string;
+      zoneId?: string;
+      fieldRowId?: string;
+      treeId?: string;
+      plantId?: string;
+      harvestLogId?: string;
+      lotCode?: string;
+      limit?: number;
+    }
+  ): Promise<QualityResult[]>;
+  createQualityResult?(
+    result: Omit<QualityResult, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<QualityResult>;
+  updateQualityResult?(
+    id: string,
+    updates: Partial<QualityResult>
+  ): Promise<QualityResult>;
+  getPrescriptionMaps?(gardenId: string): Promise<PrescriptionMap[]>;
+  getPrescriptionMap?(id: string): Promise<PrescriptionMap | null>;
+  createPrescriptionMap?(
+    map: Omit<PrescriptionMap, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<PrescriptionMap>;
+  updatePrescriptionMap?(id: string, updates: Partial<PrescriptionMap>): Promise<PrescriptionMap>;
+  deletePrescriptionMap?(id: string): Promise<void>;
+  getPrescriptionExecutionRecords?(
+    prescriptionMapId: string,
+    options?: {
+      prescriptionZoneId?: string;
+      executionStatus?: PrescriptionExecutionRecord['executionStatus'];
+      limit?: number;
+    }
+  ): Promise<PrescriptionExecutionRecord[]>;
+  createPrescriptionExecutionRecord?(
+    record: Omit<PrescriptionExecutionRecord, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<PrescriptionExecutionRecord>;
+  updatePrescriptionExecutionRecord?(
+    id: string,
+    updates: Partial<PrescriptionExecutionRecord>
+  ): Promise<PrescriptionExecutionRecord>;
+  getPrescriptionMapExportRecords?(
+    prescriptionMapId: string,
+    options?: {
+      format?: PrescriptionMapExportRecord['format'];
+      status?: PrescriptionMapExportRecord['status'];
+      limit?: number;
+    }
+  ): Promise<PrescriptionMapExportRecord[]>;
+  createPrescriptionMapExportRecord?(
+    record: Omit<PrescriptionMapExportRecord, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<PrescriptionMapExportRecord>;
+  updatePrescriptionMapExportRecord?(
+    id: string,
+    updates: Partial<PrescriptionMapExportRecord>
+  ): Promise<PrescriptionMapExportRecord>;
 
   // Seed Inventory
   getSeedPackets(gardenId?: string): Promise<SeedPacket[]>;
@@ -270,6 +349,7 @@ export interface IStorageProvider {
 
   // Individual Plant Operations
   getPlantOperations?(plantId: string): Promise<any[]>;
+  getFieldRowOperations?(fieldRowId: string, gardenId: string): Promise<PlantOperation[]>;
   createPlantOperation?(operation: any): Promise<any>;
 
   // Individual Plant Harvests
@@ -291,6 +371,14 @@ export interface IStorageProvider {
   createGreenhouseReading?(reading: Omit<import('../../../types/greenhouseReading').GreenhouseReading, 'id' | 'createdAt' | 'updatedAt'>): Promise<import('../../../types/greenhouseReading').GreenhouseReading>;
   updateGreenhouseReading?(id: string, updates: Partial<import('../../../types/greenhouseReading').GreenhouseReading>): Promise<import('../../../types/greenhouseReading').GreenhouseReading>;
   deleteGreenhouseReading?(id: string): Promise<void>;
+
+  // Controlled Environment Ledgers
+  getControlledEnvironmentExecutions?(gardenId: string): Promise<import('../../../types/controlledEnvironment').ControlledEnvironmentExecution[]>;
+  createControlledEnvironmentExecution?(execution: Omit<import('../../../types/controlledEnvironment').ControlledEnvironmentExecution, 'id' | 'createdAt'>): Promise<import('../../../types/controlledEnvironment').ControlledEnvironmentExecution>;
+  getControlledEnvironmentObservations?(gardenId: string): Promise<import('../../../types/controlledEnvironment').ControlledEnvironmentObservation[]>;
+  createControlledEnvironmentObservation?(observation: Omit<import('../../../types/controlledEnvironment').ControlledEnvironmentObservation, 'id' | 'createdAt'>): Promise<import('../../../types/controlledEnvironment').ControlledEnvironmentObservation>;
+  getControlledEnvironmentOutcomes?(gardenId: string): Promise<import('../../../types/controlledEnvironment').ControlledEnvironmentOutcome[]>;
+  createControlledEnvironmentOutcome?(outcome: Omit<import('../../../types/controlledEnvironment').ControlledEnvironmentOutcome, 'id' | 'createdAt'>): Promise<import('../../../types/controlledEnvironment').ControlledEnvironmentOutcome>;
 
   // Check if provider is available
   isAvailable(): boolean;

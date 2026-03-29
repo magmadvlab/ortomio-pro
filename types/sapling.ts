@@ -34,8 +34,12 @@ export interface SaplingBatch {
   phase?: 'Purchased' | 'Nursery' | 'ReadyToPlant' | 'Planted'
   plantingDate?: string
   location?: string
+  expectedEstablishmentDate?: string
+  rootstock?: string
+  spacing?: number
   photoLog?: { date: string; image: string; notes?: string }[]
   saplingType?: 'FruitTree' | 'Olive' | 'Vine'
+  specializedCropId?: string
   
   // Individual saplings in this batch
   saplings: SaplingItem[]

@@ -513,7 +513,7 @@ export interface GardenPoint {
 }
 
 // Deprecated in favor of Garden, keeping for transition types if needed
-export interface GardenProfile extends Omit<Garden, 'id' | 'name' | 'createdAt'> {}
+export type GardenProfile = Omit<Garden, 'id' | 'name' | 'createdAt'>
 
 export interface UserProfile {
   id: string;
@@ -551,6 +551,40 @@ export interface SmartDevice {
     gardenId: string;
     name: string;
     type: 'Sensor' | 'Valve' | 'Hub';
+    provider?: 'manual' | 'tuya' | 'thingsboard';
+    deviceCategory?: 'moisture_sensor' | 'irrigation_valve' | 'weather_station' | 'ph_sensor' | 'ec_sensor';
+    connectionType?: 'wifi' | 'bluetooth' | 'zigbee' | 'lora' | 'cloud';
+    externalDeviceId?: string;
+    sensorId?: string;
+    scopeType?: 'zone' | 'field_row' | 'tree' | 'plant';
+    scopeId?: string;
+    zoneId?: string;
+    fieldRowId?: string;
+    treeId?: string;
+    plantId?: string;
+    isOnline?: boolean;
+    lastTelemetryAt?: string;
+    lastCommandAt?: string;
+    lastCommandStatus?: 'idle' | 'pending' | 'confirmed' | 'timeout' | 'failed';
+    lastCommandedValveState?: boolean;
+    lastConfirmedValveState?: boolean;
+    lastConfirmedValveAt?: string;
+    lastCommandError?: string;
+    lastCommandLatencyMs?: number;
+    lastIrrigationStartedAt?: string;
+    lastIrrigationCompletedAt?: string;
+    lastIrrigationBaselineMoisture?: number;
+    lastIrrigationDeltaMoisture?: number;
+    lastIrrigationOutcome?: 'nominal' | 'warning' | 'critical';
+    lastAutomationEvaluatedAt?: string;
+    lastAutomationDecision?: 'open_now' | 'close_now' | 'hold' | 'manual_review';
+    lastAutomationTrigger?: 'water_stress' | 'heat_support' | 'fungal_block' | 'target_reached' | 'telemetry_block' | 'stability_hold' | 'awaiting_data';
+    lastAutomationReason?: string;
+    lastAutomationConfidence?: 'low' | 'medium' | 'high';
+    lastAutomationTargetLiters?: number;
+    flowRateActualLpm?: number;
+    linePressureBar?: number;
+    metadata?: Record<string, string | number | boolean | null>;
     moisture: number; // 0-100%
     isValveOpen: boolean;
     flowRateLpm: number; // Liters per minute (Simulated hardware spec)
@@ -559,6 +593,38 @@ export interface SmartDevice {
     autoThreshold: number; // Auto-start moisture threshold. 0 = disabled.
     autoMode: boolean; // Is automation enabled?
     lastUpdate: string;
+}
+
+export interface SmartDeviceAutomationLog {
+    id: string;
+    gardenId: string;
+    deviceId: string;
+    provider?: SmartDevice['provider'];
+    eventType: 'decision' | 'command_sent' | 'command_result' | 'telemetry' | 'outcome';
+    source: 'automation' | 'manual' | 'telemetry' | 'simulation';
+    eventAt: string;
+    scopeType?: SmartDevice['scopeType'];
+    scopeId?: string;
+    zoneId?: string;
+    fieldRowId?: string;
+    treeId?: string;
+    plantId?: string;
+    decision?: SmartDevice['lastAutomationDecision'];
+    trigger?: SmartDevice['lastAutomationTrigger'];
+    confidence?: SmartDevice['lastAutomationConfidence'];
+    reason?: string;
+    commandStatus?: SmartDevice['lastCommandStatus'];
+    commandedValveState?: boolean;
+    confirmedValveState?: boolean;
+    targetLiters?: number;
+    sessionLiters?: number;
+    moisture?: number;
+    irrigationDeltaMoisture?: number;
+    irrigationOutcome?: SmartDevice['lastIrrigationOutcome'];
+    flowRateActualLpm?: number;
+    linePressureBar?: number;
+    metadata?: Record<string, string | number | boolean | null>;
+    createdAt: string;
 }
 
 export interface PlantSuggestion {
@@ -1984,6 +2050,7 @@ export type { TillageTool } from './data/tillageTools';
 
 export type {
   FieldRow,
+  FieldRowOrdering,
   PlantingBatch,
   FieldRowOccupancy,
   ScalarProductionCalendar
@@ -2022,6 +2089,125 @@ export type {
   MicroZoneFilter,
   MicroZoneStats
 } from './types/microzoneTracking';
+
+export type PhenologyCropContextId = 'orchard' | 'olive' | 'vineyard'
+
+export type PhenologyScopeType = 'garden' | 'zone' | 'field_row' | 'tree' | 'plant'
+
+export type OrchardPhenologyStage =
+  | 'dormancy'
+  | 'bud_break'
+  | 'flowering'
+  | 'fruit_set'
+  | 'fruit_growth'
+  | 'fruit_maturation'
+  | 'harvest'
+  | 'leaf_fall'
+
+export type OlivePhenologyStage =
+  | 'dormancy'
+  | 'bud_break'
+  | 'flowering'
+  | 'fruit_set'
+  | 'pit_hardening'
+  | 'veraison'
+  | 'fruit_maturation'
+  | 'harvest'
+
+export type VineyardPhenologyStage =
+  | 'dormancy'
+  | 'bud_break'
+  | 'shoot_growth'
+  | 'flowering'
+  | 'fruit_set'
+  | 'veraison'
+  | 'ripening'
+  | 'harvest'
+
+export type PhenologyStage =
+  | OrchardPhenologyStage
+  | OlivePhenologyStage
+  | VineyardPhenologyStage
+
+export type PhenologyObservationSource =
+  | 'visual'
+  | 'sensor'
+  | 'ai_analysis'
+  | 'drone_survey'
+  | 'manual_estimate'
+
+export interface PhenologyObservation {
+  id: string;
+  gardenId: string;
+  cropContextId: PhenologyCropContextId;
+  scopeType: PhenologyScopeType;
+  scopeId?: string;
+  zoneId?: string;
+  fieldRowId?: string;
+  treeId?: string;
+  plantId?: string;
+  observedAt: string;
+  phenologyStage: PhenologyStage;
+  bbchCode?: string;
+  stageIntensity?: number;
+  confidenceLevel?: number;
+  observationSource: PhenologyObservationSource;
+  notes?: string;
+  metadata?: Record<string, string | number | boolean | null>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type QualityScopeType = PhenologyScopeType;
+
+export type QualityResultSource =
+  | 'lab_analysis'
+  | 'field_measurement'
+  | 'ai_estimate'
+  | 'mill_report'
+  | 'packing_line'
+  | 'manual_entry';
+
+export type QualityResultGrade =
+  | 'premium'
+  | 'excellent'
+  | 'good'
+  | 'fair'
+  | 'poor';
+
+export interface QualityResult {
+  id: string;
+  gardenId: string;
+  cropContextId: PhenologyCropContextId;
+  scopeType: QualityScopeType;
+  scopeId?: string;
+  zoneId?: string;
+  fieldRowId?: string;
+  treeId?: string;
+  plantId?: string;
+  harvestLogId?: string;
+  lotCode?: string;
+  sampleLabel?: string;
+  sampleSize?: number;
+  recordedAt: string;
+  source: QualityResultSource;
+  qualityGrade?: QualityResultGrade;
+  qualityScore?: number;
+  marketableYieldKg?: number;
+  rejectedYieldKg?: number;
+  brix?: number;
+  acidity?: number;
+  ph?: number;
+  firmness?: number;
+  dryMatterPercentage?: number;
+  oilContentPercentage?: number;
+  oilYieldPercentage?: number;
+  defectIncidencePercentage?: number;
+  notes?: string;
+  metadata?: Record<string, string | number | boolean | null>;
+  createdAt: string;
+  updatedAt: string;
+}
 // ============================================
 // SCHEDE PRODOTTO AI (Fertilizzanti e Trattamenti)
 // ============================================

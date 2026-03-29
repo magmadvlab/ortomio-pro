@@ -10,7 +10,6 @@ import {
   MachineryCompatibility 
 } from '../../types/prescriptionMaps';
 import { createGeoExportService } from '../../services/geoExportService';
-import { createMachineryIntegrationService } from '../../services/machineryIntegrationService';
 import { useStorage } from '../../packages/core/hooks/useStorage';
 import { 
   Download, 
@@ -36,7 +35,6 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
 }) => {
   const { storageProvider } = useStorage();
   const exportService = createGeoExportService(storageProvider);
-  const machineryService = createMachineryIntegrationService(storageProvider);
   
   // State
   const [exportConfig, setExportConfig] = useState<ExportConfiguration>({
@@ -94,7 +92,11 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
         setExportProgress(prev => Math.min(prev + 15, 90));
       }, 300);
       
-      const result = await exportService.exportPrescriptionMap(prescriptionMap, exportConfig);
+      const result = await exportService.exportPrescriptionMap(prescriptionMap, {
+        ...exportConfig,
+        machineryBrand: selectedMachinery.brand || undefined,
+        machineryModel: selectedMachinery.model || undefined
+      });
       
       clearInterval(progressInterval);
       setExportProgress(100);
@@ -592,6 +594,12 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                         {exportResult.fileSize ? `${(exportResult.fileSize / 1024).toFixed(1)} KB` : 'N/A'}
                       </span>
                     </div>
+                    {exportResult.exportRecordId && (
+                      <div className="flex justify-between">
+                        <span className="text-green-700">Trace ID:</span>
+                        <span className="font-medium text-green-800">{exportResult.exportRecordId}</span>
+                      </div>
+                    )}
                   </div>
                   
                   {exportResult.downloadUrl && (

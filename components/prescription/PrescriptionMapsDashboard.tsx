@@ -3,15 +3,22 @@
  * Dashboard principale per gestione mappe prescrizione
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useStorage } from '../../packages/core/hooks/useStorage';
 import { 
   PrescriptionMap, 
   PrescriptionGenerationRequest,
-  PrescriptionMapStats 
+  PrescriptionMapStats
 } from '../../types/prescriptionMaps';
 import { createPrescriptionMapsService } from '../../services/prescriptionMapsService';
-import { createGeoExportService } from '../../services/geoExportService';
+import type { PrescriptionMapFieldOpsSummary } from '../../services/prescriptionMapsService';
+import type {
+  PrescriptionExecutionEfficacySummary,
+  PrescriptionExecutionSummary,
+  PrescriptionExecutionOutcomeSummary,
+  PrescriptionExecutionVarianceSummary,
+} from '../../services/prescriptionExecutionService';
+import type { PrescriptionAgronomicIntelligenceSummary } from '../../services/prescriptionAgronomicIntelligenceService';
 import ZoneManagementPanel from './ZoneManagementPanel';
 import MapExportModal from './MapExportModal';
 import HistoricalComparisonPanel from './HistoricalComparisonPanel';
@@ -28,8 +35,6 @@ import {
   Target,
   Zap,
   CheckCircle,
-  AlertTriangle,
-  Clock,
   TrendingUp,
   History,
   DollarSign,
@@ -40,15 +45,25 @@ interface PrescriptionMapsDashboardProps {
   gardenId: string;
 }
 
+type PrescriptionMapType = PrescriptionMap['mapType'];
+
 const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ gardenId }) => {
   const { storageProvider } = useStorage();
   
   // Services
-  const prescriptionService = createPrescriptionMapsService(storageProvider);
-  const exportService = createGeoExportService(storageProvider);
+  const prescriptionService = useMemo(
+    () => createPrescriptionMapsService(storageProvider),
+    [storageProvider]
+  );
   
   // State
   const [prescriptionMaps, setPrescriptionMaps] = useState<PrescriptionMap[]>([]);
+  const [executionSummaries, setExecutionSummaries] = useState<Record<string, PrescriptionExecutionSummary>>({});
+  const [executionVarianceSummaries, setExecutionVarianceSummaries] = useState<Record<string, PrescriptionExecutionVarianceSummary>>({});
+  const [executionOutcomeSummaries, setExecutionOutcomeSummaries] = useState<Record<string, PrescriptionExecutionOutcomeSummary>>({});
+  const [executionEfficacySummaries, setExecutionEfficacySummaries] = useState<Record<string, PrescriptionExecutionEfficacySummary>>({});
+  const [agronomicIntelligenceSummaries, setAgronomicIntelligenceSummaries] = useState<Record<string, PrescriptionAgronomicIntelligenceSummary>>({});
+  const [fieldOpsSummaries, setFieldOpsSummaries] = useState<Record<string, PrescriptionMapFieldOpsSummary>>({});
   const [stats, setStats] = useState<PrescriptionMapStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMap, setSelectedMap] = useState<PrescriptionMap | null>(null);
@@ -65,6 +80,65 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
   const [generating, setGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
 
+  const loadPrescriptionMaps = useCallback(async () => {
+    try {
+      setLoading(true);
+      const maps = await prescriptionService.getPrescriptionMaps(gardenId);
+      setPrescriptionMaps(maps);
+      const executionBundles = await Promise.all(
+        maps.map(async (map) => ([
+          map.id,
+          {
+            summary: await prescriptionService.getPrescriptionExecutionSummary(map),
+            variance: await prescriptionService.getPrescriptionExecutionVarianceSummary(map),
+            outcome: await prescriptionService.getPrescriptionExecutionOutcomeSummary(map),
+            efficacy: await prescriptionService.getPrescriptionExecutionEfficacySummary(map),
+            intelligence: await prescriptionService.getPrescriptionAgronomicIntelligenceSummary(map),
+            fieldOps: await prescriptionService.getPrescriptionMapFieldOpsSummary(map),
+          }
+        ] as const))
+      );
+
+      setExecutionSummaries(
+        Object.fromEntries(executionBundles.map(([mapId, bundle]) => [mapId, bundle.summary]))
+      );
+      setExecutionVarianceSummaries(
+        Object.fromEntries(executionBundles.map(([mapId, bundle]) => [mapId, bundle.variance]))
+      );
+      setExecutionOutcomeSummaries(
+        Object.fromEntries(executionBundles.map(([mapId, bundle]) => [mapId, bundle.outcome]))
+      );
+      setExecutionEfficacySummaries(
+        Object.fromEntries(executionBundles.map(([mapId, bundle]) => [mapId, bundle.efficacy]))
+      );
+      setAgronomicIntelligenceSummaries(
+        Object.fromEntries(executionBundles.map(([mapId, bundle]) => [mapId, bundle.intelligence]))
+      );
+      setFieldOpsSummaries(
+        Object.fromEntries(executionBundles.map(([mapId, bundle]) => [mapId, bundle.fieldOps]))
+      );
+    } catch (error) {
+      console.error('Error loading prescription maps:', error);
+      setExecutionSummaries({});
+      setExecutionVarianceSummaries({});
+      setExecutionOutcomeSummaries({});
+      setExecutionEfficacySummaries({});
+      setAgronomicIntelligenceSummaries({});
+      setFieldOpsSummaries({});
+    } finally {
+      setLoading(false);
+    }
+  }, [gardenId, prescriptionService]);
+
+  const loadStats = useCallback(async () => {
+    try {
+      const computedStats = await prescriptionService.getPrescriptionMapStats(gardenId);
+      setStats(computedStats);
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  }, [gardenId, prescriptionService]);
+
   useEffect(() => {
     loadPrescriptionMaps();
     loadStats();
@@ -74,46 +148,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
     if (!hasSeenIntro) {
       setShowIntro(true);
     }
-  }, [gardenId]);
-
-  const loadPrescriptionMaps = async () => {
-    try {
-      setLoading(true);
-      // TODO: Implement loading from storage provider
-      // const maps = await storageProvider.getPrescriptionMaps?.(gardenId) || [];
-      // setPrescriptionMaps(maps);
-      setPrescriptionMaps([]); // Placeholder
-    } catch (error) {
-      console.error('Error loading prescription maps:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadStats = async () => {
-    try {
-      // TODO: Implement stats loading
-      setStats({
-        totalMapsGenerated: 12,
-        mapsGeneratedThisMonth: 3,
-        totalAreaCovered: 45.6,
-        popularMapTypes: { fertilizer: 8, seeding: 3, irrigation: 1 },
-        popularExportFormats: { shapefile: 6, kml: 4, isoxml: 2 },
-        averageZonesPerMap: 8.5,
-        averageQualityScore: 87,
-        averageDataCompleteness: 92,
-        successRate: 95,
-        totalCostSavings: 2340,
-        averageRoi: 156,
-        inputReductionAchieved: 18,
-        activeUsers: 1,
-        mapsDownloaded: 28,
-        machineryIntegrations: 5
-      });
-    } catch (error) {
-      console.error('Error loading stats:', error);
-    }
-  };
+  }, [gardenId, loadPrescriptionMaps, loadStats]);
 
   const handleCreateMap = async (request: PrescriptionGenerationRequest) => {
     try {
@@ -133,6 +168,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
       if (result.success) {
         alert(`✅ Mappa prescrizione generata con successo!\n${result.stats.zonesGenerated} zone create\nQualità: ${result.quality.overallScore}%`);
         await loadPrescriptionMaps();
+        await loadStats();
         setShowCreateModal(false);
       } else {
         alert(`❌ Errore nella generazione:\n${result.errors?.join('\n')}`);
@@ -165,6 +201,29 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
       default: return 'text-gray-600 bg-gray-100';
     }
   };
+
+  const getPriorityClasses = (urgency: 'immediate' | 'next_cycle' | 'monitor') => {
+    switch (urgency) {
+      case 'immediate':
+        return 'bg-rose-100 text-rose-800'
+      case 'next_cycle':
+        return 'bg-amber-100 text-amber-800'
+      default:
+        return 'bg-sky-100 text-sky-800'
+    }
+  }
+
+  const handleCreateRevision = async (map: PrescriptionMap) => {
+    try {
+      const revision = await prescriptionService.createPrescriptionMapRevision(map.id)
+      alert(`✅ Revisione creata: ${revision.name}`)
+      await loadPrescriptionMaps()
+      await loadStats()
+    } catch (error) {
+      console.error('Error creating prescription map revision:', error)
+      alert('Errore durante la creazione della revisione')
+    }
+  }
 
   if (loading) {
     return (
@@ -310,7 +369,15 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
-            {prescriptionMaps.map((map) => (
+            {prescriptionMaps.map((map) => {
+              const executionSummary = executionSummaries[map.id];
+              const varianceSummary = executionVarianceSummaries[map.id];
+              const outcomeSummary = executionOutcomeSummaries[map.id];
+              const efficacySummary = executionEfficacySummaries[map.id];
+              const intelligenceSummary = agronomicIntelligenceSummaries[map.id];
+              const fieldOpsSummary = fieldOpsSummaries[map.id];
+
+              return (
               <div key={map.id} className="p-6 hover:bg-gray-50 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -321,6 +388,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                       <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                         <span>{map.totalZones} zone</span>
                         <span>{(map.totalAreaSqm / 10000).toFixed(1)} ha</span>
+                        <span>{map.versionLabel || `v${map.versionNumber || 1}`}</span>
                         <span>Qualità: {map.qualityScore}%</span>
                         <span className={`px-2 py-1 rounded-full ${getValidationStatusColor(map.validationStatus)}`}>
                           {map.validationStatus}
@@ -330,6 +398,14 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                   </div>
 
                   <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleCreateRevision(map)}
+                      className="p-3 text-violet-600 hover:text-violet-900 hover:bg-violet-100 rounded-lg transition-colors"
+                      title="Nuova revisione"
+                    >
+                      <History size={16} />
+                    </button>
+
                     <button
                       onClick={() => {
                         setSelectedMap(map);
@@ -393,8 +469,187 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                     </div>
                   </div>
                 )}
+
+                {fieldOpsSummary && (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                    <div className="bg-violet-50 p-3 rounded-lg">
+                      <p className="text-violet-600 font-medium">Export totali</p>
+                      <p className="text-violet-700 font-bold">{fieldOpsSummary.totalExports}</p>
+                    </div>
+                    <div className="bg-indigo-50 p-3 rounded-lg">
+                      <p className="text-indigo-600 font-medium">Ultimo export</p>
+                      <p className="text-indigo-700 font-bold">{fieldOpsSummary.latestExport?.format?.toUpperCase() || 'N/D'}</p>
+                    </div>
+                    <div className="bg-cyan-50 p-3 rounded-lg">
+                      <p className="text-cyan-600 font-medium">Macchina/field import</p>
+                      <p className="text-cyan-700 font-bold">{fieldOpsSummary.downloadedExports + fieldOpsSummary.importedExports}</p>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <p className="text-slate-600 font-medium">Esecuzioni collegate</p>
+                      <p className="text-slate-700 font-bold">{fieldOpsSummary.linkedExecutions}</p>
+                    </div>
+                  </div>
+                )}
+
+                {executionSummary && (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                    <div className="bg-emerald-50 p-3 rounded-lg">
+                      <p className="text-emerald-600 font-medium">Eseguite</p>
+                      <p className="text-emerald-700 font-bold">
+                        {executionSummary.completedZones}/{executionSummary.totalZones}
+                      </p>
+                    </div>
+                    <div className="bg-amber-50 p-3 rounded-lg">
+                      <p className="text-amber-600 font-medium">Parziali</p>
+                      <p className="text-amber-700 font-bold">{executionSummary.partialZones}</p>
+                    </div>
+                    <div className="bg-rose-50 p-3 rounded-lg">
+                      <p className="text-rose-600 font-medium">Mancate</p>
+                      <p className="text-rose-700 font-bold">{executionSummary.missedZones}</p>
+                    </div>
+                    <div className="bg-sky-50 p-3 rounded-lg">
+                      <p className="text-sky-600 font-medium">In attesa</p>
+                      <p className="text-sky-700 font-bold">{executionSummary.pendingZones}</p>
+                    </div>
+                  </div>
+                )}
+
+                {varianceSummary && (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                    <div className="bg-lime-50 p-3 rounded-lg">
+                      <p className="text-lime-600 font-medium">Aderenti</p>
+                      <p className="text-lime-700 font-bold">{varianceSummary.alignedZones}</p>
+                    </div>
+                    <div className="bg-yellow-50 p-3 rounded-lg">
+                      <p className="text-yellow-600 font-medium">Scostamento parziale</p>
+                      <p className="text-yellow-700 font-bold">{varianceSummary.partialZones}</p>
+                    </div>
+                    <div className="bg-red-50 p-3 rounded-lg">
+                      <p className="text-red-600 font-medium">Fuori soglia</p>
+                      <p className="text-red-700 font-bold">{varianceSummary.offTargetZones}</p>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <p className="text-slate-600 font-medium">Aderenza media</p>
+                      <p className="text-slate-700 font-bold">{varianceSummary.averageAdherenceScore}%</p>
+                    </div>
+                  </div>
+                )}
+
+                {outcomeSummary && (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                    <div className="bg-emerald-50 p-3 rounded-lg">
+                      <p className="text-emerald-600 font-medium">Outcome positivi</p>
+                      <p className="text-emerald-700 font-bold">{outcomeSummary.positiveZones}</p>
+                    </div>
+                    <div className="bg-amber-50 p-3 rounded-lg">
+                      <p className="text-amber-600 font-medium">Outcome misti</p>
+                      <p className="text-amber-700 font-bold">{outcomeSummary.mixedZones}</p>
+                    </div>
+                    <div className="bg-red-50 p-3 rounded-lg">
+                      <p className="text-red-600 font-medium">Outcome negativi</p>
+                      <p className="text-red-700 font-bold">{outcomeSummary.negativeZones}</p>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <p className="text-slate-600 font-medium">Score outcome</p>
+                      <p className="text-slate-700 font-bold">{outcomeSummary.averageOutcomeScore}%</p>
+                    </div>
+                  </div>
+                )}
+
+                {efficacySummary && (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                    <div className="bg-teal-50 p-3 rounded-lg">
+                      <p className="text-teal-600 font-medium">Efficacia media</p>
+                      <p className="text-teal-700 font-bold">{efficacySummary.averageEfficacyScore}%</p>
+                    </div>
+                    <div className="bg-emerald-50 p-3 rounded-lg">
+                      <p className="text-emerald-600 font-medium">Zone alte</p>
+                      <p className="text-emerald-700 font-bold">{efficacySummary.highZones}</p>
+                    </div>
+                    <div className="bg-amber-50 p-3 rounded-lg">
+                      <p className="text-amber-600 font-medium">Zone medie</p>
+                      <p className="text-amber-700 font-bold">{efficacySummary.mediumZones}</p>
+                    </div>
+                    <div className="bg-rose-50 p-3 rounded-lg">
+                      <p className="text-rose-600 font-medium">Zone deboli</p>
+                      <p className="text-rose-700 font-bold">{efficacySummary.lowZones}</p>
+                    </div>
+                    <div className="bg-cyan-50 p-3 rounded-lg">
+                      <p className="text-cyan-600 font-medium">Microclima medio</p>
+                      <p className="text-cyan-700 font-bold">{efficacySummary.averageMicroclimateScore}%</p>
+                    </div>
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <p className="text-blue-600 font-medium">Risposta suolo</p>
+                      <p className="text-blue-700 font-bold">{efficacySummary.averageSoilResponseScore}%</p>
+                    </div>
+                    <div className="md:col-span-4 text-xs text-gray-500">
+                      Coltura prevalente: {efficacySummary.cropContextScores[0]?.label || 'non classificata'} • Stagione: {efficacySummary.seasonScores[0]?.label || 'n/d'}
+                    </div>
+                  </div>
+                )}
+
+                {intelligenceSummary && intelligenceSummary.recommendations.length > 0 && (
+                  <div className="mt-4 rounded-xl border border-teal-200 bg-teal-50 p-4">
+                    <div className="mb-3">
+                      <p className="text-sm font-semibold text-teal-900">Intelligenza Agronomica</p>
+                      <p className="text-xs text-teal-700">
+                        Benchmark: {intelligenceSummary.bestZoneLabel || 'n/d'} • Zona da recuperare: {intelligenceSummary.worstZoneLabel || 'n/d'}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      {intelligenceSummary.recommendations.slice(0, 3).map(recommendation => (
+                        <div key={recommendation.id} className="rounded-lg border border-white/80 bg-white/80 p-3 text-sm">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="font-medium text-gray-900">{recommendation.title}</p>
+                            <span className="rounded-full bg-teal-100 px-2 py-1 text-[11px] font-semibold text-teal-800">
+                              {recommendation.severity}
+                            </span>
+                          </div>
+                          {recommendation.scopeLabel && (
+                            <p className="mt-1 text-xs font-medium text-teal-700">{recommendation.scopeLabel}</p>
+                          )}
+                          <p className="mt-1 text-gray-700">{recommendation.message}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {intelligenceSummary && intelligenceSummary.operationalPriorities.length > 0 && (
+                  <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4">
+                    <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-rose-900">Priorita operative</p>
+                        <p className="text-xs text-rose-700">
+                          Top priorita: {intelligenceSummary.topPriorityLabel || 'n/d'} • Immediate: {intelligenceSummary.immediatePriorities} • Prossimo ciclo: {intelligenceSummary.nextCyclePriorities}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {intelligenceSummary.operationalPriorities.slice(0, 3).map((priority) => (
+                        <div key={priority.id} className="rounded-lg border border-white/80 bg-white/90 p-3 text-sm">
+                          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                            <div>
+                              <p className="font-medium text-gray-900">{priority.scopeLabel}</p>
+                              <p className="text-xs text-gray-500">Score priorita {priority.priorityScore} • Efficacia {priority.efficacyScore}%</p>
+                            </div>
+                            <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${getPriorityClasses(priority.urgency)}`}>
+                              {priority.urgency === 'immediate' ? 'subito' : priority.urgency === 'next_cycle' ? 'prossimo ciclo' : 'monitor'}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-gray-700">{priority.recommendedAction}</p>
+                          {priority.drivers.length > 0 && (
+                            <p className="mt-1 text-xs text-rose-700">
+                              Driver: {priority.drivers.join(' • ')}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
+            )})}
           </div>
         )}
       </div>
@@ -467,7 +722,10 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
             setShowZoneManagement(false);
             setSelectedMap(null);
           }}
-          onUpdate={loadPrescriptionMaps}
+          onUpdate={async () => {
+            await loadPrescriptionMaps();
+            await loadStats();
+          }}
         />
       )}
 
@@ -590,7 +848,7 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
               </label>
               <select
                 value={formData.mapType || 'fertilizer'}
-                onChange={(e) => setFormData(prev => ({ ...prev, mapType: e.target.value as any }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, mapType: e.target.value as PrescriptionMapType }))}
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               >
                 <option value="fertilizer">Fertilizzazione</option>

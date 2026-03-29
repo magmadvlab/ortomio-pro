@@ -10,30 +10,36 @@ import {
   Calendar,
   MapPin,
   Clock,
-  CheckCircle,
   XCircle,
   Eye,
   Plus,
   Filter,
   Download,
-  Share2,
   Upload,
   X,
   RotateCcw,
-  Check,
   FlaskConical,
   Shield,
   Loader2,
-  FileImage,
-  Activity
+  FileImage
 } from 'lucide-react'
 import { plantHealthMonitoringService } from '@/services/plantHealthMonitoringService'
+import {
+  getScopedHealthMicroclimateSnapshot,
+  type HealthMicroclimateSnapshot,
+  type HealthRiskLevel,
+} from '@/services/healthMicroclimateService'
+import {
+  getHealthScopeInsights,
+  type HealthScopeInsight,
+} from '@/services/healthScopeService'
 import { weatherService } from '@/services/weatherService'
 import MobileResponsiveButtonGroup from '@/components/shared/MobileResponsiveButtonGroup'
 import WeatherWidget from '@/components/weather/WeatherWidget'
 import { useGarden } from '@/packages/core/hooks/useGarden'
 import { useStorage } from '@/packages/core/hooks/useStorage'
-import type { GardenTask } from '@/types'
+import type { Garden, GardenTask } from '@/types'
+import { inferHealthCropContext, type HealthCropContext } from '@/utils/healthCropContext'
 
 interface HealthAlert {
   id: string
@@ -94,9 +100,293 @@ type TaskFeedback = {
   message: string
 }
 
+type ContextFocusCard = {
+  title: string
+  value: string
+  note: string
+}
+
+const getGardenContextBadges = (garden: Garden | null | undefined, context: HealthCropContext): string[] => {
+  if (!garden) return []
+
+  if (context.id === 'vineyard') {
+    return [
+      garden.vineyardConfig?.totalVines ? `${garden.vineyardConfig.totalVines} viti` : '',
+      garden.vineyardConfig?.trainingSystem || '',
+      garden.vineyardConfig?.varieties?.slice(0, 2).join(', ') || '',
+    ].filter(Boolean)
+  }
+
+  if (context.id === 'olive') {
+    return [
+      garden.oliveGroveConfig?.totalTrees ? `${garden.oliveGroveConfig.totalTrees} olivi` : '',
+      garden.oliveGroveConfig?.type === 'OIL'
+        ? 'Olio'
+        : garden.oliveGroveConfig?.type === 'TABLE'
+          ? 'Mensa'
+          : garden.oliveGroveConfig?.type === 'DUAL_PURPOSE'
+            ? 'Doppia attitudine'
+            : '',
+      garden.oliveGroveConfig?.varieties?.slice(0, 2).join(', ') || '',
+    ].filter(Boolean)
+  }
+
+  if (context.id === 'orchard') {
+    return [
+      garden.orchardConfig?.totalTrees ? `${garden.orchardConfig.totalTrees} alberi` : '',
+      garden.orchardConfig?.category?.replace(/_/g, ' ') || '',
+      garden.orchardConfig?.varieties?.slice(0, 2).join(', ') || '',
+    ].filter(Boolean)
+  }
+
+  return [garden.primaryCrop?.label || '', `${Math.round(garden.sizeSqMeters || 0)} m2`].filter(Boolean)
+}
+
+const getHealthTriggerLabel = (trigger: string) => {
+  switch (trigger) {
+    case 'weather':
+      return 'Meteo'
+    case 'leaf_wetness':
+      return 'Bagnatura fogliare'
+    case 'dew_point':
+      return 'Punto di rugiada'
+    case 'rain_gauge_local':
+      return 'Pioggia locale'
+    case 'vpd':
+      return 'VPD'
+    case 'canopy_temperature':
+      return 'Temperatura chioma'
+    case 'soil_tension_kpa':
+      return 'Tensione suolo'
+    case 'satellite_ndvi':
+      return 'NDVI'
+    case 'task_pattern':
+      return 'Storico interventi'
+    case 'monitoring_gap':
+      return 'Gap monitoraggio'
+    case 'manual':
+      return 'Input manuale'
+    default:
+      return trigger.replaceAll('_', ' ')
+  }
+}
+
+const getContextFocusCards = (
+  context: HealthCropContext,
+  weather: { temp: number; rainMm: number; condition: string } | null,
+  microclimate: HealthMicroclimateSnapshot | null
+): ContextFocusCard[] => {
+  const fungalSignal =
+    microclimate?.fungalPressure === 'high'
+      ? 'Alta'
+      : microclimate?.fungalPressure === 'medium'
+        ? 'Media'
+        : weather?.rainMm && weather.rainMm > 2
+          ? 'Attiva'
+          : 'Moderata'
+  const heatSignal =
+    microclimate?.heatStress === 'high'
+      ? 'Alto'
+      : microclimate?.waterStress === 'high'
+        ? 'Idrico'
+        : weather?.temp && weather.temp >= 30
+          ? 'Alto'
+          : 'Sotto controllo'
+  const cadenceSignal =
+    microclimate?.supportingSignals.length && microclimate.supportingSignals.length > 0
+      ? 'Sensori attivi'
+      : 'Cadenzato'
+
+  if (context.id === 'vineyard') {
+    return [
+      {
+        title: 'Pressione fungina',
+        value: fungalSignal,
+        note: 'Peronospora e oidio richiedono controlli rapidi dopo pioggia e umidita.',
+      },
+      {
+        title: 'Stress grappoli',
+        value: heatSignal,
+        note: 'Controlla scottature, disidratazione e omogeneita della parete fogliare.',
+      },
+      {
+        title: 'Frequenza rilievi',
+        value: cadenceSignal === 'Sensori attivi' ? 'Sensori + 7 giorni' : 'Ogni 7 giorni',
+        note: 'Nel vigneto il monitoraggio deve essere piu serrato nelle finestre critiche.',
+      },
+    ]
+  }
+
+  if (context.id === 'olive') {
+    return [
+      {
+        title: 'Mosca olearia',
+        value: weather?.temp && weather.temp > 18 ? 'Da seguire' : 'Bassa',
+        note: 'Verifica trappole, punture e differenze tra aree ombreggiate e ventilate.',
+      },
+      {
+        title: 'Stato chioma',
+        value: fungalSignal,
+        note: 'Occhio di pavone e umidita persistente vanno intercettati presto.',
+      },
+      {
+        title: 'Frequenza rilievi',
+        value: cadenceSignal === 'Sensori attivi' ? 'Sensori + 10 giorni' : 'Ogni 10 giorni',
+        note: 'Serve continuita su chioma, drupe e andamento dell invaiatura.',
+      },
+    ]
+  }
+
+  if (context.id === 'orchard') {
+    return [
+      {
+        title: 'Chioma e frutti',
+        value: 'Priorita alta',
+        note: 'Il controllo deve leggere insieme foglie, rami, allegagione e carico.',
+      },
+      {
+        title: 'Stress frutti',
+        value: heatSignal,
+        note: 'Verifica cascola, scottature e calibro nelle giornate piu calde.',
+      },
+      {
+        title: 'Frequenza rilievi',
+        value: cadenceSignal === 'Sensori attivi' ? 'Sensori + 10 giorni' : 'Ogni 10 giorni',
+        note: 'Nei frutteti conviene mantenere una cadenza regolare per parcella.',
+      },
+    ]
+  }
+
+  return [
+    {
+      title: 'Controlli visivi',
+      value: 'Continuativi',
+      note: 'Foglie, steli e sintomi precoci restano il primo segnale utile.',
+    },
+      {
+        title: 'Stress climatico',
+        value: heatSignal,
+        note: 'Meteo e irrigazione devono essere letti insieme.',
+      },
+      {
+        title: 'Frequenza rilievi',
+        value: cadenceSignal === 'Sensori attivi' ? 'Sensori + 14 giorni' : 'Ogni 14 giorni',
+        note: 'La diagnosi migliora se le foto e i controlli sono regolari.',
+      },
+  ]
+}
+
+const getDiagnosisTemplates = (context: HealthCropContext) => {
+  if (context.id === 'vineyard') {
+    return [
+      {
+        diagnosis: 'Peronospora della vite',
+        confidence: 0.87,
+        category: 'Fungal' as const,
+        severity: 'high' as const,
+        symptoms: ['Macchie oleose su foglie', 'Muffa bianca pagina inferiore', 'Ingiallimento fogliare'],
+        treatments: ['Rame ossicloruro', 'Bicarbonato di potassio', 'Gestione parete fogliare'],
+        urgency: 3,
+      },
+      {
+        diagnosis: 'Oidio della vite',
+        confidence: 0.78,
+        category: 'Fungal' as const,
+        severity: 'medium' as const,
+        symptoms: ['Patina bianca su foglie', 'Acini opachi', 'Deformazione fogliare'],
+        treatments: ['Zolfo bagnabile', 'Bicarbonato di sodio', 'Arieggiamento filare'],
+        urgency: 4,
+      },
+    ]
+  }
+
+  if (context.id === 'olive') {
+    return [
+      {
+        diagnosis: 'Mosca olearia',
+        confidence: 0.84,
+        category: 'Pest' as const,
+        severity: 'high' as const,
+        symptoms: ['Punture sulle olive', 'Cascola anomala', 'Gallerie nei frutti'],
+        treatments: ['Controllo trappole', 'Esche proteiche', 'Strategia di difesa mirata'],
+        urgency: 3,
+      },
+      {
+        diagnosis: 'Occhio di pavone',
+        confidence: 0.71,
+        category: 'Fungal' as const,
+        severity: 'medium' as const,
+        symptoms: ['Macchie circolari sulle foglie', 'Defogliazione interna', 'Chioma umida'],
+        treatments: ['Rame', 'Potatura di arieggiamento', 'Monitoraggio post-pioggia'],
+        urgency: 5,
+      },
+    ]
+  }
+
+  if (context.id === 'orchard') {
+    return [
+      {
+        diagnosis: 'Ticchiolatura',
+        confidence: 0.79,
+        category: 'Fungal' as const,
+        severity: 'medium' as const,
+        symptoms: ['Macchie scure su foglie', 'Lesioni superficiali sui frutti', 'Umidita persistente'],
+        treatments: ['Copertura preventiva', 'Rimozione residui colpiti', 'Controllo chioma'],
+        urgency: 4,
+      },
+      {
+        diagnosis: 'Carenza di potassio',
+        confidence: 0.64,
+        category: 'Deficiency' as const,
+        severity: 'low' as const,
+        symptoms: ['Margini fogliari necrotici', 'Frutti piccoli', 'Crescita rallentata'],
+        treatments: ['Concimazione correttiva', 'Analisi fogliare', 'Bilanciamento nutrizionale'],
+        urgency: 7,
+      },
+    ]
+  }
+
+  return [
+    {
+      diagnosis: 'Peronospora',
+      confidence: 0.81,
+      category: 'Fungal' as const,
+      severity: 'high' as const,
+      symptoms: ['Macchie fogliari', 'Muffa pagina inferiore', 'Ingiallimento diffuso'],
+      treatments: ['Rame ossicloruro', 'Bicarbonato di potassio', 'Riduzione umidita fogliare'],
+      urgency: 3,
+    },
+    {
+      diagnosis: 'Carenza di azoto',
+      confidence: 0.65,
+      category: 'Deficiency' as const,
+      severity: 'low' as const,
+      symptoms: ['Ingiallimento foglie basali', 'Crescita rallentata', 'Foglie piccole'],
+      treatments: ['Concime organico', 'Compost maturo', 'Correzione piano nutritivo'],
+      urgency: 7,
+    },
+  ]
+}
+
+const buildQuickPhotoAlert = (context: HealthCropContext): HealthAlert => ({
+  id: 'quick-photo',
+  type: 'stress_symptoms',
+  severity: 'low',
+  plantName: `Diagnosi Rapida ${context.areaLabel}`,
+  description: `Scatta una foto per analisi AI immediata del ${context.areaLabel}`,
+  detectedAt: new Date().toISOString(),
+  suggestedActions: [],
+  photoRequired: true,
+  agronomistConsultation: false,
+  urgencyDays: 3,
+  confidence: 0.5,
+  triggers: ['manual'],
+})
+
 export default function PlantHealthPage() {
   const { activeGarden, loading: gardenLoading } = useGarden()
   const { storageProvider, isInitialized } = useStorage()
+  const healthContext = inferHealthCropContext(activeGarden)
   const [alerts, setAlerts] = useState<HealthAlert[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all')
@@ -105,11 +395,12 @@ export default function PlantHealthPage() {
   const [agronomistModal, setAgronomistModal] = useState<AgronomistModal>({ isOpen: false })
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [weather, setWeather] = useState<{ temp: number; rainMm: number; condition: string } | null>(null)
+  const [microclimate, setMicroclimate] = useState<HealthMicroclimateSnapshot | null>(null)
+  const [scopeInsights, setScopeInsights] = useState<HealthScopeInsight[]>([])
   
   // Camera states
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [isCapturing, setIsCapturing] = useState(false)
-  const [saving, setSaving] = useState(false)
   const [notes, setNotes] = useState('')
   const [location, setLocation] = useState('')
   const [symptomsText, setSymptomsText] = useState('')
@@ -117,6 +408,8 @@ export default function PlantHealthPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [creatingActionKeys, setCreatingActionKeys] = useState<Record<string, boolean>>({})
   const [actionFeedback, setActionFeedback] = useState<Record<string, TaskFeedback>>({})
+  const contextBadges = getGardenContextBadges(activeGarden, healthContext)
+  const focusCards = getContextFocusCards(healthContext, weather, microclimate)
   
   // Camera refs
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -124,19 +417,7 @@ export default function PlantHealthPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
 
-  useEffect(() => {
-    if (!isInitialized || gardenLoading) {
-      return
-    }
-
-    loadHealthAlerts()
-  }, [gardenLoading, isInitialized, activeGarden?.id])
-
-  useEffect(() => {
-    loadWeather()
-  }, [activeGarden?.id])
-
-  const loadWeather = async () => {
+  const loadWeather = useCallback(async () => {
     try {
       const weatherData = activeGarden
         ? await weatherService.getWeatherForGarden(activeGarden)
@@ -155,7 +436,7 @@ export default function PlantHealthPage() {
         condition: 'Sereno'
       })
     }
-  }
+  }, [activeGarden])
 
   // Camera functions
   const startCamera = useCallback(async () => {
@@ -211,29 +492,48 @@ export default function PlantHealthPage() {
     stopCamera()
   }, [stopCamera])
 
-  const retakePhoto = () => {
-    setCapturedImage(null)
-    setSelectedFiles([])
-    startCamera()
-  }
-
-  const loadHealthAlerts = async () => {
+  const loadHealthAlerts = useCallback(async () => {
     try {
       setLoading(true)
       if (!activeGarden) {
         setAlerts([])
+        setMicroclimate(null)
+        setScopeInsights([])
         return
       }
 
       const tasks = await storageProvider.getTasks(activeGarden.id)
-      const healthAlerts = await plantHealthMonitoringService.analyzeGardenHealth(activeGarden, tasks || [])
+      const devices = await storageProvider.getDevices(activeGarden.id).catch(() => [])
+      const normalizedTasks = tasks || []
+      const [healthAlerts, microclimateSnapshot, topScopeInsights] = await Promise.all([
+        plantHealthMonitoringService.analyzeGardenHealth(activeGarden, normalizedTasks, {
+          devices,
+          storageProvider,
+        }),
+        getScopedHealthMicroclimateSnapshot(activeGarden, { devices }).catch(() => null),
+        getHealthScopeInsights(activeGarden, normalizedTasks, storageProvider).catch(() => []),
+      ])
       setAlerts(healthAlerts as HealthAlert[])
+      setMicroclimate(microclimateSnapshot)
+      setScopeInsights(topScopeInsights)
     } catch (error) {
       console.error('Error loading health alerts:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeGarden, storageProvider])
+
+  useEffect(() => {
+    if (!isInitialized || gardenLoading) {
+      return
+    }
+
+    loadHealthAlerts()
+  }, [gardenLoading, isInitialized, loadHealthAlerts])
+
+  useEffect(() => {
+    loadWeather()
+  }, [loadWeather])
 
   const getActionKey = (alertId: string, actionIndex: number) => `${alertId}:${actionIndex}`
 
@@ -313,7 +613,7 @@ export default function PlantHealthPage() {
         ...prev,
         [actionKey]: {
           type: 'error',
-          message: 'Seleziona prima un orto attivo.'
+          message: 'Seleziona prima un giardino attivo.'
         }
       }))
       return
@@ -408,6 +708,32 @@ export default function PlantHealthPage() {
     }
   }
 
+  const getRiskBadgeClass = (level: HealthRiskLevel) => {
+    switch (level) {
+      case 'high':
+        return 'bg-red-50 text-red-700 border-red-200'
+      case 'medium':
+        return 'bg-orange-50 text-orange-700 border-orange-200'
+      case 'low':
+        return 'bg-yellow-50 text-yellow-700 border-yellow-200'
+      default:
+        return 'bg-gray-50 text-gray-600 border-gray-200'
+    }
+  }
+
+  const getRiskLabel = (level: HealthRiskLevel) => {
+    switch (level) {
+      case 'high':
+        return 'Alta'
+      case 'medium':
+        return 'Media'
+      case 'low':
+        return 'Bassa'
+      default:
+        return 'Assente'
+    }
+  }
+
   const filteredAlerts = alerts.filter(alert => {
     if (selectedSeverity !== 'all' && alert.severity !== selectedSeverity) return false
     if (selectedType !== 'all' && alert.type !== selectedType) return false
@@ -439,35 +765,7 @@ export default function PlantHealthPage() {
       setIsAnalyzing(true)
       
       // Simula analisi AI avanzata con risultati più realistici
-      const mockDiagnoses = [
-        {
-          diagnosis: 'Peronospora della vite',
-          confidence: 0.87,
-          category: 'Fungal' as const,
-          severity: 'high' as const,
-          symptoms: ['Macchie oleose su foglie', 'Muffa bianca pagina inferiore', 'Ingiallimento fogliare'],
-          treatments: ['Rame ossicloruro', 'Bicarbonato di potassio', 'Olio di neem'],
-          urgency: 3
-        },
-        {
-          diagnosis: 'Oidio (mal bianco)',
-          confidence: 0.73,
-          category: 'Fungal' as const,
-          severity: 'medium' as const,
-          symptoms: ['Patina bianca su foglie', 'Deformazione fogliare', 'Crescita stentata'],
-          treatments: ['Zolfo bagnabile', 'Bicarbonato di sodio', 'Latte diluito'],
-          urgency: 5
-        },
-        {
-          diagnosis: 'Carenza di azoto',
-          confidence: 0.65,
-          category: 'Deficiency' as const,
-          severity: 'low' as const,
-          symptoms: ['Ingiallimento foglie basali', 'Crescita rallentata', 'Foglie piccole'],
-          treatments: ['Concime organico', 'Compost maturo', 'Sangue di bue'],
-          urgency: 7
-        }
-      ]
+      const mockDiagnoses = getDiagnosisTemplates(healthContext)
 
       const selectedDiagnosis = mockDiagnoses[Math.floor(Math.random() * mockDiagnoses.length)]
       
@@ -605,8 +903,23 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
                 <Heart className="w-6 h-6 text-green-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Salute delle Piante</h1>
-                <p className="text-gray-600">Monitoraggio AI e consulti specialistici</p>
+                <h1 className="text-2xl font-bold text-gray-900">{healthContext.title}</h1>
+                <p className="text-gray-600">{healthContext.subtitle}</p>
+                {activeGarden && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <span className="px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium border border-green-200">
+                      {activeGarden.name}
+                    </span>
+                    {contextBadges.map((badge) => (
+                      <span
+                        key={badge}
+                        className="px-2.5 py-1 rounded-full bg-gray-50 text-gray-700 text-xs font-medium border border-gray-200"
+                      >
+                        {badge}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             
@@ -618,11 +931,7 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
                   label: 'Scatta Foto',
                   shortLabel: 'Foto',
                   variant: 'secondary',
-                  onClick: () => setPhotoModal({ isOpen: true, alert: { 
-                    id: 'quick-photo', 
-                    plantName: 'Diagnosi Rapida', 
-                    description: 'Scatta una foto per analisi AI immediata' 
-                  } as any })
+                  onClick: () => setPhotoModal({ isOpen: true, alert: buildQuickPhotoAlert(healthContext) })
                 },
                 {
                   id: 'export',
@@ -654,6 +963,152 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
           showAlerts={true}
           className="mb-8"
         />
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          {focusCards.map((card) => (
+            <div key={card.title} className="bg-white rounded-xl border border-gray-200 p-5">
+              <p className="text-sm text-gray-500 mb-2">{card.title}</p>
+              <p className="text-xl font-semibold text-gray-900">{card.value}</p>
+              <p className="text-sm text-gray-600 mt-2">{card.note}</p>
+            </div>
+          ))}
+        </div>
+
+        {(microclimate?.hasRecentData || scopeInsights.length > 0) && (
+          <div className="grid grid-cols-1 xl:grid-cols-[1.1fr,0.9fr] gap-6 mb-8">
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Shield className="w-5 h-5 text-emerald-600" />
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Segnali Microclimatici</h2>
+                  <p className="text-sm text-gray-600">Lettura live dei fattori che influenzano davvero il rischio fitosanitario.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                <div className="rounded-lg border border-gray-200 p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Pressione fungina</p>
+                  <p className="text-lg font-semibold text-gray-900">{getRiskLabel(microclimate?.fungalPressure || 'none')}</p>
+                </div>
+                <div className="rounded-lg border border-gray-200 p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Stress idrico</p>
+                  <p className="text-lg font-semibold text-gray-900">{getRiskLabel(microclimate?.waterStress || 'none')}</p>
+                </div>
+                <div className="rounded-lg border border-gray-200 p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Stress termico</p>
+                  <p className="text-lg font-semibold text-gray-900">{getRiskLabel(microclimate?.heatStress || 'none')}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                {microclimate?.metrics.leafWetness !== undefined && (
+                  <div className="rounded-lg bg-gray-50 px-3 py-3">
+                    <p className="text-gray-500">Bagnatura fogliare</p>
+                    <p className="font-semibold text-gray-900">{microclimate.metrics.leafWetness.toFixed(0)}%</p>
+                  </div>
+                )}
+                {microclimate?.metrics.vpd !== undefined && (
+                  <div className="rounded-lg bg-gray-50 px-3 py-3">
+                    <p className="text-gray-500">VPD</p>
+                    <p className="font-semibold text-gray-900">{microclimate.metrics.vpd.toFixed(2)} kPa</p>
+                  </div>
+                )}
+                {microclimate?.metrics.dewPointSpreadC !== undefined && (
+                  <div className="rounded-lg bg-gray-50 px-3 py-3">
+                    <p className="text-gray-500">Gap aria-rugiada</p>
+                    <p className="font-semibold text-gray-900">{microclimate.metrics.dewPointSpreadC.toFixed(1)}°C</p>
+                  </div>
+                )}
+                {microclimate?.metrics.soilTensionKpa !== undefined && (
+                  <div className="rounded-lg bg-gray-50 px-3 py-3">
+                    <p className="text-gray-500">Tensione suolo</p>
+                    <p className="font-semibold text-gray-900">{microclimate.metrics.soilTensionKpa.toFixed(0)} kPa</p>
+                  </div>
+                )}
+                {microclimate?.metrics.canopyDeltaC !== undefined && (
+                  <div className="rounded-lg bg-gray-50 px-3 py-3">
+                    <p className="text-gray-500">Delta chioma-aria</p>
+                    <p className="font-semibold text-gray-900">{microclimate.metrics.canopyDeltaC.toFixed(1)}°C</p>
+                  </div>
+                )}
+                {microclimate?.metrics.rainGaugeLocalMm !== undefined && (
+                  <div className="rounded-lg bg-gray-50 px-3 py-3">
+                    <p className="text-gray-500">Pioggia locale</p>
+                    <p className="font-semibold text-gray-900">{microclimate.metrics.rainGaugeLocalMm.toFixed(1)} mm</p>
+                  </div>
+                )}
+              </div>
+
+              {microclimate?.supportingSignals.length ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {microclimate.supportingSignals.map((signal) => (
+                    <span
+                      key={signal}
+                      className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium border border-emerald-200"
+                    >
+                      {signal}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <MapPin className="w-5 h-5 text-orange-600" />
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Hotspot Operativi</h2>
+                  <p className="text-sm text-gray-600">Zone e filari da controllare prima, ordinati per rischio reale.</p>
+                </div>
+              </div>
+
+              {scopeInsights.length > 0 ? (
+                <div className="space-y-3">
+                  {scopeInsights.map((scope) => (
+                    <div key={`${scope.scopeType}-${scope.scopeId}`} className="rounded-xl border border-gray-200 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm text-gray-500">
+                            {scope.scopeType === 'zone' ? 'Zona sensorizzata' : 'Filare prioritario'}
+                            {scope.zoneName && scope.scopeType === 'field_row' ? ` · ${scope.zoneName}` : ''}
+                          </p>
+                          <h3 className="font-semibold text-gray-900">{scope.scopeName}</h3>
+                          <p className="text-sm text-gray-600 mt-1">{scope.note}</p>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium">
+                          Score {scope.score}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRiskBadgeClass(scope.fungalPressure)}`}>
+                          Fungino {getRiskLabel(scope.fungalPressure)}
+                        </span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRiskBadgeClass(scope.waterStress)}`}>
+                          Idrico {getRiskLabel(scope.waterStress)}
+                        </span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRiskBadgeClass(scope.heatStress)}`}>
+                          Termico {getRiskLabel(scope.heatStress)}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 text-sm text-gray-500">
+                        {scope.plantCount > 0
+                          ? `${scope.plantCount} task attivi · ${scope.plantNames.join(', ')}`
+                          : 'Nessun task attivo associato, ma la zona resta sensorizzata'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-gray-200 p-5 text-sm text-gray-500">
+                  Nessuna zona o filare sensorizzato disponibile per questo giardino.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <button
@@ -721,7 +1176,7 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">Filtri:</span>
+                <span className="text-sm font-medium text-gray-700">Filtri {healthContext.areaLabel}:</span>
               </div>
               
               <select
@@ -746,7 +1201,7 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
                 <option value="pest_alert">Alert parassiti</option>
                 <option value="nutrient_deficiency">Carenze nutrizionali</option>
                 <option value="stress_symptoms">Sintomi stress</option>
-                <option value="harvest_timing">Timing raccolta</option>
+                <option value="harvest_timing">Maturazione e raccolta</option>
                 <option value="weather_stress">Stress climatico</option>
               </select>
 
@@ -816,6 +1271,24 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
                           </div>
                         )}
                       </div>
+
+                      {alert.triggers.length > 0 && (
+                        <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 p-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+                            Fattori usati per questo alert
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {alert.triggers.map((trigger) => (
+                              <span
+                                key={`${alert.id}-${trigger}`}
+                                className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-blue-700"
+                              >
+                                {getHealthTriggerLabel(trigger)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -915,13 +1388,13 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {activeGarden ? 'Nessun alert trovato' : 'Nessun orto attivo'}
+              {activeGarden ? `Nessun alert per ${healthContext.areaLabel}` : 'Nessun giardino attivo'}
             </h3>
             <p className="text-gray-600">
               {!activeGarden
-                ? 'Seleziona o crea un orto per generare controlli salute reali.'
+                ? 'Seleziona o crea un giardino per generare controlli salute reali.'
                 : alerts.length === 0 
-                ? 'Tutte le piante sono in salute! 🌱'
+                ? `Tutti i ${healthContext.entityPlural} monitorati risultano stabili.`
                 : 'Prova a modificare i filtri per vedere altri alert.'
               }
             </p>

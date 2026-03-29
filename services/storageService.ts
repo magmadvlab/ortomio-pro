@@ -3,13 +3,20 @@
  * This will be replaced by IStorageProvider in Phase 2
  */
 
-import { Garden, GardenTask, SmartDevice } from '../types';
+import { Garden, GardenTask, SmartDevice, SmartDeviceAutomationLog, PhenologyObservation, QualityResult } from '../types';
+import { normalizeSmartDeviceScope } from '../utils/smartDeviceScope';
 
 const STORAGE_KEYS = {
   GARDENS: 'ortoGardens',
   TASKS: 'ortoTasks',
   ACTIVE_GARDEN_ID: 'ortoActiveGardenId',
   DEVICES: 'ortoDevices',
+  SMART_DEVICE_AUTOMATION_LOGS: 'ortoSmartDeviceAutomationLogs',
+  PHENOLOGY_OBSERVATIONS: 'ortoPhenologyObservations',
+  QUALITY_RESULTS: 'ortoQualityResults',
+  PRESCRIPTION_MAPS: 'ortoPrescriptionMaps',
+  PRESCRIPTION_EXECUTIONS: 'ortoPrescriptionExecutions',
+  PRESCRIPTION_EXPORTS: 'ortoPrescriptionExports',
   OLD_PROFILE: 'ortoProfile', // Legacy migration
 } as const;
 
@@ -72,7 +79,8 @@ export class StorageService {
     const saved = localStorage.getItem(STORAGE_KEYS.DEVICES);
     if (!saved) return [];
     try {
-      return JSON.parse(saved) as SmartDevice[];
+      const devices = JSON.parse(saved) as SmartDevice[];
+      return devices.map(device => normalizeSmartDeviceScope(device));
     } catch (e) {
       console.error('Error parsing devices from localStorage', e);
       return [];
@@ -81,9 +89,126 @@ export class StorageService {
 
   static saveDevices(devices: SmartDevice[]): void {
     try {
-      localStorage.setItem(STORAGE_KEYS.DEVICES, JSON.stringify(devices));
+      localStorage.setItem(
+        STORAGE_KEYS.DEVICES,
+        JSON.stringify(devices.map(device => normalizeSmartDeviceScope(device)))
+      );
     } catch (e) {
       console.error('Error saving devices to localStorage', e);
+    }
+  }
+
+  static getSmartDeviceAutomationLogs(): SmartDeviceAutomationLog[] {
+    const saved = localStorage.getItem(STORAGE_KEYS.SMART_DEVICE_AUTOMATION_LOGS);
+    if (!saved) return [];
+    try {
+      return JSON.parse(saved) as SmartDeviceAutomationLog[];
+    } catch (e) {
+      console.error('Error parsing smart device automation logs from localStorage', e);
+      return [];
+    }
+  }
+
+  static saveSmartDeviceAutomationLogs(logs: SmartDeviceAutomationLog[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.SMART_DEVICE_AUTOMATION_LOGS, JSON.stringify(logs));
+    } catch (e) {
+      console.error('Error saving smart device automation logs to localStorage', e);
+    }
+  }
+
+  static getPhenologyObservations(): PhenologyObservation[] {
+    const saved = localStorage.getItem(STORAGE_KEYS.PHENOLOGY_OBSERVATIONS);
+    if (!saved) return [];
+    try {
+      return JSON.parse(saved) as PhenologyObservation[];
+    } catch (e) {
+      console.error('Error parsing phenology observations from localStorage', e);
+      return [];
+    }
+  }
+
+  static savePhenologyObservations(observations: PhenologyObservation[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.PHENOLOGY_OBSERVATIONS, JSON.stringify(observations));
+    } catch (e) {
+      console.error('Error saving phenology observations to localStorage', e);
+    }
+  }
+
+  static getQualityResults(): QualityResult[] {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.QUALITY_RESULTS);
+      if (!saved) return [];
+      return JSON.parse(saved) as QualityResult[];
+    } catch (e) {
+      console.error('Error parsing quality results from localStorage', e);
+      return [];
+    }
+  }
+
+  static saveQualityResults(results: QualityResult[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.QUALITY_RESULTS, JSON.stringify(results));
+    } catch (e) {
+      console.error('Error saving quality results to localStorage', e);
+    }
+  }
+
+  static getPrescriptionMaps<T = unknown>(): T[] {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.PRESCRIPTION_MAPS);
+      if (!saved) return [];
+      return JSON.parse(saved) as T[];
+    } catch (e) {
+      console.error('Error parsing prescription maps from localStorage', e);
+      return [];
+    }
+  }
+
+  static savePrescriptionMaps<T = unknown>(maps: T[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.PRESCRIPTION_MAPS, JSON.stringify(maps));
+    } catch (e) {
+      console.error('Error saving prescription maps to localStorage', e);
+    }
+  }
+
+  static getPrescriptionExecutions<T = unknown>(): T[] {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.PRESCRIPTION_EXECUTIONS);
+      if (!saved) return [];
+      return JSON.parse(saved) as T[];
+    } catch (e) {
+      console.error('Error parsing prescription executions from localStorage', e);
+      return [];
+    }
+  }
+
+  static savePrescriptionExecutions<T = unknown>(records: T[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.PRESCRIPTION_EXECUTIONS, JSON.stringify(records));
+    } catch (e) {
+      console.error('Error saving prescription executions to localStorage', e);
+    }
+  }
+
+  static getPrescriptionExports<T = unknown>(): T[] {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.PRESCRIPTION_EXPORTS);
+      if (!saved) return [];
+      return JSON.parse(saved) as T[];
+    } catch (e) {
+      console.error('Error parsing prescription exports from localStorage', e);
+      return [];
+    }
+  }
+
+  static savePrescriptionExports<T = unknown>(records: T[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.PRESCRIPTION_EXPORTS, JSON.stringify(records));
+    } catch (e) {
+      console.error('Error saving prescription exports to localStorage', e);
     }
   }
 
@@ -106,4 +231,3 @@ export class StorageService {
     });
   }
 }
-

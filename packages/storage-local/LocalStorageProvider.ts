@@ -4,7 +4,7 @@
  */
 
 import { IStorageProvider } from '../core/storage/interface';
-import { Garden, GardenTask, SmartDevice, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB } from '@/types';
+import { Garden, GardenTask, SmartDevice, SmartDeviceAutomationLog, SeedPacket, HarvestLogData, PlantPhotoLog, MechanicalWorkRecord, TreatmentRecordDB, FertilizerInventoryItemDB, PhytoInventoryItemDB, CompostLogDB, FertilizerApplicationLogDB, PhenologyObservation, QualityResult } from '@/types';
 import { CustomCrop, CropLearningEvent } from '@/types/customCrop';
 import { CustomPlan } from '@/types/customPlan';
 import { Agronomist, AgronomistConsultation, AgronomistAdvice } from '@/types/agronomist';
@@ -19,13 +19,26 @@ import { GardenRow } from '@/types';
 import { CropArchetype, CropProfile, CropAlias, ArchetypeId, OfficialCrop } from '@/types/archetypes';
 import { IrrigationSystem, IrrigationZone, IrrigationComponent, WateringLog } from '@/types/irrigation';
 import { HealthAlert } from '@/types/healthAlert';
+import type { PrescriptionExecutionRecord, PrescriptionMap, PrescriptionMapExportRecord } from '@/types/prescriptionMaps';
+import type { PlantOperation } from '@/types/individualPlant';
 import { normalizeGeoCoordinates } from '@/utils/coordinates';
+import {
+  hasAgronomicScope,
+  normalizeSmartDeviceScope,
+  touchesAgronomicScope,
+  validateSmartDeviceScope,
+} from '@/utils/smartDeviceScope';
 
 export class LocalStorageProvider implements IStorageProvider {
   private readonly STORAGE_KEYS = {
     GARDENS: 'ortoGardens',
     TASKS: 'ortoTasks',
     DEVICES: 'ortoDevices',
+    SMART_DEVICE_AUTOMATION_LOGS: 'ortoSmartDeviceAutomationLogs',
+    PHENOLOGY_OBSERVATIONS: 'ortoPhenologyObservations',
+    QUALITY_RESULTS: 'ortoQualityResults',
+    PRESCRIPTION_MAPS: 'ortoPrescriptionMaps',
+    PRESCRIPTION_EXECUTIONS: 'ortoPrescriptionExecutions',
     SEEDS: 'ortoSeedPackets',
     HARVESTS: 'ortHarvestLogs',
     PHOTOS: 'ortoPhotoLogs',
@@ -253,8 +266,9 @@ export class LocalStorageProvider implements IStorageProvider {
   }
 
   async createDevice(device: Omit<SmartDevice, 'id' | 'lastUpdate'>): Promise<SmartDevice> {
+    const normalizedDevice = validateSmartDeviceScope(device, { requireScope: true })
     const newDevice: SmartDevice = {
-      ...device,
+      ...normalizedDevice,
       id: crypto.randomUUID(),
       lastUpdate: new Date().toISOString(),
     };
@@ -270,7 +284,14 @@ export class LocalStorageProvider implements IStorageProvider {
     if (index === -1) {
       throw new Error(`Device with id ${id} not found`);
     }
-    devices[index] = { ...devices[index], ...updates, lastUpdate: new Date().toISOString() };
+    const currentDevice = normalizeSmartDeviceScope(devices[index])
+    const mergedDevice = normalizeSmartDeviceScope({
+      ...currentDevice,
+      ...updates,
+      lastUpdate: new Date().toISOString(),
+    })
+    const shouldRequireScope = hasAgronomicScope(currentDevice) || touchesAgronomicScope(updates)
+    devices[index] = validateSmartDeviceScope(mergedDevice, { requireScope: shouldRequireScope }) as SmartDevice
     StorageService.saveDevices(devices);
     return devices[index];
   }
@@ -279,6 +300,327 @@ export class LocalStorageProvider implements IStorageProvider {
     const devices = StorageService.getDevices();
     const filtered = devices.filter(d => d.id !== id);
     StorageService.saveDevices(filtered);
+  }
+
+  async getSmartDeviceAutomationLogs(gardenId?: string, deviceId?: string): Promise<SmartDeviceAutomationLog[]> {
+    const logs = StorageService.getSmartDeviceAutomationLogs()
+      .sort((a, b) => new Date(b.eventAt).getTime() - new Date(a.eventAt).getTime())
+
+    return logs.filter(log => {
+      if (gardenId && log.gardenId !== gardenId) return false
+      if (deviceId && log.deviceId !== deviceId) return false
+      return true
+    })
+  }
+
+  async createSmartDeviceAutomationLog(
+    log: Omit<SmartDeviceAutomationLog, 'id' | 'createdAt'>
+  ): Promise<SmartDeviceAutomationLog> {
+    const newLog: SmartDeviceAutomationLog = {
+      ...log,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    }
+
+    const logs = StorageService.getSmartDeviceAutomationLogs()
+    logs.unshift(newLog)
+    StorageService.saveSmartDeviceAutomationLogs(logs.slice(0, 500))
+    return newLog
+  }
+
+  async getPhenologyObservations(
+    gardenId: string,
+    options?: {
+      cropContextId?: PhenologyObservation['cropContextId']
+      scopeType?: PhenologyObservation['scopeType']
+      scopeId?: string
+      zoneId?: string
+      fieldRowId?: string
+      treeId?: string
+      plantId?: string
+      limit?: number
+    }
+  ): Promise<PhenologyObservation[]> {
+    const observations = StorageService.getPhenologyObservations()
+      .filter(observation => observation.gardenId === gardenId)
+      .filter(observation => !options?.cropContextId || observation.cropContextId === options.cropContextId)
+      .filter(observation => !options?.scopeType || observation.scopeType === options.scopeType)
+      .filter(observation => !options?.scopeId || observation.scopeId === options.scopeId)
+      .filter(observation => !options?.zoneId || observation.zoneId === options.zoneId)
+      .filter(observation => !options?.fieldRowId || observation.fieldRowId === options.fieldRowId)
+      .filter(observation => !options?.treeId || observation.treeId === options.treeId)
+      .filter(observation => !options?.plantId || observation.plantId === options.plantId)
+      .sort((left, right) => new Date(right.observedAt).getTime() - new Date(left.observedAt).getTime())
+
+    return typeof options?.limit === 'number' ? observations.slice(0, options.limit) : observations
+  }
+
+  async createPhenologyObservation(
+    observation: Omit<PhenologyObservation, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<PhenologyObservation> {
+    const newObservation: PhenologyObservation = {
+      ...observation,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    const observations = StorageService.getPhenologyObservations()
+    observations.unshift(newObservation)
+    StorageService.savePhenologyObservations(observations.slice(0, 1000))
+    return newObservation
+  }
+
+  async getQualityResults(
+    gardenId: string,
+    options?: {
+      cropContextId?: QualityResult['cropContextId']
+      scopeType?: QualityResult['scopeType']
+      scopeId?: string
+      zoneId?: string
+      fieldRowId?: string
+      treeId?: string
+      plantId?: string
+      harvestLogId?: string
+      lotCode?: string
+      limit?: number
+    }
+  ): Promise<QualityResult[]> {
+    const results = StorageService.getQualityResults()
+      .filter((result) => result.gardenId === gardenId)
+      .filter((result) => !options?.cropContextId || result.cropContextId === options.cropContextId)
+      .filter((result) => !options?.scopeType || result.scopeType === options.scopeType)
+      .filter((result) => !options?.scopeId || result.scopeId === options.scopeId)
+      .filter((result) => !options?.zoneId || result.zoneId === options.zoneId)
+      .filter((result) => !options?.fieldRowId || result.fieldRowId === options.fieldRowId)
+      .filter((result) => !options?.treeId || result.treeId === options.treeId)
+      .filter((result) => !options?.plantId || result.plantId === options.plantId)
+      .filter((result) => !options?.harvestLogId || result.harvestLogId === options.harvestLogId)
+      .filter((result) => !options?.lotCode || result.lotCode === options.lotCode)
+      .sort((left, right) => new Date(right.recordedAt).getTime() - new Date(left.recordedAt).getTime())
+
+    if (typeof options?.limit === 'number') {
+      return results.slice(0, options.limit)
+    }
+
+    return results
+  }
+
+  async createQualityResult(
+    result: Omit<QualityResult, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<QualityResult> {
+    const newResult: QualityResult = {
+      ...result,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    const results = StorageService.getQualityResults()
+    results.unshift(newResult)
+    StorageService.saveQualityResults(results.slice(0, 2000))
+    return newResult
+  }
+
+  async updateQualityResult(
+    id: string,
+    updates: Partial<QualityResult>
+  ): Promise<QualityResult> {
+    const results = StorageService.getQualityResults()
+    const index = results.findIndex((result) => result.id === id)
+
+    if (index === -1) {
+      throw new Error(`Quality result ${id} not found`)
+    }
+
+    const updatedResult: QualityResult = {
+      ...results[index],
+      ...updates,
+      id,
+      updatedAt: new Date().toISOString(),
+    }
+
+    results[index] = updatedResult
+    StorageService.saveQualityResults(results)
+    return updatedResult
+  }
+
+  async getPrescriptionMaps(gardenId: string): Promise<PrescriptionMap[]> {
+    return StorageService.getPrescriptionMaps<PrescriptionMap>()
+      .filter((map) => map.gardenId === gardenId)
+      .sort((left, right) => new Date(right.generationDate).getTime() - new Date(left.generationDate).getTime())
+  }
+
+  async getPrescriptionMap(id: string): Promise<PrescriptionMap | null> {
+    return StorageService.getPrescriptionMaps<PrescriptionMap>().find((map) => map.id === id) || null
+  }
+
+  async createPrescriptionMap(
+    map: Omit<PrescriptionMap, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<PrescriptionMap> {
+    const newMapId = crypto.randomUUID()
+    const newMap: PrescriptionMap = {
+      ...map,
+      id: newMapId,
+      zones: map.zones.map((zone, index) => ({
+        ...zone,
+        id: zone.id || crypto.randomUUID(),
+        prescriptionMapId: newMapId,
+        zoneNumber: zone.zoneNumber || index + 1,
+      })),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    const maps = StorageService.getPrescriptionMaps<PrescriptionMap>()
+    maps.unshift(newMap)
+    StorageService.savePrescriptionMaps(maps.slice(0, 300))
+    return newMap
+  }
+
+  async updatePrescriptionMap(id: string, updates: Partial<PrescriptionMap>): Promise<PrescriptionMap> {
+    const maps = StorageService.getPrescriptionMaps<PrescriptionMap>()
+    const index = maps.findIndex((map) => map.id === id)
+
+    if (index === -1) {
+      throw new Error(`Prescription map ${id} not found`)
+    }
+
+    const updatedMap: PrescriptionMap = {
+      ...maps[index],
+      ...updates,
+      id,
+      updatedAt: new Date().toISOString(),
+    }
+
+    maps[index] = updatedMap
+    StorageService.savePrescriptionMaps(maps)
+    return updatedMap
+  }
+
+  async deletePrescriptionMap(id: string): Promise<void> {
+    const maps = StorageService.getPrescriptionMaps<PrescriptionMap>()
+    StorageService.savePrescriptionMaps(maps.filter((map) => map.id !== id))
+  }
+
+  async getPrescriptionExecutionRecords(
+    prescriptionMapId: string,
+    options?: {
+      prescriptionZoneId?: string
+      executionStatus?: PrescriptionExecutionRecord['executionStatus']
+      limit?: number
+    }
+  ): Promise<PrescriptionExecutionRecord[]> {
+    const records = StorageService.getPrescriptionExecutions<PrescriptionExecutionRecord>()
+      .filter((record) => record.prescriptionMapId === prescriptionMapId)
+      .filter((record) => !options?.prescriptionZoneId || record.prescriptionZoneId === options.prescriptionZoneId)
+      .filter((record) => !options?.executionStatus || record.executionStatus === options.executionStatus)
+      .sort((left, right) => new Date(right.applicationDate).getTime() - new Date(left.applicationDate).getTime())
+
+    if (typeof options?.limit === 'number') {
+      return records.slice(0, options.limit)
+    }
+
+    return records
+  }
+
+  async createPrescriptionExecutionRecord(
+    record: Omit<PrescriptionExecutionRecord, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<PrescriptionExecutionRecord> {
+    const newRecord: PrescriptionExecutionRecord = {
+      ...record,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    const records = StorageService.getPrescriptionExecutions<PrescriptionExecutionRecord>()
+    records.unshift(newRecord)
+    StorageService.savePrescriptionExecutions(records.slice(0, 1000))
+    return newRecord
+  }
+
+  async updatePrescriptionExecutionRecord(
+    id: string,
+    updates: Partial<PrescriptionExecutionRecord>
+  ): Promise<PrescriptionExecutionRecord> {
+    const records = StorageService.getPrescriptionExecutions<PrescriptionExecutionRecord>()
+    const index = records.findIndex((record) => record.id === id)
+
+    if (index === -1) {
+      throw new Error(`Prescription execution ${id} not found`)
+    }
+
+    const updatedRecord: PrescriptionExecutionRecord = {
+      ...records[index],
+      ...updates,
+      id,
+      updatedAt: new Date().toISOString(),
+    }
+
+    records[index] = updatedRecord
+    StorageService.savePrescriptionExecutions(records)
+    return updatedRecord
+  }
+
+  async getPrescriptionMapExportRecords(
+    prescriptionMapId: string,
+    options?: {
+      format?: PrescriptionMapExportRecord['format']
+      status?: PrescriptionMapExportRecord['status']
+      limit?: number
+    }
+  ): Promise<PrescriptionMapExportRecord[]> {
+    const records = StorageService.getPrescriptionExports<PrescriptionMapExportRecord>()
+      .filter((record) => record.prescriptionMapId === prescriptionMapId)
+      .filter((record) => !options?.format || record.format === options.format)
+      .filter((record) => !options?.status || record.status === options.status)
+      .sort((left, right) => new Date(right.exportedAt).getTime() - new Date(left.exportedAt).getTime())
+
+    if (typeof options?.limit === 'number') {
+      return records.slice(0, options.limit)
+    }
+
+    return records
+  }
+
+  async createPrescriptionMapExportRecord(
+    record: Omit<PrescriptionMapExportRecord, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<PrescriptionMapExportRecord> {
+    const newRecord: PrescriptionMapExportRecord = {
+      ...record,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    const records = StorageService.getPrescriptionExports<PrescriptionMapExportRecord>()
+    records.unshift(newRecord)
+    StorageService.savePrescriptionExports(records.slice(0, 1000))
+    return newRecord
+  }
+
+  async updatePrescriptionMapExportRecord(
+    id: string,
+    updates: Partial<PrescriptionMapExportRecord>
+  ): Promise<PrescriptionMapExportRecord> {
+    const records = StorageService.getPrescriptionExports<PrescriptionMapExportRecord>()
+    const index = records.findIndex((record) => record.id === id)
+
+    if (index === -1) {
+      throw new Error(`Prescription export ${id} not found`)
+    }
+
+    const updatedRecord: PrescriptionMapExportRecord = {
+      ...records[index],
+      ...updates,
+      id,
+      updatedAt: new Date().toISOString(),
+    }
+
+    records[index] = updatedRecord
+    StorageService.savePrescriptionExports(records)
+    return updatedRecord
   }
 
   // Seed Inventory
@@ -2126,7 +2468,7 @@ export class LocalStorageProvider implements IStorageProvider {
     try {
       const newPlant: import('@/types/individualPlant').GardenPlant = {
         ...plant,
-        id: plant.id || crypto.randomUUID(),
+        id: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -2188,6 +2530,133 @@ export class LocalStorageProvider implements IStorageProvider {
   }
 
   // Individual Plant Operations (local fallback)
+  async getFieldRowOperations(fieldRowId: string, gardenId: string): Promise<PlantOperation[]> {
+    try {
+      const [wateringLogs, fertilizerLogs, treatmentLogs, mechanicalWorks] = await Promise.all([
+        this.getWateringLogs(undefined, gardenId).catch(() => []),
+        this.getFertilizerApplicationLogs(gardenId).catch(() => []),
+        this.getTreatments(gardenId).catch(() => []),
+        this.getMechanicalWorks(gardenId).catch(() => []),
+      ]);
+
+      const operations: PlantOperation[] = [
+        ...wateringLogs
+          .filter(log => log.fieldRowId === fieldRowId)
+          .map((log): PlantOperation => ({
+            id: `watering-${log.id}`,
+            plantId: fieldRowId,
+            gardenId,
+            fieldRowId,
+            operationType: 'watering',
+            operationCategory: 'irrigation',
+            date: log.wateredAt || log.date,
+            operationDate: log.date,
+            operationTime: log.wateredAt ? String(log.wateredAt).slice(11, 16) : undefined,
+            quantity: log.litersApplied,
+            waterAmount: log.litersApplied,
+            unit: 'L',
+            duration: log.durationMinutes,
+            weatherConditions: {
+              condition: log.weatherCondition,
+              temperature: log.airTemperatureC,
+            },
+            photos: [],
+            notes: log.notes,
+            parentOperationId: log.id,
+            parentOperationTable: 'watering_logs',
+            sourceType: 'orchestrator_sync',
+            actorType: 'orchestrator',
+            recordedBy: 'system',
+            createdAt: log.createdAt,
+            updatedAt: log.createdAt,
+          })),
+        ...fertilizerLogs
+          .filter(log => log.fieldRowId === fieldRowId)
+          .map((log): PlantOperation => ({
+            id: `fertilizer-${log.id}`,
+            plantId: fieldRowId,
+            gardenId,
+            fieldRowId,
+            operationType: 'fertilizing',
+            operationCategory: 'nutrition',
+            date: log.applicationDate,
+            operationDate: log.applicationDate,
+            quantity: log.dosageAmount,
+            unit: log.dosageUnit,
+            productName: log.fertilizerProductName,
+            weatherConditions: log.weatherConditions || undefined,
+            photos: [],
+            notes: log.notes || undefined,
+            parentOperationId: log.id,
+            parentOperationTable: 'fertilizer_application_logs',
+            sourceType: 'orchestrator_sync',
+            actorType: 'orchestrator',
+            recordedBy: 'system',
+            createdAt: log.createdAt,
+            updatedAt: log.createdAt,
+          })),
+        ...treatmentLogs
+          .filter(log => log.field_row_id === fieldRowId)
+          .map((log): PlantOperation => ({
+            id: `treatment-${log.id}`,
+            plantId: fieldRowId,
+            gardenId,
+            fieldRowId,
+            operationType: 'treatment',
+            operationCategory: 'protection',
+            date: log.treatment_date,
+            operationDate: log.treatment_date,
+            quantity: log.dosage,
+            unit: log.dosage_unit,
+            productName: log.product_name,
+            targetPest: log.reason,
+            treatmentType: log.reason === 'preventive' ? 'preventive' : 'curative',
+            weatherConditions: log.weather_conditions || undefined,
+            photos: [],
+            notes: log.notes,
+            parentOperationId: log.id,
+            parentOperationTable: 'treatment_register',
+            sourceType: 'orchestrator_sync',
+            actorType: 'orchestrator',
+            recordedBy: 'system',
+            createdAt: log.created_at,
+            updatedAt: log.created_at,
+          })),
+        ...mechanicalWorks
+          .filter(log => log.field_row_id === fieldRowId)
+          .map((log): PlantOperation => ({
+            id: `work-${log.id}`,
+            plantId: fieldRowId,
+            gardenId,
+            fieldRowId,
+            operationType: 'work',
+            operationCategory: 'maintenance',
+            date: log.work_date,
+            operationDate: log.work_date,
+            quantity: log.area_m2,
+            unit: 'm²',
+            productName: log.equipment_type || log.work_type,
+            workType: log.work_type,
+            weatherConditions: log.weather_conditions || undefined,
+            photos: [],
+            notes: log.notes,
+            parentOperationId: log.id,
+            parentOperationTable: 'mechanical_work_register',
+            sourceType: 'orchestrator_sync',
+            actorType: 'orchestrator',
+            recordedBy: 'system',
+            createdAt: log.created_at,
+            updatedAt: log.created_at,
+          })),
+      ];
+
+      return operations.sort((a, b) => new Date(b.operationDate || b.date).getTime() - new Date(a.operationDate || a.date).getTime());
+    } catch (error) {
+      console.error('Error loading field row operations:', error);
+      return [];
+    }
+  }
+
   async getPlantOperations(plantId: string): Promise<any[]> {
     try {
       const key = 'ortoIndividualPlantOperations';

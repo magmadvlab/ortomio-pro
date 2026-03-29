@@ -29,10 +29,25 @@ import {
   Map,
   MapPin
 } from 'lucide-react'
-import { SmartDevice, Garden } from '@/types'
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from 'recharts'
+import { SmartDevice, SmartDeviceAutomationLog, Garden } from '@/types'
 import ActionButton, { ActionContext } from '@/components/actions/ActionButton'
 import InterventionWizard, { InterventionData } from '@/components/actions/InterventionWizard'
 import { interventionService } from '@/services/interventionService'
+import type { IrrigationScopeDiagnostics } from '@/services/irrigationScopeDiagnosticsService'
+import type { SmartDeviceAutomationAnalytics } from '@/services/smartDeviceAutomationAnalyticsService'
+import type { SensorReading } from '@/services/sensorDataService'
 
 interface DroneFlightPlan {
   id: string
@@ -57,21 +72,66 @@ interface DroneFlightPlan {
 
 interface IntegratedSmartHubProps {
   devices: SmartDevice[]
+  automationAnalytics: SmartDeviceAutomationAnalytics
+  automationLogs: Record<string, SmartDeviceAutomationLog[]>
+  scopeDiagnostics: Record<string, IrrigationScopeDiagnostics>
+  sensorQualityReadings: Record<string, SensorReading>
   garden: Garden
   onToggleValve: (id: string, isOpen: boolean) => void
   onUpdateDeviceSettings: (id: string, settings: Partial<SmartDevice>) => void
+  onApplyScopeAction: (
+    action: SmartDeviceAutomationAnalytics['scopeActions'][number]
+  ) => Promise<void>
+  onRollbackScopeAction: (
+    action: SmartDeviceAutomationAnalytics['appliedScopeActions'][number]
+  ) => Promise<void>
+  onAssociateDevice: (
+    device: Omit<SmartDevice, 'id' | 'lastUpdate' | 'gardenId'>
+  ) => Promise<SmartDevice>
+  onAddDemoDevices: () => Promise<void>
+}
+
+interface DeviceAssociationForm {
+  name: string
+  provider: NonNullable<SmartDevice['provider']>
+  deviceCategory: NonNullable<SmartDevice['deviceCategory']>
+  connectionType: NonNullable<SmartDevice['connectionType']>
+  externalDeviceId: string
+  sensorId: string
+  scopeType: NonNullable<SmartDevice['scopeType']>
+  scopeId: string
+}
+
+const initialDeviceForm: DeviceAssociationForm = {
+  name: '',
+  provider: 'thingsboard',
+  deviceCategory: 'moisture_sensor',
+  connectionType: 'cloud',
+  externalDeviceId: '',
+  sensorId: '',
+  scopeType: 'zone',
+  scopeId: '',
 }
 
 export default function IntegratedSmartHub({ 
   devices, 
+  automationAnalytics,
+  automationLogs,
+  scopeDiagnostics,
+  sensorQualityReadings,
   garden, 
   onToggleValve, 
-  onUpdateDeviceSettings 
+  onUpdateDeviceSettings,
+  onApplyScopeAction,
+  onRollbackScopeAction,
+  onAssociateDevice,
+  onAddDemoDevices,
 }: IntegratedSmartHubProps) {
   const [activeTab, setActiveTab] = useState<'iot' | 'drones'>('iot')
   const [analyzingId, setAnalyzingId] = useState<string | null>(null)
   const [aiAdvice, setAiAdvice] = useState<Record<string, string>>({})
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [selectedHistoryScopeKey, setSelectedHistoryScopeKey] = useState<string | null>(null)
   
   // Drone state
   const [flightPlans, setFlightPlans] = useState<DroneFlightPlan[]>([])
@@ -87,6 +147,11 @@ export default function IntegratedSmartHub({
   // Device Association state
   const [showDeviceWizard, setShowDeviceWizard] = useState(false)
   const [associatingDevice, setAssociatingDevice] = useState(false)
+  const [deviceForm, setDeviceForm] = useState<DeviceAssociationForm>(initialDeviceForm)
+  const [associationError, setAssociationError] = useState<string | null>(null)
+  const [addingDemoDevices, setAddingDemoDevices] = useState(false)
+  const [applyingScopeActionId, setApplyingScopeActionId] = useState<string | null>(null)
+  const [rollingBackScopeActionId, setRollingBackScopeActionId] = useState<string | null>(null)
 
   // Filter devices for current garden
   const gardenDevices = devices.filter(d => d.gardenId === garden.id)
@@ -96,6 +161,20 @@ export default function IntegratedSmartHub({
       loadFlightPlans()
     }
   }, [activeTab, garden.id])
+
+  useEffect(() => {
+    if (automationAnalytics.scopeHistory.length === 0) {
+      setSelectedHistoryScopeKey(null)
+      return
+    }
+
+    if (
+      !selectedHistoryScopeKey ||
+      !automationAnalytics.scopeHistory.some(scope => scope.scopeKey === selectedHistoryScopeKey)
+    ) {
+      setSelectedHistoryScopeKey(automationAnalytics.scopeHistory[0].scopeKey)
+    }
+  }, [automationAnalytics.scopeHistory, selectedHistoryScopeKey])
 
   const loadFlightPlans = async () => {
     try {
@@ -315,24 +394,483 @@ export default function IntegratedSmartHub({
     return 'low'
   }
 
-  const handleAssociateDevice = async (deviceData: any) => {
+  const getSmartDeviceType = (category: DeviceAssociationForm['deviceCategory']): SmartDevice['type'] => {
+    return category === 'irrigation_valve' ? 'Valve' : 'Sensor'
+  }
+
+  const getDefaultMoisture = (category: DeviceAssociationForm['deviceCategory']) => {
+    switch (category) {
+      case 'moisture_sensor':
+        return 48
+      case 'weather_station':
+        return 55
+      default:
+        return 0
+    }
+  }
+
+  const getDefaultFlowRate = (category: DeviceAssociationForm['deviceCategory']) => {
+    return category === 'irrigation_valve' ? 16 : 0
+  }
+
+  const hasAgronomicScope = (device: SmartDevice) =>
+    Boolean(device.scopeType && device.scopeId) ||
+    Boolean(device.zoneId || device.fieldRowId || device.treeId || device.plantId)
+
+  const resolveScopeFields = (scopeType: DeviceAssociationForm['scopeType'], scopeId: string) => {
+    const normalizedScopeId = scopeId.trim()
+
+    return {
+      scopeType,
+      scopeId: normalizedScopeId,
+      zoneId: scopeType === 'zone' ? normalizedScopeId : undefined,
+      fieldRowId: scopeType === 'field_row' ? normalizedScopeId : undefined,
+      treeId: scopeType === 'tree' ? normalizedScopeId : undefined,
+      plantId: scopeType === 'plant' ? normalizedScopeId : undefined,
+    }
+  }
+
+  const resetDeviceWizard = () => {
+    setDeviceForm(initialDeviceForm)
+    setAssociationError(null)
+    setShowDeviceWizard(false)
+  }
+
+  const handleAssociateDevice = async () => {
     try {
       setAssociatingDevice(true)
-      // Simulate device association
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      console.log('Device associated:', deviceData)
-      // Here you would typically call a service to associate the device
-      // await smartDeviceService.associateDevice(garden.id, deviceData)
-      
-      setShowDeviceWizard(false)
-      // Refresh devices list if needed
+      setAssociationError(null)
+
+      if (!deviceForm.name.trim()) {
+        throw new Error('Inserisci un nome dispositivo')
+      }
+
+      if (
+        (deviceForm.provider === 'thingsboard' || deviceForm.provider === 'tuya') &&
+        !deviceForm.externalDeviceId.trim()
+      ) {
+        throw new Error('Per ThingsBoard o Tuya serve un Device ID esterno')
+      }
+
+      if (!deviceForm.scopeId.trim()) {
+        throw new Error('Collega il dispositivo a zona, filare, albero o pianta')
+      }
+
+      const scopeBinding = resolveScopeFields(deviceForm.scopeType, deviceForm.scopeId)
+
+      await onAssociateDevice({
+        name: deviceForm.name.trim(),
+        type: getSmartDeviceType(deviceForm.deviceCategory),
+        provider: deviceForm.provider,
+        deviceCategory: deviceForm.deviceCategory,
+        connectionType: deviceForm.connectionType,
+        externalDeviceId: deviceForm.externalDeviceId.trim() || undefined,
+        sensorId: deviceForm.sensorId.trim() || undefined,
+        ...scopeBinding,
+        isOnline: deviceForm.provider === 'manual',
+        lastTelemetryAt: undefined,
+        metadata: {
+          source: 'smart-hub',
+          provider: deviceForm.provider,
+          scopeType: scopeBinding.scopeType,
+          scopeId: scopeBinding.scopeId,
+        },
+        moisture: getDefaultMoisture(deviceForm.deviceCategory),
+        isValveOpen: false,
+        flowRateLpm: getDefaultFlowRate(deviceForm.deviceCategory),
+        sessionLiters: 0,
+        targetLiters: deviceForm.deviceCategory === 'irrigation_valve' ? 20 : 0,
+        autoThreshold: deviceForm.deviceCategory === 'moisture_sensor' ? 35 : 0,
+        autoMode: deviceForm.deviceCategory === 'moisture_sensor',
+      })
+
+      resetDeviceWizard()
     } catch (error) {
       console.error('Error associating device:', error)
+      setAssociationError(error instanceof Error ? error.message : 'Associazione dispositivo non riuscita')
     } finally {
       setAssociatingDevice(false)
     }
   }
+
+  const handleAddDemoDevices = async () => {
+    try {
+      setAddingDemoDevices(true)
+      setAssociationError(null)
+      await onAddDemoDevices()
+    } catch (error) {
+      console.error('Error adding demo devices:', error)
+      setAssociationError(error instanceof Error ? error.message : 'Impossibile creare i dispositivi demo')
+    } finally {
+      setAddingDemoDevices(false)
+    }
+  }
+
+  const providerLabel = (provider?: SmartDevice['provider']) => {
+    switch (provider) {
+      case 'thingsboard':
+        return 'ThingsBoard'
+      case 'tuya':
+        return 'Tuya'
+      default:
+        return 'Manuale'
+    }
+  }
+
+  const categoryLabel = (category?: SmartDevice['deviceCategory']) => {
+    switch (category) {
+      case 'moisture_sensor':
+        return 'Sensore umidita'
+      case 'irrigation_valve':
+        return 'Valvola irrigazione'
+      case 'weather_station':
+        return 'Stazione meteo'
+      case 'ph_sensor':
+        return 'Sensore pH'
+      case 'ec_sensor':
+        return 'Sensore EC'
+      default:
+        return 'Dispositivo IoT'
+    }
+  }
+
+  const scopeTypeLabel = (scopeType?: SmartDevice['scopeType']) => {
+    switch (scopeType) {
+      case 'zone':
+        return 'Zona'
+      case 'field_row':
+        return 'Filare'
+      case 'tree':
+        return 'Albero'
+      case 'plant':
+        return 'Pianta'
+      default:
+        return 'Scope'
+    }
+  }
+
+  const scopeLabel = (device: SmartDevice) => {
+    if (device.scopeType && device.scopeId) {
+      return `${scopeTypeLabel(device.scopeType)}: ${device.scopeId}`
+    }
+
+    if (device.zoneId) return `Zona: ${device.zoneId}`
+    if (device.fieldRowId) return `Filare: ${device.fieldRowId}`
+    if (device.treeId) return `Albero: ${device.treeId}`
+    if (device.plantId) return `Pianta: ${device.plantId}`
+
+    return 'Scope non associato'
+  }
+
+  const getConfirmedValveLabel = (device: SmartDevice) => {
+    if (device.lastConfirmedValveState === undefined) {
+      return 'In attesa'
+    }
+
+    return device.lastConfirmedValveState ? 'APERTA' : 'CHIUSA'
+  }
+
+  const getConfirmedValveTone = (device: SmartDevice) => {
+    if (device.lastConfirmedValveState === undefined) {
+      return 'text-amber-600'
+    }
+
+    return device.lastConfirmedValveState ? 'text-emerald-600' : 'text-slate-500'
+  }
+
+  const formatTelemetryMetric = (value?: number, unit?: string) => {
+    if (value === undefined || Number.isNaN(value)) {
+      return '--'
+    }
+
+    return unit ? `${value.toFixed(1)} ${unit}` : value.toFixed(1)
+  }
+
+  const getCommandStatusLabel = (device: SmartDevice) => {
+    switch (device.lastCommandStatus) {
+      case 'pending':
+        return 'In attesa'
+      case 'confirmed':
+        return 'Confermato'
+      case 'timeout':
+        return 'Timeout'
+      case 'failed':
+        return 'Fallito'
+      default:
+        return 'Idle'
+    }
+  }
+
+  const getCommandStatusClasses = (device: SmartDevice) => {
+    switch (device.lastCommandStatus) {
+      case 'pending':
+        return 'bg-amber-50 text-amber-700'
+      case 'confirmed':
+        return 'bg-emerald-50 text-emerald-700'
+      case 'timeout':
+      case 'failed':
+        return 'bg-red-50 text-red-700'
+      default:
+        return 'bg-slate-100 text-slate-600'
+    }
+  }
+
+  const getIrrigationOutcomeLabel = (device: SmartDevice) => {
+    switch (device.lastIrrigationOutcome) {
+      case 'nominal':
+        return 'Nominale'
+      case 'warning':
+        return 'Da verificare'
+      case 'critical':
+        return 'Critico'
+      default:
+        return 'In analisi'
+    }
+  }
+
+  const getIrrigationOutcomeClasses = (device: SmartDevice) => {
+    switch (device.lastIrrigationOutcome) {
+      case 'nominal':
+        return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+      case 'warning':
+        return 'border-amber-200 bg-amber-50 text-amber-800'
+      case 'critical':
+        return 'border-red-200 bg-red-50 text-red-800'
+      default:
+        return 'border-slate-200 bg-slate-50 text-slate-700'
+    }
+  }
+
+  const getAutomationDecisionLabel = (device: SmartDevice) => {
+    switch (device.lastAutomationDecision) {
+      case 'open_now':
+        return 'Apri ora'
+      case 'close_now':
+        return 'Chiudi ora'
+      case 'manual_review':
+        return 'Revisione manuale'
+      case 'hold':
+        return 'Hold'
+      default:
+        return 'Nessuna decisione'
+    }
+  }
+
+  const getAutomationDecisionClasses = (device: SmartDevice) => {
+    switch (device.lastAutomationDecision) {
+      case 'open_now':
+        return 'border-blue-200 bg-blue-50 text-blue-800'
+      case 'close_now':
+        return 'border-amber-200 bg-amber-50 text-amber-800'
+      case 'manual_review':
+        return 'border-red-200 bg-red-50 text-red-800'
+      case 'hold':
+        return 'border-slate-200 bg-slate-50 text-slate-700'
+      default:
+        return 'border-slate-200 bg-slate-50 text-slate-700'
+    }
+  }
+
+  const hasTelemetryAuditIssue = (device: SmartDevice) =>
+    device.metadata?.auditIncomplete === true || device.metadata?.auditStatus === 'incomplete'
+
+  const getTelemetryAuditRetryCount = (device: SmartDevice) => {
+    const rawValue = device.metadata?.auditRetryCount
+    if (typeof rawValue === 'number') {
+      return rawValue
+    }
+
+    if (typeof rawValue === 'string') {
+      const numericValue = Number(rawValue)
+      return Number.isNaN(numericValue) ? undefined : numericValue
+    }
+
+    return undefined
+  }
+
+  const getAutomationTriggerLabel = (device: SmartDevice) => {
+    switch (device.lastAutomationTrigger) {
+      case 'water_stress':
+        return 'Stress idrico'
+      case 'heat_support':
+        return 'Supporto termico'
+      case 'fungal_block':
+        return 'Blocco fungino'
+      case 'target_reached':
+        return 'Target raggiunto'
+      case 'telemetry_block':
+        return 'Blocco telemetria'
+      case 'awaiting_data':
+        return 'Dati mancanti'
+      case 'stability_hold':
+        return 'Stabilita'
+      default:
+        return 'Automazione'
+    }
+  }
+
+  const getAutomationLogLabel = (log: SmartDeviceAutomationLog) => {
+    switch (log.eventType) {
+      case 'decision':
+        return 'Decisione'
+      case 'command_sent':
+        return 'Comando inviato'
+      case 'command_result':
+        return 'Esito comando'
+      case 'telemetry':
+        return 'Telemetria'
+      case 'outcome':
+        return 'Outcome'
+      default:
+        return 'Evento'
+    }
+  }
+
+  const getAutomationLogTone = (log: SmartDeviceAutomationLog) => {
+    switch (log.eventType) {
+      case 'decision':
+        return 'bg-violet-50 text-violet-700'
+      case 'command_sent':
+        return 'bg-blue-50 text-blue-700'
+      case 'command_result':
+        return log.commandStatus === 'failed' || log.commandStatus === 'timeout'
+          ? 'bg-red-50 text-red-700'
+          : 'bg-emerald-50 text-emerald-700'
+      case 'outcome':
+        return log.irrigationOutcome === 'critical'
+          ? 'bg-red-50 text-red-700'
+          : log.irrigationOutcome === 'warning'
+          ? 'bg-amber-50 text-amber-700'
+          : 'bg-emerald-50 text-emerald-700'
+      default:
+        return 'bg-slate-50 text-slate-700'
+    }
+  }
+
+  const getAutomationLogSummary = (log: SmartDeviceAutomationLog) => {
+    if (log.reason) {
+      return log.reason
+    }
+
+    if (log.eventType === 'command_sent') {
+      return log.commandedValveState ? 'Richiesta apertura inviata.' : 'Richiesta chiusura inviata.'
+    }
+
+    if (log.eventType === 'command_result') {
+      return `Esito comando: ${log.commandStatus ?? 'n/d'}.`
+    }
+
+    if (log.eventType === 'outcome') {
+      return `Outcome ciclo: ${log.irrigationOutcome ?? 'n/d'}.`
+    }
+
+    return 'Evento registrato.'
+  }
+
+  const getRecommendationClasses = (
+    severity: NonNullable<SmartDeviceAutomationAnalytics['recommendations']>[number]['severity']
+  ) => {
+    switch (severity) {
+      case 'high':
+        return 'border-red-200 bg-red-50 text-red-800'
+      case 'medium':
+        return 'border-amber-200 bg-amber-50 text-amber-800'
+      default:
+        return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+    }
+  }
+
+  const getScopeActionClasses = (
+    priority: NonNullable<SmartDeviceAutomationAnalytics['scopeActions']>[number]['priority']
+  ) => {
+    switch (priority) {
+      case 'urgent':
+        return 'border-red-200 bg-red-50 text-red-800'
+      case 'high':
+        return 'border-amber-200 bg-amber-50 text-amber-800'
+      case 'medium':
+        return 'border-blue-200 bg-blue-50 text-blue-800'
+      default:
+        return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+    }
+  }
+
+  const getIrrigationDiagnostics = (device: SmartDevice) => {
+    const diagnostics: string[] = []
+    const effectiveFlow = device.flowRateActualLpm ?? 0
+    const effectivePressure = device.linePressureBar ?? 0
+    const moistureDelta = device.lastIrrigationDeltaMoisture ?? 0
+    const targetReached = device.targetLiters > 0 && device.sessionLiters >= device.targetLiters
+
+    if (device.lastConfirmedValveState && effectivePressure > 0 && effectivePressure < 0.8) {
+      diagnostics.push('Pressione bassa: rischio distribuzione non uniforme')
+    }
+
+    if (device.lastConfirmedValveState && effectiveFlow <= 0.1) {
+      diagnostics.push('Portata assente: verificare valvola, filtro o linea')
+    }
+
+    if (!device.lastConfirmedValveState && targetReached && moistureDelta < 3) {
+      diagnostics.push('Umidita poco reattiva dopo irrigazione: possibile infiltrazione non efficace')
+    }
+
+    if (!device.lastConfirmedValveState && device.targetLiters > 0 && device.sessionLiters < device.targetLiters * 0.8) {
+      diagnostics.push('Volume erogato inferiore al target impostato')
+    }
+
+    if (diagnostics.length === 0) {
+      diagnostics.push('Ciclo irriguo coerente con i dati disponibili')
+    }
+
+    return diagnostics
+  }
+
+  const getScopeDiagnosticsStatusLabel = (diagnostics: IrrigationScopeDiagnostics) => {
+    switch (diagnostics.status) {
+      case 'critical':
+        return 'Priorita alta'
+      case 'warning':
+        return 'Da verificare'
+      default:
+        return 'Nominale'
+    }
+  }
+
+  const getScopeDiagnosticsStatusClasses = (diagnostics: IrrigationScopeDiagnostics) => {
+    switch (diagnostics.status) {
+      case 'critical':
+        return 'border-red-200 bg-red-50 text-red-800'
+      case 'warning':
+        return 'border-amber-200 bg-amber-50 text-amber-800'
+      default:
+        return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+    }
+  }
+
+  const getRiskTone = (riskLevel: IrrigationScopeDiagnostics['waterStress']) => {
+    switch (riskLevel) {
+      case 'high':
+        return 'bg-red-100 text-red-700'
+      case 'medium':
+        return 'bg-amber-100 text-amber-700'
+      default:
+        return 'bg-emerald-100 text-emerald-700'
+    }
+  }
+
+  const onlineDevicesCount = gardenDevices.filter(device => device.isOnline).length
+  const thingsBoardDevicesCount = gardenDevices.filter(device => device.provider === 'thingsboard').length
+  const boundDevicesCount = gardenDevices.filter(device => hasAgronomicScope(device)).length
+  const orphanDevicesCount = gardenDevices.length - boundDevicesCount
+  const selectedScopeHistory =
+    automationAnalytics.scopeHistory.find(scope => scope.scopeKey === selectedHistoryScopeKey) ??
+    automationAnalytics.scopeHistory[0]
+  const bestBenchmarkScope = automationAnalytics.benchmark.bestScope
+  const benchmarkTopGaps = automationAnalytics.benchmark.topGaps
+  const selectedScopeGap =
+    selectedScopeHistory && bestBenchmarkScope
+      ? benchmarkTopGaps.find(scope => scope.scopeKey === selectedScopeHistory.scopeKey)
+      : undefined
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -364,6 +902,29 @@ export default function IntegratedSmartHub({
                   Computer vision • AI analysis • Controllo centralizzato
                 </p>
               </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Device registrati</p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">{gardenDevices.length}</p>
+              <p className="mt-1 text-sm text-slate-600">Registry locale attivo per {garden.name}</p>
+            </div>
+            <div className="rounded-xl border border-violet-200 bg-violet-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">Binding agronomico</p>
+              <p className="mt-2 text-2xl font-bold text-violet-900">{boundDevicesCount}</p>
+              <p className="mt-1 text-sm text-violet-800">Device legati a zona, filare, albero o pianta</p>
+            </div>
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Online adesso</p>
+              <p className="mt-2 text-2xl font-bold text-emerald-900">{onlineDevicesCount}</p>
+              <p className="mt-1 text-sm text-emerald-800">Stato letto dall'ultimo aggiornamento locale</p>
+            </div>
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">ThingsBoard</p>
+              <p className="mt-2 text-2xl font-bold text-blue-900">{thingsBoardDevicesCount}</p>
+              <p className="mt-1 text-sm text-blue-800">Device pronti per binding telemetria e comandi</p>
             </div>
           </div>
         </div>
@@ -416,20 +977,18 @@ export default function IntegratedSmartHub({
                     Associa Dispositivo
                   </button>
                   <button
-                    onClick={() => {
-                      // Simulate adding demo devices
-                      console.log('Adding demo devices...')
-                    }}
-                    className="flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                    onClick={handleAddDemoDevices}
+                    disabled={addingDemoDevices}
+                    className="flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
                   >
-                    <Bot size={20} />
+                    {addingDemoDevices ? <Loader2 size={20} className="animate-spin" /> : <Bot size={20} />}
                     Modalità Demo
                   </button>
                 </div>
                 
                 <div className="mt-6 p-4 bg-blue-50 text-blue-800 text-sm rounded-xl border border-blue-100">
                   <p className="font-bold mb-1">💡 Dispositivi Supportati</p>
-                  <p>Sensori umidità • Valvole irrigazione • Stazioni meteo • Sensori pH/EC</p>
+                  <p>Sensori umidità • Valvole irrigazione • Stazioni meteo • Sensori pH/EC • binding ThingsBoard</p>
                 </div>
               </div>
             ) : (
@@ -446,6 +1005,446 @@ export default function IntegratedSmartHub({
                   </button>
                 </div>
 
+                {orphanDevicesCount > 0 && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                    <p className="font-semibold">Scope agronomico incompleto</p>
+                    <p className="mt-1">
+                      {orphanDevicesCount} device legacy non hanno ancora zona, filare, albero o pianta. Su questi device l’automazione rigorosa resta bloccata finché non vengono collegati a uno scope reale.
+                    </p>
+                  </div>
+                )}
+
+                {automationAnalytics.summary.totalEvents > 0 && (
+                  <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900">Affidabilita automazione irrigua</h3>
+                          <p className="text-xs text-slate-500">Misura se le regole automatiche stanno eseguendo bene.</p>
+                        </div>
+                        <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                          {automationAnalytics.summary.totalEvents} eventi
+                        </span>
+                      </div>
+                      <div className="mt-4 grid gap-3 md:grid-cols-4">
+                        <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
+                          <p className="text-[10px] font-bold uppercase text-blue-500">Comandi auto</p>
+                          <p className="mt-1 text-2xl font-bold text-blue-900">{automationAnalytics.summary.automatedCommands}</p>
+                        </div>
+                        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                          <p className="text-[10px] font-bold uppercase text-emerald-500">Outcome nominali</p>
+                          <p className="mt-1 text-2xl font-bold text-emerald-900">
+                            {automationAnalytics.summary.nominalOutcomeRate !== undefined
+                              ? `${automationAnalytics.summary.nominalOutcomeRate.toFixed(0)}%`
+                              : '--'}
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
+                          <p className="text-[10px] font-bold uppercase text-amber-500">Timeout</p>
+                          <p className="mt-1 text-2xl font-bold text-amber-900">{automationAnalytics.summary.commandTimeouts}</p>
+                        </div>
+                        <div className="rounded-xl border border-violet-100 bg-violet-50 p-3">
+                          <p className="text-[10px] font-bold uppercase text-violet-500">Ack medio</p>
+                          <p className="mt-1 text-2xl font-bold text-violet-900">
+                            {automationAnalytics.summary.averageAckMs !== undefined
+                              ? `${Math.round(automationAnalytics.summary.averageAckMs)} ms`
+                              : '--'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900">Hotspot scope</h3>
+                          <p className="text-xs text-slate-500">Zone o filari dove la risposta irrigua e peggiore.</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        {automationAnalytics.hotspots.length === 0 ? (
+                          <p className="text-sm text-slate-500">Nessun hotspot critico rilevato nello storico corrente.</p>
+                        ) : (
+                          automationAnalytics.hotspots.map(hotspot => (
+                            <div key={hotspot.deviceId} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-sm font-semibold text-slate-900">{hotspot.deviceName}</p>
+                                <span className="rounded-full bg-red-100 px-2 py-1 text-[11px] font-semibold text-red-700">
+                                  score {hotspot.severityScore}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs text-slate-500">{hotspot.scopeLabel}</p>
+                              <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-600">
+                                <span>timeout {hotspot.commandTimeouts}</span>
+                                <span>warning {hotspot.warningOutcomes}</span>
+                                <span>critical {hotspot.criticalOutcomes}</span>
+                                {hotspot.averageAckMs !== undefined && <span>ack {Math.round(hotspot.averageAckMs)} ms</span>}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {automationAnalytics.recommendations.length > 0 && (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900">Suggerimenti sulle regole</h3>
+                        <p className="text-xs text-slate-500">Correzioni consigliate in base a timeout, outcome e risposta del suolo.</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      {automationAnalytics.recommendations.map(recommendation => (
+                        <div
+                          key={recommendation.id}
+                          className={`rounded-xl border p-3 text-sm ${getRecommendationClasses(recommendation.severity)}`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-semibold">{recommendation.title}</p>
+                            <span className="rounded-full bg-white/80 px-2 py-1 text-[11px] font-semibold">
+                              {recommendation.severity}
+                            </span>
+                          </div>
+                          {recommendation.scopeLabel && (
+                            <p className="mt-2 text-[11px] uppercase tracking-wide opacity-70">
+                              {recommendation.scopeLabel}
+                            </p>
+                          )}
+                          <p className="mt-2 text-xs leading-5">
+                            {recommendation.message}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(automationAnalytics.benchmark.bestScope || benchmarkTopGaps.length > 0) && (
+                  <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900">Benchmark operativo</h3>
+                          <p className="text-xs text-slate-500">Lo scope migliore diventa il riferimento per tarare le altre regole.</p>
+                        </div>
+                      </div>
+                      {automationAnalytics.benchmark.bestScope ? (
+                        <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Scope benchmark</p>
+                              <p className="mt-1 text-lg font-bold text-emerald-950">
+                                {automationAnalytics.benchmark.bestScope.scopeLabel}
+                              </p>
+                            </div>
+                            <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-emerald-700">
+                              score {automationAnalytics.benchmark.bestScope.severityScore}
+                            </span>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-emerald-800">
+                            <span className="rounded-full bg-white px-2 py-1">
+                              successo {automationAnalytics.benchmark.bestScope.nominalOutcomeRate?.toFixed(0) ?? '--'}%
+                            </span>
+                            <span className="rounded-full bg-white px-2 py-1">
+                              delta medio {automationAnalytics.benchmark.bestScope.averageMoistureDelta?.toFixed(1) ?? '--'}%
+                            </span>
+                            <span className="rounded-full bg-white px-2 py-1">
+                              target {automationAnalytics.benchmark.bestScope.totalTargetLiters.toFixed(1)} L
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="mt-4 text-sm text-slate-500">Non ci sono ancora abbastanza outcome per definire uno scope benchmark.</p>
+                      )}
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900">Scope da recuperare</h3>
+                          <p className="text-xs text-slate-500">Quelli che oggi si discostano di piu dal benchmark.</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        {benchmarkTopGaps.length === 0 ? (
+                          <p className="text-sm text-slate-500">Nessun gap materiale rispetto allo scope benchmark.</p>
+                        ) : (
+                          benchmarkTopGaps.map(scopeGap => (
+                            <div key={scopeGap.scopeKey} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-sm font-semibold text-slate-900">{scopeGap.scopeLabel}</p>
+                                <span className="rounded-full bg-red-100 px-2 py-1 text-[11px] font-semibold text-red-700">
+                                  gap {scopeGap.severityGap}
+                                </span>
+                              </div>
+                              <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-600">
+                                {scopeGap.nominalOutcomeGap !== undefined && (
+                                  <span>successo -{scopeGap.nominalOutcomeGap.toFixed(0)} pp</span>
+                                )}
+                                {scopeGap.moistureDeltaGap !== undefined && (
+                                  <span>delta suolo -{scopeGap.moistureDeltaGap.toFixed(1)}%</span>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {automationAnalytics.scopeActions.length > 0 && (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900">Azioni consigliate per scope</h3>
+                        <p className="text-xs text-slate-500">Priorita operative generate da benchmark, outcome e feedback del suolo.</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                      {automationAnalytics.scopeActions.map(actionItem => (
+                        <div
+                          key={actionItem.id}
+                          className={`rounded-xl border p-3 text-sm ${getScopeActionClasses(actionItem.priority)}`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-semibold">{actionItem.title}</p>
+                            <div className="flex items-center gap-2 text-[11px] font-semibold">
+                              <span className="rounded-full bg-white/80 px-2 py-1">
+                                {actionItem.priority}
+                              </span>
+                              <span className="rounded-full bg-white/80 px-2 py-1 uppercase">
+                                {actionItem.category}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="mt-2 text-[11px] uppercase tracking-wide opacity-70">
+                            {actionItem.scopeLabel}
+                          </p>
+                          <p className="mt-2 text-xs leading-5">
+                            {actionItem.action}
+                          </p>
+                          {actionItem.changes && actionItem.deviceIds.length > 0 && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  setApplyingScopeActionId(actionItem.id)
+                                  await onApplyScopeAction(actionItem)
+                                } finally {
+                                  setApplyingScopeActionId(currentId =>
+                                    currentId === actionItem.id ? null : currentId
+                                  )
+                                }
+                              }}
+                              disabled={applyingScopeActionId !== null}
+                              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-white/90 px-3 py-2 text-xs font-semibold text-slate-900 shadow-sm transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {applyingScopeActionId === actionItem.id && (
+                                <Loader2 size={12} className="animate-spin" />
+                              )}
+                              Applica correzione
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {automationAnalytics.appliedScopeActions.length > 0 && (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900">Correzioni applicate</h3>
+                        <p className="text-xs text-slate-500">Storico recente con confronto prima/dopo e possibilità di rollback.</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 space-y-3">
+                      {automationAnalytics.appliedScopeActions.map(appliedAction => (
+                        <div key={appliedAction.executionId} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-sm font-semibold text-slate-900">{appliedAction.title}</p>
+                                <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${getScopeActionClasses(appliedAction.priority)}`}>
+                                  {appliedAction.priority}
+                                </span>
+                                <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold uppercase text-slate-600">
+                                  {appliedAction.category}
+                                </span>
+                                <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
+                                  appliedAction.rolledBack
+                                    ? 'bg-slate-200 text-slate-700'
+                                    : 'bg-emerald-100 text-emerald-700'
+                                }`}>
+                                  {appliedAction.rolledBack ? 'Rollback eseguito' : 'Attiva'}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs text-slate-500">{appliedAction.scopeLabel}</p>
+                              <p className="mt-1 text-[11px] text-slate-400">
+                                {new Date(appliedAction.appliedAt).toLocaleString('it-IT')}
+                              </p>
+                            </div>
+                            {!appliedAction.rolledBack && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    setRollingBackScopeActionId(appliedAction.executionId)
+                                    await onRollbackScopeAction(appliedAction)
+                                  } finally {
+                                    setRollingBackScopeActionId(currentId =>
+                                      currentId === appliedAction.executionId ? null : currentId
+                                    )
+                                  }
+                                }}
+                                disabled={rollingBackScopeActionId !== null || applyingScopeActionId !== null}
+                                className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {rollingBackScopeActionId === appliedAction.executionId && (
+                                  <Loader2 size={12} className="animate-spin" />
+                                )}
+                                Ripristina
+                              </button>
+                            )}
+                          </div>
+                          <div className="mt-3 grid gap-2 lg:grid-cols-2">
+                            {appliedAction.deviceChanges.map(deviceChange => (
+                              <div key={deviceChange.deviceId} className="rounded-lg bg-white p-3 text-xs text-slate-700">
+                                <p className="font-semibold text-slate-900">{deviceChange.deviceName}</p>
+                                <div className="mt-2 space-y-1">
+                                  {(deviceChange.beforeTargetLiters !== undefined || deviceChange.afterTargetLiters !== undefined) && (
+                                    <p>
+                                      target: {deviceChange.beforeTargetLiters ?? '--'} L {'->'} {deviceChange.afterTargetLiters ?? '--'} L
+                                    </p>
+                                  )}
+                                  {(deviceChange.beforeAutoThreshold !== undefined || deviceChange.afterAutoThreshold !== undefined) && (
+                                    <p>
+                                      soglia: {deviceChange.beforeAutoThreshold ?? '--'}% {'->'} {deviceChange.afterAutoThreshold ?? '--'}%
+                                    </p>
+                                  )}
+                                  {(deviceChange.beforeAutoMode !== undefined || deviceChange.afterAutoMode !== undefined) && (
+                                    <p>
+                                      auto: {deviceChange.beforeAutoMode ? 'on' : 'off'} {'->'} {deviceChange.afterAutoMode ? 'on' : 'off'}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedScopeHistory && (
+                  <div className="grid gap-4 xl:grid-cols-[280px_1fr]">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900">Scope storici</h3>
+                          <p className="text-xs text-slate-500">Ultimi 7 giorni per zona o filare.</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        {automationAnalytics.scopeHistory.map(scope => (
+                          <button
+                            key={scope.scopeKey}
+                            onClick={() => setSelectedHistoryScopeKey(scope.scopeKey)}
+                            className={`w-full rounded-xl border px-3 py-3 text-left transition-colors ${
+                              scope.scopeKey === selectedScopeHistory.scopeKey
+                                ? 'border-blue-200 bg-blue-50'
+                                : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-semibold text-slate-900">{scope.scopeLabel}</p>
+                              <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-slate-600">
+                                score {scope.severityScore}
+                              </span>
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                              {scope.nominalOutcomeRate !== undefined && <span>successo {scope.nominalOutcomeRate.toFixed(0)}%</span>}
+                              {scope.averageMoistureDelta !== undefined && <span>delta medio {scope.averageMoistureDelta.toFixed(1)}%</span>}
+                              <span>target {scope.totalTargetLiters.toFixed(1)} L</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900">Trend storico per {selectedScopeHistory.scopeLabel}</h3>
+                          <p className="text-xs text-slate-500">Confronto tra regole, volume target e outcome negli ultimi 7 giorni.</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-[11px]">
+                          {selectedScopeGap && (
+                            <span className="rounded-full bg-amber-50 px-2 py-1 font-semibold text-amber-700">
+                              gap benchmark {selectedScopeGap.severityGap}
+                            </span>
+                          )}
+                          <span className="rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-700">
+                            successo {selectedScopeHistory.nominalOutcomeRate?.toFixed(0) ?? '--'}%
+                          </span>
+                          <span className="rounded-full bg-blue-50 px-2 py-1 font-semibold text-blue-700">
+                            target {selectedScopeHistory.totalTargetLiters.toFixed(1)} L
+                          </span>
+                          <span className="rounded-full bg-violet-50 px-2 py-1 font-semibold text-violet-700">
+                            delta medio {selectedScopeHistory.averageMoistureDelta?.toFixed(1) ?? '--'}%
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                        <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Regole e outcome
+                          </p>
+                          <div className="h-72">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={selectedScopeHistory.points}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                <XAxis dataKey="label" stroke="#64748b" fontSize={12} />
+                                <YAxis stroke="#64748b" fontSize={12} allowDecimals={false} />
+                                <Tooltip />
+                                <Legend />
+                                <Line type="monotone" dataKey="automatedCommands" name="Comandi auto" stroke="#2563eb" strokeWidth={2} />
+                                <Line type="monotone" dataKey="nominalOutcomes" name="Nominali" stroke="#059669" strokeWidth={2} />
+                                <Line type="monotone" dataKey="warningOutcomes" name="Warning" stroke="#d97706" strokeWidth={2} />
+                                <Line type="monotone" dataKey="criticalOutcomes" name="Critici" stroke="#dc2626" strokeWidth={2} />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Volume target e risposta del suolo
+                          </p>
+                          <div className="h-72">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={selectedScopeHistory.points}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                <XAxis dataKey="label" stroke="#64748b" fontSize={12} />
+                                <YAxis stroke="#64748b" fontSize={12} />
+                                <Tooltip />
+                                <Legend />
+                                <Bar dataKey="totalTargetLiters" name="Target L" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="averageMoistureDelta" name="Delta umidita %" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {gardenDevices.map(device => (
                   <div key={device.id} className={`bg-white rounded-2xl border transition-all shadow-sm ${device.isValveOpen ? 'border-blue-300 shadow-blue-100' : 'border-gray-200'}`}>
                     {/* Device Header */}
@@ -456,9 +1455,85 @@ export default function IntegratedSmartHub({
                         </div>
                         <div>
                           <h3 className="font-bold text-gray-800">{device.name}</h3>
-                          <p className="text-xs text-gray-500 flex items-center gap-3">
-                            <Activity size={10} className="text-green-500"/> Online
-                          </p>
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 ${
+                              device.isOnline ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              <Activity size={10} className={device.isOnline ? 'text-emerald-500' : 'text-gray-400'} />
+                              {device.isOnline ? 'Online' : 'Offline'}
+                            </span>
+                            <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700">
+                              {providerLabel(device.provider)}
+                            </span>
+                            <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-700">
+                              {categoryLabel(device.deviceCategory)}
+                            </span>
+                            <span className={`rounded-full px-2 py-1 ${
+                              hasAgronomicScope(device)
+                                ? 'bg-violet-50 text-violet-700'
+                                : 'bg-amber-50 text-amber-700'
+                            }`}>
+                              {scopeLabel(device)}
+                            </span>
+                            {hasTelemetryAuditIssue(device) && (
+                              <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">
+                                Audit telemetria incompleto
+                              </span>
+                            )}
+                          </div>
+                          {device.lastTelemetryAt && (
+                            <p className="mt-1 text-[11px] text-gray-400">
+                              Ultima telemetria: {new Date(device.lastTelemetryAt).toLocaleString('it-IT')}
+                            </p>
+                          )}
+                          {hasTelemetryAuditIssue(device) && (
+                            <p className="mt-1 text-[11px] text-amber-700">
+                              Ultimo audit telemetrico non salvato completamente
+                              {device.metadata?.auditFailureAt && ` (${new Date(String(device.metadata.auditFailureAt)).toLocaleString('it-IT')})`}
+                              {getTelemetryAuditRetryCount(device) !== undefined && ` • retry ${getTelemetryAuditRetryCount(device)}`}
+                            </p>
+                          )}
+                          {sensorQualityReadings[device.id] && (
+                            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                              {sensorQualityReadings[device.id]?.data_quality_score !== undefined && (
+                                <span className="rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-700">
+                                  Qualita {Math.round(sensorQualityReadings[device.id]!.data_quality_score! * 100)}%
+                                </span>
+                              )}
+                              {sensorQualityReadings[device.id]?.calibration_status && (
+                                <span className="rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-700">
+                                  {sensorQualityReadings[device.id]?.calibration_status}
+                                </span>
+                              )}
+                              {sensorQualityReadings[device.id]?.provider && (
+                                <span className="rounded-full bg-blue-50 px-2 py-1 font-semibold text-blue-700">
+                                  {sensorQualityReadings[device.id]?.provider}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {device.lastCommandStatus && (
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${getCommandStatusClasses(device)}`}>
+                                Comando: {getCommandStatusLabel(device)}
+                              </span>
+                              {device.lastCommandLatencyMs !== undefined && (
+                                <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                                  Ack {Math.round(device.lastCommandLatencyMs)} ms
+                                </span>
+                              )}
+                              {hasTelemetryAuditIssue(device) && (
+                                <span className="rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
+                                  Audit da riallineare
+                                </span>
+                              )}
+                              {automationAnalytics.perDevice[device.id]?.nominalOutcomeRate !== undefined && (
+                                <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">
+                                  Successo {automationAnalytics.perDevice[device.id].nominalOutcomeRate?.toFixed(0)}%
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <button 
@@ -493,13 +1568,22 @@ export default function IntegratedSmartHub({
                           {/* Valve Control */}
                           <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex justify-between items-center">
                             <div>
-                              <p className="text-xs font-bold text-gray-500 uppercase mb-1">Stato Valvola</p>
+                              <p className="text-xs font-bold text-gray-500 uppercase mb-1">Comando Valvola</p>
                               <p className={`font-bold text-lg ${device.isValveOpen ? 'text-blue-600' : 'text-gray-400'}`}>
                                 {device.isValveOpen ? 'APERTA' : 'CHIUSA'}
                               </p>
+                              <p className={`mt-1 text-xs font-semibold ${getConfirmedValveTone(device)}`}>
+                                Conferma: {getConfirmedValveLabel(device)}
+                              </p>
+                              {device.lastConfirmedValveAt && (
+                                <p className="mt-1 text-[11px] text-gray-400">
+                                  Ultima conferma: {new Date(device.lastConfirmedValveAt).toLocaleString('it-IT')}
+                                </p>
+                              )}
                             </div>
                             <button 
                               onClick={() => onToggleValve(device.id, !device.isValveOpen)}
+                              disabled={device.lastCommandStatus === 'pending'}
                               className={`w-14 h-8 rounded-full transition-colors relative ${device.isValveOpen ? 'bg-blue-600' : 'bg-gray-300'}`}
                             >
                               <div className={`absolute top-1 left-1 bg-white w-6 h-6 rounded-full transition-transform shadow-sm ${device.isValveOpen ? 'translate-x-6' : 'translate-x-0'}`}>
@@ -511,18 +1595,265 @@ export default function IntegratedSmartHub({
                           {/* Flow Meter */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
-                              <p className="text-[10px] font-bold text-blue-400 uppercase mb-1">Sessione</p>
+                              <p className="text-[10px] font-bold text-blue-400 uppercase mb-1">Portata Reale</p>
                               <p className="text-lg md:text-xl font-mono font-bold text-blue-900 leading-none">
-                                {device.sessionLiters.toFixed(1)} <span className="text-xs font-sans">L</span>
+                                {formatTelemetryMetric(device.flowRateActualLpm, 'L/min')}
+                              </p>
+                            </div>
+                            <div className="bg-cyan-50 p-3 rounded-xl border border-cyan-100">
+                              <p className="text-[10px] font-bold text-cyan-500 uppercase mb-1">Pressione Linea</p>
+                              <p className="text-lg md:text-xl font-mono font-bold text-cyan-900 leading-none">
+                                {formatTelemetryMetric(device.linePressureBar, 'bar')}
                               </p>
                             </div>
                             <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                              <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Target Auto-Stop</p>
-                              <p className="text-lg md:text-xl font-mono font-bold text-gray-600 leading-none">
+                              <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Sessione</p>
+                              <p className="text-lg md:text-xl font-mono font-bold text-gray-700 leading-none">
+                                {device.sessionLiters.toFixed(1)} <span className="text-xs font-sans">L</span>
+                              </p>
+                            </div>
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Target Auto-Stop</p>
+                              <p className="text-lg md:text-xl font-mono font-bold text-slate-700 leading-none">
                                 {device.targetLiters > 0 ? device.targetLiters : '∞'} <span className="text-xs font-sans">L</span>
                               </p>
                             </div>
                           </div>
+                          {sensorQualityReadings[device.id] && (
+                            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-900">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="font-semibold">Qualita ultimo segnale sensore</span>
+                                <span className="rounded-full bg-white/80 px-2 py-1 text-[11px] font-semibold">
+                                  {sensorQualityReadings[device.id]?.sensor_type}
+                                </span>
+                              </div>
+                              <div className="mt-2 grid gap-2 md:grid-cols-4">
+                                <div>
+                                  <p className="text-[10px] uppercase opacity-70">Qualita</p>
+                                  <p className="font-semibold">
+                                    {sensorQualityReadings[device.id]?.data_quality_score !== undefined
+                                      ? `${Math.round(sensorQualityReadings[device.id]!.data_quality_score! * 100)}%`
+                                      : '--'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] uppercase opacity-70">Batteria</p>
+                                  <p className="font-semibold">
+                                    {sensorQualityReadings[device.id]?.battery_level_percentage !== undefined
+                                      ? `${Math.round(sensorQualityReadings[device.id]!.battery_level_percentage!)}%`
+                                      : '--'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] uppercase opacity-70">Segnale</p>
+                                  <p className="font-semibold">
+                                    {sensorQualityReadings[device.id]?.signal_strength !== undefined
+                                      ? `${Math.round(sensorQualityReadings[device.id]!.signal_strength!)}%`
+                                      : '--'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] uppercase opacity-70">Calibrazione</p>
+                                  <p className="font-semibold">
+                                    {sensorQualityReadings[device.id]?.calibration_status ?? '--'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          <div className={`rounded-xl border px-3 py-3 text-sm ${getIrrigationOutcomeClasses(device)}`}>
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="font-semibold">Diagnostica irrigua chiusa</span>
+                              <span className="rounded-full bg-white/70 px-2 py-1 text-[11px] font-semibold">
+                                {getIrrigationOutcomeLabel(device)}
+                              </span>
+                            </div>
+                            <div className="mt-2 grid gap-2 md:grid-cols-3">
+                              <div>
+                                <p className="text-[10px] uppercase opacity-70">Volume vs target</p>
+                                <p className="font-semibold">
+                                  {device.targetLiters > 0
+                                    ? `${device.sessionLiters.toFixed(1)} / ${device.targetLiters.toFixed(1)} L`
+                                    : `${device.sessionLiters.toFixed(1)} L`}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] uppercase opacity-70">Delta umidita</p>
+                                <p className="font-semibold">
+                                  {device.lastIrrigationDeltaMoisture !== undefined
+                                    ? `${device.lastIrrigationDeltaMoisture.toFixed(1)}%`
+                                    : '--'}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] uppercase opacity-70">Chiusura ciclo</p>
+                                <p className="font-semibold">
+                                  {device.lastIrrigationCompletedAt
+                                    ? new Date(device.lastIrrigationCompletedAt).toLocaleTimeString('it-IT', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      })
+                                    : 'In corso'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="mt-3 space-y-1">
+                              {getIrrigationDiagnostics(device).map(diagnostic => (
+                                <p key={diagnostic} className="text-xs">
+                                  {diagnostic}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                          {scopeDiagnostics[device.id] && (
+                            <div className={`rounded-xl border px-3 py-3 text-sm ${getScopeDiagnosticsStatusClasses(scopeDiagnostics[device.id])}`}>
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="font-semibold">Diagnostica agronomica per scope</span>
+                                <span className="rounded-full bg-white/70 px-2 py-1 text-[11px] font-semibold">
+                                  {getScopeDiagnosticsStatusLabel(scopeDiagnostics[device.id])}
+                                </span>
+                              </div>
+                              <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                                <div>
+                                  <p className="text-[10px] uppercase opacity-70">Scope</p>
+                                  <p className="font-semibold">{scopeDiagnostics[device.id].scopeLabel}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] uppercase opacity-70">Risoluzione</p>
+                                  <p className="font-semibold">{scopeDiagnostics[device.id].resolutionLabel}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] uppercase opacity-70">Gap aria-rugiada</p>
+                                  <p className="font-semibold">
+                                    {scopeDiagnostics[device.id].snapshot.dewPointGapC !== undefined
+                                      ? `${scopeDiagnostics[device.id].snapshot.dewPointGapC?.toFixed(1)} C`
+                                      : '--'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] uppercase opacity-70">Tensione suolo</p>
+                                  <p className="font-semibold">
+                                    {scopeDiagnostics[device.id].snapshot.soilTensionKpa !== undefined
+                                      ? `${scopeDiagnostics[device.id].snapshot.soilTensionKpa?.toFixed(0)} kPa`
+                                      : '--'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${getRiskTone(scopeDiagnostics[device.id].waterStress)}`}>
+                                  Stress idrico: {scopeDiagnostics[device.id].waterStress}
+                                </span>
+                                <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${getRiskTone(scopeDiagnostics[device.id].heatStress)}`}>
+                                  Stress termico: {scopeDiagnostics[device.id].heatStress}
+                                </span>
+                                <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${getRiskTone(scopeDiagnostics[device.id].fungalPressure)}`}>
+                                  Pressione fungina: {scopeDiagnostics[device.id].fungalPressure}
+                                </span>
+                              </div>
+                              <div className="mt-3 space-y-1">
+                                {scopeDiagnostics[device.id].supportingSignals.slice(0, 3).map(signal => (
+                                  <p key={signal} className="text-xs">
+                                    {signal}
+                                  </p>
+                                ))}
+                              </div>
+                              <p className="mt-3 text-xs font-medium">
+                                {scopeDiagnostics[device.id].recommendation}
+                              </p>
+                            </div>
+                          )}
+                          {device.lastAutomationDecision && (
+                            <div className={`rounded-xl border px-3 py-3 text-sm ${getAutomationDecisionClasses(device)}`}>
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="font-semibold">Audit automazione irrigua</span>
+                                <span className="rounded-full bg-white/70 px-2 py-1 text-[11px] font-semibold">
+                                  {getAutomationDecisionLabel(device)}
+                                </span>
+                              </div>
+                              <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                                <div>
+                                  <p className="text-[10px] uppercase opacity-70">Trigger</p>
+                                  <p className="font-semibold">{getAutomationTriggerLabel(device)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] uppercase opacity-70">Confidenza</p>
+                                  <p className="font-semibold">{device.lastAutomationConfidence ?? '--'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] uppercase opacity-70">Target dinamico</p>
+                                  <p className="font-semibold">
+                                    {device.lastAutomationTargetLiters !== undefined
+                                      ? `${device.lastAutomationTargetLiters.toFixed(1)} L`
+                                      : '--'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] uppercase opacity-70">Ultima valutazione</p>
+                                  <p className="font-semibold">
+                                    {device.lastAutomationEvaluatedAt
+                                      ? new Date(device.lastAutomationEvaluatedAt).toLocaleTimeString('it-IT', {
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                        })
+                                      : '--'}
+                                  </p>
+                                </div>
+                              </div>
+                              {device.lastAutomationReason && (
+                                <p className="mt-3 text-xs font-medium">
+                                  {device.lastAutomationReason}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {(automationLogs[device.id]?.length ?? 0) > 0 && (
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-800">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-semibold">Storico decisione-esecuzione-outcome</span>
+                                <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-slate-600">
+                                  {automationLogs[device.id].length} eventi
+                                </span>
+                              </div>
+                              <div className="mt-3 space-y-2">
+                                {automationLogs[device.id].slice(0, 4).map(log => (
+                                  <div key={log.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${getAutomationLogTone(log)}`}>
+                                          {getAutomationLogLabel(log)}
+                                        </span>
+                                        {log.commandStatus && (
+                                          <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                                            {log.commandStatus}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-[11px] text-slate-500">
+                                        {new Date(log.eventAt).toLocaleTimeString('it-IT', {
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                        })}
+                                      </span>
+                                    </div>
+                                    <p className="mt-2 text-xs text-slate-700">
+                                      {getAutomationLogSummary(log)}
+                                    </p>
+                                    <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                                      {log.targetLiters !== undefined && <span>target {log.targetLiters.toFixed(1)} L</span>}
+                                      {log.sessionLiters !== undefined && <span>sessione {log.sessionLiters.toFixed(1)} L</span>}
+                                      {log.moisture !== undefined && <span>umidita {log.moisture.toFixed(1)}%</span>}
+                                      {log.irrigationDeltaMoisture !== undefined && <span>delta {log.irrigationDeltaMoisture.toFixed(1)}%</span>}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {device.lastCommandError && (
+                            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                              {device.lastCommandError}
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -610,10 +1941,14 @@ export default function IntegratedSmartHub({
                             <input 
                               type="checkbox" 
                               checked={device.autoMode}
+                              disabled={!hasAgronomicScope(device)}
                               onChange={(e) => onUpdateDeviceSettings(device.id, { autoMode: e.target.checked })}
                               className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
                             />
-                            <span className="text-sm font-bold text-gray-700">Abilita Modalità Automatica</span>
+                            <span className="text-sm font-bold text-gray-700">
+                              Abilita Modalità Automatica
+                              {!hasAgronomicScope(device) ? ' (richiede scope agronomico)' : ''}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -859,10 +2194,32 @@ export default function IntegratedSmartHub({
             </div>
             
             <div className="p-6 space-y-4">
+              {associationError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  {associationError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Provider</label>
+                <select
+                  value={deviceForm.provider}
+                  onChange={(e) => setDeviceForm(prev => ({ ...prev, provider: e.target.value as DeviceAssociationForm['provider'] }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="thingsboard">ThingsBoard</option>
+                  <option value="tuya">Tuya</option>
+                  <option value="manual">Manuale / locale</option>
+                </select>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Tipo Dispositivo</label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                  <option value="">Seleziona tipo...</option>
+                <select
+                  value={deviceForm.deviceCategory}
+                  onChange={(e) => setDeviceForm(prev => ({ ...prev, deviceCategory: e.target.value as DeviceAssociationForm['deviceCategory'] }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
                   <option value="moisture_sensor">Sensore Umidità</option>
                   <option value="irrigation_valve">Valvola Irrigazione</option>
                   <option value="weather_station">Stazione Meteo</option>
@@ -876,27 +2233,126 @@ export default function IntegratedSmartHub({
                 <input
                   type="text"
                   placeholder="Es: Sensore Zona A"
+                  value={deviceForm.name}
+                  onChange={(e) => setDeviceForm(prev => ({ ...prev, name: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Device ID esterno</label>
+                <input
+                  type="text"
+                  placeholder="Es: tb-vigna-01"
+                  value={deviceForm.externalDeviceId}
+                  onChange={(e) => setDeviceForm(prev => ({ ...prev, externalDeviceId: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Scope agronomico</label>
+                <select
+                  value={deviceForm.scopeType}
+                  onChange={(e) => setDeviceForm(prev => ({ ...prev, scopeType: e.target.value as DeviceAssociationForm['scopeType'] }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="zone">Zona</option>
+                  <option value="field_row">Filare</option>
+                  <option value="tree">Albero</option>
+                  <option value="plant">Pianta</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Sensor ID</label>
+                  <input
+                    type="text"
+                    placeholder="soil-row-01"
+                    value={deviceForm.sensorId}
+                    onChange={(e) => setDeviceForm(prev => ({ ...prev, sensorId: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {scopeTypeLabel(deviceForm.scopeType)} ID
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={
+                      deviceForm.scopeType === 'zone'
+                        ? 'zona-nord'
+                        : deviceForm.scopeType === 'field_row'
+                        ? 'filare-01'
+                        : deviceForm.scopeType === 'tree'
+                        ? 'tree-012'
+                        : 'plant-045'
+                    }
+                    value={deviceForm.scopeId}
+                    onChange={(e) => setDeviceForm(prev => ({ ...prev, scopeId: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Metodo Connessione</label>
                 <div className="space-y-2">
                   <label className="flex items-center gap-2">
-                    <input type="radio" name="connection" value="wifi" className="text-blue-600" />
+                    <input
+                      type="radio"
+                      name="connection"
+                      value="cloud"
+                      checked={deviceForm.connectionType === 'cloud'}
+                      onChange={(e) => setDeviceForm(prev => ({ ...prev, connectionType: e.target.value as DeviceAssociationForm['connectionType'] }))}
+                      className="text-blue-600"
+                    />
+                    <span className="text-sm">Cloud API</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="connection"
+                      value="wifi"
+                      checked={deviceForm.connectionType === 'wifi'}
+                      onChange={(e) => setDeviceForm(prev => ({ ...prev, connectionType: e.target.value as DeviceAssociationForm['connectionType'] }))}
+                      className="text-blue-600"
+                    />
                     <span className="text-sm">WiFi</span>
                   </label>
                   <label className="flex items-center gap-2">
-                    <input type="radio" name="connection" value="bluetooth" className="text-blue-600" />
+                    <input
+                      type="radio"
+                      name="connection"
+                      value="bluetooth"
+                      checked={deviceForm.connectionType === 'bluetooth'}
+                      onChange={(e) => setDeviceForm(prev => ({ ...prev, connectionType: e.target.value as DeviceAssociationForm['connectionType'] }))}
+                      className="text-blue-600"
+                    />
                     <span className="text-sm">Bluetooth</span>
                   </label>
                   <label className="flex items-center gap-2">
-                    <input type="radio" name="connection" value="zigbee" className="text-blue-600" />
+                    <input
+                      type="radio"
+                      name="connection"
+                      value="zigbee"
+                      checked={deviceForm.connectionType === 'zigbee'}
+                      onChange={(e) => setDeviceForm(prev => ({ ...prev, connectionType: e.target.value as DeviceAssociationForm['connectionType'] }))}
+                      className="text-blue-600"
+                    />
                     <span className="text-sm">Zigbee</span>
                   </label>
                   <label className="flex items-center gap-2">
-                    <input type="radio" name="connection" value="lora" className="text-blue-600" />
+                    <input
+                      type="radio"
+                      name="connection"
+                      value="lora"
+                      checked={deviceForm.connectionType === 'lora'}
+                      onChange={(e) => setDeviceForm(prev => ({ ...prev, connectionType: e.target.value as DeviceAssociationForm['connectionType'] }))}
+                      className="text-blue-600"
+                    />
                     <span className="text-sm">LoRa</span>
                   </label>
                 </div>
@@ -904,21 +2360,21 @@ export default function IntegratedSmartHub({
               
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p className="text-sm text-blue-800">
-                  <strong>Tuya Smart Integration:</strong> Supporto nativo per dispositivi Tuya Smart. 
-                  Configura il dispositivo nell'app Tuya Smart prima di associarlo qui.
+                  <strong>Binding rigoroso:</strong> ogni device nuovo viene legato a uno scope agronomico preciso.
+                  Questo evita sensori orfani e prepara correlazioni affidabili tra telemetria, operazioni e risultati.
                 </p>
               </div>
             </div>
             
             <div className="p-6 border-t border-gray-200 flex gap-3">
               <button
-                onClick={() => setShowDeviceWizard(false)}
+                onClick={resetDeviceWizard}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Annulla
               </button>
               <button
-                onClick={() => handleAssociateDevice({})}
+                onClick={handleAssociateDevice}
                 disabled={associatingDevice}
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >

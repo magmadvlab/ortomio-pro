@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Garden } from '@/types'
+import { Garden, GardenTask } from '@/types'
 import { plantHealthMonitoringService, HealthAlert } from '@/services/plantHealthMonitoringService'
+import { useStorage } from '@/packages/core/hooks/useStorage'
 import { 
   AlertTriangle, 
   Camera, 
@@ -22,21 +23,19 @@ interface HealthAlertsWidgetProps {
 
 export default function HealthAlertsWidget({ garden, maxAlerts = 3 }: HealthAlertsWidgetProps) {
   const router = useRouter()
+  const { storageProvider } = useStorage()
   const [alerts, setAlerts] = useState<HealthAlert[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (garden?.id) {
-      loadHealthAlerts()
-    }
-  }, [garden?.id])
-
-  const loadHealthAlerts = async () => {
+  const loadHealthAlerts = useCallback(async () => {
     setLoading(true)
     try {
       // Simula caricamento task per analisi
-      const tasks = [] // In produzione: caricare task reali
-      const healthAlerts = await plantHealthMonitoringService.analyzeGardenHealth(garden, tasks)
+      const tasks: GardenTask[] = [] // In produzione: caricare task reali
+      const devices = storageProvider?.getDevices
+        ? await storageProvider.getDevices(garden.id).catch(() => [])
+        : []
+      const healthAlerts = await plantHealthMonitoringService.analyzeGardenHealth(garden, tasks, { devices })
       
       // Ordina per severità e urgenza
       const sortedAlerts = healthAlerts
@@ -55,7 +54,13 @@ export default function HealthAlertsWidget({ garden, maxAlerts = 3 }: HealthAler
     } finally {
       setLoading(false)
     }
-  }
+  }, [garden, maxAlerts, storageProvider])
+
+  useEffect(() => {
+    if (garden?.id) {
+      loadHealthAlerts()
+    }
+  }, [garden?.id, loadHealthAlerts])
 
   const getSeverityColor = (severity: HealthAlert['severity']) => {
     switch (severity) {

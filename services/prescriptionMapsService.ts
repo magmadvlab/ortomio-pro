@@ -5,7 +5,9 @@
 
 import {
   PrescriptionMap,
+  PrescriptionMapExportRecord,
   PrescriptionZone,
+  PrescriptionExecutionRecord,
   PrescriptionGenerationRequest,
   PrescriptionGenerationResult,
   NDVIDataPoint,
@@ -15,6 +17,13 @@ import {
   PrescriptionAlgorithm,
   PrescriptionCostAnalysis
 } from '../types/prescriptionMaps';
+import {
+  getPrescriptionExecutionEfficacySummary,
+  getPrescriptionExecutionSummary,
+  getPrescriptionExecutionVarianceSummary,
+  getPrescriptionExecutionOutcomeSummary,
+} from './prescriptionExecutionService';
+import { buildPrescriptionAgronomicIntelligenceSummary } from './prescriptionAgronomicIntelligenceService';
 
 export interface DataFusionResult {
   dataPoints: Array<{
@@ -47,6 +56,16 @@ export interface ZoneGenerationResult {
   };
 }
 
+export interface PrescriptionMapFieldOpsSummary {
+  totalExports: number
+  generatedExports: number
+  downloadedExports: number
+  importedExports: number
+  appliedExports: number
+  linkedExecutions: number
+  latestExport?: PrescriptionMapExportRecord
+}
+
 /**
  * PRESCRIPTION MAPS SERVICE
  */
@@ -55,6 +74,249 @@ export class PrescriptionMapsService {
 
   constructor(storageProvider: any) {
     this.storageProvider = storageProvider;
+  }
+
+  async getPrescriptionMaps(gardenId: string): Promise<PrescriptionMap[]> {
+    if (!this.storageProvider?.getPrescriptionMaps) {
+      return [];
+    }
+
+    return this.storageProvider.getPrescriptionMaps(gardenId);
+  }
+
+  async getPrescriptionMapStats(gardenId: string) {
+    const maps = await this.getPrescriptionMaps(gardenId);
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const mapsGeneratedThisMonth = maps.filter((map) => {
+      const generationDate = new Date(map.generationDate);
+      return generationDate.getMonth() === currentMonth && generationDate.getFullYear() === currentYear;
+    }).length;
+
+    const average = (values: number[]) => (
+      values.length > 0
+        ? Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(2))
+        : 0
+    );
+
+    return {
+      totalMapsGenerated: maps.length,
+      mapsGeneratedThisMonth,
+      totalAreaCovered: Number((maps.reduce((sum, map) => sum + map.areaHectares, 0)).toFixed(2)),
+      popularMapTypes: maps.reduce((acc: Record<string, number>, map) => {
+        acc[map.mapType] = (acc[map.mapType] || 0) + 1;
+        return acc;
+      }, {}),
+      popularExportFormats: maps.reduce((acc: Record<string, number>, map) => {
+        Object.entries(map.exportFormats).forEach(([format, enabled]) => {
+          if (enabled) {
+            acc[format] = (acc[format] || 0) + 1;
+          }
+        });
+        return acc;
+      }, {}),
+      averageZonesPerMap: average(maps.map((map) => map.totalZones)),
+      averageQualityScore: average(maps.map((map) => map.qualityScore)),
+      averageDataCompleteness: average(maps.map((map) => map.dataCompleteness)),
+      successRate: average(maps.map((map) => (map.validationStatus === 'invalid' ? 0 : 100))),
+      totalCostSavings: Number((maps.reduce((sum, map) => sum + (map.costSavings || 0), 0)).toFixed(2)),
+      averageRoi: average(maps.map((map) => map.costAnalysis?.roi || 0)),
+      inputReductionAchieved: average(maps.map((map) => map.inputReduction || 0)),
+      activeUsers: 1,
+      mapsDownloaded: 0,
+      machineryIntegrations: 0
+    };
+  }
+
+  async getPrescriptionExecutionSummary(map: PrescriptionMap) {
+    return getPrescriptionExecutionSummary(this.storageProvider, map);
+  }
+
+  async getPrescriptionExecutionVarianceSummary(map: PrescriptionMap) {
+    return getPrescriptionExecutionVarianceSummary(this.storageProvider, map);
+  }
+
+  async getPrescriptionExecutionOutcomeSummary(map: PrescriptionMap) {
+    return getPrescriptionExecutionOutcomeSummary(this.storageProvider, map);
+  }
+
+  async getPrescriptionExecutionEfficacySummary(map: PrescriptionMap) {
+    return getPrescriptionExecutionEfficacySummary(this.storageProvider, map);
+  }
+
+  async getPrescriptionAgronomicIntelligenceSummary(map: PrescriptionMap) {
+    const [efficacySummary, varianceSummary, outcomeSummary] = await Promise.all([
+      this.getPrescriptionExecutionEfficacySummary(map),
+      this.getPrescriptionExecutionVarianceSummary(map),
+      this.getPrescriptionExecutionOutcomeSummary(map),
+    ])
+
+    return buildPrescriptionAgronomicIntelligenceSummary(
+      map,
+      efficacySummary,
+      varianceSummary,
+      outcomeSummary
+    )
+  }
+
+  async getPrescriptionMapExportRecords(
+    map: PrescriptionMap,
+    options?: {
+      format?: PrescriptionMapExportRecord['format']
+      status?: PrescriptionMapExportRecord['status']
+      limit?: number
+    }
+  ): Promise<PrescriptionMapExportRecord[]> {
+    if (!this.storageProvider?.getPrescriptionMapExportRecords) {
+      return []
+    }
+
+    return this.storageProvider.getPrescriptionMapExportRecords(map.id, options)
+  }
+
+  async getPrescriptionMapFieldOpsSummary(map: PrescriptionMap): Promise<PrescriptionMapFieldOpsSummary> {
+    const [exports, records] = await Promise.all([
+      this.getPrescriptionMapExportRecords(map, { limit: 50 }),
+      this.storageProvider?.getPrescriptionExecutionRecords
+        ? this.storageProvider.getPrescriptionExecutionRecords(map.id, { limit: 300 })
+        : Promise.resolve([] as PrescriptionExecutionRecord[]),
+    ])
+
+    return {
+      totalExports: exports.length,
+      generatedExports: exports.filter((item: PrescriptionMapExportRecord) => item.status === 'generated').length,
+      downloadedExports: exports.filter((item: PrescriptionMapExportRecord) => item.status === 'downloaded').length,
+      importedExports: exports.filter((item: PrescriptionMapExportRecord) => item.status === 'field_imported').length,
+      appliedExports: exports.filter((item: PrescriptionMapExportRecord) => item.status === 'field_applied').length,
+      linkedExecutions: records.filter((item: PrescriptionExecutionRecord) => Boolean(item.prescriptionExportId)).length,
+      latestExport: exports[0],
+    }
+  }
+
+  async createPrescriptionMapRevision(
+    mapId: string,
+    overrides: Partial<PrescriptionMap> = {}
+  ): Promise<PrescriptionMap> {
+    if (!this.storageProvider?.getPrescriptionMap || !this.storageProvider?.createPrescriptionMap) {
+      throw new Error('Storage provider non supporta il versioning operativo delle prescription maps')
+    }
+
+    const currentMap = await this.storageProvider.getPrescriptionMap(mapId)
+    if (!currentMap) {
+      throw new Error('Prescription map sorgente non trovata per creare una revisione')
+    }
+
+    const nextVersionNumber = (currentMap.versionNumber || 1) + 1
+    const rootVersionId = currentMap.rootVersionId || currentMap.id
+    const baseName = currentMap.name.replace(/\s+v\d+$/i, '')
+
+    return this.storageProvider.createPrescriptionMap({
+      ...currentMap,
+      ...overrides,
+      name: overrides.name || `${baseName} v${nextVersionNumber}`,
+      versionNumber: nextVersionNumber,
+      versionLabel: `v${nextVersionNumber}`,
+      rootVersionId,
+      parentVersionId: currentMap.id,
+      exportCount: 0,
+      lastExportedAt: undefined,
+      lastExecutedAt: undefined,
+      zones: (overrides.zones || currentMap.zones).map((zone: PrescriptionZone) => ({
+        ...zone,
+        id: crypto.randomUUID(),
+        prescriptionMapId: '',
+      })),
+    })
+  }
+
+  async recordZoneExecution(
+    map: PrescriptionMap,
+    zone: PrescriptionZone,
+    payload: {
+      executionStatus: PrescriptionExecutionRecord['executionStatus']
+      actualRate?: number
+      areaAppliedSqm?: number
+      operatorName?: string
+      notes?: string
+      sourceOperationType?: PrescriptionExecutionRecord['sourceOperationType']
+      sourceOperationId?: string
+      prescriptionExportId?: string
+      smartDeviceId?: string
+    }
+  ): Promise<PrescriptionExecutionRecord> {
+    if (!this.storageProvider?.createPrescriptionExecutionRecord) {
+      throw new Error('Storage provider non supporta la registrazione delle esecuzioni prescrittive')
+    }
+
+    const plannedRate = zone.prescription.applicationRate
+    const plannedAreaSqm = zone.areaSqm
+
+    const actualRate = payload.actualRate ?? (
+      payload.executionStatus === 'completed'
+        ? plannedRate
+        : payload.executionStatus === 'partial'
+          ? Number((plannedRate * 0.7).toFixed(2))
+          : undefined
+    )
+
+    const areaAppliedSqm = payload.areaAppliedSqm ?? (
+      payload.executionStatus === 'completed'
+        ? plannedAreaSqm
+        : payload.executionStatus === 'partial'
+          ? Number((plannedAreaSqm * 0.6).toFixed(2))
+          : 0
+    )
+
+    const applicationAccuracy = payload.executionStatus === 'missed'
+      ? 0
+      : plannedRate > 0 && typeof actualRate === 'number'
+        ? Number((100 - Math.min(100, Math.abs(((actualRate - plannedRate) / plannedRate) * 100))).toFixed(2))
+        : undefined
+
+    const totalProductUsed = typeof actualRate === 'number'
+      ? Number(((actualRate * areaAppliedSqm) / 10000).toFixed(4))
+      : 0
+
+    const createdRecord = await this.storageProvider.createPrescriptionExecutionRecord({
+      prescriptionMapId: map.id,
+      prescriptionZoneId: zone.id,
+      applicationDate: new Date().toISOString(),
+      productName: zone.prescription.productName || map.name,
+      productType: zone.prescription.productType || map.mapType,
+      plannedRate,
+      actualRate,
+      unit: zone.prescription.unit,
+      plannedAreaSqm,
+      areaAppliedSqm,
+      totalProductUsed,
+      applicationAccuracy,
+      notes: payload.notes,
+      operatorName: payload.operatorName,
+      executionStatus: payload.executionStatus,
+      executionScopeType: 'zone',
+      executionScopeId: zone.id,
+      sourceOperationType: payload.sourceOperationType || 'manual',
+      sourceOperationId: payload.sourceOperationId,
+      prescriptionExportId: payload.prescriptionExportId,
+      smartDeviceId: payload.smartDeviceId,
+    })
+
+    if (this.storageProvider?.updatePrescriptionMap) {
+      await this.storageProvider.updatePrescriptionMap(map.id, {
+        lastExecutedAt: createdRecord.applicationDate,
+      }).catch(() => undefined)
+    }
+
+    if (payload.prescriptionExportId && this.storageProvider?.updatePrescriptionMapExportRecord) {
+      await this.storageProvider.updatePrescriptionMapExportRecord(payload.prescriptionExportId, {
+        status: 'field_applied',
+        appliedAt: createdRecord.applicationDate,
+      }).catch(() => undefined)
+    }
+
+    return createdRecord
   }
 
   /**
@@ -747,12 +1009,9 @@ export class PrescriptionMapsService {
   }
 
   private async createPrescriptionMapRecord(data: any): Promise<PrescriptionMap> {
-    // This would save to database
-    // For now, return mock object
     const totalAreaSqm = data.zones.reduce((sum: number, zone: any) => sum + zone.areaSqm, 0);
-    
-    return {
-      id: crypto.randomUUID(),
+
+    const builtMap: Omit<PrescriptionMap, 'id' | 'createdAt' | 'updatedAt'> = {
       gardenId: data.gardenId,
       gardenName: data.gardenName || 'Garden',
       name: data.name,
@@ -787,10 +1046,23 @@ export class PrescriptionMapsService {
       costSavings: data.costAnalysis?.savingsVsUniform || 0,
       inputReduction: data.costAnalysis?.inputReduction || 0,
       status: 'completed',
+      versionNumber: 1,
+      versionLabel: 'v1',
+      exportCount: 0,
       validationStatus: 'valid',
       qualityScore: this.calculateOverallQuality(data.quality, data.zones),
       dataCompleteness: data.quality?.completeness || 90,
       costAnalysis: data.costAnalysis,
+      createdBy: data.createdBy
+    };
+
+    if (this.storageProvider?.createPrescriptionMap) {
+      return this.storageProvider.createPrescriptionMap(builtMap);
+    }
+
+    return {
+      ...builtMap,
+      id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };

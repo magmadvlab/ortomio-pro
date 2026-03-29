@@ -327,9 +327,16 @@ export class CostOptimizationService {
    */
 
   private async loadPrescriptionMap(mapId: string): Promise<PrescriptionMap> {
-    // This would load from storage provider
-    // For now, return mock data
-    return {} as PrescriptionMap;
+    if (!this.storageProvider?.getPrescriptionMap) {
+      throw new Error('Storage provider non supporta getPrescriptionMap');
+    }
+
+    const map = await this.storageProvider.getPrescriptionMap(mapId);
+    if (!map) {
+      throw new Error(`Prescription map ${mapId} non trovata`);
+    }
+
+    return map;
   }
 
   private async calculateBaselineMetrics(map: PrescriptionMap): Promise<{
