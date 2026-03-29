@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piccantino – Anteprima Video</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: #2c1a0e;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; padding: 28px 20px; gap: 18px;
+    font-family: 'Lato', sans-serif;
+  }
+  .top-label { color: #d4a96a; font-size: 13px; letter-spacing: 3px; text-transform: uppercase; font-family: 'Lato', sans-serif; }
+
+  /* ── VIDEO BOX ── */
+  .vwrap {
+    width: 100%; max-width: 960px; aspect-ratio: 16/9;
+    position: relative; overflow: hidden; border-radius: 6px;
+    box-shadow: 0 8px 60px rgba(0,0,0,0.6);
+  }
+  .scene { position: absolute; inset: 0; opacity: 0; transition: opacity 0.9s ease; }
+  .scene.active { opacity: 1; }
+
+  /* ══════════════════════════════════════════
+     SCENE 1 — INTRO  (crema/panna, elegante)
+  ══════════════════════════════════════════ */
+  #s1 {
+    background: #f5ede0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  }
+  /* strisce decorative in cima e in fondo */
+  #s1::before, #s1::after {
+    content: ''; position: absolute; left: 0; right: 0; height: 14px;
+    background: #C4365A;
+  }
+  #s1::before { top: 0; }
+  #s1::after  { bottom: 0; }
+
+  #s1 img.logo {
+    width: clamp(160px, 22%, 240px); height: auto;
+    animation: soft-float 4s ease-in-out infinite;
+    filter: drop-shadow(0 4px 12px rgba(196,54,90,0.25));
+  }
+  @keyframes soft-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+  #s1 .divider { display:flex; align-items:center; gap:12px; }
+  #s1 .divider span { width:60px; height:2px; background:#C4365A; display:block; }
+  #s1 .divider em { color:#C4365A; font-size:clamp(10px,1.4vw,16px); letter-spacing:3px; font-style:normal; font-family:'Lato',sans-serif; font-weight:700; text-transform:uppercase; }
+
+  #s1 h1 {
+    font-family: 'Playfair Display', serif;
+    color: #2c1a0e;
+    font-size: clamp(28px,5.5vw,68px);
+    font-weight: 700; letter-spacing: 2px;
+    text-align: center;
+  }
+  #s1 h1 span { color: #C4365A; }
+  #s1 .place {
+    font-family: 'Lato', sans-serif; color: #7a5c3a;
+    font-size: clamp(11px,1.5vw,18px); letter-spacing: 5px; text-transform: uppercase; font-weight: 300;
+  }
+
+  /* ══════════════════════════════════════════
+     SCENE 2 — CAMINO  (foto reale con testo)
+  ══════════════════════════════════════════ */
+  #s2 { display:flex; flex-direction:column; justify-content:flex-end; background:#1a0a00; }
+  #s2 .bgimg {
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; animation:kb 18s ease-in-out infinite alternate;
+  }
+  @keyframes kb { from{transform:scale(1.06) translate(-1%,0)} to{transform:scale(1) translate(1%,0)} }
+  #s2 .ov {
+    position:absolute; inset:0;
+    background: linear-gradient(to top, rgba(20,8,0,0.92) 0%, rgba(20,8,0,0.35) 55%, transparent 100%);
+  }
+  #s2 .caption { position:relative; text-align:center; padding: 0 10% 6%; }
+  #s2 .caption blockquote {
+    color:#f5ede0; font-family:'Playfair Display',serif; font-style:italic;
+    font-size:clamp(13px,2vw,26px); line-height:1.65;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+    border:none; margin:0 0 14px;
+  }
+  #s2 .caption .attrib {
+    color:#d4a96a; font-size:clamp(10px,1.3vw,15px);
+    letter-spacing:3px; text-transform:uppercase; font-weight:700;
+  }
+  #s2 .caption .line { width:50px; height:2px; background:#C4365A; margin:10px auto; }
+
+  /* ══════════════════════════════════════════
+     SCENE 3 — PRODOTTI
+  ══════════════════════════════════════════ */
+  #s3 {
+    background: #faf3ea;
+    display:flex; flex-direction:row; align-items:center;
+    padding: 4% 6%; gap:4%;
+  }
+  /* banda rossa a sinistra */
+  #s3 .lband { position:absolute; left:0; top:0; bottom:0; width:8px; background:#C4365A; }
+  /* banda crema a destra */
+  #s3 .rband { position:absolute; right:0; top:0; bottom:0; width:8px; background:#C4365A; }
+
+  #s3 .jar-side {
+    flex: 0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+    animation: soft-float 3.5s ease-in-out infinite;
+    position:relative;
+  }
+  #s3 .jar-side img {
+    height: clamp(200px,52vh,540px); width:auto;
+    filter: drop-shadow(0 12px 30px rgba(100,40,10,0.35));
+  }
+  #s3 .text-side { flex:1; position:relative; }
+  #s3 .brand-small {
+    display:flex; align-items:center; gap:8px; margin-bottom:14px;
+  }
+  #s3 .brand-small img { height:clamp(20px,3vw,36px); width:auto; opacity:0.85; }
+  #s3 .badge {
+    display:inline-block; background:#C4365A; color:#fff;
+    padding:4px 14px; border-radius:20px;
+    font-size:clamp(9px,1.1vw,13px); font-weight:700; letter-spacing:2px; text-transform:uppercase;
+    margin-bottom:10px;
+  }
+  #s3 .pname {
+    font-family:'Playfair Display',serif; color:#2c1a0e;
+    font-size:clamp(18px,3.5vw,50px); font-weight:700; line-height:1.15;
+    margin-bottom:8px; transition:opacity 0.4s;
+  }
+  #s3 .ptagline {
+    color:#C4365A; font-family:'Playfair Display',serif; font-style:italic;
+    font-size:clamp(12px,1.8vw,26px); margin-bottom:18px; transition:opacity 0.4s;
+  }
+  #s3 .divider { width:50px; height:2px; background:#C4365A; margin-bottom:14px; }
+  #s3 .usage { color:#7a5c3a; font-size:clamp(9px,1.3vw,17px); line-height:1.7; }
+  #s3 .nat { margin-top:16px; font-size:clamp(9px,1.1vw,14px); color:#C4365A; font-weight:700; letter-spacing:2px; text-transform:uppercase; }
+
+  /* ══════════════════════════════════════════
+     SCENE 4 — STORIA
+  ══════════════════════════════════════════ */
+  #s4 {
+    background: #f5ede0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding: 6% 12%; text-align:center; position:relative;
+  }
+  #s4::before, #s4::after {
+    content:''; position:absolute; left:0; right:0; height:10px; background:#C4365A;
+  }
+  #s4::before { top:0; }
+  #s4::after  { bottom:0; }
+  #s4 .deco { display:flex; align-items:center; gap:14px; margin-bottom:24px; }
+  #s4 .deco img { width:clamp(30px,4vw,50px); height:auto; opacity:0.85; }
+  #s4 .deco span { width:70px; height:2px; background:#C4365A; display:block; opacity:0.7; }
+  #s4 h2 {
+    font-family:'Playfair Display',serif; color:#2c1a0e;
+    font-size:clamp(18px,3.2vw,42px); font-weight:700; margin-bottom:20px; letter-spacing:1px;
+  }
+  #s4 p {
+    color:#5a3e28; font-family:'Playfair Display',serif; font-style:italic;
+    font-size:clamp(12px,1.8vw,26px); line-height:1.75; margin-bottom:22px;
+  }
+  #s4 .quote {
+    color:#C4365A; font-family:'Playfair Display',serif;
+    font-size:clamp(14px,2.2vw,30px); font-style:italic; font-weight:700;
+  }
+
+  /* ══════════════════════════════════════════
+     SCENE 5 — OUTRO
+  ══════════════════════════════════════════ */
+  #s5 {
+    background: #f5ede0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    text-align:center; padding:5%; position:relative;
+  }
+  #s5::before, #s5::after {
+    content:''; position:absolute; left:0; right:0; height:14px; background:#C4365A;
+  }
+  #s5::before { top:0; }
+  #s5::after  { bottom:0; }
+  #s5 img.logo { width:clamp(140px,22%,240px); height:auto; animation:soft-float 4s ease-in-out infinite; filter:drop-shadow(0 4px 14px rgba(196,54,90,0.3)); }
+  #s5 .brand { font-family:'Playfair Display',serif; color:#2c1a0e; font-size:clamp(14px,2.3vw,32px); font-weight:400; font-style:italic; }
+  #s5 .tline { color:#7a5c3a; font-size:clamp(11px,1.5vw,19px); letter-spacing:2px; }
+  #s5 .pills { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  #s5 .pill { background:#C4365A; color:#fff; padding:4px 14px; border-radius:20px; font-size:clamp(9px,1.1vw,13px); font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+  #s5 .social { color:#C4365A; font-family:'Playfair Display',serif; font-style:italic; font-size:clamp(12px,1.8vw,24px); }
+
+  /* ── UI CONTROLS ── */
+  .prog-wrap { width:100%; max-width:960px; height:4px; background:#6b3e1a; border-radius:4px; overflow:hidden; }
+  .prog-bar  { height:100%; background:#C4365A; transition:width 0.4s ease; width:0%; }
+  .dots { display:flex; gap:8px; }
+  .dot { width:9px; height:9px; border-radius:50%; background:#6b3e1a; cursor:pointer; transition:all 0.2s; }
+  .dot.active { background:#C4365A; transform:scale(1.35); }
+  .ctrls { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  .ctrls button {
+    background:#C4365A; color:#fff; border:none; padding:9px 22px; border-radius:30px;
+    font-size:14px; cursor:pointer; font-family:'Lato',sans-serif; font-weight:700;
+    letter-spacing:1px; transition:all 0.2s;
+  }
+  .ctrls button:hover { background:#a82e4a; transform:scale(1.04); }
+  .lbl { color:#d4a96a; font-size:12px; letter-spacing:2px; text-transform:uppercase; }
+</style>
+</head>
+<body>
+
+<div class="top-label">🎬 Anteprima Video · Come Mamma L'ha Fatto</div>
+
+<div class="vwrap">
+
+  <!-- S1: INTRO -->
+  <div class="scene active" id="s1">
+    <img class="logo" src="public/images/logo.png" alt="Logo" onerror="this.style.display='none'">
+    <div class="divider"><span></span><em>Pisticci · Basilicata</em><span></span></div>
+    <h1>Il <span>Piccantino</span><br>di Mamma Enza</h1>
+    <div class="place">100% Naturale · Artigianale</div>
+  </div>
+
+  <!-- S2: CAMINO -->
+  <div class="scene" id="s2">
+    <img class="bgimg" src="public/images/fireplace-group.jpg" alt="Vasetti al camino" onerror="this.style.background='linear-gradient(135deg,#5a1a00,#2a0800)'">
+    <div class="ov"></div>
+    <div class="caption">
+      <blockquote>"Una ricetta nata tra i calanchi di Pisticci,<br>portata avanti con passione da generazioni"</blockquote>
+      <div class="line"></div>
+      <div class="attrib">Come Mamma L'ha Fatto</div>
+    </div>
+  </div>
+
+  <!-- S3: PRODOTTI -->
+  <div class="scene" id="s3">
+    <div class="lband"></div>
+    <div class="rband"></div>
+    <div class="jar-side">
+      <img id="jar-img" src="public/images/piccantino-classico.jpg" alt="Piccantino">
+    </div>
+    <div class="text-side">
+      <div class="brand-small">
+        <img src="public/images/logo.png" alt="logo" onerror="this.style.display='none'">
+      </div>
+      <div class="badge">100% Naturale</div>
+      <div class="pname" id="pname">Piccantino Classico</div>
+      <div class="ptagline" id="ptagline">Il sapore originale</div>
+      <div class="divider"></div>
+      <div class="usage">Condimento per pane, pizza, pasta,<br>carni e formaggi</div>
+    </div>
+  </div>
+
+  <!-- S4: STORIA -->
+  <div class="scene" id="s4">
+    <div class="deco">
+      <span></span>
+      <img src="public/images/logo.png" alt="logo" onerror="this.style.display='none'">
+      <span></span>
+    </div>
+    <h2>Una storia di famiglia</h2>
+    <p>Tra i calanchi lucani di Pisticci, Mamma Enza ha custodito per generazioni la ricetta del Piccantino. Ingredienti scelti, lavorati a mano con amore e rispetto per la tradizione.</p>
+    <div class="quote">"Come Mamma L'ha Fatto"</div>
+  </div>
+
+  <!-- S5: OUTRO -->
+  <div class="scene" id="s5">
+    <img class="logo" src="public/images/logo.png" alt="Logo" onerror="this.style.display='none'">
+    <div class="brand">Come Mamma L'ha Fatto</div>
+    <div class="tline">Il gusto autentico della Basilicata</div>
+    <div class="pills">
+      <span class="pill">100% Naturale</span>
+      <span class="pill">Artigianale</span>
+      <span class="pill">Fatto con amore</span>
+    </div>
+    <div class="social">@COMEmammaLHAFATTO</div>
+  </div>
+
+</div>
+
+<div class="prog-wrap"><div class="prog-bar" id="pb"></div></div>
+<div class="dots">
+  <div class="dot active" onclick="go(0)" title="Intro"></div>
+  <div class="dot" onclick="go(1)" title="Camino"></div>
+  <div class="dot" onclick="go(2)" title="Prodotti"></div>
+  <div class="dot" onclick="go(3)" title="Storia"></div>
+  <div class="dot" onclick="go(4)" title="Outro"></div>
+</div>
+<div class="ctrls">
+  <button onclick="prev()">◀ Prec</button>
+  <button id="pb2" onclick="togglePlay()">▶ Auto</button>
+  <button onclick="next()">Succ ▶</button>
+</div>
+<div class="lbl" id="lbl">Scena 1 / 5 · Intro</div>
+
+<script>
+const SL = ['s1','s2','s3','s4','s5'];
+const LL = ['Intro','Camino & Vasetti','Prodotti','Storia del Brand','Outro & Social'];
+const PP = [
+  {img:'public/images/piccantino-classico.jpg',             name:'Piccantino Classico',               tag:'Il sapore originale'},
+  {img:'public/images/piccantino-pomodori-secchi-olive.jpg',name:'Piccantino Pomodori Secchi e Olive', tag:'Intenso e aromatico'},
+  {img:'public/images/piccantino-pomodori-secchi.jpg',      name:'Piccantino Pomodori Secchi',         tag:'Il sole della Basilicata'},
+  {img:'public/images/piccantino-olive.jpg',                name:'Piccantino alle Olive',              tag:'Morbido e avvolgente'},
+  {img:'public/images/piccantino-tonno.jpg',                name:'Piccantino al Tonno',                tag:'Mare e terra insieme'},
+  {img:'public/images/piccantino-funghi.jpg',               name:'Piccantino ai Funghi',               tag:'Il profumo del bosco'},
+  {img:'public/images/piccantino-melanzane.jpg',            name:'Piccantino Melanzane e Zucchine',    tag:'Sapori dell\'orto'},
+];
+let cur=0,pi=0,playing=false,timer,ptimer;
+function show(i){
+  SL.forEach((id,j)=>document.getElementById(id).classList.toggle('active',j===i));
+  document.querySelectorAll('.dot').forEach((d,j)=>d.classList.toggle('active',j===i));
+  document.getElementById('lbl').textContent=`Scena ${i+1}/${SL.length} · ${LL[i]}`;
+  document.getElementById('pb').style.width=(i/(SL.length-1)*100)+'%';
+  cur=i; i===2?startP():stopP();
+}
+function startP(){stopP();upP();ptimer=setInterval(()=>{pi=(pi+1)%PP.length;upP();},3200);}
+function stopP(){if(ptimer){clearInterval(ptimer);ptimer=null;}}
+function upP(){
+  const p=PP[pi];
+  const nm=document.getElementById('pname'),tg=document.getElementById('ptagline'),im=document.getElementById('jar-img');
+  nm.style.opacity=tg.style.opacity='0';
+  setTimeout(()=>{im.src=p.img;nm.textContent=p.name;tg.textContent=p.tag;nm.style.transition=tg.style.transition='opacity 0.5s';nm.style.opacity=tg.style.opacity='1';},350);
+}
+function next(){if(cur<SL.length-1)show(cur+1);}
+function prev(){if(cur>0)show(cur-1);}
+function go(i){show(i);}
+function togglePlay(){
+  playing=!playing;
+  document.getElementById('pb2').textContent=playing?'⏸ Pausa':'▶ Auto';
+  if(playing)timer=setInterval(()=>show(cur<SL.length-1?cur+1:0),4500);
+  else clearInterval(timer);
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight')next();
+  if(e.key==='ArrowLeft')prev();
+  if(e.key===' '){e.preventDefault();togglePlay();}
+});
+show(0);
+</script>
+</body>
+</html>

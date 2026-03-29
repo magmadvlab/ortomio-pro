@@ -5,6 +5,7 @@ import { GreenhouseConfig } from '@/types/greenhouse';
 import { HydroponicSystemConfig, AquaponicSystemConfig, AeroponicSystemConfig, IndoorGrowingConfig } from '@/types/indoorGrowing';
 import { AreaUnit, convertToSqMeters, convertFromSqMeters } from '@/utils/areaConverter';
 import { X, Save, Grid } from 'lucide-react';
+import Link from 'next/link';
 
 interface GardenStructuresEditorProps {
   garden: Garden;
@@ -18,6 +19,9 @@ export const GardenStructuresEditor: React.FC<GardenStructuresEditorProps> = ({
   onCancel,
 }) => {
   const [loading, setLoading] = useState(false);
+  const isControlledEnvironmentGarden = ['Greenhouse', 'Tunnel', 'Indoor', 'Hydroponic', 'Aquaponic', 'Aeroponic'].includes(
+    garden.gardenType || ''
+  );
   
   // Stati per le strutture base
   const [potCount, setPotCount] = useState<number>(0);
@@ -121,6 +125,9 @@ export const GardenStructuresEditor: React.FC<GardenStructuresEditorProps> = ({
         aquaponicConfig: aquaponicConfig,
         aeroponicConfig: aeroponicConfig,
         indoorConfig: indoorConfig,
+        strategy: garden.strategy || 'unified',
+        hasGreenhouse: garden.gardenType === 'Greenhouse' || garden.gardenType === 'Tunnel',
+        hasIndoor: ['Indoor', 'Hydroponic', 'Aquaponic', 'Aeroponic'].includes(garden.gardenType || ''),
       };
       
       onSave(updatedGarden);
@@ -163,6 +170,20 @@ export const GardenStructuresEditor: React.FC<GardenStructuresEditorProps> = ({
               La superficie totale verrà calcolata automaticamente sommando tutti gli elementi.
             </p>
           </div>
+
+          {isControlledEnvironmentGarden && (
+            <div className="mb-4 rounded-lg border border-cyan-200 bg-cyan-50 p-4">
+              <p className="text-sm text-cyan-900">
+                Questo impianto è ora collegabile anche al modulo operativo controlled environment.
+              </p>
+              <Link
+                href={`/app/controlled-environment?garden=${garden.id}`}
+                className="mt-3 inline-flex items-center rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-cyan-700"
+              >
+                Apri modulo operativo
+              </Link>
+            </div>
+          )}
 
           <SizeConfigurationStep
             gardenType={garden.gardenType || ''}
@@ -257,4 +278,3 @@ export const GardenStructuresEditor: React.FC<GardenStructuresEditorProps> = ({
     </div>
   );
 };
-

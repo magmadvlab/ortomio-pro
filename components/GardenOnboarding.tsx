@@ -57,6 +57,9 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
   // La posizione è obbligatoria per tutti gli spazi esterni (orto, frutteto, oliveto, vigneto, etc.)
   // Per Indoor resta opzionale.
   const needsLocation = gardenType !== 'Indoor';
+  const isControlledEnvironmentType = ['Greenhouse', 'Tunnel', 'Indoor', 'Hydroponic', 'Aquaponic', 'Aeroponic'].includes(
+    gardenType || ''
+  );
 
   // Step 4: Configurazione Strutture e Dimensioni
   const [calculatedSizeSqMeters, setCalculatedSizeSqMeters] = useState<number>(existingGarden?.sizeSqMeters || 0);
@@ -599,6 +602,9 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
       aquaponicConfig: aquaponicConfig,
       aeroponicConfig: aeroponicConfig,
       indoorConfig: indoorConfig,
+      strategy: existingGarden?.strategy || 'unified',
+      hasGreenhouse: gardenType === 'Greenhouse' || gardenType === 'Tunnel',
+      hasIndoor: ['Indoor', 'Hydroponic', 'Aquaponic', 'Aeroponic'].includes(gardenType || ''),
       soilType: soilType || undefined,
       soilPh: soilPh ? parseFloat(soilPh) : undefined,
       coordinates: (latitude && longitude) ? {
@@ -767,6 +773,15 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                   </h4>
                   <p className="text-sm text-gray-600 mb-2">
                     La configurazione dettagliata del sistema sarà disponibile nello Step 4 (Configurazione Strutture e Dimensioni).
+                  </p>
+                </div>
+              )}
+
+              {isControlledEnvironmentType && (
+                <div className="mt-4 rounded-lg border border-cyan-200 bg-cyan-50 p-4">
+                  <p className="text-sm text-cyan-900">
+                    Dopo il salvataggio potrai riaprire questa configurazione nel modulo operativo dedicato
+                    <strong> /app/controlled-environment</strong>, senza passare di nuovo dal wizard.
                   </p>
                 </div>
               )}

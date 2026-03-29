@@ -69,7 +69,7 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
       let fieldRowOps: PlantOperation[] = [];
       if (plant.fieldRowId) {
         try {
-          const rowOperations = await (storageProvider as any).getFieldRowOperations?.(plant.fieldRowId) || [];
+          const rowOperations = await storageProvider.getFieldRowOperations?.(plant.fieldRowId, plant.gardenId) || [];
           
           // Converti operazioni filare in formato PlantOperation con flag speciale
           fieldRowOps = rowOperations.map((op: any) => ({

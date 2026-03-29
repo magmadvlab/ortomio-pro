@@ -1,0 +1,25 @@
+{
+  "name": "come-mamma-video",
+  "version": "1.0.0",
+  "description": "Video brand story - Come Mamma L'ha Fatto / Piccantino",
+  "scripts": {
+    "start": "npx remotion studio",
+    "build": "npx remotion render PicantinoStory out/piccantino-story.mp4",
+    "render": "npx remotion render PicantinoStory out/piccantino-story.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "puppeteer": "^24.40.0",
+    "typescript": "^5.0.0"
+  },
+  "remotion": {
+    "entryPoint": "src/index.ts"
+  }
+}

@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Garden } from '@/types';
 import { HydroponicReading, AquaponicReading } from '@/types/indoorGrowing';
+import { GreenhouseReading } from '@/types/greenhouseReading';
 import { useStorage } from '@/packages/core/hooks/useStorage';
 import { Save } from 'lucide-react';
+import { buildControlledEnvironmentProfile } from '@/services/controlledEnvironmentService';
+import { createControlledEnvironmentExecutionService } from '@/services/controlledEnvironmentExecutionService';
 
 interface ReadingFormProps {
   garden: Garden;
-  readingType: 'hydroponic' | 'aquaponic';
+  readingType: 'hydroponic' | 'aquaponic' | 'greenhouse';
   onComplete?: () => void;
   onCancel?: () => void;
 }
@@ -31,6 +34,10 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
   const [nitrite, setNitrite] = useState('');
   const [nitrate, setNitrate] = useState('');
   const [dissolvedOxygen, setDissolvedOxygen] = useState('');
+  const [internalTemperature, setInternalTemperature] = useState('');
+  const [internalHumidity, setInternalHumidity] = useState('');
+  const [co2Level, setCo2Level] = useState('');
+  const [lightIntensity, setLightIntensity] = useState('');
 
   const [notes, setNotes] = useState('');
 
@@ -39,6 +46,9 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
     setLoading(true);
 
     try {
+      const executionService = createControlledEnvironmentExecutionService(storageProvider);
+      const environmentProfile = buildControlledEnvironmentProfile(garden);
+
       if (readingType === 'hydroponic') {
         const reading: Omit<HydroponicReading, 'id' | 'createdAt'> = {
           gardenId: garden.id,
@@ -50,7 +60,22 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
           notes: notes || undefined,
         };
         await storageProvider.createHydroponicReading(reading);
-      } else {
+        await executionService.createObservation({
+          gardenId: garden.id,
+          environmentProfileId: environmentProfile.id,
+          observationType: 'water_quality',
+          observedAt: reading.readingDate,
+          source: 'manual',
+          payload: {
+            readingType,
+            ph: reading.ph,
+            ec: reading.ec,
+            temperatureCelsius: reading.waterTemperature,
+            reservoirVolumeLiters: reading.reservoirVolume,
+          },
+          notes: reading.notes,
+        });
+      } else if (readingType === 'aquaponic') {
         const reading: Omit<AquaponicReading, 'id' | 'createdAt'> = {
           gardenId: garden.id,
           readingDate: new Date().toISOString(),
@@ -63,6 +88,57 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
           notes: notes || undefined,
         };
         await storageProvider.createAquaponicReading(reading);
+        await executionService.createObservation({
+          gardenId: garden.id,
+          environmentProfileId: environmentProfile.id,
+          observationType: 'water_quality',
+          observedAt: reading.readingDate,
+          source: 'manual',
+          payload: {
+            readingType,
+            ph: reading.ph,
+            ammonia: reading.ammonia,
+            nitrite: reading.nitrite,
+            nitrate: reading.nitrate,
+            temperatureCelsius: reading.waterTemperature,
+            dissolvedOxygen: reading.dissolvedOxygen,
+          },
+          notes: reading.notes,
+        });
+      } else {
+        const now = new Date();
+        const reading: Omit<GreenhouseReading, 'id' | 'createdAt' | 'updatedAt'> = {
+          gardenId: garden.id,
+          readingDate: now.toISOString().slice(0, 10),
+          readingTime: now.toTimeString().slice(0, 5),
+          timestamp: now.toISOString(),
+          internalTemperature: internalTemperature ? parseFloat(internalTemperature) : 0,
+          internalHumidity: internalHumidity ? parseFloat(internalHumidity) : 0,
+          co2Level: co2Level ? parseFloat(co2Level) : undefined,
+          lightIntensity: lightIntensity ? parseFloat(lightIntensity) : undefined,
+          ventilationActive: false,
+          heatingActive: false,
+          shadingActive: false,
+          notes: notes || undefined,
+        };
+        if (storageProvider.createGreenhouseReading) {
+          await storageProvider.createGreenhouseReading(reading);
+        }
+        await executionService.createObservation({
+          gardenId: garden.id,
+          environmentProfileId: environmentProfile.id,
+          observationType: 'reading',
+          observedAt: reading.timestamp,
+          source: 'manual',
+          payload: {
+            readingType,
+            internalTemperature: reading.internalTemperature,
+            internalHumidity: reading.internalHumidity,
+            co2Level: reading.co2Level,
+            lightIntensity: reading.lightIntensity,
+          },
+          notes: reading.notes,
+        });
       }
 
       if (onComplete) onComplete();
@@ -77,22 +153,24 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            pH *
-          </label>
-          <input
-            type="number"
-            value={ph}
-            onChange={(e) => setPh(e.target.value)}
-            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
-            required
-            step="0.1"
-            min="0"
-            max="14"
-            placeholder={readingType === 'hydroponic' ? '5.5-6.5' : '6.8-7.2'}
-          />
-        </div>
+        {readingType !== 'greenhouse' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              pH *
+            </label>
+            <input
+              type="number"
+              value={ph}
+              onChange={(e) => setPh(e.target.value)}
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
+              required
+              step="0.1"
+              min="0"
+              max="14"
+              placeholder={readingType === 'hydroponic' ? '5.5-6.5' : '6.8-7.2'}
+            />
+          </div>
+        )}
 
         {readingType === 'hydroponic' ? (
           <>
@@ -140,7 +218,7 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
               />
             </div>
           </>
-        ) : (
+        ) : readingType === 'aquaponic' ? (
           <>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -218,6 +296,65 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
               />
             </div>
           </>
+        ) : (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Temperatura Interna (°C) *
+              </label>
+              <input
+                type="number"
+                value={internalTemperature}
+                onChange={(e) => setInternalTemperature(e.target.value)}
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
+                required
+                step="0.1"
+                min="-10"
+                max="60"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Umidita Interna (%) *
+              </label>
+              <input
+                type="number"
+                value={internalHumidity}
+                onChange={(e) => setInternalHumidity(e.target.value)}
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
+                required
+                step="0.1"
+                min="0"
+                max="100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                CO2 (ppm)
+              </label>
+              <input
+                type="number"
+                value={co2Level}
+                onChange={(e) => setCo2Level(e.target.value)}
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
+                min="0"
+                max="5000"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Intensita Luce (lux)
+              </label>
+              <input
+                type="number"
+                value={lightIntensity}
+                onChange={(e) => setLightIntensity(e.target.value)}
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
+                min="0"
+                max="200000"
+              />
+            </div>
+          </>
         )}
       </div>
 
@@ -256,8 +393,6 @@ export const ReadingForm: React.FC<ReadingFormProps> = ({
     </form>
   );
 };
-
-
 
 
 
