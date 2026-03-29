@@ -8,6 +8,7 @@ import { OrchardTree, QualityClass } from '@/types/orchard'
 interface YieldPerTreeTrackerProps {
   orchardId: string
   orchardName?: string
+  onSelectTree?: (treeId: string) => void
 }
 
 interface TreeYieldRecord {
@@ -24,13 +25,14 @@ interface TreeYieldRecord {
 
 const DEFAULT_HARVEST_DATE = new Date().toISOString().slice(0, 10)
 
-export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPerTreeTrackerProps) {
+export default function YieldPerTreeTracker({ orchardId, orchardName, onSelectTree }: YieldPerTreeTrackerProps) {
   const [trees, setTrees] = useState<OrchardTree[]>([])
   const [yields, setYields] = useState<TreeYieldRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [treeSearchTerm, setTreeSearchTerm] = useState('')
   const [newYield, setNewYield] = useState({
     treeId: '',
     harvestDate: DEFAULT_HARVEST_DATE,
@@ -170,6 +172,62 @@ export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPer
   }, {} as Record<string, TreeYieldRecord[]>)
 
   const selectedTree = trees.find((tree) => tree.id === newYield.treeId)
+  const treeSummaries = trees
+    .map((tree) => {
+      const treeYields = yields.filter((yieldRecord) => yieldRecord.treeId === tree.id)
+      const treeCurrentYearYields = treeYields.filter((yieldRecord) => yieldRecord.year === currentYear)
+      const totalYieldKg = treeYields.reduce((sum, yieldRecord) => sum + yieldRecord.yieldKg, 0)
+      const currentYearYieldKg = treeCurrentYearYields.reduce((sum, yieldRecord) => sum + yieldRecord.yieldKg, 0)
+      const harvestCount = treeYields.length
+      const averageYieldKg = harvestCount > 0 ? totalYieldKg / harvestCount : 0
+      const lastHarvest = treeYields[0]
+
+      let performanceLabel = 'Nessun dato'
+      let performanceClasses = 'bg-gray-100 text-gray-700'
+
+      if (currentYearYieldKg > 0 && avgYield > 0) {
+        if (currentYearYieldKg >= avgYield * 1.3) {
+          performanceLabel = 'Top performer'
+          performanceClasses = 'bg-green-100 text-green-700'
+        } else if (currentYearYieldKg <= avgYield * 0.5) {
+          performanceLabel = 'Sotto media'
+          performanceClasses = 'bg-orange-100 text-orange-700'
+        } else {
+          performanceLabel = 'In media'
+          performanceClasses = 'bg-blue-100 text-blue-700'
+        }
+      } else if (harvestCount > 0) {
+        performanceLabel = 'Storico disponibile'
+        performanceClasses = 'bg-purple-100 text-purple-700'
+      }
+
+      return {
+        tree,
+        totalYieldKg,
+        currentYearYieldKg,
+        harvestCount,
+        averageYieldKg,
+        lastHarvestDate: lastHarvest?.harvestDate,
+        lastHarvestYieldKg: lastHarvest?.yieldKg,
+        performanceLabel,
+        performanceClasses
+      }
+    })
+    .filter(({ tree }) => {
+      if (!treeSearchTerm.trim()) return true
+
+      const normalizedSearch = treeSearchTerm.trim().toLowerCase()
+      return (
+        tree.treeNumber.toLowerCase().includes(normalizedSearch) ||
+        tree.variety.toLowerCase().includes(normalizedSearch)
+      )
+    })
+    .sort((left, right) => {
+      if (right.currentYearYieldKg !== left.currentYearYieldKg) {
+        return right.currentYearYieldKg - left.currentYearYieldKg
+      }
+      return right.totalYieldKg - left.totalYieldKg
+    })
 
   if (loading) {
     return (
@@ -451,6 +509,94 @@ export default function YieldPerTreeTracker({ orchardId, orchardName }: YieldPer
           </div>
         </div>
       )}
+
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Vista per Albero</h3>
+            <p className="text-sm text-gray-600">
+              Una riga per ogni albero, con resa aggregata e accesso diretto al dettaglio.
+            </p>
+          </div>
+
+          <input
+            type="text"
+            value={treeSearchTerm}
+            onChange={(event) => setTreeSearchTerm(event.target.value)}
+            placeholder="Cerca albero o varietà..."
+            className="w-full md:w-72 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+          />
+        </div>
+
+        {treeSummaries.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-300 px-6 py-10 text-center">
+            <TreePine className="mx-auto text-gray-400 mb-3" size={28} />
+            <p className="text-gray-600">Nessun albero corrisponde al filtro corrente.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Albero</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Posizione</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Resa {currentYear}</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Totale storico</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Raccolte</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Media</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Ultimo raccolto</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Performance</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Azioni</th>
+                </tr>
+              </thead>
+              <tbody>
+                {treeSummaries.map((summary) => (
+                  <tr key={summary.tree.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-3 px-4">
+                      <div className="font-medium text-gray-900">{summary.tree.treeNumber}</div>
+                      <div className="text-xs text-gray-500">{summary.tree.variety}</div>
+                    </td>
+                    <td className="py-3 px-4 text-gray-700">
+                      {summary.tree.rowNumber && summary.tree.positionInRow
+                        ? `Fila ${summary.tree.rowNumber}, Pos. ${summary.tree.positionInRow}`
+                        : 'Non assegnata'}
+                    </td>
+                    <td className="py-3 px-4 font-semibold text-green-600">{summary.currentYearYieldKg.toFixed(1)} kg</td>
+                    <td className="py-3 px-4 text-gray-700">{summary.totalYieldKg.toFixed(1)} kg</td>
+                    <td className="py-3 px-4 text-gray-700">{summary.harvestCount}</td>
+                    <td className="py-3 px-4 text-gray-700">{summary.averageYieldKg.toFixed(1)} kg</td>
+                    <td className="py-3 px-4 text-gray-700">
+                      {summary.lastHarvestDate ? (
+                        <div>
+                          <div>{new Date(summary.lastHarvestDate).toLocaleDateString('it-IT')}</div>
+                          <div className="text-xs text-gray-500">{summary.lastHarvestYieldKg?.toFixed(1)} kg</div>
+                        </div>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${summary.performanceClasses}`}>
+                        {summary.performanceLabel}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <button
+                        type="button"
+                        onClick={() => onSelectTree?.(summary.tree.id)}
+                        disabled={!onSelectTree}
+                        className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                      >
+                        Apri albero
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">

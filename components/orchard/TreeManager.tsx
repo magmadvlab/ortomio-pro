@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { OrchardTree, TreePhoto, TreeSearchCriteria, TreeHealthStatus, TreeVigorLevel } from '@/types/orchard'
+import { OrchardConfiguration, OrchardTree, TreePhoto, TreeSearchCriteria, TreeHealthStatus, TreeVigorLevel } from '@/types/orchard'
+import type { FieldRow, FieldRowOrdering } from '@/types/fieldRow'
 import { orchardService } from '@/services/orchardService'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { createUnifiedOperationsService } from '@/services/unifiedOperationsService'
@@ -34,11 +35,35 @@ import {
 interface TreeManagerProps {
   orchardId: string
   gardenId: string
+  orchardConfig?: OrchardConfiguration | null
   onTreeSelect?: (tree: OrchardTree) => void
+  initialSelectedTreeId?: string | null
+  onInitialTreeHandled?: () => void
 }
 
-export default function TreeManager({ orchardId, gardenId, onTreeSelect }: TreeManagerProps) {
+type FieldRowAxis = '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE'
+
+const FIELD_ROW_ORDERING_OPTIONS: Array<{
+  value: FieldRowOrdering
+  label: string
+}> = [
+  { value: 'west_to_east', label: 'Ovest -> Est' },
+  { value: 'east_to_west', label: 'Est -> Ovest' },
+  { value: 'north_to_south', label: 'Nord -> Sud' },
+  { value: 'south_to_north', label: 'Sud -> Nord' },
+]
+
+export default function TreeManager({
+  orchardId,
+  gardenId,
+  orchardConfig,
+  onTreeSelect,
+  initialSelectedTreeId,
+  onInitialTreeHandled
+}: TreeManagerProps) {
+  const { storageProvider } = useStorage()
   const [trees, setTrees] = useState<OrchardTree[]>([])
+  const [fieldRows, setFieldRows] = useState<FieldRow[]>([])
   const [filteredTrees, setFilteredTrees] = useState<OrchardTree[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -52,17 +77,41 @@ export default function TreeManager({ orchardId, gardenId, onTreeSelect }: TreeM
 
   useEffect(() => {
     loadTrees()
-  }, [orchardId])
+  }, [orchardId, gardenId, storageProvider])
 
   useEffect(() => {
     applyFilters()
   }, [trees, searchTerm, filters])
 
+  useEffect(() => {
+    if (!initialSelectedTreeId || trees.length === 0) return
+
+    const treeToFocus = trees.find(tree => tree.id === initialSelectedTreeId)
+    if (treeToFocus) {
+      setSelectedTree(treeToFocus)
+      setShowTreeModal(true)
+      onTreeSelect?.(treeToFocus)
+    }
+
+    onInitialTreeHandled?.()
+  }, [initialSelectedTreeId, trees, onInitialTreeHandled, onTreeSelect])
+
   const loadTrees = async () => {
     try {
       setLoading(true)
-      const treesData = await orchardService.getOrchardTrees(orchardId)
+      const fieldRowsPromise = storageProvider?.getFieldRows
+        ? storageProvider.getFieldRows(gardenId).catch((error) => {
+            console.error('Error loading field rows:', error)
+            return []
+          })
+        : Promise.resolve([])
+
+      const [treesData, fieldRowsData] = await Promise.all([
+        orchardService.getOrchardTrees(orchardId),
+        fieldRowsPromise
+      ])
       setTrees(treesData)
+      setFieldRows(fieldRowsData)
     } catch (error) {
       console.error('Error loading trees:', error)
     } finally {
@@ -198,10 +247,27 @@ export default function TreeManager({ orchardId, gardenId, onTreeSelect }: TreeM
     rootstock: string
     plantingDate: string
     prefix: string
+    plantSpacingCm?: number
+    distanceFromPreviousRowCm?: number
+    orientation?: FieldRowAxis
+    rowOrdering?: FieldRowOrdering
+    plantOrderingInRow?: FieldRowOrdering
   }) => {
     try {
+      if (!storageProvider?.getFieldRows || !storageProvider?.createFieldRow) {
+        throw new Error('Storage provider non supporta la gestione dei filari reali')
+      }
+
+      const roundToTwoDecimals = (value: number) => Math.round(value * 100) / 100
+      const calculateRowLengthMeters = (treeCount: number, plantSpacingCm: number) =>
+        roundToTwoDecimals((treeCount * plantSpacingCm) / 100)
+      const orchardIrrigationDefaults = orchardConfig?.irrigationDefaults
+
       const treesToCreate: Omit<OrchardTree, 'id' | 'createdAt' | 'updatedAt'>[] = []
       const nextPositionByRow = new Map<number, number>()
+      const rowIdByRowNumber = new Map<number, string>()
+      const existingFieldRows = await storageProvider.getFieldRows(gardenId)
+      const fieldRowByNumber = new Map<number, FieldRow>()
 
       trees.forEach((tree) => {
         if (!tree.rowNumber) return
@@ -211,9 +277,86 @@ export default function TreeManager({ orchardId, gardenId, onTreeSelect }: TreeM
         nextPositionByRow.set(rowNumber, Math.max(currentMax, nextPosition))
       })
 
+      existingFieldRows.forEach((row) => {
+        if (!fieldRowByNumber.has(row.rowNumber)) {
+          fieldRowByNumber.set(row.rowNumber, row)
+        }
+      })
+
       for (let rowOffset = 0; rowOffset < batchData.rowsCount; rowOffset++) {
         const currentRow = batchData.startRowNumber + rowOffset
         const rowStartPosition = nextPositionByRow.get(currentRow) || 1
+        const totalTreesAfterBatch = rowStartPosition + batchData.treesPerRow - 1
+        let linkedFieldRow = fieldRowByNumber.get(currentRow)
+
+        if (!linkedFieldRow) {
+          if (!batchData.plantSpacingCm || batchData.plantSpacingCm <= 0) {
+            throw new Error(`Manca la distanza piante per creare il filare ${currentRow}`)
+          }
+
+          linkedFieldRow = await storageProvider.createFieldRow({
+            gardenId,
+            name: `Fila ${currentRow}`,
+            rowNumber: currentRow,
+            lengthMeters: calculateRowLengthMeters(totalTreesAfterBatch, batchData.plantSpacingCm),
+            distanceFromPreviousRow: batchData.distanceFromPreviousRowCm,
+            plantSpacing: batchData.plantSpacingCm,
+            cultivar: batchData.variety,
+            plantCount: totalTreesAfterBatch,
+            orientation: batchData.orientation || undefined,
+            rowOrdering: batchData.rowOrdering,
+            plantOrderingInRow: batchData.plantOrderingInRow,
+            irrigationLine: orchardIrrigationDefaults,
+            plantedDate: batchData.plantingDate || undefined,
+            isActive: true,
+            notes: 'Creato automaticamente dal batch alberi del frutteto'
+          })
+
+          fieldRowByNumber.set(currentRow, linkedFieldRow)
+        } else if (storageProvider.updateFieldRow) {
+          const spacingForLength = linkedFieldRow.plantSpacing || batchData.plantSpacingCm
+          const updates: Partial<FieldRow> = {}
+
+          if (spacingForLength && (!linkedFieldRow.lengthMeters || calculateRowLengthMeters(totalTreesAfterBatch, spacingForLength) > linkedFieldRow.lengthMeters)) {
+            updates.lengthMeters = calculateRowLengthMeters(totalTreesAfterBatch, spacingForLength)
+          }
+          if (!linkedFieldRow.plantSpacing && batchData.plantSpacingCm) {
+            updates.plantSpacing = batchData.plantSpacingCm
+          }
+          if (!linkedFieldRow.distanceFromPreviousRow && batchData.distanceFromPreviousRowCm) {
+            updates.distanceFromPreviousRow = batchData.distanceFromPreviousRowCm
+          }
+          if (!linkedFieldRow.orientation && batchData.orientation) {
+            updates.orientation = batchData.orientation
+          }
+          if (!linkedFieldRow.rowOrdering && batchData.rowOrdering) {
+            updates.rowOrdering = batchData.rowOrdering
+          }
+          if (!linkedFieldRow.plantOrderingInRow && batchData.plantOrderingInRow) {
+            updates.plantOrderingInRow = batchData.plantOrderingInRow
+          }
+          if (!linkedFieldRow.irrigationLine && orchardIrrigationDefaults) {
+            updates.irrigationLine = orchardIrrigationDefaults
+          }
+          if (!linkedFieldRow.cultivar && batchData.variety) {
+            updates.cultivar = batchData.variety
+          }
+          if (!linkedFieldRow.plantedDate && batchData.plantingDate) {
+            updates.plantedDate = batchData.plantingDate
+          }
+          if (!linkedFieldRow.plantCount || linkedFieldRow.plantCount < totalTreesAfterBatch) {
+            updates.plantCount = totalTreesAfterBatch
+          }
+
+          if (Object.keys(updates).length > 0) {
+            linkedFieldRow = await storageProvider.updateFieldRow(linkedFieldRow.id, updates)
+            fieldRowByNumber.set(currentRow, linkedFieldRow)
+          }
+        }
+
+        if (linkedFieldRow?.id) {
+          rowIdByRowNumber.set(currentRow, linkedFieldRow.id)
+        }
 
         for (let i = 0; i < batchData.treesPerRow; i++) {
           const pos = rowStartPosition + i
@@ -224,6 +367,7 @@ export default function TreeManager({ orchardId, gardenId, onTreeSelect }: TreeM
             variety: batchData.variety,
             rootstock: batchData.rootstock || undefined,
             plantingDate: batchData.plantingDate || undefined,
+            fieldRowId: rowIdByRowNumber.get(currentRow),
             rowNumber: currentRow,
             positionInRow: pos,
             healthStatus: 'healthy' as const,
@@ -242,6 +386,8 @@ export default function TreeManager({ orchardId, gardenId, onTreeSelect }: TreeM
 
       const created = await orchardService.bulkCreateTrees(treesToCreate as any)
       setTrees(prev => [...prev, ...created])
+      const refreshedFieldRows = await storageProvider.getFieldRows(gardenId)
+      setFieldRows(refreshedFieldRows)
       setShowBatchModal(false)
     } catch (error) {
       console.error('Error batch creating trees:', error)
@@ -640,6 +786,8 @@ export default function TreeManager({ orchardId, gardenId, onTreeSelect }: TreeM
       {showBatchModal && (
         <BatchAddTreeModal
           existingTrees={trees}
+          existingFieldRows={fieldRows}
+          orchardConfig={orchardConfig}
           onClose={() => setShowBatchModal(false)}
           onBatchAdd={handleBatchAddTrees}
         />
@@ -651,6 +799,8 @@ export default function TreeManager({ orchardId, gardenId, onTreeSelect }: TreeM
 // Batch Add Trees Modal Component
 interface BatchAddTreeModalProps {
   existingTrees: OrchardTree[]
+  existingFieldRows: FieldRow[]
+  orchardConfig?: OrchardConfiguration | null
   onClose: () => void
   onBatchAdd: (data: {
     startRowNumber: number
@@ -660,10 +810,15 @@ interface BatchAddTreeModalProps {
     rootstock: string
     plantingDate: string
     prefix: string
+    plantSpacingCm?: number
+    distanceFromPreviousRowCm?: number
+    orientation?: FieldRowAxis
+    rowOrdering?: FieldRowOrdering
+    plantOrderingInRow?: FieldRowOrdering
   }) => Promise<void>
 }
 
-function BatchAddTreeModal({ existingTrees, onClose, onBatchAdd }: BatchAddTreeModalProps) {
+function BatchAddTreeModal({ existingTrees, existingFieldRows, orchardConfig, onClose, onBatchAdd }: BatchAddTreeModalProps) {
   const [rowNumber, setRowNumber] = useState(1)
   const [rowsCount, setRowsCount] = useState(1)
   const [count, setCount] = useState(10)
@@ -671,6 +826,11 @@ function BatchAddTreeModal({ existingTrees, onClose, onBatchAdd }: BatchAddTreeM
   const [rootstock, setRootstock] = useState('')
   const [plantingDate, setPlantingDate] = useState('')
   const [prefix, setPrefix] = useState('')
+  const [plantSpacingCm, setPlantSpacingCm] = useState('')
+  const [distanceFromPreviousRowCm, setDistanceFromPreviousRowCm] = useState('')
+  const [orientation, setOrientation] = useState<FieldRowAxis>('')
+  const [rowOrdering, setRowOrdering] = useState<FieldRowOrdering | ''>('')
+  const [plantOrderingInRow, setPlantOrderingInRow] = useState<FieldRowOrdering | ''>('')
   const [loading, setLoading] = useState(false)
 
   // Calcola la prossima fila disponibile
@@ -680,6 +840,15 @@ function BatchAddTreeModal({ existingTrees, onClose, onBatchAdd }: BatchAddTreeM
       setRowNumber(maxRow + 1)
     }
   }, [existingTrees])
+
+  useEffect(() => {
+    if (orchardConfig?.treeSpacingM && !plantSpacingCm) {
+      setPlantSpacingCm(String(Math.round(orchardConfig.treeSpacingM * 100)))
+    }
+    if (orchardConfig?.rowSpacingM && !distanceFromPreviousRowCm) {
+      setDistanceFromPreviousRowCm(String(Math.round(orchardConfig.rowSpacingM * 100)))
+    }
+  }, [orchardConfig, plantSpacingCm, distanceFromPreviousRowCm])
 
   const getStartPositionForRow = (targetRowNumber: number) => {
     const treesInRow = existingTrees.filter(t => t.rowNumber === targetRowNumber)
@@ -691,6 +860,10 @@ function BatchAddTreeModal({ existingTrees, onClose, onBatchAdd }: BatchAddTreeM
   const lastRowNumber = rowNumber + rowsCount - 1
   const lastRowStartPosition = getStartPositionForRow(lastRowNumber)
   const totalTrees = rowsCount * count
+  const rowNumbersInRange = Array.from({ length: rowsCount }, (_, index) => rowNumber + index)
+  const missingFieldRows = rowNumbersInRange.filter((targetRowNumber) =>
+    !existingFieldRows.some((row) => Number(row.rowNumber) === targetRowNumber)
+  )
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -710,6 +883,13 @@ function BatchAddTreeModal({ existingTrees, onClose, onBatchAdd }: BatchAddTreeM
       alert('Massimo 5.000 alberi per singola operazione batch')
       return
     }
+    if (missingFieldRows.length > 0) {
+      const parsedPlantSpacing = parseFloat(plantSpacingCm)
+      if (!parsedPlantSpacing || parsedPlantSpacing <= 0) {
+        alert('Inserisci la distanza tra piante per creare i filari mancanti')
+        return
+      }
+    }
 
     setLoading(true)
     try {
@@ -721,6 +901,11 @@ function BatchAddTreeModal({ existingTrees, onClose, onBatchAdd }: BatchAddTreeM
         rootstock: rootstock.trim(),
         plantingDate,
         prefix: prefix.trim(),
+        plantSpacingCm: plantSpacingCm ? parseFloat(plantSpacingCm) : undefined,
+        distanceFromPreviousRowCm: distanceFromPreviousRowCm ? parseFloat(distanceFromPreviousRowCm) : undefined,
+        orientation: orientation || undefined,
+        rowOrdering: rowOrdering || undefined,
+        plantOrderingInRow: plantOrderingInRow || undefined,
       })
     } finally {
       setLoading(false)
@@ -838,6 +1023,84 @@ function BatchAddTreeModal({ existingTrees, onClose, onBatchAdd }: BatchAddTreeM
                 placeholder="es. A, F1-" />
               <p className="text-xs text-gray-500 mt-1">Esempio: prefisso "A" → A1-1, A1-2, A1-3...</p>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Distanza piante nel filare (cm){missingFieldRows.length > 0 ? ' *' : ''}
+              </label>
+              <input
+                type="number"
+                value={plantSpacingCm}
+                onChange={(e) => setPlantSpacingCm(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                min="1"
+                step="1"
+                placeholder="es. 250"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Serve per creare il filare reale se nel range ci sono file non ancora configurate.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Distanza dal filare precedente (cm)</label>
+              <input
+                type="number"
+                value={distanceFromPreviousRowCm}
+                onChange={(e) => setDistanceFromPreviousRowCm(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                min="0"
+                step="1"
+                placeholder="es. 400"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Orientamento filare</label>
+              <select
+                value={orientation}
+                onChange={(e) => setOrientation(e.target.value as FieldRowAxis)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Non specificato</option>
+                <option value="N-S">Nord-Sud</option>
+                <option value="E-W">Est-Ovest</option>
+                <option value="NE-SW">NordEst-SudOvest</option>
+                <option value="NW-SE">NordOvest-SudEst</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ordine numerazione filari</label>
+              <select
+                value={rowOrdering}
+                onChange={(e) => setRowOrdering(e.target.value as FieldRowOrdering | '')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Non specificato</option>
+                {FIELD_ROW_ORDERING_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ordine piante nel filare</label>
+              <select
+                value={plantOrderingInRow}
+                onChange={(e) => setPlantOrderingInRow(e.target.value as FieldRowOrdering | '')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Non specificato</option>
+                {FIELD_ROW_ORDERING_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Anteprima */}
@@ -859,6 +1122,28 @@ function BatchAddTreeModal({ existingTrees, onClose, onBatchAdd }: BatchAddTreeM
               {rowsCount > 1 && (
                 <p>
                   Ultima fila ({lastRowNumber}) parte da posizione <strong>{lastRowStartPosition}</strong>
+                </p>
+              )}
+              {missingFieldRows.length > 0 ? (
+                <p>
+                  Verranno creati anche i filari reali: <strong>{missingFieldRows.join(', ')}</strong>
+                </p>
+              ) : (
+                <p>
+                  Tutte le file del range risultano gia collegate a filari reali.
+                </p>
+              )}
+              {plantSpacingCm && (
+                <p>
+                  Passo piante usato per il filare: <strong>{plantSpacingCm} cm</strong>
+                  {distanceFromPreviousRowCm ? ` • Interfila: ${distanceFromPreviousRowCm} cm` : ''}
+                </p>
+              )}
+              {orchardConfig?.irrigationDefaults && (
+                <p>
+                  Default irrigui frutteto: <strong>{orchardConfig.irrigationDefaults.lineType}</strong>
+                  {orchardConfig.irrigationDefaults.emitterSpacingCm ? ` • ${orchardConfig.irrigationDefaults.emitterSpacingCm} cm` : ''}
+                  {orchardConfig.irrigationDefaults.emitterFlowRateLph ? ` • ${orchardConfig.irrigationDefaults.emitterFlowRateLph} L/h` : ''}
                 </p>
               )}
               <p>Varietà: <strong>{variety || '(da specificare)'}</strong>{rootstock ? ` su ${rootstock}` : ''}</p>
@@ -1606,11 +1891,14 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
   const loadTimeline = async () => {
     try {
       setLoading(true)
-      const [pruningRecords, harvestRecords, treatmentRecords, plantOperations] = await Promise.all([
+      const [pruningRecords, harvestRecords, treatmentRecords, plantOperations, fieldRowOperations] = await Promise.all([
         orchardService.getTreePruningRecords(tree.id),
         orchardService.getTreeHarvestRecords(tree.id),
         orchardService.getTreeTreatments(tree.id),
         storageProvider?.getPlantOperations?.(tree.id) || [],
+        tree.fieldRowId
+          ? (storageProvider?.getFieldRowOperations?.(tree.fieldRowId, tree.gardenId) || [])
+          : [],
       ])
 
       const pruningItems: TreeTimelineItem[] = pruningRecords.map(record => ({
@@ -1676,7 +1964,12 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
         }
       })
 
-      const orchestratorItems: TreeTimelineItem[] = (plantOperations || []).map((operation: any) => {
+      const allOperations = [
+        ...(plantOperations || []),
+        ...(fieldRowOperations || []),
+      ]
+
+      const orchestratorItems: TreeTimelineItem[] = allOperations.map((operation: any) => {
         const operationType = operation.operationType
         const mappedType: TreeTimelineType =
           operationType === 'watering'

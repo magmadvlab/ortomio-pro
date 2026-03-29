@@ -14,6 +14,31 @@ interface GardenEditModalProps {
 }
 
 type TabType = 'info' | 'structures' | 'beds' | 'climate'
+type FieldRowAxis = '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE'
+type FieldRowOrdering =
+  | ''
+  | 'west_to_east'
+  | 'east_to_west'
+  | 'north_to_south'
+  | 'south_to_north'
+
+const FIELD_ROW_ORDERING_OPTIONS: Array<{ value: FieldRowOrdering; label: string }> = [
+  { value: '', label: 'Non specificato' },
+  { value: 'west_to_east', label: 'Ovest → Est' },
+  { value: 'east_to_west', label: 'Est → Ovest' },
+  { value: 'north_to_south', label: 'Nord → Sud' },
+  { value: 'south_to_north', label: 'Sud → Nord' },
+]
+
+const formatFieldRowOrderingLabel = (value?: string) => {
+  switch (value) {
+    case 'west_to_east': return 'Ovest → Est'
+    case 'east_to_west': return 'Est → Ovest'
+    case 'north_to_south': return 'Nord → Sud'
+    case 'south_to_north': return 'Sud → Nord'
+    default: return 'Non specificato'
+  }
+}
 
 export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditModalProps) {
   const { storageProvider } = useStorage()
@@ -57,7 +82,9 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
     cultivar: '',
     plantSpacing: 50, // cm - Distanza tra piante nel filare
     plantedDate: '', // Data semina/trapianto
-    orientation: '' as '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE',
+    orientation: '' as FieldRowAxis,
+    rowOrdering: '' as FieldRowOrdering,
+    plantOrderingInRow: '' as FieldRowOrdering,
     // Configurazione irrigazione integrata
     irrigationConfig: {
       enabled: false,
@@ -87,7 +114,9 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
     distanceFromPreviousRow: 100,
     cultivar: '',
     plantSpacing: 50,
-    orientation: '' as '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE'
+    orientation: '' as FieldRowAxis,
+    rowOrdering: '' as FieldRowOrdering,
+    plantOrderingInRow: '' as FieldRowOrdering
   })
 
   useEffect(() => {
@@ -206,7 +235,9 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
       cultivar: '',
       plantSpacing: 50,
       plantedDate: '',
-      orientation: '' as '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE',
+      orientation: '' as FieldRowAxis,
+      rowOrdering: '' as FieldRowOrdering,
+      plantOrderingInRow: '' as FieldRowOrdering,
       irrigationConfig: {
         enabled: false,
         irrigationType: 'drip' as const,
@@ -283,7 +314,9 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
       cultivar: row.cultivar || '',
       plantSpacing: row.plant_spacing || row.plantSpacing || 50,
       plantedDate: row.planted_date || row.plantedDate || '',
-      orientation: (row.orientation || '') as '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE',
+      orientation: (row.orientation || '') as FieldRowAxis,
+      rowOrdering: (row.rowOrdering || row.row_ordering || '') as FieldRowOrdering,
+      plantOrderingInRow: (row.plantOrderingInRow || row.plant_ordering_in_row || '') as FieldRowOrdering,
       irrigationConfig: {
         ...irrigationConfig,
         tubeLength: row.length_meters || row.lengthMeters || 10,
@@ -362,6 +395,8 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
         plantSpacing: fieldRowForm.plantSpacing || undefined,
         plantedDate: fieldRowForm.plantedDate || undefined,
         orientation: fieldRowForm.orientation || undefined,
+        rowOrdering: fieldRowForm.rowOrdering || undefined,
+        plantOrderingInRow: fieldRowForm.plantOrderingInRow || undefined,
         // Salva configurazione irrigazione
         irrigationConfig: fieldRowForm.irrigationConfig.enabled ? fieldRowForm.irrigationConfig : undefined
       }
@@ -417,6 +452,8 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
       plantSpacing: 50,
       plantedDate: '',
       orientation: '',
+      rowOrdering: '',
+      plantOrderingInRow: '',
       irrigationConfig: {
         enabled: false,
         irrigationType: 'drip',
@@ -453,6 +490,8 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
           plantSpacing: bulkFieldRowForm.plantSpacing,
           plantedDate: undefined,
           orientation: bulkFieldRowForm.orientation || undefined,
+          rowOrdering: bulkFieldRowForm.rowOrdering || undefined,
+          plantOrderingInRow: bulkFieldRowForm.plantOrderingInRow || undefined,
           isActive: true
         })
       }
@@ -1140,7 +1179,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                             // Quando seleziona semi, lascia data vuota (da seminare)
                             setFieldRowForm({ 
                               ...fieldRowForm, 
-                              cultivar: packet.variety ? `${packet.plantName} ${packet.variety}` : packet.plantName,
+                              cultivar: packet.varietyName ? `${packet.speciesName} ${packet.varietyName}` : packet.speciesName,
                               plantedDate: '' // Da definire
                             })
                           }}
@@ -1196,6 +1235,36 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                               <option value="E-W">Est-Ovest (E-W)</option>
                               <option value="NE-SW">Nord-Est / Sud-Ovest</option>
                               <option value="NW-SE">Nord-Ovest / Sud-Est</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Ordine numerazione filari</label>
+                            <select
+                              value={fieldRowForm.rowOrdering}
+                              onChange={(e) => setFieldRowForm({ ...fieldRowForm, rowOrdering: e.target.value as FieldRowOrdering })}
+                              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
+                            >
+                              {FIELD_ROW_ORDERING_OPTIONS.map((option) => (
+                                <option key={option.value || 'empty'} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Ordine piante nel filare</label>
+                            <select
+                              value={fieldRowForm.plantOrderingInRow}
+                              onChange={(e) => setFieldRowForm({ ...fieldRowForm, plantOrderingInRow: e.target.value as FieldRowOrdering })}
+                              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
+                            >
+                              {FIELD_ROW_ORDERING_OPTIONS.map((option) => (
+                                <option key={option.value || 'empty'} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
                             </select>
                           </div>
                         </div>
@@ -1567,6 +1636,34 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                           <option value="NW-SE">Nord-Ovest / Sud-Est</option>
                         </select>
                       </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Ordine numerazione filari</label>
+                        <select
+                          value={bulkFieldRowForm.rowOrdering}
+                          onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, rowOrdering: e.target.value as FieldRowOrdering })}
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
+                        >
+                          {FIELD_ROW_ORDERING_OPTIONS.map((option) => (
+                            <option key={option.value || 'empty'} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Ordine piante nel filare</label>
+                        <select
+                          value={bulkFieldRowForm.plantOrderingInRow}
+                          onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, plantOrderingInRow: e.target.value as FieldRowOrdering })}
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
+                        >
+                          {FIELD_ROW_ORDERING_OPTIONS.map((option) => (
+                            <option key={option.value || 'empty'} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                     <div className="mt-4 p-3 bg-blue-100 rounded-lg">
                       <p className="text-sm font-semibold text-blue-900 mb-1">Anteprima</p>
@@ -1622,6 +1719,16 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                             {row.orientation && (
                               <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
                                 🧭 {row.orientation}
+                              </span>
+                            )}
+                            {(row.rowOrdering || row.row_ordering) && (
+                              <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">
+                                ↔️ Filari: {formatFieldRowOrderingLabel(row.rowOrdering || row.row_ordering)}
+                              </span>
+                            )}
+                            {(row.plantOrderingInRow || row.plant_ordering_in_row) && (
+                              <span className="bg-violet-100 text-violet-700 px-2 py-0.5 rounded">
+                                🌱 Piante: {formatFieldRowOrderingLabel(row.plantOrderingInRow || row.plant_ordering_in_row)}
                               </span>
                             )}
                             {row.planted_date && (

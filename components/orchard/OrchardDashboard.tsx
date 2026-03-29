@@ -33,11 +33,12 @@ interface OrchardDashboardProps {
   gardenId: string
   onCreateOrchard: () => void
   onSelectOrchard: (orchard: OrchardConfiguration) => void
+  onOpenTree?: (orchard: OrchardConfiguration, treeId: string) => void
 }
 
 type DashboardTab = 'overview' | 'density-calculator' | 'yield-tracker'
 
-export default function OrchardDashboard({ gardenId, onCreateOrchard, onSelectOrchard }: OrchardDashboardProps) {
+export default function OrchardDashboard({ gardenId, onCreateOrchard, onSelectOrchard, onOpenTree }: OrchardDashboardProps) {
   const [orchards, setOrchards] = useState<OrchardConfiguration[]>([])
   const [dashboardData, setDashboardData] = useState<OrchardDashboardData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -126,6 +127,8 @@ export default function OrchardDashboard({ gardenId, onCreateOrchard, onSelectOr
       default: return 'text-gray-600'
     }
   }
+
+  const selectedYieldOrchard = orchards.find((orchard) => orchard.id === selectedOrchardId) || orchards[0] || null
 
   if (loading) {
     return (
@@ -236,10 +239,36 @@ export default function OrchardDashboard({ gardenId, onCreateOrchard, onSelectOr
       {activeTab === 'density-calculator' ? (
         <DensityCalculator />
       ) : activeTab === 'yield-tracker' ? (
-        <YieldPerTreeTracker 
-          orchardId={selectedOrchardId || gardenId}
-          orchardName={orchards.find(o => o.id === selectedOrchardId)?.name}
-        />
+        <div className="space-y-4">
+          {orchards.length > 1 && (
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Seleziona frutteto per la vista resa
+              </label>
+              <select
+                value={selectedYieldOrchard?.id || ''}
+                onChange={(event) => setSelectedOrchardId(event.target.value)}
+                className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              >
+                {orchards.map((orchard) => (
+                  <option key={orchard.id} value={orchard.id}>
+                    {orchard.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <YieldPerTreeTracker 
+            orchardId={selectedYieldOrchard?.id || ''}
+            orchardName={selectedYieldOrchard?.name}
+            onSelectTree={(treeId) => {
+              if (selectedYieldOrchard) {
+                onOpenTree?.(selectedYieldOrchard, treeId)
+              }
+            }}
+          />
+        </div>
       ) : (
         <>
           {/* Quick Stats */}

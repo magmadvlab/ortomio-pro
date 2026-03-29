@@ -35,6 +35,7 @@ export interface OrchardConfiguration {
   climateZone?: string
   soilType?: string
   irrigationSystem?: string
+  irrigationDefaults?: OrchardIrrigationDefaults
   
   // Management Settings
   organicCertified: boolean
@@ -60,6 +61,13 @@ export type OrchardType =
   | 'hazelnut' 
   | 'almond' 
   | 'tropical'
+
+export interface OrchardIrrigationDefaults {
+  lineType: 'Dripline' | 'PipeWithDrippers' | 'MicroSprinkler'
+  pipeDiameterMm?: number
+  emitterSpacingCm?: number
+  emitterFlowRateLph?: number
+}
 
 export interface VarietyInfo {
   variety: string
@@ -915,6 +923,7 @@ export interface OrchardWizardData {
     treeSpacingM: number
     trainingSystem: string
     irrigationSystem?: string
+    irrigationDefaults?: OrchardIrrigationDefaults
   }
   
   // Step 3: Varieties and Rootstocks

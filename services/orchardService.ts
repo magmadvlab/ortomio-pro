@@ -1142,6 +1142,7 @@ class OrchardService {
           tree_spacing_m: wizardData.layout?.treeSpacingM,
           training_system: wizardData.layout?.trainingSystem,
           irrigation_system: wizardData.layout?.irrigationSystem,
+          irrigation_defaults: wizardData.layout?.irrigationDefaults,
           main_varieties: wizardData.varieties?.mainVarieties || [],
           rootstock_types: wizardData.varieties?.rootstockTypes || [],
           organic_certified: wizardData.management?.organicCertified || false,
@@ -1200,6 +1201,7 @@ class OrchardService {
       climateZone: data.climate_zone,
       soilType: data.soil_type,
       irrigationSystem: data.irrigation_system,
+      irrigationDefaults: data.irrigation_defaults,
       organicCertified: data.organic_certified || false,
       precisionManagement: data.precision_management || false,
       createdAt: data.created_at,
@@ -1226,6 +1228,7 @@ class OrchardService {
       climate_zone: config.climateZone,
       soil_type: config.soilType,
       irrigation_system: config.irrigationSystem,
+      irrigation_defaults: config.irrigationDefaults,
       organic_certified: config.organicCertified,
       precision_management: config.precisionManagement
     }

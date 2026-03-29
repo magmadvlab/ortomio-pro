@@ -129,6 +129,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
       cultivar: db.cultivar ?? undefined,
       plantCount: db.plant_count ?? undefined,
       orientation: db.orientation ?? undefined,
+      rowOrdering: db.row_ordering ?? undefined,
+      plantOrderingInRow: db.plant_ordering_in_row ?? undefined,
       irrigationLine: db.irrigation_line ?? undefined,
       // Mantieni compatibilità con irrigationConfig per il frontend
       irrigationConfig: db.irrigation_line ?? undefined,
@@ -153,6 +155,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (row.cultivar !== undefined) db.cultivar = row.cultivar;
     if (row.plantCount !== undefined) db.plant_count = row.plantCount;
     if (row.orientation !== undefined) db.orientation = row.orientation;
+    if (row.rowOrdering !== undefined) db.row_ordering = row.rowOrdering;
+    if (row.plantOrderingInRow !== undefined) db.plant_ordering_in_row = row.plantOrderingInRow;
     if (row.irrigationLine !== undefined) db.irrigation_line = row.irrigationLine;
     if (row.plantedDate !== undefined) db.planted_date = row.plantedDate;
     if (row.status !== undefined) db.status = row.status;

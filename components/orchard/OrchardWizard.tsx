@@ -75,6 +75,12 @@ export default function OrchardWizard({ gardenId, garden, presetType, onComplete
       rowSpacingM: 4.0,
       treeSpacingM: 3.0,
       trainingSystem: 'vase',
+      irrigationDefaults: {
+        lineType: 'Dripline',
+        pipeDiameterMm: 16,
+        emitterSpacingCm: 30,
+        emitterFlowRateLph: 2,
+      },
     },
     varieties: {
       mainVarieties: [],
@@ -597,6 +603,127 @@ export default function OrchardWizard({ gardenId, garden, presetType, onComplete
             <option value="none">Nessuno (asciutto)</option>
           </select>
         </div>
+
+        {wizardData.layout?.irrigationSystem && wizardData.layout.irrigationSystem !== 'none' && wizardData.layout.irrigationSystem !== 'flood' && (
+          <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4 space-y-4">
+            <div>
+              <h4 className="font-semibold text-cyan-900">Default irrigui del frutteto</h4>
+              <p className="text-sm text-cyan-800">
+                Questi valori verranno riusati per precompilare i filari del frutteto e il riallineamento dei dati legacy.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-cyan-900 mb-1">Tipo linea filare</label>
+                <select
+                  value={wizardData.layout?.irrigationDefaults?.lineType || 'Dripline'}
+                  onChange={(e) =>
+                    setWizardData((prev) => ({
+                      ...prev,
+                      layout: {
+                        ...prev.layout!,
+                        irrigationDefaults: {
+                          pipeDiameterMm: prev.layout?.irrigationDefaults?.pipeDiameterMm,
+                          emitterSpacingCm: prev.layout?.irrigationDefaults?.emitterSpacingCm,
+                          emitterFlowRateLph: prev.layout?.irrigationDefaults?.emitterFlowRateLph,
+                          lineType: e.target.value as 'Dripline' | 'PipeWithDrippers' | 'MicroSprinkler'
+                        }
+                      }
+                    }))
+                  }
+                  className="w-full px-4 py-3 text-base border border-cyan-300 rounded-lg focus:ring-2 focus:ring-cyan-500"
+                  style={{ fontSize: '16px' }}
+                >
+                  <option value="Dripline">Goccia a goccia</option>
+                  <option value="PipeWithDrippers">Tubo con gocciolatori</option>
+                  <option value="MicroSprinkler">Micro-sprinkler</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-cyan-900 mb-1">Diametro linea (mm)</label>
+                <select
+                  value={wizardData.layout?.irrigationDefaults?.pipeDiameterMm || 16}
+                  onChange={(e) =>
+                    setWizardData((prev) => ({
+                      ...prev,
+                      layout: {
+                        ...prev.layout!,
+                        irrigationDefaults: {
+                          lineType: prev.layout?.irrigationDefaults?.lineType || 'Dripline',
+                          emitterSpacingCm: prev.layout?.irrigationDefaults?.emitterSpacingCm,
+                          emitterFlowRateLph: prev.layout?.irrigationDefaults?.emitterFlowRateLph,
+                          pipeDiameterMm: parseInt(e.target.value, 10) || 16
+                        }
+                      }
+                    }))
+                  }
+                  className="w-full px-4 py-3 text-base border border-cyan-300 rounded-lg focus:ring-2 focus:ring-cyan-500"
+                  style={{ fontSize: '16px' }}
+                >
+                  <option value="12">12 mm</option>
+                  <option value="16">16 mm</option>
+                  <option value="20">20 mm</option>
+                  <option value="25">25 mm</option>
+                  <option value="32">32 mm</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-cyan-900 mb-1">Passo erogatori (cm)</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={wizardData.layout?.irrigationDefaults?.emitterSpacingCm || ''}
+                  onChange={(e) =>
+                    setWizardData((prev) => ({
+                      ...prev,
+                      layout: {
+                        ...prev.layout!,
+                        irrigationDefaults: {
+                          lineType: prev.layout?.irrigationDefaults?.lineType || 'Dripline',
+                          pipeDiameterMm: prev.layout?.irrigationDefaults?.pipeDiameterMm,
+                          emitterFlowRateLph: prev.layout?.irrigationDefaults?.emitterFlowRateLph,
+                          emitterSpacingCm: parseFloat(e.target.value) || undefined
+                        }
+                      }
+                    }))
+                  }
+                  className="w-full px-4 py-3 text-base border border-cyan-300 rounded-lg focus:ring-2 focus:ring-cyan-500"
+                  style={{ fontSize: '16px' }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-cyan-900 mb-1">Portata erogatore (L/h)</label>
+                <input
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  value={wizardData.layout?.irrigationDefaults?.emitterFlowRateLph || ''}
+                  onChange={(e) =>
+                    setWizardData((prev) => ({
+                      ...prev,
+                      layout: {
+                        ...prev.layout!,
+                        irrigationDefaults: {
+                          lineType: prev.layout?.irrigationDefaults?.lineType || 'Dripline',
+                          pipeDiameterMm: prev.layout?.irrigationDefaults?.pipeDiameterMm,
+                          emitterSpacingCm: prev.layout?.irrigationDefaults?.emitterSpacingCm,
+                          emitterFlowRateLph: parseFloat(e.target.value) || undefined
+                        }
+                      }
+                    }))
+                  }
+                  className="w-full px-4 py-3 text-base border border-cyan-300 rounded-lg focus:ring-2 focus:ring-cyan-500"
+                  style={{ fontSize: '16px' }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tips Contestuali */}
         {categoryTips.length > 0 && catInfo && (

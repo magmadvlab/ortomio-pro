@@ -23,6 +23,8 @@ export interface FieldRow {
 
   // Orientamento
   orientation?: 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE'  // Orientamento filare
+  rowOrdering?: FieldRowOrdering
+  plantOrderingInRow?: FieldRowOrdering
 
   // Irrigazione (opzionale)
   irrigationLine?: {
@@ -41,6 +43,12 @@ export interface FieldRow {
   createdAt: string
   updatedAt: string
 }
+
+export type FieldRowOrdering =
+  | 'west_to_east'
+  | 'east_to_west'
+  | 'north_to_south'
+  | 'south_to_north'
 
 /**
  * Batch di semina/trapianto scalare
