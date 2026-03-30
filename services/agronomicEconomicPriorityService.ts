@@ -1,4 +1,9 @@
 import type { AgronomicMeasuredFeedbackRecord } from '@/services/agronomicMeasuredFeedbackService'
+import {
+  getAgronomicCropProfileById,
+  resolveAgronomicCropProfileSync,
+} from '@/services/agronomicKernelService'
+import type { AgronomicCropProfile } from '@/types/agronomicKernel'
 
 export type AgronomicEconomicFocus = 'water' | 'nutrition' | 'health' | 'quality'
 
@@ -15,6 +20,9 @@ export interface AgronomicEconomicPriorityInput {
   priorityScore: number
   priorityConfidence?: number
   urgencyLabel?: 'immediate' | 'next_cycle' | 'monitor'
+  agronomicProfileId?: string | null
+  cropNameHint?: string | null
+  isCriticalStage?: boolean
   interventionCost?: number | null
   costOfDelay?: number | null
   valueProtected?: number | null
@@ -51,6 +59,14 @@ export interface AgronomicEconomicObservationSummary {
   rationale: string[]
 }
 
+interface AgronomicCropEconomicModel {
+  profile?: AgronomicCropProfile | null
+  interventionCostMultiplier: number
+  delayCostMultiplier: number
+  protectedValueMultiplier: number
+  rationale: string[]
+}
+
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value))
 
@@ -84,6 +100,196 @@ const getNumericMetric = (record: AgronomicMeasuredFeedbackRecord, keys: string[
   }
 
   return null
+}
+
+const resolveAgronomicCropEconomicModel = (
+  input: Pick<
+    AgronomicEconomicPriorityInput,
+    'agronomicProfileId' | 'cropNameHint' | 'focus' | 'isCriticalStage'
+  >
+): AgronomicCropEconomicModel => {
+  const profile =
+    (input.agronomicProfileId
+      ? getAgronomicCropProfileById(input.agronomicProfileId)
+      : null) ||
+    (input.cropNameHint
+      ? resolveAgronomicCropProfileSync({ plantId: input.cropNameHint }).profile
+      : null)
+
+  if (!profile) {
+    return {
+      profile: null,
+      interventionCostMultiplier: 1,
+      delayCostMultiplier: 1,
+      protectedValueMultiplier: 1,
+      rationale: [],
+    }
+  }
+
+  let interventionCostMultiplier = 1
+  let delayCostMultiplier = 1
+  let protectedValueMultiplier = 1
+  const rationale: string[] = []
+  const tags = new Set(profile.tags)
+
+  if (profile.lifecycle === 'perennial') {
+    interventionCostMultiplier *= 1.08
+    delayCostMultiplier *= 1.12
+    protectedValueMultiplier *= 1.16
+    rationale.push('Profilo poliennale: carry-over economico piu alto tra campagne.')
+  }
+
+  if (tags.has('broadacre') || tags.has('field_scale') || tags.has('extensive')) {
+    interventionCostMultiplier *= 1.08
+    delayCostMultiplier *= 1.04
+    protectedValueMultiplier *= 1.06
+    rationale.push('Scala estensiva: costo operativo piu distribuito ma impatto totale piu ampio.')
+  }
+
+  if (
+    tags.has('quality') ||
+    tags.has('quality_sensitive') ||
+    tags.has('quality_driven') ||
+    tags.has('market_quality') ||
+    tags.has('wine') ||
+    tags.has('oil_quality')
+  ) {
+    delayCostMultiplier *= 1.14
+    protectedValueMultiplier *= 1.18
+    rationale.push('Profilo orientato alla qualita: il ritardo pesa di piu sul valore commerciale.')
+  }
+
+  if (tags.has('winter_cereals') || tags.has('cereals')) {
+    interventionCostMultiplier *= 0.92
+    delayCostMultiplier *= 1.06
+    protectedValueMultiplier *= 1.02
+    rationale.push('Cereali vernini: intervento relativamente efficiente ma finestra fenologica sensibile.')
+  }
+
+  if (tags.has('brassicas')) {
+    interventionCostMultiplier *= 1.02
+    delayCostMultiplier *= 1.12
+    protectedValueMultiplier *= 1.12
+    rationale.push('Brassicacee di pieno campo: qualita e uniformita degradano rapidamente fuori finestra.')
+  }
+
+  if (tags.has('legume')) {
+    interventionCostMultiplier *= 0.98
+    delayCostMultiplier *= 1.05
+    protectedValueMultiplier *= 1.04
+    rationale.push('Leguminose: buona efficienza input, ma fioritura e allegagione restano sensibili.')
+  }
+
+  if (tags.has('artichoke')) {
+    interventionCostMultiplier *= 1.05
+    delayCostMultiplier *= 1.16
+    protectedValueMultiplier *= 1.18
+    rationale.push('Carciofo: il ritardo impatta calibro, compattezza e continuita dei tagli.')
+  }
+
+  if (tags.has('industrial')) {
+    interventionCostMultiplier *= 1.12
+    delayCostMultiplier *= 1.08
+    protectedValueMultiplier *= 1.12
+    rationale.push('Coltura industriale: input e superfici aumentano il peso economico per decisione.')
+  }
+
+  if (tags.has('orchard') || tags.has('woody')) {
+    interventionCostMultiplier *= 1.1
+    delayCostMultiplier *= 1.16
+    protectedValueMultiplier *= 1.2
+    rationale.push('Arboree: valore per unita e carry-over stagionale piu alti.')
+  }
+
+  if (tags.has('olive')) {
+    interventionCostMultiplier *= 1.02
+    delayCostMultiplier *= 1.12
+    protectedValueMultiplier *= 1.16
+    rationale.push('Olivo: stress e timing influenzano resa in olio e difetti.')
+  }
+
+  if (tags.has('vineyard')) {
+    interventionCostMultiplier *= 1.08
+    delayCostMultiplier *= 1.18
+    protectedValueMultiplier *= 1.24
+    rationale.push('Vigneto: maturazione e qualita enologica rendono il ritardo piu costoso.')
+  }
+
+  if (
+    profile.systems.includes('protected_culture') ||
+    profile.systems.includes('indoor') ||
+    profile.systems.includes('hydroponic') ||
+    profile.systems.includes('aquaponic') ||
+    profile.systems.includes('aeroponic')
+  ) {
+    interventionCostMultiplier *= 1.1
+    delayCostMultiplier *= 1.18
+    protectedValueMultiplier *= 1.16
+    rationale.push('Sistema protetto o controllato: costo operativo piu alto ma risposta economica piu immediata.')
+  }
+
+  if (input.focus === 'water') {
+    if (profile.water.strategy === 'stress_tolerant') {
+      delayCostMultiplier *= 0.92
+      protectedValueMultiplier *= 0.96
+      rationale.push('Strategia idrica tollerante allo stress: il costo del ritardo e piu contenuto.')
+    }
+
+    if (profile.water.strategy === 'deficit_sensitive') {
+      delayCostMultiplier *= 1.12
+      rationale.push('Strategia idrica sensibile al deficit: il ritardo irriguo pesa di piu.')
+    }
+
+    if (profile.water.strategy === 'quality_oriented') {
+      delayCostMultiplier *= 1.08
+      protectedValueMultiplier *= 1.08
+      rationale.push('Acqua legata alla qualita: il volume corretto protegge anche il prezzo finale.')
+    }
+  }
+
+  if (input.focus === 'nutrition') {
+    if (profile.nutrition.strategy === 'quality_finish') {
+      delayCostMultiplier *= 1.12
+      protectedValueMultiplier *= 1.12
+      rationale.push('Nutrizione di finitura: fuori timing cala il valore finale del raccolto.')
+    }
+
+    if (profile.nutrition.strategy === 'nitrogen_sensitive') {
+      delayCostMultiplier *= 1.08
+      rationale.push("Profilo sensibile all'azoto: finestra nutrizionale economicamente piu stretta.")
+    }
+  }
+
+  if (
+    input.focus === 'quality' &&
+    profile.quality.targetMetrics.some((metric) =>
+      ['brix', 'oil_quality', 'protein', 'shelf_life', 'head_compactness', 'fruit_size'].includes(metric)
+    )
+  ) {
+    delayCostMultiplier *= 1.14
+    protectedValueMultiplier *= 1.16
+    rationale.push('Metriche qualitative premium: il valore protetto per punto di qualita e piu alto.')
+  }
+
+  if (input.focus === 'health' && profile.health.priorities.includes('fruit_quality_pressure')) {
+    delayCostMultiplier *= 1.08
+    protectedValueMultiplier *= 1.08
+    rationale.push('Pressione sanitaria sulla qualita commerciale: il ritardo ha costo indiretto sul lotto.')
+  }
+
+  if (input.isCriticalStage) {
+    delayCostMultiplier *= 1.12
+    protectedValueMultiplier *= 1.06
+    rationale.push('Stadio decisionale critico: la finestra economica e piu stretta.')
+  }
+
+  return {
+    profile,
+    interventionCostMultiplier: roundMetric(interventionCostMultiplier, 3),
+    delayCostMultiplier: roundMetric(delayCostMultiplier, 3),
+    protectedValueMultiplier: roundMetric(protectedValueMultiplier, 3),
+    rationale,
+  }
 }
 
 export function summarizeAgronomicEconomicObservations(
@@ -226,34 +432,65 @@ const severityWeight = (
 }
 
 const deriveInterventionCost = (input: AgronomicEconomicPriorityInput): number => {
+  const cropEconomicModel = resolveAgronomicCropEconomicModel(input)
+
   if (typeof input.observationSummary?.averageObservedInterventionCost === 'number') {
-    return roundMetric(Math.max(0, input.observationSummary.averageObservedInterventionCost), 0)
+    return roundMetric(
+      Math.max(0, input.observationSummary.averageObservedInterventionCost) *
+        cropEconomicModel.interventionCostMultiplier,
+      0
+    )
   }
 
   if (typeof input.interventionCost === 'number' && Number.isFinite(input.interventionCost)) {
-    return roundMetric(Math.max(0, input.interventionCost), 0)
+    return roundMetric(
+      Math.max(0, input.interventionCost) * cropEconomicModel.interventionCostMultiplier,
+      0
+    )
   }
 
   switch (input.source) {
     case 'director':
-      return roundMetric(32 + input.priorityScore * 0.18, 0)
+      return roundMetric(
+        (32 + input.priorityScore * 0.18) * cropEconomicModel.interventionCostMultiplier,
+        0
+      )
     case 'irrigation': {
       const efficiencyGap = Math.max(0, 100 - (input.averageEfficiency ?? 78))
       const uniformityGap = Math.max(0, 100 - (input.uniformityCoefficient ?? 82))
       const waterUseGap = Math.max(0, 100 - (input.waterUseEfficiency ?? 76))
-      return roundMetric(18 + efficiencyGap * 0.32 + uniformityGap * 0.14 + waterUseGap * 0.18, 0)
+      return roundMetric(
+        (18 + efficiencyGap * 0.32 + uniformityGap * 0.14 + waterUseGap * 0.18) *
+          cropEconomicModel.interventionCostMultiplier,
+        0
+      )
     }
     case 'prescription': {
       const efficacyGap = Math.max(0, 100 - (input.efficacyScore ?? 72))
       const benchmarkGap = Math.max(0, input.benchmarkGap ?? input.qualityScoreGap ?? 0)
-      return roundMetric(26 + efficacyGap * 0.38 + benchmarkGap * 0.45, 0)
+      return roundMetric(
+        (26 + efficacyGap * 0.38 + benchmarkGap * 0.45) *
+          cropEconomicModel.interventionCostMultiplier,
+        0
+      )
     }
     case 'health':
-      return roundMetric(24 + input.priorityScore * 0.14 + severityWeight(input.severity), 0)
+      return roundMetric(
+        (24 + input.priorityScore * 0.14 + severityWeight(input.severity)) *
+          cropEconomicModel.interventionCostMultiplier,
+        0
+      )
     case 'phenology':
-      return roundMetric(10 + (input.qualityScoreGap ?? 0) * 0.35 + input.priorityScore * 0.05, 0)
+      return roundMetric(
+        (10 + (input.qualityScoreGap ?? 0) * 0.35 + input.priorityScore * 0.05) *
+          cropEconomicModel.interventionCostMultiplier,
+        0
+      )
     default:
-      return roundMetric(20 + input.priorityScore * 0.12, 0)
+      return roundMetric(
+        (20 + input.priorityScore * 0.12) * cropEconomicModel.interventionCostMultiplier,
+        0
+      )
   }
 }
 
@@ -261,6 +498,8 @@ const deriveCostOfDelay = (input: AgronomicEconomicPriorityInput): number => {
   if (typeof input.costOfDelay === 'number' && Number.isFinite(input.costOfDelay)) {
     return roundMetric(Math.max(0, input.costOfDelay), 0)
   }
+
+  const cropEconomicModel = resolveAgronomicCropEconomicModel(input)
 
   const baseByFocus: Record<AgronomicEconomicFocus, number> = {
     water: 42,
@@ -289,7 +528,7 @@ const deriveCostOfDelay = (input: AgronomicEconomicPriorityInput): number => {
     costOfDelay += severityWeight(input.severity)
   }
 
-  return roundMetric(costOfDelay, 0)
+  return roundMetric(costOfDelay * cropEconomicModel.delayCostMultiplier, 0)
 }
 
 const deriveValueProtected = (
@@ -297,12 +536,21 @@ const deriveValueProtected = (
   interventionCost: number,
   costOfDelay: number
 ): number => {
+  const cropEconomicModel = resolveAgronomicCropEconomicModel(input)
+
   if (typeof input.observationSummary?.averageObservedValueProtected === 'number') {
-    return roundMetric(Math.max(0, input.observationSummary.averageObservedValueProtected), 0)
+    return roundMetric(
+      Math.max(0, input.observationSummary.averageObservedValueProtected) *
+        cropEconomicModel.protectedValueMultiplier,
+      0
+    )
   }
 
   if (typeof input.valueProtected === 'number' && Number.isFinite(input.valueProtected)) {
-    return roundMetric(Math.max(0, input.valueProtected), 0)
+    return roundMetric(
+      Math.max(0, input.valueProtected) * cropEconomicModel.protectedValueMultiplier,
+      0
+    )
   }
 
   const multiplierByFocus: Record<AgronomicEconomicFocus, number> = {
@@ -313,7 +561,8 @@ const deriveValueProtected = (
   }
 
   return roundMetric(
-    Math.max(interventionCost * 1.2, costOfDelay * multiplierByFocus[input.focus]),
+    Math.max(interventionCost * 1.2, costOfDelay * multiplierByFocus[input.focus]) *
+      cropEconomicModel.protectedValueMultiplier,
     0
   )
 }
@@ -321,6 +570,7 @@ const deriveValueProtected = (
 export function buildAgronomicEconomicPrioritySummary(
   input: AgronomicEconomicPriorityInput
 ): AgronomicEconomicPrioritySummary {
+  const cropEconomicModel = resolveAgronomicCropEconomicModel(input)
   const interventionCost = deriveInterventionCost(input)
   const costOfDelay = deriveCostOfDelay(input)
   const valueProtected = deriveValueProtected(input, interventionCost, costOfDelay)
@@ -412,6 +662,9 @@ export function buildAgronomicEconomicPrioritySummary(
   }
   if (input.observationSummary?.rationale?.length) {
     rationale.push(...input.observationSummary.rationale.slice(0, 2))
+  }
+  if (cropEconomicModel.rationale.length > 0) {
+    rationale.push(...cropEconomicModel.rationale.slice(0, 2))
   }
 
   return {
