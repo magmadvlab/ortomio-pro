@@ -30,6 +30,7 @@ const OPERATION_TYPES = [
 export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlannerProps) {
   const [smartOperations, setSmartOperations] = useState<SmartOperation[]>([])
   const [weatherForecast, setWeatherForecast] = useState<WeatherData[]>([])
+  const [weatherLoading, setWeatherLoading] = useState(false)
   const [showNewOperationForm, setShowNewOperationForm] = useState(false)
   const [selectedOperationType, setSelectedOperationType] = useState<string>('')
   const [activeView, setActiveView] = useState<'calendar' | 'operations' | 'ai_suggestions'>('operations')
@@ -37,22 +38,29 @@ export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlan
   // Carica previsioni meteo reali
   useEffect(() => {
     const loadWeatherForecast = async () => {
-      if (garden.coordinates?.latitude && garden.coordinates?.longitude) {
-        try {
-          const forecast = await smartOperationsService.getWeatherForecast(
-            garden.coordinates.latitude,
-            garden.coordinates.longitude,
-            7
-          )
-          setWeatherForecast(forecast)
-        } catch (error) {
-          console.error('Error loading weather forecast:', error)
-        }
+      if (!garden.coordinates?.latitude || !garden.coordinates?.longitude) {
+        setWeatherForecast([])
+        return
+      }
+
+      try {
+        setWeatherLoading(true)
+        const forecast = await smartOperationsService.getWeatherForecast(
+          garden.coordinates.latitude,
+          garden.coordinates.longitude,
+          7
+        )
+        setWeatherForecast(forecast)
+      } catch (error) {
+        console.error('Error loading weather forecast:', error)
+        setWeatherForecast([])
+      } finally {
+        setWeatherLoading(false)
       }
     }
     
     loadWeatherForecast()
-  }, [garden.coordinates])
+  }, [garden.id, garden.coordinates?.latitude, garden.coordinates?.longitude])
 
   // Analizza operazioni e genera avvisi meteo usando il servizio
   useEffect(() => {
@@ -168,25 +176,35 @@ export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlan
               Previsioni Meteo (7 giorni)
             </h3>
             
-            <div className="grid grid-cols-7 gap-3">
-              {weatherForecast.map((day, index) => (
-                <div key={day.date} className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="text-xs text-gray-600 mb-1">
-                    {index === 0 ? 'Oggi' : index === 1 ? 'Domani' : format(parseISO(day.date), 'EEE', { locale: it })}
+            {weatherLoading ? (
+              <div className="rounded-lg bg-gray-50 px-4 py-8 text-sm text-gray-500">
+                Caricamento previsioni meteo...
+              </div>
+            ) : weatherForecast.length > 0 ? (
+              <div className="grid grid-cols-7 gap-3">
+                {weatherForecast.map((day, index) => (
+                  <div key={day.date} className="text-center p-3 bg-gray-50 rounded-lg">
+                    <div className="text-xs text-gray-600 mb-1">
+                      {index === 0 ? 'Oggi' : index === 1 ? 'Domani' : format(parseISO(day.date), 'EEE', { locale: it })}
+                    </div>
+                    <div className="mb-2">
+                      {day.conditions === 'sunny' && <Sun className="text-yellow-500 mx-auto" size={20} />}
+                      {day.conditions === 'cloudy' && <Cloud className="text-gray-500 mx-auto" size={20} />}
+                      {(day.conditions === 'rain' || day.conditions === 'storm') && <Cloud className="text-blue-500 mx-auto" size={20} />}
+                    </div>
+                    <div className="text-sm font-medium">{day.temp.toFixed(0)}°C</div>
+                    {day.precipitation > 0 && (
+                      <div className="text-xs text-blue-600">{day.precipitation.toFixed(0)}mm</div>
+                    )}
+                    <div className="text-xs text-gray-500">{day.windSpeed.toFixed(0)} km/h</div>
                   </div>
-                  <div className="mb-2">
-                    {day.conditions === 'sunny' && <Sun className="text-yellow-500 mx-auto" size={20} />}
-                    {day.conditions === 'cloudy' && <Cloud className="text-gray-500 mx-auto" size={20} />}
-                    {day.conditions === 'rain' && <Cloud className="text-blue-500 mx-auto" size={20} />}
-                  </div>
-                  <div className="text-sm font-medium">{day.temp.toFixed(0)}°C</div>
-                  {day.precipitation > 0 && (
-                    <div className="text-xs text-blue-600">{day.precipitation.toFixed(0)}mm</div>
-                  )}
-                  <div className="text-xs text-gray-500">{day.windSpeed.toFixed(0)} km/h</div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg bg-gray-50 px-4 py-8 text-sm text-gray-500">
+                Nessuna previsione disponibile per questo orto. Verifica coordinate e connessione meteo.
+              </div>
+            )}
           </div>
 
           {/* Lista Operazioni */}

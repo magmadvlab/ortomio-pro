@@ -8,6 +8,7 @@ import PlannerAISuggestions from '@/components/planner/tabs/PlannerAISuggestions
 import CropRotationPlanner from '@/components/advice/CropRotationPlanner'
 import BiologicalControlDashboard from '@/components/advice/BiologicalControlDashboard'
 import { useStorage } from '@/packages/core/hooks/useStorage'
+import { useGarden } from '@/packages/core/hooks/useGarden'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Garden, GardenTask } from '@/types'
@@ -19,6 +20,7 @@ import { GardenTypeWizard } from '@/components/GardenTypeWizard'
 
 export default function PlannerPage() {
   const { storageProvider } = useStorage()
+  const { activeGarden } = useGarden()
   const searchParams = useSearchParams()
   const [gardens, setGardens] = useState<Garden[]>([])
   const [tasks, setTasks] = useState<GardenTask[]>([])
@@ -222,7 +224,7 @@ export default function PlannerPage() {
     )
   }
 
-  const defaultGarden = gardens[0]
+  const selectedGarden = activeGarden || gardens[0]
   const timelineData = generateTimelineData()
   const upcomingTasks = getUpcomingTasks()
 
@@ -332,7 +334,7 @@ export default function PlannerPage() {
       {activeTab === 'planner' && (
         <div className="space-y-6">
           <AgronomicQueueTaskPanel
-            garden={defaultGarden}
+            garden={selectedGarden}
             tasks={tasks}
             onTaskCreate={async (taskData) => {
               try {
@@ -346,7 +348,7 @@ export default function PlannerPage() {
             }}
           />
           <SmartPlanner 
-            garden={defaultGarden}
+            garden={selectedGarden}
             tasks={tasks}
             onTasksUpdate={handleTasksUpdate}
           />
@@ -355,7 +357,7 @@ export default function PlannerPage() {
 
       {activeTab === 'ai-suggestions' && (
         <PlannerAISuggestions
-          garden={defaultGarden}
+          garden={selectedGarden}
           tasks={tasks}
           onCreateTasks={async (newTasks) => {
             try {
@@ -381,7 +383,7 @@ export default function PlannerPage() {
 
       {activeTab === 'calendar' && (
         <TaskCalendar
-          garden={defaultGarden}
+          garden={selectedGarden}
           tasks={tasks}
           onTaskUpdate={async (task) => {
             try {
@@ -413,7 +415,7 @@ export default function PlannerPage() {
 
       {activeTab === 'list' && (
         <TaskList
-          garden={defaultGarden}
+          garden={selectedGarden}
           tasks={tasks}
           onTaskUpdate={async (task) => {
             try {
