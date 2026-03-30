@@ -25,6 +25,8 @@ import {
   getAgronomicProfileLearningSnapshots,
   type AgronomicProfileLearningSnapshot,
 } from '@/services/agronomicProfileLearningService'
+import { getMarketPrice } from '@/data/marketPrices'
+import { calculateAdaptiveQualityPrice } from '@/services/adaptiveMarketPricingService'
 
 interface TraceabilityRecord {
   id: string
@@ -263,6 +265,36 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
     }
   }
 
+  const getProductPricing = (product: ProductTrace) => {
+    const month = new Date().getMonth()
+    const season = month >= 5 && month <= 8 ? 'Summer' : 'Winter'
+    const basePrice = getMarketPrice(product.name.toUpperCase(), season)
+    const qualityBenchmark = getProductQualityBenchmark(product)
+    const adaptivePricing = calculateAdaptiveQualityPrice(basePrice, {
+      qualityScore: product.qualityScore,
+      benchmark: {
+        qualityTargetScore: qualityBenchmark.targetScore,
+        qualityAlertFloorScore: qualityBenchmark.alertFloorScore,
+        brixTarget: qualityBenchmark.adjustment.brixTarget,
+        notes: qualityBenchmark.adjustment.notes,
+      },
+    })
+
+    return {
+      basePrice,
+      adaptivePricing,
+      premiumPercent: Math.round(adaptivePricing.premiumRate * 100),
+    }
+  }
+
+  const pricingSummaries = products.map((product) => getProductPricing(product))
+  const averagePremiumPercent = pricingSummaries.length > 0
+    ? Math.round(pricingSummaries.reduce((sum, entry) => sum + entry.premiumPercent, 0) / pricingSummaries.length)
+    : 0
+  const premiumReadyProducts = products.filter((product) =>
+    getProductPricing(product).adaptivePricing.status === 'above_target'
+  ).length
+
   return (
     <div className="space-y-6">
       {/* Header con Auto-tracking */}
@@ -297,6 +329,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
       <div className="grid gap-4">
         {products.map((product) => {
           const qualityBenchmark = getProductQualityBenchmark(product)
+          const pricing = getProductPricing(product)
 
           return (
           <div key={product.id} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
@@ -369,6 +402,22 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
                 <div>
                   <div className="text-gray-500">Brix target</div>
                   <div className="font-semibold text-gray-900">{qualityBenchmark.adjustment.brixTarget}°</div>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                <div>
+                  <div className="text-gray-500">Prezzo base</div>
+                  <div className="font-semibold text-gray-900">€{pricing.basePrice.toFixed(2)}/kg</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Prezzo adattivo</div>
+                  <div className="font-semibold text-green-700">€{pricing.adaptivePricing.adjustedPrice.toFixed(2)}/kg</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Premium pricing</div>
+                  <div className={`font-semibold ${pricing.premiumPercent >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                    {pricing.premiumPercent >= 0 ? '+' : ''}{pricing.premiumPercent}%
+                  </div>
                 </div>
               </div>
             </div>
@@ -482,7 +531,9 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Star className="h-4 w-4 text-yellow-500" />
-              <span className="text-blue-800">+40% prezzo premium per prodotti tracciati</span>
+              <span className="text-blue-800">
+                Premium medio attuale {averagePremiumPercent >= 0 ? '+' : ''}{averagePremiumPercent}% sui lotti tracciati
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-green-500" />
@@ -492,7 +543,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Award className="h-4 w-4 text-purple-500" />
-              <span className="text-blue-800">Accesso mercati premium</span>
+              <span className="text-blue-800">{premiumReadyProducts}/{products.length} lotti sopra benchmark premium</span>
             </div>
             <div className="flex items-center gap-2">
               <Link className="h-4 w-4 text-blue-500" />
@@ -509,6 +560,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
             <div className="p-6">
               {(() => {
                 const qualityBenchmark = getProductQualityBenchmark(selectedProduct)
+                const pricing = getProductPricing(selectedProduct)
 
                 return (
                   <>
@@ -540,6 +592,20 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
                     ))}
                   </div>
                 )}
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <div className="text-gray-500">Prezzo base</div>
+                    <div className="font-semibold text-gray-900">€{pricing.basePrice.toFixed(2)}/kg</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Prezzo adattivo</div>
+                    <div className="font-semibold text-green-700">€{pricing.adaptivePricing.adjustedPrice.toFixed(2)}/kg</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Rationale</div>
+                    <div className="font-semibold text-gray-900 capitalize">{pricing.adaptivePricing.status}</div>
+                  </div>
+                </div>
               </div>
               
               <div className="space-y-3">
@@ -591,6 +657,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
             <div className="p-6 text-center">
               {(() => {
                 const qualityBenchmark = getProductQualityBenchmark(selectedProduct)
+                const pricing = getProductPricing(selectedProduct)
 
                 return (
                   <>
@@ -619,6 +686,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
                 <p><strong>Varietà:</strong> {selectedProduct.variety}</p>
                 <p><strong>Qualità:</strong> {selectedProduct.qualityScore}%</p>
                 <p><strong>Benchmark sito:</strong> {qualityBenchmark.targetScore}% (soglia {qualityBenchmark.alertFloorScore}%)</p>
+                <p><strong>Prezzo adattivo:</strong> €{pricing.adaptivePricing.adjustedPrice.toFixed(2)}/kg</p>
                 <p><strong>Certificazioni:</strong> {selectedProduct.certifications.join(', ')}</p>
                 {selectedProduct.origin && (
                   <>

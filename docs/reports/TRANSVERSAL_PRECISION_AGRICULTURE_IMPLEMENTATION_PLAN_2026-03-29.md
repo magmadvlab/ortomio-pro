@@ -344,6 +344,14 @@ These files are the first technical foundation of the transversal architecture.
   - `services/aiPredictiveEngine.ts` now loads site-specific quality memory for the active garden during yield prediction, attaches target/floor/Brix benchmark context to each quality prediction, and generates benchmark-aware recommendations
   - `components/ai/predictions/YieldPredictionsCard.tsx` now renders target, alert floor, gap, Brix reference, and site-memory notes when predictive quality context is available
   - this closes another transversal gap: predicted quality is no longer just a generic 0-100 score, but a site-relative quality expectation
+- pricing and market logic now begin using the adaptive quality contract:
+  - `services/adaptiveMarketPricingService.ts` centralizes quality-to-price translation so premium, watch, and defensive pricing can be derived from the site-specific benchmark instead of hard-coded universal thresholds
+  - `services/blockchainTraceabilityService.ts` now resolves the garden benchmark before automatic quality-based pricing, stores benchmark status/gap/rationale in chain pricing data, and stops treating premium/discount logic as static
+  - `components/analytics/YieldOptimizer.tsx` now recalculates market value using adaptive quality pricing, exposing base price, adjusted price, target/floor, and pricing rationale in the ROI surface
+- market-facing traceability messaging now uses the same adaptive pricing layer:
+  - `TraceabilityWidget` now derives price positioning from adaptive market pricing per product, showing base price, adjusted price, premium/discount, and benchmark-aware rationale instead of generic premium claims
+  - `dominanceIntegrationService` now uses actual chain pricing impact when available for blockchain recommendations, and competitive messaging no longer hard-codes fixed premium percentages where the product now has site-specific pricing logic
+  - this reduces a key product risk: commercial claims and operator-facing traceability narratives are now more aligned with measurable lot performance
 
 ### Next implementation target
-- propagate the adaptive-threshold contract into the remaining pricing and market-consumer logic, especially quality-based pricing flows and any premium-market surfaces still interpreting quality with fixed static baselines
+- propagate the adaptive-threshold contract into the remaining premium-market and consumer surfaces, especially marketplace-facing UI and any residual premium-quality narratives still based on static assumptions

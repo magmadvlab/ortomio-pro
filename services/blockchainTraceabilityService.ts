@@ -4,6 +4,11 @@
  */
 
 import { Garden } from '@/types'
+import {
+  calculateAdaptiveQualityPrice,
+  resolveAdaptiveQualityPricingBenchmarkForGarden,
+  type AdaptiveQualityPricingBenchmark,
+} from '@/services/adaptiveMarketPricingService'
 
 // Blockchain Types
 export interface BlockchainRecord {
@@ -32,6 +37,7 @@ export interface TraceabilityChain {
   certifications: CertificationRecord[]
   qualityScores: QualityScore[]
   carbonFootprint: CarbonFootprint
+  pricing?: QualityBasedPricing
   nftCertificate?: NFTCertificate
 }
 
@@ -137,6 +143,11 @@ export interface QualityBasedPricing {
   carbonNeutralBonus: number // €/kg
   finalPrice: number // €/kg
   priceHistory: PricePoint[]
+  benchmarkStatus?: 'above_target' | 'watch' | 'below_target' | 'no_data'
+  benchmarkTargetScore?: number
+  benchmarkAlertFloorScore?: number
+  benchmarkGap?: number | null
+  rationale?: string[]
 }
 
 export interface PricePoint {
@@ -415,16 +426,11 @@ class BlockchainTraceabilityService {
     if (!chain || chain.qualityScores.length === 0) return
 
     const latestQuality = chain.qualityScores[chain.qualityScores.length - 1]
-    
-    // Calculate quality multiplier
-    let qualityMultiplier = 1.0
-    if (latestQuality.overallScore >= qualityThresholds.max) {
-      qualityMultiplier = 1.3 // 30% bonus for premium quality
-    } else if (latestQuality.overallScore >= qualityThresholds.min) {
-      qualityMultiplier = 1.0 + (latestQuality.overallScore - qualityThresholds.min) / (qualityThresholds.max - qualityThresholds.min) * 0.3
-    } else {
-      qualityMultiplier = 0.8 // 20% discount for lower quality
-    }
+    const benchmark = await this.resolvePricingBenchmark(chain, qualityThresholds)
+    const qualityPricing = calculateAdaptiveQualityPrice(basePrice, {
+      qualityScore: latestQuality.overallScore,
+      benchmark,
+    })
 
     // Calculate certification bonuses
     let certificationBonus = 0
@@ -438,10 +444,63 @@ class BlockchainTraceabilityService {
     })
 
     const carbonNeutralBonus = chain.carbonFootprint.carbonNeutral ? 0.3 : 0
-    const finalPrice = basePrice * qualityMultiplier + certificationBonus + carbonNeutralBonus
+    const finalPrice = qualityPricing.adjustedPrice + certificationBonus + carbonNeutralBonus
+    chain.pricing = {
+      basePrice,
+      qualityMultiplier: qualityPricing.qualityMultiplier,
+      certificationBonus,
+      carbonNeutralBonus,
+      finalPrice,
+      benchmarkStatus: qualityPricing.status,
+      benchmarkTargetScore: benchmark.qualityTargetScore,
+      benchmarkAlertFloorScore: benchmark.qualityAlertFloorScore,
+      benchmarkGap: qualityPricing.benchmarkGap,
+      rationale: qualityPricing.rationale,
+      priceHistory: [
+        ...(chain.pricing?.priceHistory || []),
+        {
+          date: new Date().toISOString(),
+          price: finalPrice,
+          qualityScore: latestQuality.overallScore,
+          volume: 0,
+        },
+      ].slice(-12),
+    }
 
     // Store pricing data (would be on smart contract)
-    console.log(`Automatic pricing set: €${finalPrice.toFixed(2)}/kg for ${productId}`)
+    console.log(
+      `Automatic pricing set: €${finalPrice.toFixed(2)}/kg for ${productId} ` +
+      `(benchmark ${benchmark.qualityTargetScore}% / floor ${benchmark.qualityAlertFloorScore}% / status ${qualityPricing.status})`
+    )
+  }
+
+  private async resolvePricingBenchmark(
+    chain: TraceabilityChain,
+    qualityThresholds: { min: number; max: number }
+  ): Promise<AdaptiveQualityPricingBenchmark> {
+    const gardenId = chain.records[chain.records.length - 1]?.gardenId
+    if (!gardenId) {
+      return {
+        qualityTargetScore: Math.round(qualityThresholds.max),
+        qualityAlertFloorScore: Math.round(qualityThresholds.min),
+        brixTarget: 12,
+        notes: [],
+      }
+    }
+
+    try {
+      return await resolveAdaptiveQualityPricingBenchmarkForGarden(gardenId, {
+        plantName: chain.productName,
+      })
+    } catch (error) {
+      console.error('Error resolving blockchain pricing benchmark:', error)
+      return {
+        qualityTargetScore: Math.round(qualityThresholds.max),
+        qualityAlertFloorScore: Math.round(qualityThresholds.min),
+        brixTarget: 12,
+        notes: [],
+      }
+    }
   }
 
   // ===== CONSUMER APP =====

@@ -398,6 +398,16 @@ class DominanceIntegrationService {
     estimatedTime: string
   }[]> {
     const metrics = await this.getDominanceMetrics(gardenId)
+    const traceabilityChains = await blockchainTraceabilityService.getAllChains(gardenId)
+    const pricedChains = traceabilityChains.filter((chain) => chain.pricing?.basePrice && chain.pricing?.finalPrice)
+    const averagePricingImpact = pricedChains.length > 0
+      ? Math.round(
+          pricedChains.reduce((sum, chain) => {
+            const pricing = chain.pricing!
+            return sum + (((pricing.finalPrice - pricing.basePrice) / pricing.basePrice) * 100)
+          }, 0) / pricedChains.length
+        )
+      : null
     const recommendations = []
 
     // AI Recommendations
@@ -432,9 +442,13 @@ class DominanceIntegrationService {
         priority: 'HIGH' as const,
         category: 'BLOCKCHAIN' as const,
         title: 'Generare Primi Certificati NFT',
-        description: 'I certificati NFT aumentano il valore del prodotto del 40%',
+        description: averagePricingImpact !== null
+          ? `La tracciabilità già disponibile mostra un impatto pricing medio di ${averagePricingImpact >= 0 ? '+' : ''}${averagePricingImpact}%.`
+          : 'La tracciabilità rende misurabile il premium reale dei lotti e rafforza il posizionamento commerciale.',
         action: 'Creare certificato NFT per prossimo raccolto',
-        estimatedImpact: '+40% valore prodotto',
+        estimatedImpact: averagePricingImpact !== null
+          ? `${averagePricingImpact >= 0 ? '+' : ''}${averagePricingImpact}% pricing medio`
+          : 'Pricing premium misurabile lotto per lotto',
         estimatedTime: '20 minuti'
       })
     }
@@ -477,7 +491,7 @@ class DominanceIntegrationService {
           'eVineyard': 'INFERIOR'
         },
         advantage: 'Unico con tracciabilità granulare a livello singola pianta',
-        marketImpact: 'Accesso mercati premium +40% prezzo'
+        marketImpact: 'Accesso mercati premium con pricing adattivo sito-specifico'
       },
       {
         feature: 'AI Predittiva Malattie',
@@ -510,7 +524,7 @@ class DominanceIntegrationService {
           'eVineyard': 'INFERIOR'
         },
         advantage: 'Unico con tracciabilità immutabile e certificati NFT',
-        marketImpact: 'Premium brand positioning, +60% valore'
+        marketImpact: 'Premium brand positioning con valore lotto misurabile e difendibile'
       },
       {
         feature: 'Drone Integration',

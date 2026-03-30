@@ -11,6 +11,13 @@ import { optimizeYield, calculateFertilizationROI } from '@/services/yieldModelS
 import { GardenTask, Garden, HarvestLogData } from '@/types';
 import { getMasterSheetSync } from '@/services/plantMasterService';
 import { getMarketPrice } from '@/data/marketPrices';
+import { useStorage } from '@/packages/core/hooks/useStorage';
+import {
+  calculateAdaptiveQualityPrice,
+  resolveAdaptiveQualityPricingBenchmark,
+  type AdaptiveQualityPriceResult,
+  type AdaptiveQualityPricingBenchmark,
+} from '@/services/adaptiveMarketPricingService';
 
 interface YieldOptimizerProps {
   task: GardenTask;
@@ -23,13 +30,17 @@ export const YieldOptimizer: React.FC<YieldOptimizerProps> = ({
   garden,
   historicalHarvests = []
 }) => {
+  const { storageProvider } = useStorage();
   const [loading, setLoading] = useState(true);
   const [optimization, setOptimization] = useState<any>(null);
   const [marketPrice, setMarketPrice] = useState<number>(0);
+  const [baseMarketPrice, setBaseMarketPrice] = useState<number>(0);
+  const [pricingBenchmark, setPricingBenchmark] = useState<AdaptiveQualityPricingBenchmark | null>(null);
+  const [adaptivePricing, setAdaptivePricing] = useState<AdaptiveQualityPriceResult | null>(null);
 
   useEffect(() => {
     loadOptimization();
-  }, [task, garden]);
+  }, [task, garden, storageProvider]);
 
   const loadOptimization = async () => {
     setLoading(true);
@@ -48,8 +59,27 @@ export const YieldOptimizer: React.FC<YieldOptimizerProps> = ({
       const date = new Date(task.date);
       const month = date.getMonth();
       const season = (month >= 5 && month <= 8) ? 'Summer' : 'Winter';
-      const price = getMarketPrice(task.plantName, season);
-      setMarketPrice(price);
+      const price = getMarketPrice(task.plantName.toUpperCase(), season);
+      setBaseMarketPrice(price);
+
+      const benchmark = await resolveAdaptiveQualityPricingBenchmark(storageProvider, garden.id, {
+        plantName: task.plantName,
+        zoneId: task.zoneId,
+      });
+      const relevantHarvests = historicalHarvests.filter((harvest) =>
+        harvest.plantName?.toLowerCase().includes(task.plantName.toLowerCase())
+      );
+      const averageHistoricalQuality = relevantHarvests.length > 0
+        ? relevantHarvests.reduce((sum, harvest) => sum + (harvest.rating * 20), 0) / relevantHarvests.length
+        : null;
+      const adaptivePrice = calculateAdaptiveQualityPrice(price, {
+        qualityScore: averageHistoricalQuality,
+        benchmark,
+      });
+
+      setPricingBenchmark(benchmark);
+      setAdaptivePricing(adaptivePrice);
+      setMarketPrice(adaptivePrice.adjustedPrice);
     } catch (error) {
       console.error('Error loading optimization:', error);
     } finally {
@@ -126,6 +156,48 @@ export const YieldOptimizer: React.FC<YieldOptimizerProps> = ({
           </div>
         </div>
       </div>
+
+      {pricingBenchmark && adaptivePricing && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h4 className="text-lg font-semibold mb-4 flex items-center gap-3">
+            <DollarSign size={20} className="text-green-600" />
+            Prezzo Adattivo al Benchmark
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-sm text-gray-600">Prezzo base</p>
+              <p className="text-xl font-bold text-gray-900">€{baseMarketPrice.toFixed(2)}/kg</p>
+            </div>
+            <div className="bg-emerald-50 rounded-lg p-4">
+              <p className="text-sm text-emerald-700">Prezzo adattivo</p>
+              <p className="text-xl font-bold text-emerald-700">€{marketPrice.toFixed(2)}/kg</p>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-4">
+              <p className="text-sm text-blue-700">Target / soglia</p>
+              <p className="text-xl font-bold text-blue-700">
+                {pricingBenchmark.qualityTargetScore}% / {pricingBenchmark.qualityAlertFloorScore}%
+              </p>
+            </div>
+            <div className="bg-purple-50 rounded-lg p-4">
+              <p className="text-sm text-purple-700">Stato pricing</p>
+              <p className="text-xl font-bold text-purple-700 capitalize">
+                {adaptivePricing.status === 'above_target'
+                  ? 'premium'
+                  : adaptivePricing.status === 'watch'
+                    ? 'watch'
+                    : adaptivePricing.status === 'below_target'
+                      ? 'difensivo'
+                      : 'base'}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 space-y-1">
+            {adaptivePricing.rationale.map((line, index) => (
+              <p key={index} className="text-sm text-gray-600">{line}</p>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Recommendations */}
       {recommendations.length > 0 && (
@@ -207,7 +279,6 @@ export const YieldOptimizer: React.FC<YieldOptimizerProps> = ({
 };
 
 export default YieldOptimizer;
-
 
 
 
