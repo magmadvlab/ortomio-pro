@@ -3,6 +3,7 @@ import type { WateringLog } from '@/types/microzoneTracking'
 import type { NutritionTreatment } from '@/types/nutrition'
 import type { MechanicalWorkLog } from '@/services/mechanicalWorkService'
 import type { HarvestLogData } from '@/types'
+import { getMarketPrice } from '@/data/marketPrices'
 
 export type AgronomicMeasuredFeedbackFocus =
   | 'water'
@@ -78,6 +79,12 @@ const getNumericMetricAverage = (
       return typeof value === 'number' ? value : undefined
     })
   )
+
+const getSeasonFromDate = (value?: string): 'Winter' | 'Summer' => {
+  const date = value ? new Date(value) : new Date()
+  const month = date.getMonth()
+  return month >= 5 && month <= 8 ? 'Summer' : 'Winter'
+}
 
 export async function getAgronomicMeasuredFeedbackRecords(
   storageProvider: MeasuredFeedbackStorage | null | undefined,
@@ -330,6 +337,7 @@ export function buildWateringMeasuredFeedback(
           ? Number((averageAfter - averageBefore).toFixed(2))
           : null,
       averageAirTemperatureC: average(validLogs.map((log) => log.airTemperatureC)) ?? null,
+      estimatedCost: Number((totalLiters * 0.0018 + totalDuration * 0.14).toFixed(2)),
     },
   }
 }
@@ -354,6 +362,10 @@ export function buildNutritionMeasuredFeedback(
     | 'plantResponse'
     | 'followUpRequired'
     | 'followUpDate'
+    | 'productCost'
+    | 'laborCost'
+    | 'equipmentCost'
+    | 'totalCost'
     | 'notes'
   >
 ): AgronomicMeasuredFeedbackRecord {
@@ -378,6 +390,10 @@ export function buildNutritionMeasuredFeedback(
       plantResponse: treatment.plantResponse || null,
       followUpRequired: treatment.followUpRequired,
       followUpDate: treatment.followUpDate || null,
+      productCost: treatment.productCost ?? null,
+      laborCost: treatment.laborCost ?? null,
+      equipmentCost: treatment.equipmentCost ?? null,
+      cost: treatment.totalCost ?? null,
     },
   }
 }
@@ -400,6 +416,23 @@ export function buildHarvestMeasuredFeedback(
     return null
   }
 
+  const qualityScore =
+    typeof harvest.rating === 'number' ? Number((harvest.rating * 20).toFixed(1)) : null
+  const season = getSeasonFromDate(harvest.date)
+  const baseUnitPrice = getMarketPrice((harvest.plantName || 'GENERIC').toUpperCase(), season)
+  const qualityMultiplier =
+    typeof qualityScore === 'number'
+      ? qualityScore >= 90
+        ? 1.2
+        : qualityScore >= 80
+          ? 1.1
+          : qualityScore >= 60
+            ? 1
+            : 0.88
+      : 1
+  const estimatedUnitPrice = Number((baseUnitPrice * qualityMultiplier).toFixed(2))
+  const estimatedValue = Number((harvest.quantity * estimatedUnitPrice).toFixed(2))
+
   return {
     id: `agro_feedback:harvest:${harvest.taskId || harvest.plantName}:${getDateOnly(harvest.date)}`,
     gardenId: harvest.gardenId,
@@ -414,7 +447,10 @@ export function buildHarvestMeasuredFeedback(
       quantity: harvest.quantity,
       unit: harvest.unit,
       qualityRating: harvest.rating ?? null,
+      qualityScore,
       brix: harvest.brix ?? null,
+      estimatedUnitPrice,
+      estimatedValue,
     },
   }
 }

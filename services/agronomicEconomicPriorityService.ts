@@ -1,3 +1,5 @@
+import type { AgronomicMeasuredFeedbackRecord } from '@/services/agronomicMeasuredFeedbackService'
+
 export type AgronomicEconomicFocus = 'water' | 'nutrition' | 'health' | 'quality'
 
 export type AgronomicEconomicSource =
@@ -23,6 +25,7 @@ export interface AgronomicEconomicPriorityInput {
   waterUseEfficiency?: number | null
   benchmarkGap?: number | null
   qualityScoreGap?: number | null
+  observationSummary?: AgronomicEconomicObservationSummary | null
 }
 
 export interface AgronomicEconomicPrioritySummary {
@@ -37,6 +40,17 @@ export interface AgronomicEconomicPrioritySummary {
   rationale: string[]
 }
 
+export interface AgronomicEconomicObservationSummary {
+  sampleCount: number
+  matchedBy: 'zone' | 'plant' | 'focus'
+  averageObservedInterventionCost: number | null
+  averageObservedValueProtected: number | null
+  averageObservedNetImpact: number | null
+  averageObservedRoiRatio: number | null
+  confidenceAdjustment: number
+  rationale: string[]
+}
+
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value))
 
@@ -45,6 +59,141 @@ const roundMetric = (value: number, digits: number = 2) =>
 
 const toCurrency = (value?: number | null) =>
   typeof value === 'number' && Number.isFinite(value) ? `€${roundMetric(value, 0)}` : null
+
+const average = (values: Array<number | null | undefined>): number | null => {
+  const validValues = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+  if (validValues.length === 0) {
+    return null
+  }
+
+  return roundMetric(validValues.reduce((sum, value) => sum + value, 0) / validValues.length)
+}
+
+const normalizeText = (value?: string | null) =>
+  value
+    ?.toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+
+const getNumericMetric = (record: AgronomicMeasuredFeedbackRecord, keys: string[]): number | null => {
+  for (const key of keys) {
+    const value = record.metrics[key]
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value
+    }
+  }
+
+  return null
+}
+
+export function summarizeAgronomicEconomicObservations(
+  records: AgronomicMeasuredFeedbackRecord[],
+  options: {
+    focus: AgronomicEconomicFocus
+    zoneId?: string | null
+    plantName?: string | null
+  }
+): AgronomicEconomicObservationSummary | null {
+  if (options.focus === 'health') {
+    return null
+  }
+
+  const focusRecords = records.filter((record) => record.focus === options.focus)
+  if (focusRecords.length === 0) {
+    return null
+  }
+
+  const normalizedPlantName = normalizeText(options.plantName)
+  const zoneRecords = options.zoneId
+    ? focusRecords.filter((record) => record.zoneId === options.zoneId)
+    : []
+  const plantRecords = normalizedPlantName
+    ? focusRecords.filter((record) => normalizeText(record.plantName) === normalizedPlantName)
+    : []
+
+  const matchedRecords =
+    zoneRecords.length > 0
+      ? zoneRecords
+      : plantRecords.length > 0
+        ? plantRecords
+        : focusRecords
+  const matchedBy: AgronomicEconomicObservationSummary['matchedBy'] =
+    zoneRecords.length > 0 ? 'zone' : plantRecords.length > 0 ? 'plant' : 'focus'
+
+  const recentRecords = [...matchedRecords]
+    .sort((left, right) => new Date(right.recordedAt).getTime() - new Date(left.recordedAt).getTime())
+    .slice(0, 8)
+
+  const averageObservedInterventionCost = average(
+    recentRecords.map((record) => getNumericMetric(record, ['cost', 'totalCost', 'estimatedCost']))
+  )
+  const averageObservedValueProtected = average(
+    recentRecords.map((record) => getNumericMetric(record, ['estimatedValue', 'valueProtected', 'revenue']))
+  )
+  const averageObservedNetImpact = average(
+    recentRecords.map((record) => {
+      const explicitNet = getNumericMetric(record, ['netImpact'])
+      if (typeof explicitNet === 'number') {
+        return explicitNet
+      }
+
+      const cost = getNumericMetric(record, ['cost', 'totalCost', 'estimatedCost'])
+      const value = getNumericMetric(record, ['estimatedValue', 'valueProtected', 'revenue'])
+      if (typeof cost === 'number' && typeof value === 'number') {
+        return value - cost
+      }
+
+      return null
+    })
+  )
+  const averageObservedRoiRatio = average(
+    recentRecords.map((record) => {
+      const explicitRoi = getNumericMetric(record, ['roiRatio', 'roi'])
+      if (typeof explicitRoi === 'number') {
+        return explicitRoi
+      }
+
+      const cost = getNumericMetric(record, ['cost', 'totalCost', 'estimatedCost'])
+      const value = getNumericMetric(record, ['estimatedValue', 'valueProtected', 'revenue'])
+      if (typeof cost === 'number' && cost > 0 && typeof value === 'number') {
+        return (value - cost) / cost
+      }
+
+      return null
+    })
+  )
+
+  if (
+    averageObservedInterventionCost === null &&
+    averageObservedValueProtected === null &&
+    averageObservedNetImpact === null &&
+    averageObservedRoiRatio === null
+  ) {
+    return null
+  }
+
+  const rationale: string[] = []
+  if (averageObservedInterventionCost !== null) {
+    rationale.push(`Costo osservato medio ${toCurrency(averageObservedInterventionCost)}.`)
+  }
+  if (averageObservedValueProtected !== null) {
+    rationale.push(`Valore osservato medio ${toCurrency(averageObservedValueProtected)}.`)
+  }
+  if (averageObservedRoiRatio !== null) {
+    rationale.push(`ROI osservato medio ${averageObservedRoiRatio.toFixed(1)}x.`)
+  }
+
+  return {
+    sampleCount: recentRecords.length,
+    matchedBy,
+    averageObservedInterventionCost,
+    averageObservedValueProtected,
+    averageObservedNetImpact,
+    averageObservedRoiRatio,
+    confidenceAdjustment: clamp(0.02 + recentRecords.length * 0.01, 0.02, 0.12),
+    rationale,
+  }
+}
 
 const urgencyMultiplier = (
   urgencyLabel?: AgronomicEconomicPriorityInput['urgencyLabel']
@@ -77,6 +226,10 @@ const severityWeight = (
 }
 
 const deriveInterventionCost = (input: AgronomicEconomicPriorityInput): number => {
+  if (typeof input.observationSummary?.averageObservedInterventionCost === 'number') {
+    return roundMetric(Math.max(0, input.observationSummary.averageObservedInterventionCost), 0)
+  }
+
   if (typeof input.interventionCost === 'number' && Number.isFinite(input.interventionCost)) {
     return roundMetric(Math.max(0, input.interventionCost), 0)
   }
@@ -144,6 +297,10 @@ const deriveValueProtected = (
   interventionCost: number,
   costOfDelay: number
 ): number => {
+  if (typeof input.observationSummary?.averageObservedValueProtected === 'number') {
+    return roundMetric(Math.max(0, input.observationSummary.averageObservedValueProtected), 0)
+  }
+
   if (typeof input.valueProtected === 'number' && Number.isFinite(input.valueProtected)) {
     return roundMetric(Math.max(0, input.valueProtected), 0)
   }
@@ -203,6 +360,14 @@ export function buildAgronomicEconomicPrioritySummary(
     scoreAdjustment -= 2
   }
 
+  if (typeof input.observationSummary?.averageObservedRoiRatio === 'number') {
+    if (input.observationSummary.averageObservedRoiRatio >= 1.2) {
+      scoreAdjustment += 4
+    } else if (input.observationSummary.averageObservedRoiRatio <= 0) {
+      scoreAdjustment -= 3
+    }
+  }
+
   const explicitInputs = [
     input.interventionCost,
     input.costOfDelay,
@@ -214,7 +379,13 @@ export function buildAgronomicEconomicPrioritySummary(
     input.benchmarkGap,
   ].filter((value) => typeof value === 'number' && Number.isFinite(value)).length
 
-  const confidenceAdjustment = clamp(0.02 + explicitInputs * 0.01, 0.02, 0.1)
+  const confidenceAdjustment = clamp(
+    0.02 +
+      explicitInputs * 0.01 +
+      (input.observationSummary?.confidenceAdjustment || 0),
+    0.02,
+    0.16
+  )
 
   const rationale: string[] = []
   const interventionLabel = toCurrency(interventionCost)
@@ -238,6 +409,9 @@ export function buildAgronomicEconomicPrioritySummary(
           ? `ROI atteso positivo ma prudente (${roiRatio.toFixed(1)}x).`
           : `ROI atteso debole o negativo (${roiRatio.toFixed(1)}x).`
     )
+  }
+  if (input.observationSummary?.rationale?.length) {
+    rationale.push(...input.observationSummary.rationale.slice(0, 2))
   }
 
   return {
