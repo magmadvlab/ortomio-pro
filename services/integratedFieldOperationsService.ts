@@ -86,6 +86,7 @@ export interface FieldRowOperation {
     // Raccolta
     expectedYield?: number // kg
     qualityGrade?: 'A' | 'B' | 'C'
+    qualityScore?: number // 0-100
   }
   
   // Applicazione alle piante

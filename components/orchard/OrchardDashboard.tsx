@@ -128,6 +128,32 @@ export default function OrchardDashboard({ gardenId, onCreateOrchard, onSelectOr
     }
   }
 
+  const getQualityBenchmarkBadgeClasses = (status?: OrchardDashboardData['qualityBenchmarkStatus']) => {
+    switch (status) {
+      case 'above_target':
+        return 'bg-green-100 text-green-700'
+      case 'below_target':
+        return 'bg-red-100 text-red-700'
+      case 'watch':
+        return 'bg-yellow-100 text-yellow-800'
+      default:
+        return 'bg-gray-100 text-gray-600'
+    }
+  }
+
+  const getQualityBenchmarkLabel = (status?: OrchardDashboardData['qualityBenchmarkStatus']) => {
+    switch (status) {
+      case 'above_target':
+        return 'Sopra target'
+      case 'below_target':
+        return 'Sotto soglia'
+      case 'watch':
+        return 'In osservazione'
+      default:
+        return 'Dati parziali'
+    }
+  }
+
   const selectedYieldOrchard = orchards.find((orchard) => orchard.id === selectedOrchardId) || orchards[0] || null
 
   if (loading) {
@@ -521,49 +547,87 @@ export default function OrchardDashboard({ gardenId, onCreateOrchard, onSelectOr
 
       {/* Performance Metrics */}
       {dashboardData && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-semibold text-green-900">Salute Alberi</h4>
-              <CheckCircle className="text-green-600" size={20} />
-            </div>
-            <div className="text-3xl font-bold text-green-900 mb-2">
-              {dashboardData.healthyTreesPercentage}%
-            </div>
-            <p className="text-sm text-green-700">Alberi in salute</p>
-          </div>
+        <div className="space-y-6">
+          {typeof dashboardData.qualityTargetScore === 'number' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Benchmark Qualità Frutteto</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    La qualità orchard viene letta rispetto alla memoria reale del sito, non solo su classi statiche.
+                  </p>
+                </div>
+                <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${getQualityBenchmarkBadgeClasses(dashboardData.qualityBenchmarkStatus)}`}>
+                  {getQualityBenchmarkLabel(dashboardData.qualityBenchmarkStatus)}
+                </span>
+              </div>
 
-          <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-semibold text-blue-900">Resa Media</h4>
-              <TrendingUp className="text-blue-600" size={20} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                  <div className="text-sm text-emerald-800">Qualità letta</div>
+                  <div className="text-2xl font-bold text-emerald-700">
+                    {typeof dashboardData.adaptiveQualityScore === 'number' ? `${dashboardData.adaptiveQualityScore}%` : 'n/d'}
+                  </div>
+                </div>
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <div className="text-sm text-blue-800">Target / soglia</div>
+                  <div className="text-2xl font-bold text-blue-700">
+                    {dashboardData.qualityTargetScore}% / {dashboardData.qualityAlertFloorScore ?? 'n/d'}%
+                  </div>
+                </div>
+                <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                  <div className="text-sm text-orange-800">Redditività</div>
+                  <div className="text-2xl font-bold text-orange-700">{dashboardData.profitabilityScore}</div>
+                  <div className="text-sm text-orange-700">Score su 100</div>
+                </div>
+              </div>
             </div>
-            <div className="text-3xl font-bold text-blue-900 mb-2">
-              {dashboardData.averageYieldPerTree} kg
-            </div>
-            <p className="text-sm text-blue-700">Per albero</p>
-          </div>
+          )}
 
-          <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-semibold text-purple-900">Produzione Anno</h4>
-              <BarChart3 className="text-purple-600" size={20} />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-semibold text-green-900">Salute Alberi</h4>
+                <CheckCircle className="text-green-600" size={20} />
+              </div>
+              <div className="text-3xl font-bold text-green-900 mb-2">
+                {dashboardData.healthyTreesPercentage}%
+              </div>
+              <p className="text-sm text-green-700">Alberi in salute</p>
             </div>
-            <div className="text-3xl font-bold text-purple-900 mb-2">
-              {dashboardData.totalYieldThisYear} kg
-            </div>
-            <p className="text-sm text-purple-700">Totale raccolto</p>
-          </div>
 
-          <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-semibold text-orange-900">Redditività</h4>
-              <Target className="text-orange-600" size={20} />
+            <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-semibold text-blue-900">Resa Media</h4>
+                <TrendingUp className="text-blue-600" size={20} />
+              </div>
+              <div className="text-3xl font-bold text-blue-900 mb-2">
+                {dashboardData.averageYieldPerTree} kg
+              </div>
+              <p className="text-sm text-blue-700">Per albero</p>
             </div>
-            <div className="text-3xl font-bold text-orange-900 mb-2">
-              {dashboardData.profitabilityScore}
+
+            <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-semibold text-purple-900">Produzione Anno</h4>
+                <BarChart3 className="text-purple-600" size={20} />
+              </div>
+              <div className="text-3xl font-bold text-purple-900 mb-2">
+                {dashboardData.totalYieldThisYear} kg
+              </div>
+              <p className="text-sm text-purple-700">Totale raccolto</p>
             </div>
-            <p className="text-sm text-orange-700">Score su 100</p>
+
+            <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-semibold text-orange-900">Redditività</h4>
+                <Target className="text-orange-600" size={20} />
+              </div>
+              <div className="text-3xl font-bold text-orange-900 mb-2">
+                {dashboardData.profitabilityScore}
+              </div>
+              <p className="text-sm text-orange-700">Score su 100</p>
+            </div>
           </div>
         </div>
       )}

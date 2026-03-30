@@ -276,17 +276,21 @@ const average = (values: number[]) => {
 
 const computeOutcomeScore = (qualityResult: QualityResult) => {
   const values: number[] = []
+  let hasContinuousQualitySignal = false
 
   if (typeof qualityResult.qualityScore === 'number') {
     values.push(qualityResult.qualityScore)
+    hasContinuousQualitySignal = true
   }
 
   if (typeof qualityResult.brix === 'number') {
     values.push(Math.min(100, Number((qualityResult.brix * 5).toFixed(2))))
+    hasContinuousQualitySignal = true
   }
 
   if (typeof qualityResult.defectIncidencePercentage === 'number') {
     values.push(Math.max(0, Number((100 - qualityResult.defectIncidencePercentage).toFixed(2))))
+    hasContinuousQualitySignal = true
   }
 
   if (
@@ -296,10 +300,11 @@ const computeOutcomeScore = (qualityResult: QualityResult) => {
     const denominator = qualityResult.marketableYieldKg + (qualityResult.rejectedYieldKg || 0)
     if (denominator > 0) {
       values.push(Number(((qualityResult.marketableYieldKg / denominator) * 100).toFixed(2)))
+      hasContinuousQualitySignal = true
     }
   }
 
-  if (qualityResult.qualityGrade) {
+  if (qualityResult.qualityGrade && !hasContinuousQualitySignal) {
     values.push(QUALITY_GRADE_SCORE[qualityResult.qualityGrade])
   }
 

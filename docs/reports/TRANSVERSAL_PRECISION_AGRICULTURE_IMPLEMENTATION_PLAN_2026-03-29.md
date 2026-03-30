@@ -391,3 +391,15 @@ These files are the first technical foundation of the transversal architecture.
   - `components/garden/TraceabilityWidget.tsx` now talks about benchmark delta and lots above target benchmark instead of generic premium pricing language
   - `services/aiPredictiveEngine.ts` now frames recovery in terms of value versus benchmark instead of generic premium margin, which is more consistent with the adaptive quality contract
   - `services/dominanceIntegrationService.ts` now uses less rigid commercial claims in blockchain, certification, and drone positioning, replacing static premium wording and hard-coded gain narratives with measurable or benchmark-aware language
+- secondary scoring engines are now less tied to static quality classes:
+  - `services/orchardService.ts` no longer interprets orchard harvest classes with a permanently fixed `premium=100 / first=85 / ...` scale; the dashboard quality contribution is now anchored to the garden adaptive benchmark before being rolled into profitability
+  - `services/prescriptionExecutionService.ts` now ignores the coarse `qualityGrade` fallback whenever richer continuous signals already exist (quality score, Brix, defect incidence, marketable yield), which reduces double-counting and weakens the grip of static categorical grading
+  - this is a good transitional step because it improves transversal fidelity without forcing schema migrations across orchard or prescription datasets
+- orchard dashboard now exposes the benchmark instead of hiding it inside aggregate scores:
+  - `types/orchard.ts` and `services/orchardService.ts` now carry adaptive orchard quality score, target, alert floor, and benchmark status in the dashboard payload
+  - `components/orchard/OrchardDashboard.tsx` now renders a benchmark-quality panel, so the orchard overview no longer shows only yield and profitability while silently folding adaptive quality into background calculations
+  - this closes an important UX gap: the orchard vertical is now much closer to the rest of the product in both scoring logic and explainability
+- harvest operation registries now start carrying numeric quality too:
+  - `services/operationRegistryService.ts` now stores a numeric `qualityScore` alongside the legacy `A/B/C` harvest grade when registry records are hydrated from harvest logs
+  - `services/integratedFieldOperationsService.ts` and `components/fieldrows/IntegratedFieldOperationsModal.tsx` now propagate a derived `qualityScore` in integrated harvest requests, instead of carrying only the categorical grade
+  - this is a useful transitional step because future analytics can read a continuous signal from row-level operations without breaking the legacy UI or storage schema

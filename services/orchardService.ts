@@ -22,6 +22,7 @@ import {
 } from '@/types/orchard'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseClient as getSupabaseClientUnsafe } from '@/config/supabase'
+import { resolveAdaptiveQualityPricingBenchmarkForGarden } from '@/services/adaptiveMarketPricingService'
 
 const getSupabaseClient = (): SupabaseClient => {
   const client = getSupabaseClientUnsafe()
@@ -836,12 +837,14 @@ class OrchardService {
       const averageYieldPerTree = harvestedTreeIds.size > 0
         ? this.roundToSingleDecimal(totalYieldThisYear / harvestedTreeIds.size)
         : 0
-
+      const qualityBenchmark = await resolveAdaptiveQualityPricingBenchmarkForGarden(gardenId)
       const qualityWeights: Record<string, number> = {
-        premium: 100,
-        first: 85,
-        second: 65,
-        processing: 35,
+        premium: this.clampPercentage(qualityBenchmark.qualityTargetScore + 8),
+        first: this.clampPercentage(qualityBenchmark.qualityTargetScore - 4),
+        second: this.clampPercentage(
+          (qualityBenchmark.qualityTargetScore + qualityBenchmark.qualityAlertFloorScore) / 2
+        ),
+        processing: this.clampPercentage(qualityBenchmark.qualityAlertFloorScore - 18),
         waste: 10
       }
 
@@ -857,6 +860,17 @@ class OrchardService {
             return sum + score * quantity
           }, 0) / qualityWeightTotal
         : 0
+      const adaptiveQualityScore = qualityWeightTotal > 0
+        ? this.roundToSingleDecimal(qualityScore)
+        : undefined
+      const qualityBenchmarkStatus: OrchardDashboardData['qualityBenchmarkStatus'] =
+        adaptiveQualityScore === undefined
+          ? 'no_data'
+          : adaptiveQualityScore >= qualityBenchmark.qualityTargetScore
+            ? 'above_target'
+            : adaptiveQualityScore < qualityBenchmark.qualityAlertFloorScore
+              ? 'below_target'
+              : 'watch'
 
       const expectedYieldTotal = trees.reduce((sum, tree) => {
         const expectedYield = Number(tree.expected_yield_kg || 0)
@@ -1079,6 +1093,10 @@ class OrchardService {
         averageYieldPerTree,
         totalYieldThisYear: this.roundToSingleDecimal(totalYieldThisYear),
         profitabilityScore,
+        adaptiveQualityScore,
+        qualityTargetScore: qualityBenchmark.qualityTargetScore,
+        qualityAlertFloorScore: qualityBenchmark.qualityAlertFloorScore,
+        qualityBenchmarkStatus,
         criticalAlerts: criticalAlerts as OrchardDashboardData['criticalAlerts'],
         upcomingTasks
       }
@@ -1094,6 +1112,10 @@ class OrchardService {
         averageYieldPerTree: 0,
         totalYieldThisYear: 0,
         profitabilityScore: 0,
+        adaptiveQualityScore: undefined,
+        qualityTargetScore: undefined,
+        qualityAlertFloorScore: undefined,
+        qualityBenchmarkStatus: 'no_data',
         criticalAlerts: [],
         upcomingTasks: []
       }

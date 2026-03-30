@@ -754,6 +754,10 @@ export interface OrchardDashboardData {
   averageYieldPerTree: number
   totalYieldThisYear: number
   profitabilityScore: number
+  adaptiveQualityScore?: number
+  qualityTargetScore?: number
+  qualityAlertFloorScore?: number
+  qualityBenchmarkStatus?: 'above_target' | 'watch' | 'below_target' | 'no_data'
   
   // Alerts
   criticalAlerts: OrchardAlert[]

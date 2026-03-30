@@ -54,6 +54,7 @@ export interface OperationRecord {
       expectedYield: number // kg
       actualYield?: number // kg
       qualityGrade: 'A' | 'B' | 'C'
+      qualityScore?: number // 0-100
     }
   }
   
@@ -616,7 +617,8 @@ export class OperationRegistryService {
         harvest: {
           expectedYield: harvest.quantity,
           actualYield: harvest.quantity,
-          qualityGrade: harvest.rating >= 4 ? 'A' : harvest.rating >= 3 ? 'B' : 'C'
+          qualityGrade: harvest.rating >= 4 ? 'A' : harvest.rating >= 3 ? 'B' : 'C',
+          qualityScore: harvest.rating * 20
         }
       },
       weatherConditions: {

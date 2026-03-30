@@ -50,6 +50,14 @@ export const IntegratedFieldOperationsModal: React.FC<IntegratedFieldOperationsM
 }) => {
   const { storageProvider } = useStorage()
   const operationContextService = createOperationContextService()
+  const qualityGradeToScore = (grade: 'A' | 'B' | 'C') => {
+    switch (grade) {
+      case 'A': return 90
+      case 'B': return 75
+      case 'C': return 55
+      default: return 75
+    }
+  }
   
   // State
   const [selectedFieldRows, setSelectedFieldRows] = useState<string[]>([])
@@ -243,7 +251,8 @@ export const IntegratedFieldOperationsModal: React.FC<IntegratedFieldOperationsM
           applicationMethod: operationType === 'treatment' ? operationConfig.applicationMethod : undefined,
           cultivationType: operationType === 'cultivation' ? operationConfig.cultivationType : undefined,
           expectedYield: operationType === 'harvest' ? calculations.totalAmount : undefined,
-          qualityGrade: operationType === 'harvest' ? operationConfig.qualityGrade : undefined
+          qualityGrade: operationType === 'harvest' ? operationConfig.qualityGrade : undefined,
+          qualityScore: operationType === 'harvest' ? (operationConfig.qualityScore || qualityGradeToScore(operationConfig.qualityGrade)) : undefined
         },
         plantApplication: {
           applyToAllPlants: plantApplication.applyToAllPlants,
