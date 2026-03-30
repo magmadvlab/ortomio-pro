@@ -9,10 +9,17 @@ import NutritionAnalytics from '@/components/nutrition/NutritionAnalytics'
 import InventoryManager from '@/components/nutrition/InventoryManager'
 import type { TreatmentPlannerLaunchRequest } from '@/components/nutrition/TreatmentPlanner'
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { FlaskConical, Droplets, Leaf, Calendar, Plus, BarChart3, X, ArrowLeft, ArrowRight, MapPin, Settings } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
 import LocationSelector from '@/components/shared/LocationSelector'
+import TaskExecutionBanner from '@/components/shared/TaskExecutionBanner'
+import type { TaskExecutionContext } from '@/services/taskExecutionLaunchService'
+import {
+  buildNutritionExecutionBootstrapState,
+  parseTaskExecutionContext,
+} from '@/services/taskExecutionOrchestratorService'
 
 interface TreatmentConfig {
   id: string
@@ -41,12 +48,15 @@ interface TreatmentConfig {
 
 export default function NutritionPage() {
   const { storageProvider } = useStorage()
+  const searchParams = useSearchParams()
   const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
   const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'products' | 'treatments' | 'schedule' | 'analytics' | 'inventory'>('dashboard')
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [treatmentConfigs, setTreatmentConfigs] = useState<TreatmentConfig[]>([])
   const [plannerLaunchRequest, setPlannerLaunchRequest] = useState<TreatmentPlannerLaunchRequest | null>(null)
+  const [consumedLaunchSignature, setConsumedLaunchSignature] = useState<string | null>(null)
+  const [taskExecutionContext, setTaskExecutionContext] = useState<TaskExecutionContext | null>(null)
 
   useEffect(() => {
     const loadGardens = async () => {
@@ -64,6 +74,31 @@ export default function NutritionPage() {
     loadGardens()
   }, [storageProvider])
 
+  const resumeTaskAwarePlanner = (context: TaskExecutionContext) => {
+    if (!activeGarden) {
+      return
+    }
+
+    const bootstrapState = buildNutritionExecutionBootstrapState(context, activeGarden.id)
+    setActiveTab(bootstrapState.activeTab)
+    setPlannerLaunchRequest(bootstrapState.plannerLaunchRequest)
+  }
+
+  useEffect(() => {
+    if (!activeGarden) {
+      return
+    }
+
+    const context = parseTaskExecutionContext(searchParams, 'nutrition', 'Treatment')
+    if (!context || consumedLaunchSignature === context.sourceTaskId) {
+      return
+    }
+
+    setTaskExecutionContext(context)
+    resumeTaskAwarePlanner(context)
+    setConsumedLaunchSignature(context.sourceTaskId)
+  }, [activeGarden, searchParams, consumedLaunchSignature])
+  
   const loadTreatmentConfigs = async () => {
     try {
       // Simulate loading treatment configs from storage
@@ -96,14 +131,6 @@ export default function NutritionPage() {
     setActiveTab('inventory')
   }
 
-  const openPlanner = (request: Omit<TreatmentPlannerLaunchRequest, 'key'>) => {
-    setActiveTab('treatments')
-    setPlannerLaunchRequest({
-      key: Date.now(),
-      ...request
-    })
-  }
-
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -113,6 +140,15 @@ export default function NutritionPage() {
         </h1>
         <p className="text-gray-600 mt-1">Gestisci fertilizzazioni e trattamenti delle tue colture</p>
       </div>
+
+      {taskExecutionContext && (
+        <TaskExecutionBanner
+          context={taskExecutionContext}
+          theme="nutrition"
+          onResume={() => resumeTaskAwarePlanner(taskExecutionContext)}
+          onDismiss={() => setTaskExecutionContext(null)}
+        />
+      )}
 
       {/* Tabs */}
       <div className="mb-6">

@@ -9,6 +9,10 @@ import {
   IntegratedStaggeringPlan, 
   StaggeringMethod 
 } from './integratedStaggeringService';
+import {
+  resolveAgronomicCropProfile,
+} from './agronomicKernelService';
+import type { AgronomicCropProfile } from '../types/agronomicKernel';
 
 export interface CropPlanningRequest {
   cropName: string;
@@ -281,9 +285,12 @@ Fornisci identificazione precisa e consigli per pianificazione.`;
     
     // 1. Ottieni dati pianta dal database
     const plant = await this.getPlantData(request.cropName);
+    const agronomicProfile = (
+      await resolveAgronomicCropProfile({ plantId: request.cropName })
+    ).profile;
     
     // 2. Determina metodo di coltivazione ottimale
-    const method = this.determineOptimalMethod(request, soilAnalysis);
+    const method = this.determineOptimalMethod(request, soilAnalysis, agronomicProfile);
     
     // 3. Genera piano integrato completo
     const integratedPlan = IntegratedStaggeringService.generateIntegratedPlan(
@@ -298,6 +305,7 @@ Fornisci identificazione precisa e consigli per pianificazione.`;
     const aiOptimizations = await this.getAIOptimizations(
       request, 
       integratedPlan, 
+      agronomicProfile,
       soilAnalysis, 
       layoutSuggestion
     );
@@ -497,8 +505,32 @@ Fornisci identificazione precisa e consigli per pianificazione.`;
    */
   private static determineOptimalMethod(
     request: CropPlanningRequest,
-    soilAnalysis?: any
+    soilAnalysis?: any,
+    agronomicProfile?: AgronomicCropProfile
   ): StaggeringMethod {
+    if (
+      agronomicProfile?.primaryScope === 'plot' &&
+      agronomicProfile?.systems.includes('open_field') &&
+      request.surfaceHectares >= 3
+    ) {
+      return {
+        type: 'seed',
+        daysToMaturity: 110,
+      };
+    }
+
+    if (
+      agronomicProfile?.systems.some((system) =>
+        ['hydroponic', 'aquaponic', 'aeroponic', 'indoor', 'protected_culture'].includes(system)
+      )
+    ) {
+      return {
+        type: 'seedling',
+        daysToMaturity: 55,
+        nurseryDays: 18,
+        transplantWindow: 7,
+      };
+    }
     
     // Logica intelligente per scegliere il metodo
     if (request.experienceLevel === 'beginner') {
@@ -542,6 +574,7 @@ Fornisci identificazione precisa e consigli per pianificazione.`;
   private static async getAIOptimizations(
     request: CropPlanningRequest,
     integratedPlan: IntegratedStaggeringPlan,
+    agronomicProfile: AgronomicCropProfile,
     soilAnalysis?: any,
     layoutSuggestion?: any
   ): Promise<{
@@ -561,6 +594,16 @@ PIANO INTEGRATO:
 - Superficie: ${integratedPlan.totalSurface} ha
 - Lotti: ${integratedPlan.batches.length}
 - Metodo: ${integratedPlan.method.type}
+
+PROFILO AGRONOMICO:
+- Package: ${agronomicProfile.label}
+- Famiglia: ${agronomicProfile.cropFamily}
+- Ciclo: ${agronomicProfile.lifecycle}
+- Scala primaria: ${agronomicProfile.primaryScope}
+- Strategia irrigua: ${agronomicProfile.water.strategy}
+- Fasi sensibili: ${agronomicProfile.water.sensitiveStages.join(', ') || 'non definite'}
+- Pressioni sanitarie prioritarie: ${agronomicProfile.health.priorities.join(', ') || 'non definite'}
+- Obiettivi qualità: ${agronomicProfile.quality.targetMetrics.join(', ') || 'non definiti'}
 
 BATCHES TIMELINE:
 ${integratedPlan.batches.map(b => 
@@ -1081,6 +1124,45 @@ Genera un piano completo, pratico e immediatamente implementabile.`;
     ];
   }
 
+  private static buildMeasuredFeedbackOptimizations(actualData: {
+    yields: number[];
+    costs: number[];
+    weatherEvents: string[];
+  }): string[] {
+    const optimizations: string[] = []
+    const averageYield =
+      actualData.yields.length > 0
+        ? actualData.yields.reduce((sum, value) => sum + value, 0) / actualData.yields.length
+        : 0
+    const latestYield = actualData.yields[actualData.yields.length - 1] || averageYield
+    const averageCost =
+      actualData.costs.length > 0
+        ? actualData.costs.reduce((sum, value) => sum + value, 0) / actualData.costs.length
+        : 0
+    const latestCost = actualData.costs[actualData.costs.length - 1] || averageCost
+    const weatherJoined = actualData.weatherEvents.join(' ').toLowerCase()
+
+    if (latestYield < averageYield * 0.92) {
+      optimizations.push('Riduci la superficie delle fasi deboli e concentra il prossimo ciclo nelle finestre che hanno reso di più.')
+    } else if (latestYield > averageYield * 1.05) {
+      optimizations.push('Anticipa o amplia le finestre che hanno mostrato rese migliori, usando quelle fasi come benchmark operativo.')
+    }
+
+    if (latestCost > averageCost * 1.08) {
+      optimizations.push('Rivedi input e passaggi meccanici delle ultime fasi: i costi osservati stanno crescendo più del previsto.')
+    }
+
+    if (weatherJoined.includes('stress') || weatherJoined.includes('caldo') || weatherJoined.includes('heat')) {
+      optimizations.push('Proteggi le prossime fasi dal caldo con anticipo del calendario, pacciamatura e maggiore stabilità irrigua.')
+    }
+
+    if (weatherJoined.includes('piogg') || weatherJoined.includes('rain') || weatherJoined.includes('umid')) {
+      optimizations.push('Rivedi densità e timing dei trattamenti: gli eventi umidi recenti aumentano il rischio di pressione fungina.')
+    }
+
+    return optimizations
+  }
+
   /**
    * Genera suggerimenti AI per ottimizzazione piano esistente
    */
@@ -1126,12 +1208,13 @@ Suggerisci miglioramenti per le prossime fasi considerando:
       });
 
       // Parse response e genera ottimizzazioni
+      const measuredFeedbackOptimizations = this.buildMeasuredFeedbackOptimizations(actualData)
       return {
         optimizations: [
           'Anticipa semina di 7 giorni per evitare stress termico',
           'Aumenta densità di impianto del 15% nelle zone più produttive',
           'Implementa pacciamatura per ridurre stress idrico'
-        ],
+        ].concat(measuredFeedbackOptimizations),
         adjustedTimeline: currentPlan.timeline, // Modificato in base ai suggerimenti
         newROI: currentPlan.overview.roi * 1.12 // Miglioramento stimato
       };

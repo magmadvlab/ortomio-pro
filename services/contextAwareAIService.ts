@@ -6,8 +6,8 @@
 import { Garden, GardenTask, UserProfile, PlantMasterSheet } from '../types';
 import { getAIProvider } from './aiProviderAdapter';
 import { EnhancedPromptService, PromptContext } from './enhancedPromptService';
-import { getMasterSheetSync } from './plantMasterService';
 import { getWeatherForecast } from './weatherService';
+import { resolveAgronomicCropProfile } from './agronomicKernelService';
 
 export interface ConversationContext {
   sessionId: string;
@@ -76,7 +76,8 @@ export class ContextAwareAIService {
   static async buildContext(
     userId: string,
     gardenId?: string,
-    userProfile?: UserProfile
+    userProfile?: UserProfile,
+    plantName?: string
   ): Promise<PromptContext> {
     const context: PromptContext = {
       user: userProfile,
@@ -121,6 +122,23 @@ export class ContextAwareAIService {
       }
     }
 
+    if (plantName) {
+      try {
+        const resolvedProfile = await resolveAgronomicCropProfile({ plantId: plantName });
+        context.agronomicContext = this.formatAgronomicContext(
+          plantName,
+          resolvedProfile.profile.label,
+          resolvedProfile.profile.primaryScope,
+          resolvedProfile.profile.water.strategy,
+          resolvedProfile.profile.health.priorities,
+          resolvedProfile.profile.quality.targetMetrics,
+          resolvedProfile.warnings
+        );
+      } catch (error) {
+        console.warn('Could not resolve agronomic profile context:', error);
+      }
+    }
+
     // Add recent interactions
     const conversation = this.getConversationContext('current', userId, gardenId);
     context.previousInteractions = conversation.interactions
@@ -150,11 +168,17 @@ export class ContextAwareAIService {
 
     switch (request.type) {
       case 'plant_specific':
+        context.agronomicContext = (
+          await this.buildContext(userId, gardenId, userProfile, request.context?.plantName || request.input)
+        ).agronomicContext;
         systemInstruction = EnhancedPromptService.generateSystemInstruction(context);
         prompt = EnhancedPromptService.generatePlantIdentificationPrompt(request.input, context);
         break;
 
       case 'problem_diagnosis':
+        context.agronomicContext = (
+          await this.buildContext(userId, gardenId, userProfile, request.context?.plantName || request.input)
+        ).agronomicContext;
         systemInstruction = EnhancedPromptService.generateSystemInstruction(context);
         prompt = EnhancedPromptService.generateDiagnosisPrompt(request.input, context);
         break;
@@ -163,6 +187,9 @@ export class ContextAwareAIService {
         if (!request.imageData) {
           throw new Error('Image data required for image analysis');
         }
+        context.agronomicContext = (
+          await this.buildContext(userId, gardenId, userProfile, request.context?.plantName)
+        ).agronomicContext;
         // Handle multimodal request
         systemInstruction = EnhancedPromptService.generateSystemInstruction(context);
         prompt = EnhancedPromptService.generateImageAnalysisPrompt({
@@ -174,6 +201,9 @@ export class ContextAwareAIService {
         break;
 
       case 'planning':
+        context.agronomicContext = (
+          await this.buildContext(userId, gardenId, userProfile, request.context?.plantName || request.input)
+        ).agronomicContext;
         if (context.garden?.coordinates) {
           systemInstruction = EnhancedPromptService.generateSystemInstruction(context);
           prompt = EnhancedPromptService.generateSeasonalPrompt(
@@ -192,6 +222,7 @@ export class ContextAwareAIService {
         prompt = `${request.input}
 
 Contesto: ${context.season}, ${context.weatherContext || 'Condizioni normali'}
+${context.agronomicContext ? `Profilo agronomico: ${context.agronomicContext}` : ''}
 ${context.previousInteractions?.length ? `Conversazione precedente: ${context.previousInteractions.join(' | ')}` : ''}
 
 Fornisci una risposta utile e pratica in italiano.`;
@@ -270,6 +301,27 @@ Fornisci una risposta utile e pratica in italiano.`;
     }
 
     return suggestions.slice(0, 3); // Return max 3 suggestions
+  }
+
+  private static formatAgronomicContext(
+    plantName: string,
+    profileLabel: string,
+    primaryScope: string,
+    waterStrategy: string,
+    healthPriorities: string[],
+    qualityTargets: string[],
+    warnings: string[]
+  ): string {
+    const fragments = [
+      `${plantName} -> profilo ${profileLabel}`,
+      `scala primaria ${primaryScope}`,
+      `strategia acqua ${waterStrategy}`,
+      healthPriorities.length ? `pressioni sanitarie ${healthPriorities.join(', ')}` : null,
+      qualityTargets.length ? `target qualita ${qualityTargets.join(', ')}` : null,
+      warnings.length ? `note ${warnings.join(' | ')}` : null,
+    ].filter(Boolean);
+
+    return fragments.join('; ');
   }
 
   /**

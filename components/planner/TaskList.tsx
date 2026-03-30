@@ -1,12 +1,14 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Calendar, Plus, Edit, Trash2, Check, Clock, Filter, Search, ChevronDown, ChevronUp } from 'lucide-react'
 import { Garden, GardenTask } from '@/types'
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns'
 import { it } from 'date-fns/locale'
 
 import { translateTaskType, getCommonTaskTypesItalian } from '@/utils/taskTranslations'
+import { buildTaskExecutionUrl, canLaunchTaskExecution } from '@/services/taskExecutionLaunchService'
 
 interface TaskListProps {
   garden: Garden
@@ -22,6 +24,7 @@ type SortType = 'date' | 'plant' | 'type' | 'status'
 const TASK_TYPES = getCommonTaskTypesItalian()
 
 export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, onTaskDelete }: TaskListProps) {
+  const router = useRouter()
   const [filter, setFilter] = useState<FilterType>('all')
   const [sortBy, setSortBy] = useState<SortType>('date')
   const [searchTerm, setSearchTerm] = useState('')
@@ -127,6 +130,14 @@ export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, on
 
   const handleCompleteTask = async (task: GardenTask) => {
     await onTaskUpdate({ ...task, completed: !task.completed })
+  }
+
+  const openTaskExecution = (task: GardenTask) => {
+    const executionUrl = buildTaskExecutionUrl(task)
+    if (!executionUrl) {
+      return
+    }
+    router.push(executionUrl)
   }
 
   return (
@@ -296,6 +307,17 @@ export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, on
                                   </div>
                                 )}
                               </div>
+
+                              {canLaunchTaskExecution(task) && (
+                                <div className="mt-3">
+                                  <button
+                                    onClick={() => openTaskExecution(task)}
+                                    className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                  >
+                                    Apri esecuzione
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
 

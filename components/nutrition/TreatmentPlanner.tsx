@@ -33,8 +33,10 @@ import {
   NutritionFilters 
 } from '@/types/nutrition'
 import { advancedNutritionService } from '@/services/advancedNutritionService'
+import { buildNutritionMeasuredFeedback } from '@/services/agronomicMeasuredFeedbackService'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { executeNutritionTreatmentThroughUnifiedService } from '@/services/operationExecutionBridgeService'
+import { finalizeTaskExecutionPostAction } from '@/services/taskExecutionPostActionService'
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns'
 import { it } from 'date-fns/locale'
 
@@ -51,6 +53,7 @@ export interface TreatmentPlannerLaunchRequest {
   key: number
   viewMode: ViewMode
   initialData?: Partial<NutritionTreatment> | Partial<NutritionSchedule>
+  sourceTaskId?: string
 }
 
 export default function TreatmentPlanner({
@@ -84,7 +87,14 @@ export default function TreatmentPlanner({
 
     setViewMode(launchRequest.viewMode)
     setSelectedItem(null)
-    setInitialModalData(launchRequest.initialData || null)
+    setInitialModalData(
+      launchRequest.sourceTaskId
+        ? {
+            ...(launchRequest.initialData || {}),
+            sourceTaskId: launchRequest.sourceTaskId,
+          }
+        : (launchRequest.initialData || null)
+    )
     setModalMode('create')
     setShowModal(true)
     onLaunchHandled?.()
@@ -178,7 +188,13 @@ export default function TreatmentPlanner({
         status: 'completed',
         actualApplicationDate: treatmentForExecution.actualApplicationDate
       })
-      await loadData()
+      await finalizeTaskExecutionPostAction({
+        storageProvider,
+        gardenId: garden.id,
+        sourceTaskId: treatment.sourceTaskId,
+        measuredFeedback: buildNutritionMeasuredFeedback(treatmentForExecution),
+        refresh: [loadData],
+      })
     } catch (error) {
       console.error('Error completing treatment:', error)
     }
@@ -730,6 +746,7 @@ function TreatmentModal({
       if (viewMode === 'treatments') {
         const treatmentPayload: Omit<NutritionTreatment, 'id' | 'createdAt' | 'updatedAt'> = {
           gardenId: formData.gardenId || garden.id,
+          sourceTaskId: formData.sourceTaskId,
           zoneId: formData.zoneId,
           fieldRowId: formData.fieldRowId,
           sectionId: formData.sectionId,

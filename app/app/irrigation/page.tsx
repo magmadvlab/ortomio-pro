@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Droplets, Clock, MapPin, Settings, BarChart3, Plus, AlertTriangle, X, ArrowLeft, ArrowRight } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
@@ -9,9 +10,19 @@ import ProfessionalIrrigationDashboard from '@/components/irrigation/Professiona
 import IrrigationZoneManager from '@/components/irrigation/IrrigationZoneManager'
 import { IrrigationSystemWizard } from '@/components/irrigation/IrrigationSystemWizard'
 import { IrrigationSystemCard } from '@/components/irrigation/IrrigationSystemCard'
+import { WateringLogForm } from '@/components/irrigation/WateringLogForm'
 import { advancedIrrigationService } from '@/services/advancedIrrigationService'
+import { buildWateringMeasuredFeedback } from '@/services/agronomicMeasuredFeedbackService'
+import { executeWateringLogThroughUnifiedService } from '@/services/operationExecutionBridgeService'
+import { finalizeTaskExecutionPostAction } from '@/services/taskExecutionPostActionService'
 import type { IrrigationSystem, IrrigationZone } from '@/types/irrigation'
 import LocationSelector from '@/components/shared/LocationSelector'
+import TaskExecutionBanner from '@/components/shared/TaskExecutionBanner'
+import type { TaskExecutionContext } from '@/services/taskExecutionLaunchService'
+import {
+  buildWateringExecutionLaunchState,
+  parseTaskExecutionContext,
+} from '@/services/taskExecutionOrchestratorService'
 
 interface IrrigationConfig {
   id: string
@@ -40,6 +51,7 @@ interface IrrigationConfig {
 
 export default function IrrigationPage() {
   const { storageProvider } = useStorage()
+  const searchParams = useSearchParams()
   const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
   const [showConfigWizard, setShowConfigWizard] = useState(false)
@@ -51,6 +63,13 @@ export default function IrrigationPage() {
   const [systems, setSystems] = useState<IrrigationSystem[]>([])
   const [systemsLoading, setSystemsLoading] = useState(false)
   const [systemsError, setSystemsError] = useState<string | null>(null)
+  const [showWateringLogForm, setShowWateringLogForm] = useState(false)
+  const [wateringSourceTaskId, setWateringSourceTaskId] = useState<string | undefined>(undefined)
+  const [wateringLaunchDate, setWateringLaunchDate] = useState<string | undefined>(undefined)
+  const [wateringLaunchNotes, setWateringLaunchNotes] = useState<string | undefined>(undefined)
+  const [wateringLaunchZoneId, setWateringLaunchZoneId] = useState<string | undefined>(undefined)
+  const [consumedLaunchSignature, setConsumedLaunchSignature] = useState<string | null>(null)
+  const [taskExecutionContext, setTaskExecutionContext] = useState<TaskExecutionContext | null>(null)
 
   useEffect(() => {
     const loadGardens = async () => {
@@ -81,6 +100,21 @@ export default function IrrigationPage() {
     if (!activeGarden) return
     loadSystems(activeGarden.id)
   }, [selectedZoneId, activeGarden])
+
+  useEffect(() => {
+    if (!activeGarden) {
+      return
+    }
+
+    const context = parseTaskExecutionContext(searchParams, 'irrigation', 'Irrigation')
+    if (!context || consumedLaunchSignature === context.sourceTaskId) {
+      return
+    }
+
+    setTaskExecutionContext(context)
+    openWateringExecution(context)
+    setConsumedLaunchSignature(context.sourceTaskId)
+  }, [activeGarden, searchParams, consumedLaunchSignature])
 
   const loadZones = async (gardenId: string) => {
     try {
@@ -216,6 +250,58 @@ export default function IrrigationPage() {
     }
   }
 
+  const resetWateringLaunch = () => {
+    setShowWateringLogForm(false)
+    setWateringSourceTaskId(undefined)
+    setWateringLaunchDate(undefined)
+    setWateringLaunchNotes(undefined)
+    setWateringLaunchZoneId(undefined)
+  }
+
+  const openWateringExecution = (context: TaskExecutionContext) => {
+    const launchState = buildWateringExecutionLaunchState(context)
+    setActiveTab(launchState.activeTab)
+    setWateringSourceTaskId(launchState.sourceTaskId)
+    setWateringLaunchZoneId(launchState.zoneId)
+    setWateringLaunchDate(launchState.date)
+    setWateringLaunchNotes(launchState.notes)
+    setSelectedZoneId(launchState.selectedZoneId)
+    setShowWateringLogForm(launchState.showForm)
+  }
+
+  const finalizeWateringExecution = async (executedLogs?: Array<any>) => {
+    if (!activeGarden) {
+      return
+    }
+
+    await finalizeTaskExecutionPostAction({
+      storageProvider,
+      gardenId: activeGarden.id,
+      sourceTaskId: wateringSourceTaskId,
+      measuredFeedback: buildWateringMeasuredFeedback(
+        (executedLogs || []).map((log) => ({
+          ...log,
+          gardenId: log.gardenId || activeGarden.id,
+          taskId: log.taskId || wateringSourceTaskId,
+        })),
+        {
+          gardenId: activeGarden.id,
+          plantName: taskExecutionContext?.plantName,
+        }
+      ),
+      close: resetWateringLaunch,
+      refresh: [
+        () => loadZones(activeGarden.id),
+        () => loadSystems(activeGarden.id),
+      ],
+    })
+  }
+
+  const preselectedWateringZone =
+    wateringLaunchZoneId
+      ? zones.find((zone) => zone.id === wateringLaunchZoneId)
+      : undefined
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -225,6 +311,15 @@ export default function IrrigationPage() {
         </h1>
         <p className="text-gray-600 mt-1">Gestisci l'irrigazione automatica delle tue colture</p>
       </div>
+
+      {taskExecutionContext && (
+        <TaskExecutionBanner
+          context={taskExecutionContext}
+          theme="irrigation"
+          onResume={() => openWateringExecution(taskExecutionContext)}
+          onDismiss={() => setTaskExecutionContext(null)}
+        />
+      )}
 
       {/* Statistiche Rapide */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -518,6 +613,22 @@ export default function IrrigationPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showWateringLogForm && activeGarden && (
+        <WateringLogForm
+          zones={zones}
+          preselectedZone={preselectedWateringZone}
+          sourceTaskId={wateringSourceTaskId}
+          initialDate={wateringLaunchDate}
+          initialNotes={wateringLaunchNotes}
+          onExecuted={finalizeWateringExecution}
+          onSubmit={async (log) => {
+            await executeWateringLogThroughUnifiedService(storageProvider, log as any)
+            await finalizeWateringExecution([log])
+          }}
+          onCancel={resetWateringLaunch}
+        />
       )}
 
       {activeTab === 'scheduler' && (

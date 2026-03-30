@@ -19,6 +19,25 @@ import {
   type HealthCropContext,
   type HealthCropContextId,
 } from '@/utils/healthCropContext'
+import {
+  getAgronomicCropProfileById,
+  resolveAgronomicCropProfile,
+} from '@/services/agronomicKernelService'
+import {
+  getAgronomicMeasuredFeedbackRecords,
+  type AgronomicMeasuredFeedbackRecord,
+} from '@/services/agronomicMeasuredFeedbackService'
+import {
+  buildAgronomicHealthLearningAdjustment,
+  getAgronomicProfileLearningSnapshots,
+  type AgronomicHealthLearningAdjustment,
+} from '@/services/agronomicProfileLearningService'
+import { scoreAgronomicPriority } from '@/services/agronomicPriorityService'
+import type {
+  AgronomicHealthPriority,
+  AgronomicSignalKey,
+  ResolvedAgronomicCropProfile,
+} from '@/types/agronomicKernel'
 
 export interface HealthAlert {
   id: string
@@ -55,6 +74,9 @@ export interface MonitoringRule {
   actions: HealthAction[]
   enabled: boolean
   applicableContexts?: HealthCropContextId[]
+  cropAliases?: string[]
+  agronomicProfileIds?: string[]
+  requiredHealthPriorities?: AgronomicHealthPriority[]
   samplePlants?: Array<{ code: string; name: string }>
 }
 
@@ -119,6 +141,7 @@ const DEFAULT_MONITORING_RULES: MonitoringRule[] = [
     ],
     enabled: true,
     applicableContexts: ['generic'],
+    cropAliases: ['pomodoro'],
     samplePlants: [{ code: 'ROW-01', name: 'Pomodoro San Marzano' }],
   },
   {
@@ -162,6 +185,7 @@ const DEFAULT_MONITORING_RULES: MonitoringRule[] = [
     ],
     enabled: true,
     applicableContexts: ['generic', 'orchard'],
+    requiredHealthPriorities: ['sap_sucking_pests'],
     samplePlants: [{ code: 'CHK-01', name: 'Pesco giovane' }],
   },
   {
@@ -202,6 +226,7 @@ const DEFAULT_MONITORING_RULES: MonitoringRule[] = [
     ],
     enabled: true,
     applicableContexts: ['generic', 'orchard', 'olive', 'vineyard'],
+    requiredHealthPriorities: ['nutrient_imbalance'],
   },
   {
     id: 'harvest_timing_optimizer',
@@ -275,6 +300,7 @@ const DEFAULT_MONITORING_RULES: MonitoringRule[] = [
     ],
     enabled: true,
     applicableContexts: ['vineyard'],
+    agronomicProfileIds: ['vineyard_quality'],
     samplePlants: [{ code: 'VIN-01', name: 'Vite da vino' }],
   },
   {
@@ -315,6 +341,7 @@ const DEFAULT_MONITORING_RULES: MonitoringRule[] = [
     ],
     enabled: true,
     applicableContexts: ['olive'],
+    agronomicProfileIds: ['olive_grove_oil'],
     samplePlants: [{ code: 'OLV-01', name: 'Olivo da olio' }],
   },
   {
@@ -354,6 +381,7 @@ const DEFAULT_MONITORING_RULES: MonitoringRule[] = [
     ],
     enabled: true,
     applicableContexts: ['orchard'],
+    agronomicProfileIds: ['orchard_generic'],
     samplePlants: [{ code: 'ORC-01', name: 'Melo' }],
   },
 ]
@@ -374,11 +402,16 @@ type HealthEnvironmentalContext = {
   microclimate: HealthMicroclimateSnapshot | null
   phenology: CurrentPhenologyState | null
   devices: SmartDevice[]
+  agronomicProfile: ResolvedAgronomicCropProfile | null
+  dominantPlantNames: string[]
+  measuredFeedbackPressure: number
+  measuredFeedbackNotes: string[]
+  adaptiveLearning: AgronomicHealthLearningAdjustment
 }
 
 export interface PlantHealthAnalysisOptions {
   devices?: SmartDevice[]
-  storageProvider?: Pick<IStorageProvider, 'getPhenologyObservations'> | null
+  storageProvider?: Pick<IStorageProvider, 'getPhenologyObservations' | 'getUserPreference'> | null
 }
 
 export class PlantHealthMonitoringService {
@@ -393,21 +426,48 @@ export class PlantHealthMonitoringService {
     const alerts: HealthAlert[] = []
     const context = inferHealthCropContext(garden)
     const devices = options.devices || []
-    const [weatherData, microclimate, phenology] = await Promise.all([
+    const dominantPlantNames = this.getDominantPlantNames(garden, tasks)
+    const agronomicProfile = await this.resolveAgronomicHealthProfile(garden, dominantPlantNames)
+    const [weatherData, microclimate, phenology, measuredFeedbackRecords, learningSnapshots] = await Promise.all([
       garden.coordinates ? weatherService.getWeatherForGarden(garden).catch(() => null) : Promise.resolve(null),
       getScopedHealthMicroclimateSnapshot(garden, { devices }).catch(() => null),
-      getCurrentPhenologyState(options.storageProvider, garden).catch(() => null),
+      getCurrentPhenologyState(options.storageProvider, garden, {}, {
+        cropName: dominantPlantNames[0],
+        profileId: agronomicProfile?.profile.id,
+      }).catch(() => null),
+      options.storageProvider?.getUserPreference
+        ? getAgronomicMeasuredFeedbackRecords(options.storageProvider, garden.id).catch(() => [])
+        : Promise.resolve([] as AgronomicMeasuredFeedbackRecord[]),
+      options.storageProvider?.getUserPreference
+        ? getAgronomicProfileLearningSnapshots(options.storageProvider, garden.id).catch(() => [])
+        : Promise.resolve([]),
     ])
+    const measuredFeedbackContext = this.buildMeasuredFeedbackHealthContext(
+      measuredFeedbackRecords,
+      dominantPlantNames
+    )
+    const adaptiveLearning = buildAgronomicHealthLearningAdjustment(learningSnapshots, {
+      plantName: dominantPlantNames[0],
+      profileId: agronomicProfile?.profile.id,
+    })
     const environmentalContext: HealthEnvironmentalContext = {
       cropContext: context,
       weatherData,
       microclimate,
       phenology,
       devices,
+      agronomicProfile,
+      dominantPlantNames,
+      measuredFeedbackPressure: measuredFeedbackContext.pressure,
+      measuredFeedbackNotes: measuredFeedbackContext.notes,
+      adaptiveLearning,
     }
 
     for (const rule of this.rules.filter(
-      (candidate) => candidate.enabled && (!candidate.applicableContexts || candidate.applicableContexts.includes(context.id))
+      (candidate) =>
+        candidate.enabled &&
+        (!candidate.applicableContexts || candidate.applicableContexts.includes(context.id)) &&
+        this.isRuleAgronomicallyRelevant(candidate, environmentalContext)
     )) {
       const ruleAlerts = await this.evaluateRule(rule, garden, tasks, environmentalContext)
       alerts.push(...ruleAlerts)
@@ -416,8 +476,14 @@ export class PlantHealthMonitoringService {
     alerts.push(...this.analyzeTaskPatterns(tasks, context))
     alerts.push(...await this.analyzeWeatherConditions(garden, environmentalContext))
 
-    this.activeAlerts = alerts
-    return alerts
+    const rankedAlerts = [...alerts].sort(
+      (left, right) =>
+        this.scoreHealthAlert(right, environmentalContext) -
+        this.scoreHealthAlert(left, environmentalContext)
+    )
+
+    this.activeAlerts = rankedAlerts
+    return rankedAlerts
   }
 
   private async evaluateRule(
@@ -433,22 +499,27 @@ export class PlantHealthMonitoringService {
       return []
     }
 
-    const relevantPlants = this.getRelevantPlants(rule, garden, environmentalContext.cropContext)
-    return relevantPlants.map((plant) => ({
-      id: `${rule.id}_${plant.code}_${Date.now()}`,
-      type: this.getAlertTypeFromRule(rule),
-      severity: this.calculateSeverity(rule),
-      plantCode: plant.code,
-      plantName: plant.name,
-      description: this.generateDescription(rule, plant.name, environmentalContext),
-      detectedAt: new Date().toISOString(),
-      suggestedActions: rule.actions,
-      photoRequired: rule.actions.some((action) => action.type === 'photo_analysis'),
-      agronomistConsultation: this.shouldConsultAgronomist(rule),
-      urgencyDays: this.calculateUrgency(rule),
-      confidence: this.calculateRuleConfidence(rule, environmentalContext),
-      triggers: rule.triggers.map((trigger) => trigger.type),
-    }))
+    const relevantPlants = this.getRelevantPlants(rule, garden, environmentalContext.cropContext, environmentalContext)
+    return relevantPlants.map((plant) =>
+      this.applyAdaptiveLearningToAlert(
+        {
+          id: `${rule.id}_${plant.code}_${Date.now()}`,
+          type: this.getAlertTypeFromRule(rule),
+          severity: this.calculateSeverity(rule),
+          plantCode: plant.code,
+          plantName: plant.name,
+          description: this.generateDescription(rule, plant.name, environmentalContext),
+          detectedAt: new Date().toISOString(),
+          suggestedActions: rule.actions,
+          photoRequired: rule.actions.some((action) => action.type === 'photo_analysis'),
+          agronomistConsultation: this.shouldConsultAgronomist(rule),
+          urgencyDays: this.calculateUrgency(rule, environmentalContext),
+          confidence: this.calculateRuleConfidence(rule, environmentalContext),
+          triggers: rule.triggers.map((trigger) => trigger.type),
+        },
+        environmentalContext
+      )
+    )
   }
 
   private analyzeTaskPatterns(tasks: GardenTask[], context: HealthCropContext): HealthAlert[] {
@@ -568,6 +639,7 @@ export class PlantHealthMonitoringService {
     const fungalPressure = microclimate?.fungalPressure || 'none'
     const heatStress = microclimate?.heatStress || 'none'
     const waterStress = microclimate?.waterStress || 'none'
+    const adaptiveLearning = environmentalContext.adaptiveLearning
     const microclimateSignals = microclimate?.supportingSignals.length
       ? ` Sensori: ${microclimate.supportingSignals.join(', ')}.`
       : ''
@@ -581,125 +653,145 @@ export class PlantHealthMonitoringService {
       const ndviData = await NDVISatelliteService.getLatestNDVI(garden)
 
       if (ndviData && ndviData.ndvi_value < 0.4) {
-        alerts.push({
-          id: `ndvi_stress_${Date.now()}`,
-          type: 'stress_symptoms',
-          severity: ndviData.ndvi_value < 0.2 ? 'critical' : 'high',
-          plantName: 'Vegetazione (Satellite)',
-          description: `NDVI satellitare basso (${ndviData.ndvi_value.toFixed(3)}). Stress vegetativo rilevato da Sentinel-2.`,
-          detectedAt: new Date().toISOString(),
-          suggestedActions: [
+        alerts.push(
+          this.applyAdaptiveLearningToAlert(
             {
-              type: 'photo_analysis',
-              title: 'Verifica Visiva',
-              description: 'Confronta il quadro satellitare con rilievi in campo',
-              priority: 'high',
-              estimatedTime: '10 min',
+              id: `ndvi_stress_${Date.now()}`,
+              type: 'stress_symptoms',
+              severity: ndviData.ndvi_value < 0.2 ? 'critical' : 'high',
+              plantName: 'Vegetazione (Satellite)',
+              description: `NDVI satellitare basso (${ndviData.ndvi_value.toFixed(3)}). Stress vegetativo rilevato da Sentinel-2.`,
+              detectedAt: new Date().toISOString(),
+              suggestedActions: [
+                {
+                  type: 'photo_analysis',
+                  title: 'Verifica Visiva',
+                  description: 'Confronta il quadro satellitare con rilievi in campo',
+                  priority: 'high',
+                  estimatedTime: '10 min',
+                },
+                {
+                  type: 'intervention',
+                  title: 'Intervento Mirato',
+                  description: 'Irrigazione o fertilizzazione nelle zone critiche',
+                  priority: 'high',
+                  estimatedTime: '30 min',
+                },
+              ],
+              photoRequired: true,
+              agronomistConsultation: ndviData.ndvi_value < 0.2,
+              urgencyDays: ndviData.ndvi_value < 0.2 ? 1 : 3,
+              confidence: 0.9,
+              triggers: ['satellite_ndvi'],
             },
-            {
-              type: 'intervention',
-              title: 'Intervento Mirato',
-              description: 'Irrigazione o fertilizzazione nelle zone critiche',
-              priority: 'high',
-              estimatedTime: '30 min',
-            },
-          ],
-          photoRequired: true,
-          agronomistConsultation: ndviData.ndvi_value < 0.2,
-          urgencyDays: ndviData.ndvi_value < 0.2 ? 1 : 3,
-          confidence: 0.9,
-          triggers: ['satellite_ndvi'],
-        })
+            environmentalContext
+          )
+        )
       }
     } catch {
       // NDVI opzionale: nessuna azione se il servizio non e disponibile.
     }
 
     if (
-      effectiveTemperature !== undefined &&
-      fungalPressure === 'high' ||
+      (effectiveTemperature !== undefined && fungalPressure === 'high') ||
       (effectiveTemperature !== undefined &&
-        effectiveHumidity > 80 &&
+        effectiveHumidity > adaptiveLearning.fungalHumidityThreshold &&
         effectiveTemperature > 15 &&
         effectiveTemperature < 28 &&
-        effectiveRain > 1)
+        effectiveRain > adaptiveLearning.fungalRainThreshold)
     ) {
       const fungalProfile = this.getFungalWeatherProfile(context)
-      alerts.push({
-        id: `fungal_risk_weather_${Date.now()}`,
-        type: 'disease_risk',
-        severity:
-          fungalPressure === 'high' && context.id === 'vineyard'
-            ? 'critical'
-            : fungalPressure === 'high' || context.id === 'vineyard'
-              ? 'high'
-              : 'medium',
-        plantName: fungalProfile.plantLabel,
-        description: `${fungalProfile.description}: umidita ${effectiveHumidity}%, temperatura ${effectiveTemperature.toFixed(1)}°C, pioggia fino a ${effectiveRain.toFixed(1)}mm tra oggi e i prossimi giorni.${microclimateSignals}`,
-        detectedAt: new Date().toISOString(),
-        suggestedActions: [
+      alerts.push(
+        this.applyAdaptiveLearningToAlert(
           {
-            type: 'intervention',
-            title: fungalProfile.interventionTitle,
-            description: fungalProfile.interventionDescription,
-            priority: context.id === 'vineyard' ? 'high' : 'medium',
-            estimatedTime: '30 min',
+            id: `fungal_risk_weather_${Date.now()}`,
+            type: 'disease_risk',
+            severity:
+              fungalPressure === 'high' && context.id === 'vineyard'
+                ? 'critical'
+                : fungalPressure === 'high' || context.id === 'vineyard'
+                  ? 'high'
+                  : 'medium',
+            plantName: fungalProfile.plantLabel,
+            description: `${fungalProfile.description}: umidita ${effectiveHumidity}%, temperatura ${effectiveTemperature.toFixed(1)}°C, pioggia fino a ${effectiveRain.toFixed(1)}mm tra oggi e i prossimi giorni.${microclimateSignals}`,
+            detectedAt: new Date().toISOString(),
+            suggestedActions: [
+              {
+                type: 'intervention',
+                title: fungalProfile.interventionTitle,
+                description: fungalProfile.interventionDescription,
+                priority: context.id === 'vineyard' ? 'high' : 'medium',
+                estimatedTime: '30 min',
+              },
+              {
+                type: 'monitoring',
+                title: 'Controllo Post-Pioggia',
+                description: fungalProfile.monitoringDescription,
+                priority: 'medium',
+                estimatedTime: '15 min',
+              },
+            ],
+            photoRequired: false,
+            agronomistConsultation: fungalPressure === 'high' && context.id !== 'generic',
+            urgencyDays: fungalPressure === 'high' ? 1 : 2,
+            confidence: microclimate?.hasRecentData ? 0.9 : 0.75,
+            triggers: microclimate?.hasRecentData
+              ? ['weather', 'leaf_wetness', 'dew_point', 'rain_gauge_local']
+              : ['weather'],
           },
-          {
-            type: 'monitoring',
-            title: 'Controllo Post-Pioggia',
-            description: fungalProfile.monitoringDescription,
-            priority: 'medium',
-            estimatedTime: '15 min',
-          },
-        ],
-        photoRequired: false,
-        agronomistConsultation: fungalPressure === 'high' && context.id !== 'generic',
-        urgencyDays: fungalPressure === 'high' ? 1 : 2,
-        confidence: microclimate?.hasRecentData ? 0.9 : 0.75,
-        triggers: microclimate?.hasRecentData
-          ? ['weather', 'leaf_wetness', 'dew_point', 'rain_gauge_local']
-          : ['weather'],
-      })
+          environmentalContext
+        )
+      )
     }
 
-    const hotDays = nextDays.filter((day) => day.tempMax > 30).length
-    if (hotDays >= 2 || heatStress === 'high' || waterStress === 'high') {
+    const hotDays = nextDays.filter(
+      (day) => day.tempMax > adaptiveLearning.heatStressTemperatureThreshold
+    ).length
+    if (
+      hotDays >= adaptiveLearning.hotDaysTriggerCount ||
+      heatStress === 'high' ||
+      waterStress === 'high'
+    ) {
       const heatProfile = this.getHeatStressProfile(context)
-      alerts.push({
-        id: `heat_stress_${Date.now()}`,
-        type: 'stress_symptoms',
-        severity: heatStress === 'high' || waterStress === 'high' ? 'high' : 'medium',
-        plantName: heatProfile.plantLabel,
-        description:
-          hotDays >= 2
-            ? `Previste ${hotDays} giornate con temperature >30°C. ${heatProfile.description}${microclimateSignals}`
-            : `I sensori indicano stress idrico o termico nel ${context.areaLabel}. ${heatProfile.description}${microclimateSignals}`,
-        detectedAt: new Date().toISOString(),
-        suggestedActions: [
+      alerts.push(
+        this.applyAdaptiveLearningToAlert(
           {
-            type: 'intervention',
-            title: heatProfile.interventionTitle,
-            description: heatProfile.interventionDescription,
-            priority: 'high',
-            estimatedTime: '20 min',
+            id: `heat_stress_${Date.now()}`,
+            type: 'stress_symptoms',
+            severity: heatStress === 'high' || waterStress === 'high' ? 'high' : 'medium',
+            plantName: heatProfile.plantLabel,
+            description:
+              hotDays >= adaptiveLearning.hotDaysTriggerCount
+                ? `Previste ${hotDays} giornate con temperature >${adaptiveLearning.heatStressTemperatureThreshold}°C. ${heatProfile.description}${microclimateSignals}`
+                : `I sensori indicano stress idrico o termico nel ${context.areaLabel}. ${heatProfile.description}${microclimateSignals}`,
+            detectedAt: new Date().toISOString(),
+            suggestedActions: [
+              {
+                type: 'intervention',
+                title: heatProfile.interventionTitle,
+                description: heatProfile.interventionDescription,
+                priority: 'high',
+                estimatedTime: '20 min',
+              },
+              {
+                type: 'monitoring',
+                title: 'Controllo Stress',
+                description: heatProfile.monitoringDescription,
+                priority: 'medium',
+                estimatedTime: '10 min',
+              },
+            ],
+            photoRequired: true,
+            agronomistConsultation: false,
+            urgencyDays: 1,
+            confidence: microclimate?.hasRecentData ? 0.88 : 0.8,
+            triggers: microclimate?.hasRecentData
+              ? ['weather', 'vpd', 'canopy_temperature', 'soil_tension_kpa']
+              : ['weather'],
           },
-          {
-            type: 'monitoring',
-            title: 'Controllo Stress',
-            description: heatProfile.monitoringDescription,
-            priority: 'medium',
-            estimatedTime: '10 min',
-          },
-        ],
-        photoRequired: true,
-        agronomistConsultation: false,
-        urgencyDays: 1,
-        confidence: microclimate?.hasRecentData ? 0.88 : 0.8,
-        triggers: microclimate?.hasRecentData
-          ? ['weather', 'vpd', 'canopy_temperature', 'soil_tension_kpa']
-          : ['weather'],
-      })
+          environmentalContext
+        )
+      )
     }
 
     return alerts
@@ -721,10 +813,26 @@ export class PlantHealthMonitoringService {
       if (trigger.type === 'weather') {
         if (!weatherMetrics) return false
 
-        const humidity = trigger.parameters.humidity as { min?: number; max?: number } | undefined
-        const temperature = trigger.parameters.temperature as { min?: number; max?: number } | undefined
-        const rainMm = trigger.parameters.rain_mm as { min?: number; max?: number } | undefined
-        const leafWetness = trigger.parameters.leaf_wetness as { min?: number; max?: number } | undefined
+        const humidity = this.adjustWeatherTriggerRange(
+          trigger.parameters.humidity as { min?: number; max?: number } | undefined,
+          'humidity',
+          environmentalContext
+        )
+        const temperature = this.adjustWeatherTriggerRange(
+          trigger.parameters.temperature as { min?: number; max?: number } | undefined,
+          'temperature',
+          environmentalContext
+        )
+        const rainMm = this.adjustWeatherTriggerRange(
+          trigger.parameters.rain_mm as { min?: number; max?: number } | undefined,
+          'rain',
+          environmentalContext
+        )
+        const leafWetness = this.adjustWeatherTriggerRange(
+          trigger.parameters.leaf_wetness as { min?: number; max?: number } | undefined,
+          'leafWetness',
+          environmentalContext
+        )
         const vpd = trigger.parameters.vpd as { min?: number; max?: number } | undefined
 
         return [
@@ -768,8 +876,24 @@ export class PlantHealthMonitoringService {
   private getRelevantPlants(
     rule: MonitoringRule,
     garden: Garden,
-    context: HealthCropContext
+    context: HealthCropContext,
+    environmentalContext?: HealthEnvironmentalContext
   ): Array<{ code: string; name: string }> {
+    const dominantPlantNames = environmentalContext?.dominantPlantNames || []
+
+    if (dominantPlantNames.length > 0) {
+      const filteredPlantNames = rule.cropAliases && rule.cropAliases.length > 0
+        ? dominantPlantNames.filter((plantName) => this.matchesCropAlias(rule.cropAliases!, plantName))
+        : dominantPlantNames
+
+      if (filteredPlantNames.length > 0) {
+        return filteredPlantNames.slice(0, 2).map((plantName, index) => ({
+          code: `CROP-${index + 1}`,
+          name: plantName,
+        }))
+      }
+    }
+
     if (rule.samplePlants && rule.samplePlants.length > 0) {
       return rule.samplePlants
     }
@@ -818,33 +942,56 @@ export class PlantHealthMonitoringService {
         ? ` Segnali sensore: ${microclimateSignals.join(', ')}.`
         : ''
     const phenologySuffix = environmentalContext.phenology
-      ? ` Fase fenologica confermata: ${environmentalContext.phenology.stageLabel} (${environmentalContext.phenology.scopeLabel}).`
+      ? environmentalContext.phenology.source === 'observation'
+        ? ` Fase fenologica confermata: ${environmentalContext.phenology.stageLabel} (${environmentalContext.phenology.scopeLabel}).`
+        : ` Fase fenologica stimata dal profilo agronomico: ${environmentalContext.phenology.stageLabel}.`
       : ''
+    const agronomicSuffix = environmentalContext.agronomicProfile
+      ? ` Profilo agronomico: ${environmentalContext.agronomicProfile.profile.label}. Priorita: ${environmentalContext.agronomicProfile.profile.health.priorities.join(', ')}.`
+      : ''
+    const measuredFeedbackSuffix =
+      environmentalContext.measuredFeedbackNotes.length > 0
+        ? ` Feedback osservato recente: ${environmentalContext.measuredFeedbackNotes.join(', ')}.`
+        : ''
+    const adaptiveLearningSuffix =
+      environmentalContext.adaptiveLearning.notes.length > 0
+        ? ` Memoria sito-specifica: ${environmentalContext.adaptiveLearning.notes.join(' ')}.`
+        : ''
 
     if (context.id === 'vineyard') {
-      return `${rule.description} rilevate su ${plantName}. Concentrati sui filari piu umidi o chiusi.${phenologySuffix}${sensorSuffix}`
+      return `${rule.description} rilevate su ${plantName}. Concentrati sui filari piu umidi o chiusi.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${adaptiveLearningSuffix}`
     }
 
     if (context.id === 'olive') {
-      return `${rule.description} rilevato su ${plantName}. Verifica chioma, olive e uniformita dell impianto.${phenologySuffix}${sensorSuffix}`
+      return `${rule.description} rilevato su ${plantName}. Verifica chioma, olive e uniformita dell impianto.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${adaptiveLearningSuffix}`
     }
 
     if (context.id === 'orchard') {
-      return `${rule.description} rilevata su ${plantName}. Controlla insieme foglie, chioma e frutti.${phenologySuffix}${sensorSuffix}`
+      return `${rule.description} rilevata su ${plantName}. Controlla insieme foglie, chioma e frutti.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${adaptiveLearningSuffix}`
     }
 
-    return `${rule.description} rilevata per ${plantName}.${phenologySuffix}${sensorSuffix}`
+    return `${rule.description} rilevata per ${plantName}.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${adaptiveLearningSuffix}`
   }
 
   private shouldConsultAgronomist(rule: MonitoringRule): boolean {
     return rule.actions.some((action) => action.type === 'agronomist_contact') || rule.id.includes('mildew')
   }
 
-  private calculateUrgency(rule: MonitoringRule): number {
-    if (rule.id.includes('blight') || rule.id.includes('mildew')) return 2
-    if (rule.id.includes('fly')) return 3
-    if (rule.id.includes('harvest')) return 3
-    return 7
+  private calculateUrgency(
+    rule: MonitoringRule,
+    environmentalContext?: HealthEnvironmentalContext
+  ): number {
+    const baseUrgency =
+      rule.id.includes('blight') || rule.id.includes('mildew')
+        ? 2
+        : rule.id.includes('fly') || rule.id.includes('harvest')
+          ? 3
+          : 7
+
+    return Math.max(
+      1,
+      baseUrgency + (environmentalContext?.adaptiveLearning.urgencyDaysOffset || 0)
+    )
   }
 
   private calculateRuleConfidence(
@@ -853,20 +1000,34 @@ export class PlantHealthMonitoringService {
   ): number {
     const baseConfidence = 0.8
     const hasWeatherTrigger = rule.triggers.some((trigger) => trigger.type === 'weather')
+    const measuredFeedbackBoost = environmentalContext.measuredFeedbackPressure * 0.01
+    const adaptiveBoost = environmentalContext.adaptiveLearning.confidenceBoost
 
     if (!hasWeatherTrigger) {
-      return baseConfidence
+      return this.applyAgronomicConfidenceAdjustments(
+        Math.min(0.96, baseConfidence + measuredFeedbackBoost + adaptiveBoost),
+        environmentalContext
+      )
     }
 
     if (environmentalContext.microclimate?.hasRecentData) {
-      return environmentalContext.phenology ? 0.95 : 0.92
+      return this.applyAgronomicConfidenceAdjustments(
+        Math.min(0.98, (environmentalContext.phenology ? 0.95 : 0.92) + measuredFeedbackBoost + adaptiveBoost),
+        environmentalContext
+      )
     }
 
     if (environmentalContext.weatherData) {
-      return environmentalContext.phenology ? 0.88 : 0.84
+      return this.applyAgronomicConfidenceAdjustments(
+        Math.min(0.95, (environmentalContext.phenology ? 0.88 : 0.84) + measuredFeedbackBoost + adaptiveBoost),
+        environmentalContext
+      )
     }
 
-    return environmentalContext.phenology ? 0.76 : 0.68
+    return this.applyAgronomicConfidenceAdjustments(
+      Math.min(0.9, (environmentalContext.phenology ? 0.76 : 0.68) + measuredFeedbackBoost + adaptiveBoost),
+      environmentalContext
+    )
   }
 
   private buildWeatherTriggerMetrics(environmentalContext: HealthEnvironmentalContext): {
@@ -924,6 +1085,60 @@ export class PlantHealthMonitoringService {
     }
 
     return true
+  }
+
+  private adjustWeatherTriggerRange(
+    range: { min?: number; max?: number } | undefined,
+    metric: 'humidity' | 'temperature' | 'rain' | 'leafWetness',
+    environmentalContext: HealthEnvironmentalContext
+  ): { min?: number; max?: number } | undefined {
+    if (!range) {
+      return range
+    }
+
+    const adaptiveLearning = environmentalContext.adaptiveLearning
+    const adjustedRange = { ...range }
+
+    switch (metric) {
+      case 'humidity':
+        if (typeof adjustedRange.min === 'number') {
+          adjustedRange.min = Math.max(
+            0,
+            adjustedRange.min - Math.max(0, 80 - adaptiveLearning.fungalHumidityThreshold)
+          )
+        }
+        break
+      case 'rain':
+        if (typeof adjustedRange.min === 'number') {
+          adjustedRange.min = Math.max(
+            0,
+            Number(
+              (
+                adjustedRange.min - Math.max(0, 1 - adaptiveLearning.fungalRainThreshold)
+              ).toFixed(1)
+            )
+          )
+        }
+        break
+      case 'leafWetness':
+        if (typeof adjustedRange.min === 'number') {
+          adjustedRange.min = Math.max(
+            0,
+            adjustedRange.min - Math.max(0, 50 - adaptiveLearning.leafWetnessThreshold)
+          )
+        }
+        break
+      case 'temperature':
+        if (typeof adjustedRange.max === 'number' && adaptiveLearning.pressureBoost >= 3) {
+          adjustedRange.max += 1
+        }
+        if (typeof adjustedRange.min === 'number' && adaptiveLearning.pressureBoost >= 3) {
+          adjustedRange.min = Math.max(0, adjustedRange.min - 1)
+        }
+        break
+    }
+
+    return adjustedRange
   }
 
   private getCurrentSeasonKey(): 'winter' | 'spring' | 'summer' | 'fall' {
@@ -1031,6 +1246,351 @@ export class PlantHealthMonitoringService {
           interventionDescription: 'Aumenta la frequenza di irrigazione',
           monitoringDescription: 'Monitora segni di appassimento',
         }
+    }
+  }
+
+  private getDominantPlantNames(garden: Garden, tasks: GardenTask[]): string[] {
+    const frequencies = new Map<string, number>()
+
+    for (const task of tasks) {
+      const plantName = task.plantName?.trim()
+      if (!plantName) {
+        continue
+      }
+
+      frequencies.set(plantName, (frequencies.get(plantName) || 0) + 1)
+    }
+
+    const rankedPlantNames = Array.from(frequencies.entries())
+      .sort((left, right) => right[1] - left[1])
+      .map(([plantName]) => plantName)
+
+    if (rankedPlantNames.length > 0) {
+      return rankedPlantNames
+    }
+
+    if (garden.vineyardConfig?.varieties?.length) {
+      return [garden.vineyardConfig.varieties[0]]
+    }
+
+    if (garden.oliveGroveConfig?.varieties?.length) {
+      return [garden.oliveGroveConfig.varieties[0]]
+    }
+
+    if (garden.orchardConfig?.varieties?.length) {
+      return [garden.orchardConfig.varieties[0]]
+    }
+
+    return []
+  }
+
+  private async resolveAgronomicHealthProfile(
+    garden: Garden,
+    dominantPlantNames: string[]
+  ): Promise<ResolvedAgronomicCropProfile | null> {
+    for (const plantName of dominantPlantNames) {
+      const resolved = await resolveAgronomicCropProfile({ plantId: plantName })
+      if (resolved.profile && resolved.source !== 'fallback') {
+        return resolved
+      }
+    }
+
+    const fallbackProfile =
+      (garden.vineyardConfig || garden.gardenType === 'Vineyard')
+        ? getAgronomicCropProfileById('vineyard_quality')
+        : (garden.oliveGroveConfig || garden.gardenType === 'OliveGrove')
+          ? getAgronomicCropProfileById('olive_grove_oil')
+          : (garden.orchardConfig || garden.gardenType === 'Orchard')
+            ? getAgronomicCropProfileById('orchard_generic')
+            : (
+              garden.indoorConfig ||
+              garden.hydroponicConfig ||
+              garden.aquaponicConfig ||
+              garden.aeroponicConfig ||
+              garden.gardenType === 'Indoor' ||
+              garden.gardenType === 'Hydroponic' ||
+              garden.gardenType === 'Aquaponic' ||
+              garden.gardenType === 'Aeroponic'
+            )
+              ? getAgronomicCropProfileById('controlled_environment_leafy')
+              : null
+
+    if (!fallbackProfile) {
+      return null
+    }
+
+    return {
+      profile: fallbackProfile,
+      source: 'fallback',
+      matchedBy: garden.gardenType || 'garden_context',
+      warnings: ['Health profile resolved from garden context because no dominant crop name was available.'],
+    }
+  }
+
+  private isRuleAgronomicallyRelevant(
+    rule: MonitoringRule,
+    environmentalContext: HealthEnvironmentalContext
+  ): boolean {
+    const agronomicProfile = environmentalContext.agronomicProfile?.profile
+    const dominantPlantNames = environmentalContext.dominantPlantNames
+
+    if (rule.cropAliases && rule.cropAliases.length > 0) {
+      return dominantPlantNames.some((plantName) => this.matchesCropAlias(rule.cropAliases!, plantName))
+    }
+
+    if (rule.agronomicProfileIds && rule.agronomicProfileIds.length > 0) {
+      return agronomicProfile ? rule.agronomicProfileIds.includes(agronomicProfile.id) : false
+    }
+
+    if (rule.requiredHealthPriorities && rule.requiredHealthPriorities.length > 0) {
+      return agronomicProfile
+        ? rule.requiredHealthPriorities.some((priority) => agronomicProfile.health.priorities.includes(priority))
+        : true
+    }
+
+    return true
+  }
+
+  private matchesCropAlias(aliases: string[], plantName: string): boolean {
+    const normalizedPlantName = plantName.toLowerCase()
+    return aliases.some((alias) => normalizedPlantName.includes(alias.toLowerCase()))
+  }
+
+  private applyAgronomicConfidenceAdjustments(
+    baseConfidence: number,
+    environmentalContext: HealthEnvironmentalContext
+  ): number {
+    const agronomicProfile = environmentalContext.agronomicProfile?.profile
+    if (!agronomicProfile) {
+      return baseConfidence
+    }
+
+    let adjustedConfidence = baseConfidence
+
+    if (environmentalContext.phenology?.source === 'observation') {
+      adjustedConfidence += 0.03
+    } else if (environmentalContext.phenology?.source === 'agronomic_fallback') {
+      adjustedConfidence -= 0.02
+    }
+
+    const p0Signals = agronomicProfile.health.recommendedSignals.filter(
+      (signal) => signal.priority === 'P0'
+    )
+
+    if (p0Signals.length > 0) {
+      const availableSignals = this.getAvailableHealthSignals(environmentalContext)
+      const coveredSignals = p0Signals.filter((signal) => availableSignals.has(signal.key))
+      adjustedConfidence += (coveredSignals.length / p0Signals.length) * 0.08 - 0.03
+    }
+
+    return Math.max(0.45, Math.min(0.98, adjustedConfidence))
+  }
+
+  private getAvailableHealthSignals(
+    environmentalContext: HealthEnvironmentalContext
+  ): Set<AgronomicSignalKey> {
+    const availableSignals = new Set<AgronomicSignalKey>()
+    const weatherData = environmentalContext.weatherData
+    const microclimate = environmentalContext.microclimate
+
+    if (weatherData) {
+      availableSignals.add('weather_current')
+      if (Array.isArray(weatherData.forecast) && weatherData.forecast.length > 0) {
+        availableSignals.add('weather_forecast')
+      }
+      if (typeof weatherData.rainMm === 'number') {
+        availableSignals.add('rain_gauge_local')
+      }
+    }
+
+    if (microclimate?.metrics.leafWetness !== undefined) {
+      availableSignals.add('leaf_wetness')
+    }
+
+    if (microclimate?.metrics.dewPoint !== undefined) {
+      availableSignals.add('dew_point')
+    }
+
+    if (microclimate?.metrics.vpd !== undefined) {
+      availableSignals.add('vpd')
+    }
+
+    if (microclimate?.metrics.canopyTemperature !== undefined) {
+      availableSignals.add('canopy_temperature')
+    }
+
+    if (microclimate?.metrics.soilTensionKpa !== undefined) {
+      availableSignals.add('soil_tension_kpa')
+    }
+
+    if (microclimate?.metrics.rainGaugeLocalMm !== undefined) {
+      availableSignals.add('rain_gauge_local')
+    }
+
+    if (environmentalContext.phenology) {
+      availableSignals.add('phenology_observation')
+    }
+
+    return availableSignals
+  }
+
+  private scoreHealthAlert(
+    alert: HealthAlert,
+    environmentalContext: HealthEnvironmentalContext
+  ): number {
+    const severityScore = {
+      critical: 100,
+      high: 78,
+      medium: 52,
+      low: 28,
+    }[alert.severity]
+
+    const typePriorityScore = this.getAlertTypeAgronomicWeight(alert.type, environmentalContext)
+    const urgencyScore = Math.max(0, 14 - Math.min(alert.urgencyDays, 14)) * 2
+    const baseScore = severityScore + typePriorityScore + urgencyScore
+    const priorityResult = scoreAgronomicPriority({
+      baseScore,
+      confidence: alert.confidence,
+      resolvedProfile: environmentalContext.agronomicProfile,
+      focus: 'health',
+      availableSignals: this.getAvailableHealthSignals(environmentalContext),
+      isCriticalStage:
+        Boolean(environmentalContext.phenology) &&
+        Boolean(
+          environmentalContext.phenology &&
+            environmentalContext.agronomicProfile?.profile.phenology.decisionCriticalStages.includes(
+              environmentalContext.phenology.stageKey
+            )
+        ),
+    })
+    const phenologyScore =
+      environmentalContext.phenology &&
+      environmentalContext.agronomicProfile?.profile.phenology.decisionCriticalStages.includes(
+        environmentalContext.phenology.stageKey
+      )
+        ? 8
+        : 0
+
+    return (
+      priorityResult.score +
+      phenologyScore +
+      environmentalContext.measuredFeedbackPressure +
+      environmentalContext.adaptiveLearning.pressureBoost
+    )
+  }
+
+  private applyAdaptiveLearningToAlert(
+    alert: HealthAlert,
+    environmentalContext: HealthEnvironmentalContext
+  ): HealthAlert {
+    const combinedPressure =
+      environmentalContext.measuredFeedbackPressure +
+      environmentalContext.adaptiveLearning.pressureBoost
+    const nextSeverity =
+      combinedPressure >= 9 && alert.severity !== 'critical'
+        ? alert.severity === 'low'
+          ? 'medium'
+          : alert.severity === 'medium'
+            ? 'high'
+            : 'critical'
+        : alert.severity
+    const adaptiveSuffix =
+      environmentalContext.adaptiveLearning.notes.length > 0 &&
+      !alert.description.includes('Memoria sito-specifica:')
+        ? ` Memoria sito-specifica: ${environmentalContext.adaptiveLearning.notes.join(' ')}.`
+        : ''
+
+    return {
+      ...alert,
+      severity: nextSeverity,
+      urgencyDays: Math.max(
+        1,
+        alert.urgencyDays + environmentalContext.adaptiveLearning.urgencyDaysOffset
+      ),
+      confidence: Math.min(
+        0.99,
+        alert.confidence + environmentalContext.adaptiveLearning.confidenceBoost
+      ),
+      description: `${alert.description}${adaptiveSuffix}`,
+    }
+  }
+
+  private buildMeasuredFeedbackHealthContext(
+    records: AgronomicMeasuredFeedbackRecord[],
+    dominantPlantNames: string[]
+  ): { pressure: number; notes: string[] } {
+    const normalizedPlants = dominantPlantNames.map((plantName) => plantName.toLowerCase().trim())
+    const relevantRecords = records
+      .filter((record) => {
+        if (normalizedPlants.length === 0) {
+          return true
+        }
+
+        return record.plantName
+          ? normalizedPlants.includes(record.plantName.toLowerCase().trim())
+          : true
+      })
+      .slice(0, 10)
+
+    let pressure = 0
+    const notes: string[] = []
+
+    for (const record of relevantRecords) {
+      const effectivenessScore =
+        typeof record.metrics.effectivenessScore === 'number'
+          ? record.metrics.effectivenessScore
+          : null
+      const qualityRating =
+        typeof record.metrics.qualityRating === 'number'
+          ? record.metrics.qualityRating
+          : null
+      const moistureDelta =
+        typeof record.metrics.averageSoilMoistureDelta === 'number'
+          ? record.metrics.averageSoilMoistureDelta
+          : null
+
+      if (record.focus === 'nutrition' && effectivenessScore !== null && effectivenessScore < 5) {
+        pressure += 3
+        notes.push('trattamenti recenti poco efficaci')
+      }
+
+      if (record.focus === 'quality' && qualityRating !== null && qualityRating < 3) {
+        pressure += 3
+        notes.push('qualita recente sotto soglia')
+      }
+
+      if (record.focus === 'water' && moistureDelta !== null && moistureDelta <= 0) {
+        pressure += 2
+        notes.push('irrigazioni recenti con risposta idrica debole')
+      }
+    }
+
+    return {
+      pressure: Math.min(10, pressure),
+      notes: [...new Set(notes)].slice(0, 3),
+    }
+  }
+
+  private getAlertTypeAgronomicWeight(
+    alertType: HealthAlert['type'],
+    environmentalContext: HealthEnvironmentalContext
+  ): number {
+    const priorities = environmentalContext.agronomicProfile?.profile.health.priorities || []
+
+    switch (alertType) {
+      case 'disease_risk':
+        return priorities.includes('foliar_disease') ? 18 : priorities.includes('root_disease') ? 14 : 8
+      case 'pest_alert':
+        return priorities.includes('sap_sucking_pests') ? 18 : priorities.includes('fruit_quality_pressure') ? 14 : 8
+      case 'nutrient_deficiency':
+        return priorities.includes('nutrient_imbalance') ? 16 : 8
+      case 'stress_symptoms':
+      case 'weather_stress':
+        return priorities.includes('water_stress') ? 18 : 10
+      case 'harvest_timing':
+        return environmentalContext.agronomicProfile ? 12 : 6
+      default:
+        return 0
     }
   }
 

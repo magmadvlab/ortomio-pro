@@ -1,3 +1,5 @@
+import type { AgronomicSignalKey } from './agronomicKernel'
+
 // Advanced + legacy irrigation system types
 // This file intentionally models both the new "advanced irrigation" domain
 // and the still-active legacy UI/storage contracts used across the app.
@@ -522,6 +524,10 @@ export interface EfficiencyReport {
   uniformityCoefficient: number
   waterUseEfficiency: number
   recommendations: string[]
+  agronomicProfileId?: string
+  priorityScore?: number
+  priorityConfidence?: number
+  missingSignals?: AgronomicSignalKey[]
 }
 
 // System configuration types

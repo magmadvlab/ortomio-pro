@@ -85,6 +85,7 @@ export interface WateringLog extends MicroZoneReference {
   id: string;
   zoneId: string; // irrigation_zones (obbligatorio)
   gardenId: string;
+  taskId?: string;
   wateredAt: string; // ISO timestamp
   date: string; // ISO date
   durationMinutes: number;

@@ -6,6 +6,7 @@ import {
   type UnifiedOperationRequest,
   type UnifiedOperationResponse
 } from './unifiedOperationsService'
+import { appendSourceTaskReference } from './taskExecutionTraceService'
 
 type LegacyWateringExecutionInput = Omit<WateringLog, 'id' | 'createdAt'> & {
   rowId?: string
@@ -84,6 +85,7 @@ type FieldRowUnifiedExecutionInput = {
   method?: string
   areaSqm?: number
   notes?: string
+  sourceTaskId?: string
   propagateToPlants?: boolean
   sourceType?: UnifiedOperationRequest['sourceType']
   actorType?: UnifiedOperationRequest['actorType']
@@ -121,6 +123,7 @@ export async function executeFieldRowOperationThroughUnifiedService(
     method: input.method,
     areaSqm: input.areaSqm,
     notes: input.notes,
+    sourceTaskId: input.sourceTaskId,
     propagateToPlants: input.propagateToPlants,
     sourceType: input.sourceType || 'manual',
     actorType: input.actorType || 'manual',
@@ -161,6 +164,7 @@ export async function executeWateringLogThroughUnifiedService(
     notes: [log.notes, log.durationMinutes ? `Durata ${log.durationMinutes} min` : undefined]
       .filter(Boolean)
       .join(' | ') || undefined,
+    sourceTaskId: log.taskId,
     weatherConditions: buildWeatherConditions({
       condition: log.weatherCondition,
       temperature: log.airTemperatureC
@@ -196,10 +200,11 @@ export async function executeTaskFertilizationThroughUnifiedService(
     method: log.method,
     areaSqm: log.areaSqm || undefined,
     notes: [
-      log.notes || undefined,
+      appendSourceTaskReference(log.notes || undefined, task.id),
       `Task sorgente: ${task.id}`,
       task.plantName ? `Pianta task: ${task.plantName}` : undefined
     ].filter(Boolean).join(' | ') || undefined,
+    sourceTaskId: task.id,
     weatherConditions: buildWeatherConditions({
       weatherConditions: log.weatherConditions
     }),
@@ -238,10 +243,13 @@ export async function executeNutritionTreatmentThroughUnifiedService(
     durationMinutes: treatment.applicationDurationMinutes,
     method: treatment.applicationMethod,
     notes: [
-      treatment.notes,
+      treatment.sourceTaskId
+        ? appendSourceTaskReference(treatment.notes, treatment.sourceTaskId)
+        : treatment.notes,
       `Nutrition treatment source: ${treatment.id}`,
       treatment.operatorName ? `Operatore: ${treatment.operatorName}` : undefined
     ].filter(Boolean).join(' | ') || undefined,
+    sourceTaskId: treatment.sourceTaskId,
     weatherConditions: treatment.weatherConditions
       ? {
           condition: treatment.weatherConditions.conditions,

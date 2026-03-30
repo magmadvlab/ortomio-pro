@@ -582,6 +582,12 @@ export interface HistoricalComparisonResult {
     temporalCoverage: number;
     spatialAccuracy: number;
     confidenceScore: number;
+    adaptiveBenchmarkScore?: number;
+    adaptiveAlertFloorScore?: number;
+    averageBenchmarkGap?: number;
+    brixTarget?: number;
+    benchmarkStatus?: 'above_target' | 'watch' | 'below_target' | 'no_data';
+    notes?: string[];
   };
 }
 

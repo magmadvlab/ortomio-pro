@@ -1,0 +1,306 @@
+import { scoreAgronomicPriority, type AgronomicPriorityFocus } from '@/services/agronomicPriorityService'
+import {
+  summarizeAgronomicMeasuredFeedback,
+  type AgronomicMeasuredFeedbackRecord,
+  type AgronomicMeasuredFeedbackSummary,
+} from '@/services/agronomicMeasuredFeedbackService'
+import type { AgronomicSignalKey } from '@/types/agronomicKernel'
+import type { HealthAlert } from '@/services/plantHealthMonitoringService'
+import type { EfficiencyReport } from '@/types/irrigation'
+import type {
+  PrescriptionAgronomicIntelligenceSummary,
+  PrescriptionAgronomicPriority,
+} from '@/services/prescriptionAgronomicIntelligenceService'
+import type { PrioritizedAction } from '@/services/directorService'
+
+export interface AgronomicPhenologyQueueCandidate {
+  id: string
+  title: string
+  stageKey: string
+  stageLabel: string
+  scopeLabel: string
+  confidence: number
+  profileId?: string
+  source: 'observation' | 'agronomic_fallback'
+  cropNameHint?: string
+  availableSignals?: AgronomicSignalKey[]
+  isDecisionCriticalStage?: boolean
+}
+
+export interface AgronomicActionQueueItem {
+  id: string
+  source: 'health' | 'irrigation' | 'prescription' | 'director' | 'phenology'
+  title: string
+  description: string
+  scopeLabel?: string
+  focus: AgronomicPriorityFocus
+  priorityScore: number
+  priorityConfidence: number
+  agronomicProfileId?: string
+  missingSignals: AgronomicSignalKey[]
+  urgencyLabel: 'immediate' | 'next_cycle' | 'monitor'
+  metadata?: Record<string, unknown>
+}
+
+export interface BuildAgronomicActionQueueInput {
+  healthAlerts?: HealthAlert[]
+  irrigationReports?: EfficiencyReport[]
+  prescriptionSummary?: PrescriptionAgronomicIntelligenceSummary | null
+  directorActions?: PrioritizedAction[]
+  phenologyCandidates?: AgronomicPhenologyQueueCandidate[]
+  measuredFeedbackRecords?: AgronomicMeasuredFeedbackRecord[]
+}
+
+const healthSeverityScore: Record<HealthAlert['severity'], number> = {
+  critical: 96,
+  high: 78,
+  medium: 54,
+  low: 30,
+}
+
+const getUrgencyLabel = (score: number): AgronomicActionQueueItem['urgencyLabel'] => {
+  if (score >= 75) return 'immediate'
+  if (score >= 45) return 'next_cycle'
+  return 'monitor'
+}
+
+const summarizeFeedbackForQueueItem = (
+  records: AgronomicMeasuredFeedbackRecord[] | undefined,
+  focus: AgronomicPriorityFocus,
+  options?: {
+    zoneId?: string
+    plantName?: string
+  }
+): AgronomicMeasuredFeedbackSummary | null => {
+  return summarizeAgronomicMeasuredFeedback(records || [], {
+    focus,
+    zoneId: options?.zoneId,
+    plantName: options?.plantName,
+  })
+}
+
+const toHealthQueueItems = (
+  alerts: HealthAlert[],
+  measuredFeedbackRecords?: AgronomicMeasuredFeedbackRecord[]
+): AgronomicActionQueueItem[] => {
+  return alerts.map((alert) => {
+    const measuredFeedbackSummary = summarizeFeedbackForQueueItem(
+      measuredFeedbackRecords,
+      'health',
+      { plantName: alert.plantName }
+    )
+    const priorityResult = scoreAgronomicPriority({
+      baseScore: healthSeverityScore[alert.severity],
+      confidence: alert.confidence,
+      focus: 'health',
+      availableSignals: [],
+      isCriticalStage: false,
+      measuredFeedbackSummary,
+    })
+
+    return {
+      id: `health:${alert.id}`,
+      source: 'health',
+      title: `${alert.plantName} - ${alert.type}`,
+      description: alert.description,
+      scopeLabel: alert.plantName,
+      focus: 'health',
+      priorityScore: priorityResult.score,
+      priorityConfidence: priorityResult.confidence,
+      missingSignals: [],
+      urgencyLabel: getUrgencyLabel(priorityResult.score),
+      metadata: {
+        severity: alert.severity,
+        type: alert.type,
+        triggers: alert.triggers,
+        measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
+      },
+    }
+  })
+}
+
+const toIrrigationQueueItems = (
+  reports: EfficiencyReport[],
+  measuredFeedbackRecords?: AgronomicMeasuredFeedbackRecord[]
+): AgronomicActionQueueItem[] => {
+  return reports.map((report) => {
+    const measuredFeedbackSummary = summarizeFeedbackForQueueItem(
+      measuredFeedbackRecords,
+      'water',
+      { zoneId: report.zoneId }
+    )
+    const priorityResult = scoreAgronomicPriority({
+      baseScore: report.priorityScore ?? 40,
+      confidence: report.priorityConfidence ?? 0.55,
+      focus: 'water',
+      measuredFeedbackSummary,
+    })
+
+    return {
+      id: `irrigation:${report.zoneId}:${report.period}`,
+      source: 'irrigation',
+      title: `Irrigazione ${report.zoneName}`,
+      description: report.recommendations.join(' '),
+      scopeLabel: report.zoneName,
+      focus: 'water',
+      priorityScore: priorityResult.score,
+      priorityConfidence: priorityResult.confidence,
+      agronomicProfileId: report.agronomicProfileId,
+      missingSignals: report.missingSignals || [],
+      urgencyLabel: getUrgencyLabel(priorityResult.score),
+      metadata: {
+        averageEfficiency: report.averageEfficiency,
+        uniformityCoefficient: report.uniformityCoefficient,
+        waterUseEfficiency: report.waterUseEfficiency,
+        period: report.period,
+        measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
+      },
+    }
+  })
+}
+
+const toPrescriptionQueueItems = (
+  summary: PrescriptionAgronomicIntelligenceSummary | null | undefined,
+  measuredFeedbackRecords?: AgronomicMeasuredFeedbackRecord[]
+): AgronomicActionQueueItem[] => {
+  if (!summary) {
+    return []
+  }
+
+  return summary.operationalPriorities.map((priority: PrescriptionAgronomicPriority) => {
+    const measuredFeedbackSummary = summarizeFeedbackForQueueItem(
+      measuredFeedbackRecords,
+      'nutrition',
+      { zoneId: priority.zoneId, plantName: summary.benchmarkCropLabel }
+    )
+    const priorityResult = scoreAgronomicPriority({
+      baseScore: priority.priorityScore,
+      confidence: priority.priorityConfidence ?? 0.6,
+      focus: 'nutrition',
+      measuredFeedbackSummary,
+    })
+
+    return {
+      id: `prescription:${priority.id}`,
+      source: 'prescription',
+      title: `Prescription ${priority.scopeLabel}`,
+      description: priority.rationale,
+      scopeLabel: priority.scopeLabel,
+      focus: 'nutrition',
+      priorityScore: priorityResult.score,
+      priorityConfidence: priorityResult.confidence,
+      agronomicProfileId: priority.agronomicProfileId,
+      missingSignals: priority.missingSignals || [],
+      urgencyLabel: getUrgencyLabel(priorityResult.score),
+      metadata: {
+        drivers: priority.drivers,
+        recommendedAction: priority.recommendedAction,
+        efficacyScore: priority.efficacyScore,
+        measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
+      },
+    }
+  })
+}
+
+const toDirectorQueueItems = (
+  actions: PrioritizedAction[],
+  measuredFeedbackRecords?: AgronomicMeasuredFeedbackRecord[]
+): AgronomicActionQueueItem[] => {
+  return actions.map((action) => {
+    const focus = action.agronomicFocus || 'health'
+    const measuredFeedbackSummary = summarizeFeedbackForQueueItem(
+      measuredFeedbackRecords,
+      focus,
+      { plantName: action.title }
+    )
+    const priorityResult = scoreAgronomicPriority({
+      baseScore: action.priorityScore,
+      confidence: action.priorityConfidence ?? action.confidence ?? 0.55,
+      focus,
+      measuredFeedbackSummary,
+    })
+
+    return {
+      id: `director:${action.id}`,
+      source: 'director',
+      title: action.title,
+      description: action.description,
+      focus,
+      priorityScore: priorityResult.score,
+      priorityConfidence: priorityResult.confidence,
+      agronomicProfileId: action.agronomicProfileId,
+      missingSignals: action.missingSignals || [],
+      urgencyLabel: getUrgencyLabel(priorityResult.score),
+      metadata: {
+        source: action.source,
+        type: action.type,
+        reasoning: action.reasoning,
+        measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
+      },
+    }
+  })
+}
+
+const toPhenologyQueueItems = (
+  candidates: AgronomicPhenologyQueueCandidate[],
+  measuredFeedbackRecords?: AgronomicMeasuredFeedbackRecord[]
+): AgronomicActionQueueItem[] => {
+  return candidates.map((candidate) => {
+    const measuredFeedbackSummary = summarizeFeedbackForQueueItem(
+      measuredFeedbackRecords,
+      'quality',
+      { plantName: candidate.cropNameHint || candidate.scopeLabel }
+    )
+    const priorityResult = scoreAgronomicPriority({
+      baseScore: candidate.isDecisionCriticalStage ? 72 : 46,
+      confidence: candidate.confidence,
+      focus: 'quality',
+      availableSignals: candidate.availableSignals || [],
+      isCriticalStage: candidate.isDecisionCriticalStage,
+      measuredFeedbackSummary,
+    })
+
+    return {
+      id: `phenology:${candidate.id}`,
+      source: 'phenology',
+      title: candidate.title,
+      description:
+        candidate.source === 'agronomic_fallback'
+          ? `Fase ${candidate.stageLabel} stimata sullo scope ${candidate.scopeLabel}. Conviene confermare con osservazione o sensore.`
+          : `Fase ${candidate.stageLabel} osservata sullo scope ${candidate.scopeLabel}.`,
+      scopeLabel: candidate.scopeLabel,
+      focus: 'quality',
+      priorityScore: priorityResult.score,
+      priorityConfidence: priorityResult.confidence,
+      agronomicProfileId: candidate.profileId,
+      missingSignals: priorityResult.signalCoverage.missingP0Signals,
+      urgencyLabel: getUrgencyLabel(priorityResult.score),
+      metadata: {
+        stageKey: candidate.stageKey,
+        stageLabel: candidate.stageLabel,
+        source: candidate.source,
+        measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
+      },
+    }
+  })
+}
+
+export function buildAgronomicActionQueue(
+  input: BuildAgronomicActionQueueInput
+): AgronomicActionQueueItem[] {
+  const queue = [
+    ...toHealthQueueItems(input.healthAlerts || [], input.measuredFeedbackRecords),
+    ...toIrrigationQueueItems(input.irrigationReports || [], input.measuredFeedbackRecords),
+    ...toPrescriptionQueueItems(input.prescriptionSummary, input.measuredFeedbackRecords),
+    ...toDirectorQueueItems(input.directorActions || [], input.measuredFeedbackRecords),
+    ...toPhenologyQueueItems(input.phenologyCandidates || [], input.measuredFeedbackRecords),
+  ]
+
+  return queue.sort((left, right) => {
+    if (right.priorityScore !== left.priorityScore) {
+      return right.priorityScore - left.priorityScore
+    }
+
+    return right.priorityConfidence - left.priorityConfidence
+  })
+}

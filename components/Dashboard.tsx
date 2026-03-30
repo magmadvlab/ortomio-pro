@@ -103,6 +103,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [showWateringLogForm, setShowWateringLogForm] = useState(false);
   const [selectedZoneForLog, setSelectedZoneForLog] = useState<IrrigationZone | null>(null);
   const [irrigationZones, setIrrigationZones] = useState<IrrigationZone[]>([]);
+  const [sourceTaskIdForWateringLog, setSourceTaskIdForWateringLog] = useState<string | undefined>(undefined);
   
   // Client-side only date to avoid hydration errors
   const [mounted, setMounted] = useState(false);
@@ -1066,6 +1067,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 const zone = zones.find(z => z.id === task.zoneId);
                                 if (zone) {
                                   setSelectedZoneForLog(zone);
+                                  setSourceTaskIdForWateringLog(task.id);
                                   setShowWateringLogForm(true);
                                 }
                               }
@@ -1091,6 +1093,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 const zone = zones.find(z => z.id === task.zoneId);
                                 if (zone) {
                                   setSelectedZoneForLog(zone);
+                                  setSourceTaskIdForWateringLog(task.id);
                                   setShowWateringLogForm(true);
                                 }
                               }
@@ -1246,10 +1249,12 @@ const Dashboard: React.FC<DashboardProps> = ({
         <WateringLogForm
           zones={irrigationZones}
           preselectedZone={selectedZoneForLog}
+          sourceTaskId={sourceTaskIdForWateringLog}
           onExecuted={async () => {
             setShowWateringLogForm(false);
             setSelectedZoneForLog(null);
             setIrrigationZones([]);
+            setSourceTaskIdForWateringLog(undefined);
             if (activeGarden) {
               const plan = await getDailyGardenPlan(activeGarden, tasks);
               setDailyPlan(plan);
@@ -1260,6 +1265,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             setShowWateringLogForm(false);
             setSelectedZoneForLog(null);
             setIrrigationZones([]);
+            setSourceTaskIdForWateringLog(undefined);
             // Ricarica daily plan
             if (activeGarden) {
               const plan = await getDailyGardenPlan(activeGarden, tasks);
@@ -1270,6 +1276,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             setShowWateringLogForm(false);
             setSelectedZoneForLog(null);
             setIrrigationZones([]);
+            setSourceTaskIdForWateringLog(undefined);
           }}
         />
       )}

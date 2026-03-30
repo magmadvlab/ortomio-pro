@@ -7,6 +7,12 @@ import React, { useState, useEffect } from 'react';
 import { ZoneMemory } from '../../types/memory';
 import { getZoneMemory } from '../../services/gardenMemoryService';
 import { Calendar, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, BarChart3 } from 'lucide-react';
+import { useStorage } from '@/packages/core/hooks/useStorage';
+import {
+  buildAgronomicQualityLearningAdjustment,
+  getAgronomicProfileLearningSnapshots,
+  type AgronomicQualityLearningAdjustment,
+} from '@/services/agronomicProfileLearningService';
 
 interface ZoneMemoryViewProps {
   zoneId: string;
@@ -19,12 +25,33 @@ const ZoneMemoryView: React.FC<ZoneMemoryViewProps> = ({
   gardenId,
   zoneName,
 }) => {
+  const { storageProvider } = useStorage();
   const [memory, setMemory] = useState<ZoneMemory | null>(null);
   const [loading, setLoading] = useState(true);
+  const [qualityAdjustment, setQualityAdjustment] = useState<AgronomicQualityLearningAdjustment | null>(null);
 
   useEffect(() => {
     loadMemory();
   }, [zoneId, gardenId]);
+
+  useEffect(() => {
+    const loadQualityAdjustment = async () => {
+      if (!storageProvider?.getUserPreference) {
+        setQualityAdjustment(buildAgronomicQualityLearningAdjustment([], { zoneId }));
+        return;
+      }
+
+      try {
+        const snapshots = await getAgronomicProfileLearningSnapshots(storageProvider, gardenId);
+        setQualityAdjustment(buildAgronomicQualityLearningAdjustment(snapshots, { zoneId }));
+      } catch (error) {
+        console.error('Error loading zone adaptive quality benchmark:', error);
+        setQualityAdjustment(buildAgronomicQualityLearningAdjustment([], { zoneId }));
+      }
+    };
+
+    void loadQualityAdjustment();
+  }, [gardenId, storageProvider, zoneId]);
 
   const loadMemory = async () => {
     setLoading(true);
@@ -68,6 +95,28 @@ const ZoneMemoryView: React.FC<ZoneMemoryViewProps> = ({
   const avgYield = memory.plantingHistory.reduce((sum, r) => sum + r.result.yield, 0) / totalPlantings;
   const avgQuality = memory.plantingHistory.reduce((sum, r) => sum + r.result.quality, 0) / totalPlantings;
   const totalProblems = memory.plantingHistory.reduce((sum, r) => sum + r.result.problems.length, 0);
+  const qualityTargetRating = qualityAdjustment?.qualityTargetRating ?? 4;
+  const qualityAlertFloorRating = qualityAdjustment?.qualityAlertFloorRating ?? 3;
+  const qualityGap = Number((avgQuality - qualityTargetRating).toFixed(1));
+  const qualityStatus = avgQuality >= qualityTargetRating
+    ? 'above_target'
+    : avgQuality < qualityAlertFloorRating
+      ? 'below_target'
+      : 'watch';
+  const qualityStatusCopy = qualityStatus === 'above_target'
+    ? {
+        badge: 'Sopra benchmark',
+        badgeClassName: 'bg-green-100 text-green-700',
+      }
+    : qualityStatus === 'watch'
+      ? {
+          badge: 'Zona da osservare',
+          badgeClassName: 'bg-yellow-100 text-yellow-800',
+        }
+      : {
+          badge: 'Sotto soglia sito',
+          badgeClassName: 'bg-red-100 text-red-700',
+        };
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
@@ -91,12 +140,49 @@ const ZoneMemoryView: React.FC<ZoneMemoryViewProps> = ({
         <div className="bg-green-50 rounded-lg p-4 border border-green-200">
           <div className="text-sm text-green-600 font-medium">Qualità Media</div>
           <div className="text-xl md:text-2xl font-bold text-green-800">{avgQuality.toFixed(1)}/5</div>
+          <div className={`mt-2 inline-flex rounded-full px-2 py-1 text-xs font-medium ${qualityStatusCopy.badgeClassName}`}>
+            {qualityStatusCopy.badge}
+          </div>
         </div>
         <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
           <div className="text-sm text-orange-600 font-medium">Problemi Totali</div>
           <div className="text-xl md:text-2xl font-bold text-orange-800">{totalProblems}</div>
         </div>
       </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+          <div className="text-sm text-emerald-700 font-medium">Target sito</div>
+          <div className="text-xl md:text-2xl font-bold text-emerald-800">{qualityTargetRating.toFixed(1)}/5</div>
+        </div>
+        <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+          <div className="text-sm text-amber-700 font-medium">Soglia allerta</div>
+          <div className="text-xl md:text-2xl font-bold text-amber-800">{qualityAlertFloorRating.toFixed(1)}/5</div>
+        </div>
+        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+          <div className="text-sm text-slate-600 font-medium">Gap medio</div>
+          <div className={`text-xl md:text-2xl font-bold ${qualityGap >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+            {qualityGap >= 0 ? '+' : ''}{qualityGap.toFixed(1)}
+          </div>
+        </div>
+        <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+          <div className="text-sm text-purple-700 font-medium">Target Brix</div>
+          <div className="text-xl md:text-2xl font-bold text-purple-800">
+            {qualityAdjustment?.brixTarget ? `${qualityAdjustment.brixTarget}°` : 'n/d'}
+          </div>
+        </div>
+      </div>
+
+      {qualityAdjustment?.notes?.length ? (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <div className="text-sm font-medium text-gray-800 mb-2">Memoria sito-specifica</div>
+          <div className="space-y-1">
+            {qualityAdjustment.notes.map((note, idx) => (
+              <p key={idx} className="text-sm text-gray-600">{note}</p>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {/* Pattern Riconosciuti */}
       {memory.patterns && (
@@ -192,7 +278,13 @@ const ZoneMemoryView: React.FC<ZoneMemoryViewProps> = ({
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-gray-800">{record.result.yield} kg/m²</div>
-                    <div className="text-sm text-gray-600">
+                    <div className={`text-sm ${
+                      record.result.quality >= qualityTargetRating
+                        ? 'text-green-700'
+                        : record.result.quality < qualityAlertFloorRating
+                          ? 'text-red-700'
+                          : 'text-yellow-700'
+                    }`}>
                       Qualità: {record.result.quality}/5
                     </div>
                   </div>
@@ -257,4 +349,3 @@ const ZoneMemoryView: React.FC<ZoneMemoryViewProps> = ({
 };
 
 export default ZoneMemoryView;
-

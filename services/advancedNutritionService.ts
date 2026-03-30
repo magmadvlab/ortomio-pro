@@ -11,9 +11,35 @@ import {
   NutritionFilters,
   DateRange,
   ComplianceRecord,
-  ProductCompatibility
+  ProductCompatibility,
+  NutritionAdaptiveThresholds,
+  EffectivenessAlert
 } from '@/types/nutrition'
 import { getSupabaseClient } from '@/config/supabase'
+import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
+import {
+  buildAgronomicNutritionLearningAdjustment,
+  buildAgronomicQualityLearningAdjustment,
+  getAgronomicProfileLearningSnapshots,
+  type AgronomicNutritionLearningAdjustment,
+  type AgronomicQualityLearningAdjustment,
+} from '@/services/agronomicProfileLearningService'
+
+const roundMetric = (value: number, digits: number = 1) =>
+  Number(value.toFixed(digits))
+
+const toEffectivenessPercent = (value?: number | null): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 0
+  }
+
+  return roundMetric(value <= 10 ? value * 10 : value)
+}
+
+const average = (values: number[]): number =>
+  values.length > 0
+    ? roundMetric(values.reduce((sum, value) => sum + value, 0) / values.length)
+    : 0
 
 class AdvancedNutritionService {
   // ============================================================================
@@ -550,13 +576,16 @@ class AdvancedNutritionService {
       if (error) throw error
 
       const treatmentList = treatments || []
+      const { nutritionAdjustment, qualityAdjustment, adaptiveThresholds } =
+        await this.getAdaptiveLearningAdjustments(gardenId)
+      const effectivenessValues = treatmentList
+        .map((treatment) => toEffectivenessPercent(treatment.effectiveness))
+        .filter((value) => value > 0)
 
       // Calculate analytics
       const totalTreatments = treatmentList.length
       const totalCost = treatmentList.reduce((sum, t) => sum + (t.total_cost || 0), 0)
-      const averageEffectiveness = treatmentList.length > 0 
-        ? treatmentList.reduce((sum, t) => sum + (t.effectiveness || 0), 0) / treatmentList.length
-        : 0
+      const averageEffectiveness = average(effectivenessValues)
 
       // Calculate organic percentage
       const organicTreatments = treatmentList.filter(t => t.organic_compliant).length
@@ -579,10 +608,17 @@ class AdvancedNutritionService {
         costPerSqm: 0, // Would need area calculation
         organicPercentage,
         complianceScore: organicPercentage,
-        recommendations: this.generateRecommendations(treatmentList, organicPercentage)
+        recommendations: this.generateRecommendations(
+          treatmentList,
+          organicPercentage,
+          nutritionAdjustment,
+          qualityAdjustment
+        ),
+        adaptiveThresholds,
       }
     } catch (error) {
       console.error('Error fetching nutrition analytics:', error)
+      const { adaptiveThresholds } = this.getFallbackAdaptiveLearningAdjustments()
       return {
         period,
         totalTreatments: 0,
@@ -597,7 +633,8 @@ class AdvancedNutritionService {
         costPerSqm: 0,
         organicPercentage: 0,
         complianceScore: 0,
-        recommendations: []
+        recommendations: [],
+        adaptiveThresholds,
       }
     }
   }
@@ -605,6 +642,12 @@ class AdvancedNutritionService {
   async getDashboardData(gardenId: string): Promise<NutritionDashboardData> {
     try {
       const supabase = getSupabaseClient()
+      const monthStart = new Date()
+      monthStart.setDate(1)
+      const ninetyDaysAgo = new Date()
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+      const { nutritionAdjustment, qualityAdjustment, adaptiveThresholds } =
+        await this.getAdaptiveLearningAdjustments(gardenId)
       
       // Get active treatments count
       const { data: activeTreatments } = await supabase
@@ -621,8 +664,6 @@ class AdvancedNutritionService {
         .eq('status', 'planned')
 
       // Get monthly treatments count
-      const monthStart = new Date()
-      monthStart.setDate(1)
       const { data: monthlyTreatments } = await supabase
         .from('nutrition_treatments')
         .select('id')
@@ -654,6 +695,15 @@ class AdvancedNutritionService {
         .order('created_at', { ascending: false })
         .limit(5)
 
+      const { data: performanceTreatments } = await supabase
+        .from('nutrition_treatments')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .eq('status', 'completed')
+        .gte('actual_application_date', ninetyDaysAgo.toISOString().split('T')[0])
+        .order('actual_application_date', { ascending: false })
+        .limit(20)
+
       // Get upcoming schedules
       const { data: upcomingSchedules } = await supabase
         .from('nutrition_schedules')
@@ -667,6 +717,27 @@ class AdvancedNutritionService {
       const organicCompliance = await supabase
         .rpc('calculate_organic_compliance', { garden_id_param: gardenId })
 
+      const completedTreatments =
+        performanceTreatments?.map(this.mapTreatmentFromDatabase) || []
+      const effectValues = completedTreatments
+        .map((treatment) => toEffectivenessPercent(treatment.effectiveness))
+        .filter((value) => value > 0)
+      const averageEffectiveness = average(effectValues)
+      const monthlyCost = roundMetric(
+        completedTreatments
+          .filter((treatment) => {
+            const executionDate = treatment.actualApplicationDate || treatment.scheduledDate
+            return executionDate >= monthStart.toISOString().split('T')[0]
+          })
+          .reduce((sum, treatment) => sum + (treatment.totalCost || 0), 0),
+        0
+      )
+      const effectivenessAlerts = this.buildEffectivenessAlerts(
+        completedTreatments,
+        nutritionAdjustment,
+        qualityAdjustment
+      )
+
       return {
         activeTreatments: activeTreatments?.length || 0,
         scheduledTreatments: scheduledTreatments?.length || 0,
@@ -677,16 +748,18 @@ class AdvancedNutritionService {
         recentTreatments: recentTreatments?.map(this.mapTreatmentFromDatabase) || [],
         upcomingSchedules: upcomingSchedules?.map(this.mapScheduleFromDatabase) || [],
         lowStockProducts: lowStockProducts?.map(this.mapInventoryFromDatabase) || [],
-        effectivenessAlerts: [], // Would need effectiveness analysis
+        effectivenessAlerts,
         quickStats: {
           organicPercentage: organicCompliance?.data || 0,
-          averageEffectiveness: 0, // Would need calculation
-          monthlyCost: 0, // Would need cost calculation
+          averageEffectiveness,
+          monthlyCost,
           treatmentFrequency: monthlyTreatments?.length || 0
-        }
+        },
+        adaptiveThresholds,
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
+      const { adaptiveThresholds } = this.getFallbackAdaptiveLearningAdjustments()
       return {
         activeTreatments: 0,
         scheduledTreatments: 0,
@@ -703,7 +776,8 @@ class AdvancedNutritionService {
           averageEffectiveness: 0,
           monthlyCost: 0,
           treatmentFrequency: 0
-        }
+        },
+        adaptiveThresholds,
       }
     }
   }
@@ -728,7 +802,7 @@ class AdvancedNutritionService {
       
       acc[type].count++
       acc[type].totalCost += treatment.total_cost || 0
-      acc[type].averageEffectiveness += treatment.effectiveness || 0
+      acc[type].averageEffectiveness += toEffectivenessPercent(treatment.effectiveness)
       
       if (treatment.organic_compliant) {
         acc[type].organicCount++
@@ -739,13 +813,30 @@ class AdvancedNutritionService {
 
     return Object.values(grouped).map((group: any) => ({
       ...group,
-      averageEffectiveness: group.count > 0 ? group.averageEffectiveness / group.count : 0,
+      averageEffectiveness: group.count > 0 ? roundMetric(group.averageEffectiveness / group.count) : 0,
       organicPercentage: group.count > 0 ? (group.organicCount / group.count) * 100 : 0
     }))
   }
 
-  private generateRecommendations(treatments: any[], organicPercentage: number) {
+  private generateRecommendations(
+    treatments: any[],
+    organicPercentage: number,
+    nutritionAdjustment: AgronomicNutritionLearningAdjustment,
+    qualityAdjustment: AgronomicQualityLearningAdjustment
+  ) {
     const recommendations = []
+    const effectivenessValues = treatments
+      .map((treatment) => toEffectivenessPercent(treatment.effectiveness))
+      .filter((value) => value > 0)
+    const avgEffectiveness = average(effectivenessValues)
+    const followUpRate =
+      treatments.length > 0
+        ? average(
+            treatments.map((treatment) =>
+              treatment.follow_up_required === true || treatment.followUpRequired === true ? 100 : 0
+            )
+          ) / 100
+        : 0
 
     if (organicPercentage < 80) {
       recommendations.push({
@@ -762,25 +853,136 @@ class AdvancedNutritionService {
       })
     }
 
-    if (treatments.length > 10) {
-      const avgEffectiveness = treatments.reduce((sum, t) => sum + (t.effectiveness || 0), 0) / treatments.length
-      if (avgEffectiveness < 7) {
-        recommendations.push({
-          type: 'effectiveness_improvement',
-          title: 'Migliora l\'efficacia dei trattamenti',
-          description: 'L\'efficacia media è sotto la soglia ottimale',
-          potentialImprovement: 7 - avgEffectiveness,
-          priority: 'medium',
-          actionItems: [
-            'Verifica le condizioni di applicazione',
-            'Controlla la calibrazione degli strumenti',
-            'Rivedi i dosaggi utilizzati'
-          ]
-        })
-      }
+    if (effectivenessValues.length >= 3 && avgEffectiveness < nutritionAdjustment.effectivenessTargetPercent) {
+      recommendations.push({
+        type: 'effectiveness_improvement',
+        title: 'Riallinea l\'efficacia dei trattamenti',
+        description: `L'efficacia media osservata (${avgEffectiveness.toFixed(1)}%) è sotto il target adattivo del sito (${nutritionAdjustment.effectivenessTargetPercent}%).`,
+        potentialImprovement: Math.max(
+          1,
+          Math.round(nutritionAdjustment.effectivenessTargetPercent - avgEffectiveness)
+        ),
+        priority: avgEffectiveness < nutritionAdjustment.effectivenessAlertFloorPercent ? 'high' : 'medium',
+        actionItems: [
+          'Verifica finestra meteo, copertura reale e uniformita di applicazione',
+          'Ricalibra dose, volume e attrezzatura sulle zone con risposta piu debole',
+          ...nutritionAdjustment.notes.slice(0, 1)
+        ]
+      })
+    }
+
+    if (treatments.length >= 4 && followUpRate >= nutritionAdjustment.followUpRateThreshold) {
+      recommendations.push({
+        type: 'timing_optimization',
+        title: 'Riduci il bisogno di follow-up correttivi',
+        description: `Il ${Math.round(followUpRate * 100)}% degli interventi recenti richiede un secondo passaggio, sopra la soglia adattiva del ${Math.round(nutritionAdjustment.followUpRateThreshold * 100)}%.`,
+        potentialImprovement: Math.max(
+          1,
+          Math.round((followUpRate - nutritionAdjustment.followUpRateThreshold) * 100)
+        ),
+        priority: 'high',
+        actionItems: [
+          'Anticipa i trattamenti nelle finestre piu stabili del sito',
+          'Controlla compatibilita miscela e copertura fogliare reale',
+          ...(qualityAdjustment.notes.length > 0 ? [qualityAdjustment.notes[0]] : [])
+        ]
+      })
     }
 
     return recommendations
+  }
+
+  private getFallbackAdaptiveLearningAdjustments(): {
+    nutritionAdjustment: AgronomicNutritionLearningAdjustment
+    qualityAdjustment: AgronomicQualityLearningAdjustment
+    adaptiveThresholds: NutritionAdaptiveThresholds
+  } {
+    const nutritionAdjustment = buildAgronomicNutritionLearningAdjustment([], {})
+    const qualityAdjustment = buildAgronomicQualityLearningAdjustment([], {})
+
+    return {
+      nutritionAdjustment,
+      qualityAdjustment,
+      adaptiveThresholds: this.buildNutritionAdaptiveThresholds(
+        nutritionAdjustment,
+        qualityAdjustment
+      ),
+    }
+  }
+
+  private async getAdaptiveLearningAdjustments(gardenId: string): Promise<{
+    nutritionAdjustment: AgronomicNutritionLearningAdjustment
+    qualityAdjustment: AgronomicQualityLearningAdjustment
+    adaptiveThresholds: NutritionAdaptiveThresholds
+  }> {
+    try {
+      const storageProvider = getDefaultStorageProvider()
+      const snapshots = await getAgronomicProfileLearningSnapshots(storageProvider, gardenId)
+      const nutritionAdjustment = buildAgronomicNutritionLearningAdjustment(snapshots, {})
+      const qualityAdjustment = buildAgronomicQualityLearningAdjustment(snapshots, {})
+
+      return {
+        nutritionAdjustment,
+        qualityAdjustment,
+        adaptiveThresholds: this.buildNutritionAdaptiveThresholds(
+          nutritionAdjustment,
+          qualityAdjustment
+        ),
+      }
+    } catch (error) {
+      console.warn('Unable to load agronomic learning adjustments for nutrition:', error)
+      return this.getFallbackAdaptiveLearningAdjustments()
+    }
+  }
+
+  private buildNutritionAdaptiveThresholds(
+    nutritionAdjustment: AgronomicNutritionLearningAdjustment,
+    qualityAdjustment: AgronomicQualityLearningAdjustment
+  ): NutritionAdaptiveThresholds {
+    return {
+      effectivenessTargetPercent: nutritionAdjustment.effectivenessTargetPercent,
+      effectivenessAlertFloorPercent: nutritionAdjustment.effectivenessAlertFloorPercent,
+      followUpRateThresholdPercent: Math.round(nutritionAdjustment.followUpRateThreshold * 100),
+      qualityTargetRating: qualityAdjustment.qualityTargetRating,
+      notes: [...nutritionAdjustment.notes, ...qualityAdjustment.notes].slice(0, 4),
+    }
+  }
+
+  private buildEffectivenessAlerts(
+    treatments: NutritionTreatment[],
+    nutritionAdjustment: AgronomicNutritionLearningAdjustment,
+    qualityAdjustment: AgronomicQualityLearningAdjustment
+  ): EffectivenessAlert[] {
+    return treatments
+      .filter((treatment) => {
+        const effectiveness = toEffectivenessPercent(treatment.effectiveness)
+        return (
+          effectiveness > 0 &&
+          (effectiveness < nutritionAdjustment.effectivenessAlertFloorPercent || treatment.followUpRequired)
+        )
+      })
+      .slice(0, 5)
+      .map((treatment) => {
+        const effectiveness = toEffectivenessPercent(treatment.effectiveness)
+        const executionDate = treatment.actualApplicationDate || treatment.scheduledDate
+        const daysAgo = Math.max(
+          0,
+          Math.floor((Date.now() - new Date(executionDate).getTime()) / (1000 * 60 * 60 * 24))
+        )
+
+        return {
+          treatmentId: treatment.id,
+          productName: treatment.productName,
+          zoneName: treatment.zoneId || treatment.fieldRowId || treatment.sectionId || 'Area generale',
+          effectiveness,
+          expectedEffectiveness: nutritionAdjustment.effectivenessTargetPercent,
+          daysAgo,
+          recommendedAction: treatment.followUpRequired
+            ? 'Programma un follow-up ravvicinato e ricalibra dose, timing e copertura.'
+            : qualityAdjustment.notes[0] ||
+              'Verifica condizioni meteo, compatibilita miscela e uniformita di distribuzione.',
+        }
+      })
   }
 
   // ============================================================================

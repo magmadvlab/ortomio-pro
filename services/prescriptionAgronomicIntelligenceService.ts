@@ -1,9 +1,23 @@
 import type { PrescriptionMap } from '@/types/prescriptionMaps'
+import {
+  summarizeAgronomicMeasuredFeedback,
+  type AgronomicMeasuredFeedbackRecord,
+} from '@/services/agronomicMeasuredFeedbackService'
 import type {
   PrescriptionExecutionEfficacySummary,
   PrescriptionExecutionOutcomeSummary,
   PrescriptionExecutionVarianceSummary,
 } from '@/services/prescriptionExecutionService'
+import {
+  resolveAgronomicPriorityProfileSync,
+  scoreAgronomicPriority,
+  type AgronomicPriorityFocus,
+} from '@/services/agronomicPriorityService'
+import {
+  buildAgronomicQualityLearningAdjustment,
+  type AgronomicProfileLearningSnapshot,
+} from '@/services/agronomicProfileLearningService'
+import type { AgronomicSignalKey } from '@/types/agronomicKernel'
 
 export interface PrescriptionAgronomicRecommendation {
   id: string
@@ -12,6 +26,8 @@ export interface PrescriptionAgronomicRecommendation {
   title: string
   message: string
   scopeLabel?: string
+  agronomicProfileId?: string
+  confidence?: number
 }
 
 export interface PrescriptionAgronomicPriority {
@@ -28,6 +44,9 @@ export interface PrescriptionAgronomicPriority {
   outcomeStatus: PrescriptionExecutionOutcomeSummary['zoneOutcomes'][number]['outcomeStatus']
   microclimateStatus: PrescriptionExecutionEfficacySummary['zoneScores'][number]['microclimateStatus']
   soilResponseStatus: PrescriptionExecutionEfficacySummary['zoneScores'][number]['soilResponseStatus']
+  agronomicProfileId?: string
+  priorityConfidence?: number
+  missingSignals?: AgronomicSignalKey[]
 }
 
 export interface PrescriptionAgronomicIntelligenceSummary {
@@ -80,12 +99,107 @@ const soilWeight = {
   poor: 18,
 } satisfies Record<PrescriptionExecutionEfficacySummary['zoneScores'][number]['soilResponseStatus'], number>
 
+const getPriorityFocusFromMapType = (mapType: PrescriptionMap['mapType']): AgronomicPriorityFocus => {
+  switch (mapType) {
+    case 'irrigation':
+      return 'water'
+    case 'fertilizer':
+    case 'seeding':
+      return 'nutrition'
+    case 'treatment':
+      return 'health'
+    case 'harvest':
+      return 'quality'
+    default:
+      return 'health'
+  }
+}
+
+const getFallbackAgronomicProfileId = (prescriptionMap: PrescriptionMap) => {
+  const gardenName = prescriptionMap.gardenName.toLowerCase()
+
+  if (gardenName.includes('vigneto') || gardenName.includes('vineyard')) {
+    return 'vineyard_quality'
+  }
+
+  if (gardenName.includes('oliveto') || gardenName.includes('olive')) {
+    return 'olive_grove_oil'
+  }
+
+  if (gardenName.includes('frutteto') || gardenName.includes('orchard')) {
+    return 'orchard_generic'
+  }
+
+  return null
+}
+
+const buildPrescriptionAvailableSignals = (
+  prescriptionMap: PrescriptionMap,
+  zone: PrescriptionExecutionEfficacySummary['zoneScores'][number],
+  outcome?: PrescriptionExecutionOutcomeSummary['zoneOutcomes'][number]
+): Set<AgronomicSignalKey> => {
+  const availableSignals = new Set<AgronomicSignalKey>(['operation_ledger'])
+
+  if (prescriptionMap.dataSources.weatherData || zone.microclimateStatus !== 'no_data') {
+    availableSignals.add('weather_current')
+    availableSignals.add('weather_forecast')
+  }
+
+  if (zone.microclimateStatus !== 'no_data') {
+    availableSignals.add('leaf_wetness')
+    availableSignals.add('dew_point')
+    availableSignals.add('vpd')
+    availableSignals.add('canopy_temperature')
+    availableSignals.add('rain_gauge_local')
+  }
+
+  if (zone.soilResponseStatus !== 'no_data') {
+    availableSignals.add('soil_moisture_30cm')
+    availableSignals.add('soil_moisture_60cm')
+    availableSignals.add('soil_tension_kpa')
+  }
+
+  if (prescriptionMap.dataSources.ndviData) {
+    availableSignals.add('ndvi')
+    availableSignals.add('satellite_vigor')
+  }
+
+  if (prescriptionMap.dataSources.plantLevelData) {
+    availableSignals.add('phenology_observation')
+  }
+
+  if (outcome?.outcomeStatus && outcome.outcomeStatus !== 'no_data') {
+    availableSignals.add('quality_result')
+  }
+
+  return availableSignals
+}
+
 export function buildPrescriptionAgronomicIntelligenceSummary(
   prescriptionMap: PrescriptionMap,
   efficacySummary: PrescriptionExecutionEfficacySummary,
   varianceSummary: PrescriptionExecutionVarianceSummary,
-  outcomeSummary: PrescriptionExecutionOutcomeSummary
+  outcomeSummary: PrescriptionExecutionOutcomeSummary,
+  measuredFeedbackRecords: AgronomicMeasuredFeedbackRecord[] = [],
+  learningSnapshots: AgronomicProfileLearningSnapshot[] = []
 ): PrescriptionAgronomicIntelligenceSummary {
+  const priorityFocus = getPriorityFocusFromMapType(prescriptionMap.mapType)
+  const resolvedAgronomicProfile = resolveAgronomicPriorityProfileSync({
+    hints: [
+      efficacySummary.cropContextScores[0]?.key,
+      efficacySummary.cropContextScores[0]?.label,
+      prescriptionMap.gardenName,
+      prescriptionMap.name,
+    ],
+    fallbackProfileId: getFallbackAgronomicProfileId(prescriptionMap),
+  })
+  const qualityLearningAdjustment =
+    priorityFocus === 'quality'
+      ? buildAgronomicQualityLearningAdjustment(learningSnapshots, {
+          plantName: efficacySummary.cropContextScores[0]?.label || prescriptionMap.gardenName,
+          profileId: resolvedAgronomicProfile?.profile.id,
+        })
+      : null
   const recommendations: PrescriptionAgronomicRecommendation[] = []
   const operationalPriorities: PrescriptionAgronomicPriority[] = []
 
@@ -105,6 +219,7 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
         scopeLabel: zone.zoneName,
         title: 'Risposta del suolo insufficiente',
         message: `Su ${zone.zoneName} il profilo non sta reagendo bene dopo l'intervento. Controlla tensione del suolo, profondita del sensore e uniformita idraulica prima di aumentare i volumi.`,
+        agronomicProfileId: resolvedAgronomicProfile?.profile.id,
       })
     }
 
@@ -116,6 +231,7 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
         scopeLabel: zone.zoneName,
         title: 'Prescrizione eseguita male e con esito negativo',
         message: `Su ${zone.zoneName} lo scostamento tra pianificato ed eseguito coincide con un outcome negativo. Serve ritarare la dose o il setup operativo prima del prossimo ciclo.`,
+        agronomicProfileId: resolvedAgronomicProfile?.profile.id,
       })
     }
 
@@ -127,10 +243,29 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
         scopeLabel: zone.zoneName,
         title: 'Finestra microclimatica sfavorevole',
         message: `Su ${zone.zoneName} stress idrico/termico o pressione fungina stanno compromettendo il risultato. Conviene rivedere il timing dell'intervento e usare una finestra piu stabile.`,
+        agronomicProfileId: resolvedAgronomicProfile?.profile.id,
       })
     }
 
-    const priorityScore = Math.min(100, Math.max(
+    const latestQualityResult = outcome?.latestQualityResult
+    const adaptiveQualityScoreTarget =
+      qualityLearningAdjustment ? qualityLearningAdjustment.qualityTargetRating * 20 : null
+    const adaptiveQualityScoreFloor =
+      qualityLearningAdjustment ? qualityLearningAdjustment.qualityAlertFloorRating * 20 : null
+    const qualityScoreGap =
+      priorityFocus === 'quality' &&
+      typeof latestQualityResult?.qualityScore === 'number' &&
+      typeof adaptiveQualityScoreTarget === 'number'
+        ? Math.max(0, adaptiveQualityScoreTarget - latestQualityResult.qualityScore)
+        : 0
+    const brixGap =
+      priorityFocus === 'quality' &&
+      typeof latestQualityResult?.brix === 'number' &&
+      typeof qualityLearningAdjustment?.brixTarget === 'number'
+        ? Math.max(0, qualityLearningAdjustment.brixTarget - latestQualityResult.brix)
+        : 0
+
+    const basePriorityScore = Math.min(100, Math.max(
       0,
       Math.round(
         (100 - zone.efficacyScore) * 0.48
@@ -138,8 +273,32 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
         + outcomeWeight[outcome?.outcomeStatus || 'no_data']
         + microclimateWeight[zone.microclimateStatus]
         + soilWeight[zone.soilResponseStatus]
+        + qualityScoreGap * 0.45
+        + brixGap * 3
       )
     ))
+    const availableSignals = buildPrescriptionAvailableSignals(prescriptionMap, zone, outcome)
+    const measuredFeedbackSummary = summarizeAgronomicMeasuredFeedback(measuredFeedbackRecords, {
+      focus: priorityFocus,
+      zoneId: zone.zoneId,
+      plantName: efficacySummary.cropContextScores[0]?.label || prescriptionMap.gardenName,
+    })
+    const priorityResult = scoreAgronomicPriority({
+      baseScore: basePriorityScore,
+      confidence:
+        outcome?.outcomeStatus === 'negative'
+          ? 0.86
+          : outcome?.outcomeStatus === 'mixed'
+            ? 0.76
+            : zone.microclimateStatus !== 'no_data' || zone.soilResponseStatus !== 'no_data'
+              ? 0.72
+              : 0.62,
+      resolvedProfile: resolvedAgronomicProfile,
+      focus: priorityFocus,
+      availableSignals,
+      measuredFeedbackSummary,
+    })
+    const priorityScore = priorityResult.score
 
     let urgency: PrescriptionAgronomicPriority['urgency'] = 'monitor'
     if (priorityScore >= 75 || (outcome?.outcomeStatus === 'negative' && variance?.varianceStatus === 'off_target')) {
@@ -153,6 +312,8 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       outcome?.outcomeStatus && outcome.outcomeStatus !== 'positive' ? `outcome ${outcome.outcomeStatus}` : null,
       zone.microclimateStatus !== 'stable' ? `microclima ${zone.microclimateStatus}` : null,
       zone.soilResponseStatus !== 'responsive' ? `suolo ${zone.soilResponseStatus}` : null,
+      priorityFocus === 'quality' && qualityScoreGap > 0 ? `qualita sotto target ${(adaptiveQualityScoreTarget || 0).toFixed(0)}` : null,
+      priorityFocus === 'quality' && brixGap > 0 ? `brix sotto target ${qualityLearningAdjustment?.brixTarget}` : null,
     ].filter((value): value is string => Boolean(value))
 
     let recommendedAction = 'Mantieni la strategia corrente e monitora il prossimo outcome per conferma.'
@@ -161,10 +322,35 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
     } else if (urgency === 'next_cycle') {
       recommendedAction = `Pianifica un aggiustamento nel prossimo ciclo su ${zone.zoneName}, con target piu aderente e controllo post-intervento.`
     }
+    if (
+      priorityFocus === 'quality' &&
+      (qualityScoreGap > 0 || brixGap > 0) &&
+      qualityLearningAdjustment
+    ) {
+      recommendedAction =
+        urgency === 'immediate'
+          ? `Intervieni subito su ${zone.zoneName}: riallinea timing e gestione della zona per tornare sopra ${qualityLearningAdjustment.qualityTargetRating.toFixed(1)}/5 e ${qualityLearningAdjustment.brixTarget}° Brix.`
+          : `Nel prossimo ciclo usa ${zone.zoneName} per recuperare il target qualità ${qualityLearningAdjustment.qualityTargetRating.toFixed(1)}/5 e il benchmark Brix ${qualityLearningAdjustment.brixTarget}°.`
+    }
 
     const rationale = drivers.length > 0
       ? `${zone.zoneName} entra in priorita per ${drivers.join(', ')}.`
       : `${zone.zoneName} resta stabile e va solo monitorata.`
+    const coverageSuffix =
+      priorityResult.signalCoverage.missingP0Signals.length > 0
+        ? ` Segnali P0 mancanti: ${priorityResult.signalCoverage.missingP0Signals.join(', ')}.`
+        : ''
+    const profileSuffix = resolvedAgronomicProfile
+      ? ` Profilo agronomico: ${resolvedAgronomicProfile.profile.label}.`
+      : ''
+    const measuredFeedbackSuffix =
+      priorityResult.measuredFeedbackSummary?.rationale?.length
+        ? ` Feedback osservato: ${priorityResult.measuredFeedbackSummary.rationale.join(' ')}.`
+        : ''
+    const adaptiveQualitySuffix =
+      priorityFocus === 'quality' && qualityLearningAdjustment
+        ? ` Benchmark qualita sito-specifico: ${qualityLearningAdjustment.qualityTargetRating.toFixed(1)}/5, soglia ${qualityLearningAdjustment.qualityAlertFloorRating.toFixed(1)}/5, Brix ${qualityLearningAdjustment.brixTarget}°.`
+        : ''
 
     operationalPriorities.push({
       id: `priority:${zone.zoneId}`,
@@ -172,7 +358,6 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       scopeLabel: zone.zoneName,
       priorityScore,
       urgency,
-      rationale,
       recommendedAction,
       drivers,
       efficacyScore: zone.efficacyScore,
@@ -180,7 +365,63 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       outcomeStatus: outcome?.outcomeStatus || 'no_data',
       microclimateStatus: zone.microclimateStatus,
       soilResponseStatus: zone.soilResponseStatus,
+      agronomicProfileId: resolvedAgronomicProfile?.profile.id,
+      priorityConfidence: priorityResult.confidence,
+      missingSignals: priorityResult.signalCoverage.missingP0Signals,
+      rationale: `${rationale}${profileSuffix}${coverageSuffix}${measuredFeedbackSuffix}${adaptiveQualitySuffix}`,
     })
+
+    if (
+      measuredFeedbackSummary &&
+      measuredFeedbackSummary.negativeSignals > 0 &&
+      recommendations.every((entry) => entry.id !== `benchmark:${zone.zoneId}:feedback`)
+    ) {
+      recommendations.push({
+        id: `benchmark:${zone.zoneId}:feedback`,
+        severity: measuredFeedbackSummary.scoreAdjustment >= 8 ? 'urgent' : 'medium',
+        category: 'benchmark',
+        scopeLabel: zone.zoneName,
+        title: 'Feedback operativo recente sfavorevole',
+        message: `Su ${zone.zoneName} il feedback osservato recente segnala criticita: ${measuredFeedbackSummary.rationale.join(' ')}`,
+        agronomicProfileId: resolvedAgronomicProfile?.profile.id,
+        confidence: Math.min(0.92, 0.58 + measuredFeedbackSummary.confidenceAdjustment),
+      })
+    }
+
+    if (
+      priorityFocus === 'quality' &&
+      qualityLearningAdjustment &&
+      latestQualityResult &&
+      recommendations.every((entry) => entry.id !== `quality:${zone.zoneId}:adaptive-gap`)
+    ) {
+      const qualityScore = latestQualityResult.qualityScore
+      const brix = latestQualityResult.brix
+      const belowAdaptiveFloor =
+        typeof qualityScore === 'number' &&
+        typeof adaptiveQualityScoreFloor === 'number' &&
+        qualityScore < adaptiveQualityScoreFloor
+      const belowAdaptiveBrix =
+        typeof brix === 'number' &&
+        brix < qualityLearningAdjustment.brixTarget
+
+      if (belowAdaptiveFloor || belowAdaptiveBrix) {
+        recommendations.push({
+          id: `quality:${zone.zoneId}:adaptive-gap`,
+          severity:
+            belowAdaptiveFloor && qualityScoreGap >= 12
+              ? 'urgent'
+              : belowAdaptiveBrix || qualityScoreGap > 0
+                ? 'high'
+                : 'medium',
+          category: 'benchmark',
+          scopeLabel: zone.zoneName,
+          title: 'Zona sotto benchmark qualitativo del sito',
+          message: `Su ${zone.zoneName} il risultato qualitativo recente resta sotto il benchmark adattivo del sito (${qualityLearningAdjustment.qualityTargetRating.toFixed(1)}/5${typeof brix === 'number' ? `, target ${qualityLearningAdjustment.brixTarget}° Brix` : ''}). Conviene usare la zona migliore come riferimento e ritarare timing, copertura e raccolta.`,
+          agronomicProfileId: resolvedAgronomicProfile?.profile.id,
+          confidence: Math.min(0.94, 0.64 + (priorityResult.confidence - 0.5) * 0.4),
+        })
+      }
+    }
   }
 
   if (bestZone && worstZone && bestZone.zoneId !== worstZone.zoneId && bestZone.efficacyScore - worstZone.efficacyScore >= 15) {
@@ -190,6 +431,8 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       category: 'benchmark',
       title: 'Usare la zona migliore come benchmark',
       message: `${bestZone.zoneName} sta performando meglio di ${worstZone.zoneName}. Confronta dose, copertura, risposta suolo e finestra operativa per allineare la strategia.`,
+      agronomicProfileId: resolvedAgronomicProfile?.profile.id,
+      confidence: resolvedAgronomicProfile ? 0.78 : 0.62,
     })
   }
 
@@ -200,6 +443,8 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       category: 'rules',
       title: 'Strategia da rivedere a livello mappa',
       message: `La mappa ${prescriptionMap.name} ha un'efficacia media bassa. Prima di replicarla conviene correggere le zone deboli e consolidare il benchmark operativo.`,
+      agronomicProfileId: resolvedAgronomicProfile?.profile.id,
+      confidence: resolvedAgronomicProfile ? 0.8 : 0.64,
     })
   }
 

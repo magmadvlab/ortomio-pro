@@ -21,14 +21,30 @@ type WateringZone = IrrigationZone & {
 interface WateringLogFormProps {
   zones: WateringZone[]
   preselectedZone?: WateringZone
+  sourceTaskId?: string
+  initialDate?: string
+  initialTime?: string
+  initialNotes?: string
   fieldRows?: any[] // Field rows del garden per irrigazione diretta
   onSubmit: (log: Omit<WateringLog, 'id' | 'createdAt'>) => Promise<void>
   onSubmitBatch?: (logs: Array<Omit<WateringLog, 'id' | 'createdAt'>>) => Promise<void>
-  onExecuted?: () => Promise<void> | void
+  onExecuted?: (executedLogs?: Array<Omit<WateringLog, 'id' | 'createdAt'>>) => Promise<void> | void
   onCancel: () => void
 }
 
-export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubmit, onSubmitBatch, onExecuted, onCancel }: WateringLogFormProps) {
+export function WateringLogForm({
+  zones,
+  preselectedZone,
+  sourceTaskId,
+  initialDate,
+  initialTime,
+  initialNotes,
+  fieldRows = [],
+  onSubmit,
+  onSubmitBatch,
+  onExecuted,
+  onCancel
+}: WateringLogFormProps) {
   const { storageProvider } = useStorage()
   const toNumber = (value: unknown): number | undefined => {
     if (typeof value === 'number') {
@@ -70,15 +86,15 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
     bedId: '',
     fieldRowId: '', // Nuovo: per field rows
     irrigationType: 'zone' as 'zone' | 'field', // Nuovo: tipo irrigazione
-    date: new Date().toISOString().split('T')[0],
-    time: new Date().toTimeString().slice(0, 5),
+    date: initialDate || new Date().toISOString().split('T')[0],
+    time: initialTime || new Date().toTimeString().slice(0, 5),
     litersPerRow: 10,
     method: 'Manual' as const,
     weatherCondition: '',
     soilMoistureBefore: undefined as number | undefined,
     soilMoistureAfter: undefined as number | undefined,
     airTemperatureC: undefined as number | undefined,
-    notes: ''
+    notes: initialNotes || ''
   })
 
   const [bedOptions, setBedOptions] = useState<GardenBed[]>([])
@@ -207,6 +223,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
         await onSubmit({
           zoneId: formData.zoneId,
           gardenId: zone.gardenId,
+          taskId: sourceTaskId,
           wateredAt,
           date: formData.date,
           durationMinutes: 0,
@@ -225,6 +242,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
           return {
             zoneId: formData.zoneId,
             gardenId: zone.gardenId,
+            taskId: sourceTaskId,
             bedId: formData.bedId,
             rowId: row.id,
             wateredAt,
@@ -246,7 +264,7 @@ export function WateringLogForm({ zones, preselectedZone, fieldRows = [], onSubm
         }
 
         if (onExecuted) {
-          await onExecuted()
+          await onExecuted(logsToCreate)
         } else {
           onCancel()
         }

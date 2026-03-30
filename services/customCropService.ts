@@ -5,6 +5,7 @@
 
 import { CustomCrop, CropLearningEvent, LearnedPatterns, CropStats } from '../types/customCrop';
 import { IStorageProvider } from '../packages/core/storage/interface';
+import { resolveAgronomicCropProfile } from './agronomicKernelService';
 
 /**
  * Crea una nuova coltura personalizzata
@@ -218,6 +219,18 @@ export const getSuggestions = (crop: CustomCrop): {
 };
 
 /**
+ * Resolve the transversal agronomic profile for a custom crop.
+ * This gives the rest of the app a canonical fallback even when the crop
+ * is user-defined and not yet modeled with a dedicated vertical package.
+ */
+export const getCustomCropAgronomicProfile = async (crop: CustomCrop) => {
+  return await resolveAgronomicCropProfile({
+    plantId: crop.common_name,
+    customCrop: crop,
+  });
+};
+
+/**
  * Analizza la storia degli eventi e calcola pattern
  */
 export const analyzeHistory = async (
@@ -239,4 +252,3 @@ export const analyzeHistory = async (
   const updatedCrop = await storageProvider.getCustomCrop(cropId);
   return updatedCrop!.learned_patterns;
 };
-

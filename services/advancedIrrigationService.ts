@@ -17,6 +17,28 @@ import {
 } from '@/types/irrigation'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseClient as getSupabaseClientUnsafe } from '@/config/supabase'
+import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
+import {
+  getAgronomicMeasuredFeedbackRecords,
+  summarizeAgronomicMeasuredFeedback,
+  type AgronomicMeasuredFeedbackSummary,
+} from '@/services/agronomicMeasuredFeedbackService'
+import {
+  findAgronomicProfileLearningSnapshot,
+  getAgronomicProfileLearningSnapshots,
+} from '@/services/agronomicProfileLearningService'
+import { resolveAgronomicCropProfile } from '@/services/agronomicKernelService'
+import {
+  resolveAgronomicPriorityProfileSync,
+  scoreAgronomicPriority,
+} from '@/services/agronomicPriorityService'
+import type {
+  AgronomicCropProfile,
+  AgronomicSignalKey,
+  ResolvedAgronomicCropProfile,
+} from '@/types/agronomicKernel'
+import type { ArchetypeId } from '@/types/archetypes'
+import type { FunctionalCategory } from '@/data/plantTaxonomy'
 
 const getSupabaseClient = (): SupabaseClient => {
   const client = getSupabaseClientUnsafe()
@@ -24,6 +46,13 @@ const getSupabaseClient = (): SupabaseClient => {
     throw new Error('Supabase client not configured')
   }
   return client
+}
+
+interface AgronomicResolutionInput {
+  plantId?: string
+  cropName?: string
+  archetypeId?: ArchetypeId
+  functionalCategory?: FunctionalCategory
 }
 
 class AdvancedIrrigationService {
@@ -409,7 +438,8 @@ class AdvancedIrrigationService {
     et0Mm: number,
     kcCoefficient: number,
     cropStage?: string,
-    weatherData?: any
+    weatherData?: any,
+    agronomicInput?: AgronomicResolutionInput
   ): Promise<WaterRequirement> {
     try {
       const supabase = getSupabaseClient()
@@ -417,11 +447,14 @@ class AdvancedIrrigationService {
       // Get zone information for area calculation
       const { data: zone, error: zoneError } = await supabase
         .from('irrigation_zones')
-        .select('area_sqm, efficiency_percentage')
+        .select('area_sqm, efficiency_percentage, water_retention')
         .eq('id', zoneId)
         .single()
 
       if (zoneError) throw zoneError
+
+      const resolvedAgronomicProfile = await this.resolveWaterRequirementProfile(agronomicInput)
+      const effectiveCropStage = cropStage || this.getAgronomicFallbackStage(resolvedAgronomicProfile?.profile)
 
       // Calculate crop evapotranspiration
       const etcMm = et0Mm * kcCoefficient
@@ -436,6 +469,31 @@ class AdvancedIrrigationService {
       // Adjust for system efficiency (default 85%)
       const systemEfficiency = zone.efficiency_percentage || 85
       const adjustedVolumeLiters = recommendedVolumeLiters / (systemEfficiency / 100)
+      const measuredFeedbackSummary = await this.getWaterMeasuredFeedbackSummary(
+        zoneId,
+        agronomicInput?.cropName,
+        resolvedAgronomicProfile?.profile.id
+      )
+      const aiAdjustmentFactor = this.getAgronomicAdjustmentFactor(
+        resolvedAgronomicProfile?.profile,
+        effectiveCropStage,
+        measuredFeedbackSummary
+      )
+      const confidenceLevel = this.calculateAgronomicConfidenceLevel(
+        resolvedAgronomicProfile,
+        effectiveCropStage,
+        weatherData,
+        measuredFeedbackSummary
+      )
+      const aiReasoning = this.buildAgronomicReasoning(
+        resolvedAgronomicProfile,
+        effectiveCropStage,
+        weatherData,
+        systemEfficiency,
+        zone.water_retention,
+        aiAdjustmentFactor,
+        measuredFeedbackSummary
+      )
 
       const waterRequirement: Omit<WaterRequirement, 'id'> = {
         zoneId,
@@ -443,13 +501,14 @@ class AdvancedIrrigationService {
         et0Mm,
         kcCoefficient,
         etcMm,
-        cropStage: cropStage || 'vegetative',
+        cropStage: effectiveCropStage,
         weatherData: weatherData || {},
         irrigationNeedMm,
         recommendedVolumeLiters: adjustedVolumeLiters,
         calculationMethod: 'penman_monteith',
-        confidenceLevel: 85,
-        aiAdjustmentFactor: 1.0,
+        confidenceLevel,
+        aiAdjustmentFactor,
+        aiReasoning,
         createdAt: new Date().toISOString()
       }
 
@@ -718,14 +777,18 @@ class AdvancedIrrigationService {
     }
   }
 
-  async getIrrigationEfficiencyReport(zoneId: string, period: string): Promise<EfficiencyReport> {
+  async getIrrigationEfficiencyReport(
+    zoneId: string,
+    period: string,
+    agronomicInput?: AgronomicResolutionInput
+  ): Promise<EfficiencyReport> {
     try {
       const supabase = getSupabaseClient()
       
       // Get zone info
       const { data: zone, error: zoneError } = await supabase
         .from('irrigation_zones')
-        .select('name')
+        .select('name, description')
         .eq('id', zoneId)
         .single()
 
@@ -805,6 +868,24 @@ class AdvancedIrrigationService {
         recommendations.push('Il sistema sta funzionando in modo ottimale')
       }
 
+      const resolvedAgronomicProfile =
+        (agronomicInput
+          ? await this.resolveWaterRequirementProfile(agronomicInput)
+          : resolveAgronomicPriorityProfileSync({
+              hints: [zone.name, zone.description],
+            })) || null
+      const priorityResult = scoreAgronomicPriority({
+        baseScore: this.calculateIrrigationRecommendationPriorityBaseScore(
+          averageEfficiency,
+          uniformityCoefficient,
+          waterUseEfficiency
+        ),
+        confidence: this.calculateIrrigationRecommendationConfidence(validLogs),
+        resolvedProfile: resolvedAgronomicProfile,
+        focus: 'water',
+        availableSignals: this.getAvailableWaterSignalsFromEfficiencyLogs(irrigationLogs),
+      })
+
       return {
         zoneId,
         zoneName: zone.name,
@@ -812,7 +893,11 @@ class AdvancedIrrigationService {
         averageEfficiency,
         uniformityCoefficient,
         waterUseEfficiency,
-        recommendations
+        recommendations,
+        agronomicProfileId: resolvedAgronomicProfile?.profile.id,
+        priorityScore: priorityResult.score,
+        priorityConfidence: priorityResult.confidence,
+        missingSignals: priorityResult.signalCoverage.missingP0Signals,
       }
     } catch (error) {
       console.error('Error generating efficiency report:', error)
@@ -1473,6 +1558,425 @@ class AdvancedIrrigationService {
       ai_confidence_score: requirement.aiConfidenceScore,
       ai_reasoning: requirement.aiReasoning
     }
+  }
+
+  private async resolveWaterRequirementProfile(
+    agronomicInput?: AgronomicResolutionInput
+  ): Promise<ResolvedAgronomicCropProfile | null> {
+    if (!agronomicInput) {
+      return null
+    }
+
+    const plantId = agronomicInput.plantId || agronomicInput.cropName
+    const hasResolutionInput =
+      Boolean(plantId) ||
+      Boolean(agronomicInput.archetypeId) ||
+      Boolean(agronomicInput.functionalCategory)
+
+    if (!hasResolutionInput) {
+      return null
+    }
+
+    return resolveAgronomicCropProfile({
+      plantId,
+      archetypeId: agronomicInput.archetypeId,
+      functionalCategory: agronomicInput.functionalCategory,
+    })
+  }
+
+  private getAgronomicFallbackStage(profile?: AgronomicCropProfile | null): string {
+    if (!profile) {
+      return 'vegetative'
+    }
+
+    return (
+      profile.phenology.decisionCriticalStages[0] ||
+      profile.phenology.stages[0] ||
+      'vegetative'
+    )
+  }
+
+  private getAgronomicAdjustmentFactor(
+    profile?: AgronomicCropProfile | null,
+    cropStage?: string,
+    measuredFeedbackSummary?: AgronomicMeasuredFeedbackSummary | null
+  ): number {
+    let baseFactor = 1
+
+    if (!profile) {
+      baseFactor = 1
+    } else {
+      const isSensitiveStage = cropStage
+        ? profile.water.sensitiveStages.includes(cropStage)
+        : false
+
+      switch (profile.water.strategy) {
+        case 'uniform_supply':
+          baseFactor = isSensitiveStage ? 1.04 : 1.02
+          break
+        case 'deficit_sensitive':
+          baseFactor = isSensitiveStage ? 1.06 : 1.03
+          break
+        case 'quality_oriented':
+          baseFactor = isSensitiveStage ? 1.05 : 1.01
+          break
+        case 'stress_tolerant':
+          baseFactor = isSensitiveStage ? 1 : 0.97
+          break
+        case 'recirculating':
+          baseFactor = 1
+          break
+        default:
+          baseFactor = 1
+          break
+      }
+    }
+
+    if (!measuredFeedbackSummary) {
+      return baseFactor
+    }
+
+    const correction = Math.max(-0.06, Math.min(0.12, measuredFeedbackSummary.scoreAdjustment / 100))
+    return Number(Math.max(0.9, Math.min(1.18, baseFactor + correction)).toFixed(2))
+  }
+
+  private calculateAgronomicConfidenceLevel(
+    resolvedProfile: ResolvedAgronomicCropProfile | null,
+    cropStage?: string,
+    weatherData?: any,
+    measuredFeedbackSummary?: AgronomicMeasuredFeedbackSummary | null
+  ): number {
+    if (!resolvedProfile) {
+      return 70
+    }
+
+    let confidence = 58
+    confidence += 6
+
+    switch (resolvedProfile.source) {
+      case 'plant_id':
+        confidence += 8
+        break
+      case 'custom_crop':
+        confidence += 6
+        break
+      case 'taxonomy':
+      case 'functional_category':
+        confidence += 4
+        break
+      case 'fallback':
+        confidence -= 4
+        break
+    }
+
+    if (cropStage) {
+      confidence += 4
+    }
+
+    if (weatherData?.effectiveRainfallMm !== undefined) {
+      confidence += 2
+    }
+
+    const p0Signals = resolvedProfile.profile.water.recommendedSignals.filter(
+      (signal) => signal.priority === 'P0'
+    )
+
+    if (p0Signals.length === 0) {
+      confidence += 4
+    } else {
+      const availableSignals = this.getAvailableAgronomicSignals(weatherData)
+      const coveredSignals = p0Signals.filter((signal) => availableSignals.has(signal.key))
+      confidence += Math.round((coveredSignals.length / p0Signals.length) * 16) - 4
+    }
+
+    if (measuredFeedbackSummary) {
+      confidence += Math.round(measuredFeedbackSummary.confidenceAdjustment * 100 * 0.45)
+    }
+
+    return Math.max(45, Math.min(95, confidence))
+  }
+
+  private buildAgronomicReasoning(
+    resolvedProfile: ResolvedAgronomicCropProfile | null,
+    cropStage: string,
+    weatherData: any,
+    systemEfficiency: number,
+    waterRetention?: string,
+    aiAdjustmentFactor?: number,
+    measuredFeedbackSummary?: AgronomicMeasuredFeedbackSummary | null
+  ): string | undefined {
+    if (!resolvedProfile) {
+      return undefined
+    }
+
+    const availableSignals = this.getAvailableAgronomicSignals(weatherData)
+    const p0Signals = resolvedProfile.profile.water.recommendedSignals.filter(
+      (signal) => signal.priority === 'P0'
+    )
+    const coveredP0Signals = p0Signals.filter((signal) => availableSignals.has(signal.key))
+    const missingP0Signals = p0Signals.filter((signal) => !availableSignals.has(signal.key))
+    const rootProfile = resolvedProfile.profile.water.rootProfile
+
+    const notes = [
+      `Agronomic profile '${resolvedProfile.profile.label}' resolved via ${resolvedProfile.source}.`,
+      `Water strategy: ${resolvedProfile.profile.water.strategy}. Root depth ${rootProfile.effectiveDepthCmMin}-${rootProfile.effectiveDepthCmMax} cm (${rootProfile.rootingPattern}).`,
+      `Decision stage: ${cropStage}. Sensitive stages: ${resolvedProfile.profile.water.sensitiveStages.join(', ') || 'n/a'}.`,
+      `P0 signal coverage: ${coveredP0Signals.length}/${p0Signals.length || 0}.`,
+      `Zone water retention: ${waterRetention || 'unknown'}. System efficiency: ${systemEfficiency}%.`,
+    ]
+
+    if (missingP0Signals.length > 0) {
+      notes.push(
+        `Missing high-priority signals: ${missingP0Signals.map((signal) => signal.key).join(', ')}.`
+      )
+    }
+
+    if (resolvedProfile.warnings.length > 0) {
+      notes.push(`Resolution warnings: ${resolvedProfile.warnings.join(' ')}`)
+    }
+
+    if (aiAdjustmentFactor && aiAdjustmentFactor !== 1) {
+      notes.push(
+        `Suggested agronomic adjustment factor: ${aiAdjustmentFactor.toFixed(2)}. This is informative and not auto-applied to the Penman-Monteith base volume yet.`
+      )
+    }
+
+    if (measuredFeedbackSummary?.rationale?.length) {
+      notes.push(
+        `Recent measured feedback (${measuredFeedbackSummary.matchedBy}, n=${measuredFeedbackSummary.sampleCount}): ${measuredFeedbackSummary.rationale.join(' ')}`
+      )
+    }
+
+    notes.push('Kc remains the user-provided coefficient until crop-stage Kc curves are formalized in the irrigation engine.')
+
+    return notes.join(' ')
+  }
+
+  private async getWaterMeasuredFeedbackSummary(
+    zoneId: string,
+    cropName?: string,
+    profileId?: string
+  ): Promise<AgronomicMeasuredFeedbackSummary | null> {
+    try {
+      const storageProvider = getDefaultStorageProvider()
+      const zone = await this.getIrrigationZone(zoneId)
+      if (!zone?.gardenId) {
+        return null
+      }
+
+      const records = await getAgronomicMeasuredFeedbackRecords(storageProvider, zone.gardenId)
+      const measuredFeedbackSummary = summarizeAgronomicMeasuredFeedback(records, {
+        focus: 'water',
+        zoneId,
+        plantName: cropName,
+      })
+      const learningSnapshots = await getAgronomicProfileLearningSnapshots(storageProvider, zone.gardenId)
+      const learningSnapshot = findAgronomicProfileLearningSnapshot(learningSnapshots, {
+        focus: 'water',
+        zoneId,
+        plantName: cropName,
+        profileId,
+      })
+
+      if (!learningSnapshot) {
+        return measuredFeedbackSummary
+      }
+
+      if (!measuredFeedbackSummary) {
+        return {
+          sampleCount: learningSnapshot.sampleCount,
+          matchedBy: learningSnapshot.zoneId === zoneId ? 'zone' : learningSnapshot.plantName ? 'plant' : 'focus',
+          latestRecordedAt: learningSnapshot.updatedAt,
+          scoreAdjustment: learningSnapshot.scoreAdjustment,
+          confidenceAdjustment: learningSnapshot.confidenceAdjustment,
+          positiveSignals: learningSnapshot.scoreAdjustment < 0 ? 1 : 0,
+          negativeSignals: learningSnapshot.scoreAdjustment > 0 ? 1 : 0,
+          rationale: learningSnapshot.rationale,
+        }
+      }
+
+      return {
+        ...measuredFeedbackSummary,
+        sampleCount: Math.max(measuredFeedbackSummary.sampleCount, learningSnapshot.sampleCount),
+        latestRecordedAt: learningSnapshot.updatedAt || measuredFeedbackSummary.latestRecordedAt,
+        scoreAdjustment: measuredFeedbackSummary.scoreAdjustment + learningSnapshot.scoreAdjustment,
+        confidenceAdjustment: Math.min(
+          0.18,
+          measuredFeedbackSummary.confidenceAdjustment + learningSnapshot.confidenceAdjustment
+        ),
+        rationale: [
+          ...measuredFeedbackSummary.rationale,
+          ...learningSnapshot.rationale,
+        ],
+      }
+    } catch (error) {
+      console.error('Error loading measured water feedback summary:', error)
+      return null
+    }
+  }
+
+  private getAvailableAgronomicSignals(weatherData?: any): Set<AgronomicSignalKey> {
+    const availableSignals = new Set<AgronomicSignalKey>()
+
+    if (!weatherData) {
+      return availableSignals
+    }
+
+    if (
+      weatherData.temperatureAvgCelsius !== undefined ||
+      weatherData.humidityAvgPercentage !== undefined ||
+      weatherData.windSpeedAvgKmh !== undefined ||
+      weatherData.solarRadiationMjm2 !== undefined
+    ) {
+      availableSignals.add('weather_current')
+    }
+
+    if (
+      weatherData.forecastSummary ||
+      weatherData.forecastSource ||
+      weatherData.forecastHours !== undefined
+    ) {
+      availableSignals.add('weather_forecast')
+    }
+
+    if (weatherData.effectiveRainfallMm !== undefined) {
+      availableSignals.add('rain_gauge_local')
+    }
+
+    if (
+      weatherData.soilMoisture10cm !== undefined ||
+      weatherData.soilMoisture10 !== undefined
+    ) {
+      availableSignals.add('soil_moisture_10cm')
+    }
+
+    if (
+      weatherData.soilMoisture30cm !== undefined ||
+      weatherData.soilMoisture30 !== undefined
+    ) {
+      availableSignals.add('soil_moisture_30cm')
+    }
+
+    if (
+      weatherData.soilMoisture60cm !== undefined ||
+      weatherData.soilMoisture60 !== undefined
+    ) {
+      availableSignals.add('soil_moisture_60cm')
+    }
+
+    if (weatherData.soilTensionKpa !== undefined) {
+      availableSignals.add('soil_tension_kpa')
+    }
+
+    if (
+      weatherData.leafWetness !== undefined ||
+      weatherData.leafWetnessHours !== undefined
+    ) {
+      availableSignals.add('leaf_wetness')
+    }
+
+    if (weatherData.dewPointCelsius !== undefined) {
+      availableSignals.add('dew_point')
+    }
+
+    if (weatherData.vpdKpa !== undefined) {
+      availableSignals.add('vpd')
+    }
+
+    if (weatherData.canopyTemperatureCelsius !== undefined) {
+      availableSignals.add('canopy_temperature')
+    }
+
+    if (weatherData.flowRateActual !== undefined) {
+      availableSignals.add('flow_rate_actual')
+    }
+
+    if (weatherData.linePressure !== undefined) {
+      availableSignals.add('line_pressure')
+    }
+
+    if (weatherData.waterSalinity !== undefined) {
+      availableSignals.add('water_salinity')
+    }
+
+    if (weatherData.waterPh !== undefined) {
+      availableSignals.add('water_ph')
+    }
+
+    if (weatherData.waterBicarbonates !== undefined) {
+      availableSignals.add('water_bicarbonates')
+    }
+
+    if (weatherData.phenologyObservation) {
+      availableSignals.add('phenology_observation')
+    }
+
+    if (weatherData.qualityResult) {
+      availableSignals.add('quality_result')
+    }
+
+    if (weatherData.operationLedgerReference) {
+      availableSignals.add('operation_ledger')
+    }
+
+    if (weatherData.ndvi !== undefined) {
+      availableSignals.add('ndvi')
+    }
+
+    if (weatherData.satelliteVigor !== undefined) {
+      availableSignals.add('satellite_vigor')
+    }
+
+    return availableSignals
+  }
+
+  private calculateIrrigationRecommendationPriorityBaseScore(
+    averageEfficiency: number,
+    uniformityCoefficient: number,
+    waterUseEfficiency: number
+  ): number {
+    const efficiencyGap = Math.max(0, 100 - averageEfficiency)
+    const uniformityGap = Math.max(0, 100 - uniformityCoefficient)
+    const waterUseGap = Math.max(0, 100 - waterUseEfficiency)
+
+    return Math.max(
+      20,
+      Math.min(
+        100,
+        Math.round(efficiencyGap * 0.45 + uniformityGap * 0.25 + waterUseGap * 0.3)
+      )
+    )
+  }
+
+  private calculateIrrigationRecommendationConfidence(validLogs: number): number {
+    if (validLogs >= 8) return 0.88
+    if (validLogs >= 4) return 0.78
+    if (validLogs >= 2) return 0.68
+    return 0.52
+  }
+
+  private getAvailableWaterSignalsFromEfficiencyLogs(logs: any[]): Set<AgronomicSignalKey> {
+    const availableSignals = new Set<AgronomicSignalKey>(['operation_ledger'])
+
+    if (logs.length === 0) {
+      return availableSignals
+    }
+
+    availableSignals.add('flow_rate_actual')
+
+    if (logs.some((log) => log.pressure_avg_bar !== null || log.pressure_start_bar !== null)) {
+      availableSignals.add('line_pressure')
+    }
+
+    if (logs.some((log) => log.soil_moisture_before_percentage !== null || log.soil_moisture_after_percentage !== null)) {
+      availableSignals.add('soil_moisture_10cm')
+    }
+
+    if (logs.some((log) => log.weather_conditions || log.temperature_celsius !== null || log.humidity_percentage !== null)) {
+      availableSignals.add('weather_current')
+    }
+
+    return availableSignals
   }
 }
 

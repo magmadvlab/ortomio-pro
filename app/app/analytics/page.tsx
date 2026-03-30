@@ -3,7 +3,14 @@
 import { useState, useEffect } from 'react'
 import { BarChart3, TrendingUp, Target, Award, Leaf, Droplets, Sun, DollarSign, Activity, Shield, Euro, Clock, Users, Zap } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
-import { Garden, GardenTask } from '@/types'
+import { Garden, GardenTask, HarvestLogData } from '@/types'
+import { useGarden } from '@/packages/core/hooks/useGarden'
+import { getQualityOverview, type QualityOverview } from '@/services/qualityResultsService'
+import {
+  buildAgronomicQualityLearningAdjustment,
+  getAgronomicProfileLearningSnapshots,
+  type AgronomicQualityLearningAdjustment,
+} from '@/services/agronomicProfileLearningService'
 
 interface AnalyticsStats {
   totalTasks: number
@@ -20,8 +27,12 @@ interface AnalyticsStats {
 
 export default function AnalyticsPage() {
   const { storageProvider } = useStorage()
+  const { activeGarden } = useGarden()
   const [gardens, setGardens] = useState<Garden[]>([])
   const [tasks, setTasks] = useState<GardenTask[]>([])
+  const [harvests, setHarvests] = useState<HarvestLogData[]>([])
+  const [qualityOverview, setQualityOverview] = useState<QualityOverview | null>(null)
+  const [qualityAdjustment, setQualityAdjustment] = useState<AgronomicQualityLearningAdjustment | null>(null)
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<'month' | 'quarter' | 'year'>('month')
   const [activeTab, setActiveTab] = useState<'overview' | 'productivity' | 'efficiency' | 'sustainability'>('overview')
@@ -44,18 +55,69 @@ export default function AnalyticsPage() {
     loadData()
   }, [storageProvider])
 
+  useEffect(() => {
+    const loadQualityContext = async () => {
+      if (!activeGarden?.id) {
+        setHarvests([])
+        setQualityOverview(null)
+        setQualityAdjustment(buildAgronomicQualityLearningAdjustment([], {}))
+        return
+      }
+
+      try {
+        const [loadedHarvests, loadedQualityOverview, snapshots] = await Promise.all([
+          storageProvider.getHarvestLogs ? storageProvider.getHarvestLogs(activeGarden.id) : Promise.resolve([] as HarvestLogData[]),
+          getQualityOverview(storageProvider, activeGarden.id),
+          getAgronomicProfileLearningSnapshots(storageProvider, activeGarden.id),
+        ])
+
+        setHarvests(loadedHarvests)
+        setQualityOverview(loadedQualityOverview)
+        setQualityAdjustment(buildAgronomicQualityLearningAdjustment(snapshots, {}))
+      } catch (error) {
+        console.error('Error loading adaptive quality analytics:', error)
+        setHarvests([])
+        setQualityOverview(null)
+        setQualityAdjustment(buildAgronomicQualityLearningAdjustment([], {}))
+      }
+    }
+
+    void loadQualityContext()
+  }, [activeGarden?.id, storageProvider])
+
   // Calcolo statistiche business
+  const activeGardenTasks = activeGarden?.id
+    ? (tasks || []).filter(task => task.gardenId === activeGarden.id)
+    : (tasks || [])
+  const harvestWeight = harvests.reduce((sum, harvest) => sum + (harvest.quantity || 0), 0)
+  const averageQualityScore = qualityOverview?.averageQualityScore ?? null
+  const qualityTargetScore = Math.round((qualityAdjustment?.qualityTargetRating ?? 4) * 20)
+  const qualityAlertFloorScore = Math.round((qualityAdjustment?.qualityAlertFloorRating ?? 3) * 20)
+  const averageBrix = qualityOverview?.averageBrix ?? null
+  const premiumRate = averageQualityScore === null
+    ? 0
+    : averageQualityScore >= qualityTargetScore
+      ? 0.2
+      : averageQualityScore < qualityAlertFloorScore
+        ? 0
+        : 0.08
+  const adaptiveRevenuePerKg = Number((2 * (1 + premiumRate)).toFixed(2))
+  const adaptiveHarvestValue = Number((harvestWeight * adaptiveRevenuePerKg).toFixed(0))
+  const qualityGap = averageQualityScore === null
+    ? null
+    : Number((averageQualityScore - qualityTargetScore).toFixed(1))
+
   const stats: AnalyticsStats = {
-    totalTasks: (tasks || []).length,
-    completedTasks: (tasks || []).filter(t => t.completed).length,
-    plantsGrown: Math.max((tasks || []).filter(t => (t.taskType === 'Transplant' || t.taskType === 'Sowing') && t.completed).length, 24),
-    harvestWeight: 15.6, // Mock data - in futuro da harvest logs
+    totalTasks: activeGardenTasks.length,
+    completedTasks: activeGardenTasks.filter(t => t.completed).length,
+    plantsGrown: Math.max(activeGardenTasks.filter(t => (t.taskType === 'Transplant' || t.taskType === 'Sowing') && t.completed).length, 24),
+    harvestWeight: harvestWeight || 15.6,
     waterSaved: 120,
     co2Offset: 8.5,
-    efficiency: (tasks || []).length > 0 ? Math.round(((tasks || []).filter(t => t.completed).length / (tasks || []).length) * 100) : 87.5,
-    costSavings: 450,
-    roi: 285, // Return on Investment %
-    laborHours: Math.max((tasks || []).filter(t => t.completed).length * 0.5, 12) // Stima ore lavoro
+    efficiency: activeGardenTasks.length > 0 ? Math.round((activeGardenTasks.filter(t => t.completed).length / activeGardenTasks.length) * 100) : 87.5,
+    costSavings: Math.max(450, Math.round(adaptiveHarvestValue * 0.28)),
+    roi: Math.max(180, Math.round((adaptiveHarvestValue / Math.max(1, 120)) * 100)),
+    laborHours: Math.max(activeGardenTasks.filter(t => t.completed).length * 0.5, 12)
   }
 
   const completionRate = stats.totalTasks > 0 ? (stats.completedTasks / stats.totalTasks) * 100 : 0
@@ -75,7 +137,10 @@ export default function AnalyticsPage() {
           <BarChart3 className="text-blue-500" size={28} />
           Business Intelligence
         </h1>
-        <p className="text-gray-600 mt-1">Analisi ROI, efficienza e performance aziendali</p>
+        <p className="text-gray-600 mt-1">
+          Analisi ROI, efficienza e performance aziendali
+          {activeGarden ? ` per ${activeGarden.name}` : ''}
+        </p>
       </div>
 
       {/* Filtro Temporale */}
@@ -186,6 +251,70 @@ export default function AnalyticsPage() {
       {/* Contenuto Tabs */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
+          {activeGarden && qualityAdjustment && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Benchmark Qualità Adattivo</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    ROI e posizionamento premium letti rispetto alla memoria reale del sito.
+                  </p>
+                </div>
+                <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${
+                  qualityGap === null
+                    ? 'bg-gray-100 text-gray-600'
+                    : qualityGap >= 0
+                      ? 'bg-green-100 text-green-700'
+                      : averageQualityScore !== null && averageQualityScore < qualityAlertFloorScore
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {qualityGap === null
+                    ? 'Dati insufficienti'
+                    : qualityGap >= 0
+                      ? 'Sopra benchmark'
+                      : averageQualityScore !== null && averageQualityScore < qualityAlertFloorScore
+                        ? 'Sotto soglia'
+                        : 'In osservazione'}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                  <h3 className="font-semibold text-emerald-900 mb-2">Qualità media</h3>
+                  <p className="text-2xl font-bold text-emerald-700">
+                    {averageQualityScore !== null ? `${averageQualityScore.toFixed(0)}%` : 'n/d'}
+                  </p>
+                </div>
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <h3 className="font-semibold text-blue-900 mb-2">Target sito</h3>
+                  <p className="text-2xl font-bold text-blue-700">{qualityTargetScore}%</p>
+                </div>
+                <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                  <h3 className="font-semibold text-purple-900 mb-2">Brix medio / target</h3>
+                  <p className="text-2xl font-bold text-purple-700">
+                    {averageBrix !== null
+                      ? `${averageBrix.toFixed(1)}° / ${qualityAdjustment.brixTarget}°`
+                      : `${qualityAdjustment.brixTarget}°`}
+                  </p>
+                </div>
+                <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                  <h3 className="font-semibold text-amber-900 mb-2">Valore kg adattivo</h3>
+                  <p className="text-2xl font-bold text-amber-700">€{adaptiveRevenuePerKg.toFixed(2)}</p>
+                </div>
+              </div>
+              {qualityAdjustment.notes.length > 0 && (
+                <div className="mt-4 rounded-lg bg-gray-50 border border-gray-200 p-4">
+                  <div className="text-sm font-semibold text-gray-900 mb-2">Memoria sito-specifica</div>
+                  <div className="space-y-1">
+                    {qualityAdjustment.notes.map((note, index) => (
+                      <p key={index} className="text-sm text-gray-600">{note}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* KPI Finanziari */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -315,8 +444,14 @@ export default function AnalyticsPage() {
                 
                 <div className="bg-purple-50 rounded-lg p-4">
                   <h3 className="font-semibold text-purple-900 mb-2">Qualità</h3>
-                  <p className="text-2xl font-bold text-purple-600">94%</p>
-                  <p className="text-sm text-purple-700">Prodotti di prima scelta</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {averageQualityScore !== null ? `${averageQualityScore.toFixed(0)}%` : 'n/d'}
+                  </p>
+                  <p className="text-sm text-purple-700">
+                    {qualityGap === null
+                      ? 'In attesa di rilievi qualità'
+                      : `${qualityGap >= 0 ? '+' : ''}${qualityGap.toFixed(1)} vs target sito`}
+                  </p>
                 </div>
               </div>
             </div>
@@ -350,8 +485,10 @@ export default function AnalyticsPage() {
                 
                 <div className="bg-orange-50 rounded-lg p-4">
                   <h3 className="font-semibold text-orange-900 mb-2">Costo/kg</h3>
-                  <p className="text-2xl font-bold text-orange-600">€2.80</p>
-                  <p className="text-sm text-orange-700">-15% vs mercato</p>
+                  <p className="text-2xl font-bold text-orange-600">€{adaptiveRevenuePerKg.toFixed(2)}</p>
+                  <p className="text-sm text-orange-700">
+                    {premiumRate > 0 ? `Premium qualità +${Math.round(premiumRate * 100)}%` : 'Prezzo base senza premium'}
+                  </p>
                 </div>
                 
                 <div className="bg-purple-50 rounded-lg p-4">

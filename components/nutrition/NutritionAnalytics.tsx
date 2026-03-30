@@ -279,6 +279,8 @@ interface OverviewAnalyticsProps {
 }
 
 function OverviewAnalytics({ analyticsData, timePeriod }: OverviewAnalyticsProps) {
+  const adaptiveTarget = analyticsData.adaptiveThresholds?.effectivenessTargetPercent ?? 70
+
   return (
     <div className="space-y-6">
       {/* Key Metrics */}
@@ -344,6 +346,19 @@ function OverviewAnalytics({ analyticsData, timePeriod }: OverviewAnalyticsProps
           <p className="text-sm text-gray-600">Rispetto normative</p>
         </div>
       </div>
+
+      {analyticsData.adaptiveThresholds?.notes?.length ? (
+        <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+          <h3 className="font-semibold text-amber-900 mb-2">Target Adattivo del Sito</h3>
+          <p className="text-sm text-amber-800">
+            Soglia efficacia corrente: {adaptiveTarget}%.
+            Follow-up tollerato fino al {analyticsData.adaptiveThresholds.followUpRateThresholdPercent}%.
+          </p>
+          <p className="text-sm text-amber-700 mt-2">
+            {analyticsData.adaptiveThresholds.notes.join(' ')}
+          </p>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -447,6 +462,8 @@ function CostAnalytics({ analyticsData }: { analyticsData: NutritionAnalyticsTyp
 
 // Effectiveness Analytics Component
 function EffectivenessAnalytics({ analyticsData }: { analyticsData: NutritionAnalyticsType }) {
+  const benchmarkTarget = analyticsData.adaptiveThresholds?.effectivenessTargetPercent ?? 75
+
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold text-gray-900">Analisi dell'Efficacia</h3>
@@ -478,15 +495,15 @@ function EffectivenessAnalytics({ analyticsData }: { analyticsData: NutritionAna
               <span className="font-medium text-gray-900">{analyticsData.averageEffectiveness.toFixed(1)}%</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Media di settore</span>
-              <span className="font-medium text-gray-900">75.0%</span>
+              <span className="text-sm text-gray-600">Target sito-specifico</span>
+              <span className="font-medium text-gray-900">{benchmarkTarget.toFixed(1)}%</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Differenza</span>
               <span className={`font-medium ${
-                analyticsData.averageEffectiveness >= 75 ? 'text-green-600' : 'text-red-600'
+                analyticsData.averageEffectiveness >= benchmarkTarget ? 'text-green-600' : 'text-red-600'
               }`}>
-                {analyticsData.averageEffectiveness >= 75 ? '+' : ''}{(analyticsData.averageEffectiveness - 75).toFixed(1)}%
+                {analyticsData.averageEffectiveness >= benchmarkTarget ? '+' : ''}{(analyticsData.averageEffectiveness - benchmarkTarget).toFixed(1)}%
               </span>
             </div>
           </div>
@@ -498,6 +515,8 @@ function EffectivenessAnalytics({ analyticsData }: { analyticsData: NutritionAna
 
 // Compliance Analytics Component
 function ComplianceAnalytics({ analyticsData }: { analyticsData: NutritionAnalyticsType }) {
+  const adaptiveTarget = analyticsData.adaptiveThresholds?.effectivenessTargetPercent ?? 70
+
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold text-gray-900">Analisi della Conformità</h3>
@@ -541,10 +560,10 @@ function ComplianceAnalytics({ analyticsData }: { analyticsData: NutritionAnalyt
               <span className="text-sm">Aumenta l'uso di prodotti biologici per migliorare la sostenibilità</span>
             </div>
           )}
-          {analyticsData.averageEffectiveness < 70 && (
+          {analyticsData.averageEffectiveness < adaptiveTarget && (
             <div className="flex items-center gap-2 text-yellow-800">
               <AlertTriangle size={16} />
-              <span className="text-sm">L'efficacia media è sotto la soglia ottimale del 70%</span>
+              <span className="text-sm">L'efficacia media è sotto la soglia adattiva del {adaptiveTarget}%</span>
             </div>
           )}
           {analyticsData.complianceScore < 90 && (

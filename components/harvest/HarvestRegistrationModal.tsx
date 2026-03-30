@@ -37,10 +37,21 @@ interface PlantedCrop {
   expectedHarvestDate?: string;
 }
 
+export interface HarvestLaunchRequest {
+  key: number;
+  sourceTaskId: string;
+  plantName?: string;
+  date?: string;
+  zoneId?: string;
+  rowId?: string;
+  rowNumber?: string;
+}
+
 interface HarvestRegistrationModalProps {
   harvest?: Harvest | null;
   gardenId: string;
   plantedCrops: GardenTask[]; // Colture effettivamente piantate
+  launchContext?: HarvestLaunchRequest | null;
   onSave: (harvest: Omit<Harvest, 'id' | 'created_at'>) => void;
   onClose: () => void;
 }
@@ -49,6 +60,7 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
   harvest,
   gardenId,
   plantedCrops,
+  launchContext,
   onSave,
   onClose
 }) => {
@@ -129,6 +141,18 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
     } else {
       // Modalità creazione - imposta data di oggi
       setHarvestDate(new Date().toISOString().split('T')[0]);
+      if (launchContext) {
+        setSelectedTaskId(launchContext.sourceTaskId);
+        setHarvestDate(launchContext.date || new Date().toISOString().split('T')[0]);
+        setPlantName(launchContext.plantName || '');
+        setNotes(
+          [
+            launchContext.plantName ? `Task sorgente per ${launchContext.plantName}` : null,
+            launchContext.zoneId ? `Zona ${launchContext.zoneId}` : null,
+            launchContext.rowNumber ? `Fila ${launchContext.rowNumber}` : launchContext.rowId ? `Riga ${launchContext.rowId}` : null,
+          ].filter(Boolean).join(' • ')
+        );
+      }
     }
 
     // Gestione tasto ESC per chiudere il modal
@@ -150,7 +174,25 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
       removeEscListener();
       document.body.style.overflow = 'unset';
     };
-  }, [harvest, onClose]);
+  }, [harvest, launchContext, onClose]);
+
+  useEffect(() => {
+    if (harvest || !launchContext) {
+      return;
+    }
+
+    const trackedCrop = availableCrops.find((crop) => crop.taskId === launchContext.sourceTaskId);
+    if (trackedCrop) {
+      setIsManualEntry(false);
+      setSelectedTaskId(trackedCrop.taskId);
+      return;
+    }
+
+    setIsManualEntry(true);
+    if (launchContext.plantName) {
+      setPlantName(launchContext.plantName);
+    }
+  }, [availableCrops, harvest, launchContext]);
 
   // Quando si seleziona una coltura tracciata, popola automaticamente i campi
   useEffect(() => {

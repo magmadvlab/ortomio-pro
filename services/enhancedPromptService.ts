@@ -11,6 +11,7 @@ export interface PromptContext {
   activeTasks?: GardenTask[];
   season?: string;
   weatherContext?: string;
+  agronomicContext?: string;
   previousInteractions?: string[];
 }
 
@@ -39,6 +40,10 @@ export class EnhancedPromptService {
     
     if (context.season) {
       contextualElements.push(`Considera che siamo in ${context.season}.`);
+    }
+
+    if (context.agronomicContext) {
+      contextualElements.push(`Contesto agronomico: ${context.agronomicContext}`);
     }
     
     return [baseInstruction, ...contextualElements].join(' ');

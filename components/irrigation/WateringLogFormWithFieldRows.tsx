@@ -22,6 +22,7 @@ type WateringZone = IrrigationZone & {
 interface WateringLogFormProps {
   zones: WateringZone[]
   preselectedZone?: WateringZone
+  sourceTaskId?: string
   fieldRows?: any[] // Field rows del garden per irrigazione diretta
   onSubmit: (log: Omit<WateringLog, 'id' | 'createdAt'>) => Promise<void>
   onSubmitBatch?: (logs: Array<Omit<WateringLog, 'id' | 'createdAt'>>) => Promise<void>
@@ -29,7 +30,7 @@ interface WateringLogFormProps {
   onCancel: () => void
 }
 
-export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows = [], onSubmit, onSubmitBatch, onExecuted, onCancel }: WateringLogFormProps) {
+export function WateringLogFormWithFieldRows({ zones, preselectedZone, sourceTaskId, fieldRows = [], onSubmit, onSubmitBatch, onExecuted, onCancel }: WateringLogFormProps) {
   const { storageProvider } = useStorage()
   const toNumber = (value: unknown): number | undefined => {
     if (typeof value === 'number') {
@@ -336,6 +337,7 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
           return {
             zoneId: '', // Non collegato a zona
             gardenId: row.gardenId || '',
+            taskId: sourceTaskId,
             fieldRowId: row.id, // Nuovo campo per field rows
             wateredAt,
             date: formData.date,
@@ -382,6 +384,7 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
           await onSubmit({
             zoneId: formData.zoneId,
             gardenId: zone.gardenId,
+            taskId: sourceTaskId,
             wateredAt,
             date: formData.date,
             durationMinutes: 0,
@@ -400,6 +403,7 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, fieldRows
             return {
               zoneId: formData.zoneId,
               gardenId: zone.gardenId,
+              taskId: sourceTaskId,
               bedId: formData.bedId,
               rowId: row.id,
               wateredAt,

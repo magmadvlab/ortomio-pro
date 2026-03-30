@@ -1,6 +1,7 @@
 'use client'
 
 import SmartPlanner from '@/components/planner/SmartPlanner'
+import AgronomicQueueTaskPanel from '@/components/planner/AgronomicQueueTaskPanel'
 import TaskCalendar from '@/components/planner/TaskCalendar'
 import TaskList from '@/components/planner/TaskList'
 import PlannerAISuggestions from '@/components/planner/tabs/PlannerAISuggestions'
@@ -10,6 +11,8 @@ import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Garden, GardenTask } from '@/types'
+import { handleTaskCompletion } from '@/services/taskCompletionHook'
+import { recordAgronomicQueueTaskOutcome } from '@/services/agronomicQueueOutcomeService'
 import { Calendar, Clock, Activity, Target, CheckCircle, AlertTriangle, TrendingUp, List, Lightbulb, RefreshCw, Bug } from 'lucide-react'
 import { isSameDay, addDays, parseISO, format } from 'date-fns'
 import { GardenTypeWizard } from '@/components/GardenTypeWizard'
@@ -49,6 +52,54 @@ export default function PlannerPage() {
     loadData()
   }, [storageProvider])
 
+  const normalizeCompletedTask = (task: GardenTask, previousTask?: GardenTask | null): GardenTask => {
+    if (!task.completed) {
+      return task
+    }
+
+    if (previousTask?.completed && previousTask.completedAt && task.completedAt) {
+      return task
+    }
+
+    return {
+      ...task,
+      completedAt: task.completedAt || new Date().toISOString(),
+      actualCompletedDate: task.actualCompletedDate || new Date().toISOString(),
+    }
+  }
+
+  const finalizeTaskOutcomeIfNeeded = async (
+    previousTask: GardenTask | null | undefined,
+    nextTask: GardenTask
+  ) => {
+    const justCompleted = Boolean(nextTask.completed && !previousTask?.completed)
+    if (!justCompleted) {
+      return
+    }
+
+    await Promise.allSettled([
+      handleTaskCompletion(storageProvider, nextTask, {
+        success: true,
+        notes: nextTask.notes,
+      }),
+      recordAgronomicQueueTaskOutcome(storageProvider, nextTask, {
+        success: true,
+        completedAt: nextTask.completedAt || nextTask.actualCompletedDate,
+      }),
+    ])
+  }
+
+  const persistTaskUpdate = async (task: GardenTask) => {
+    const previousTask = tasks.find(t => t.id === task.id) || null
+    const normalizedTask = normalizeCompletedTask(task, previousTask)
+
+    await storageProvider.updateTask(normalizedTask.id, normalizedTask)
+    await finalizeTaskOutcomeIfNeeded(previousTask, normalizedTask)
+
+    const updatedTasks = await storageProvider.getTasks()
+    setTasks(updatedTasks)
+  }
+
   const handleTasksUpdate = async (updatedTasks: GardenTask[]) => {
     try {
       // Aggiorna i task nel storage
@@ -60,10 +111,13 @@ export default function PlannerPage() {
           await storageProvider.createTask(taskWithoutId)
         } else {
           // Task esistente - usa updateTask
-          await storageProvider.updateTask(task.id, task)
+          const normalizedTask = normalizeCompletedTask(task, existingTask)
+          await storageProvider.updateTask(task.id, normalizedTask)
+          await finalizeTaskOutcomeIfNeeded(existingTask, normalizedTask)
         }
       }
-      setTasks(updatedTasks)
+      const refreshedTasks = await storageProvider.getTasks()
+      setTasks(refreshedTasks)
     } catch (error) {
       console.error('Error updating tasks:', error)
     }
@@ -276,11 +330,27 @@ export default function PlannerPage() {
 
       {/* Contenuto Tabs */}
       {activeTab === 'planner' && (
-        <SmartPlanner 
-          garden={defaultGarden}
-          tasks={tasks}
-          onTasksUpdate={handleTasksUpdate}
-        />
+        <div className="space-y-6">
+          <AgronomicQueueTaskPanel
+            garden={defaultGarden}
+            tasks={tasks}
+            onTaskCreate={async (taskData) => {
+              try {
+                await storageProvider.createTask(taskData)
+                const updatedTasks = await storageProvider.getTasks()
+                setTasks(updatedTasks)
+              } catch (error) {
+                console.error('Error creating agronomic queue task:', error)
+                throw error
+              }
+            }}
+          />
+          <SmartPlanner 
+            garden={defaultGarden}
+            tasks={tasks}
+            onTasksUpdate={handleTasksUpdate}
+          />
+        </div>
       )}
 
       {activeTab === 'ai-suggestions' && (
@@ -315,9 +385,7 @@ export default function PlannerPage() {
           tasks={tasks}
           onTaskUpdate={async (task) => {
             try {
-              await storageProvider.updateTask(task.id, task)
-              const updatedTasks = await storageProvider.getTasks()
-              setTasks(updatedTasks)
+              await persistTaskUpdate(task)
             } catch (error) {
               console.error('Error updating task:', error)
             }
@@ -349,9 +417,7 @@ export default function PlannerPage() {
           tasks={tasks}
           onTaskUpdate={async (task) => {
             try {
-              await storageProvider.updateTask(task.id, task)
-              const updatedTasks = await storageProvider.getTasks()
-              setTasks(updatedTasks)
+              await persistTaskUpdate(task)
             } catch (error) {
               console.error('Error updating task:', error)
             }

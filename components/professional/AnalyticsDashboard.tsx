@@ -16,6 +16,12 @@ import {
   Download
 } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
+import { getQualityOverview, type QualityOverview } from '@/services/qualityResultsService'
+import {
+  buildAgronomicQualityLearningAdjustment,
+  getAgronomicProfileLearningSnapshots,
+  type AgronomicQualityLearningAdjustment,
+} from '@/services/agronomicProfileLearningService'
 
 interface AnalyticsDashboardProps {
   garden: Garden
@@ -37,6 +43,17 @@ interface Suggestion {
   action?: string
 }
 
+interface QualityBenchmarkSummary {
+  averageQualityScore: number | null
+  qualityTargetScore: number
+  qualityAlertFloorScore: number
+  averageBrix: number | null
+  brixTarget: number
+  benchmarkGap: number | null
+  status: 'above_target' | 'watch' | 'below_target' | 'no_data'
+  notes: string[]
+}
+
 export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
   const { storageProvider } = useStorage()
   const [loading, setLoading] = useState(true)
@@ -44,30 +61,39 @@ export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
   const [harvests, setHarvests] = useState<HarvestLogData[]>([])
   const [kpis, setKpis] = useState<KPI[]>([])
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const [qualityBenchmark, setQualityBenchmark] = useState<QualityBenchmarkSummary | null>(null)
 
   useEffect(() => {
     loadAnalyticsData()
-  }, [garden.id])
+  }, [garden.id, storageProvider])
 
   const loadAnalyticsData = async () => {
     setLoading(true)
 
     try {
-      // Carica dati
-      const tasksData = await storageProvider.getTasks(garden.id)
-
-      // TODO: Implement getHarvestLogs when available
-      const harvestsData: HarvestLogData[] = []
+      const [
+        tasksData,
+        harvestsData,
+        qualityOverview,
+        learningSnapshots,
+      ] = await Promise.all([
+        storageProvider.getTasks(garden.id),
+        storageProvider.getHarvestLogs ? storageProvider.getHarvestLogs(garden.id) : Promise.resolve([] as HarvestLogData[]),
+        getQualityOverview(storageProvider, garden.id),
+        getAgronomicProfileLearningSnapshots(storageProvider, garden.id),
+      ])
+      const qualityAdjustment = buildAgronomicQualityLearningAdjustment(learningSnapshots, {})
 
       setTasks(tasksData || [])
       setHarvests(harvestsData)
+      setQualityBenchmark(buildQualityBenchmarkSummary(qualityOverview, qualityAdjustment))
 
       // Calcola KPI
-      const calculatedKPIs = calculateKPIs(tasksData || [], harvestsData)
+      const calculatedKPIs = calculateKPIs(tasksData || [], harvestsData, qualityOverview, qualityAdjustment)
       setKpis(calculatedKPIs)
 
       // Genera suggerimenti AI
-      const aiSuggestions = generateSuggestions(tasksData || [], harvestsData, garden)
+      const aiSuggestions = generateSuggestions(tasksData || [], harvestsData, garden, qualityOverview, qualityAdjustment)
       setSuggestions(aiSuggestions)
 
     } catch (error) {
@@ -77,7 +103,42 @@ export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
     }
   }
 
-  const calculateKPIs = (tasks: GardenTask[], harvests: HarvestLogData[]): KPI[] => {
+  const buildQualityBenchmarkSummary = (
+    qualityOverview: QualityOverview,
+    qualityAdjustment: AgronomicQualityLearningAdjustment
+  ): QualityBenchmarkSummary => {
+    const averageQualityScore = qualityOverview.averageQualityScore ?? null
+    const qualityTargetScore = Math.round(qualityAdjustment.qualityTargetRating * 20)
+    const qualityAlertFloorScore = Math.round(qualityAdjustment.qualityAlertFloorRating * 20)
+    const benchmarkGap = averageQualityScore === null
+      ? null
+      : Number((averageQualityScore - qualityTargetScore).toFixed(1))
+    const status = averageQualityScore === null
+      ? 'no_data'
+      : averageQualityScore >= qualityTargetScore
+        ? 'above_target'
+        : averageQualityScore < qualityAlertFloorScore
+          ? 'below_target'
+          : 'watch'
+
+    return {
+      averageQualityScore,
+      qualityTargetScore,
+      qualityAlertFloorScore,
+      averageBrix: qualityOverview.averageBrix ?? null,
+      brixTarget: qualityAdjustment.brixTarget,
+      benchmarkGap,
+      status,
+      notes: qualityAdjustment.notes,
+    }
+  }
+
+  const calculateKPIs = (
+    tasks: GardenTask[],
+    harvests: HarvestLogData[],
+    qualityOverview: QualityOverview,
+    qualityAdjustment: AgronomicQualityLearningAdjustment
+  ): KPI[] => {
     // Calcolo produzione totale
     const totalProduction = harvests.reduce((sum, h) => sum + (h.quantity || 0), 0)
     const avgProductionPerPlant = tasks.length > 0 ? totalProduction / tasks.length : 0
@@ -94,6 +155,11 @@ export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
       ? garden.dimensions.length * garden.dimensions.width
       : 100 // default
     const productivity = totalProduction / areaM2
+    const averageQualityScore = qualityOverview.averageQualityScore
+    const targetQualityScore = Math.round(qualityAdjustment.qualityTargetRating * 20)
+    const qualityGap = typeof averageQualityScore === 'number'
+      ? Number((averageQualityScore - targetQualityScore).toFixed(1))
+      : null
 
     return [
       {
@@ -111,24 +177,38 @@ export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
         icon: <DollarSign className="text-blue-600" size={24} />
       },
       {
-        label: 'Task Completati',
-        value: `${completionRate.toFixed(0)}%`,
-        trend: completionRate >= 80 ? 'up' : 'down',
-        change: `${completedTasks}/${tasks.length} task`,
-        icon: <Target className="text-purple-600" size={24} />
+        label: 'Qualità Media',
+        value: typeof averageQualityScore === 'number' ? `${averageQualityScore.toFixed(0)}%` : 'n/d',
+        trend: qualityGap === null ? 'neutral' : qualityGap >= 0 ? 'up' : qualityGap <= -8 ? 'down' : 'neutral',
+        change: qualityGap === null
+          ? `Target sito ${targetQualityScore}%`
+          : `${qualityGap >= 0 ? '+' : ''}${qualityGap.toFixed(1)} vs target`,
+        icon: <Award className="text-purple-600" size={24} />
       },
       {
         label: 'Produttività',
         value: `${productivity.toFixed(2)} kg/m²`,
         trend: productivity > 5 ? 'up' : 'neutral',
-        change: 'Media: 4.8 kg/m²',
+        change: avgProductionPerPlant > 0
+          ? `${avgProductionPerPlant.toFixed(2)} kg/pianta`
+          : 'Dati raccolto in consolidamento',
         icon: <BarChart3 className="text-orange-600" size={24} />
       }
     ]
   }
 
-  const generateSuggestions = (tasks: GardenTask[], harvests: HarvestLogData[], garden: Garden): Suggestion[] => {
+  const generateSuggestions = (
+    tasks: GardenTask[],
+    harvests: HarvestLogData[],
+    garden: Garden,
+    qualityOverview: QualityOverview,
+    qualityAdjustment: AgronomicQualityLearningAdjustment
+  ): Suggestion[] => {
     const suggestions: Suggestion[] = []
+    const totalProduction = harvests.reduce((sum, h) => sum + (h.quantity || 0), 0)
+    const averageQualityScore = qualityOverview.averageQualityScore
+    const targetQualityScore = Math.round(qualityAdjustment.qualityTargetRating * 20)
+    const alertFloorQualityScore = Math.round(qualityAdjustment.qualityAlertFloorRating * 20)
 
     // Suggerimento 1: Task in ritardo
     const overdueTasks = tasks.filter(t => !t.completed && new Date(t.date) < new Date())
@@ -151,10 +231,36 @@ export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
           id: 'low-tomato',
           type: 'opportunity',
           title: 'Pomodori Sotto Media',
-          message: `I tuoi pomodori rendono ${avgTomato.toFixed(1)}kg (media: 4.5kg). Prova fertilizzante NPK 15-30-15.`,
+          message: `I tuoi pomodori rendono ${avgTomato.toFixed(1)}kg. Incrocia nutrizione e irrigazione sul lotto meno performante per riallinearti al benchmark del sito.`,
           action: 'Aggiungi Task Fertilizzazione'
         })
       }
+    }
+
+    if (typeof averageQualityScore === 'number' && averageQualityScore < alertFloorQualityScore) {
+      suggestions.push({
+        id: 'quality-below-floor',
+        type: 'warning',
+        title: 'Qualità Sotto Soglia Sito',
+        message: `La qualità media è ${averageQualityScore.toFixed(0)}%, sotto la soglia adattiva ${alertFloorQualityScore}%. Conviene rivedere timing di raccolta, uniformità irrigua e lotti guida.`,
+        action: 'Apri Benchmark Qualità'
+      })
+    } else if (typeof averageQualityScore === 'number' && averageQualityScore < targetQualityScore) {
+      suggestions.push({
+        id: 'quality-below-target',
+        type: 'opportunity',
+        title: 'Qualità Sotto Target',
+        message: `La qualità media è ${averageQualityScore.toFixed(0)}%, sotto il target sito ${targetQualityScore}%. Lavora sui lotti con migliore storico per recuperare margine premium.`,
+        action: 'Vedi Lotti Migliori'
+      })
+    } else if (typeof averageQualityScore === 'number' && averageQualityScore >= targetQualityScore) {
+      suggestions.push({
+        id: 'quality-premium',
+        type: 'tip',
+        title: 'Benchmark Qualità Superato',
+        message: `La qualità media è ${averageQualityScore.toFixed(0)}%, sopra il target sito ${targetQualityScore}%. Usa questi lotti come standard per pricing e tracciabilità premium.`,
+        action: 'Apri Tracciabilità'
+      })
     }
 
     // Suggerimento 3: Rotazione colturale
@@ -195,6 +301,20 @@ export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
   }
 
   const totalProduction = harvests.reduce((sum, h) => sum + (h.quantity || 0), 0)
+  const qualityStatusLabel = qualityBenchmark?.status === 'above_target'
+    ? 'Sopra benchmark'
+    : qualityBenchmark?.status === 'watch'
+      ? 'In osservazione'
+      : qualityBenchmark?.status === 'below_target'
+        ? 'Sotto soglia'
+        : 'Dati insufficienti'
+  const qualityStatusClassName = qualityBenchmark?.status === 'above_target'
+    ? 'bg-green-100 text-green-700'
+    : qualityBenchmark?.status === 'watch'
+      ? 'bg-yellow-100 text-yellow-800'
+      : qualityBenchmark?.status === 'below_target'
+        ? 'bg-red-100 text-red-700'
+        : 'bg-gray-100 text-gray-600'
 
   return (
     <div className="space-y-6 p-6">
@@ -237,6 +357,56 @@ export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
           </Card>
         ))}
       </div>
+
+      {qualityBenchmark && (
+        <Card className="p-6">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-gray-900">Benchmark Qualità Adattivo</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Valuta resa premium e posizionamento economico rispetto alla memoria reale del sito.
+              </p>
+            </div>
+            <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${qualityStatusClassName}`}>
+              {qualityStatusLabel}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
+              <div className="text-sm text-gray-600 mb-1">Qualità media</div>
+              <div className="text-2xl font-bold text-emerald-700">
+                {qualityBenchmark.averageQualityScore !== null ? `${qualityBenchmark.averageQualityScore.toFixed(0)}%` : 'n/d'}
+              </div>
+            </div>
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+              <div className="text-sm text-gray-600 mb-1">Target sito</div>
+              <div className="text-2xl font-bold text-blue-700">{qualityBenchmark.qualityTargetScore}%</div>
+            </div>
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+              <div className="text-sm text-gray-600 mb-1">Soglia allerta</div>
+              <div className="text-2xl font-bold text-amber-700">{qualityBenchmark.qualityAlertFloorScore}%</div>
+            </div>
+            <div className="rounded-lg bg-purple-50 border border-purple-200 p-4">
+              <div className="text-sm text-gray-600 mb-1">Brix medio / target</div>
+              <div className="text-2xl font-bold text-purple-700">
+                {qualityBenchmark.averageBrix !== null
+                  ? `${qualityBenchmark.averageBrix.toFixed(1)}° / ${qualityBenchmark.brixTarget}°`
+                  : `${qualityBenchmark.brixTarget}°`}
+              </div>
+            </div>
+          </div>
+          {qualityBenchmark.notes.length > 0 && (
+            <div className="mt-4 rounded-lg bg-gray-50 border border-gray-200 p-4">
+              <div className="text-sm font-semibold text-gray-900 mb-2">Memoria sito-specifica</div>
+              <div className="space-y-1">
+                {qualityBenchmark.notes.map((note, index) => (
+                  <p key={index} className="text-sm text-gray-600">{note}</p>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Suggerimenti AI */}
       <Card className="p-6">

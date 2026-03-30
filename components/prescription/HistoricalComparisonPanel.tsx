@@ -304,6 +304,59 @@ const HistoricalComparisonPanel: React.FC<HistoricalComparisonPanelProps> = ({
           <div className="flex-1 overflow-y-auto">
             {comparisonResult ? (
               <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <div className="text-sm text-amber-800">Benchmark Qualità</div>
+                    <div className="text-2xl font-bold text-amber-900 mt-1">
+                      {comparisonResult.quality.adaptiveBenchmarkScore
+                        ? `${comparisonResult.quality.adaptiveBenchmarkScore.toFixed(0)}%`
+                        : 'n/d'}
+                    </div>
+                    <div className="text-xs text-amber-700 mt-1">
+                      Soglia allerta {comparisonResult.quality.adaptiveAlertFloorScore
+                        ? `${comparisonResult.quality.adaptiveAlertFloorScore.toFixed(0)}%`
+                        : 'n/d'}
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="text-sm text-gray-600">Stato Storico vs Benchmark</div>
+                    <div className="text-2xl font-bold text-gray-900 mt-1">
+                      {comparisonResult.quality.benchmarkStatus === 'above_target'
+                        ? 'Sopra target'
+                        : comparisonResult.quality.benchmarkStatus === 'watch'
+                          ? 'Da consolidare'
+                          : comparisonResult.quality.benchmarkStatus === 'below_target'
+                            ? 'Sotto soglia'
+                            : 'n/d'}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Gap medio {comparisonResult.quality.averageBenchmarkGap?.toFixed(1) ?? '0.0'} punti
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="text-sm text-gray-600">Benchmark Brix</div>
+                    <div className="text-2xl font-bold text-gray-900 mt-1">
+                      {comparisonResult.quality.brixTarget
+                        ? `${comparisonResult.quality.brixTarget.toFixed(1)}°`
+                        : 'n/d'}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Confidence dataset {comparisonResult.quality.confidenceScore.toFixed(0)}%
+                    </div>
+                  </div>
+                </div>
+
+                {comparisonResult.quality.notes && comparisonResult.quality.notes.length > 0 && (
+                  <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                    <h4 className="font-medium text-blue-900 mb-2">Memoria Sito-Specifica</h4>
+                    <p className="text-sm text-blue-800">
+                      {comparisonResult.quality.notes.join(' ')}
+                    </p>
+                  </div>
+                )}
+
                 {/* Tabs */}
                 <div className="border-b border-gray-200 mb-6">
                   <nav className="flex space-x-8">

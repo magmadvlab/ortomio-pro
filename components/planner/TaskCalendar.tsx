@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, ChevronLeft, ChevronRight, Edit, Trash2, Check, Clock, Moon } from 'lucide-react'
 import { Garden, GardenTask } from '@/types'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths, isSameMonth, isToday } from 'date-fns'
@@ -8,6 +9,7 @@ import { it } from 'date-fns/locale'
 import TreatmentCalendarIntegration from '@/components/treatments/TreatmentCalendarIntegration'
 import AlmanaccoIntegration from '@/components/planner/AlmanaccoIntegration'
 import { translateTaskType, getCommonTaskTypesItalian } from '@/utils/taskTranslations'
+import { buildTaskExecutionUrl, canLaunchTaskExecution } from '@/services/taskExecutionLaunchService'
 
 // Lunar calendar integration
 interface MoonPhase {
@@ -121,6 +123,7 @@ const TASK_COLORS = {
 }
 
 export default function TaskCalendar({ garden, tasks, onTaskUpdate, onTaskCreate, onTaskDelete }: TaskCalendarProps) {
+  const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [showNewTaskForm, setShowNewTaskForm] = useState(false)
@@ -293,6 +296,14 @@ export default function TaskCalendar({ garden, tasks, onTaskUpdate, onTaskCreate
     setSelectedDate(date)
     setNewTask(prev => ({ ...prev, date: format(date, 'yyyy-MM-dd') }))
     setShowNewTaskForm(true)
+  }
+
+  const openTaskExecution = (task: GardenTask) => {
+    const executionUrl = buildTaskExecutionUrl(task)
+    if (!executionUrl) {
+      return
+    }
+    router.push(executionUrl)
   }
 
   return (
@@ -567,6 +578,16 @@ export default function TaskCalendar({ garden, tasks, onTaskUpdate, onTaskCreate
                 >
                   Annulla
                 </button>
+
+                {editingTask && canLaunchTaskExecution(editingTask) && (
+                  <button
+                    type="button"
+                    onClick={() => openTaskExecution(editingTask)}
+                    className="px-4 py-2 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
+                  >
+                    Apri esecuzione
+                  </button>
+                )}
                 
                 {editingTask && (
                   <button

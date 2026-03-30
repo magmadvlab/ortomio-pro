@@ -122,6 +122,7 @@ export interface TreatmentProduct {
 export interface NutritionTreatment {
   id: string
   gardenId: string
+  sourceTaskId?: string
   
   // Location Targeting
   zoneId?: string
@@ -367,6 +368,7 @@ export interface NutritionAnalytics {
   
   // Recommendations
   recommendations: AnalyticsRecommendation[]
+  adaptiveThresholds?: NutritionAdaptiveThresholds
 }
 
 export interface TreatmentTypeAnalytics {
@@ -418,6 +420,14 @@ export interface AnalyticsRecommendation {
   potentialImprovement?: number
   priority: 'low' | 'medium' | 'high'
   actionItems: string[]
+}
+
+export interface NutritionAdaptiveThresholds {
+  effectivenessTargetPercent: number
+  effectivenessAlertFloorPercent: number
+  followUpRateThresholdPercent: number
+  qualityTargetRating: number
+  notes: string[]
 }
 
 // Inventory Management Types
@@ -491,6 +501,7 @@ export interface NutritionDashboardData {
     monthlyCost: number
     treatmentFrequency: number
   }
+  adaptiveThresholds?: NutritionAdaptiveThresholds
 }
 
 export interface EffectivenessAlert {

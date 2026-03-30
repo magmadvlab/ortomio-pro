@@ -12,6 +12,11 @@ import {
   type PrescriptionExecutionVarianceSummary,
 } from './prescriptionExecutionService'
 import { buildPrescriptionAgronomicIntelligenceSummary } from './prescriptionAgronomicIntelligenceService'
+import {
+  buildAgronomicQualityLearningAdjustment,
+  getAgronomicProfileLearningSnapshots,
+  type AgronomicProfileLearningSnapshot,
+} from './agronomicProfileLearningService'
 import type { IStorageProvider } from '../packages/core/storage/interface'
 import type {
   HistoricalComparisonRequest,
@@ -47,11 +52,17 @@ interface HistoricalMapSnapshot {
   averageExpectedOutcome: number
   averageYieldKg?: number
   latestOutcomeAt?: string
+  adaptiveQualityTargetScore?: number
+  adaptiveQualityAlertFloorScore?: number
+  adaptiveBrixTarget?: number
+  averageObservedQualityScore?: number
+  qualityBenchmarkGap?: number
+  adaptiveQualityNotes: string[]
 }
 
 type HistoricalComparisonStorage = Pick<
   IStorageProvider,
-  'getGarden' | 'getPrescriptionMap' | 'getPrescriptionMaps' | 'getPrescriptionExecutionRecords' | 'getQualityResults'
+  'getGarden' | 'getPrescriptionMap' | 'getPrescriptionMaps' | 'getPrescriptionExecutionRecords' | 'getQualityResults' | 'getUserPreference'
 >
 
 const METRIC_FALLBACKS = ['application_rate', 'quality', 'cost'] as const
@@ -353,6 +364,9 @@ export class HistoricalComparisonService {
   private async loadHistoricalSnapshots(
     request: HistoricalComparisonRequest
   ): Promise<HistoricalMapSnapshot[]> {
+    const learningSnapshots = this.storageProvider?.getUserPreference
+      ? await getAgronomicProfileLearningSnapshots(this.storageProvider, request.gardenId).catch(() => [])
+      : []
     const maps = await this.loadHistoricalMaps(request.mapIds)
     const filteredMaps = maps
       .filter((map) => {
@@ -364,7 +378,7 @@ export class HistoricalComparisonService {
       })
       .sort((left, right) => new Date(left.generationDate).getTime() - new Date(right.generationDate).getTime())
 
-    return Promise.all(filteredMaps.map((map) => this.buildHistoricalSnapshot(map)))
+    return Promise.all(filteredMaps.map((map) => this.buildHistoricalSnapshot(map, learningSnapshots)))
   }
 
   private async loadHistoricalMaps(mapIds: string[]): Promise<PrescriptionMap[]> {
@@ -379,12 +393,18 @@ export class HistoricalComparisonService {
     return maps.filter((map: PrescriptionMap | null): map is PrescriptionMap => Boolean(map))
   }
 
-  private async buildHistoricalSnapshot(map: PrescriptionMap): Promise<HistoricalMapSnapshot> {
+  private async buildHistoricalSnapshot(
+    map: PrescriptionMap,
+    learningSnapshots: AgronomicProfileLearningSnapshot[] = []
+  ): Promise<HistoricalMapSnapshot> {
     const [varianceSummary, outcomeSummary, efficacySummary] = await Promise.all([
       getPrescriptionExecutionVarianceSummary(this.storageProvider, map),
       getPrescriptionExecutionOutcomeSummary(this.storageProvider, map),
       getPrescriptionExecutionEfficacySummary(this.storageProvider, map),
     ])
+    const qualityLearningAdjustment = buildAgronomicQualityLearningAdjustment(learningSnapshots, {
+      plantName: efficacySummary.cropContextScores[0]?.label || map.gardenName,
+    })
 
     const averageApplicationRate = average(
       map.zones.map((zone) => zone.prescription.applicationRate)
@@ -401,6 +421,14 @@ export class HistoricalComparisonService {
       .map((zone) => zone.outcomeRecordedAt)
       .filter((value): value is string => Boolean(value))
       .sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0]
+    const averageObservedQualityScore =
+      outcomeSummary.averageOutcomeScore || map.qualityScore || 0
+    const adaptiveQualityTargetScore = Number((qualityLearningAdjustment.qualityTargetRating * 20).toFixed(2))
+    const adaptiveQualityAlertFloorScore = Number((qualityLearningAdjustment.qualityAlertFloorRating * 20).toFixed(2))
+    const qualityBenchmarkGap =
+      averageObservedQualityScore > 0
+        ? Number(Math.max(0, adaptiveQualityTargetScore - averageObservedQualityScore).toFixed(2))
+        : 0
 
     return {
       map,
@@ -411,6 +439,12 @@ export class HistoricalComparisonService {
       averageExpectedOutcome,
       averageYieldKg: yieldValues.length > 0 ? average(yieldValues) : undefined,
       latestOutcomeAt,
+      adaptiveQualityTargetScore,
+      adaptiveQualityAlertFloorScore,
+      adaptiveBrixTarget: qualityLearningAdjustment.brixTarget,
+      averageObservedQualityScore,
+      qualityBenchmarkGap,
+      adaptiveQualityNotes: qualityLearningAdjustment.notes,
     }
   }
 
@@ -453,6 +487,9 @@ export class HistoricalComparisonService {
       zoneDataQuality: number
       applicationRate: number
       expectedOutcome: number
+      adaptiveQualityTargetScore?: number
+      adaptiveQualityAlertFloorScore?: number
+      adaptiveBrixTarget?: number
     }>>()
 
     snapshots.forEach((snapshot) => {
@@ -472,6 +509,9 @@ export class HistoricalComparisonService {
           expectedOutcome: zone.prescription.expectedOutcome?.yieldIncrease
             ?? zone.prescription.expectedOutcome?.costReduction
             ?? snapshot.map.qualityScore,
+          adaptiveQualityTargetScore: snapshot.adaptiveQualityTargetScore,
+          adaptiveQualityAlertFloorScore: snapshot.adaptiveQualityAlertFloorScore,
+          adaptiveBrixTarget: snapshot.adaptiveBrixTarget,
         })
         groupedZones.set(key, current)
       })
@@ -511,6 +551,15 @@ export class HistoricalComparisonService {
           recommendations.push('La zona sta migliorando: usare questa configurazione come benchmark interno.')
         } else if ((latest?.efficacy?.efficacyScore || 0) <= ((oldest?.efficacy?.efficacyScore || 0) - 12)) {
           recommendations.push('La zona mostra peggioramento nel tempo: confrontare microclima e risposta del suolo rispetto alle mappe migliori.')
+        }
+        if (
+          typeof latest?.outcome?.outcomeScore === 'number' &&
+          typeof latest?.adaptiveQualityAlertFloorScore === 'number' &&
+          latest.outcome.outcomeScore < latest.adaptiveQualityAlertFloorScore
+        ) {
+          recommendations.push(
+            `L'outcome recente resta sotto la soglia qualitativa adattiva (${latest.adaptiveQualityAlertFloorScore.toFixed(0)}): usa la zona migliore come benchmark di timing e gestione.`
+          )
         }
 
         return {
@@ -564,6 +613,23 @@ export class HistoricalComparisonService {
         )
         if (avgYield > 0) {
           recommendations.push(`La stagione mostra resa media ${avgYield.toFixed(1)} kg: utile per calibrare il target atteso.`)
+        }
+        const avgQuality = average(
+          seasonalSnapshots
+            .map((snapshot) => snapshot.averageObservedQualityScore)
+            .filter((value): value is number => typeof value === 'number' && value > 0)
+        )
+        const avgAdaptiveTarget = average(
+          seasonalSnapshots
+            .map((snapshot) => snapshot.adaptiveQualityTargetScore)
+            .filter((value): value is number => typeof value === 'number' && value > 0)
+        )
+        if (avgQuality > 0 && avgAdaptiveTarget > 0) {
+          if (avgQuality >= avgAdaptiveTarget) {
+            recommendations.push('La stagione supera il benchmark qualitativo adattivo: usarla come riferimento di qualità.')
+          } else {
+            recommendations.push(`La stagione resta sotto benchmark qualitativo adattivo di ${(avgAdaptiveTarget - avgQuality).toFixed(1)} punti: rivedere timing e stabilità esecutiva.`)
+          }
         }
 
         return {
@@ -681,7 +747,9 @@ export class HistoricalComparisonService {
         snapshot.map,
         snapshot.efficacySummary,
         snapshot.varianceSummary,
-        snapshot.outcomeSummary
+        snapshot.outcomeSummary,
+        [],
+        []
       ),
     }))
 
@@ -716,6 +784,24 @@ export class HistoricalComparisonService {
       )
       opportunities.push(
         `Usare "${bestMap.map.name}" come benchmark operativo per dose, copertura e timing.`
+      )
+    }
+
+    const averageQualityGap = average(
+      snapshots
+        .map((snapshot) => snapshot.qualityBenchmarkGap)
+        .filter((value): value is number => typeof value === 'number')
+    )
+    if (averageQualityGap > 0) {
+      keyFindings.push(
+        `Lo storico resta sotto benchmark qualitativo adattivo di ${averageQualityGap.toFixed(1)} punti medi.`
+      )
+      riskFactors.push(
+        'Il sito non consolida ancora il benchmark qualitativo atteso: serve confrontare le mappe migliori con quelle sotto target.'
+      )
+    } else {
+      opportunities.push(
+        'Le mappe storiche sono in linea o sopra il benchmark qualitativo adattivo del sito.'
       )
     }
 
@@ -801,12 +887,47 @@ export class HistoricalComparisonService {
       : 0
     const temporalCoverage = Number(clamp((actualSpanDays / requestedSpanDays) * 100, 20, 100).toFixed(2))
     const confidenceScore = Number(average([dataCompleteness, spatialAccuracy, temporalCoverage]).toFixed(2))
+    const adaptiveBenchmarkScore = average(
+      snapshots
+        .map((snapshot) => snapshot.adaptiveQualityTargetScore)
+        .filter((value): value is number => typeof value === 'number' && value > 0)
+    )
+    const adaptiveAlertFloorScore = average(
+      snapshots
+        .map((snapshot) => snapshot.adaptiveQualityAlertFloorScore)
+        .filter((value): value is number => typeof value === 'number' && value > 0)
+    )
+    const averageBenchmarkGap = average(
+      snapshots
+        .map((snapshot) => snapshot.qualityBenchmarkGap)
+        .filter((value): value is number => typeof value === 'number')
+    )
+    const brixTarget = average(
+      snapshots
+        .map((snapshot) => snapshot.adaptiveBrixTarget)
+        .filter((value): value is number => typeof value === 'number' && value > 0)
+    )
+    const notes = [...new Set(snapshots.flatMap((snapshot) => snapshot.adaptiveQualityNotes))].slice(0, 4)
+    const benchmarkStatus: HistoricalComparisonResult['quality']['benchmarkStatus'] =
+      spatialAccuracy <= 0
+        ? 'no_data'
+        : adaptiveAlertFloorScore && spatialAccuracy < adaptiveAlertFloorScore
+          ? 'below_target'
+          : adaptiveBenchmarkScore && spatialAccuracy < adaptiveBenchmarkScore
+            ? 'watch'
+            : 'above_target'
 
     return {
       dataCompleteness,
       temporalCoverage,
       spatialAccuracy,
       confidenceScore,
+      adaptiveBenchmarkScore,
+      adaptiveAlertFloorScore,
+      averageBenchmarkGap,
+      brixTarget,
+      benchmarkStatus,
+      notes,
     }
   }
 }

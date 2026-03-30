@@ -23,6 +23,8 @@ import {
   getPrescriptionExecutionVarianceSummary,
   getPrescriptionExecutionOutcomeSummary,
 } from './prescriptionExecutionService';
+import { getAgronomicMeasuredFeedbackRecords } from './agronomicMeasuredFeedbackService';
+import { getAgronomicProfileLearningSnapshots } from './agronomicProfileLearningService';
 import { buildPrescriptionAgronomicIntelligenceSummary } from './prescriptionAgronomicIntelligenceService';
 
 export interface DataFusionResult {
@@ -147,17 +149,21 @@ export class PrescriptionMapsService {
   }
 
   async getPrescriptionAgronomicIntelligenceSummary(map: PrescriptionMap) {
-    const [efficacySummary, varianceSummary, outcomeSummary] = await Promise.all([
+    const [efficacySummary, varianceSummary, outcomeSummary, measuredFeedbackRecords, learningSnapshots] = await Promise.all([
       this.getPrescriptionExecutionEfficacySummary(map),
       this.getPrescriptionExecutionVarianceSummary(map),
       this.getPrescriptionExecutionOutcomeSummary(map),
+      getAgronomicMeasuredFeedbackRecords(this.storageProvider, map.gardenId).catch(() => []),
+      getAgronomicProfileLearningSnapshots(this.storageProvider, map.gardenId).catch(() => []),
     ])
 
     return buildPrescriptionAgronomicIntelligenceSummary(
       map,
       efficacySummary,
       varianceSummary,
-      outcomeSummary
+      outcomeSummary,
+      measuredFeedbackRecords,
+      learningSnapshots
     )
   }
 

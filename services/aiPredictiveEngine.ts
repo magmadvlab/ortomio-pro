@@ -4,6 +4,11 @@
  */
 
 import { GardenTask, Garden } from '@/types'
+import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
+import {
+  buildAgronomicQualityLearningAdjustment,
+  getAgronomicProfileLearningSnapshots,
+} from '@/services/agronomicProfileLearningService'
 
 // Types for AI Predictions
 export interface DiseasePredicition {
@@ -37,6 +42,14 @@ export interface YieldPrediction {
     optimal: string
   }
   qualityScore: number // 0-100
+  qualityBenchmark?: {
+    targetScore: number
+    alertFloorScore: number
+    brixTarget: number
+    gap: number
+    status: 'above_target' | 'watch' | 'below_target'
+    notes: string[]
+  }
   factors: YieldFactor[]
   recommendations: string[]
 }
@@ -213,6 +226,7 @@ class AIPredictiveEngine {
     tasks: GardenTask[]
   ): Promise<YieldPrediction[]> {
     const predictions: YieldPrediction[] = []
+    const qualityAdjustment = await this.loadQualityBenchmark(gardenId)
     
     // Group plants by type and variety
     const plantGroups = this.groupPlantsByType(plantHealthData)
@@ -223,7 +237,8 @@ class AIPredictiveEngine {
         plants,
         weatherData,
         soilData,
-        tasks
+        tasks,
+        qualityAdjustment
       )
       
       if (yieldPrediction) {
@@ -239,7 +254,8 @@ class AIPredictiveEngine {
     plants: PlantHealthData[],
     weather: WeatherData,
     soil: SoilData,
-    tasks: GardenTask[]
+    tasks: GardenTask[],
+    qualityAdjustment: ReturnType<typeof buildAgronomicQualityLearningAdjustment>
   ): Promise<YieldPrediction | null> {
     // Base yield for plant type
     const baseYield = this.getBaseYield(plantType)
@@ -264,6 +280,7 @@ class AIPredictiveEngine {
     
     // Quality score based on conditions
     const qualityScore = this.calculateQualityScore(plants, weather, soil, factors)
+    const qualityBenchmark = this.buildQualityBenchmark(qualityScore, qualityAdjustment)
     
     return {
       id: `yield_${plantType}_${Date.now()}`,
@@ -277,8 +294,9 @@ class AIPredictiveEngine {
       },
       harvestWindow,
       qualityScore,
+      qualityBenchmark,
       factors,
-      recommendations: this.generateYieldRecommendations(factors, plants, weather, soil)
+      recommendations: this.generateYieldRecommendations(factors, plants, weather, soil, qualityBenchmark)
     }
   }
   
@@ -573,7 +591,8 @@ class AIPredictiveEngine {
     factors: YieldFactor[],
     plants: PlantHealthData[],
     weather: WeatherData,
-    soil: SoilData
+    soil: SoilData,
+    qualityBenchmark?: YieldPrediction['qualityBenchmark']
   ): string[] {
     const recommendations: string[] = []
     
@@ -598,8 +617,58 @@ class AIPredictiveEngine {
     if (weather.humidity < 50) {
       recommendations.push('Aumentare irrigazione per compensare bassa umidità')
     }
+
+    if (qualityBenchmark) {
+      if (qualityBenchmark.status === 'below_target') {
+        recommendations.push(
+          `La qualità prevista è sotto la soglia sito-specifica (${qualityBenchmark.alertFloorScore}%). Conviene proteggere uniformità irrigua, timing di raccolta e lotti guida.`
+        )
+      } else if (qualityBenchmark.status === 'watch') {
+        recommendations.push(
+          `La qualità prevista è sotto il target sito (${qualityBenchmark.targetScore}%). Cura nutrizione e omogeneità di maturazione per recuperare margine premium.`
+        )
+      } else {
+        recommendations.push(
+          `La qualità prevista supera il target sito (${qualityBenchmark.targetScore}%). Usa questo scenario come riferimento operativo e commerciale.`
+        )
+      }
+    }
     
     return recommendations
+  }
+
+  private async loadQualityBenchmark(gardenId: string) {
+    try {
+      const storageProvider = getDefaultStorageProvider()
+      const snapshots = await getAgronomicProfileLearningSnapshots(storageProvider, gardenId)
+      return buildAgronomicQualityLearningAdjustment(snapshots, {})
+    } catch (error) {
+      console.error('Error loading predictive quality benchmark:', error)
+      return buildAgronomicQualityLearningAdjustment([], {})
+    }
+  }
+
+  private buildQualityBenchmark(
+    qualityScore: number,
+    qualityAdjustment: ReturnType<typeof buildAgronomicQualityLearningAdjustment>
+  ): NonNullable<YieldPrediction['qualityBenchmark']> {
+    const targetScore = Math.round(qualityAdjustment.qualityTargetRating * 20)
+    const alertFloorScore = Math.round(qualityAdjustment.qualityAlertFloorRating * 20)
+    const gap = Math.round((qualityScore - targetScore) * 10) / 10
+    const status = qualityScore >= targetScore
+      ? 'above_target'
+      : qualityScore < alertFloorScore
+        ? 'below_target'
+        : 'watch'
+
+    return {
+      targetScore,
+      alertFloorScore,
+      brixTarget: qualityAdjustment.brixTarget,
+      gap,
+      status,
+      notes: qualityAdjustment.notes,
+    }
   }
   
   // Helper methods

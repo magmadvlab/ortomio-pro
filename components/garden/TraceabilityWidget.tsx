@@ -19,6 +19,12 @@ import {
   Star
 } from 'lucide-react'
 import { Garden, GardenTask } from '@/types'
+import { useStorage } from '@/packages/core/hooks/useStorage'
+import {
+  buildAgronomicQualityLearningAdjustment,
+  getAgronomicProfileLearningSnapshots,
+  type AgronomicProfileLearningSnapshot,
+} from '@/services/agronomicProfileLearningService'
 
 interface TraceabilityRecord {
   id: string
@@ -54,14 +60,34 @@ interface TraceabilityWidgetProps {
 }
 
 export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: TraceabilityWidgetProps) {
+  const { storageProvider } = useStorage()
   const [products, setProducts] = useState<ProductTrace[]>([])
   const [selectedProduct, setSelectedProduct] = useState<ProductTrace | null>(null)
   const [showQRModal, setShowQRModal] = useState(false)
   const [autoTracking, setAutoTracking] = useState(true)
+  const [qualitySnapshots, setQualitySnapshots] = useState<AgronomicProfileLearningSnapshot[]>([])
 
   useEffect(() => {
     loadProductTraces()
   }, [garden.id, tasks])
+
+  useEffect(() => {
+    const loadQualitySnapshots = async () => {
+      if (!storageProvider?.getUserPreference) {
+        setQualitySnapshots([])
+        return
+      }
+
+      try {
+        setQualitySnapshots(await getAgronomicProfileLearningSnapshots(storageProvider, garden.id))
+      } catch (error) {
+        console.error('Error loading traceability quality benchmarks:', error)
+        setQualitySnapshots([])
+      }
+    }
+
+    void loadQualitySnapshots()
+  }, [garden.id, storageProvider])
 
   const loadProductTraces = async () => {
     // Genera tracce automaticamente dai task esistenti
@@ -207,6 +233,36 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
     }
   }
 
+  const getProductQualityBenchmark = (product: ProductTrace) => {
+    const adjustment = buildAgronomicQualityLearningAdjustment(qualitySnapshots, { plantName: product.name })
+    const targetScore = Math.round(adjustment.qualityTargetRating * 20)
+    const alertFloorScore = Math.round(adjustment.qualityAlertFloorRating * 20)
+    const gap = product.qualityScore - targetScore
+    const status = product.qualityScore >= targetScore
+      ? 'above_target'
+      : product.qualityScore < alertFloorScore
+        ? 'below_target'
+        : 'watch'
+
+    return {
+      adjustment,
+      targetScore,
+      alertFloorScore,
+      gap,
+      status,
+      badgeClassName: status === 'above_target'
+        ? 'bg-green-100 text-green-700'
+        : status === 'watch'
+          ? 'bg-yellow-100 text-yellow-800'
+          : 'bg-red-100 text-red-700',
+      badgeLabel: status === 'above_target'
+        ? 'Sopra benchmark'
+        : status === 'watch'
+          ? 'In osservazione'
+          : 'Sotto benchmark',
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header con Auto-tracking */}
@@ -239,7 +295,10 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
 
       {/* Prodotti Tracciati */}
       <div className="grid gap-4">
-        {products.map((product) => (
+        {products.map((product) => {
+          const qualityBenchmark = getProductQualityBenchmark(product)
+
+          return (
           <div key={product.id} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-3">
@@ -269,6 +328,9 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
               <div className="text-center">
                 <div className="text-lg font-bold text-green-600">{product.qualityScore}%</div>
                 <div className="text-xs text-gray-600">Qualità</div>
+                <div className={`mt-2 inline-flex rounded-full px-2 py-1 text-[11px] font-medium ${qualityBenchmark.badgeClassName}`}>
+                  {qualityBenchmark.badgeLabel}
+                </div>
               </div>
               <div className="text-center">
                 <div className="text-lg font-bold text-blue-600">{product.records.length}</div>
@@ -284,6 +346,29 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
                 </div>
                 <div className="text-xs text-gray-600">
                   {product.origin?.type === 'seed' ? 'Da Seme' : 'Da Vivaio'}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+                <div>
+                  <div className="text-gray-500">Target sito</div>
+                  <div className="font-semibold text-gray-900">{qualityBenchmark.targetScore}%</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Soglia allerta</div>
+                  <div className="font-semibold text-gray-900">{qualityBenchmark.alertFloorScore}%</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Gap</div>
+                  <div className={`font-semibold ${qualityBenchmark.gap >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                    {qualityBenchmark.gap >= 0 ? '+' : ''}{qualityBenchmark.gap}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Brix target</div>
+                  <div className="font-semibold text-gray-900">{qualityBenchmark.adjustment.brixTarget}°</div>
                 </div>
               </div>
             </div>
@@ -387,7 +472,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
               )}
             </div>
           </div>
-        ))}
+        )})}
       </div>
 
       {/* Vantaggi Tracciabilità */}
@@ -422,6 +507,11 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
             <div className="p-6">
+              {(() => {
+                const qualityBenchmark = getProductQualityBenchmark(selectedProduct)
+
+                return (
+                  <>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-gray-900">
                   📋 Storia Completa - {selectedProduct.name}
@@ -432,6 +522,24 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
                 >
                   ✕
                 </button>
+              </div>
+
+              <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${qualityBenchmark.badgeClassName}`}>
+                    {qualityBenchmark.badgeLabel}
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    Target {qualityBenchmark.targetScore}% • Soglia {qualityBenchmark.alertFloorScore}% • Gap {qualityBenchmark.gap >= 0 ? '+' : ''}{qualityBenchmark.gap}
+                  </span>
+                </div>
+                {qualityBenchmark.adjustment.notes.length > 0 && (
+                  <div className="mt-3 space-y-1">
+                    {qualityBenchmark.adjustment.notes.map((note, idx) => (
+                      <p key={idx} className="text-sm text-gray-600">{note}</p>
+                    ))}
+                  </div>
+                )}
               </div>
               
               <div className="space-y-3">
@@ -468,6 +576,9 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
                   </div>
                 </div>
               </div>
+                  </>
+                )
+              })()}
             </div>
           </div>
         </div>
@@ -478,6 +589,11 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full">
             <div className="p-6 text-center">
+              {(() => {
+                const qualityBenchmark = getProductQualityBenchmark(selectedProduct)
+
+                return (
+                  <>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-gray-900">QR Code Prodotto</h3>
                 <button
@@ -502,6 +618,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
                 <p><strong>Prodotto:</strong> {selectedProduct.name}</p>
                 <p><strong>Varietà:</strong> {selectedProduct.variety}</p>
                 <p><strong>Qualità:</strong> {selectedProduct.qualityScore}%</p>
+                <p><strong>Benchmark sito:</strong> {qualityBenchmark.targetScore}% (soglia {qualityBenchmark.alertFloorScore}%)</p>
                 <p><strong>Certificazioni:</strong> {selectedProduct.certifications.join(', ')}</p>
                 {selectedProduct.origin && (
                   <>
@@ -531,6 +648,9 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
               >
                 Chiudi
               </button>
+                  </>
+                )
+              })()}
             </div>
           </div>
         </div>

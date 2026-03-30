@@ -128,6 +128,48 @@ export default function DirectorBriefingWidget({
     }
   }
 
+  const queueSourceLabel = (source: string) => {
+    switch (source) {
+      case 'health':
+        return 'Salute'
+      case 'irrigation':
+        return 'Irrigazione'
+      case 'prescription':
+        return 'Prescription'
+      case 'phenology':
+        return 'Fenologia'
+      case 'director':
+      default:
+        return 'Director'
+    }
+  }
+
+  const queueFocusLabel = (focus: string) => {
+    switch (focus) {
+      case 'water':
+        return 'Acqua'
+      case 'nutrition':
+        return 'Nutrizione'
+      case 'quality':
+        return 'Qualita'
+      case 'health':
+      default:
+        return 'Salute'
+    }
+  }
+
+  const urgencyTone = (urgency: string) => {
+    switch (urgency) {
+      case 'immediate':
+        return 'destructive'
+      case 'next_cycle':
+        return 'default'
+      case 'monitor':
+      default:
+        return 'secondary'
+    }
+  }
+
   return (
     <Card className="border-l-4 border-l-primary">
       <CardHeader>
@@ -260,6 +302,55 @@ export default function DirectorBriefingWidget({
                             {action.priorityScore}
                           </div>
                           <div className="text-xs text-muted-foreground">score</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Transversal Queue */}
+            {briefing.transversalQueue.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Coda Trasversale
+                </h4>
+                <div className="space-y-2">
+                  {briefing.transversalQueue.slice(0, maxActions).map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-3 border rounded-lg bg-background/70"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline">{queueSourceLabel(item.source)}</Badge>
+                            <Badge variant="secondary">{queueFocusLabel(item.focus)}</Badge>
+                            <Badge variant={urgencyTone(item.urgencyLabel) as any}>
+                              {item.urgencyLabel === 'immediate'
+                                ? 'Subito'
+                                : item.urgencyLabel === 'next_cycle'
+                                  ? 'Prossimo ciclo'
+                                  : 'Monitorare'}
+                            </Badge>
+                          </div>
+                          <div className="text-sm font-medium">{item.title}</div>
+                          <p className="text-xs text-muted-foreground">{item.description}</p>
+                          {item.missingSignals.length > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              Segnali mancanti: {item.missingSignals.slice(0, 3).join(', ')}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-lg font-bold text-primary">
+                            {item.priorityScore}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            conf. {(item.priorityConfidence * 100).toFixed(0)}%
+                          </div>
                         </div>
                       </div>
                     </div>

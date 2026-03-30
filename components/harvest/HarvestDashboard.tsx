@@ -4,8 +4,17 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Calendar, Weight, TrendingUp, Package, Edit2, Trash2, Sprout, AlertCircle } from 'lucide-react';
 import { getSupabaseClient } from '../../config/supabase';
 import { HarvestRegistrationModal } from './HarvestRegistrationModal';
+import type { HarvestLaunchRequest } from './HarvestRegistrationModal';
 import { GardenTask } from '@/types';
+import { buildHarvestMeasuredFeedback } from '@/services/agronomicMeasuredFeedbackService';
 import { useStorage } from '@/packages/core/hooks/useStorage';
+import { finalizeTaskExecutionPostAction } from '@/services/taskExecutionPostActionService';
+import { HarvestTrackingService } from '@/services/harvestTrackingService';
+import {
+  buildAgronomicQualityLearningAdjustment,
+  getAgronomicProfileLearningSnapshots,
+  type AgronomicQualityLearningAdjustment,
+} from '@/services/agronomicProfileLearningService';
 
 interface Harvest {
   id: string;
@@ -26,13 +35,16 @@ interface Harvest {
 
 interface HarvestDashboardProps {
   gardenId?: string;
+  launchRequest?: HarvestLaunchRequest | null;
+  onLaunchHandled?: () => void;
 }
 
-export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId }) => {
+export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, launchRequest, onLaunchHandled }) => {
   const supabase = getSupabaseClient();
   const { storageProvider } = useStorage();
   const [harvests, setHarvests] = useState<Harvest[]>([]);
   const [plantedCrops, setPlantedCrops] = useState<GardenTask[]>([]);
+  const [qualityAdjustment, setQualityAdjustment] = useState<AgronomicQualityLearningAdjustment | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingHarvest, setEditingHarvest] = useState<Harvest | null>(null);
@@ -42,6 +54,35 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId }) 
   useEffect(() => {
     loadData();
   }, [gardenId, filterPeriod]);
+
+  useEffect(() => {
+    const loadQualityAdjustment = async () => {
+      if (!gardenId || !storageProvider?.getUserPreference) {
+        setQualityAdjustment(buildAgronomicQualityLearningAdjustment([], {}));
+        return;
+      }
+
+      try {
+        const snapshots = await getAgronomicProfileLearningSnapshots(storageProvider, gardenId);
+        setQualityAdjustment(buildAgronomicQualityLearningAdjustment(snapshots, {}));
+      } catch (error) {
+        console.error('Error loading harvest quality adaptation:', error);
+        setQualityAdjustment(buildAgronomicQualityLearningAdjustment([], {}));
+      }
+    };
+
+    void loadQualityAdjustment();
+  }, [gardenId, storageProvider]);
+
+  useEffect(() => {
+    if (!launchRequest) {
+      return;
+    }
+
+    setEditingHarvest(null);
+    setShowModal(true);
+    onLaunchHandled?.();
+  }, [launchRequest, onLaunchHandled]);
 
   const loadData = async () => {
     try {
@@ -112,6 +153,33 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId }) 
     }
   };
 
+  const refreshTrackedCrops = async () => {
+    if (!gardenId || !storageProvider) {
+      return;
+    }
+
+    const tasks = await storageProvider.getTasks(gardenId);
+    setPlantedCrops(tasks);
+  };
+
+  const finalizeHarvestExecution = async (
+    sourceTaskId?: string,
+    measuredFeedback?: ReturnType<typeof buildHarvestMeasuredFeedback>
+  ) => {
+    await finalizeTaskExecutionPostAction({
+      storageProvider,
+      gardenId,
+      sourceTaskId,
+      markHarvestedTask: Boolean(sourceTaskId),
+      measuredFeedback,
+      close: () => {
+        setEditingHarvest(null);
+        setShowModal(false);
+      },
+      refresh: sourceTaskId ? [refreshTrackedCrops] : [],
+    });
+  };
+
   const handleCreateHarvest = async (harvestData: Omit<Harvest, 'id' | 'created_at'>) => {
     if (!supabase) {
       // Fallback per sviluppo locale
@@ -121,27 +189,20 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId }) 
         created_at: new Date().toISOString()
       };
       setHarvests([newHarvest, ...harvests]);
-      setShowModal(false);
-      
-      // Se è collegato a un task, aggiorna lo stage del task
-      if (harvestData.task_id && storageProvider) {
-        try {
-          const task = plantedCrops.find(t => t.id === harvestData.task_id);
-          if (task) {
-            await storageProvider.updateTask(task.id, {
-              ...task,
-              stage: 'Harvested'
-            });
-            // Ricarica i task
-            if (gardenId) {
-              const updatedTasks = await storageProvider.getTasks(gardenId);
-              setPlantedCrops(updatedTasks);
-            }
-          }
-        } catch (error) {
-          console.error('Error updating task stage:', error);
-        }
-      }
+      await finalizeHarvestExecution(
+        harvestData.task_id,
+        buildHarvestMeasuredFeedback({
+          gardenId,
+          taskId: harvestData.task_id,
+          plantName: harvestData.plant_name,
+          quantity: harvestData.quantity,
+          unit: harvestData.unit,
+          rating: harvestData.rating,
+          date: harvestData.harvest_date,
+          brix: undefined,
+          notes: harvestData.notes,
+        })
+      );
       return;
     }
 
@@ -155,27 +216,20 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId }) 
       if (error) throw error;
 
       setHarvests([data, ...harvests]);
-      setShowModal(false);
-      
-      // Se è collegato a un task, aggiorna lo stage del task
-      if (harvestData.task_id && storageProvider) {
-        try {
-          const task = plantedCrops.find(t => t.id === harvestData.task_id);
-          if (task) {
-            await storageProvider.updateTask(task.id, {
-              ...task,
-              stage: 'Harvested'
-            });
-            // Ricarica i task
-            if (gardenId) {
-              const updatedTasks = await storageProvider.getTasks(gardenId);
-              setPlantedCrops(updatedTasks);
-            }
-          }
-        } catch (error) {
-          console.error('Error updating task stage:', error);
-        }
-      }
+      await finalizeHarvestExecution(
+        harvestData.task_id,
+        buildHarvestMeasuredFeedback({
+          gardenId,
+          taskId: harvestData.task_id,
+          plantName: harvestData.plant_name,
+          quantity: harvestData.quantity,
+          unit: harvestData.unit,
+          rating: harvestData.rating,
+          date: harvestData.harvest_date,
+          brix: undefined,
+          notes: harvestData.notes,
+        })
+      );
     } catch (error) {
       console.error('Error creating harvest:', error);
       alert('Errore nella registrazione del raccolto');
@@ -189,8 +243,20 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId }) 
       // Fallback per sviluppo locale
       const updatedHarvest = { ...editingHarvest, ...harvestData };
       setHarvests(harvests.map(h => h.id === editingHarvest.id ? updatedHarvest : h));
-      setEditingHarvest(null);
-      setShowModal(false);
+      await finalizeHarvestExecution(
+        harvestData.task_id,
+        buildHarvestMeasuredFeedback({
+          gardenId,
+          taskId: harvestData.task_id,
+          plantName: harvestData.plant_name,
+          quantity: harvestData.quantity,
+          unit: harvestData.unit,
+          rating: harvestData.rating,
+          date: harvestData.harvest_date,
+          brix: undefined,
+          notes: harvestData.notes,
+        })
+      );
       return;
     }
 
@@ -205,8 +271,20 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId }) 
       if (error) throw error;
 
       setHarvests(harvests.map(h => h.id === editingHarvest.id ? data : h));
-      setEditingHarvest(null);
-      setShowModal(false);
+      await finalizeHarvestExecution(
+        harvestData.task_id,
+        buildHarvestMeasuredFeedback({
+          gardenId,
+          taskId: harvestData.task_id,
+          plantName: harvestData.plant_name,
+          quantity: harvestData.quantity,
+          unit: harvestData.unit,
+          rating: harvestData.rating,
+          date: harvestData.harvest_date,
+          brix: undefined,
+          notes: harvestData.notes,
+        })
+      );
     } catch (error) {
       console.error('Error updating harvest:', error);
       alert('Errore nell\'aggiornamento del raccolto');
@@ -252,6 +330,12 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId }) 
     ? filteredHarvests.filter(h => h.rating).reduce((sum, h) => sum + (h.rating || 0), 0) / filteredHarvests.filter(h => h.rating).length
     : 0;
   const trackedHarvests = filteredHarvests.filter(h => h.is_tracked).length;
+  const harvestAnalysis = HarvestTrackingService.analyzeHarvestPerformance(
+    filteredHarvests,
+    plantedCrops,
+    qualityAdjustment
+  );
+  const harvestSuggestions = HarvestTrackingService.generateHarvestSuggestions(harvestAnalysis).slice(0, 4);
 
   // Group harvests by plant
   const harvestsByPlant = filteredHarvests.reduce((acc, harvest) => {
@@ -331,6 +415,58 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId }) 
         </div>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="text-amber-600 mt-0.5" size={20} />
+            <div>
+              <h4 className="font-medium text-amber-900">Benchmark Qualità Sito-Specifico</h4>
+              <p className="text-sm text-amber-800 mt-1">
+                Qualità media osservata: <strong>{harvestAnalysis.averageQualityRating.toFixed(1) || '0.0'}/5</strong>.
+                Target corrente: <strong>{harvestAnalysis.qualityTargetRating.toFixed(1)}/5</strong>.
+                Soglia di allerta: <strong>{harvestAnalysis.qualityAlertFloorRating.toFixed(1)}/5</strong>.
+              </p>
+              {harvestAnalysis.brixTarget ? (
+                <p className="text-sm text-amber-700 mt-1">
+                  Target Brix indicativo: <strong>{harvestAnalysis.brixTarget}°</strong>.
+                </p>
+              ) : null}
+              {harvestAnalysis.adaptiveNotes.length > 0 ? (
+                <p className="text-sm text-amber-700 mt-2">
+                  {harvestAnalysis.adaptiveNotes.join(' ')}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <h4 className="font-medium text-gray-900 mb-3">Sintesi Qualità Raccolto</h4>
+          <div className="space-y-2 text-sm text-gray-700">
+            <div className="flex items-center justify-between">
+              <span>Trend qualità</span>
+              <span className="font-medium capitalize">{harvestAnalysis.qualityTrend}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Stato rispetto al target</span>
+              <span className="font-medium">
+                {harvestAnalysis.qualityStatus === 'above_target'
+                  ? 'Sopra target'
+                  : harvestAnalysis.qualityStatus === 'watch'
+                    ? 'Da consolidare'
+                    : harvestAnalysis.qualityStatus === 'below_target'
+                      ? 'Sotto soglia'
+                      : 'Dati insufficienti'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Resa media per pianta</span>
+              <span className="font-medium">{harvestAnalysis.averageYield.toFixed(2)} kg</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4">
@@ -386,6 +522,19 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId }) 
                 I raccolti tracciati permettono di analizzare rese e performance delle tue coltivazioni.
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {harvestSuggestions.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <h4 className="font-medium text-gray-900 mb-3">Indicazioni Operative</h4>
+          <div className="space-y-2">
+            {harvestSuggestions.map((suggestion) => (
+              <p key={suggestion} className="text-sm text-gray-700">
+                {suggestion}
+              </p>
+            ))}
           </div>
         </div>
       )}
@@ -508,6 +657,7 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId }) 
           harvest={editingHarvest}
           gardenId={gardenId || 'default'}
           plantedCrops={plantedCrops}
+          launchContext={editingHarvest ? null : launchRequest}
           onSave={editingHarvest ? handleUpdateHarvest : handleCreateHarvest}
           onClose={() => {
             setShowModal(false);

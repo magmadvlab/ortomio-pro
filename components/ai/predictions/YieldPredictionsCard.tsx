@@ -130,6 +130,46 @@ export default function YieldPredictionsCard({ predictions }: Props) {
                 />
               </div>
             </div>
+            {prediction.qualityBenchmark && (
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="rounded-lg bg-white/70 p-3">
+                  <div className="text-xs text-gray-500 mb-1">Target sito</div>
+                  <div className="text-sm font-semibold text-gray-900">
+                    {prediction.qualityBenchmark.targetScore}/100
+                  </div>
+                </div>
+                <div className="rounded-lg bg-white/70 p-3">
+                  <div className="text-xs text-gray-500 mb-1">Soglia allerta</div>
+                  <div className="text-sm font-semibold text-gray-900">
+                    {prediction.qualityBenchmark.alertFloorScore}/100
+                  </div>
+                </div>
+                <div className="rounded-lg bg-white/70 p-3">
+                  <div className="text-xs text-gray-500 mb-1">Gap previsto</div>
+                  <div className={`text-sm font-semibold ${
+                    prediction.qualityBenchmark.gap >= 0 ? 'text-green-700' : 'text-red-700'
+                  }`}>
+                    {prediction.qualityBenchmark.gap >= 0 ? '+' : ''}{prediction.qualityBenchmark.gap}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-white/70 p-3">
+                  <div className="text-xs text-gray-500 mb-1">Target Brix</div>
+                  <div className="text-sm font-semibold text-gray-900">
+                    {prediction.qualityBenchmark.brixTarget}°
+                  </div>
+                </div>
+              </div>
+            )}
+            {prediction.qualityBenchmark?.notes?.length ? (
+              <div className="mt-3 rounded-lg bg-white/70 p-3">
+                <div className="text-xs font-semibold text-gray-900 mb-1">Memoria sito-specifica</div>
+                <div className="space-y-1">
+                  {prediction.qualityBenchmark.notes.map((note, index) => (
+                    <p key={index} className="text-xs text-gray-600">{note}</p>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {/* Recommendations */}

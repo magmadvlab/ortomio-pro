@@ -5,6 +5,7 @@
  */
 
 import { GardenTask } from '@/types';
+import type { AgronomicQualityLearningAdjustment } from '@/services/agronomicProfileLearningService';
 
 export interface HarvestData {
   id: string;
@@ -46,6 +47,12 @@ export interface HarvestAnalysis {
   worstPerformingVariety?: string;
   harvestEfficiency: number; // % di piante che hanno prodotto raccolto
   qualityTrend: 'improving' | 'declining' | 'stable';
+  averageQualityRating: number;
+  qualityStatus: 'above_target' | 'watch' | 'below_target' | 'no_data';
+  qualityTargetRating: number;
+  qualityAlertFloorRating: number;
+  brixTarget?: number;
+  adaptiveNotes: string[];
   seasonalPerformance: Record<string, number>;
 }
 
@@ -216,9 +223,12 @@ export class HarvestTrackingService {
    */
   static analyzeHarvestPerformance(
     harvests: HarvestData[], 
-    plantedCrops: GardenTask[]
+    plantedCrops: GardenTask[],
+    qualityAdjustment?: AgronomicQualityLearningAdjustment | null
   ): HarvestAnalysis {
     const trackedHarvests = harvests.filter(h => h.is_tracked && h.task_id);
+    const qualityTargetRating = qualityAdjustment?.qualityTargetRating ?? 4;
+    const qualityAlertFloorRating = qualityAdjustment?.qualityAlertFloorRating ?? 3;
     
     // Calcola totale raccolto
     const totalHarvested = trackedHarvests.reduce((sum, h) => sum + h.quantity, 0);
@@ -275,6 +285,9 @@ export class HarvestTrackingService {
       .filter(h => h.rating)
       .sort((a, b) => new Date(a.harvest_date).getTime() - new Date(b.harvest_date).getTime())
       .map(h => h.rating!);
+    const averageQualityRating = qualityRatings.length > 0
+      ? qualityRatings.reduce((sum, rating) => sum + rating, 0) / qualityRatings.length
+      : 0;
     
     let qualityTrend: 'improving' | 'declining' | 'stable' = 'stable';
     if (qualityRatings.length >= 3) {
@@ -282,10 +295,22 @@ export class HarvestTrackingService {
       const secondHalf = qualityRatings.slice(Math.ceil(qualityRatings.length / 2));
       const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
       const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+      const trendThreshold = qualityAdjustment
+        ? Math.max(0.2, 0.32 - Math.max(0, qualityTargetRating - 4) * 0.08)
+        : 0.3;
       
-      if (secondAvg > firstAvg + 0.3) qualityTrend = 'improving';
-      else if (secondAvg < firstAvg - 0.3) qualityTrend = 'declining';
+      if (secondAvg > firstAvg + trendThreshold) qualityTrend = 'improving';
+      else if (secondAvg < firstAvg - trendThreshold) qualityTrend = 'declining';
     }
+
+    const qualityStatus: HarvestAnalysis['qualityStatus'] =
+      qualityRatings.length === 0
+        ? 'no_data'
+        : averageQualityRating < qualityAlertFloorRating
+          ? 'below_target'
+          : averageQualityRating < qualityTargetRating
+            ? 'watch'
+            : 'above_target';
     
     // Performance stagionale
     const seasonalPerformance = trackedHarvests.reduce((acc, harvest) => {
@@ -306,6 +331,12 @@ export class HarvestTrackingService {
       worstPerformingVariety,
       harvestEfficiency,
       qualityTrend,
+      averageQualityRating,
+      qualityStatus,
+      qualityTargetRating,
+      qualityAlertFloorRating,
+      brixTarget: qualityAdjustment?.brixTarget,
+      adaptiveNotes: qualityAdjustment?.notes || [],
       seasonalPerformance
     };
   }
@@ -318,6 +349,14 @@ export class HarvestTrackingService {
     
     if (analysis.harvestEfficiency < 70) {
       suggestions.push('🌱 Efficienza raccolto bassa. Considera di migliorare la cura delle piante o la qualità del terreno.');
+    }
+
+    if (analysis.qualityStatus === 'below_target') {
+      suggestions.push(`🎯 La qualità media è sotto la soglia adattiva del sito (${analysis.qualityAlertFloorRating.toFixed(1)}/5). Conviene rivedere nutrizione, timing di raccolta e uniformità irrigua.`);
+    } else if (analysis.qualityStatus === 'watch') {
+      suggestions.push(`🧭 La qualità media è sotto il target sito-specifico (${analysis.qualityTargetRating.toFixed(1)}/5) ma non ancora critica. Lavora su timing e selezione dei lotti migliori.`);
+    } else if (analysis.qualityStatus === 'above_target') {
+      suggestions.push(`✅ La qualità media supera il target sito-specifico (${analysis.qualityTargetRating.toFixed(1)}/5). Usa questi lotti come benchmark operativo.`);
     }
     
     if (analysis.qualityTrend === 'declining') {
@@ -343,6 +382,14 @@ export class HarvestTrackingService {
         analysis.seasonalPerformance[a] > analysis.seasonalPerformance[b] ? a : b
       );
       suggestions.push(`🌞 La stagione migliore per i tuoi raccolti è ${bestSeason}.`);
+    }
+
+    if (analysis.brixTarget) {
+      suggestions.push(`🍇 Quando disponibile, usa ${analysis.brixTarget}° Brix come riferimento qualità per i prossimi rilievi.`);
+    }
+
+    if (analysis.adaptiveNotes.length > 0) {
+      suggestions.push(`🧠 Memoria sito-specifica: ${analysis.adaptiveNotes.join(' ')}`);
     }
     
     return suggestions;

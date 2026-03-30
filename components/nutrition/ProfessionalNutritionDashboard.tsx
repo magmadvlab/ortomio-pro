@@ -282,6 +282,20 @@ export default function ProfessionalNutritionDashboard({
             <p className="text-sm text-gray-600">Trattamenti/Mese</p>
           </div>
         </div>
+
+        {dashboardData.adaptiveThresholds?.notes?.length ? (
+          <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-medium text-amber-900">
+              Target adattivo efficacia: {dashboardData.adaptiveThresholds.effectivenessTargetPercent}%
+            </p>
+            <p className="mt-1 text-sm text-amber-800">
+              Alert sotto {dashboardData.adaptiveThresholds.effectivenessAlertFloorPercent}% e follow-up oltre il {dashboardData.adaptiveThresholds.followUpRateThresholdPercent}%.
+            </p>
+            <p className="mt-2 text-sm text-amber-700">
+              {dashboardData.adaptiveThresholds.notes.join(' ')}
+            </p>
+          </div>
+        ) : null}
       </div>
 
       {/* Main Content Grid */}
@@ -473,8 +487,9 @@ export default function ProfessionalNutritionDashboard({
                       {alert.productName}
                     </p>
                     <p className="text-xs text-yellow-600">
-                      Efficacia: {alert.effectiveness}% (attesa: {alert.expectedEffectiveness}%)
+                      Efficacia: {alert.effectiveness}% (target: {alert.expectedEffectiveness}%)
                     </p>
+                    <p className="text-xs text-gray-500 mt-1">{alert.recommendedAction}</p>
                   </div>
                   <div className="flex-shrink-0">
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-yellow-600 bg-yellow-100">

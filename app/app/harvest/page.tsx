@@ -1,18 +1,45 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { HarvestDashboard } from '../../../components/harvest/HarvestDashboard';
+import type { HarvestLaunchRequest } from '../../../components/harvest/HarvestRegistrationModal';
 import { useStorage } from '@/packages/core/hooks/useStorage';
 import { Garden } from '@/types';
+import TaskExecutionBanner from '@/components/shared/TaskExecutionBanner';
+import type { TaskExecutionContext } from '@/services/taskExecutionLaunchService';
+import {
+  buildHarvestExecutionBootstrapState,
+  parseTaskExecutionContext,
+} from '@/services/taskExecutionOrchestratorService';
 
 export default function HarvestPage() {
+  const searchParams = useSearchParams();
   const { storageProvider } = useStorage();
   const [loading, setLoading] = useState(true);
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null);
+  const [taskExecutionContext, setTaskExecutionContext] = useState<TaskExecutionContext | null>(null);
+  const [launchRequest, setLaunchRequest] = useState<HarvestLaunchRequest | null>(null);
+  const [consumedLaunchSignature, setConsumedLaunchSignature] = useState<string | null>(null);
 
   useEffect(() => {
     loadActiveGarden();
   }, [storageProvider]);
+
+  useEffect(() => {
+    if (!activeGarden) {
+      return;
+    }
+
+    const context = parseTaskExecutionContext(searchParams, 'harvest', 'Harvest');
+    if (!context || consumedLaunchSignature === context.sourceTaskId) {
+      return;
+    }
+
+    setTaskExecutionContext(context);
+    setLaunchRequest(buildHarvestExecutionBootstrapState(context).launchRequest);
+    setConsumedLaunchSignature(context.sourceTaskId);
+  }, [activeGarden, searchParams, consumedLaunchSignature]);
 
   const loadActiveGarden = async () => {
     try {
@@ -78,7 +105,20 @@ export default function HarvestPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <HarvestDashboard gardenId={activeGarden?.id} />
+        {taskExecutionContext && (
+          <TaskExecutionBanner
+            context={taskExecutionContext}
+            theme="harvest"
+            onResume={() => setLaunchRequest(buildHarvestExecutionBootstrapState(taskExecutionContext).launchRequest)}
+            onDismiss={() => setTaskExecutionContext(null)}
+          />
+        )}
+
+        <HarvestDashboard
+          gardenId={activeGarden?.id}
+          launchRequest={launchRequest}
+          onLaunchHandled={() => setLaunchRequest(null)}
+        />
       </div>
     </div>
   );

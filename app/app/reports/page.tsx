@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { 
   FileText, Download, Calendar, TrendingUp, Award, 
   Leaf, Droplets, Bug, Scissors, DollarSign, BarChart3,
@@ -11,13 +11,64 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
   Legend, ResponsiveContainer 
 } from 'recharts'
+import {
+  buildAgronomicQualityLearningAdjustment,
+  getAgronomicProfileLearningSnapshots,
+  type AgronomicQualityLearningAdjustment,
+} from '@/services/agronomicProfileLearningService'
+import { useGarden } from '@/packages/core/hooks/useGarden'
+import { useStorage } from '@/packages/core/hooks/useStorage'
 
 // Sistema export PDF: lib/reports/exportReportPDF.ts (dynamic import)
 
+type QualityBenchmarkStatus = 'above_target' | 'watch' | 'below_target'
+
+const getQualityBenchmarkStatus = (
+  quality: number,
+  target: number,
+  alertFloor: number
+): QualityBenchmarkStatus => {
+  if (quality >= target) {
+    return 'above_target'
+  }
+
+  if (quality < alertFloor) {
+    return 'below_target'
+  }
+
+  return 'watch'
+}
+
+const getQualityBenchmarkCopy = (status: QualityBenchmarkStatus) => {
+  switch (status) {
+    case 'above_target':
+      return {
+        badge: 'Sopra target sito',
+        badgeClassName: 'bg-green-100 text-green-700',
+        textClassName: 'text-green-700',
+      }
+    case 'watch':
+      return {
+        badge: 'In osservazione',
+        badgeClassName: 'bg-yellow-100 text-yellow-800',
+        textClassName: 'text-yellow-700',
+      }
+    default:
+      return {
+        badge: 'Sotto soglia sito',
+        badgeClassName: 'bg-red-100 text-red-700',
+        textClassName: 'text-red-700',
+      }
+  }
+}
+
 export default function PlantReportsPage() {
+  const { activeGarden } = useGarden()
+  const { storageProvider } = useStorage()
   const [selectedReport, setSelectedReport] = useState<'summary' | 'detailed' | 'comparison'>('summary')
   const [selectedCrop, setSelectedCrop] = useState('pomodoro')
   const [showFilters, setShowFilters] = useState(false)
+  const [qualityAdjustment, setQualityAdjustment] = useState<AgronomicQualityLearningAdjustment | null>(null)
   const [filters, setFilters] = useState({
     dateRange: { start: '', end: '' },
     minQuality: 0,
@@ -143,8 +194,41 @@ export default function PlantReportsPage() {
 
   const currentData = mockData[selectedCrop as keyof typeof mockData]
   const currentComparison = comparisonData[selectedCrop as keyof typeof comparisonData]
+  const qualityTargetRating = qualityAdjustment?.qualityTargetRating ?? 4
+  const qualityAlertFloorRating = qualityAdjustment?.qualityAlertFloorRating ?? 3
+  const qualityBenchmarkStatus = getQualityBenchmarkStatus(
+    currentData.results.quality,
+    qualityTargetRating,
+    qualityAlertFloorRating
+  )
+  const qualityBenchmarkCopy = getQualityBenchmarkCopy(qualityBenchmarkStatus)
+  const qualityBenchmarkGap = Number((currentData.results.quality - qualityTargetRating).toFixed(1))
+  const averageComparisonQuality = currentComparison.reduce((sum, cycle) => sum + cycle.quality, 0) / currentComparison.length
+  const averageComparisonQualityGap = Number((averageComparisonQuality - qualityTargetRating).toFixed(1))
+  const adaptiveQualityNotes = qualityAdjustment?.notes || []
 
   const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444']
+
+  useEffect(() => {
+    const loadQualityAdjustment = async () => {
+      if (!activeGarden?.id || !storageProvider?.getUserPreference) {
+        setQualityAdjustment(buildAgronomicQualityLearningAdjustment([], { plantName: currentData.name }))
+        return
+      }
+
+      try {
+        const snapshots = await getAgronomicProfileLearningSnapshots(storageProvider, activeGarden.id)
+        setQualityAdjustment(
+          buildAgronomicQualityLearningAdjustment(snapshots, { plantName: currentData.name })
+        )
+      } catch (error) {
+        console.error('Errore caricamento benchmark qualità report:', error)
+        setQualityAdjustment(buildAgronomicQualityLearningAdjustment([], { plantName: currentData.name }))
+      }
+    }
+
+    void loadQualityAdjustment()
+  }, [activeGarden?.id, currentData.name, storageProvider])
 
   // Funzione Export PDF con sistema reale
   const exportToPDF = async () => {
@@ -290,7 +374,7 @@ export default function PlantReportsPage() {
                   <option value={0}>Tutte</option>
                   <option value={3}>3+ stelle</option>
                   <option value={4}>4+ stelle</option>
-                  <option value={4.5}>4.5+ stelle</option>
+                  <option value={qualityTargetRating}>{qualityTargetRating.toFixed(1)}+ target sito</option>
                 </select>
               </div>
               <div>
@@ -401,7 +485,14 @@ export default function PlantReportsPage() {
                   <span className="text-xs font-medium text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full">Qualità</span>
                 </div>
                 <div className="text-3xl font-bold text-gray-900 mb-1">{currentData.results.quality}/5 ⭐</div>
-                <div className="text-sm text-gray-600">{currentData.results.brix > 0 ? `Brix ${currentData.results.brix}°` : 'Eccellente'}</div>
+                <div className="text-sm text-gray-600">
+                  {currentData.results.brix > 0
+                    ? `Brix ${currentData.results.brix}°`
+                    : 'Benchmark qualità senza Brix'}
+                </div>
+                <div className={`mt-2 inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${qualityBenchmarkCopy.badgeClassName}`}>
+                  {qualityBenchmarkCopy.badge}
+                </div>
               </div>
 
               <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border-2 border-blue-200">
@@ -421,6 +512,52 @@ export default function PlantReportsPage() {
                 <div className="text-3xl font-bold text-gray-900 mb-1">+{currentData.roi.percentage}%</div>
                 <div className="text-sm text-gray-600">Profitto €{currentData.roi.profit}</div>
               </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">🎯 Benchmark Qualità Adattivo</h2>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200">
+                  <div className="text-sm text-gray-600 mb-1">Target sito</div>
+                  <div className="text-2xl font-bold text-emerald-700">{qualityTargetRating.toFixed(1)}/5</div>
+                </div>
+                <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
+                  <div className="text-sm text-gray-600 mb-1">Soglia allerta</div>
+                  <div className="text-2xl font-bold text-amber-700">{qualityAlertFloorRating.toFixed(1)}/5</div>
+                </div>
+                <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                  <div className="text-sm text-gray-600 mb-1">Gap attuale</div>
+                  <div className={`text-2xl font-bold ${qualityBenchmarkGap >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
+                    {qualityBenchmarkGap >= 0 ? '+' : ''}{qualityBenchmarkGap.toFixed(1)}
+                  </div>
+                </div>
+                <div className="p-4 rounded-lg bg-purple-50 border border-purple-200">
+                  <div className="text-sm text-gray-600 mb-1">Target Brix</div>
+                  <div className="text-2xl font-bold text-purple-700">
+                    {qualityAdjustment?.brixTarget ? `${qualityAdjustment.brixTarget}°` : 'n/d'}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${qualityBenchmarkCopy.badgeClassName}`}>
+                  {qualityBenchmarkCopy.badge}
+                </span>
+                <span className={`text-sm font-medium ${qualityBenchmarkCopy.textClassName}`}>
+                  {qualityBenchmarkGap >= 0
+                    ? `La campagna corrente e allineata o sopra benchmark di ${Math.abs(qualityBenchmarkGap).toFixed(1)} stelle.`
+                    : `La campagna corrente e sotto benchmark di ${Math.abs(qualityBenchmarkGap).toFixed(1)} stelle.`}
+                </span>
+              </div>
+              {adaptiveQualityNotes.length > 0 && (
+                <div className="mt-4 rounded-lg bg-gray-50 border border-gray-200 p-4">
+                  <div className="text-sm font-semibold text-gray-900 mb-2">Memoria sito-specifica</div>
+                  <div className="space-y-1">
+                    {adaptiveQualityNotes.map((note, index) => (
+                      <p key={index} className="text-sm text-gray-600">{note}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* TIMELINE OPERAZIONI */}
@@ -691,9 +828,9 @@ export default function PlantReportsPage() {
                   </div>
                 </div>
                 <div className="p-3 bg-yellow-50 rounded-lg">
-                  <div className="text-sm text-gray-600 mb-1">Salute Minima</div>
+                  <div className="text-sm text-gray-600 mb-1">Target Qualità Sito</div>
                   <div className="text-2xl font-bold text-yellow-600">
-                    {Math.min(...currentData.growthData.map(d => d.health))}%
+                    {qualityTargetRating.toFixed(1)}/5
                   </div>
                 </div>
               </div>
@@ -747,6 +884,24 @@ export default function PlantReportsPage() {
               <p className="text-gray-700">
                 Analizza le performance di {currentData.name} attraverso diversi cicli di coltivazione per identificare trend, miglioramenti e aree di ottimizzazione.
               </p>
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="rounded-lg bg-white/70 p-3 border border-blue-100">
+                  <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Target sito</div>
+                  <div className="text-lg font-semibold text-gray-900">{qualityTargetRating.toFixed(1)}/5</div>
+                </div>
+                <div className="rounded-lg bg-white/70 p-3 border border-blue-100">
+                  <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Media cicli</div>
+                  <div className={`text-lg font-semibold ${averageComparisonQualityGap >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                    {(averageComparisonQuality).toFixed(1)}/5
+                  </div>
+                </div>
+                <div className="rounded-lg bg-white/70 p-3 border border-blue-100">
+                  <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Gap medio vs target</div>
+                  <div className={`text-lg font-semibold ${averageComparisonQualityGap >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                    {averageComparisonQualityGap >= 0 ? '+' : ''}{averageComparisonQualityGap.toFixed(1)}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* TABELLA COMPARATIVA */}
@@ -785,6 +940,17 @@ export default function PlantReportsPage() {
                         </td>
                         <td className="text-center py-3 px-4">
                           <span className="font-semibold text-gray-900">{cycle.quality}/5</span>
+                          <div className={`mt-1 text-xs ${
+                            cycle.quality >= qualityTargetRating
+                              ? 'text-green-700'
+                              : cycle.quality < qualityAlertFloorRating
+                                ? 'text-red-700'
+                                : 'text-yellow-700'
+                          }`}>
+                            vs target {cycle.quality >= qualityTargetRating
+                              ? `+${(cycle.quality - qualityTargetRating).toFixed(1)}`
+                              : `-${(qualityTargetRating - cycle.quality).toFixed(1)}`}
+                          </div>
                           {idx > 0 && (
                             <span className={`ml-2 text-xs ${cycle.quality > currentComparison[0].quality ? 'text-red-600' : 'text-green-600'}`}>
                               {cycle.quality > currentComparison[0].quality ? '↓' : '↑'} {Math.abs(cycle.quality - currentComparison[0].quality).toFixed(1)}
@@ -870,7 +1036,7 @@ export default function PlantReportsPage() {
                 <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                   <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
                     <TrendingUp size={20} />
-                    Miglioramenti Rispetto al Ciclo Migliore
+                    Miglioramenti Rispetto a Benchmark e Best Cycle
                   </h4>
                   <div className="space-y-2">
                     {(() => {
@@ -889,6 +1055,12 @@ export default function PlantReportsPage() {
                             <div className="flex items-center gap-2 text-sm text-green-700">
                               <CheckCircle size={16} />
                               <span>Qualità uguale o superiore al miglior ciclo</span>
+                            </div>
+                          )}
+                          {current.quality >= qualityTargetRating && (
+                            <div className="flex items-center gap-2 text-sm text-green-700">
+                              <CheckCircle size={16} />
+                              <span>Qualità sopra il target adattivo del sito</span>
                             </div>
                           )}
                           {current.costs <= bestCycle.costs && (
@@ -929,6 +1101,12 @@ export default function PlantReportsPage() {
                       
                       if (current.yield < bestCycle.yield) {
                         suggestions.push(`Resa inferiore di ${(bestCycle.yield - current.yield).toFixed(1)}kg rispetto al miglior ciclo`)
+                      }
+                      if (current.quality < qualityTargetRating) {
+                        suggestions.push(`Qualità sotto target adattivo di ${(qualityTargetRating - current.quality).toFixed(1)} stelle`)
+                      }
+                      if (current.quality < qualityAlertFloorRating) {
+                        suggestions.push(`Qualità sotto la soglia di allerta sito (${qualityAlertFloorRating.toFixed(1)}/5)`)
                       }
                       if (current.quality < bestCycle.quality) {
                         suggestions.push(`Qualità inferiore di ${(bestCycle.quality - current.quality).toFixed(1)} stelle`)
@@ -974,8 +1152,11 @@ export default function PlantReportsPage() {
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg text-center">
                   <div className="text-sm text-gray-600 mb-1">Qualità Media</div>
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className={`text-2xl font-bold ${averageComparisonQuality >= qualityTargetRating ? 'text-green-700' : 'text-gray-900'}`}>
                     {(currentComparison.reduce((sum, c) => sum + c.quality, 0) / currentComparison.length).toFixed(1)}/5
+                  </div>
+                  <div className={`text-xs mt-1 ${averageComparisonQualityGap >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                    {averageComparisonQualityGap >= 0 ? '+' : ''}{averageComparisonQualityGap.toFixed(1)} vs target
                   </div>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg text-center">

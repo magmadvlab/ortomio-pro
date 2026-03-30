@@ -1,10 +1,23 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Tractor, Calendar, MapPin, Settings, Plus, BarChart3, X, ArrowLeft, ArrowRight, Wrench, Cog, Clock } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
 import LocationSelector from '@/components/shared/LocationSelector'
+import TaskExecutionBanner from '@/components/shared/TaskExecutionBanner'
+import { MechanicalWorkLogForm } from '@/components/mechanicalWork/MechanicalWorkLogForm'
+import { buildMechanicalMeasuredFeedback } from '@/services/agronomicMeasuredFeedbackService'
+import { finalizeTaskExecutionPostAction } from '@/services/taskExecutionPostActionService'
+import { appendSourceTaskReference } from '@/services/taskExecutionTraceService'
+import type { MechanicalWorkLog } from '@/services/mechanicalWorkService'
+import type { TaskExecutionContext } from '@/services/taskExecutionLaunchService'
+import {
+  buildMechanicalExecutionBootstrapState,
+  buildTaskExecutionNotes,
+  parseTaskExecutionContext,
+} from '@/services/taskExecutionOrchestratorService'
 
 interface MechanicalWorkConfig {
   id: string
@@ -47,14 +60,19 @@ interface Equipment {
 
 function MechanicalWorkContent() {
   const { storageProvider } = useStorage()
+  const searchParams = useSearchParams()
   const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'equipment' | 'schedule' | 'analytics'>('overview')
   const [showWorkWizard, setShowWorkWizard] = useState(false)
   const [showEquipmentModal, setShowEquipmentModal] = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
+  const [showExecutionForm, setShowExecutionForm] = useState(false)
   const [mechanicalConfigs, setMechanicalConfigs] = useState<MechanicalWorkConfig[]>([])
   const [equipment, setEquipment] = useState<Equipment[]>([])
+  const [taskExecutionContext, setTaskExecutionContext] = useState<TaskExecutionContext | null>(null)
+  const [executionInitialData, setExecutionInitialData] = useState<Partial<MechanicalWorkLog> | undefined>(undefined)
+  const [consumedLaunchSignature, setConsumedLaunchSignature] = useState<string | null>(null)
 
   useEffect(() => {
     const loadGardens = async () => {
@@ -73,6 +91,32 @@ function MechanicalWorkContent() {
     }
     loadGardens()
   }, [storageProvider])
+
+  useEffect(() => {
+    if (!activeGarden) {
+      return
+    }
+
+    const context = parseTaskExecutionContext(searchParams, 'mechanical-work', 'Tilling')
+    if (!context || consumedLaunchSignature === context.sourceTaskId) {
+      return
+    }
+
+    setTaskExecutionContext(context)
+    openMechanicalExecution(context)
+    setConsumedLaunchSignature(context.sourceTaskId)
+  }, [activeGarden, searchParams, consumedLaunchSignature])
+
+  const openMechanicalExecution = (context: TaskExecutionContext) => {
+    if (!activeGarden) {
+      return
+    }
+
+    const bootstrapState = buildMechanicalExecutionBootstrapState(context, activeGarden.id)
+    setActiveTab(bootstrapState.activeTab)
+    setExecutionInitialData(bootstrapState.initialData)
+    setShowExecutionForm(bootstrapState.showExecutionForm)
+  }
 
   const loadMechanicalConfigs = async () => {
     try {
@@ -116,6 +160,75 @@ function MechanicalWorkContent() {
     }
   }
 
+  const handleCreateMechanicalExecution = async (log: MechanicalWorkLog) => {
+    if (!activeGarden) {
+      return
+    }
+
+    const contextNotes = buildTaskExecutionNotes(taskExecutionContext) || ''
+    const deduplicatedNotes = [log.notes, contextNotes].filter((note, index, notes) => {
+      return Boolean(note) && notes.indexOf(note) === index
+    }) as string[]
+
+    const mergedNotes = taskExecutionContext?.sourceTaskId
+      ? appendSourceTaskReference(
+          deduplicatedNotes.join(' | '),
+          taskExecutionContext.sourceTaskId
+        )
+      : deduplicatedNotes.join(' | ') || undefined
+
+    await storageProvider.createMechanicalWork({
+      garden_id: activeGarden.id,
+      bed_id: log.bedIds?.[0],
+      bed_row_id: log.rowIds?.[0],
+      zone_id: taskExecutionContext?.zoneId,
+      work_type: log.workType,
+      work_date: log.workDate,
+      area_m2: log.areaCoveredSqm || 1,
+      depth_cm: log.depthCm,
+      equipment_type: log.equipmentType,
+      equipment_attachment: log.equipmentAttachment,
+      work_metadata: {
+        sourceTaskId: taskExecutionContext?.sourceTaskId,
+        selectedBedIds: log.bedIds || [],
+        selectedRowIds: log.rowIds || [],
+        durationMinutes: log.durationMinutes,
+        cost: log.cost,
+        completed: log.completed,
+        category: 'General',
+      },
+      weather_conditions: {
+        temp: log.weatherConditions?.temperature,
+        rain: typeof log.weatherConditions?.rainMm === 'number' ? log.weatherConditions.rainMm > 0 : undefined,
+      },
+      operator_name: log.operatorName,
+      notes: mergedNotes,
+    })
+
+    await finalizeTaskExecutionPostAction({
+      storageProvider,
+      gardenId: activeGarden.id,
+      sourceTaskId: taskExecutionContext?.sourceTaskId,
+      measuredFeedback: buildMechanicalMeasuredFeedback(
+        {
+          ...log,
+          gardenId: activeGarden.id,
+          notes: mergedNotes,
+        },
+        {
+          sourceTaskId: taskExecutionContext?.sourceTaskId,
+          zoneId: taskExecutionContext?.zoneId,
+          rowId: taskExecutionContext?.rowId,
+          plantName: taskExecutionContext?.plantName,
+        }
+      ),
+      close: () => {
+        setShowExecutionForm(false)
+        setExecutionInitialData(undefined)
+      },
+    })
+  }
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -125,6 +238,15 @@ function MechanicalWorkContent() {
         </h1>
         <p className="text-gray-600 mt-1">Gestisci lavorazioni, attrezzature e macchinari</p>
       </div>
+
+      {taskExecutionContext && (
+        <TaskExecutionBanner
+          context={taskExecutionContext}
+          theme="mechanical"
+          onResume={() => openMechanicalExecution(taskExecutionContext)}
+          onDismiss={() => setTaskExecutionContext(null)}
+        />
+      )}
 
       {/* Statistiche Rapide */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -534,6 +656,30 @@ function MechanicalWorkContent() {
           mechanicalConfigs={mechanicalConfigs}
           equipment={equipment}
         />
+      )}
+
+      {showExecutionForm && activeGarden && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+            <div className="border-b border-gray-200 px-6 py-4">
+              <h2 className="text-xl font-bold text-gray-900">Registra Lavorazione Meccanica</h2>
+              <p className="text-sm text-gray-600">
+                Esegui la lavorazione reale mantenendo il collegamento diretto al task sorgente.
+              </p>
+            </div>
+            <div className="p-6">
+              <MechanicalWorkLogForm
+                garden={activeGarden}
+                initialData={executionInitialData || {
+                  gardenId: activeGarden.id,
+                  completed: true,
+                }}
+                onSubmit={handleCreateMechanicalExecution}
+                onCancel={() => setShowExecutionForm(false)}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
