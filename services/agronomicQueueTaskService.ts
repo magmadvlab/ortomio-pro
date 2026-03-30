@@ -28,6 +28,39 @@ export interface AgronomicQueueTaskMetadata {
 export const AGRONOMIC_QUEUE_SUGGESTED_BY_PREFIX = 'agronomic_queue:'
 const AGRONOMIC_QUEUE_META_MARKER = 'AQ_META::'
 
+const HEALTH_ALERT_TYPE_LABELS: Record<string, string> = {
+  disease_risk: 'Rischio malattie',
+  pest_alert: 'Allerta parassiti',
+  nutrient_deficiency: 'Carenza nutrizionale',
+  stress_symptoms: 'Segni di stress',
+  harvest_timing: 'Finestra di raccolta',
+  weather_stress: 'Stress meteo',
+}
+
+const AGRONOMIC_SIGNAL_LABELS: Record<AgronomicSignalKey, string> = {
+  weather_current: 'meteo attuale',
+  weather_forecast: 'previsione meteo',
+  leaf_wetness: 'bagnatura fogliare',
+  dew_point: 'punto di rugiada',
+  vpd: 'VPD',
+  rain_gauge_local: 'pioggia locale',
+  soil_moisture_10cm: 'umidita suolo 10 cm',
+  soil_moisture_30cm: 'umidita suolo 30 cm',
+  soil_moisture_60cm: 'umidita suolo 60 cm',
+  soil_tension_kpa: 'tensione del suolo',
+  canopy_temperature: 'temperatura chioma',
+  flow_rate_actual: 'portata reale',
+  line_pressure: 'pressione linea',
+  water_salinity: 'salinita acqua',
+  water_ph: 'pH acqua',
+  water_bicarbonates: 'bicarbonati acqua',
+  phenology_observation: 'osservazione fenologica',
+  quality_result: 'risultati di qualita',
+  operation_ledger: 'registro operazioni',
+  ndvi: 'NDVI',
+  satellite_vigor: 'vigore satellitare',
+}
+
 const toISODate = (date: Date): string => date.toISOString().split('T')[0]
 
 const addDays = (baseDate: Date, days: number): Date => {
@@ -104,6 +137,51 @@ const resolvePlantName = (item: AgronomicActionQueueItem): string => {
     .trim()
 }
 
+const normalizeReadableText = (value: string): string =>
+  value
+    .replace(/\s+/g, ' ')
+    .replace(/\s+([.,:;!?])/g, '$1')
+    .trim()
+
+const sanitizeAgronomicQueueVisibleText = (value?: string | null): string => {
+  if (!value) {
+    return ''
+  }
+
+  const cleaned = value
+    .replace(/Origine coda trasversale:[^.]*\.\s*/gi, '')
+    .replace(/Focus agronomico:[^.]*\.\s*/gi, '')
+    .replace(/Profilo agronomico:[^.]*\.\s*/gi, '')
+    .replace(/Priorita:\s*[^.]*\.\s*/gi, '')
+    .replace(/Segnali P0 mancanti:[^.]*\.\s*/gi, '')
+    .replace(/Copertura P0 sufficiente per questo suggerimento\.\s*/gi, '')
+    .replace(/Fase\s+([A-Za-zÀ-ÿ' -]+)\s+stimata\s+sullo scope\s+profilo agronomico\./gi, 'Fase $1 stimata dal profilo agronomico.')
+    .replace(/\bsullo scope\s+/gi, "nell'area ")
+
+  return normalizeReadableText(cleaned)
+}
+
+const formatAgronomicQueueTitle = (item: AgronomicActionQueueItem): string => {
+  const title = item.title.trim()
+
+  if (item.source === 'health') {
+    const [scopeLabel, rawType] = title.split(/\s+-\s+/, 2)
+    if (scopeLabel && rawType) {
+      return `${scopeLabel} - ${HEALTH_ALERT_TYPE_LABELS[rawType] || rawType.replace(/_/g, ' ')}`
+    }
+  }
+
+  if (/^Prescription\s+/i.test(title)) {
+    return title.replace(/^Prescription\s+/i, 'Prescrizione ')
+  }
+
+  return title
+}
+
+export const humanizeAgronomicSignal = (signal: AgronomicSignalKey): string => {
+  return AGRONOMIC_SIGNAL_LABELS[signal] || signal.replace(/_/g, ' ')
+}
+
 export const parseAgronomicQueueSuggestedBy = (value?: string | null): string | null => {
   if (!value || !value.startsWith(AGRONOMIC_QUEUE_SUGGESTED_BY_PREFIX)) {
     return null
@@ -133,13 +211,9 @@ export const parseAgronomicQueueTaskMetadata = (
 
 const buildTaskNotes = (item: AgronomicActionQueueItem): string => {
   const metadata = buildAgronomicQueueTaskMetadata(item)
+  const visibleDescription = sanitizeAgronomicQueueVisibleText(item.description)
   const parts = [
-    `Origine coda trasversale: ${item.source}.`,
-    `Focus agronomico: ${item.focus}.`,
-    item.description,
-    item.missingSignals.length > 0
-      ? `Segnali P0 mancanti: ${item.missingSignals.join(', ')}.`
-      : 'Copertura P0 sufficiente per questo suggerimento.',
+    visibleDescription,
     `${AGRONOMIC_QUEUE_META_MARKER}${JSON.stringify(metadata)}`,
   ].filter(Boolean)
 
@@ -147,7 +221,7 @@ const buildTaskNotes = (item: AgronomicActionQueueItem): string => {
 }
 
 export const stripAgronomicQueueTaskMetadata = (notes?: string | null): string => {
-  return splitAgronomicQueueTaskNotes(notes).visibleNotes
+  return sanitizeAgronomicQueueVisibleText(splitAgronomicQueueTaskNotes(notes).visibleNotes)
 }
 
 export const preserveAgronomicQueueTaskMetadata = (
@@ -226,7 +300,7 @@ export function buildAgronomicQueueTaskDrafts(
         id: `draft:${item.id}`,
         sourceQueueId: item.id,
         source: item.source,
-        title: item.title,
+        title: formatAgronomicQueueTitle(item),
         priorityScore: item.priorityScore,
         priorityConfidence: item.priorityConfidence,
         urgencyLabel: item.urgencyLabel,

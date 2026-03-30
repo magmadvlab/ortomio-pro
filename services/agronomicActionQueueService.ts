@@ -58,6 +58,15 @@ const healthSeverityScore: Record<HealthAlert['severity'], number> = {
   low: 30,
 }
 
+const healthAlertTypeLabels: Record<HealthAlert['type'], string> = {
+  disease_risk: 'Rischio malattie',
+  pest_alert: 'Allerta parassiti',
+  nutrient_deficiency: 'Carenza nutrizionale',
+  stress_symptoms: 'Segni di stress',
+  harvest_timing: 'Finestra di raccolta',
+  weather_stress: 'Stress meteo',
+}
+
 const getUrgencyLabel = (score: number): AgronomicActionQueueItem['urgencyLabel'] => {
   if (score >= 75) return 'immediate'
   if (score >= 45) return 'next_cycle'
@@ -101,7 +110,7 @@ const toHealthQueueItems = (
     return {
       id: `health:${alert.id}`,
       source: 'health',
-      title: `${alert.plantName} - ${alert.type}`,
+      title: `${alert.plantName} - ${healthAlertTypeLabels[alert.type]}`,
       description: alert.description,
       scopeLabel: alert.plantName,
       focus: 'health',

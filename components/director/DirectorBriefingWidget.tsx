@@ -29,6 +29,10 @@ import { useAuth } from '@/packages/core/hooks/useAuth'
 import { useGarden } from '@/packages/core/hooks/useGarden'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import {
+  humanizeAgronomicSignal,
+  stripAgronomicQueueTaskMetadata,
+} from '@/services/agronomicQueueTaskService'
 
 interface DirectorBriefingWidgetProps {
   compact?: boolean
@@ -336,11 +340,13 @@ export default function DirectorBriefingWidget({
                                   : 'Monitorare'}
                             </Badge>
                           </div>
-                          <div className="text-sm font-medium">{item.title}</div>
-                          <p className="text-xs text-muted-foreground">{item.description}</p>
+                          <div className="text-sm font-medium">{stripAgronomicQueueTaskMetadata(item.title)}</div>
+                          <p className="text-xs text-muted-foreground">
+                            {stripAgronomicQueueTaskMetadata(item.description)}
+                          </p>
                           {item.missingSignals.length > 0 && (
                             <p className="text-xs text-muted-foreground">
-                              Segnali mancanti: {item.missingSignals.slice(0, 3).join(', ')}
+                              Segnali mancanti: {item.missingSignals.slice(0, 3).map(humanizeAgronomicSignal).join(', ')}
                             </p>
                           )}
                         </div>

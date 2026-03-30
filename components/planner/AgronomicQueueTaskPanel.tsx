@@ -8,6 +8,7 @@ import { useStorage } from '@/packages/core/hooks/useStorage'
 import { directorService } from '@/services/directorService'
 import {
   buildAgronomicQueueTaskDrafts,
+  humanizeAgronomicSignal,
   stripAgronomicQueueTaskMetadata,
 } from '@/services/agronomicQueueTaskService'
 import {
@@ -191,7 +192,7 @@ export default function AgronomicQueueTaskPanel({
                   <div className="text-xs text-gray-500">
                     Pianificato per {draft.task.date}
                     {draft.missingSignals.length > 0
-                      ? ` · segnali mancanti: ${draft.missingSignals.slice(0, 3).join(', ')}`
+                      ? ` · dati mancanti: ${draft.missingSignals.slice(0, 3).map(humanizeAgronomicSignal).join(', ')}`
                       : ''}
                   </div>
                   {feedback[draft.id] && (
