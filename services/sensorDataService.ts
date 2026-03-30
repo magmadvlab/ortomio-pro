@@ -362,23 +362,29 @@ export async function getLatestSensorReading(
     .eq('sensor_type', sensorType)
     .eq('is_simulated', false) // Solo sensori reali
     .gte('reading_date', cutoffDate.toISOString())
-    .order('reading_date', { ascending: false })
-    .limit(1);
+    .order('reading_date', { ascending: false });
 
   if (zoneId) {
-    query = query.eq('zone_id', zoneId);
-  } else {
-    // Se non specificata zona, preferisci letture senza zona (garden-wide)
-    query = query.is('zone_id', null);
+    const { data, error } = await query.eq('zone_id', zoneId).limit(1).maybeSingle();
+    if (error || !data) {
+      return null;
+    }
+
+    return mapSensorReadingFromDb(data);
   }
 
-  const { data, error } = await query.maybeSingle();
-
-  if (error || !data) {
+  const { data, error } = await query.limit(8);
+  if (error || !data || data.length === 0) {
     return null;
   }
 
-  return mapSensorReadingFromDb(data);
+  const preferredGardenWideReading =
+    data.find((row) => row.zone_id == null) ||
+    data[0];
+
+  return preferredGardenWideReading
+    ? mapSensorReadingFromDb(preferredGardenWideReading)
+    : null;
 }
 
 export async function getLatestSensorReadingBySensorId(
