@@ -7,11 +7,18 @@ import { HarvestLogData } from '@/types'
 import { ShoppingBasket, TrendingUp, Euro, Calendar } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { getMarketPrice } from '@/data/marketPrices'
+import {
+  calculateAdaptiveQualityPrice,
+  resolveAdaptiveQualityPricingBenchmark,
+} from '@/services/adaptiveMarketPricingService'
 
 export function HarvestsTab() {
   const { storageProvider } = useStorage()
   const [harvests, setHarvests] = useState<HarvestLogData[]>([])
   const [analytics, setAnalytics] = useState<any>(null)
+  const [adaptiveMarketValue, setAdaptiveMarketValue] = useState(0)
+  const [adaptiveCoverage, setAdaptiveCoverage] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -24,13 +31,19 @@ export function HarvestsTab() {
           for (const garden of gardens) {
             try {
               const gardenHarvests = await storageProvider.getHarvestLogs?.(garden.id) || []
-              allHarvests.push(...gardenHarvests)
+              allHarvests.push(...gardenHarvests.map((harvest) => ({
+                ...harvest,
+                gardenId: harvest.gardenId || garden.id,
+              })))
             } catch (error) {
               console.error(`Error loading harvests for garden ${garden.id}:`, error)
             }
           }
           
           setHarvests(allHarvests)
+          const pricingSummary = await calculateAdaptiveMarketValue(allHarvests)
+          setAdaptiveMarketValue(pricingSummary.marketValueEuro)
+          setAdaptiveCoverage(pricingSummary.adaptiveCoverage)
           
           // Calcola analytics
           const now = new Date()
@@ -47,6 +60,55 @@ export function HarvestsTab() {
     
     loadHarvests()
   }, [storageProvider])
+
+  const normalizeQuantityKg = (harvest: HarvestLogData) => {
+    if (harvest.unit === 'g') return harvest.quantity / 1000
+    return harvest.quantity
+  }
+
+  const calculateAdaptiveMarketValue = async (harvestLogs: HarvestLogData[]) => {
+    const benchmarkCache = new Map<string, Awaited<ReturnType<typeof resolveAdaptiveQualityPricingBenchmark>>>()
+    let marketValueEuro = 0
+    let adaptiveCoverageCount = 0
+
+    for (const harvest of harvestLogs) {
+      const quantityKg = normalizeQuantityKg(harvest)
+      const plantName = harvest.plantName?.trim()
+      const gardenId = harvest.gardenId
+      const season = (() => {
+        const month = new Date(harvest.date).getMonth()
+        return month >= 5 && month <= 8 ? 'Summer' : 'Winter'
+      })()
+      const basePrice = getMarketPrice((plantName || 'GENERIC').toUpperCase(), season)
+
+      if (!storageProvider?.getUserPreference || !plantName || !gardenId) {
+        marketValueEuro += quantityKg * basePrice
+        continue
+      }
+
+      const cacheKey = `${gardenId}::${plantName.toLowerCase()}`
+      let benchmark = benchmarkCache.get(cacheKey)
+      if (!benchmark) {
+        benchmark = await resolveAdaptiveQualityPricingBenchmark(storageProvider, gardenId, {
+          plantName,
+        })
+        benchmarkCache.set(cacheKey, benchmark)
+      }
+
+      const adaptivePrice = calculateAdaptiveQualityPrice(basePrice, {
+        qualityScore: harvest.rating * 20,
+        benchmark,
+      }).adjustedPrice
+
+      marketValueEuro += quantityKg * adaptivePrice
+      adaptiveCoverageCount += 1
+    }
+
+    return {
+      marketValueEuro: Number(marketValueEuro.toFixed(0)),
+      adaptiveCoverage: adaptiveCoverageCount,
+    }
+  }
 
   if (loading) {
     return (
@@ -124,10 +186,12 @@ export function HarvestsTab() {
             <h3 className="text-lg font-semibold text-gray-900">Valore Stimato</h3>
           </div>
           <div className="text-3xl font-bold text-gray-900 mb-1">
-            €{analytics?.marketValueEuro?.toFixed(0) || '0'}
+            €{adaptiveMarketValue.toFixed(0)}
           </div>
           <p className="text-sm text-gray-600">
-            Risparmiati al supermercato
+            {adaptiveCoverage > 0
+              ? `Benchmark-aware su ${adaptiveCoverage} raccolti`
+              : 'Risparmiati al supermercato'}
           </p>
         </div>
       </div>
@@ -214,4 +278,3 @@ export function HarvestsTab() {
     </div>
   )
 }
-

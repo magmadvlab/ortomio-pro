@@ -414,7 +414,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
                   <div className="font-semibold text-green-700">€{pricing.adaptivePricing.adjustedPrice.toFixed(2)}/kg</div>
                 </div>
                 <div>
-                  <div className="text-gray-500">Premium pricing</div>
+                  <div className="text-gray-500">Delta benchmark</div>
                   <div className={`font-semibold ${pricing.premiumPercent >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                     {pricing.premiumPercent >= 0 ? '+' : ''}{pricing.premiumPercent}%
                   </div>
@@ -532,7 +532,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
             <div className="flex items-center gap-2">
               <Star className="h-4 w-4 text-yellow-500" />
               <span className="text-blue-800">
-                Premium medio attuale {averagePremiumPercent >= 0 ? '+' : ''}{averagePremiumPercent}% sui lotti tracciati
+                Delta medio attuale {averagePremiumPercent >= 0 ? '+' : ''}{averagePremiumPercent}% sui lotti tracciati
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -543,7 +543,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Award className="h-4 w-4 text-purple-500" />
-              <span className="text-blue-800">{premiumReadyProducts}/{products.length} lotti sopra benchmark premium</span>
+              <span className="text-blue-800">{premiumReadyProducts}/{products.length} lotti sopra target benchmark</span>
             </div>
             <div className="flex items-center gap-2">
               <Link className="h-4 w-4 text-blue-500" />

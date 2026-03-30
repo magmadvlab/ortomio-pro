@@ -444,11 +444,11 @@ class DominanceIntegrationService {
         title: 'Generare Primi Certificati NFT',
         description: averagePricingImpact !== null
           ? `La tracciabilità già disponibile mostra un impatto pricing medio di ${averagePricingImpact >= 0 ? '+' : ''}${averagePricingImpact}%.`
-          : 'La tracciabilità rende misurabile il premium reale dei lotti e rafforza il posizionamento commerciale.',
+          : 'La tracciabilità rende misurabile il valore reale dei lotti e rafforza il posizionamento commerciale.',
         action: 'Creare certificato NFT per prossimo raccolto',
         estimatedImpact: averagePricingImpact !== null
           ? `${averagePricingImpact >= 0 ? '+' : ''}${averagePricingImpact}% pricing medio`
-          : 'Pricing premium misurabile lotto per lotto',
+          : 'Pricing misurabile lotto per lotto',
         estimatedTime: '20 minuti'
       })
     }
@@ -459,7 +459,7 @@ class DominanceIntegrationService {
         priority: 'MEDIUM' as const,
         category: 'CERTIFICATIONS' as const,
         title: 'Completare Certificazioni',
-        description: 'Più certificazioni = maggiore accesso ai mercati premium',
+        description: 'Più certificazioni = migliore accesso ai mercati ad alta valorizzazione',
         action: 'Avviare processo certificazione biologica',
         estimatedImpact: '+€1500/anno risparmio',
         estimatedTime: '2 ore setup'
@@ -491,7 +491,7 @@ class DominanceIntegrationService {
           'eVineyard': 'INFERIOR'
         },
         advantage: 'Unico con tracciabilità granulare a livello singola pianta',
-        marketImpact: 'Accesso mercati premium con pricing adattivo sito-specifico'
+        marketImpact: 'Accesso a mercati ad alta valorizzazione con pricing adattivo sito-specifico'
       },
       {
         feature: 'AI Predittiva Malattie',
@@ -524,7 +524,7 @@ class DominanceIntegrationService {
           'eVineyard': 'INFERIOR'
         },
         advantage: 'Unico con tracciabilità immutabile e certificati NFT',
-        marketImpact: 'Premium brand positioning con valore lotto misurabile e difendibile'
+        marketImpact: 'Posizionamento di fascia alta con valore lotto misurabile e difendibile'
       },
       {
         feature: 'Drone Integration',
@@ -535,7 +535,7 @@ class DominanceIntegrationService {
           'eVineyard': 'INFERIOR'
         },
         advantage: 'API nativa + prescription maps automatiche',
-        marketImpact: 'Precision agriculture, +15% resa'
+        marketImpact: 'Agricoltura di precisione con miglioramento produttivo misurabile'
       }
     ]
   }

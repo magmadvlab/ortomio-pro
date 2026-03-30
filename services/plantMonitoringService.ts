@@ -14,6 +14,10 @@ import {
   AIPhotoAnalysisRequest,
   BrixMeasurementRequest
 } from '@/types/plantMonitoring'
+import {
+  calculateAdaptiveQualityPrice,
+  resolveAdaptiveQualityPricingBenchmarkForGarden,
+} from '@/services/adaptiveMarketPricingService'
 
 type MonitoringStore = {
   photos: PlantPhoto[]
@@ -96,6 +100,43 @@ function createPhotoTypeStats(): Record<PlantPhoto['photoType'], number> {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
+}
+
+const HARVEST_RECOMMENDATION_BASE_PRICE = 3
+
+function deriveExpectedQualityScore(options: {
+  brixCurrent: number
+  brixTarget: number
+  maturityPercentage?: number
+}): number | null {
+  const { brixCurrent, brixTarget, maturityPercentage } = options
+
+  if (brixCurrent <= 0 && typeof maturityPercentage !== 'number') {
+    return null
+  }
+
+  const brixComponent = brixCurrent > 0
+    ? clamp((brixCurrent / Math.max(1, brixTarget)) * 55, 18, 55)
+    : 0
+  const maturityComponent = typeof maturityPercentage === 'number'
+    ? clamp((maturityPercentage / 100) * 45, 18, 45)
+    : 0
+
+  return Math.round(clamp(brixComponent + maturityComponent, 35, 98))
+}
+
+function mapExpectedQualityGrade(options: {
+  qualityScore: number | null
+  targetScore: number
+  alertFloorScore: number
+}): HarvestRecommendation['expectedQuality']['grade'] {
+  const { qualityScore, targetScore, alertFloorScore } = options
+
+  if (qualityScore === null) return 'good'
+  if (qualityScore >= targetScore) return 'premium'
+  if (qualityScore >= Math.round((targetScore + alertFloorScore) / 2)) return 'excellent'
+  if (qualityScore >= alertFloorScore) return 'good'
+  return 'fair'
 }
 
 function hashString(value: string): number {
@@ -689,6 +730,14 @@ export const harvestRecommendationService = {
 
     const reasons: HarvestRecommendation['reasons'] = []
     let confidence = 50
+    const benchmark = gardenId
+      ? await resolveAdaptiveQualityPricingBenchmarkForGarden(gardenId)
+      : {
+          qualityTargetScore: 80,
+          qualityAlertFloorScore: 60,
+          brixTarget: 12,
+          notes: [] as string[],
+        }
 
     if (brixTrend.current > 0) {
       reasons.push({
@@ -697,8 +746,8 @@ export const harvestRecommendationService = {
         weight: 0.4,
         description: `Livello Brix attuale: ${brixTrend.current}°`
       })
-      if (brixTrend.current >= 14) confidence += 20
-      else if (brixTrend.current >= 12) confidence += 10
+      if (brixTrend.current >= benchmark.brixTarget + 1) confidence += 20
+      else if (brixTrend.current >= benchmark.brixTarget) confidence += 10
     }
 
     if (maturityStage) {
@@ -712,9 +761,32 @@ export const harvestRecommendationService = {
       else if (maturityStage.maturityPercentage >= 80) confidence += 10
     }
 
+    if (gardenId) {
+      reasons.push({
+        factor: 'market_timing',
+        value: benchmark.qualityTargetScore,
+        weight: 0.2,
+        description: `Benchmark sito ${benchmark.qualityTargetScore}% con Brix target ${benchmark.brixTarget}°.`
+      })
+    }
+
     const daysToHarvest = maturityStage?.daysToOptimalHarvest || 7
     const recommendedDate = new Date()
     recommendedDate.setDate(recommendedDate.getDate() + daysToHarvest)
+    const expectedQualityScore = deriveExpectedQualityScore({
+      brixCurrent: brixTrend.current,
+      brixTarget: benchmark.brixTarget,
+      maturityPercentage: maturityStage?.maturityPercentage,
+    })
+    const expectedGrade = mapExpectedQualityGrade({
+      qualityScore: expectedQualityScore,
+      targetScore: benchmark.qualityTargetScore,
+      alertFloorScore: benchmark.qualityAlertFloorScore,
+    })
+    const adaptivePricing = calculateAdaptiveQualityPrice(HARVEST_RECOMMENDATION_BASE_PRICE, {
+      qualityScore: expectedQualityScore,
+      benchmark,
+    })
 
     return {
       id: crypto.randomUUID(),
@@ -729,10 +801,10 @@ export const harvestRecommendationService = {
         peakDate: recommendedDate.toISOString().split('T')[0]
       },
       expectedQuality: {
-        grade: brixTrend.current >= 14 ? 'premium' : brixTrend.current >= 12 ? 'excellent' : 'good',
+        grade: expectedGrade,
         brixRange: { min: Math.max(0, brixTrend.current - 1), max: brixTrend.current + 1 },
         shelfLife: 7,
-        marketValue: brixTrend.current >= 14 ? 3.5 : brixTrend.current >= 12 ? 2.8 : 2.2
+        marketValue: adaptivePricing.adjustedPrice
       },
       risks: [],
       generatedAt: new Date().toISOString(),

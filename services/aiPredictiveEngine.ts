@@ -625,7 +625,7 @@ class AIPredictiveEngine {
         )
       } else if (qualityBenchmark.status === 'watch') {
         recommendations.push(
-          `La qualità prevista è sotto il target sito (${qualityBenchmark.targetScore}%). Cura nutrizione e omogeneità di maturazione per recuperare margine premium.`
+          `La qualità prevista è sotto il target sito (${qualityBenchmark.targetScore}%). Cura nutrizione e omogeneità di maturazione per recuperare valore rispetto al benchmark.`
         )
       } else {
         recommendations.push(

@@ -13,6 +13,7 @@ import {
   FieldWizardConfig,
   PlantCalculations
 } from '../types/individualPlant';
+import { getMarketPrice } from '../data/marketPrices';
 
 /**
  * CALCOLI AUTOMATICI
@@ -297,9 +298,23 @@ export const analyzeFieldPerformance = (
   const totalProduction = harvests.reduce((sum, h) => sum + h.quantityKg, 0);
   const productionPerPlant = totalProduction / totalPlants;
   const productionPerSqMeter = totalProduction / config.totalAreaSqm;
-  
-  // Stima valore (€3/kg per pomodori)
-  const pricePerKg = config.plantName.toLowerCase().includes('pomodoro') ? 3 : 2;
+
+  const averageHarvestQualityScore = harvests.length > 0
+    ? harvests.reduce((sum, harvest) => sum + (harvest.qualityScore || 70), 0) / harvests.length
+    : avgHealthScore;
+  const seasonalWindow = (() => {
+    const currentMonth = new Date().getMonth();
+    return currentMonth >= 5 && currentMonth <= 8 ? 'Summer' : 'Winter';
+  })();
+  const basePricePerKg = getMarketPrice(config.plantName.toUpperCase(), seasonalWindow);
+  const operationalAdjustment = Math.min(
+    1.25,
+    Math.max(
+      0.8,
+      0.92 + ((averageHarvestQualityScore - 70) / 100) + ((healthyPercentage - 80) / 200)
+    )
+  );
+  const pricePerKg = Number((basePricePerKg * operationalAdjustment).toFixed(2));
   const estimatedValue = totalProduction * pricePerKg;
   
   // Identifica problemi
@@ -330,6 +345,12 @@ export const analyzeFieldPerformance = (
   
   if (productionPerPlant < 2) {
     recommendations.push('Produzione sotto media. Verificare nutrizione e irrigazione');
+  }
+
+  if (operationalAdjustment < 0.95) {
+    recommendations.push('Valore commerciale sotto benchmark stagionale. Migliorare uniformità, qualità e stato sanitario del lotto');
+  } else if (operationalAdjustment > 1.08) {
+    recommendations.push('Valore commerciale sopra benchmark stagionale. Consolidare questo lotto come riferimento operativo');
   }
   
   if (healthyPercentage > 90 && avgHealthScore > 80) {

@@ -355,3 +355,39 @@ These files are the first technical foundation of the transversal architecture.
 
 ### Next implementation target
 - propagate the adaptive-threshold contract into the remaining premium-market and consumer surfaces, especially marketplace-facing UI and any residual premium-quality narratives still based on static assumptions
+- residual consumer pricing surfaces now start using benchmark-aware valuation too:
+  - `components/HarvestLog.tsx` no longer values harvested output only with a fixed bio price table; it now resolves a site-specific quality benchmark per crop when garden context exists, applies adaptive pricing on top of the base price, and surfaces per-crop premium/discount and benchmark coverage in the economic summary
+  - this materially improves the consumer harvest journal because the operator now sees whether value is being driven by actual observed quality versus the site benchmark, instead of a flat yield-times-price calculation
+  - fallback behavior remains conservative: when storage or garden benchmark context is missing, the component falls back to the legacy base bio price instead of fabricating a premium
+- pro analytics valuation is now aligned with the same contract:
+  - `components/professional/AnalyticsDashboard.tsx` now estimates harvest value using adaptive pricing per harvest record, based on site benchmark, linked task scope when available, harvest date seasonality, and observed quality score
+  - this removes the residual `€2/kg` placeholder from KPI valuation and makes the pro dashboard economically coherent with the traceability, yield optimizer, and adaptive pricing stack
+  - the KPI narrative now explicitly states when benchmark-aware pricing is active, reducing another static-value inconsistency across the product
+- the general analytics workspace now uses the same pricing engine too:
+  - `app/app/analytics/page.tsx` no longer derives ROI and `€/kg` from a synthetic fixed base plus a hard-coded premium band; it now computes both base and adaptive harvest value from real harvest logs, market seasonality, and site-specific quality benchmarks
+  - this is important because the business-overview layer now reads economic performance from the same evidence path as the rest of the adaptive pricing stack, instead of reintroducing a parallel fake ROI model in the main analytics page
+  - the UI now exposes adaptive `€/kg` together with the implied base `€/kg`, making premium or defensive pricing legible rather than implicit
+- the progress and journal layer is now aligned as well:
+  - `components/progress/HarvestsTab.tsx` now resolves adaptive market value across harvested lots, carrying garden context into harvest records when needed and applying benchmark-aware pricing instead of showing only the generic harvest analytics value
+  - this matters because the operator-facing progress surface is one of the most visible consumer checkpoints; if it stayed on static supermarket-value logic, the product would still present conflicting economic truths depending on the page
+  - benchmark coverage is now surfaced directly in the card copy, so the user can distinguish between adaptive pricing and fallback valuation
+- residual premium messaging is being normalized too:
+  - `components/dominance/DominanceDashboard.tsx` no longer describes the marketplace advantage as generic "quality-based pricing" and now calls out benchmark-aware lot-specific pricing, which is closer to the actual product contract
+  - `components/certifications/CertificationsDashboard.tsx` no longer promises a fixed premium percentage for BIO certification and instead frames the value as stronger market positioning for compliant lots
+  - this matters because the product should not use static commercial promises in one surface while the rest of the stack has already moved to measured, benchmark-aware economics
+- technical residuals outside the main pricing surfaces are now reduced too:
+  - `services/individualPlantService.ts` no longer estimates field value from the old `€3/kg pomodoro, €2/kg everything else` shortcut; it now uses seasonal market price and an operational adjustment derived from observed harvest quality and plant health
+  - this is still intentionally conservative because the service does not have direct access to site memory or storage, so it improves realism without pretending to have benchmark context it does not actually own
+  - `services/plantMonitoringService.ts` now generates harvest recommendation quality grade and market value against the adaptive site benchmark instead of static Brix thresholds, which makes the monitoring layer economically and agronomically coherent with the rest of the quality stack
+- orchard-facing quality interpretation now starts reading through the same benchmark layer:
+  - `components/orchard/HarvestManager.tsx` now resolves an adaptive benchmark for the orchard quality tab, shows target/floor/Brix reference, computes an adaptive price suggestion from the recorded quality score, and replaces the most misleading "premium" market labels with wording that better reflects benchmark-aware valuation
+  - this is intentionally a UI-first integration: the persisted orchard schema still stores legacy quality distribution classes for compatibility, but the operator can now read orchard quality through the same site-memory lens used elsewhere in the product
+  - this reduces another cross-vertical inconsistency without forcing an immediate orchard schema migration
+- legacy advisory wording is being normalized too:
+  - `components/planner/PlannerAIChat.tsx` and `components/planner/PlannerAIChatFixed.tsx` no longer claim a blanket `+40%` yield increase from optimization and now phrase the benefit as progressive, context-dependent improvement
+  - `services/aiPlanningService.ts` fallback market-timing recommendations no longer assume generic premium prices and now tie superior pricing explicitly to quality and market conditions relative to benchmark
+  - `components/orchard/YieldPerTreeTracker.tsx` and `components/olives/OliveMaturityTracker.tsx` now use less rigid high-value wording instead of hard-coded premium language where the surrounding stack has already moved to benchmark-aware valuation
+- strategic and predictive messaging is now more coherent with the pricing engine:
+  - `components/garden/TraceabilityWidget.tsx` now talks about benchmark delta and lots above target benchmark instead of generic premium pricing language
+  - `services/aiPredictiveEngine.ts` now frames recovery in terms of value versus benchmark instead of generic premium margin, which is more consistent with the adaptive quality contract
+  - `services/dominanceIntegrationService.ts` now uses less rigid commercial claims in blockchain, certification, and drone positioning, replacing static premium wording and hard-coded gain narratives with measurable or benchmark-aware language

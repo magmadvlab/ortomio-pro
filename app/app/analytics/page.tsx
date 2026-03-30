@@ -11,6 +11,11 @@ import {
   getAgronomicProfileLearningSnapshots,
   type AgronomicQualityLearningAdjustment,
 } from '@/services/agronomicProfileLearningService'
+import { getMarketPrice } from '@/data/marketPrices'
+import {
+  calculateAdaptiveQualityPrice,
+  resolveAdaptiveQualityPricingBenchmark,
+} from '@/services/adaptiveMarketPricingService'
 
 interface AnalyticsStats {
   totalTasks: number
@@ -25,6 +30,14 @@ interface AnalyticsStats {
   laborHours: number
 }
 
+interface HarvestPricingSummary {
+  baseHarvestValue: number
+  adaptiveHarvestValue: number
+  baseRevenuePerKg: number
+  adaptiveRevenuePerKg: number
+  premiumRate: number
+}
+
 export default function AnalyticsPage() {
   const { storageProvider } = useStorage()
   const { activeGarden } = useGarden()
@@ -33,6 +46,13 @@ export default function AnalyticsPage() {
   const [harvests, setHarvests] = useState<HarvestLogData[]>([])
   const [qualityOverview, setQualityOverview] = useState<QualityOverview | null>(null)
   const [qualityAdjustment, setQualityAdjustment] = useState<AgronomicQualityLearningAdjustment | null>(null)
+  const [harvestPricing, setHarvestPricing] = useState<HarvestPricingSummary>({
+    baseHarvestValue: 0,
+    adaptiveHarvestValue: 0,
+    baseRevenuePerKg: 0,
+    adaptiveRevenuePerKg: 0,
+    premiumRate: 0,
+  })
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<'month' | 'quarter' | 'year'>('month')
   const [activeTab, setActiveTab] = useState<'overview' | 'productivity' | 'efficiency' | 'sustainability'>('overview')
@@ -54,6 +74,10 @@ export default function AnalyticsPage() {
     }
     loadData()
   }, [storageProvider])
+
+  const activeGardenTasks = activeGarden?.id
+    ? (tasks || []).filter(task => task.gardenId === activeGarden.id)
+    : (tasks || [])
 
   useEffect(() => {
     const loadQualityContext = async () => {
@@ -85,24 +109,42 @@ export default function AnalyticsPage() {
     void loadQualityContext()
   }, [activeGarden?.id, storageProvider])
 
+  useEffect(() => {
+    const loadHarvestPricing = async () => {
+      if (!activeGarden?.id || harvests.length === 0) {
+        setHarvestPricing({
+          baseHarvestValue: 0,
+          adaptiveHarvestValue: 0,
+          baseRevenuePerKg: 0,
+          adaptiveRevenuePerKg: 0,
+          premiumRate: 0,
+        })
+        return
+      }
+
+      try {
+        setHarvestPricing(await calculateHarvestPricingSummary(harvests, activeGarden.id, activeGardenTasks))
+      } catch (error) {
+        console.error('Error loading adaptive harvest pricing analytics:', error)
+        setHarvestPricing({
+          baseHarvestValue: 0,
+          adaptiveHarvestValue: 0,
+          baseRevenuePerKg: 0,
+          adaptiveRevenuePerKg: 0,
+          premiumRate: 0,
+        })
+      }
+    }
+
+    void loadHarvestPricing()
+  }, [activeGarden?.id, activeGardenTasks, harvests, storageProvider])
+
   // Calcolo statistiche business
-  const activeGardenTasks = activeGarden?.id
-    ? (tasks || []).filter(task => task.gardenId === activeGarden.id)
-    : (tasks || [])
   const harvestWeight = harvests.reduce((sum, harvest) => sum + (harvest.quantity || 0), 0)
   const averageQualityScore = qualityOverview?.averageQualityScore ?? null
   const qualityTargetScore = Math.round((qualityAdjustment?.qualityTargetRating ?? 4) * 20)
   const qualityAlertFloorScore = Math.round((qualityAdjustment?.qualityAlertFloorRating ?? 3) * 20)
   const averageBrix = qualityOverview?.averageBrix ?? null
-  const premiumRate = averageQualityScore === null
-    ? 0
-    : averageQualityScore >= qualityTargetScore
-      ? 0.2
-      : averageQualityScore < qualityAlertFloorScore
-        ? 0
-        : 0.08
-  const adaptiveRevenuePerKg = Number((2 * (1 + premiumRate)).toFixed(2))
-  const adaptiveHarvestValue = Number((harvestWeight * adaptiveRevenuePerKg).toFixed(0))
   const qualityGap = averageQualityScore === null
     ? null
     : Number((averageQualityScore - qualityTargetScore).toFixed(1))
@@ -115,9 +157,77 @@ export default function AnalyticsPage() {
     waterSaved: 120,
     co2Offset: 8.5,
     efficiency: activeGardenTasks.length > 0 ? Math.round((activeGardenTasks.filter(t => t.completed).length / activeGardenTasks.length) * 100) : 87.5,
-    costSavings: Math.max(450, Math.round(adaptiveHarvestValue * 0.28)),
-    roi: Math.max(180, Math.round((adaptiveHarvestValue / Math.max(1, 120)) * 100)),
+    costSavings: Math.max(450, Math.round(harvestPricing.adaptiveHarvestValue * 0.28)),
+    roi: Math.max(180, Math.round((harvestPricing.adaptiveHarvestValue / Math.max(1, 120)) * 100)),
     laborHours: Math.max(activeGardenTasks.filter(t => t.completed).length * 0.5, 12)
+  }
+
+  async function calculateHarvestPricingSummary(
+    harvestLogs: HarvestLogData[],
+    gardenId: string,
+    taskData: GardenTask[]
+  ): Promise<HarvestPricingSummary> {
+    const benchmarkCache = new Map<string, Awaited<ReturnType<typeof resolveAdaptiveQualityPricingBenchmark>>>()
+    let baseHarvestValue = 0
+    let adaptiveHarvestValue = 0
+    let totalKg = 0
+
+    for (const harvest of harvestLogs) {
+      const quantityKg = harvest.unit === 'g'
+        ? harvest.quantity / 1000
+        : harvest.quantity
+
+      totalKg += quantityKg
+
+      const plantName = harvest.plantName?.trim()
+      const season = (() => {
+        const month = new Date(harvest.date).getMonth()
+        return month >= 5 && month <= 8 ? 'Summer' : 'Winter'
+      })()
+      const basePrice = getMarketPrice((plantName || 'GENERIC').toUpperCase(), season)
+
+      baseHarvestValue += quantityKg * basePrice
+
+      if (!storageProvider?.getUserPreference || !plantName) {
+        adaptiveHarvestValue += quantityKg * basePrice
+        continue
+      }
+
+      const linkedTask = taskData.find((task) => task.id === harvest.taskId)
+      const cacheKey = `${plantName.toLowerCase()}::${linkedTask?.zoneId || 'garden'}`
+      let benchmark = benchmarkCache.get(cacheKey)
+
+      if (!benchmark) {
+        benchmark = await resolveAdaptiveQualityPricingBenchmark(storageProvider, gardenId, {
+          plantName,
+          zoneId: linkedTask?.zoneId,
+        })
+        benchmarkCache.set(cacheKey, benchmark)
+      }
+
+      const adaptivePrice = calculateAdaptiveQualityPrice(basePrice, {
+        qualityScore: harvest.rating * 20,
+        benchmark,
+      }).adjustedPrice
+
+      adaptiveHarvestValue += quantityKg * adaptivePrice
+    }
+
+    const roundedBaseHarvestValue = Number(baseHarvestValue.toFixed(0))
+    const roundedAdaptiveHarvestValue = Number(adaptiveHarvestValue.toFixed(0))
+    const baseRevenuePerKg = totalKg > 0 ? Number((baseHarvestValue / totalKg).toFixed(2)) : 0
+    const adaptiveRevenuePerKg = totalKg > 0 ? Number((adaptiveHarvestValue / totalKg).toFixed(2)) : 0
+    const premiumRate = baseHarvestValue > 0
+      ? Number((((adaptiveHarvestValue - baseHarvestValue) / baseHarvestValue)).toFixed(3))
+      : 0
+
+    return {
+      baseHarvestValue: roundedBaseHarvestValue,
+      adaptiveHarvestValue: roundedAdaptiveHarvestValue,
+      baseRevenuePerKg,
+      adaptiveRevenuePerKg,
+      premiumRate,
+    }
   }
 
   const completionRate = stats.totalTasks > 0 ? (stats.completedTasks / stats.totalTasks) * 100 : 0
@@ -299,7 +409,10 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
                   <h3 className="font-semibold text-amber-900 mb-2">Valore kg adattivo</h3>
-                  <p className="text-2xl font-bold text-amber-700">€{adaptiveRevenuePerKg.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-amber-700">€{harvestPricing.adaptiveRevenuePerKg.toFixed(2)}</p>
+                  <p className="text-xs text-amber-800 mt-1">
+                    base €{harvestPricing.baseRevenuePerKg.toFixed(2)}/kg
+                  </p>
                 </div>
               </div>
               {qualityAdjustment.notes.length > 0 && (
@@ -485,9 +598,13 @@ export default function AnalyticsPage() {
                 
                 <div className="bg-orange-50 rounded-lg p-4">
                   <h3 className="font-semibold text-orange-900 mb-2">Costo/kg</h3>
-                  <p className="text-2xl font-bold text-orange-600">€{adaptiveRevenuePerKg.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-orange-600">€{harvestPricing.adaptiveRevenuePerKg.toFixed(2)}</p>
                   <p className="text-sm text-orange-700">
-                    {premiumRate > 0 ? `Premium qualità +${Math.round(premiumRate * 100)}%` : 'Prezzo base senza premium'}
+                    {harvestPricing.premiumRate > 0
+                      ? `Premium qualità +${Math.round(harvestPricing.premiumRate * 100)}%`
+                      : harvestPricing.premiumRate < 0
+                        ? `Pricing difensivo ${Math.round(harvestPricing.premiumRate * 100)}%`
+                        : 'Prezzo base senza premium'}
                   </p>
                 </div>
                 

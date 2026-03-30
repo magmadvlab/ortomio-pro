@@ -316,7 +316,7 @@ export default function OliveMaturityTracker({ oliveGroveId, oliveGroveName }: O
                 <td className="py-3 px-4 font-medium text-yellow-600">1.0 - 2.5</td>
                 <td className="py-3 px-4">Invaiatura</td>
                 <td className="py-3 px-4 text-sm text-gray-600">Olio verde fruttato</td>
-                <td className="py-3 px-4 text-sm text-gray-600">Buono per olio premium</td>
+                <td className="py-3 px-4 text-sm text-gray-600">Buono per olio ad alta valorizzazione</td>
               </tr>
               <tr className="border-b border-gray-100 bg-purple-50">
                 <td className="py-3 px-4 font-medium text-purple-600">2.5 - 3.5</td>

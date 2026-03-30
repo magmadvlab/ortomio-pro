@@ -139,7 +139,7 @@ export default function YieldPerTreeTracker({ orchardId, orchardName, onSelectTr
   const getQualityInfo = (qualityClass: QualityClass) => {
     switch (qualityClass) {
       case 'premium':
-        return { color: 'text-green-700', bg: 'bg-green-50', label: 'Premium' }
+        return { color: 'text-green-700', bg: 'bg-green-50', label: 'Classe alta' }
       case 'first':
         return { color: 'text-blue-700', bg: 'bg-blue-50', label: 'Prima' }
       case 'second':

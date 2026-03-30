@@ -187,7 +187,7 @@ export default function DominanceDashboard() {
       xfarm: 'INFERIOR',
       agrivi: 'INFERIOR',
       evineyard: 'INFERIOR',
-      advantage: 'B2B2C integrato con quality-based pricing'
+      advantage: 'B2B2C integrato con pricing lotto-specifico benchmark-aware'
     }
   ]
 

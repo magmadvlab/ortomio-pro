@@ -26,7 +26,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
       color: 'green',
       progress: 0,
       status: 'not_started',
-      benefits: ['Accesso mercato BIO', 'Prezzi premium 20-30%', 'Sostenibilità ambientale']
+      benefits: ['Accesso mercato BIO', 'Miglior posizionamento commerciale dei lotti conformi', 'Sostenibilità ambientale']
     },
     {
       id: 'globalgap',

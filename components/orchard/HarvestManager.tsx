@@ -11,6 +11,12 @@ import {
   ScheduleStatus
 } from '@/types/orchard'
 import { orchardService } from '@/services/orchardService'
+import { useStorage } from '@/packages/core/hooks/useStorage'
+import {
+  calculateAdaptiveQualityPrice,
+  resolveAdaptiveQualityPricingBenchmark,
+  type AdaptiveQualityPricingBenchmark,
+} from '@/services/adaptiveMarketPricingService'
 import { 
   Calendar, 
   Plus, 
@@ -38,6 +44,14 @@ import { it } from 'date-fns/locale'
 interface HarvestManagerProps {
   orchardId: string
   gardenId: string
+}
+
+interface OrchardHarvestBenchmarkSummary {
+  benchmark: AdaptiveQualityPricingBenchmark
+  qualityScore: number | null
+  status: 'above_target' | 'watch' | 'below_target' | 'no_data'
+  adjustedPrice: number
+  premiumRate: number
 }
 
 export default function HarvestManager({ orchardId, gardenId }: HarvestManagerProps) {
@@ -105,6 +119,18 @@ export default function HarvestManager({ orchardId, gardenId }: HarvestManagerPr
       case 'premium': return '⭐'
       case 'organic': return '🌱'
       default: return '📦'
+    }
+  }
+
+  const getMarketLabel = (market?: TargetMarket) => {
+    switch (market) {
+      case 'fresh': return 'Fresco'
+      case 'processing': return 'Industria'
+      case 'export': return 'Export'
+      case 'local': return 'Locale'
+      case 'premium': return 'Alta valorizzazione'
+      case 'organic': return 'Biologico'
+      default: return 'Non definito'
     }
   }
 
@@ -323,12 +349,12 @@ export default function HarvestManager({ orchardId, gardenId }: HarvestManagerPr
                     <Package size={14} />
                     <span>
                       Mercato: {schedule.targetMarket === 'fresh' ? 'Fresco' :
-                               schedule.targetMarket === 'processing' ? 'Industria' :
-                               schedule.targetMarket === 'export' ? 'Export' :
-                               schedule.targetMarket === 'local' ? 'Locale' :
-                               schedule.targetMarket === 'premium' ? 'Premium' : 'Biologico'}
-                    </span>
-                  </div>
+                              schedule.targetMarket === 'processing' ? 'Industria' :
+                              schedule.targetMarket === 'export' ? 'Export' :
+                              schedule.targetMarket === 'local' ? 'Locale' :
+                              getMarketLabel(schedule.targetMarket)}
+                          </span>
+                        </div>
                 )}
 
                 {schedule.expectedPricePerKg && (
@@ -450,6 +476,7 @@ export default function HarvestManager({ orchardId, gardenId }: HarvestManagerPr
       {showScheduleModal && selectedSchedule && (
         <HarvestScheduleDetailModal
           schedule={selectedSchedule}
+          gardenId={gardenId}
           onClose={() => {
             setShowScheduleModal(false)
             setSelectedSchedule(null)
@@ -772,11 +799,12 @@ function CreateHarvestScheduleModal({ orchardId, onClose, onCreate }: CreateHarv
 // Schedule Detail Modal
 interface HarvestScheduleDetailModalProps {
   schedule: HarvestSchedule
+  gardenId: string
   onClose: () => void
   onUpdate: (schedule: HarvestSchedule) => void
 }
 
-function HarvestScheduleDetailModal({ schedule, onClose, onUpdate }: HarvestScheduleDetailModalProps) {
+function HarvestScheduleDetailModal({ schedule, gardenId, onClose, onUpdate }: HarvestScheduleDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'details' | 'progress' | 'records' | 'quality'>('details')
   const [records, setRecords] = useState<TreeHarvestRecord[]>([])
 
@@ -849,7 +877,7 @@ function HarvestScheduleDetailModal({ schedule, onClose, onUpdate }: HarvestSche
             <HarvestProgressTab schedule={schedule} />
           )}
           {activeTab === 'quality' && (
-            <HarvestQualityTab schedule={schedule} />
+            <HarvestQualityTab schedule={schedule} gardenId={gardenId} />
           )}
           {activeTab === 'records' && (
             <HarvestRecordsTab schedule={schedule} records={records} />
@@ -862,6 +890,18 @@ function HarvestScheduleDetailModal({ schedule, onClose, onUpdate }: HarvestSche
 
 // Harvest Details Tab
 function HarvestDetailsTab({ schedule }: { schedule: HarvestSchedule }) {
+  const getMarketLabel = (market?: TargetMarket) => {
+    switch (market) {
+      case 'fresh': return 'Fresco'
+      case 'processing': return 'Industria'
+      case 'export': return 'Export'
+      case 'local': return 'Locale'
+      case 'premium': return 'Alta valorizzazione'
+      case 'organic': return 'Biologico'
+      default: return 'Non definito'
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -890,11 +930,7 @@ function HarvestDetailsTab({ schedule }: { schedule: HarvestSchedule }) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Mercato Target</label>
             <p className="text-gray-900">
-              {schedule.targetMarket === 'fresh' ? 'Fresco' :
-               schedule.targetMarket === 'processing' ? 'Industria' :
-               schedule.targetMarket === 'export' ? 'Export' :
-               schedule.targetMarket === 'local' ? 'Locale' :
-               schedule.targetMarket === 'premium' ? 'Premium' : 'Biologico'}
+              {getMarketLabel(schedule.targetMarket)}
             </p>
           </div>
         </div>
@@ -1014,9 +1050,108 @@ function HarvestProgressTab({ schedule }: { schedule: HarvestSchedule }) {
 }
 
 // Harvest Quality Tab
-function HarvestQualityTab({ schedule }: { schedule: HarvestSchedule }) {
+function HarvestQualityTab({ schedule, gardenId }: { schedule: HarvestSchedule; gardenId: string }) {
+  const { storageProvider } = useStorage()
+  const [benchmarkSummary, setBenchmarkSummary] = useState<OrchardHarvestBenchmarkSummary | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadBenchmarkSummary = async () => {
+      try {
+        const benchmark = await resolveAdaptiveQualityPricingBenchmark(storageProvider, gardenId, {
+          plantName: schedule.variety,
+        })
+        const qualityScore = typeof schedule.averageQualityScore === 'number'
+          ? Math.round(schedule.averageQualityScore * 10)
+          : null
+        const adaptivePricing = calculateAdaptiveQualityPrice(schedule.actualPricePerKg || schedule.expectedPricePerKg || 3, {
+          qualityScore,
+          benchmark,
+        })
+
+        if (!cancelled) {
+          setBenchmarkSummary({
+            benchmark,
+            qualityScore,
+            status: adaptivePricing.status,
+            adjustedPrice: adaptivePricing.adjustedPrice,
+            premiumRate: adaptivePricing.premiumRate,
+          })
+        }
+      } catch (error) {
+        console.error('Error loading orchard harvest benchmark summary:', error)
+        if (!cancelled) {
+          setBenchmarkSummary(null)
+        }
+      }
+    }
+
+    void loadBenchmarkSummary()
+
+    return () => {
+      cancelled = true
+    }
+  }, [gardenId, schedule.actualPricePerKg, schedule.averageQualityScore, schedule.expectedPricePerKg, schedule.variety, storageProvider])
+
   return (
     <div className="space-y-6">
+      {benchmarkSummary && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Benchmark Qualità del Sito</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Lettura orchard-aware del raccolto rispetto al target reale del sito.
+              </p>
+            </div>
+            <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${
+              benchmarkSummary.status === 'above_target'
+                ? 'bg-green-100 text-green-700'
+                : benchmarkSummary.status === 'below_target'
+                  ? 'bg-red-100 text-red-700'
+                  : benchmarkSummary.status === 'watch'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : 'bg-gray-100 text-gray-600'
+            }`}>
+              {benchmarkSummary.status === 'above_target'
+                ? 'Sopra target'
+                : benchmarkSummary.status === 'below_target'
+                  ? 'Sotto soglia'
+                  : benchmarkSummary.status === 'watch'
+                    ? 'In osservazione'
+                    : 'Dati parziali'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+              <h4 className="font-semibold text-emerald-900 mb-1">Qualità letta</h4>
+              <p className="text-2xl font-bold text-emerald-700">
+                {benchmarkSummary.qualityScore !== null ? `${benchmarkSummary.qualityScore}%` : 'n/d'}
+              </p>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <h4 className="font-semibold text-blue-900 mb-1">Target / soglia</h4>
+              <p className="text-2xl font-bold text-blue-700">
+                {benchmarkSummary.benchmark.qualityTargetScore}% / {benchmarkSummary.benchmark.qualityAlertFloorScore}%
+              </p>
+            </div>
+            <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+              <h4 className="font-semibold text-purple-900 mb-1">Brix target</h4>
+              <p className="text-2xl font-bold text-purple-700">{benchmarkSummary.benchmark.brixTarget}°</p>
+            </div>
+            <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+              <h4 className="font-semibold text-amber-900 mb-1">Prezzo adattivo</h4>
+              <p className="text-2xl font-bold text-amber-700">€{benchmarkSummary.adjustedPrice.toFixed(2)}/kg</p>
+              <p className="text-xs text-amber-800 mt-1">
+                {benchmarkSummary.premiumRate >= 0 ? '+' : ''}{Math.round(benchmarkSummary.premiumRate * 100)}%
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Qualità Media</h3>
@@ -1033,7 +1168,7 @@ function HarvestQualityTab({ schedule }: { schedule: HarvestSchedule }) {
           {schedule.qualityDistribution ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Premium</span>
+                <span className="text-sm text-gray-600">Classe alta</span>
                 <span className="font-medium text-green-600">{schedule.qualityDistribution.premium}%</span>
               </div>
               <div className="flex items-center justify-between">

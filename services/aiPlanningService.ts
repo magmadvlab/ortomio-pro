@@ -644,7 +644,7 @@ Fornisci ottimizzazioni specifiche per:
       // Fallback con ottimizzazioni standard
       return {
         marketTiming: [
-          'Vendere primo lotto a prezzi premium inizio stagione',
+          'Vendere il primo lotto quando il benchmark qualità e il mercato locale sostengono una valorizzazione superiore',
           'Distribuire vendite per evitare saturazione mercato',
           'Riservare ultimo lotto per mercato tardivo'
         ],
@@ -737,7 +737,7 @@ Fornisci ottimizzazioni specifiche per:
     // Per ora, struttura di fallback
     return {
       marketTiming: [
-        'Primo lotto: vendita immediata a prezzi premium',
+        'Primo lotto: vendita immediata solo se qualità e mercato sostengono una valorizzazione superiore al benchmark',
         'Lotti centrali: distribuzione su 2-3 settimane',
         'Ultimo lotto: mercato tardivo o trasformazione'
       ],

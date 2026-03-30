@@ -163,7 +163,7 @@ export default function PlannerAIChat({ garden, tasks, isOpen, onToggle }: Plann
 
 **Per il tuo orto:**
 • Dimensioni attuali: ${garden?.beds?.length || 'N/A'} aiuole
-• Potenziale aumento resa: +40% con ottimizzazione
+• Potenziale aumento resa: miglioramento progressivo, da verificare su layout, varietà e stagionalità
 • Suggerimento: Aggiungi supporti verticali`,
         suggestions: [
           'Esempi di consociazioni',

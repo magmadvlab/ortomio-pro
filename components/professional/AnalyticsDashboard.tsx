@@ -22,6 +22,11 @@ import {
   getAgronomicProfileLearningSnapshots,
   type AgronomicQualityLearningAdjustment,
 } from '@/services/agronomicProfileLearningService'
+import { getMarketPrice } from '@/data/marketPrices'
+import {
+  calculateAdaptiveQualityPrice,
+  resolveAdaptiveQualityPricingBenchmark,
+} from '@/services/adaptiveMarketPricingService'
 
 interface AnalyticsDashboardProps {
   garden: Garden
@@ -87,9 +92,10 @@ export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
       setTasks(tasksData || [])
       setHarvests(harvestsData)
       setQualityBenchmark(buildQualityBenchmarkSummary(qualityOverview, qualityAdjustment))
+      const adaptiveEstimatedValue = await calculateAdaptiveEstimatedValue(tasksData || [], harvestsData)
 
       // Calcola KPI
-      const calculatedKPIs = calculateKPIs(tasksData || [], harvestsData, qualityOverview, qualityAdjustment)
+      const calculatedKPIs = calculateKPIs(tasksData || [], harvestsData, qualityOverview, qualityAdjustment, adaptiveEstimatedValue)
       setKpis(calculatedKPIs)
 
       // Genera suggerimenti AI
@@ -101,6 +107,52 @@ export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const normalizeHarvestQuantity = (harvest: HarvestLogData) => {
+    if (harvest.unit === 'g') return harvest.quantity / 1000
+    return harvest.quantity
+  }
+
+  const calculateAdaptiveEstimatedValue = async (taskData: GardenTask[], harvestsData: HarvestLogData[]) => {
+    if (harvestsData.length === 0) return 0
+
+    const benchmarkCache = new Map<string, Awaited<ReturnType<typeof resolveAdaptiveQualityPricingBenchmark>>>()
+    let total = 0
+
+    for (const harvest of harvestsData) {
+      const plantName = harvest.plantName?.trim()
+      if (!plantName) continue
+
+      const season = (() => {
+        const month = new Date(harvest.date).getMonth()
+        return month >= 5 && month <= 8 ? 'Summer' : 'Winter'
+      })()
+      const basePrice = getMarketPrice(plantName.toUpperCase(), season)
+
+      let adjustedPrice = basePrice
+      if (storageProvider?.getUserPreference) {
+        const cacheKey = `${plantName.toLowerCase()}::${harvest.taskId || 'garden'}`
+        let benchmark = benchmarkCache.get(cacheKey)
+        if (!benchmark) {
+          const linkedTask = taskData.find((task) => task.id === harvest.taskId)
+          benchmark = await resolveAdaptiveQualityPricingBenchmark(storageProvider, garden.id, {
+            plantName,
+            zoneId: linkedTask?.zoneId,
+          })
+          benchmarkCache.set(cacheKey, benchmark)
+        }
+
+        adjustedPrice = calculateAdaptiveQualityPrice(basePrice, {
+          qualityScore: harvest.rating * 20,
+          benchmark,
+        }).adjustedPrice
+      }
+
+      total += normalizeHarvestQuantity(harvest) * adjustedPrice
+    }
+
+    return Number(total.toFixed(2))
   }
 
   const buildQualityBenchmarkSummary = (
@@ -137,14 +189,12 @@ export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
     tasks: GardenTask[],
     harvests: HarvestLogData[],
     qualityOverview: QualityOverview,
-    qualityAdjustment: AgronomicQualityLearningAdjustment
+    qualityAdjustment: AgronomicQualityLearningAdjustment,
+    estimatedValue: number
   ): KPI[] => {
     // Calcolo produzione totale
     const totalProduction = harvests.reduce((sum, h) => sum + (h.quantity || 0), 0)
     const avgProductionPerPlant = tasks.length > 0 ? totalProduction / tasks.length : 0
-
-    // Calcolo valore stimato (€2/kg media)
-    const estimatedValue = totalProduction * 2
 
     // Calcolo task completion rate
     const completedTasks = tasks.filter(t => t.completed).length
@@ -173,7 +223,7 @@ export function AnalyticsDashboard({ garden }: AnalyticsDashboardProps) {
         label: 'Valore Stimato',
         value: `€${estimatedValue.toFixed(0)}`,
         trend: 'up',
-        change: '+€24 vs mese scorso',
+        change: harvests.length > 0 ? 'Pricing adattivo su benchmark qualità' : 'In attesa di raccolti valorizzabili',
         icon: <DollarSign className="text-blue-600" size={24} />
       },
       {

@@ -1,14 +1,39 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GardenTask, HarvestLogData, GrowingLocation, Recipe } from '../types';
 import { ShoppingBasket, Star, Calendar, Camera, Scale, PlusCircle, Leaf, Snowflake, Sun, BarChart3, Box, Flower2, LayoutGrid, ArrowRight, X, ChefHat } from 'lucide-react';
 import { getRecipesForHarvest } from '../services/recipeService';
 import RecipeCard from './RecipeCard';
 import { getBioPrice } from '../data/bioPrices';
+import { useStorage } from '@/packages/core/hooks/useStorage';
+import {
+  calculateAdaptiveQualityPrice,
+  resolveAdaptiveQualityPricingBenchmark,
+} from '@/services/adaptiveMarketPricingService';
 
 interface HarvestLogProps {
   tasks: GardenTask[];
   onAddHarvest: (plantName: string, data: HarvestLogData, season: 'Summer' | 'Winter') => void;
+}
+
+interface EconomicCropPricingSummary {
+  value: number;
+  basePrice: number;
+  adjustedPrice: number;
+  qualityScore: number | null;
+  premiumRate: number;
+  status: 'above_target' | 'watch' | 'below_target' | 'no_data';
+  benchmarkTargetScore: number | null;
+  benchmarkAlertFloorScore: number | null;
+}
+
+interface EconomicAnalysisData {
+  totalValue: number;
+  cropValues: Record<string, number>;
+  cropPricing: Record<string, EconomicCropPricingSummary>;
+  estimatedCosts: number;
+  netSavings: number;
+  adaptiveCoverage: number;
 }
 
 // Helper to update tasks in the parent - Need to be passed from parent ideally, 
@@ -30,6 +55,7 @@ interface HarvestLogProps {
  * - Suggerimenti ricette basati su raccolto
  */
 const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) => void }> = ({ tasks, onAddHarvest, onUpdateTask }) => {
+  const { storageProvider } = useStorage();
   /**
    * FILTRO STAGIONALE - Filtra raccolti per stagione
    * 
@@ -56,6 +82,15 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
   const [showRecipes, setShowRecipes] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loadingRecipes, setLoadingRecipes] = useState(false);
+  const [economicData, setEconomicData] = useState<EconomicAnalysisData>({
+    totalValue: 0,
+    cropValues: {},
+    cropPricing: {},
+    estimatedCosts: 0,
+    netSavings: 0,
+    adaptiveCoverage: 0,
+  });
+  const [economicLoading, setEconomicLoading] = useState(false);
 
   // Grouped Data for Statistics
   const activeTasks = (tasks || []).filter(t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant'));
@@ -111,6 +146,29 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
   const cropStats = getStatsByCrop();
   const totalYieldAll = Object.values(cropStats).reduce((acc, curr) => acc + curr.totalYield, 0);
 
+  const normalizePlantName = (value: string) => value.trim().toLowerCase();
+
+  const getCropQualityScores = (plantName: string) => {
+    const normalizedPlantName = normalizePlantName(plantName);
+    const scores: number[] = [];
+
+    tasks.forEach(task => {
+      if (task.taskType !== 'Sowing' && task.taskType !== 'Transplant') return;
+      if (filterSeason !== 'All' && task.season !== filterSeason) return;
+      if (normalizePlantName(task.plantName) !== normalizedPlantName) return;
+
+      if (task.finalHarvest?.rating) {
+        scores.push(task.finalHarvest.rating * 20);
+      }
+
+      task.harvestHistory?.forEach(entry => {
+        scores.push(entry.rating * 20);
+      });
+    });
+
+    return scores;
+  };
+
   /**
    * ANALISI ECONOMICA - Valore del Raccolto
    * 
@@ -128,26 +186,154 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
    * - Confrontare costi/benefici
    * - Motivare la coltivazione domestica
    */
-  const calculateEconomicAnalysis = () => {
-    let totalValue = 0;
-    const cropValues: Record<string, number> = {};
-    
-    Object.entries(cropStats).forEach(([key, stat]) => {
-      const plantName = key.split('-')[0];
-      const price = getBioPrice(plantName);
-      const value = stat.totalYield * price;
-      cropValues[key] = value;
-      totalValue += value;
-    });
-    
-    // Costi stimati (acqua, concime, semi): 0.75€/kg
-    const estimatedCosts = totalYieldAll * 0.75;
-    const netSavings = totalValue - estimatedCosts;
-    
-    return { totalValue, cropValues, estimatedCosts, netSavings };
-  };
+  useEffect(() => {
+    let cancelled = false;
 
-  const economicData = calculateEconomicAnalysis();
+    const loadEconomicAnalysis = async () => {
+      const currentCropStats = getStatsByCrop();
+      const cropEntries = Object.entries(currentCropStats);
+
+      if (cropEntries.length === 0) {
+        if (!cancelled) {
+          setEconomicData({
+            totalValue: 0,
+            cropValues: {},
+            cropPricing: {},
+            estimatedCosts: 0,
+            netSavings: 0,
+            adaptiveCoverage: 0,
+          });
+        }
+        return;
+      }
+
+      setEconomicLoading(true);
+
+      try {
+        const primaryGardenId = tasks.find(task => task.gardenId)?.gardenId;
+        const canUseAdaptivePricing = Boolean(primaryGardenId && storageProvider?.getUserPreference);
+
+        const cropPricingEntries = await Promise.all(cropEntries.map(async ([key, stat]) => {
+          const plantName = key.split('-')[0];
+          const basePrice = getBioPrice(plantName);
+          const relevantTask = tasks.find(task =>
+            normalizePlantName(task.plantName) === normalizePlantName(plantName) &&
+            (filterSeason === 'All' || task.season === filterSeason)
+          );
+          const qualityScores = getCropQualityScores(plantName);
+          const averageQualityScore = qualityScores.length > 0
+            ? Number((qualityScores.reduce((sum, score) => sum + score, 0) / qualityScores.length).toFixed(1))
+            : null;
+
+          let adjustedPrice = basePrice;
+          let premiumRate = 0;
+          let status: EconomicCropPricingSummary['status'] = 'no_data';
+          let benchmarkTargetScore: number | null = null;
+          let benchmarkAlertFloorScore: number | null = null;
+
+          if (canUseAdaptivePricing && primaryGardenId) {
+            const benchmark = await resolveAdaptiveQualityPricingBenchmark(storageProvider, primaryGardenId, {
+              plantName,
+              zoneId: relevantTask?.zoneId,
+            });
+            const adaptivePricing = calculateAdaptiveQualityPrice(basePrice, {
+              qualityScore: averageQualityScore,
+              benchmark,
+            });
+
+            adjustedPrice = adaptivePricing.adjustedPrice;
+            premiumRate = adaptivePricing.premiumRate;
+            status = adaptivePricing.status;
+            benchmarkTargetScore = benchmark.qualityTargetScore;
+            benchmarkAlertFloorScore = benchmark.qualityAlertFloorScore;
+          }
+
+          const value = Number((stat.totalYield * adjustedPrice).toFixed(2));
+
+          return [key, {
+            value,
+            basePrice,
+            adjustedPrice,
+            qualityScore: averageQualityScore,
+            premiumRate,
+            status,
+            benchmarkTargetScore,
+            benchmarkAlertFloorScore,
+          }] as const;
+        }));
+
+        const cropPricing = Object.fromEntries(cropPricingEntries);
+        const cropValues = Object.fromEntries(
+          cropPricingEntries.map(([key, entry]) => [key, entry.value])
+        );
+        const totalValue = Number(
+          cropPricingEntries.reduce((sum, [, entry]) => sum + entry.value, 0).toFixed(2)
+        );
+        const estimatedCosts = Number((totalYieldAll * 0.75).toFixed(2));
+        const netSavings = Number((totalValue - estimatedCosts).toFixed(2));
+        const adaptiveCoverage = cropPricingEntries.filter(([, entry]) => entry.benchmarkTargetScore !== null).length;
+
+        if (!cancelled) {
+          setEconomicData({
+            totalValue,
+            cropValues,
+            cropPricing,
+            estimatedCosts,
+            netSavings,
+            adaptiveCoverage,
+          });
+        }
+      } catch (error) {
+        console.error('Errore nel calcolo economico adattivo del raccolto:', error);
+
+        if (!cancelled) {
+          const fallbackCropPricing = Object.fromEntries(
+            cropEntries.map(([key, stat]) => {
+              const plantName = key.split('-')[0];
+              const basePrice = getBioPrice(plantName);
+              const value = Number((stat.totalYield * basePrice).toFixed(2));
+
+              return [key, {
+                value,
+                basePrice,
+                adjustedPrice: basePrice,
+                qualityScore: null,
+                premiumRate: 0,
+                status: 'no_data' as const,
+                benchmarkTargetScore: null,
+                benchmarkAlertFloorScore: null,
+              }];
+            })
+          );
+          const totalValue = Number(
+            Object.values(fallbackCropPricing).reduce((sum, entry) => sum + entry.value, 0).toFixed(2)
+          );
+          const estimatedCosts = Number((totalYieldAll * 0.75).toFixed(2));
+
+          setEconomicData({
+            totalValue,
+            cropValues: Object.fromEntries(
+              Object.entries(fallbackCropPricing).map(([key, entry]) => [key, entry.value])
+            ),
+            cropPricing: fallbackCropPricing,
+            estimatedCosts,
+            netSavings: Number((totalValue - estimatedCosts).toFixed(2)),
+            adaptiveCoverage: 0,
+          });
+        }
+      } finally {
+        if (!cancelled) {
+          setEconomicLoading(false);
+        }
+      }
+    };
+
+    void loadEconomicAnalysis();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [filterSeason, storageProvider, tasks, totalYieldAll]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -548,6 +734,12 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
             <BarChart3 size={20} />
             Analisi Economica {filterSeason !== 'All' && `(${filterSeason})`}
           </h3>
+
+          <p className="text-xs text-green-700 mb-4">
+            {economicData.adaptiveCoverage > 0
+              ? `${economicData.adaptiveCoverage}/${Object.keys(cropStats).length} colture valorizzate con benchmark qualità sito-specifico.`
+              : 'Valorizzazione su prezzo bio base: benchmark qualità sito non ancora disponibile.'}
+          </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div className="bg-white p-4 rounded-xl shadow-sm">
@@ -573,6 +765,32 @@ const HarvestLog: React.FC<HarvestLogProps & { onUpdateTask: (task: GardenTask) 
               {totalYieldAll.toFixed(1)}kg totali raccolti
             </p>
           </div>
+
+          <div className="mt-4 space-y-2">
+            {Object.entries(economicData.cropPricing).map(([key, entry]) => (
+              <div key={key} className="bg-white p-3 rounded-xl shadow-sm flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-semibold text-gray-800">{key.split('-')[0]}</p>
+                  <p className="text-xs text-gray-500">
+                    €{entry.basePrice.toFixed(2)}/kg base
+                    {' → '}
+                    €{entry.adjustedPrice.toFixed(2)}/kg adattivo
+                    {entry.qualityScore !== null ? ` • qualità ${entry.qualityScore.toFixed(0)}%` : ' • qualità n/d'}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className={`font-bold ${entry.premiumRate >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                    {entry.premiumRate >= 0 ? '+' : ''}{Math.round(entry.premiumRate * 100)}%
+                  </p>
+                  <p className="text-xs text-gray-500">€{entry.value.toFixed(2)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {economicLoading && (
+            <p className="text-xs text-gray-500 mt-3">Aggiornamento pricing adattivo in corso...</p>
+          )}
         </div>
       )}
     </div>
