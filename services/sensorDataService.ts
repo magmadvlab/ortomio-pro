@@ -354,28 +354,20 @@ export async function getLatestSensorReading(
 
   const cutoffDate = new Date();
   cutoffDate.setHours(cutoffDate.getHours() - maxAgeHours);
+  const data = await fetchSensorReadingsWithLegacyFallback(supabase, {
+    gardenId,
+    sensorType,
+    cutoffIso: cutoffDate.toISOString(),
+    zoneId,
+    limit: zoneId ? 1 : 8,
+  });
 
-  let query = supabase
-    .from('sensor_readings')
-    .select('*')
-    .eq('garden_id', gardenId)
-    .eq('sensor_type', sensorType)
-    .eq('is_simulated', false) // Solo sensori reali
-    .gte('reading_date', cutoffDate.toISOString())
-    .order('reading_date', { ascending: false });
-
-  if (zoneId) {
-    const { data, error } = await query.eq('zone_id', zoneId).limit(1).maybeSingle();
-    if (error || !data) {
-      return null;
-    }
-
-    return mapSensorReadingFromDb(data);
+  if (!data || data.length === 0) {
+    return null;
   }
 
-  const { data, error } = await query.limit(8);
-  if (error || !data || data.length === 0) {
-    return null;
+  if (zoneId) {
+    return mapSensorReadingFromDb(data[0]);
   }
 
   const preferredGardenWideReading =
@@ -401,24 +393,19 @@ export async function getLatestSensorReadingBySensorId(
 
   const cutoffDate = new Date();
   cutoffDate.setHours(cutoffDate.getHours() - maxAgeHours);
+  const data = await fetchSensorReadingsWithLegacyFallback(supabase, {
+    gardenId,
+    sensorType,
+    cutoffIso: cutoffDate.toISOString(),
+    sensorId,
+    limit: 1,
+  });
 
-  const { data, error } = await supabase
-    .from('sensor_readings')
-    .select('*')
-    .eq('garden_id', gardenId)
-    .eq('sensor_type', sensorType)
-    .eq('sensor_id', sensorId)
-    .eq('is_simulated', false)
-    .gte('reading_date', cutoffDate.toISOString())
-    .order('reading_date', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error || !data) {
+  if (!data || data.length === 0) {
     return null;
   }
 
-  return mapSensorReadingFromDb(data);
+  return mapSensorReadingFromDb(data[0]);
 }
 
 export async function getLatestSensorReadingForSensorIds(
@@ -467,27 +454,90 @@ export async function getSensorReadings(
   const cutoffDate = new Date();
   const hoursMap = { '24h': 24, '7d': 168, '30d': 720 };
   cutoffDate.setHours(cutoffDate.getHours() - hoursMap[period]);
+  const data = await fetchSensorReadingsWithLegacyFallback(supabase, {
+    gardenId,
+    sensorType,
+    cutoffIso: cutoffDate.toISOString(),
+    zoneId,
+  });
 
-  let query = supabase
-    .from('sensor_readings')
-    .select('*')
-    .eq('garden_id', gardenId)
-    .eq('sensor_type', sensorType)
-    .eq('is_simulated', false)
-    .gte('reading_date', cutoffDate.toISOString())
-    .order('reading_date', { ascending: false });
-
-  if (zoneId) {
-    query = query.eq('zone_id', zoneId);
-  }
-
-  const { data, error } = await query;
-
-  if (error || !data) {
+  if (!data) {
     return [];
   }
 
   return data.map((row) => mapSensorReadingFromDb(row));
+}
+
+type SensorReadingQueryOptions = {
+  gardenId: string;
+  sensorType: SensorType;
+  cutoffIso: string;
+  zoneId?: string;
+  sensorId?: string;
+  limit?: number;
+};
+
+async function fetchSensorReadingsWithLegacyFallback(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  options: SensorReadingQueryOptions
+): Promise<any[] | null> {
+  const primaryResult = await runSensorReadingQuery(supabase, options, true);
+  if (!primaryResult.error) {
+    return primaryResult.data;
+  }
+
+  if (!isMissingIsSimulatedColumnError(primaryResult.error)) {
+    return null;
+  }
+
+  const fallbackResult = await runSensorReadingQuery(supabase, options, false);
+  if (fallbackResult.error) {
+    return null;
+  }
+
+  return fallbackResult.data;
+}
+
+async function runSensorReadingQuery(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  options: SensorReadingQueryOptions,
+  filterRealSensors: boolean
+): Promise<{ data: any[] | null; error: any }> {
+  if (!supabase) {
+    return { data: null, error: new Error('Supabase client not available') };
+  }
+
+  let query = supabase
+    .from('sensor_readings')
+    .select('*')
+    .eq('garden_id', options.gardenId)
+    .eq('sensor_type', options.sensorType)
+    .gte('reading_date', options.cutoffIso)
+    .order('reading_date', { ascending: false });
+
+  if (filterRealSensors) {
+    query = query.eq('is_simulated', false);
+  }
+
+  if (options.zoneId) {
+    query = query.eq('zone_id', options.zoneId);
+  }
+
+  if (options.sensorId) {
+    query = query.eq('sensor_id', options.sensorId);
+  }
+
+  if (options.limit) {
+    query = query.limit(options.limit);
+  }
+
+  const { data, error } = await query;
+  return { data: data || null, error };
+}
+
+function isMissingIsSimulatedColumnError(error: any): boolean {
+  const message = typeof error?.message === 'string' ? error.message : '';
+  return error?.code === '42703' && message.includes('sensor_readings.is_simulated');
 }
 
 export async function getLatestControlledEnvironmentSensorSnapshot(
