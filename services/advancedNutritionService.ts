@@ -13,10 +13,13 @@ import {
   ComplianceRecord,
   ProductCompatibility,
   NutritionAdaptiveThresholds,
-  EffectivenessAlert
+  EffectivenessAlert,
+  NutritionWaterQualityInsight,
 } from '@/types/nutrition'
 import { getSupabaseClient } from '@/config/supabase'
 import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
+import { resolveIrrigationWaterQualityProfile } from '@/services/irrigationWaterQualityService'
+import type { IrrigationSystem } from '@/types/irrigation'
 import {
   buildAgronomicNutritionLearningAdjustment,
   buildAgronomicQualityLearningAdjustment,
@@ -586,6 +589,10 @@ class AdvancedNutritionService {
       const totalTreatments = treatmentList.length
       const totalCost = treatmentList.reduce((sum, t) => sum + (t.total_cost || 0), 0)
       const averageEffectiveness = average(effectivenessValues)
+      const waterQualityInsight = await this.buildNutritionWaterQualityInsight(
+        gardenId,
+        treatmentList
+      )
 
       // Calculate organic percentage
       const organicTreatments = treatmentList.filter(t => t.organic_compliant).length
@@ -612,9 +619,11 @@ class AdvancedNutritionService {
           treatmentList,
           organicPercentage,
           nutritionAdjustment,
-          qualityAdjustment
+          qualityAdjustment,
+          waterQualityInsight
         ),
         adaptiveThresholds,
+        waterQualityInsight,
       }
     } catch (error) {
       console.error('Error fetching nutrition analytics:', error)
@@ -635,6 +644,7 @@ class AdvancedNutritionService {
         complianceScore: 0,
         recommendations: [],
         adaptiveThresholds,
+        waterQualityInsight: undefined,
       }
     }
   }
@@ -737,6 +747,10 @@ class AdvancedNutritionService {
         nutritionAdjustment,
         qualityAdjustment
       )
+      const waterQualityInsight = await this.buildNutritionWaterQualityInsight(gardenId, [
+        ...(recentTreatments || []),
+        ...(performanceTreatments || []),
+      ])
 
       return {
         activeTreatments: activeTreatments?.length || 0,
@@ -744,7 +758,9 @@ class AdvancedNutritionService {
         monthlyTreatments: monthlyTreatments?.length || 0,
         totalProducts: (fertilizerProducts?.length || 0) + (treatmentProducts?.length || 0),
         lowStockAlerts: lowStockProducts?.length || 0,
-        complianceAlerts: organicCompliance?.data < 80 ? 1 : 0,
+        complianceAlerts:
+          (organicCompliance?.data < 80 ? 1 : 0) +
+          (waterQualityInsight?.hasFertigationExposure && waterQualityInsight.qualityBand === 'critical' ? 1 : 0),
         recentTreatments: recentTreatments?.map(this.mapTreatmentFromDatabase) || [],
         upcomingSchedules: upcomingSchedules?.map(this.mapScheduleFromDatabase) || [],
         lowStockProducts: lowStockProducts?.map(this.mapInventoryFromDatabase) || [],
@@ -756,6 +772,7 @@ class AdvancedNutritionService {
           treatmentFrequency: monthlyTreatments?.length || 0
         },
         adaptiveThresholds,
+        waterQualityInsight,
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
@@ -778,6 +795,7 @@ class AdvancedNutritionService {
           treatmentFrequency: 0
         },
         adaptiveThresholds,
+        waterQualityInsight: undefined,
       }
     }
   }
@@ -822,7 +840,8 @@ class AdvancedNutritionService {
     treatments: any[],
     organicPercentage: number,
     nutritionAdjustment: AgronomicNutritionLearningAdjustment,
-    qualityAdjustment: AgronomicQualityLearningAdjustment
+    qualityAdjustment: AgronomicQualityLearningAdjustment,
+    waterQualityInsight?: NutritionWaterQualityInsight | null
   ) {
     const recommendations = []
     const effectivenessValues = treatments
@@ -889,7 +908,124 @@ class AdvancedNutritionService {
       })
     }
 
+    if (
+      waterQualityInsight?.hasFertigationExposure &&
+      (waterQualityInsight.qualityBand === 'caution' || waterQualityInsight.qualityBand === 'critical')
+    ) {
+      recommendations.push({
+        type: 'effectiveness_improvement',
+        title: 'Riallinea la fertirrigazione alla qualita dell\'acqua',
+        description:
+          waterQualityInsight.qualityBand === 'critical'
+            ? `La qualita dell'acqua irrigua e critica (${waterQualityInsight.worstQualityScore}/100) e puo ridurre efficacia o stabilita delle miscele.`
+            : `La qualita dell'acqua irrigua e da monitorare (${waterQualityInsight.worstQualityScore}/100) e puo limitare le performance in fertirrigazione.`,
+        priority: waterQualityInsight.qualityBand === 'critical' ? 'high' : 'medium',
+        actionItems: [
+          'Controlla compatibilita di pH, salinita e bicarbonati con i prodotti in miscela',
+          ...(waterQualityInsight.riskFlags.length > 0
+            ? [`Rischi principali: ${waterQualityInsight.riskFlags.join(', ')}`]
+            : []),
+          ...waterQualityInsight.recommendations.slice(0, 2),
+        ],
+      })
+    }
+
     return recommendations
+  }
+
+  private async buildNutritionWaterQualityInsight(
+    gardenId: string,
+    treatments: any[]
+  ): Promise<NutritionWaterQualityInsight | undefined> {
+    const supabase = getSupabaseClient()
+    const fertigationExposure = treatments.some(
+      (treatment) => treatment.application_method === 'fertigation' || treatment.applicationMethod === 'fertigation'
+    )
+
+    const { data: zones } = await supabase
+      .from('irrigation_zones')
+      .select('id')
+      .eq('garden_id', gardenId)
+      .eq('is_active', true)
+
+    const zoneList = zones || []
+    if (zoneList.length === 0) {
+      return fertigationExposure
+        ? {
+            hasFertigationExposure: true,
+            zoneCount: 0,
+            monitoredZoneCount: 0,
+            averageQualityScore: 0,
+            worstQualityScore: 0,
+            qualityBand: 'unknown',
+            riskFlags: [],
+            recommendations: ['Nessuna zona irrigua attiva trovata per valutare la qualita dell\'acqua.'],
+          }
+        : undefined
+    }
+
+    const { data: systems } = await supabase
+      .from('irrigation_systems')
+      .select('zone_id, water_source')
+      .eq('garden_id', gardenId)
+      .eq('is_active', true)
+
+    const systemsByZone = new Map<string, IrrigationSystem[]>()
+    ;(systems || []).forEach((system: any) => {
+      const zoneSystems = systemsByZone.get(system.zone_id) || []
+      zoneSystems.push({
+        id: `${system.zone_id || 'system'}:${system.water_source || 'unknown'}`,
+        zoneId: system.zone_id || undefined,
+        waterSource: system.water_source || undefined,
+        createdAt: '',
+        updatedAt: '',
+      })
+      systemsByZone.set(system.zone_id, zoneSystems)
+    })
+
+    const profiles = (
+      await Promise.all(
+        zoneList.map((zone: any) =>
+          resolveIrrigationWaterQualityProfile({
+            gardenId,
+            zoneId: zone.id,
+            systems: systemsByZone.get(zone.id) || [],
+          })
+        )
+      )
+    ).filter((profile): profile is NonNullable<typeof profile> => Boolean(profile))
+
+    if (profiles.length === 0) {
+      return fertigationExposure
+        ? {
+            hasFertigationExposure: true,
+            zoneCount: zoneList.length,
+            monitoredZoneCount: 0,
+            averageQualityScore: 0,
+            worstQualityScore: 0,
+            qualityBand: 'unknown',
+            riskFlags: [],
+            recommendations: ['Mancano misure o sorgenti acqua sufficienti per valutare la fertirrigazione.'],
+          }
+        : undefined
+    }
+
+    const sortedProfiles = [...profiles].sort((left, right) => left.qualityScore - right.qualityScore)
+    const worstProfile = sortedProfiles[0]
+
+    return {
+      hasFertigationExposure: fertigationExposure,
+      zoneCount: zoneList.length,
+      monitoredZoneCount: profiles.length,
+      averageQualityScore: average(profiles.map((profile) => profile.qualityScore)),
+      worstQualityScore: worstProfile.qualityScore,
+      qualityBand: worstProfile.qualityBand,
+      sourceLabel: worstProfile.sourceLabel,
+      riskFlags: Array.from(new Set(profiles.flatMap((profile) => profile.riskFlags))).slice(0, 4),
+      recommendations: Array.from(
+        new Set(profiles.flatMap((profile) => profile.recommendations))
+      ).slice(0, 4),
+    }
   }
 
   private getFallbackAdaptiveLearningAdjustments(): {

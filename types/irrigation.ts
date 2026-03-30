@@ -33,6 +33,35 @@ export type IrrigationWaterSource =
   | 'Pond'
   | 'Tank'
 
+export type IrrigationWaterQualityBand =
+  | 'optimal'
+  | 'acceptable'
+  | 'caution'
+  | 'critical'
+  | 'unknown'
+
+export interface IrrigationWaterQualityReading {
+  value: number
+  unit: string
+  measuredAt?: string
+  source: 'sensor' | 'estimated'
+  sensorType?: string
+}
+
+export interface IrrigationWaterQualityProfile {
+  waterSource?: IrrigationWaterSource
+  sourceLabel?: string
+  salinity?: IrrigationWaterQualityReading
+  ph?: IrrigationWaterQualityReading
+  bicarbonates?: IrrigationWaterQualityReading
+  qualityBand: IrrigationWaterQualityBand
+  qualityScore: number
+  leachingFractionPercent?: number
+  riskFlags: string[]
+  recommendations: string[]
+  notes?: string[]
+}
+
 export type IrrigationCultivationType =
   | 'orto'
   | 'frutteto'
@@ -166,6 +195,7 @@ export interface IrrigationSystem {
   systemType?: 'drip' | 'sprinkler' | 'micro' | 'subsurface' | 'manual'
   type?: LegacyIrrigationSystemType
   waterSource?: IrrigationWaterSource
+  waterQualityProfile?: IrrigationWaterQualityProfile
   brand?: string
   model?: string
   installationDate?: string
@@ -390,6 +420,7 @@ export interface WaterRequirement {
   
   // Weather data
   weatherData?: WeatherData
+  waterQualityProfile?: IrrigationWaterQualityProfile
   
   // Soil water balance
   soilWaterBalance?: SoilWaterBalance
@@ -418,6 +449,12 @@ export interface WeatherData {
   humidityAvgPercentage?: number
   windSpeedAvgKmh?: number
   solarRadiationMjm2?: number
+  waterSalinity?: number
+  waterPh?: number
+  waterBicarbonates?: number
+  waterSource?: IrrigationWaterSource
+  waterQualityBand?: IrrigationWaterQualityBand
+  waterQualityNotes?: string[]
 }
 
 export interface SoilWaterBalance {
@@ -426,11 +463,14 @@ export interface SoilWaterBalance {
   wiltingPointMm?: number
   availableWaterMm?: number
   rootZoneDepthCm?: number
+  effectiveRootableDepthCm?: number
   fieldCapacityVolumetricPercent?: number
   wiltingPointVolumetricPercent?: number
   estimatedInfiltrationRateMmh?: number
   textureClass?: string
+  drainageClass?: 'free' | 'moderate' | 'slow'
   compactionRisk?: 'low' | 'medium' | 'high' | 'unknown'
+  salinityAccumulationRisk?: 'low' | 'medium' | 'high'
   hydraulicSource?: 'soil_analysis' | 'estimated_from_partial_analysis'
   notes?: string[]
 }

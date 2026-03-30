@@ -1,4 +1,5 @@
 import type { GardenTask } from '@/types'
+import type { AgronomicEconomicPrioritySummary } from '@/services/agronomicEconomicPriorityService'
 import type { AgronomicSignalKey } from '@/types/agronomicKernel'
 import type { AgronomicActionQueueItem } from '@/services/agronomicActionQueueService'
 
@@ -11,6 +12,7 @@ export interface AgronomicQueueTaskDraft {
   priorityConfidence: number
   urgencyLabel: AgronomicActionQueueItem['urgencyLabel']
   missingSignals: AgronomicSignalKey[]
+  economicSummary?: AgronomicEconomicPrioritySummary | null
   task: Omit<GardenTask, 'id'>
 }
 
@@ -23,6 +25,7 @@ export interface AgronomicQueueTaskMetadata {
   urgencyLabel: AgronomicActionQueueItem['urgencyLabel']
   agronomicProfileId?: string
   missingSignals: AgronomicSignalKey[]
+  economicSummary?: AgronomicEconomicPrioritySummary | null
 }
 
 export const AGRONOMIC_QUEUE_SUGGESTED_BY_PREFIX = 'agronomic_queue:'
@@ -201,6 +204,10 @@ export const buildAgronomicQueueTaskMetadata = (
   urgencyLabel: item.urgencyLabel,
   agronomicProfileId: item.agronomicProfileId,
   missingSignals: item.missingSignals,
+  economicSummary:
+    item.metadata && 'economicSummary' in item.metadata
+      ? (item.metadata.economicSummary as AgronomicEconomicPrioritySummary | null | undefined) || null
+      : null,
 })
 
 export const parseAgronomicQueueTaskMetadata = (
@@ -305,6 +312,10 @@ export function buildAgronomicQueueTaskDrafts(
         priorityConfidence: item.priorityConfidence,
         urgencyLabel: item.urgencyLabel,
         missingSignals: item.missingSignals,
+        economicSummary:
+          item.metadata && 'economicSummary' in item.metadata
+            ? (item.metadata.economicSummary as AgronomicEconomicPrioritySummary | null | undefined) || null
+            : null,
         task: {
           gardenId,
           plantName: resolvePlantName(item),

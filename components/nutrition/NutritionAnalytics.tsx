@@ -17,7 +17,8 @@ import {
   PieChart,
   Activity,
   Award,
-  Zap
+  Zap,
+  Droplets,
 } from 'lucide-react'
 import { Garden } from '@/types'
 import { 
@@ -357,6 +358,38 @@ function OverviewAnalytics({ analyticsData, timePeriod }: OverviewAnalyticsProps
           <p className="text-sm text-amber-700 mt-2">
             {analyticsData.adaptiveThresholds.notes.join(' ')}
           </p>
+        </div>
+      ) : null}
+
+      {analyticsData.waterQualityInsight ? (
+        <div className={`rounded-lg border p-4 ${
+          analyticsData.waterQualityInsight.qualityBand === 'critical'
+            ? 'border-red-200 bg-red-50'
+            : analyticsData.waterQualityInsight.qualityBand === 'caution'
+              ? 'border-amber-200 bg-amber-50'
+              : 'border-sky-200 bg-sky-50'
+        }`}>
+          <div className="flex items-start gap-3">
+            <Droplets className="text-sky-600 mt-0.5" size={20} />
+            <div>
+              <h3 className="font-semibold text-gray-900">Qualita Acqua e Fertirrigazione</h3>
+              <p className="text-sm text-gray-700 mt-1">
+                Score medio {analyticsData.waterQualityInsight.averageQualityScore}/100,
+                peggiore {analyticsData.waterQualityInsight.worstQualityScore}/100,
+                zone monitorate {analyticsData.waterQualityInsight.monitoredZoneCount}/{analyticsData.waterQualityInsight.zoneCount}.
+              </p>
+              {analyticsData.waterQualityInsight.riskFlags.length > 0 && (
+                <p className="text-sm text-gray-700 mt-2">
+                  Rischi principali: {analyticsData.waterQualityInsight.riskFlags.join(', ')}
+                </p>
+              )}
+              {analyticsData.waterQualityInsight.recommendations.length > 0 && (
+                <p className="text-sm text-gray-600 mt-2">
+                  {analyticsData.waterQualityInsight.recommendations.join(' ')}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

@@ -30,6 +30,10 @@ import { useGarden } from '@/packages/core/hooks/useGarden'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import {
+  formatAgronomicEconomicSummary,
+  type AgronomicEconomicPrioritySummary,
+} from '@/services/agronomicEconomicPriorityService'
+import {
   humanizeAgronomicSignal,
   stripAgronomicQueueTaskMetadata,
 } from '@/services/agronomicQueueTaskService'
@@ -172,6 +176,14 @@ export default function DirectorBriefingWidget({
       default:
         return 'secondary'
     }
+  }
+
+  const getEconomicSummary = (value: Record<string, unknown> | undefined): AgronomicEconomicPrioritySummary | null => {
+    if (!value || !('economicSummary' in value)) {
+      return null
+    }
+
+    return (value.economicSummary as AgronomicEconomicPrioritySummary | null | undefined) || null
   }
 
   return (
@@ -344,6 +356,11 @@ export default function DirectorBriefingWidget({
                           <p className="text-xs text-muted-foreground">
                             {stripAgronomicQueueTaskMetadata(item.description)}
                           </p>
+                          {formatAgronomicEconomicSummary(getEconomicSummary(item.metadata)) && (
+                            <p className="text-xs text-emerald-700">
+                              ROI stimato: {formatAgronomicEconomicSummary(getEconomicSummary(item.metadata))}
+                            </p>
+                          )}
                           {item.missingSignals.length > 0 && (
                             <p className="text-xs text-muted-foreground">
                               Segnali mancanti: {item.missingSignals.slice(0, 3).map(humanizeAgronomicSignal).join(', ')}

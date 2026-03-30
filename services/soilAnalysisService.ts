@@ -89,7 +89,10 @@ export interface SoilHydraulicProfile {
   availableWaterHoldingMmPerMeter: number;
   estimatedInfiltrationRateMmh: number;
   rootZoneDepthCm: number;
+  effectiveRootableDepthCm: number;
+  drainageClass: 'free' | 'moderate' | 'slow';
   compactionRisk: 'low' | 'medium' | 'high' | 'unknown';
+  salinityAccumulationRisk: 'low' | 'medium' | 'high';
   source: 'soil_analysis' | 'estimated_from_partial_analysis';
   notes: string[];
 }
@@ -483,6 +486,28 @@ export function calculateSoilHydraulicProfile(
     1
   );
   const compactionRisk = deriveCompactionRisk(textureClass, organicMatterPercent, cec);
+  const drainageClass = deriveDrainageClass(estimatedInfiltrationRateMmh, textureClass);
+  const effectiveRootableDepthCm = roundTo(
+    clamp(
+      rootZoneDepthCm *
+        (compactionRisk === 'high'
+          ? 0.78
+          : compactionRisk === 'medium'
+            ? 0.88
+            : drainageClass === 'slow'
+              ? 0.92
+              : 1),
+      20,
+      rootZoneDepthCm
+    ),
+    0
+  );
+  const salinityAccumulationRisk = deriveSalinityAccumulationRisk(
+    textureClass,
+    estimatedInfiltrationRateMmh,
+    compactionRisk,
+    analysis.ph
+  );
 
   notes.push(
     `Texture class estimated as ${textureClass.replace('_', ' ')} with root zone depth ${rootZoneDepthCm} cm.`
@@ -490,7 +515,10 @@ export function calculateSoilHydraulicProfile(
   notes.push(
     `Estimated hydraulic envelope: FC ${fieldCapacityVolumetricPercent}%, WP ${wiltingPointVolumetricPercent}%, AWH ${availableWaterHoldingMmPerMeter} mm/m.`
   );
-  notes.push(`Estimated infiltration ${estimatedInfiltrationRateMmh} mm/h; compaction risk ${compactionRisk}.`);
+  notes.push(
+    `Estimated infiltration ${estimatedInfiltrationRateMmh} mm/h; drainage ${drainageClass}; effective rootable depth ${effectiveRootableDepthCm} cm; compaction risk ${compactionRisk}.`
+  );
+  notes.push(`Estimated salinity accumulation risk ${salinityAccumulationRisk}.`);
 
   if (analysis.organicMatterPercent === undefined) {
     notes.push('Organic matter missing: hydraulic adjustment uses a conservative default of 2.5%.');
@@ -506,7 +534,10 @@ export function calculateSoilHydraulicProfile(
     availableWaterHoldingMmPerMeter,
     estimatedInfiltrationRateMmh,
     rootZoneDepthCm,
+    effectiveRootableDepthCm,
+    drainageClass,
     compactionRisk,
+    salinityAccumulationRisk,
     source:
       analysis.sandPercent === undefined &&
       analysis.siltPercent === undefined &&
@@ -562,6 +593,36 @@ function deriveCompactionRisk(
   return 'low';
 }
 
+function deriveDrainageClass(
+  infiltrationRateMmh: number,
+  textureClass: SoilTextureClass
+): 'free' | 'moderate' | 'slow' {
+  if (infiltrationRateMmh <= 6 || textureClass === 'clay') return 'slow';
+  if (infiltrationRateMmh >= 15 && (textureClass === 'sand' || textureClass === 'sandy_loam')) {
+    return 'free';
+  }
+  return 'moderate';
+}
+
+function deriveSalinityAccumulationRisk(
+  textureClass: SoilTextureClass,
+  infiltrationRateMmh: number,
+  compactionRisk: 'low' | 'medium' | 'high' | 'unknown',
+  ph?: number
+): 'low' | 'medium' | 'high' {
+  let riskScore = 0;
+
+  if (textureClass === 'clay' || textureClass === 'clay_loam') riskScore += 2;
+  if (infiltrationRateMmh < 7) riskScore += 2;
+  if (compactionRisk === 'medium') riskScore += 1;
+  if (compactionRisk === 'high') riskScore += 2;
+  if (typeof ph === 'number' && ph >= 7.8) riskScore += 1;
+
+  if (riskScore >= 5) return 'high';
+  if (riskScore >= 3) return 'medium';
+  return 'low';
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
@@ -570,7 +631,6 @@ function roundTo(value: number, decimals: number): number {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
 }
-
 
 
 

@@ -6,6 +6,7 @@ import type { Garden, GardenTask } from '@/types'
 import { useAuth } from '@/packages/core/hooks/useAuth'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { directorService } from '@/services/directorService'
+import { formatAgronomicEconomicSummary } from '@/services/agronomicEconomicPriorityService'
 import {
   buildAgronomicQueueTaskDrafts,
   humanizeAgronomicSignal,
@@ -188,6 +189,11 @@ export default function AgronomicQueueTaskPanel({
                     <p className="text-sm text-gray-600">
                       {stripAgronomicQueueTaskMetadata(draft.task.notes)}
                     </p>
+                    {formatAgronomicEconomicSummary(draft.economicSummary) && (
+                      <p className="text-xs text-emerald-700 mt-1">
+                        ROI stimato: {formatAgronomicEconomicSummary(draft.economicSummary)}
+                      </p>
+                    )}
                   </div>
                   <div className="text-xs text-gray-500">
                     Pianificato per {draft.task.date}

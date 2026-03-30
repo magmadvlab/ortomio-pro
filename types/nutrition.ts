@@ -1,6 +1,8 @@
 // Advanced Nutrition System Types
 // Comprehensive type definitions for professional nutrition and treatment management
 
+import type { IrrigationWaterQualityBand } from './irrigation'
+
 export interface FertilizerProduct {
   id: string
   gardenId: string
@@ -369,6 +371,7 @@ export interface NutritionAnalytics {
   // Recommendations
   recommendations: AnalyticsRecommendation[]
   adaptiveThresholds?: NutritionAdaptiveThresholds
+  waterQualityInsight?: NutritionWaterQualityInsight
 }
 
 export interface TreatmentTypeAnalytics {
@@ -428,6 +431,18 @@ export interface NutritionAdaptiveThresholds {
   followUpRateThresholdPercent: number
   qualityTargetRating: number
   notes: string[]
+}
+
+export interface NutritionWaterQualityInsight {
+  hasFertigationExposure: boolean
+  zoneCount: number
+  monitoredZoneCount: number
+  averageQualityScore: number
+  worstQualityScore: number
+  qualityBand: IrrigationWaterQualityBand
+  sourceLabel?: string
+  riskFlags: string[]
+  recommendations: string[]
 }
 
 // Inventory Management Types
@@ -502,6 +517,7 @@ export interface NutritionDashboardData {
     treatmentFrequency: number
   }
   adaptiveThresholds?: NutritionAdaptiveThresholds
+  waterQualityInsight?: NutritionWaterQualityInsight
 }
 
 export interface EffectivenessAlert {

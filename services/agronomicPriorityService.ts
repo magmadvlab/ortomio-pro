@@ -2,6 +2,7 @@ import {
   getAgronomicCropProfileById,
   resolveAgronomicCropProfileSync,
 } from '@/services/agronomicKernelService'
+import type { AgronomicEconomicPrioritySummary } from '@/services/agronomicEconomicPriorityService'
 import type { AgronomicMeasuredFeedbackSummary } from '@/services/agronomicMeasuredFeedbackService'
 import type {
   AgronomicCropProfile,
@@ -32,6 +33,7 @@ export interface AgronomicPriorityScoreInput {
   availableSignals?: Iterable<AgronomicSignalKey>
   isCriticalStage?: boolean
   measuredFeedbackSummary?: AgronomicMeasuredFeedbackSummary | null
+  economicSummary?: AgronomicEconomicPrioritySummary | null
 }
 
 export interface AgronomicPriorityScoreResult {
@@ -39,6 +41,7 @@ export interface AgronomicPriorityScoreResult {
   confidence: number
   signalCoverage: AgronomicSignalCoverage
   measuredFeedbackSummary?: AgronomicMeasuredFeedbackSummary | null
+  economicSummary?: AgronomicEconomicPrioritySummary | null
 }
 
 const normalizeHint = (value?: string | null) =>
@@ -164,6 +167,10 @@ export function scoreAgronomicPriority(
     score += input.measuredFeedbackSummary.scoreAdjustment
   }
 
+  if (input.economicSummary) {
+    score += input.economicSummary.scoreAdjustment
+  }
+
   switch (input.resolvedProfile?.source) {
     case 'plant_id':
       score += 4
@@ -198,7 +205,8 @@ export function scoreAgronomicPriority(
         signalCoverage.coverageRatio * 0.2 +
         0.08 +
         sourceConfidenceAdjustment +
-        (input.measuredFeedbackSummary?.confidenceAdjustment || 0)
+        (input.measuredFeedbackSummary?.confidenceAdjustment || 0) +
+        (input.economicSummary?.confidenceAdjustment || 0)
     )
   )
 
@@ -207,5 +215,6 @@ export function scoreAgronomicPriority(
     confidence: derivedConfidence,
     signalCoverage,
     measuredFeedbackSummary: input.measuredFeedbackSummary || null,
+    economicSummary: input.economicSummary || null,
   }
 }

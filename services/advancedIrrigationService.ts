@@ -33,6 +33,7 @@ import {
   getLatestSoilAnalysis,
   type SoilHydraulicProfile,
 } from '@/services/soilAnalysisService'
+import { resolveIrrigationWaterQualityProfile } from '@/services/irrigationWaterQualityService'
 import {
   resolveAgronomicPriorityProfileSync,
   scoreAgronomicPriority,
@@ -44,6 +45,7 @@ import type {
 } from '@/types/agronomicKernel'
 import type { ArchetypeId } from '@/types/archetypes'
 import type { FunctionalCategory } from '@/data/plantTaxonomy'
+import type { IrrigationWaterQualityProfile } from '@/types/irrigation'
 
 const getSupabaseClient = (): SupabaseClient => {
   const client = getSupabaseClientUnsafe()
@@ -467,13 +469,27 @@ class AdvancedIrrigationService {
       const soilHydraulicProfile = calculateSoilHydraulicProfile(latestSoilAnalysis, {
         rootZoneDepthCm: hydraulicRootZoneDepthCm,
       })
+      const irrigationSystems = await this.getIrrigationSystems(zoneId).catch(() => [])
+      const waterQualityProfile = await resolveIrrigationWaterQualityProfile({
+        gardenId: zone.garden_id,
+        zoneId,
+        systems: irrigationSystems,
+      })
+      const enrichedWeatherData = this.enrichWeatherDataWithWaterQuality(
+        weatherData,
+        waterQualityProfile
+      )
 
       // Calculate crop evapotranspiration
       const etcMm = et0Mm * kcCoefficient
 
       // Calculate irrigation need (considering effective rainfall)
-      const effectiveRainfallMm = weatherData?.effectiveRainfallMm || 0
-      const irrigationNeedMm = Math.max(0, etcMm - effectiveRainfallMm)
+      const effectiveRainfallMm = enrichedWeatherData?.effectiveRainfallMm || 0
+      const baseIrrigationNeedMm = Math.max(0, etcMm - effectiveRainfallMm)
+      const irrigationNeedMm = this.applyWaterQualityLeachingAdjustment(
+        baseIrrigationNeedMm,
+        waterQualityProfile
+      )
       const soilWaterBalance = this.buildEstimatedSoilWaterBalance(
         soilHydraulicProfile,
         irrigationNeedMm,
@@ -499,20 +515,22 @@ class AdvancedIrrigationService {
       const confidenceLevel = this.calculateAgronomicConfidenceLevel(
         resolvedAgronomicProfile,
         effectiveCropStage,
-        weatherData,
+        enrichedWeatherData,
         measuredFeedbackSummary,
-        soilHydraulicProfile
+        soilHydraulicProfile,
+        waterQualityProfile
       )
       const aiReasoning = this.buildAgronomicReasoning(
         resolvedAgronomicProfile,
         effectiveCropStage,
-        weatherData,
+        enrichedWeatherData,
         systemEfficiency,
         zone.water_retention,
         aiAdjustmentFactor,
         measuredFeedbackSummary,
         soilHydraulicProfile,
-        soilWaterBalance
+        soilWaterBalance,
+        waterQualityProfile
       )
 
       const waterRequirement: Omit<WaterRequirement, 'id'> = {
@@ -522,7 +540,8 @@ class AdvancedIrrigationService {
         kcCoefficient,
         etcMm,
         cropStage: effectiveCropStage,
-        weatherData: weatherData || {},
+        weatherData: enrichedWeatherData || {},
+        waterQualityProfile: waterQualityProfile || undefined,
         soilWaterBalance,
         irrigationNeedMm,
         recommendedVolumeLiters: adjustedVolumeLiters,
@@ -541,7 +560,13 @@ class AdvancedIrrigationService {
 
       if (error) throw error
 
-      return this.mapWaterRequirementFromDatabase(data)
+      return {
+        ...this.mapWaterRequirementFromDatabase(data),
+        weatherData: enrichedWeatherData || {},
+        waterQualityProfile: waterQualityProfile || undefined,
+        soilWaterBalance,
+        irrigationNeedMm,
+      }
     } catch (error) {
       console.error('Error calculating water requirements:', error)
       throw error
@@ -809,7 +834,7 @@ class AdvancedIrrigationService {
       // Get zone info
       const { data: zone, error: zoneError } = await supabase
         .from('irrigation_zones')
-        .select('name, description')
+        .select('name, description, garden_id')
         .eq('id', zoneId)
         .single()
 
@@ -887,6 +912,22 @@ class AdvancedIrrigationService {
 
       if (recommendations.length === 0) {
         recommendations.push('Il sistema sta funzionando in modo ottimale')
+      }
+
+      const waterQualityProfile = await resolveIrrigationWaterQualityProfile({
+        gardenId: zone.garden_id,
+        zoneId,
+        systems: await this.getIrrigationSystems(zoneId).catch(() => []),
+      })
+
+      if (waterQualityProfile?.qualityBand === 'critical') {
+        recommendations.push(
+          `Qualita acqua critica: ${waterQualityProfile.riskFlags.join(', ') || 'verifica salinita, pH e bicarbonati'}.`
+        )
+      } else if (waterQualityProfile?.qualityBand === 'caution') {
+        recommendations.push(
+          `Qualita acqua da monitorare: ${waterQualityProfile.riskFlags.join(', ') || 'controlli acqua consigliati'}.`
+        )
       }
 
       const resolvedAgronomicProfile =
@@ -1295,6 +1336,7 @@ class AdvancedIrrigationService {
       zoneId: data.zone_id || '',
       name: data.name,
       systemType: data.system_type || this.mapLegacySystemType(data.type),
+      waterSource: data.water_source || undefined,
       brand: data.brand,
       model: data.model,
       installationDate: data.installation_date,
@@ -1336,6 +1378,7 @@ class AdvancedIrrigationService {
       zone_id: system.zoneId,
       name: system.name,
       system_type: system.systemType,
+      water_source: system.waterSource,
       brand: system.brand,
       model: system.model,
       installation_date: system.installationDate,
@@ -1666,7 +1709,8 @@ class AdvancedIrrigationService {
     cropStage?: string,
     weatherData?: any,
     measuredFeedbackSummary?: AgronomicMeasuredFeedbackSummary | null,
-    soilHydraulicProfile?: SoilHydraulicProfile | null
+    soilHydraulicProfile?: SoilHydraulicProfile | null,
+    waterQualityProfile?: IrrigationWaterQualityProfile | null
   ): number {
     if (!resolvedProfile) {
       return 70
@@ -1719,6 +1763,12 @@ class AdvancedIrrigationService {
       confidence += 5
     }
 
+    if (waterQualityProfile?.salinity || waterQualityProfile?.ph || waterQualityProfile?.bicarbonates) {
+      confidence += 4
+    } else if (waterQualityProfile?.waterSource) {
+      confidence += 1
+    }
+
     return Math.max(45, Math.min(95, confidence))
   }
 
@@ -1731,7 +1781,8 @@ class AdvancedIrrigationService {
     aiAdjustmentFactor?: number,
     measuredFeedbackSummary?: AgronomicMeasuredFeedbackSummary | null,
     soilHydraulicProfile?: SoilHydraulicProfile | null,
-    soilWaterBalance?: WaterRequirement['soilWaterBalance']
+    soilWaterBalance?: WaterRequirement['soilWaterBalance'],
+    waterQualityProfile?: IrrigationWaterQualityProfile | null
   ): string | undefined {
     if (!resolvedProfile) {
       return undefined
@@ -1758,10 +1809,53 @@ class AdvancedIrrigationService {
         `Soil hydraulic profile (${soilHydraulicProfile.source}): ${soilHydraulicProfile.textureClass} texture, FC ${soilHydraulicProfile.fieldCapacityVolumetricPercent}%, WP ${soilHydraulicProfile.wiltingPointVolumetricPercent}%, AWH ${soilHydraulicProfile.availableWaterHoldingMmPerMeter} mm/m, infiltration ${soilHydraulicProfile.estimatedInfiltrationRateMmh} mm/h.`
       )
       notes.push(
-        `Estimated root-zone balance: depth ${soilWaterBalance.rootZoneDepthCm || soilHydraulicProfile.rootZoneDepthCm} cm, available water ${soilWaterBalance.availableWaterMm || 0} mm, estimated deficit ${soilWaterBalance.soilWaterDeficitMm || 0} mm, compaction risk ${soilHydraulicProfile.compactionRisk}.`
+        `Estimated root-zone balance: depth ${soilWaterBalance.rootZoneDepthCm || soilHydraulicProfile.rootZoneDepthCm} cm, effective depth ${soilWaterBalance.effectiveRootableDepthCm || soilHydraulicProfile.effectiveRootableDepthCm} cm, available water ${soilWaterBalance.availableWaterMm || 0} mm, estimated deficit ${soilWaterBalance.soilWaterDeficitMm || 0} mm, compaction risk ${soilHydraulicProfile.compactionRisk}, drainage ${soilHydraulicProfile.drainageClass}, salinity accumulation risk ${soilWaterBalance.salinityAccumulationRisk || soilHydraulicProfile.salinityAccumulationRisk}.`
       )
     } else {
       notes.push('No soil hydraulic profile available: irrigation volume still relies on ET0/Kc and generic zone retention only.')
+    }
+
+    if (waterQualityProfile) {
+      const waterQualityNotes = [
+        `Water source: ${waterQualityProfile.sourceLabel || waterQualityProfile.waterSource || 'unknown'}.`,
+        `Quality band: ${waterQualityProfile.qualityBand} (${waterQualityProfile.qualityScore}/100).`,
+      ]
+
+      if (waterQualityProfile.salinity) {
+        waterQualityNotes.push(
+          `Salinity ${waterQualityProfile.salinity.value} ${waterQualityProfile.salinity.unit}.`
+        )
+      }
+
+      if (waterQualityProfile.ph) {
+        waterQualityNotes.push(`pH ${waterQualityProfile.ph.value}.`)
+      }
+
+      if (waterQualityProfile.bicarbonates) {
+        waterQualityNotes.push(
+          `Bicarbonates ${waterQualityProfile.bicarbonates.value} ${waterQualityProfile.bicarbonates.unit}.`
+        )
+      }
+
+      if (waterQualityProfile.leachingFractionPercent) {
+        waterQualityNotes.push(
+          `Operational volume includes a ${waterQualityProfile.leachingFractionPercent}% leaching fraction due to water quality pressure.`
+        )
+      }
+
+      if (waterQualityProfile.riskFlags.length > 0) {
+        waterQualityNotes.push(`Water quality risks: ${waterQualityProfile.riskFlags.join(', ')}.`)
+      }
+
+      if (waterQualityProfile.recommendations.length > 0) {
+        waterQualityNotes.push(
+          `Water quality recommendations: ${waterQualityProfile.recommendations.join(' ')}`
+        )
+      }
+
+      notes.push(waterQualityNotes.join(' '))
+    } else {
+      notes.push('No irrigation-water quality profile available: source, salinity, pH, and bicarbonates are not yet constraining the recommendation.')
     }
 
     if (missingP0Signals.length > 0) {
@@ -1835,13 +1929,52 @@ class AdvancedIrrigationService {
       wiltingPointMm,
       availableWaterMm,
       rootZoneDepthCm: soilHydraulicProfile.rootZoneDepthCm,
+      effectiveRootableDepthCm: soilHydraulicProfile.effectiveRootableDepthCm,
       fieldCapacityVolumetricPercent: soilHydraulicProfile.fieldCapacityVolumetricPercent,
       wiltingPointVolumetricPercent: soilHydraulicProfile.wiltingPointVolumetricPercent,
       estimatedInfiltrationRateMmh: soilHydraulicProfile.estimatedInfiltrationRateMmh,
       textureClass: soilHydraulicProfile.textureClass,
+      drainageClass: soilHydraulicProfile.drainageClass,
       compactionRisk: soilHydraulicProfile.compactionRisk,
+      salinityAccumulationRisk: soilHydraulicProfile.salinityAccumulationRisk,
       hydraulicSource: soilHydraulicProfile.source,
       notes: soilHydraulicProfile.notes,
+    }
+  }
+
+  private applyWaterQualityLeachingAdjustment(
+    irrigationNeedMm: number,
+    waterQualityProfile?: IrrigationWaterQualityProfile | null
+  ): number {
+    if (!waterQualityProfile?.leachingFractionPercent || irrigationNeedMm <= 0) {
+      return irrigationNeedMm
+    }
+
+    return Number(
+      (irrigationNeedMm * (1 + waterQualityProfile.leachingFractionPercent / 100)).toFixed(2)
+    )
+  }
+
+  private enrichWeatherDataWithWaterQuality(
+    weatherData: any,
+    waterQualityProfile?: IrrigationWaterQualityProfile | null
+  ): WaterRequirement['weatherData'] {
+    const baseWeatherData = (weatherData || {}) as WaterRequirement['weatherData']
+
+    if (!waterQualityProfile) {
+      return baseWeatherData
+    }
+
+    return {
+      ...baseWeatherData,
+      waterSalinity: baseWeatherData.waterSalinity ?? waterQualityProfile.salinity?.value,
+      waterPh: baseWeatherData.waterPh ?? waterQualityProfile.ph?.value,
+      waterBicarbonates:
+        baseWeatherData.waterBicarbonates ?? waterQualityProfile.bicarbonates?.value,
+      waterSource: baseWeatherData.waterSource ?? waterQualityProfile.waterSource,
+      waterQualityBand: baseWeatherData.waterQualityBand ?? waterQualityProfile.qualityBand,
+      waterQualityNotes:
+        baseWeatherData.waterQualityNotes ?? waterQualityProfile.notes ?? [],
     }
   }
 

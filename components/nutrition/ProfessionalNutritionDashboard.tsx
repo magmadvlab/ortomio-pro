@@ -242,6 +242,47 @@ export default function ProfessionalNutritionDashboard({
         </div>
       </div>
 
+      {dashboardData.waterQualityInsight && (
+        <div className={`rounded-xl border p-5 ${
+          dashboardData.waterQualityInsight.qualityBand === 'critical'
+            ? 'border-red-200 bg-red-50'
+            : dashboardData.waterQualityInsight.qualityBand === 'caution'
+              ? 'border-amber-200 bg-amber-50'
+              : 'border-sky-200 bg-sky-50'
+        }`}>
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-white/80 flex items-center justify-center">
+              <Droplets className="text-sky-600" size={20} />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-gray-900">Qualita Acqua per Nutrizione</h2>
+              <p className="text-sm text-gray-700 mt-1">
+                Score medio {dashboardData.waterQualityInsight.averageQualityScore}/100
+                {' · '}
+                peggiore {dashboardData.waterQualityInsight.worstQualityScore}/100
+                {' · '}
+                zone monitorate {dashboardData.waterQualityInsight.monitoredZoneCount}/{dashboardData.waterQualityInsight.zoneCount}
+              </p>
+              {dashboardData.waterQualityInsight.sourceLabel && (
+                <p className="text-sm text-gray-600 mt-1">
+                  Fonte prevalente: {dashboardData.waterQualityInsight.sourceLabel}
+                </p>
+              )}
+              {dashboardData.waterQualityInsight.riskFlags.length > 0 && (
+                <p className="text-sm text-gray-700 mt-2">
+                  Rischi principali: {dashboardData.waterQualityInsight.riskFlags.join(', ')}
+                </p>
+              )}
+              {dashboardData.waterQualityInsight.hasFertigationExposure && (
+                <p className="text-sm text-gray-700 mt-2">
+                  La fertirrigazione e attiva: conviene usare questi vincoli nel dosaggio, nelle miscele e nel timing.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Quick Stats */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Statistiche Rapide</h2>
