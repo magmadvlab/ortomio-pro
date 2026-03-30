@@ -9,6 +9,10 @@ import { it } from 'date-fns/locale'
 
 import { translateTaskType, getCommonTaskTypesItalian } from '@/utils/taskTranslations'
 import { buildTaskExecutionUrl, canLaunchTaskExecution } from '@/services/taskExecutionLaunchService'
+import {
+  preserveAgronomicQueueTaskMetadata,
+  stripAgronomicQueueTaskMetadata,
+} from '@/services/agronomicQueueTaskService'
 
 interface TaskListProps {
   garden: Garden
@@ -37,9 +41,10 @@ export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, on
     // Filtro per ricerca
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase()
+      const searchableNotes = stripAgronomicQueueTaskMetadata(task.notes).toLowerCase()
       if (!task.plantName.toLowerCase().includes(searchLower) &&
           !task.taskType.toLowerCase().includes(searchLower) &&
-          !(task.notes || '').toLowerCase().includes(searchLower)) {
+          !searchableNotes.includes(searchLower)) {
         return false
       }
     }
@@ -289,9 +294,9 @@ export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, on
                                 )}
                               </div>
                               
-                              {task.notes && (
+                              {stripAgronomicQueueTaskMetadata(task.notes) && (
                                 <p className={`text-sm mb-2 ${task.completed ? 'text-gray-400' : 'text-gray-600'}`}>
-                                  {task.notes}
+                                  {stripAgronomicQueueTaskMetadata(task.notes)}
                                 </p>
                               )}
                               
@@ -408,7 +413,7 @@ function TaskFormModal({ task, garden, onSave, onCancel }: TaskFormModalProps) {
     plantName: task?.plantName || '',
     taskType: task?.taskType || 'Sowing',
     date: task?.nextDueDate || task?.date || format(new Date(), 'yyyy-MM-dd'),
-    notes: task?.notes || '',
+    notes: stripAgronomicQueueTaskMetadata(task?.notes),
     variety: task?.variety || '',
     zoneId: task?.zoneId || '',
     rowNumber: task?.rowNumber || undefined,
@@ -425,7 +430,7 @@ function TaskFormModal({ task, garden, onSave, onCancel }: TaskFormModalProps) {
       taskType: formData.taskType as any,
       date: formData.date,
       nextDueDate: formData.date,
-      notes: formData.notes,
+      notes: preserveAgronomicQueueTaskMetadata(task?.notes, formData.notes),
       variety: formData.variety || undefined,
       zoneId: formData.zoneId || undefined,
       rowNumber: formData.rowNumber || undefined,

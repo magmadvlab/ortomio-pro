@@ -38,6 +38,7 @@ import { ExoticFruitCrop } from '../types/exoticFruit';
 import { GardenBed } from '../types/gardenBed';
 import { useStorage } from '../packages/core/hooks/useStorage';
 import { calculateBedSpace } from '../logic/spaceCalculator';
+import { stripAgronomicQueueTaskMetadata } from '@/services/agronomicQueueTaskService';
 // AI Integration
 import AIPlanningWizard from './ai/AIPlanningWizard';
 import PlanPreviewModal from './ai/PlanPreviewModal';
@@ -1196,9 +1197,11 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                         />
                       </div>
                       
-                      {task.notes && (
+                      {stripAgronomicQueueTaskMetadata(task.notes) && (
                         <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                          <p className="text-sm text-gray-700 line-clamp-3">{task.notes}</p>
+                          <p className="text-sm text-gray-700 line-clamp-3">
+                            {stripAgronomicQueueTaskMetadata(task.notes)}
+                          </p>
                         </div>
                       )}
                     </div>

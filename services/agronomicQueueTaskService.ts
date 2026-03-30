@@ -128,20 +128,7 @@ export const buildAgronomicQueueTaskMetadata = (
 export const parseAgronomicQueueTaskMetadata = (
   notes?: string | null
 ): AgronomicQueueTaskMetadata | null => {
-  if (!notes || !notes.includes(AGRONOMIC_QUEUE_META_MARKER)) {
-    return null
-  }
-
-  const [, rawPayload] = notes.split(AGRONOMIC_QUEUE_META_MARKER)
-  if (!rawPayload) {
-    return null
-  }
-
-  try {
-    return JSON.parse(rawPayload.trim()) as AgronomicQueueTaskMetadata
-  } catch {
-    return null
-  }
+  return splitAgronomicQueueTaskNotes(notes).metadata
 }
 
 const buildTaskNotes = (item: AgronomicActionQueueItem): string => {
@@ -157,6 +144,60 @@ const buildTaskNotes = (item: AgronomicActionQueueItem): string => {
   ].filter(Boolean)
 
   return parts.join(' ')
+}
+
+export const stripAgronomicQueueTaskMetadata = (notes?: string | null): string => {
+  return splitAgronomicQueueTaskNotes(notes).visibleNotes
+}
+
+export const preserveAgronomicQueueTaskMetadata = (
+  originalNotes: string | null | undefined,
+  visibleNotes: string | null | undefined
+): string | undefined => {
+  const { metadata } = splitAgronomicQueueTaskNotes(originalNotes)
+  const cleanedVisibleNotes = visibleNotes?.trim()
+
+  if (!metadata) {
+    return cleanedVisibleNotes || undefined
+  }
+
+  const serializedMetadata = `${AGRONOMIC_QUEUE_META_MARKER}${JSON.stringify(metadata)}`
+  return [cleanedVisibleNotes, serializedMetadata].filter(Boolean).join(' ')
+}
+
+function splitAgronomicQueueTaskNotes(notes?: string | null): {
+  visibleNotes: string
+  metadata: AgronomicQueueTaskMetadata | null
+} {
+  if (!notes || !notes.includes(AGRONOMIC_QUEUE_META_MARKER)) {
+    return {
+      visibleNotes: notes?.trim() || '',
+      metadata: null,
+    }
+  }
+
+  const markerIndex = notes.indexOf(AGRONOMIC_QUEUE_META_MARKER)
+  const visibleNotes = notes.slice(0, markerIndex).trim()
+  const rawPayload = notes.slice(markerIndex + AGRONOMIC_QUEUE_META_MARKER.length).trim()
+
+  if (!rawPayload) {
+    return {
+      visibleNotes,
+      metadata: null,
+    }
+  }
+
+  try {
+    return {
+      visibleNotes,
+      metadata: JSON.parse(rawPayload) as AgronomicQueueTaskMetadata,
+    }
+  } catch {
+    return {
+      visibleNotes: notes.trim(),
+      metadata: null,
+    }
+  }
 }
 
 export function buildAgronomicQueueTaskDrafts(

@@ -425,6 +425,14 @@ export interface SoilWaterBalance {
   fieldCapacityMm?: number
   wiltingPointMm?: number
   availableWaterMm?: number
+  rootZoneDepthCm?: number
+  fieldCapacityVolumetricPercent?: number
+  wiltingPointVolumetricPercent?: number
+  estimatedInfiltrationRateMmh?: number
+  textureClass?: string
+  compactionRisk?: 'low' | 'medium' | 'high' | 'unknown'
+  hydraulicSource?: 'soil_analysis' | 'estimated_from_partial_analysis'
+  notes?: string[]
 }
 
 export interface IrrigationSensor {

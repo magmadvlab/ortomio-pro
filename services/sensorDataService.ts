@@ -372,7 +372,7 @@ export async function getLatestSensorReading(
     query = query.is('zone_id', null);
   }
 
-  const { data, error } = await query.single();
+  const { data, error } = await query.maybeSingle();
 
   if (error || !data) {
     return null;
@@ -406,7 +406,7 @@ export async function getLatestSensorReadingBySensorId(
     .gte('reading_date', cutoffDate.toISOString())
     .order('reading_date', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
     return null;

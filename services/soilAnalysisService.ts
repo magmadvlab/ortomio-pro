@@ -74,6 +74,26 @@ export interface CreateSoilAnalysisInput {
   notes?: string;
 }
 
+export type SoilTextureClass =
+  | 'sand'
+  | 'sandy_loam'
+  | 'loam'
+  | 'silt_loam'
+  | 'clay_loam'
+  | 'clay';
+
+export interface SoilHydraulicProfile {
+  textureClass: SoilTextureClass;
+  fieldCapacityVolumetricPercent: number;
+  wiltingPointVolumetricPercent: number;
+  availableWaterHoldingMmPerMeter: number;
+  estimatedInfiltrationRateMmh: number;
+  rootZoneDepthCm: number;
+  compactionRisk: 'low' | 'medium' | 'high' | 'unknown';
+  source: 'soil_analysis' | 'estimated_from_partial_analysis';
+  notes: string[];
+}
+
 /**
  * Crea una nuova analisi suolo
  */
@@ -394,6 +414,162 @@ function mapSoilAnalysisFromDB(db: any): SoilAnalysis {
   };
 }
 
+const TEXTURE_HYDRAULIC_BASELINES: Record<
+  SoilTextureClass,
+  {
+    fieldCapacityVolumetricPercent: number;
+    wiltingPointVolumetricPercent: number;
+    estimatedInfiltrationRateMmh: number;
+  }
+> = {
+  sand: { fieldCapacityVolumetricPercent: 12, wiltingPointVolumetricPercent: 5, estimatedInfiltrationRateMmh: 26 },
+  sandy_loam: { fieldCapacityVolumetricPercent: 18, wiltingPointVolumetricPercent: 8, estimatedInfiltrationRateMmh: 18 },
+  loam: { fieldCapacityVolumetricPercent: 27, wiltingPointVolumetricPercent: 12, estimatedInfiltrationRateMmh: 12 },
+  silt_loam: { fieldCapacityVolumetricPercent: 31, wiltingPointVolumetricPercent: 14, estimatedInfiltrationRateMmh: 9 },
+  clay_loam: { fieldCapacityVolumetricPercent: 34, wiltingPointVolumetricPercent: 18, estimatedInfiltrationRateMmh: 6 },
+  clay: { fieldCapacityVolumetricPercent: 40, wiltingPointVolumetricPercent: 24, estimatedInfiltrationRateMmh: 3.5 },
+};
+
+export function calculateSoilHydraulicProfile(
+  analysis: SoilAnalysis | null | undefined,
+  options?: {
+    rootZoneDepthCm?: number;
+  }
+): SoilHydraulicProfile | null {
+  if (!analysis) {
+    return null;
+  }
+
+  const notes: string[] = [];
+  const textureClass = classifyTextureClass(
+    analysis.sandPercent,
+    analysis.siltPercent,
+    analysis.clayPercent,
+    notes
+  );
+  const baseline = TEXTURE_HYDRAULIC_BASELINES[textureClass];
+  const organicMatterPercent = analysis.organicMatterPercent ?? 2.5;
+  const cec = analysis.cec ?? 15;
+  const rootZoneDepthCm = roundTo(clamp(options?.rootZoneDepthCm ?? 45, 20, 140), 0);
+
+  const organicMatterModifier = clamp((organicMatterPercent - 2.5) * 0.8, -2.5, 4);
+  const cecModifier = cec >= 25 ? 1.5 : cec <= 8 ? -1 : 0;
+  const fieldCapacityVolumetricPercent = roundTo(
+    clamp(
+      baseline.fieldCapacityVolumetricPercent + organicMatterModifier + cecModifier,
+      baseline.wiltingPointVolumetricPercent + 6,
+      48
+    ),
+    1
+  );
+  const wiltingPointVolumetricPercent = roundTo(
+    clamp(
+      baseline.wiltingPointVolumetricPercent + organicMatterModifier * 0.45 + (textureClass === 'clay' ? 1 : 0),
+      4,
+      fieldCapacityVolumetricPercent - 4
+    ),
+    1
+  );
+  const availableWaterHoldingMmPerMeter = roundTo(
+    (fieldCapacityVolumetricPercent - wiltingPointVolumetricPercent) * 10,
+    0
+  );
+  const estimatedInfiltrationRateMmh = roundTo(
+    clamp(
+      baseline.estimatedInfiltrationRateMmh + clamp((organicMatterPercent - 2.5) * 0.7, -2, 4),
+      2.5,
+      30
+    ),
+    1
+  );
+  const compactionRisk = deriveCompactionRisk(textureClass, organicMatterPercent, cec);
+
+  notes.push(
+    `Texture class estimated as ${textureClass.replace('_', ' ')} with root zone depth ${rootZoneDepthCm} cm.`
+  );
+  notes.push(
+    `Estimated hydraulic envelope: FC ${fieldCapacityVolumetricPercent}%, WP ${wiltingPointVolumetricPercent}%, AWH ${availableWaterHoldingMmPerMeter} mm/m.`
+  );
+  notes.push(`Estimated infiltration ${estimatedInfiltrationRateMmh} mm/h; compaction risk ${compactionRisk}.`);
+
+  if (analysis.organicMatterPercent === undefined) {
+    notes.push('Organic matter missing: hydraulic adjustment uses a conservative default of 2.5%.');
+  }
+  if (analysis.cec === undefined) {
+    notes.push('CEC missing: structure-related retention adjustment uses a neutral baseline.');
+  }
+
+  return {
+    textureClass,
+    fieldCapacityVolumetricPercent,
+    wiltingPointVolumetricPercent,
+    availableWaterHoldingMmPerMeter,
+    estimatedInfiltrationRateMmh,
+    rootZoneDepthCm,
+    compactionRisk,
+    source:
+      analysis.sandPercent === undefined &&
+      analysis.siltPercent === undefined &&
+      analysis.clayPercent === undefined
+        ? 'estimated_from_partial_analysis'
+        : 'soil_analysis',
+    notes,
+  };
+}
+
+function classifyTextureClass(
+  sandPercent?: number,
+  siltPercent?: number,
+  clayPercent?: number,
+  notes?: string[]
+): SoilTextureClass {
+  if (
+    sandPercent === undefined &&
+    siltPercent === undefined &&
+    clayPercent === undefined
+  ) {
+    notes?.push('Texture fractions missing: using loam baseline as a conservative hydraulic default.');
+    return 'loam';
+  }
+
+  const sand = sandPercent ?? 40;
+  const silt = siltPercent ?? 40;
+  const clay = clayPercent ?? Math.max(0, 100 - sand - silt);
+
+  if (clay >= 40) return 'clay';
+  if (clay >= 27 && sand <= 45) return 'clay_loam';
+  if (silt >= 50 && clay < 27) return 'silt_loam';
+  if (sand >= 70 && clay < 15) return 'sand';
+  if (sand >= 55 && clay < 20) return 'sandy_loam';
+  return 'loam';
+}
+
+function deriveCompactionRisk(
+  textureClass: SoilTextureClass,
+  organicMatterPercent: number,
+  cec: number
+): 'low' | 'medium' | 'high' | 'unknown' {
+  let riskScore = 0;
+
+  if (textureClass === 'clay' || textureClass === 'clay_loam') riskScore += 2;
+  if (textureClass === 'silt_loam') riskScore += 1;
+  if (organicMatterPercent < 2) riskScore += 1;
+  if (organicMatterPercent > 4) riskScore -= 1;
+  if (cec > 25) riskScore += 1;
+
+  if (riskScore >= 3) return 'high';
+  if (riskScore >= 1) return 'medium';
+  return 'low';
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function roundTo(value: number, decimals: number): number {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
 
 
 

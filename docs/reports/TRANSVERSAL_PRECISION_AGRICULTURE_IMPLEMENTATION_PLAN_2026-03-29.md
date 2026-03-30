@@ -403,3 +403,7 @@ These files are the first technical foundation of the transversal architecture.
   - `services/operationRegistryService.ts` now stores a numeric `qualityScore` alongside the legacy `A/B/C` harvest grade when registry records are hydrated from harvest logs
   - `services/integratedFieldOperationsService.ts` and `components/fieldrows/IntegratedFieldOperationsModal.tsx` now propagate a derived `qualityScore` in integrated harvest requests, instead of carrying only the categorical grade
   - this is a useful transitional step because future analytics can read a continuous signal from row-level operations without breaking the legacy UI or storage schema
+- the soil-water layer is now starting to become operational instead of descriptive only:
+  - `services/soilAnalysisService.ts` now derives a reusable hydraulic soil profile from the latest soil analysis, estimating texture class, field capacity, wilting point, available water holding capacity, infiltration, root-zone depth, and compaction risk without requiring a schema migration
+  - `services/advancedIrrigationService.ts` now reads that hydraulic profile during water-requirement calculation, builds an explicit `soilWaterBalance`, raises decision confidence when a real soil analysis exists, and explains the hydraulic assumptions inside agronomic reasoning
+  - `types/irrigation.ts` now exposes extended soil-water explainability fields so irrigation decisions can carry root depth, infiltration, texture, compaction, and hydraulic source instead of only storing four legacy numeric water-balance values

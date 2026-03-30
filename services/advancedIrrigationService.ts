@@ -29,6 +29,11 @@ import {
 } from '@/services/agronomicProfileLearningService'
 import { resolveAgronomicCropProfile } from '@/services/agronomicKernelService'
 import {
+  calculateSoilHydraulicProfile,
+  getLatestSoilAnalysis,
+  type SoilHydraulicProfile,
+} from '@/services/soilAnalysisService'
+import {
   resolveAgronomicPriorityProfileSync,
   scoreAgronomicPriority,
 } from '@/services/agronomicPriorityService'
@@ -447,7 +452,7 @@ class AdvancedIrrigationService {
       // Get zone information for area calculation
       const { data: zone, error: zoneError } = await supabase
         .from('irrigation_zones')
-        .select('area_sqm, efficiency_percentage, water_retention')
+        .select('area_sqm, efficiency_percentage, water_retention, garden_id')
         .eq('id', zoneId)
         .single()
 
@@ -455,6 +460,13 @@ class AdvancedIrrigationService {
 
       const resolvedAgronomicProfile = await this.resolveWaterRequirementProfile(agronomicInput)
       const effectiveCropStage = cropStage || this.getAgronomicFallbackStage(resolvedAgronomicProfile?.profile)
+      const hydraulicRootZoneDepthCm = this.getHydraulicRootZoneDepthCm(
+        resolvedAgronomicProfile?.profile
+      )
+      const latestSoilAnalysis = await getLatestSoilAnalysis(supabase, zoneId, zone.garden_id)
+      const soilHydraulicProfile = calculateSoilHydraulicProfile(latestSoilAnalysis, {
+        rootZoneDepthCm: hydraulicRootZoneDepthCm,
+      })
 
       // Calculate crop evapotranspiration
       const etcMm = et0Mm * kcCoefficient
@@ -462,6 +474,11 @@ class AdvancedIrrigationService {
       // Calculate irrigation need (considering effective rainfall)
       const effectiveRainfallMm = weatherData?.effectiveRainfallMm || 0
       const irrigationNeedMm = Math.max(0, etcMm - effectiveRainfallMm)
+      const soilWaterBalance = this.buildEstimatedSoilWaterBalance(
+        soilHydraulicProfile,
+        irrigationNeedMm,
+        zone.water_retention
+      )
 
       // Calculate recommended volume (1mm over 1m² = 1 liter)
       const recommendedVolumeLiters = irrigationNeedMm * zone.area_sqm
@@ -483,7 +500,8 @@ class AdvancedIrrigationService {
         resolvedAgronomicProfile,
         effectiveCropStage,
         weatherData,
-        measuredFeedbackSummary
+        measuredFeedbackSummary,
+        soilHydraulicProfile
       )
       const aiReasoning = this.buildAgronomicReasoning(
         resolvedAgronomicProfile,
@@ -492,7 +510,9 @@ class AdvancedIrrigationService {
         systemEfficiency,
         zone.water_retention,
         aiAdjustmentFactor,
-        measuredFeedbackSummary
+        measuredFeedbackSummary,
+        soilHydraulicProfile,
+        soilWaterBalance
       )
 
       const waterRequirement: Omit<WaterRequirement, 'id'> = {
@@ -503,6 +523,7 @@ class AdvancedIrrigationService {
         etcMm,
         cropStage: effectiveCropStage,
         weatherData: weatherData || {},
+        soilWaterBalance,
         irrigationNeedMm,
         recommendedVolumeLiters: adjustedVolumeLiters,
         calculationMethod: 'penman_monteith',
@@ -1644,7 +1665,8 @@ class AdvancedIrrigationService {
     resolvedProfile: ResolvedAgronomicCropProfile | null,
     cropStage?: string,
     weatherData?: any,
-    measuredFeedbackSummary?: AgronomicMeasuredFeedbackSummary | null
+    measuredFeedbackSummary?: AgronomicMeasuredFeedbackSummary | null,
+    soilHydraulicProfile?: SoilHydraulicProfile | null
   ): number {
     if (!resolvedProfile) {
       return 70
@@ -1693,6 +1715,10 @@ class AdvancedIrrigationService {
       confidence += Math.round(measuredFeedbackSummary.confidenceAdjustment * 100 * 0.45)
     }
 
+    if (soilHydraulicProfile) {
+      confidence += 5
+    }
+
     return Math.max(45, Math.min(95, confidence))
   }
 
@@ -1703,7 +1729,9 @@ class AdvancedIrrigationService {
     systemEfficiency: number,
     waterRetention?: string,
     aiAdjustmentFactor?: number,
-    measuredFeedbackSummary?: AgronomicMeasuredFeedbackSummary | null
+    measuredFeedbackSummary?: AgronomicMeasuredFeedbackSummary | null,
+    soilHydraulicProfile?: SoilHydraulicProfile | null,
+    soilWaterBalance?: WaterRequirement['soilWaterBalance']
   ): string | undefined {
     if (!resolvedProfile) {
       return undefined
@@ -1724,6 +1752,17 @@ class AdvancedIrrigationService {
       `P0 signal coverage: ${coveredP0Signals.length}/${p0Signals.length || 0}.`,
       `Zone water retention: ${waterRetention || 'unknown'}. System efficiency: ${systemEfficiency}%.`,
     ]
+
+    if (soilHydraulicProfile && soilWaterBalance) {
+      notes.push(
+        `Soil hydraulic profile (${soilHydraulicProfile.source}): ${soilHydraulicProfile.textureClass} texture, FC ${soilHydraulicProfile.fieldCapacityVolumetricPercent}%, WP ${soilHydraulicProfile.wiltingPointVolumetricPercent}%, AWH ${soilHydraulicProfile.availableWaterHoldingMmPerMeter} mm/m, infiltration ${soilHydraulicProfile.estimatedInfiltrationRateMmh} mm/h.`
+      )
+      notes.push(
+        `Estimated root-zone balance: depth ${soilWaterBalance.rootZoneDepthCm || soilHydraulicProfile.rootZoneDepthCm} cm, available water ${soilWaterBalance.availableWaterMm || 0} mm, estimated deficit ${soilWaterBalance.soilWaterDeficitMm || 0} mm, compaction risk ${soilHydraulicProfile.compactionRisk}.`
+      )
+    } else {
+      notes.push('No soil hydraulic profile available: irrigation volume still relies on ET0/Kc and generic zone retention only.')
+    }
 
     if (missingP0Signals.length > 0) {
       notes.push(
@@ -1750,6 +1789,60 @@ class AdvancedIrrigationService {
     notes.push('Kc remains the user-provided coefficient until crop-stage Kc curves are formalized in the irrigation engine.')
 
     return notes.join(' ')
+  }
+
+  private getHydraulicRootZoneDepthCm(profile?: AgronomicCropProfile | null): number | undefined {
+    if (!profile) {
+      return undefined
+    }
+
+    const rootProfile = profile.water.rootProfile
+    return Math.round((rootProfile.effectiveDepthCmMin + rootProfile.effectiveDepthCmMax) / 2)
+  }
+
+  private buildEstimatedSoilWaterBalance(
+    soilHydraulicProfile: SoilHydraulicProfile | null,
+    irrigationNeedMm: number,
+    waterRetention?: string
+  ): WaterRequirement['soilWaterBalance'] | undefined {
+    if (!soilHydraulicProfile) {
+      return undefined
+    }
+
+    const rootZoneDepthMm = soilHydraulicProfile.rootZoneDepthCm * 10
+    const fieldCapacityMm = Number(
+      ((soilHydraulicProfile.fieldCapacityVolumetricPercent / 100) * rootZoneDepthMm).toFixed(1)
+    )
+    const wiltingPointMm = Number(
+      ((soilHydraulicProfile.wiltingPointVolumetricPercent / 100) * rootZoneDepthMm).toFixed(1)
+    )
+    const availableWaterMm = Number(Math.max(0, fieldCapacityMm - wiltingPointMm).toFixed(1))
+
+    let deficitMultiplier = 1.12
+    if (waterRetention === 'low') deficitMultiplier = 1.3
+    if (waterRetention === 'high') deficitMultiplier = 1.03
+
+    if (soilHydraulicProfile.compactionRisk === 'medium') deficitMultiplier += 0.04
+    if (soilHydraulicProfile.compactionRisk === 'high') deficitMultiplier += 0.08
+
+    const soilWaterDeficitMm = Number(
+      Math.min(availableWaterMm, Math.max(0, irrigationNeedMm * deficitMultiplier)).toFixed(1)
+    )
+
+    return {
+      soilWaterDeficitMm,
+      fieldCapacityMm,
+      wiltingPointMm,
+      availableWaterMm,
+      rootZoneDepthCm: soilHydraulicProfile.rootZoneDepthCm,
+      fieldCapacityVolumetricPercent: soilHydraulicProfile.fieldCapacityVolumetricPercent,
+      wiltingPointVolumetricPercent: soilHydraulicProfile.wiltingPointVolumetricPercent,
+      estimatedInfiltrationRateMmh: soilHydraulicProfile.estimatedInfiltrationRateMmh,
+      textureClass: soilHydraulicProfile.textureClass,
+      compactionRisk: soilHydraulicProfile.compactionRisk,
+      hydraulicSource: soilHydraulicProfile.source,
+      notes: soilHydraulicProfile.notes,
+    }
   }
 
   private async getWaterMeasuredFeedbackSummary(

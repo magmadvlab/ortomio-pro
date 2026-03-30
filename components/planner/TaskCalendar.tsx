@@ -10,6 +10,10 @@ import TreatmentCalendarIntegration from '@/components/treatments/TreatmentCalen
 import AlmanaccoIntegration from '@/components/planner/AlmanaccoIntegration'
 import { translateTaskType, getCommonTaskTypesItalian } from '@/utils/taskTranslations'
 import { buildTaskExecutionUrl, canLaunchTaskExecution } from '@/services/taskExecutionLaunchService'
+import {
+  preserveAgronomicQueueTaskMetadata,
+  stripAgronomicQueueTaskMetadata,
+} from '@/services/agronomicQueueTaskService'
 
 // Lunar calendar integration
 interface MoonPhase {
@@ -248,7 +252,7 @@ export default function TaskCalendar({ garden, tasks, onTaskUpdate, onTaskCreate
       plantName: task.plantName,
       taskType: task.taskType,
       date: task.nextDueDate || task.date,
-      notes: task.notes || '',
+      notes: stripAgronomicQueueTaskMetadata(task.notes),
       variety: task.variety || ''
     })
     setShowNewTaskForm(true)
@@ -264,7 +268,7 @@ export default function TaskCalendar({ garden, tasks, onTaskUpdate, onTaskCreate
       taskType: newTask.taskType as any,
       date: newTask.date,
       nextDueDate: newTask.date,
-      notes: newTask.notes,
+      notes: preserveAgronomicQueueTaskMetadata(editingTask.notes, newTask.notes),
       variety: newTask.variety || undefined
     }
 
