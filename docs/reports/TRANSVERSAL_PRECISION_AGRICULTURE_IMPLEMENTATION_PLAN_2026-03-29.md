@@ -1,5 +1,8 @@
 # TRANSVERSAL PRECISION AGRICULTURE IMPLEMENTATION PLAN (2026-03-29)
 
+Companion roadmap:
+- `docs/reports/PRECISION_AGRICULTURE_EXCELLENCE_ROADMAP_2026-03-30.md`
+
 ## Objective
 Transform OrtoMio from a collection of strong agronomic modules into a transversal agronomic platform able to support:
 - any crop family: cereals, vegetables, legumes, orchards, vineyards, olive groves, protected cultivation, controlled environment
