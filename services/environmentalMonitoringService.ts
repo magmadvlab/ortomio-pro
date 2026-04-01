@@ -1,6 +1,7 @@
 import { getSupabaseClient } from '@/config/supabase'
 import type { SensorReading, SensorType } from '@/services/sensorDataService'
 import { getLatestSensorReading } from '@/services/sensorDataService'
+import { normalizeGeoCoordinates } from '@/utils/coordinates'
 
 type PersistedWeatherDataSource = 'api' | 'manual' | 'station'
 
@@ -32,6 +33,35 @@ export interface PersistedWeatherLineage {
   persisted: true
 }
 
+export interface PersistedForecastSnapshot {
+  forecastDate: string
+  generatedFromDate: string
+  generatedAt: string
+  daysAhead: number
+  source: 'open_meteo_forecast' | 'synthetic_fallback'
+  confidence: 'high' | 'medium' | 'low' | 'estimated'
+  tempMin: number
+  tempMax: number
+  precipitationMm: number
+  humidityAvg?: number
+  windSpeedMax?: number
+  condition?: string
+}
+
+export interface SiteWeatherBinding {
+  latitude?: number
+  longitude?: number
+  altitudeMeters?: number
+  slopePercentage?: number
+  sunExposure?: string
+  exposureClass: 'sheltered' | 'balanced' | 'exposed' | 'unknown'
+  slopeClass: 'flat' | 'rolling' | 'steep' | 'unknown'
+  dryingPowerAdjustment: 'lower' | 'neutral' | 'higher'
+  diseasePressureAdjustment: 'lower' | 'neutral' | 'higher'
+  thermalLoadAdjustment: 'lower' | 'neutral' | 'higher'
+  notes: string[]
+}
+
 export interface DerivedWeatherIndicators {
   thermalAmplitudeC?: number
   precipitationToEtoRatio?: number
@@ -47,6 +77,9 @@ export interface EnvironmentalMonitoringSnapshot {
     sourceClass: PersistedWeatherLineage['signalClass'] | 'unknown'
     primarySource: PersistedWeatherLineage['primarySource'] | 'unknown'
     signalQuality: PersistedWeatherLineage['signalQuality'] | 'unknown'
+    regionalConfidence: 'high' | 'medium' | 'low' | 'unknown'
+    localConfidence: 'high' | 'medium' | 'low' | 'unknown'
+    forecastDaysAhead?: number
     temperatureMinC?: number
     temperatureMaxC?: number
     temperatureAvgC?: number
@@ -56,6 +89,7 @@ export interface EnvironmentalMonitoringSnapshot {
     waterBalanceClass?: DerivedWeatherIndicators['waterBalanceClass']
     diseasePressureClass?: DerivedWeatherIndicators['diseasePressureClass']
     dryingPowerClass?: DerivedWeatherIndicators['dryingPowerClass']
+    siteBinding?: SiteWeatherBinding
   }
   sensors: {
     precedence: 'sensor_local' | 'sensor_garden' | 'persisted_weather' | 'estimated'
@@ -113,6 +147,168 @@ export interface GardenEnvironmentalHistorySummary {
   latestSensorPrecedence?: EnvironmentalMonitoringSnapshot['sensors']['precedence']
   latestSoilWaterStressLevel?: EnvironmentalMonitoringSnapshot['soilWater']['stressLevel']
   dominantWeatherSourceClass?: EnvironmentalMonitoringSnapshot['weather']['sourceClass']
+}
+
+const normalizeDateString = (value?: string | null) => {
+  if (!value) return null
+  return value.split('T')[0] || null
+}
+
+const toFiniteNumber = (value: unknown): number | undefined => {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : undefined
+}
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value))
+
+export function buildPersistedForecastSnapshots(
+  forecast: {
+    dates: string[]
+    tempMin: Array<number | null | undefined>
+    tempMax: Array<number | null | undefined>
+    precipitationMm: Array<number | null | undefined>
+    humidityMin?: Array<number | null | undefined>
+    humidityMax?: Array<number | null | undefined>
+    windSpeedMax?: Array<number | null | undefined>
+    conditions?: Array<string | null | undefined>
+  },
+  options: {
+    generatedFromDate: string
+    generatedAt?: string
+    source: PersistedForecastSnapshot['source']
+    maxDays?: number
+  }
+): PersistedForecastSnapshot[] {
+  const generatedAt = options.generatedAt || new Date().toISOString()
+  const generatedFromDate = normalizeDateString(options.generatedFromDate)
+  if (!generatedFromDate) {
+    return []
+  }
+
+  const maxDays = options.maxDays ?? 7
+  return forecast.dates
+    .slice(0, maxDays)
+    .map((forecastDate, index) => {
+      const normalizedDate = normalizeDateString(forecastDate)
+      const tempMin = toFiniteNumber(forecast.tempMin[index])
+      const tempMax = toFiniteNumber(forecast.tempMax[index])
+      const precipitationMm = toFiniteNumber(forecast.precipitationMm[index]) ?? 0
+      if (!normalizedDate || tempMin === undefined || tempMax === undefined) {
+        return null
+      }
+
+      const humidityMin = toFiniteNumber(forecast.humidityMin?.[index])
+      const humidityMax = toFiniteNumber(forecast.humidityMax?.[index])
+      const daysAhead = Math.max(0, index)
+      const confidence: PersistedForecastSnapshot['confidence'] =
+        options.source === 'synthetic_fallback'
+          ? 'estimated'
+          : daysAhead <= 1
+            ? 'high'
+            : daysAhead <= 4
+              ? 'medium'
+              : 'low'
+
+      return {
+        forecastDate: normalizedDate,
+        generatedFromDate,
+        generatedAt,
+        daysAhead,
+        source: options.source,
+        confidence,
+        tempMin,
+        tempMax,
+        precipitationMm,
+        humidityAvg:
+          humidityMin !== undefined && humidityMax !== undefined
+            ? Number(((humidityMin + humidityMax) / 2).toFixed(1))
+            : humidityMax ?? humidityMin,
+        windSpeedMax: toFiniteNumber(forecast.windSpeedMax?.[index]),
+        condition: forecast.conditions?.[index] || undefined,
+      }
+    })
+    .filter((snapshot): snapshot is PersistedForecastSnapshot => Boolean(snapshot))
+}
+
+export function buildSiteWeatherBinding(input: {
+  latitude?: number
+  longitude?: number
+  altitudeMeters?: number
+  slopePercentage?: number
+  sunExposure?: string
+}): SiteWeatherBinding {
+  const notes: string[] = []
+  const slopePercentage = toFiniteNumber(input.slopePercentage)
+  const altitudeMeters = toFiniteNumber(input.altitudeMeters)
+  const normalizedExposure = (input.sunExposure || '').toLowerCase()
+
+  const exposureClass: SiteWeatherBinding['exposureClass'] =
+    normalizedExposure.includes('shade')
+      ? 'sheltered'
+      : normalizedExposure.includes('full')
+        ? 'exposed'
+        : normalizedExposure
+          ? 'balanced'
+          : 'unknown'
+
+  const slopeClass: SiteWeatherBinding['slopeClass'] =
+    slopePercentage === undefined
+      ? 'unknown'
+      : slopePercentage < 3
+        ? 'flat'
+        : slopePercentage < 12
+          ? 'rolling'
+          : 'steep'
+
+  let dryingPowerAdjustment: SiteWeatherBinding['dryingPowerAdjustment'] = 'neutral'
+  let diseasePressureAdjustment: SiteWeatherBinding['diseasePressureAdjustment'] = 'neutral'
+  let thermalLoadAdjustment: SiteWeatherBinding['thermalLoadAdjustment'] = 'neutral'
+
+  if (exposureClass === 'exposed') {
+    dryingPowerAdjustment = 'higher'
+    diseasePressureAdjustment = 'lower'
+    thermalLoadAdjustment = 'higher'
+    notes.push('Full exposure increases drying power and heat load relative to the regional forecast.')
+  } else if (exposureClass === 'sheltered') {
+    dryingPowerAdjustment = 'lower'
+    diseasePressureAdjustment = 'higher'
+    thermalLoadAdjustment = 'lower'
+    notes.push('Sheltered exposure can keep foliage wet longer than the regional forecast suggests.')
+  }
+
+  if (slopeClass === 'rolling') {
+    dryingPowerAdjustment = dryingPowerAdjustment === 'lower' ? 'neutral' : 'higher'
+    notes.push('Rolling slope can accelerate runoff and shorten effective water residence.')
+  } else if (slopeClass === 'steep') {
+    dryingPowerAdjustment = 'higher'
+    thermalLoadAdjustment = thermalLoadAdjustment === 'lower' ? 'neutral' : 'higher'
+    notes.push('Steep slope amplifies runoff risk and can tighten timing windows after rain or irrigation.')
+  }
+
+  if (altitudeMeters !== undefined) {
+    if (altitudeMeters >= 700) {
+      thermalLoadAdjustment = thermalLoadAdjustment === 'higher' ? 'neutral' : 'lower'
+      notes.push('Higher altitude likely lowers night temperatures relative to the regional forecast grid.')
+    } else if (altitudeMeters <= 80) {
+      thermalLoadAdjustment = thermalLoadAdjustment === 'lower' ? 'neutral' : 'higher'
+      notes.push('Low-altitude site is likely closer to the warmer regional baseline.')
+    }
+  }
+
+  return {
+    latitude: toFiniteNumber(input.latitude),
+    longitude: toFiniteNumber(input.longitude),
+    altitudeMeters,
+    slopePercentage,
+    sunExposure: input.sunExposure,
+    exposureClass,
+    slopeClass,
+    dryingPowerAdjustment,
+    diseasePressureAdjustment,
+    thermalLoadAdjustment,
+    notes,
+  }
 }
 
 type WaterRequirementLike = {
@@ -231,6 +427,8 @@ export function buildPersistedWeatherEnvelope(
   options?: {
     recordedAt?: string
     providerPayload?: Record<string, unknown>
+    forecastSnapshots?: PersistedForecastSnapshot[]
+    siteWeatherBinding?: SiteWeatherBinding
     now?: Date
   }
 ): Record<string, unknown> {
@@ -244,8 +442,100 @@ export function buildPersistedWeatherEnvelope(
     ...(weather.raw_data || {}),
     environmentalLineage: lineage,
     derivedIndicators: indicators,
+    forecastSnapshots:
+      options?.forecastSnapshots ??
+      (Array.isArray(weather.raw_data?.forecastSnapshots)
+        ? weather.raw_data?.forecastSnapshots
+        : undefined),
+    siteWeatherBinding:
+      options?.siteWeatherBinding ??
+      (weather.raw_data?.siteWeatherBinding &&
+      typeof weather.raw_data.siteWeatherBinding === 'object'
+        ? weather.raw_data.siteWeatherBinding
+        : undefined),
     providerPayload: options?.providerPayload ?? weather.raw_data?.providerPayload ?? weather.raw_data,
   }
+}
+
+export function resolvePersistedWeatherLogForDate(
+  weatherLogs: PersistedDailyWeatherLike[],
+  targetDate: string,
+  options?: {
+    now?: Date
+  }
+): PersistedDailyWeatherLike | null {
+  const normalizedTargetDate = normalizeDateString(targetDate)
+  if (!normalizedTargetDate || weatherLogs.length === 0) {
+    return null
+  }
+
+  const exactMatch = weatherLogs.find((log) => log.log_date === normalizedTargetDate)
+  if (exactMatch) {
+    return exactMatch
+  }
+
+  const snapshotSourceLog = [...weatherLogs]
+    .sort((left, right) => right.log_date.localeCompare(left.log_date))
+    .find((log) => {
+      const snapshots = Array.isArray(log.raw_data?.forecastSnapshots)
+        ? (log.raw_data?.forecastSnapshots as PersistedForecastSnapshot[])
+        : []
+      return snapshots.some((snapshot) => snapshot.forecastDate === normalizedTargetDate)
+    })
+
+  if (!snapshotSourceLog) {
+    return null
+  }
+
+  const snapshot = (snapshotSourceLog.raw_data?.forecastSnapshots as PersistedForecastSnapshot[])
+    .find((entry) => entry.forecastDate === normalizedTargetDate)
+  if (!snapshot) {
+    return null
+  }
+
+  const syntheticLog: PersistedDailyWeatherLike = {
+    log_date: normalizedTargetDate,
+    temp_min: snapshot.tempMin,
+    temp_max: snapshot.tempMax,
+    temp_avg: Number(((snapshot.tempMin + snapshot.tempMax) / 2).toFixed(1)),
+    precipitation_mm: snapshot.precipitationMm,
+    humidity_avg: snapshot.humidityAvg,
+    weather_conditions: snapshot.condition,
+    data_source: snapshot.source === 'synthetic_fallback' ? 'manual' : 'api',
+    raw_data: buildPersistedWeatherEnvelope(
+      {
+        log_date: normalizedTargetDate,
+        temp_min: snapshot.tempMin,
+        temp_max: snapshot.tempMax,
+        temp_avg: Number(((snapshot.tempMin + snapshot.tempMax) / 2).toFixed(1)),
+        precipitation_mm: snapshot.precipitationMm,
+        humidity_avg: snapshot.humidityAvg,
+        weather_conditions: snapshot.condition,
+        data_source: snapshot.source === 'synthetic_fallback' ? 'manual' : 'api',
+        raw_data: {
+          forecastSnapshot: snapshot,
+          persistedFromLogDate: snapshotSourceLog.log_date,
+          siteWeatherBinding: snapshotSourceLog.raw_data?.siteWeatherBinding,
+        },
+      },
+      {
+        recordedAt: snapshot.generatedAt,
+        providerPayload:
+          snapshotSourceLog.raw_data?.providerPayload &&
+          typeof snapshotSourceLog.raw_data.providerPayload === 'object'
+            ? (snapshotSourceLog.raw_data.providerPayload as Record<string, unknown>)
+            : undefined,
+        siteWeatherBinding:
+          snapshotSourceLog.raw_data?.siteWeatherBinding &&
+          typeof snapshotSourceLog.raw_data.siteWeatherBinding === 'object'
+            ? (snapshotSourceLog.raw_data.siteWeatherBinding as SiteWeatherBinding)
+            : undefined,
+        now: options?.now,
+      }
+    ),
+  }
+
+  return syntheticLog
 }
 
 export function upsertZoneEnvironmentalLedger(
@@ -453,6 +743,7 @@ export function buildEnvironmentalMonitoringSnapshot(params: {
   sensorReadings?: SensorReading[]
   waterRequirement?: WaterRequirementLike | null
   zoneId?: string
+  siteWeatherBinding?: SiteWeatherBinding | null
 }): EnvironmentalMonitoringSnapshot {
   const readings = (params.sensorReadings || []).filter(Boolean)
   const availableSignals = Array.from(new Set(readings.map((reading) => reading.sensor_type)))
@@ -476,6 +767,17 @@ export function buildEnvironmentalMonitoringSnapshot(params: {
       : params.weatherLog
         ? deriveWeatherIndicators(params.weatherLog)
         : null
+  const forecastSnapshot =
+    params.weatherLog?.raw_data?.forecastSnapshot &&
+    typeof params.weatherLog.raw_data.forecastSnapshot === 'object'
+      ? (params.weatherLog.raw_data.forecastSnapshot as PersistedForecastSnapshot)
+      : null
+  const siteWeatherBinding =
+    params.siteWeatherBinding ||
+    (params.weatherLog?.raw_data?.siteWeatherBinding &&
+    typeof params.weatherLog.raw_data.siteWeatherBinding === 'object'
+      ? (params.weatherLog.raw_data.siteWeatherBinding as SiteWeatherBinding)
+      : null)
 
   const precedence =
     readings.length > 0
@@ -514,6 +816,43 @@ export function buildEnvironmentalMonitoringSnapshot(params: {
     notes.push('Weather-derived disease pressure is elevated in the persisted daily history.')
   }
 
+  if (forecastSnapshot) {
+    notes.push(
+      `Persisted forecast snapshot reused for +${forecastSnapshot.daysAhead} day(s) from ${forecastSnapshot.generatedFromDate}.`
+    )
+  }
+
+  if (siteWeatherBinding?.notes?.length) {
+    notes.push(...siteWeatherBinding.notes)
+  }
+
+  let regionalConfidence: EnvironmentalMonitoringSnapshot['weather']['regionalConfidence'] = 'unknown'
+  if (forecastSnapshot) {
+    regionalConfidence =
+      forecastSnapshot.confidence === 'estimated'
+        ? 'low'
+        : forecastSnapshot.confidence
+  } else if (lineage?.signalClass === 'station') {
+    regionalConfidence = 'high'
+  } else if (lineage?.signalClass === 'historical_archive' || lineage?.signalClass === 'manual') {
+    regionalConfidence = 'high'
+  } else if (lineage?.signalClass === 'forecast') {
+    regionalConfidence = 'medium'
+  } else if (lineage?.signalClass === 'synthetic_fallback') {
+    regionalConfidence = 'low'
+  }
+
+  const localConfidence: EnvironmentalMonitoringSnapshot['weather']['localConfidence'] =
+    precedence === 'sensor_local'
+      ? 'high'
+      : precedence === 'sensor_garden'
+        ? 'medium'
+        : siteWeatherBinding
+          ? 'medium'
+          : params.weatherLog
+            ? 'low'
+            : 'unknown'
+
   return {
     date: params.date,
     weather: {
@@ -521,6 +860,9 @@ export function buildEnvironmentalMonitoringSnapshot(params: {
       sourceClass: lineage?.signalClass || 'unknown',
       primarySource: lineage?.primarySource || 'unknown',
       signalQuality: lineage?.signalQuality || 'unknown',
+      regionalConfidence,
+      localConfidence,
+      forecastDaysAhead: forecastSnapshot?.daysAhead,
       temperatureMinC: params.weatherLog?.temp_min,
       temperatureMaxC: params.weatherLog?.temp_max,
       temperatureAvgC: params.weatherLog?.temp_avg,
@@ -530,6 +872,7 @@ export function buildEnvironmentalMonitoringSnapshot(params: {
       waterBalanceClass: indicators?.waterBalanceClass,
       diseasePressureClass: indicators?.diseasePressureClass,
       dryingPowerClass: indicators?.dryingPowerClass,
+      siteBinding: siteWeatherBinding || undefined,
     },
     sensors: {
       precedence,
@@ -569,13 +912,18 @@ export async function getEnvironmentalMonitoringSnapshot(params: {
     })
   }
 
-  const [weatherRes, waterRequirementRes, ...sensorReadings] = await Promise.all([
+  const lookupStart = new Date(`${dateStr}T12:00:00.000Z`)
+  lookupStart.setDate(lookupStart.getDate() - 7)
+  const lookupStartDate = lookupStart.toISOString().split('T')[0]
+
+  const [weatherRes, waterRequirementRes, zoneSiteRes, gardenSiteRes, ...sensorReadings] = await Promise.all([
     supabase
       .from('daily_weather_log')
       .select('*')
       .eq('user_id', params.userId)
-      .eq('log_date', dateStr)
-      .maybeSingle(),
+      .gte('log_date', lookupStartDate)
+      .lte('log_date', dateStr)
+      .order('log_date', { ascending: false }),
     params.zoneId
       ? supabase
           .from('water_requirements')
@@ -586,6 +934,18 @@ export async function getEnvironmentalMonitoringSnapshot(params: {
           .limit(1)
           .maybeSingle()
       : Promise.resolve({ data: null, error: null }),
+    params.zoneId
+      ? supabase
+          .from('irrigation_zones')
+          .select('id, slope_percentage, sun_exposure')
+          .eq('id', params.zoneId)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    supabase
+      .from('gardens')
+      .select('id, coordinates')
+      .eq('id', params.gardenId)
+      .maybeSingle(),
     ...([
       'temperature_air',
       'humidity_air',
@@ -608,14 +968,38 @@ export async function getEnvironmentalMonitoringSnapshot(params: {
     ),
   ])
 
+  const gardenCoords =
+    normalizeGeoCoordinates(gardenSiteRes.data?.coordinates) ||
+    (gardenSiteRes.data?.coordinates && typeof gardenSiteRes.data.coordinates === 'object'
+      ? ({
+          latitude: (gardenSiteRes.data.coordinates as { latitude?: number }).latitude,
+          longitude: (gardenSiteRes.data.coordinates as { longitude?: number }).longitude,
+        } as { latitude?: number; longitude?: number })
+      : null)
+  const siteWeatherBinding =
+    gardenCoords?.latitude !== undefined && gardenCoords?.longitude !== undefined
+      ? buildSiteWeatherBinding({
+          latitude: gardenCoords.latitude,
+          longitude: gardenCoords.longitude,
+          slopePercentage: zoneSiteRes.data?.slope_percentage,
+          sunExposure: zoneSiteRes.data?.sun_exposure,
+        })
+      : null
+  const resolvedWeatherLog = resolvePersistedWeatherLogForDate(
+    ((weatherRes.data || []) as PersistedDailyWeatherLike[]),
+    dateStr,
+    { now: new Date() }
+  )
+
   return buildEnvironmentalMonitoringSnapshot({
     date: dateStr,
-    weatherLog: (weatherRes.data || undefined) as PersistedDailyWeatherLike | undefined,
+    weatherLog: resolvedWeatherLog || undefined,
     sensorReadings: sensorReadings.filter(
       (reading): reading is SensorReading => Boolean(reading)
     ),
     waterRequirement: (waterRequirementRes as { data: WaterRequirementLike | null }).data,
     zoneId: params.zoneId,
+    siteWeatherBinding,
   })
 }
 

@@ -53,11 +53,14 @@ export interface WeatherSnapshot {
   condition: string
   pressure: number
   source?: 'current' | 'forecast' | 'historical' | 'fallback'
+  sourceClass?: 'forecast' | 'historical_archive' | 'current_runtime' | 'synthetic_fallback'
   primarySource?:
     | 'open_meteo_forecast'
     | 'open_meteo_archive'
     | 'fallback_estimated'
   signalQuality?: 'measured' | 'mixed' | 'estimated'
+  regionalConfidence?: 'high' | 'medium' | 'low'
+  localConfidence?: 'high' | 'medium' | 'low'
 }
 
 // Export standalone functions for compatibility
@@ -503,8 +506,16 @@ class WeatherService {
         condition: getConditionFromCode(weatherCode),
         pressure: 1013,
         source,
+        sourceClass:
+          source === 'historical'
+            ? 'historical_archive'
+            : source === 'forecast'
+              ? 'forecast'
+              : 'current_runtime',
         primarySource: source === 'historical' ? 'open_meteo_archive' : 'open_meteo_forecast',
         signalQuality: source === 'historical' ? 'mixed' : 'mixed',
+        regionalConfidence: source === 'historical' ? 'high' : source === 'forecast' ? 'medium' : 'medium',
+        localConfidence: 'low',
       }
     } catch (error) {
       console.error(`Error getting weather for ${targetDate}:`, error)
@@ -516,8 +527,11 @@ class WeatherService {
         condition: 'unknown',
         pressure: 1013,
         source: 'fallback',
+        sourceClass: 'synthetic_fallback',
         primarySource: 'fallback_estimated',
         signalQuality: 'estimated',
+        regionalConfidence: 'low',
+        localConfidence: 'low',
       }
     }
   }

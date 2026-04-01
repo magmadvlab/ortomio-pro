@@ -1,7 +1,9 @@
 import { scoreAgronomicPriority, type AgronomicPriorityFocus } from '@/services/agronomicPriorityService'
 import {
   buildAgronomicEconomicPrioritySummary,
+  formatAgronomicActionComparison,
   summarizeAgronomicEconomicObservations,
+  type AgronomicActionComparisonSummary,
   type AgronomicEconomicPrioritySummary,
 } from '@/services/agronomicEconomicPriorityService'
 import {
@@ -80,6 +82,24 @@ const getUrgencyLabel = (score: number): AgronomicActionQueueItem['urgencyLabel'
   return 'monitor'
 }
 
+const resolveUrgencyLabel = (
+  score: number,
+  economicSummary?: AgronomicEconomicPrioritySummary | null
+): AgronomicActionQueueItem['urgencyLabel'] =>
+  economicSummary?.actionComparison?.recommendedUrgencyLabel || getUrgencyLabel(score)
+
+const appendActionComparisonDescription = (
+  description: string,
+  economicSummary?: AgronomicEconomicPrioritySummary | null
+): string => {
+  const comparisonSummary = formatAgronomicActionComparison(economicSummary?.actionComparison)
+  return [description?.trim(), comparisonSummary].filter(Boolean).join(' ')
+}
+
+const getActionComparison = (
+  economicSummary?: AgronomicEconomicPrioritySummary | null
+): AgronomicActionComparisonSummary | null => economicSummary?.actionComparison || null
+
 const summarizeFeedbackForQueueItem = (
   records: AgronomicMeasuredFeedbackRecord[] | undefined,
   focus: AgronomicPriorityFocus,
@@ -134,19 +154,20 @@ const toHealthQueueItems = (
       id: `health:${alert.id}`,
       source: 'health',
       title: `${alert.plantName} - ${healthAlertTypeLabels[alert.type]}`,
-      description: alert.description,
+      description: appendActionComparisonDescription(alert.description, economicSummary),
       scopeLabel: alert.plantName,
       focus: 'health',
       priorityScore: priorityResult.score,
       priorityConfidence: priorityResult.confidence,
       missingSignals: [],
-      urgencyLabel: getUrgencyLabel(priorityResult.score),
+      urgencyLabel: resolveUrgencyLabel(priorityResult.score, economicSummary),
       metadata: {
         severity: alert.severity,
         type: alert.type,
         triggers: alert.triggers,
         measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
         economicSummary: priorityResult.economicSummary,
+        actionComparison: getActionComparison(priorityResult.economicSummary),
       },
     }
   })
@@ -168,39 +189,41 @@ const toIrrigationQueueItems = (
       'water',
       { zoneId: report.zoneId }
     )
+    const economicSummary = buildAgronomicEconomicPrioritySummary({
+      source: 'irrigation',
+      focus: 'water',
+      priorityScore: report.priorityScore ?? 40,
+      priorityConfidence: report.priorityConfidence ?? 0.55,
+      agronomicProfileId: report.agronomicProfileId,
+      cropNameHint: report.zoneName,
+      operationalContextTags: report.operationalContextTags,
+      averageEfficiency: report.averageEfficiency,
+      uniformityCoefficient: report.uniformityCoefficient,
+      waterUseEfficiency: report.waterUseEfficiency,
+      observationSummary,
+      environmentalSummary,
+    })
     const priorityResult = scoreAgronomicPriority({
       baseScore: report.priorityScore ?? 40,
       confidence: report.priorityConfidence ?? 0.55,
       focus: 'water',
       measuredFeedbackSummary,
       environmentalSummary,
-      economicSummary: buildAgronomicEconomicPrioritySummary({
-        source: 'irrigation',
-        focus: 'water',
-        priorityScore: report.priorityScore ?? 40,
-        priorityConfidence: report.priorityConfidence ?? 0.55,
-        agronomicProfileId: report.agronomicProfileId,
-        cropNameHint: report.zoneName,
-        averageEfficiency: report.averageEfficiency,
-        uniformityCoefficient: report.uniformityCoefficient,
-        waterUseEfficiency: report.waterUseEfficiency,
-        observationSummary,
-        environmentalSummary,
-      }),
+      economicSummary,
     })
 
     return {
       id: `irrigation:${report.zoneId}:${report.period}`,
       source: 'irrigation',
       title: `Irrigazione ${report.zoneName}`,
-      description: report.recommendations.join(' '),
+      description: appendActionComparisonDescription(report.recommendations.join(' '), economicSummary),
       scopeLabel: report.zoneName,
       focus: 'water',
       priorityScore: priorityResult.score,
       priorityConfidence: priorityResult.confidence,
       agronomicProfileId: report.agronomicProfileId,
       missingSignals: report.missingSignals || [],
-      urgencyLabel: getUrgencyLabel(priorityResult.score),
+      urgencyLabel: resolveUrgencyLabel(priorityResult.score, economicSummary),
       metadata: {
         averageEfficiency: report.averageEfficiency,
         uniformityCoefficient: report.uniformityCoefficient,
@@ -209,6 +232,7 @@ const toIrrigationQueueItems = (
         measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
         economicSummary: priorityResult.economicSummary,
         environmentalSummary: priorityResult.environmentalSummary,
+        actionComparison: getActionComparison(priorityResult.economicSummary),
       },
     }
   })
@@ -237,38 +261,40 @@ const toPrescriptionQueueItems = (
       'nutrition',
       { zoneId: priority.zoneId, plantName: summary.benchmarkCropLabel }
     )
+    const economicSummary = buildAgronomicEconomicPrioritySummary({
+      source: 'prescription',
+      focus: 'nutrition',
+      priorityScore: priority.priorityScore,
+      priorityConfidence: priority.priorityConfidence ?? 0.6,
+      urgencyLabel: priority.urgency,
+      agronomicProfileId: priority.agronomicProfileId,
+      cropNameHint: summary.benchmarkCropLabel,
+      operationalContextTags: priority.operationalContextTags,
+      efficacyScore: priority.efficacyScore,
+      observationSummary,
+      environmentalSummary,
+    })
     const priorityResult = scoreAgronomicPriority({
       baseScore: priority.priorityScore,
       confidence: priority.priorityConfidence ?? 0.6,
       focus: 'nutrition',
       measuredFeedbackSummary,
       environmentalSummary,
-      economicSummary: buildAgronomicEconomicPrioritySummary({
-        source: 'prescription',
-        focus: 'nutrition',
-        priorityScore: priority.priorityScore,
-        priorityConfidence: priority.priorityConfidence ?? 0.6,
-        urgencyLabel: priority.urgency,
-        agronomicProfileId: priority.agronomicProfileId,
-        cropNameHint: summary.benchmarkCropLabel,
-        efficacyScore: priority.efficacyScore,
-        observationSummary,
-        environmentalSummary,
-      }),
+      economicSummary,
     })
 
     return {
       id: `prescription:${priority.id}`,
       source: 'prescription',
       title: `Prescription ${priority.scopeLabel}`,
-      description: priority.rationale,
+      description: appendActionComparisonDescription(priority.rationale, economicSummary),
       scopeLabel: priority.scopeLabel,
       focus: 'nutrition',
       priorityScore: priorityResult.score,
       priorityConfidence: priorityResult.confidence,
       agronomicProfileId: priority.agronomicProfileId,
       missingSignals: priority.missingSignals || [],
-      urgencyLabel: getUrgencyLabel(priorityResult.score),
+      urgencyLabel: resolveUrgencyLabel(priorityResult.score, economicSummary),
       metadata: {
         drivers: priority.drivers,
         recommendedAction: priority.recommendedAction,
@@ -276,6 +302,7 @@ const toPrescriptionQueueItems = (
         measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
         economicSummary: priorityResult.economicSummary,
         environmentalSummary: priorityResult.environmentalSummary,
+        actionComparison: getActionComparison(priorityResult.economicSummary),
       },
     }
   })
@@ -296,40 +323,45 @@ const toDirectorQueueItems = (
       focus,
       { plantName: action.title }
     )
-    const priorityResult = scoreAgronomicPriority({
-      baseScore: action.priorityScore,
-      confidence: action.priorityConfidence ?? action.confidence ?? 0.55,
-      focus,
-      measuredFeedbackSummary,
-      economicSummary: buildAgronomicEconomicPrioritySummary({
+    const economicSummary =
+      action.economicSummary ||
+      buildAgronomicEconomicPrioritySummary({
         source: 'director',
         focus,
         priorityScore: action.priorityScore,
         priorityConfidence: action.priorityConfidence ?? action.confidence ?? 0.55,
         agronomicProfileId: action.agronomicProfileId,
+        operationalContextTags: action.operationalContextTags,
         cropNameHint: action.title,
         interventionCost: action.cost,
         observationSummary,
-      }),
+      })
+    const priorityResult = scoreAgronomicPriority({
+      baseScore: action.priorityScore,
+      confidence: action.priorityConfidence ?? action.confidence ?? 0.55,
+      focus,
+      measuredFeedbackSummary,
+      economicSummary,
     })
 
     return {
       id: `director:${action.id}`,
       source: 'director',
       title: action.title,
-      description: action.description,
+      description: appendActionComparisonDescription(action.description, economicSummary),
       focus,
       priorityScore: priorityResult.score,
       priorityConfidence: priorityResult.confidence,
       agronomicProfileId: action.agronomicProfileId,
       missingSignals: action.missingSignals || [],
-      urgencyLabel: getUrgencyLabel(priorityResult.score),
+      urgencyLabel: resolveUrgencyLabel(priorityResult.score, economicSummary),
       metadata: {
         source: action.source,
         type: action.type,
         reasoning: action.reasoning,
         measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
         economicSummary: priorityResult.economicSummary,
+        actionComparison: getActionComparison(priorityResult.economicSummary),
       },
     }
   })
@@ -349,6 +381,19 @@ const toPhenologyQueueItems = (
       'quality',
       { plantName: candidate.cropNameHint || candidate.scopeLabel }
     )
+    const economicSummary = buildAgronomicEconomicPrioritySummary({
+      source: 'phenology',
+      focus: 'quality',
+      priorityScore: candidate.isDecisionCriticalStage ? 72 : 46,
+      priorityConfidence: candidate.confidence,
+      urgencyLabel: candidate.isDecisionCriticalStage ? 'immediate' : 'next_cycle',
+      agronomicProfileId: candidate.profileId,
+      cropNameHint: candidate.cropNameHint || candidate.scopeLabel,
+      isCriticalStage: candidate.isDecisionCriticalStage,
+      interventionCost: candidate.source === 'observation' ? 8 : 12,
+      qualityScoreGap: candidate.isDecisionCriticalStage ? 10 : 4,
+      observationSummary,
+    })
     const priorityResult = scoreAgronomicPriority({
       baseScore: candidate.isDecisionCriticalStage ? 72 : 46,
       confidence: candidate.confidence,
@@ -356,42 +401,33 @@ const toPhenologyQueueItems = (
       availableSignals: candidate.availableSignals || [],
       isCriticalStage: candidate.isDecisionCriticalStage,
       measuredFeedbackSummary,
-      economicSummary: buildAgronomicEconomicPrioritySummary({
-        source: 'phenology',
-        focus: 'quality',
-        priorityScore: candidate.isDecisionCriticalStage ? 72 : 46,
-        priorityConfidence: candidate.confidence,
-        urgencyLabel: candidate.isDecisionCriticalStage ? 'immediate' : 'next_cycle',
-        agronomicProfileId: candidate.profileId,
-        cropNameHint: candidate.cropNameHint || candidate.scopeLabel,
-        isCriticalStage: candidate.isDecisionCriticalStage,
-        interventionCost: candidate.source === 'observation' ? 8 : 12,
-        qualityScoreGap: candidate.isDecisionCriticalStage ? 10 : 4,
-        observationSummary,
-      }),
+      economicSummary,
     })
 
     return {
       id: `phenology:${candidate.id}`,
       source: 'phenology',
       title: candidate.title,
-      description:
+      description: appendActionComparisonDescription(
         candidate.source === 'agronomic_fallback'
           ? `Fase ${candidate.stageLabel} stimata sullo scope ${candidate.scopeLabel}. Conviene confermare con osservazione o sensore.`
           : `Fase ${candidate.stageLabel} osservata sullo scope ${candidate.scopeLabel}.`,
+        economicSummary
+      ),
       scopeLabel: candidate.scopeLabel,
       focus: 'quality',
       priorityScore: priorityResult.score,
       priorityConfidence: priorityResult.confidence,
       agronomicProfileId: candidate.profileId,
       missingSignals: priorityResult.signalCoverage.missingP0Signals,
-      urgencyLabel: getUrgencyLabel(priorityResult.score),
+      urgencyLabel: resolveUrgencyLabel(priorityResult.score, economicSummary),
       metadata: {
         stageKey: candidate.stageKey,
         stageLabel: candidate.stageLabel,
         source: candidate.source,
         measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
         economicSummary: priorityResult.economicSummary,
+        actionComparison: getActionComparison(priorityResult.economicSummary),
       },
     }
   })
@@ -419,6 +455,17 @@ export function buildAgronomicActionQueue(
   return queue.sort((left, right) => {
     if (right.priorityScore !== left.priorityScore) {
       return right.priorityScore - left.priorityScore
+    }
+
+    const rightDominanceMargin =
+      ((right.metadata?.actionComparison as AgronomicActionComparisonSummary | null | undefined)
+        ?.dominanceMargin || 0)
+    const leftDominanceMargin =
+      ((left.metadata?.actionComparison as AgronomicActionComparisonSummary | null | undefined)
+        ?.dominanceMargin || 0)
+
+    if (rightDominanceMargin !== leftDominanceMargin) {
+      return rightDominanceMargin - leftDominanceMargin
     }
 
     return right.priorityConfidence - left.priorityConfidence

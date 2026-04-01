@@ -26,7 +26,20 @@ import {
   scoreAgronomicPriority,
   type AgronomicPriorityFocus,
 } from '@/services/agronomicPriorityService'
-import type { AgronomicSignalKey } from '@/types/agronomicKernel'
+import {
+  buildAgronomicEconomicPrioritySummary,
+  type AgronomicEconomicPrioritySummary,
+} from '@/services/agronomicEconomicPriorityService'
+import {
+  inferOperationalContextTagsFromProfile,
+  inferOperationalContextTagsFromSite,
+  inferOperationalContextTagsFromText,
+  mergeOperationalContextTags,
+} from '@/services/agronomicOperationalContextService'
+import type {
+  AgronomicOperationalContextTag,
+  AgronomicSignalKey,
+} from '@/types/agronomicKernel'
 import type { Garden, GardenTask, SmartDevice } from '@/types'
 import { getCurrentPhenologyState } from '@/services/phenologyService'
 import { plantHealthMonitoringService } from '@/services/plantHealthMonitoringService'
@@ -60,9 +73,12 @@ export interface PrioritizedAction {
   reasoning?: string
   confidence?: number
   agronomicProfileId?: string
+  operationalContextTags?: AgronomicOperationalContextTag[]
   priorityConfidence?: number
   missingSignals?: AgronomicSignalKey[]
   agronomicFocus?: AgronomicPriorityFocus
+  economicSummary?: AgronomicEconomicPrioritySummary | null
+  actionComparisonExplanation?: string | null
 }
 
 export interface DailyBriefing {
@@ -88,10 +104,13 @@ export interface DailyBriefing {
     weatherSourceClass?: string
     weatherPrimarySource?: string
     weatherSignalQuality?: string
+    weatherRegionalConfidence?: string
+    weatherLocalConfidence?: string
     sensorPrecedence?: string
     sensorSignals?: string[]
     soilWaterStressLevel?: string
     circulationNotes?: string[]
+    siteBindingNotes?: string[]
     recentHighDiseasePressureDays?: number
     recentHighSoilWaterStressDays?: number
     recentLowDryingPowerDays?: number
@@ -214,10 +233,13 @@ class DirectorService {
               weatherSourceClass: environmentalSummary.weather.sourceClass,
               weatherPrimarySource: environmentalSummary.weather.primarySource,
               weatherSignalQuality: environmentalSummary.weather.signalQuality,
+              weatherRegionalConfidence: environmentalSummary.weather.regionalConfidence,
+              weatherLocalConfidence: environmentalSummary.weather.localConfidence,
               sensorPrecedence: environmentalSummary.sensors.precedence,
               sensorSignals: environmentalSummary.sensors.availableSignals,
               soilWaterStressLevel: environmentalSummary.soilWater.stressLevel,
               circulationNotes: environmentalSummary.circulation.notes,
+              siteBindingNotes: environmentalSummary.weather.siteBinding?.notes,
               recentHighDiseasePressureDays:
                 environmentalHistorySummary?.highDiseasePressureDays,
               recentHighSoilWaterStressDays:
@@ -279,12 +301,48 @@ class DirectorService {
       ],
       fallbackProfileId: this.getFallbackAgronomicProfileIdFromSuggestion(suggestion),
     })
+    const operationalContextTags = mergeOperationalContextTags(
+      inferOperationalContextTagsFromText(
+        suggestion.context,
+        suggestion.title,
+        suggestion.description,
+        suggestion.metadata?.plantName,
+        suggestion.metadata?.cropName,
+        suggestion.metadata?.gardenType,
+        suggestion.metadata?.cultivationSystem,
+        suggestion.metadata?.irrigationMode,
+        suggestion.metadata?.varietyType,
+        suggestion.metadata?.trainingSystem,
+        suggestion.metadata?.rootstock,
+        suggestion.metadata?.terroir
+      ),
+      inferOperationalContextTagsFromSite({
+        altitudeMeters: suggestion.metadata?.altitudeMeters,
+        slopePercentage: suggestion.metadata?.slopePercentage,
+        sunExposure: suggestion.metadata?.sunExposure,
+      }),
+      inferOperationalContextTagsFromProfile(resolvedAgronomicProfile?.profile)
+    )
+    const economicSummary = buildAgronomicEconomicPrioritySummary({
+      source: 'director',
+      focus: agronomicFocus,
+      priorityScore: baseScore,
+      priorityConfidence: suggestion.confidence_score || suggestion.prediction_data?.confidence || 0.5,
+      agronomicProfileId: resolvedAgronomicProfile?.profile.id,
+      operationalContextTags,
+      cropNameHint:
+        suggestion.metadata?.plantName ||
+        suggestion.metadata?.cropName ||
+        suggestion.context ||
+        suggestion.title,
+    })
     const priorityResult = scoreAgronomicPriority({
       baseScore,
       confidence: suggestion.confidence_score || suggestion.prediction_data?.confidence || 0.5,
       resolvedProfile: resolvedAgronomicProfile,
       focus: agronomicFocus,
       availableSignals: this.getAvailableSignalsFromSuggestion(suggestion),
+      economicSummary,
     })
     
     return {
@@ -295,17 +353,22 @@ class DirectorService {
       urgency: priorityResult.score,
       impact: suggestion.confidence_score * 100,
       feasibility: 80, // Default
-      cost: 50, // Default
+      cost: economicSummary.estimatedInterventionCost || 50,
       priorityScore: priorityResult.score,
       dependencies: [],
       source: 'ai_suggestion',
       sourceId: suggestion.id,
-      reasoning: suggestion.reasoning,
+      reasoning: [suggestion.reasoning, economicSummary.actionComparison?.explanation]
+        .filter(Boolean)
+        .join(' '),
       confidence: suggestion.confidence_score,
       agronomicProfileId: resolvedAgronomicProfile?.profile.id,
+      operationalContextTags,
       priorityConfidence: priorityResult.confidence,
       missingSignals: priorityResult.signalCoverage.missingP0Signals,
       agronomicFocus,
+      economicSummary,
+      actionComparisonExplanation: economicSummary.actionComparison?.explanation || null,
     }
   }
 

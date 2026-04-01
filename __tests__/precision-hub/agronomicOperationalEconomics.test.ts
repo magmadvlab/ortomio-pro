@@ -205,3 +205,128 @@ test('economic priority summary increases delay cost when persistent environment
     )
   )
 })
+
+test('observed negative ROI pushes alternative action economics toward monitor', () => {
+  const records: AgronomicMeasuredFeedbackRecord[] = [
+    {
+      id: 'obs-neg-1',
+      gardenId: 'garden-1',
+      zoneId: 'zone-1',
+      operation: 'irrigation',
+      focus: 'water',
+      recordedAt: '2026-07-12',
+      plantName: 'GRANO',
+      summary: 'Turno inefficiente',
+      metrics: {
+        actualCost: 42,
+        estimatedValue: 24,
+        netImpact: -18,
+        roiRatio: -0.43,
+        costSource: 'observed',
+      },
+    },
+    {
+      id: 'obs-neg-2',
+      gardenId: 'garden-1',
+      zoneId: 'zone-1',
+      operation: 'irrigation',
+      focus: 'water',
+      recordedAt: '2026-07-05',
+      plantName: 'GRANO',
+      summary: 'Turno inefficiente 2',
+      metrics: {
+        actualCost: 40,
+        estimatedValue: 20,
+        netImpact: -20,
+        roiRatio: -0.5,
+        costSource: 'observed',
+      },
+    },
+  ]
+
+  const observationSummary = summarizeAgronomicEconomicObservations(records, {
+    focus: 'water',
+    zoneId: 'zone-1',
+  })
+
+  const summary = buildAgronomicEconomicPrioritySummary({
+    source: 'irrigation',
+    focus: 'water',
+    priorityScore: 48,
+    priorityConfidence: 0.62,
+    interventionCost: 55,
+    averageEfficiency: 84,
+    waterUseEfficiency: 83,
+    uniformityCoefficient: 82,
+    observationSummary,
+  })
+
+  assert.equal(summary.actionComparison?.recommendedAction, 'monitor')
+  assert.ok(
+    summary.actionComparison?.scenarios.some((scenario) =>
+      scenario.rationale.some((entry) => entry.includes('Storico osservato debole'))
+    )
+  )
+})
+
+test('observed prudent ROI can keep next_cycle as preferred compromise', () => {
+  const records: AgronomicMeasuredFeedbackRecord[] = [
+    {
+      id: 'obs-mid-1',
+      gardenId: 'garden-1',
+      zoneId: 'zone-2',
+      operation: 'irrigation',
+      focus: 'water',
+      recordedAt: '2026-07-20',
+      plantName: 'ORZO',
+      summary: 'Turno moderatamente utile',
+      metrics: {
+        actualCost: 28,
+        estimatedValue: 39,
+        netImpact: 11,
+        roiRatio: 0.39,
+        costSource: 'observed',
+      },
+    },
+    {
+      id: 'obs-mid-2',
+      gardenId: 'garden-1',
+      zoneId: 'zone-2',
+      operation: 'irrigation',
+      focus: 'water',
+      recordedAt: '2026-07-13',
+      plantName: 'ORZO',
+      summary: 'Turno moderatamente utile 2',
+      metrics: {
+        actualCost: 30,
+        estimatedValue: 40,
+        netImpact: 10,
+        roiRatio: 0.33,
+        costSource: 'observed',
+      },
+    },
+  ]
+
+  const observationSummary = summarizeAgronomicEconomicObservations(records, {
+    focus: 'water',
+    zoneId: 'zone-2',
+  })
+
+  const summary = buildAgronomicEconomicPrioritySummary({
+    source: 'irrigation',
+    focus: 'water',
+    priorityScore: 34,
+    priorityConfidence: 0.4,
+    averageEfficiency: 88,
+    waterUseEfficiency: 86,
+    uniformityCoefficient: 84,
+    observationSummary,
+  })
+
+  assert.equal(summary.actionComparison?.recommendedAction, 'next_cycle')
+  assert.ok(
+    summary.actionComparison?.scenarios.some((scenario) =>
+      scenario.rationale.some((entry) => entry.includes('Storico osservato prudente'))
+    )
+  )
+})

@@ -23,8 +23,11 @@ export interface OperationContext {
     condition: string;
     pressure: number;
     source?: OperationContextWeatherSource;
+    sourceClass?: 'forecast' | 'historical_archive' | 'current_runtime' | 'synthetic_fallback';
     primarySource?: 'open_meteo_forecast' | 'open_meteo_archive' | 'fallback_estimated';
     signalQuality?: 'measured' | 'mixed' | 'estimated';
+    regionalConfidence?: 'high' | 'medium' | 'low';
+    localConfidence?: 'high' | 'medium' | 'low';
   };
   lunar: {
     phase: string;
@@ -58,8 +61,11 @@ class OperationContextService {
       condition: overrides?.condition ?? 'estimated',
       pressure: overrides?.pressure ?? 1013,
       source: 'estimated',
+      sourceClass: 'synthetic_fallback',
       primarySource: 'fallback_estimated',
-      signalQuality: 'estimated'
+      signalQuality: 'estimated',
+      regionalConfidence: 'low',
+      localConfidence: 'low',
     })
   }
 
@@ -72,8 +78,11 @@ class OperationContextService {
       condition: 'unknown',
       pressure: 1013,
       source: 'fallback',
+      sourceClass: 'synthetic_fallback',
       primarySource: 'fallback_estimated',
-      signalQuality: 'estimated'
+      signalQuality: 'estimated',
+      regionalConfidence: 'low',
+      localConfidence: 'low',
     })
   }
 
@@ -105,8 +114,11 @@ class OperationContextService {
         condition: weather.condition || 'unknown',
         pressure: weather.pressure || 1013,
         source: weather.source || 'fallback',
+        sourceClass: weather.sourceClass || 'synthetic_fallback',
         primarySource: weather.primarySource || 'fallback_estimated',
         signalQuality: weather.signalQuality || 'estimated',
+        regionalConfidence: weather.regionalConfidence || 'low',
+        localConfidence: weather.localConfidence || 'low',
       }, lunar);
     } catch (error) {
       console.error('Error getting operation context:', error);

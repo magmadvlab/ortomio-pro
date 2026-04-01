@@ -92,6 +92,52 @@ export const AGRONOMIC_CROP_PROFILES: AgronomicCropProfile[] = [
         { key: 'quality_result', priority: 'P1', reason: 'Protein and grain quality should validate fertilization and stress management.' },
       ],
     },
+    decisionModifiers: {
+      water: { baseScoreDelta: 1, criticalStageWeight: 1.1, signalCoverageWeight: 1.05, environmentalPressureWeight: 1.12, confidenceDelta: 0.01 },
+      nutrition: { baseScoreDelta: 3, criticalStageWeight: 1.22, signalCoverageWeight: 1.08, environmentalPressureWeight: 1.08, confidenceDelta: 0.02 },
+      health: { baseScoreDelta: 1, criticalStageWeight: 1.08, signalCoverageWeight: 1.02, environmentalPressureWeight: 1.04, confidenceDelta: 0.01 },
+      quality: { baseScoreDelta: 2, criticalStageWeight: 1.18, signalCoverageWeight: 1.04, environmentalPressureWeight: 1.05, confidenceDelta: 0.02 },
+    },
+    economicModifiers: {
+      water: {
+        delayCostMultiplier: 1.06,
+        protectedValueMultiplier: 1.03,
+        rationale: ['Cereali vernini: lo stress idrico vicino a botticella e riempimento penalizza resa e peso ettolitrico.'],
+      },
+      nutrition: {
+        delayCostMultiplier: 1.12,
+        protectedValueMultiplier: 1.08,
+        rationale: ["Cereali vernini: il valore dell'azoto dipende da finestre strette tra accestimento e levata."],
+      },
+      quality: {
+        delayCostMultiplier: 1.08,
+        protectedValueMultiplier: 1.08,
+        rationale: ['Cereali vernini: proteina e peso specifico amplificano il valore della decisione corretta.'],
+      },
+    },
+    irrigationTuning: {
+      baseAdjustment: 0.01,
+      sensitiveStageAdjustment: 0.03,
+      measuredFeedbackWeight: 0.9,
+      rationale: ['Profondita radicale elevata ma sensibilita forte nelle finestre riproduttive.'],
+    },
+    actionComparisonTuning: {
+      water: {
+        nextCycle: { interventionCostMultiplier: 0.96, residualDelayMultiplier: 0.92, protectedValueMultiplier: 1.04 },
+        nextCyclePreferenceThresholdMultiplier: 1.15,
+        rationale: ['Cereali vernini: l organizzazione del passaggio puo restare efficiente se il margine dell intervento immediato non e netto.'],
+      },
+      nutrition: {
+        nextCycle: { interventionCostMultiplier: 0.94, residualDelayMultiplier: 0.9, protectedValueMultiplier: 1.06 },
+        nextCyclePreferenceThresholdMultiplier: 1.28,
+        rationale: ['Cereali vernini: coperture e correzioni possono spesso essere assorbite nel prossimo ciclo operativo.'],
+      },
+      quality: {
+        immediate: { residualDelayMultiplier: 0.94, protectedValueMultiplier: 1.04 },
+        nextCyclePreferenceThresholdMultiplier: 1.08,
+        rationale: ['Cereali vernini: proteina e peso specifico meritano anticipo solo quando il vantaggio economico e chiaro.'],
+      },
+    },
   },
   {
     id: 'leafy_vegetables',
@@ -179,6 +225,94 @@ export const AGRONOMIC_CROP_PROFILES: AgronomicCropProfile[] = [
       targetMetrics: ['head_uniformity', 'compactness', 'marketable_yield', 'shelf_life'],
       recommendedSignals: [
         { key: 'quality_result', priority: 'P1', reason: 'Commercial quality should validate water and calcium management.' },
+      ],
+    },
+    decisionModifiers: {
+      water: { baseScoreDelta: 3, criticalStageWeight: 1.2, signalCoverageWeight: 1.1, environmentalPressureWeight: 1.12, confidenceDelta: 0.02 },
+      nutrition: { baseScoreDelta: 2, criticalStageWeight: 1.1, signalCoverageWeight: 1.04, environmentalPressureWeight: 1.04, confidenceDelta: 0.01 },
+      health: { baseScoreDelta: 4, criticalStageWeight: 1.18, signalCoverageWeight: 1.12, environmentalPressureWeight: 1.24, confidenceDelta: 0.03 },
+      quality: { baseScoreDelta: 4, criticalStageWeight: 1.22, signalCoverageWeight: 1.08, environmentalPressureWeight: 1.16, confidenceDelta: 0.03 },
+    },
+    economicModifiers: {
+      water: {
+        delayCostMultiplier: 1.1,
+        protectedValueMultiplier: 1.08,
+        rationale: ['Brassicacee da pieno campo: la continuita idrica protegge uniformita e compattezza commerciale.'],
+      },
+      health: {
+        delayCostMultiplier: 1.14,
+        protectedValueMultiplier: 1.12,
+        rationale: ['Brassicacee da pieno campo: bagnature ripetute degradano rapidamente shelf life e commerciabilita.'],
+      },
+      quality: {
+        delayCostMultiplier: 1.16,
+        protectedValueMultiplier: 1.14,
+        rationale: ['Brassicacee da pieno campo: qualita visiva e uniformita hanno forte peso economico.'],
+      },
+    },
+    irrigationTuning: {
+      baseAdjustment: 0.02,
+      sensitiveStageAdjustment: 0.04,
+      measuredFeedbackWeight: 1.05,
+      rationale: ['Bulking e formazione testa richiedono umidita stabile e risposta rapida ai segnali.'],
+    },
+    actionComparisonTuning: {
+      water: {
+        immediate: { residualDelayMultiplier: 0.94, protectedValueMultiplier: 1.08 },
+        nextCyclePreferenceThresholdMultiplier: 0.9,
+        rationale: ['Brassicacee di pieno campo: compattazione e uniformita peggiorano velocemente fuori finestra.'],
+      },
+      health: {
+        immediate: { interventionCostMultiplier: 0.98, residualDelayMultiplier: 0.9, protectedValueMultiplier: 1.12 },
+        monitor: { protectedValueMultiplier: 0.9 },
+        nextCyclePreferenceThresholdMultiplier: 0.82,
+        rationale: ['Brassicacee di pieno campo: marciumi e bagnature ripetute richiedono meno tolleranza al rinvio.'],
+      },
+      quality: {
+        immediate: { interventionCostMultiplier: 0.98, residualDelayMultiplier: 0.88, protectedValueMultiplier: 1.14 },
+        nextCycle: { protectedValueMultiplier: 0.92 },
+        nextCyclePreferenceThresholdMultiplier: 0.78,
+        rationale: ['Brassicacee di pieno campo: la finestra qualitativa premia l intervento tempestivo.'],
+      },
+    },
+    actionComparisonContextOverrides: {
+      health: [
+        {
+          requiredTags: ['open_field'],
+          tuning: {
+            nextCycle: { interventionCostMultiplier: 0.95, residualDelayMultiplier: 0.92, protectedValueMultiplier: 1.06 },
+            nextCyclePreferenceThresholdMultiplier: 1.18,
+            rationale: ['Brassicacee in pieno campo: ventilazione e accessibilita lasciano una tolleranza leggermente maggiore sul prossimo ciclo.'],
+          },
+        },
+        {
+          requiredTags: ['protected_culture'],
+          tuning: {
+            immediate: { interventionCostMultiplier: 0.96, residualDelayMultiplier: 0.84, protectedValueMultiplier: 1.14 },
+            nextCycle: { protectedValueMultiplier: 0.9 },
+            nextCyclePreferenceThresholdMultiplier: 0.7,
+            rationale: ['Brassicacee in protetto: condensa e pressione sanitaria comprimono la finestra utile.'],
+          },
+        },
+      ],
+      quality: [
+        {
+          requiredTags: ['open_field'],
+          tuning: {
+            nextCycle: { interventionCostMultiplier: 0.96, residualDelayMultiplier: 0.94, protectedValueMultiplier: 1.04 },
+            nextCyclePreferenceThresholdMultiplier: 1.12,
+            rationale: ['Brassicacee in pieno campo: la qualita resta sensibile, ma il rischio e meno compresso rispetto al protetto.'],
+          },
+        },
+        {
+          requiredTags: ['protected_culture'],
+          tuning: {
+            immediate: { interventionCostMultiplier: 0.96, residualDelayMultiplier: 0.82, protectedValueMultiplier: 1.12 },
+            nextCycle: { protectedValueMultiplier: 0.88 },
+            nextCyclePreferenceThresholdMultiplier: 0.68,
+            rationale: ['Brassicacee in protetto: umidita e shelf life impongono piu anticipo sulle correzioni qualitative.'],
+          },
+        },
       ],
     },
   },
@@ -312,6 +446,74 @@ export const AGRONOMIC_CROP_PROFILES: AgronomicCropProfile[] = [
         { key: 'quality_result', priority: 'P1', reason: 'Grain size and protein help validate water and nutrition strategy.' },
       ],
     },
+    decisionModifiers: {
+      water: { baseScoreDelta: 2, criticalStageWeight: 1.16, signalCoverageWeight: 1.06, environmentalPressureWeight: 1.14, confidenceDelta: 0.02 },
+      nutrition: { baseScoreDelta: 0, criticalStageWeight: 1.04, signalCoverageWeight: 1.02, environmentalPressureWeight: 0.96, confidenceDelta: 0.01 },
+      health: { baseScoreDelta: 1, criticalStageWeight: 1.08, signalCoverageWeight: 1.02, environmentalPressureWeight: 1.08, confidenceDelta: 0.01 },
+      quality: { baseScoreDelta: 2, criticalStageWeight: 1.1, signalCoverageWeight: 1.04, environmentalPressureWeight: 1.06, confidenceDelta: 0.02 },
+    },
+    economicModifiers: {
+      water: {
+        delayCostMultiplier: 1.08,
+        protectedValueMultiplier: 1.06,
+        rationale: ['Leguminose estensive: allegagione e riempimento semi sono le finestre a maggiore rischio economico.'],
+      },
+      nutrition: {
+        interventionCostMultiplier: 0.94,
+        delayCostMultiplier: 0.98,
+        rationale: ['Leguminose estensive: la fissazione biologica riduce il peso economico degli input correttivi standard.'],
+      },
+      quality: {
+        delayCostMultiplier: 1.06,
+        protectedValueMultiplier: 1.08,
+        rationale: ['Leguminose estensive: uniformita e proteina restano decisive per il valore del lotto.'],
+      },
+    },
+    irrigationTuning: {
+      baseAdjustment: 0.01,
+      sensitiveStageAdjustment: 0.04,
+      measuredFeedbackWeight: 0.95,
+      rationale: ['Sistema spesso rainfed, ma molto sensibile a deficit in fioritura e allegagione.'],
+    },
+    actionComparisonTuning: {
+      water: {
+        nextCycle: { interventionCostMultiplier: 0.92, residualDelayMultiplier: 0.88, protectedValueMultiplier: 1.08 },
+        nextCyclePreferenceThresholdMultiplier: 1.32,
+        rationale: ['Leguminose estensive: si puo privilegiare il prossimo passaggio quando il vantaggio dell immediato non e forte.'],
+      },
+      nutrition: {
+        nextCycle: { interventionCostMultiplier: 0.9, residualDelayMultiplier: 0.9, protectedValueMultiplier: 1.06 },
+        monitor: { interventionCostMultiplier: 0.92, protectedValueMultiplier: 1.04 },
+        nextCyclePreferenceThresholdMultiplier: 1.38,
+        rationale: ['Leguminose estensive: la risposta economica delle correzioni nutrizionali tende a essere piu prudente.'],
+      },
+      quality: {
+        nextCycle: { interventionCostMultiplier: 0.94, residualDelayMultiplier: 0.92, protectedValueMultiplier: 1.04 },
+        nextCyclePreferenceThresholdMultiplier: 1.18,
+        rationale: ['Leguminose estensive: uniformita e proteina consentono spesso una finestra leggermente piu larga.'],
+      },
+    },
+    actionComparisonContextOverrides: {
+      water: [
+        {
+          requiredTags: ['rainfed'],
+          tuning: {
+            nextCycle: { interventionCostMultiplier: 0.9, residualDelayMultiplier: 0.84, protectedValueMultiplier: 1.06 },
+            monitor: { interventionCostMultiplier: 0.72, residualDelayMultiplier: 0.82, protectedValueMultiplier: 1.08 },
+            nextCyclePreferenceThresholdMultiplier: 1.24,
+            rationale: ['Leguminose estensive rainfed: in assenza di leva irrigua immediata conviene filtrare di piu l urgenza operativa.'],
+          },
+        },
+        {
+          requiredTags: ['pressurized_irrigation'],
+          tuning: {
+            immediate: { interventionCostMultiplier: 0.96, residualDelayMultiplier: 0.9, protectedValueMultiplier: 1.08 },
+            nextCyclePreferenceThresholdMultiplier: 0.86,
+            rationale: ['Leguminose estensive con impianto pressurizzato: la leva irrigua disponibile rende piu credibile l intervento rapido.'],
+          },
+        },
+      ],
+    },
   },
   {
     id: 'aromatic_mediterranean',
@@ -440,6 +642,53 @@ export const AGRONOMIC_CROP_PROFILES: AgronomicCropProfile[] = [
         { key: 'quality_result', priority: 'P0', reason: 'Commercial head quality should validate irrigation and stage timing.' },
       ],
     },
+    decisionModifiers: {
+      water: { baseScoreDelta: 3, criticalStageWeight: 1.18, signalCoverageWeight: 1.08, environmentalPressureWeight: 1.12, confidenceDelta: 0.02 },
+      nutrition: { baseScoreDelta: 2, criticalStageWeight: 1.12, signalCoverageWeight: 1.04, environmentalPressureWeight: 1.04, confidenceDelta: 0.01 },
+      health: { baseScoreDelta: 2, criticalStageWeight: 1.14, signalCoverageWeight: 1.06, environmentalPressureWeight: 1.12, confidenceDelta: 0.02 },
+      quality: { baseScoreDelta: 5, criticalStageWeight: 1.28, signalCoverageWeight: 1.1, environmentalPressureWeight: 1.18, confidenceDelta: 0.03 },
+    },
+    economicModifiers: {
+      water: {
+        delayCostMultiplier: 1.1,
+        protectedValueMultiplier: 1.08,
+        rationale: ['Carciofo: la regolarita idrica sostiene calibro e continuita delle finestre di raccolta.'],
+      },
+      health: {
+        delayCostMultiplier: 1.1,
+        protectedValueMultiplier: 1.1,
+        rationale: ['Carciofo: afidi e marciumi compromettono rapidamente piu tagli sulla stessa parcella.'],
+      },
+      quality: {
+        delayCostMultiplier: 1.22,
+        protectedValueMultiplier: 1.18,
+        rationale: ['Carciofo: calibro e compattezza guidano direttamente la valorizzazione commerciale.'],
+      },
+    },
+    irrigationTuning: {
+      baseAdjustment: 0.02,
+      sensitiveStageAdjustment: 0.05,
+      measuredFeedbackWeight: 1,
+      rationale: ['Coltura poliennale con finestre raccolta ravvicinate e forte penalita su pezzatura.'],
+    },
+    actionComparisonTuning: {
+      water: {
+        immediate: { residualDelayMultiplier: 0.9, protectedValueMultiplier: 1.08 },
+        nextCyclePreferenceThresholdMultiplier: 0.88,
+        rationale: ['Carciofo: la continuita dei tagli riduce lo spazio per rinvii opportunistici.'],
+      },
+      health: {
+        immediate: { interventionCostMultiplier: 0.98, residualDelayMultiplier: 0.9, protectedValueMultiplier: 1.08 },
+        nextCyclePreferenceThresholdMultiplier: 0.84,
+        rationale: ['Carciofo: piu finestre raccolta sulla stessa parcella alzano il costo di afidi e marciumi.'],
+      },
+      quality: {
+        immediate: { interventionCostMultiplier: 0.96, residualDelayMultiplier: 0.86, protectedValueMultiplier: 1.16 },
+        nextCycle: { protectedValueMultiplier: 0.9 },
+        nextCyclePreferenceThresholdMultiplier: 0.72,
+        rationale: ['Carciofo: calibro e compattezza richiedono intervento piu aggressivo quando la qualita e in gioco.'],
+      },
+    },
   },
   {
     id: 'industrial_broadacre',
@@ -486,6 +735,56 @@ export const AGRONOMIC_CROP_PROFILES: AgronomicCropProfile[] = [
         { key: 'quality_result', priority: 'P1', reason: 'Industrial crop value must validate water, timing, and nutrition choices.' },
       ],
     },
+    decisionModifiers: {
+      water: { baseScoreDelta: 3, criticalStageWeight: 1.16, signalCoverageWeight: 1.08, environmentalPressureWeight: 1.16, confidenceDelta: 0.02 },
+      nutrition: { baseScoreDelta: 3, criticalStageWeight: 1.16, signalCoverageWeight: 1.08, environmentalPressureWeight: 1.08, confidenceDelta: 0.02 },
+      health: { baseScoreDelta: 1, criticalStageWeight: 1.06, signalCoverageWeight: 1.02, environmentalPressureWeight: 1.06, confidenceDelta: 0.01 },
+      quality: { baseScoreDelta: 2, criticalStageWeight: 1.1, signalCoverageWeight: 1.04, environmentalPressureWeight: 1.08, confidenceDelta: 0.02 },
+    },
+    economicModifiers: {
+      water: {
+        interventionCostMultiplier: 1.06,
+        delayCostMultiplier: 1.1,
+        protectedValueMultiplier: 1.08,
+        rationale: ['Colture industriali/estensive: acqua e superficie amplificano il costo totale di una finestra persa.'],
+      },
+      nutrition: {
+        interventionCostMultiplier: 1.08,
+        delayCostMultiplier: 1.1,
+        protectedValueMultiplier: 1.1,
+        rationale: ['Colture industriali/estensive: input e logistica di campo aumentano il peso economico della nutrizione.'],
+      },
+      quality: {
+        delayCostMultiplier: 1.06,
+        protectedValueMultiplier: 1.1,
+        rationale: ['Colture industriali/estensive: resa utile, olio o sostanza secca cambiano direttamente il ritorno economico.'],
+      },
+    },
+    irrigationTuning: {
+      baseAdjustment: 0.02,
+      sensitiveStageAdjustment: 0.04,
+      measuredFeedbackWeight: 1.02,
+      rationale: ['Ampia scala e profondita radicale richiedono anticipo sui segnali di stress persistente.'],
+    },
+    actionComparisonTuning: {
+      water: {
+        immediate: { interventionCostMultiplier: 1.04 },
+        nextCycle: { interventionCostMultiplier: 0.9, residualDelayMultiplier: 0.88, protectedValueMultiplier: 1.08 },
+        nextCyclePreferenceThresholdMultiplier: 1.35,
+        rationale: ['Colture industriali/estensive: la logistica di campo puo favorire il prossimo ciclo se il margine dell immediato non e ampio.'],
+      },
+      nutrition: {
+        immediate: { interventionCostMultiplier: 1.06 },
+        nextCycle: { interventionCostMultiplier: 0.88, residualDelayMultiplier: 0.9, protectedValueMultiplier: 1.1 },
+        nextCyclePreferenceThresholdMultiplier: 1.42,
+        rationale: ['Colture industriali/estensive: batching e costo macchina rendono utile un filtro piu severo sull intervento immediato.'],
+      },
+      quality: {
+        nextCycle: { interventionCostMultiplier: 0.94, residualDelayMultiplier: 0.92, protectedValueMultiplier: 1.04 },
+        nextCyclePreferenceThresholdMultiplier: 1.16,
+        rationale: ['Colture industriali/estensive: si anticipa solo quando resa utile o sostanza secca guadagnano in modo netto.'],
+      },
+    },
   },
   {
     id: 'orchard_generic',
@@ -526,6 +825,73 @@ export const AGRONOMIC_CROP_PROFILES: AgronomicCropProfile[] = [
       targetMetrics: ['fruit_size', 'defect_incidence', 'marketable_yield'],
       recommendedSignals: [
         { key: 'quality_result', priority: 'P0', reason: 'Outcome quality must validate pruning, irrigation, and protection.' },
+      ],
+    },
+    decisionModifiers: {
+      water: { baseScoreDelta: 2, criticalStageWeight: 1.12, signalCoverageWeight: 1.06, environmentalPressureWeight: 1.12, confidenceDelta: 0.02 },
+      nutrition: { baseScoreDelta: 1, criticalStageWeight: 1.08, signalCoverageWeight: 1.04, environmentalPressureWeight: 1.04, confidenceDelta: 0.01 },
+      health: { baseScoreDelta: 3, criticalStageWeight: 1.14, signalCoverageWeight: 1.08, environmentalPressureWeight: 1.14, confidenceDelta: 0.02 },
+      quality: { baseScoreDelta: 4, criticalStageWeight: 1.22, signalCoverageWeight: 1.08, environmentalPressureWeight: 1.12, confidenceDelta: 0.03 },
+    },
+    economicModifiers: {
+      water: {
+        delayCostMultiplier: 1.1,
+        protectedValueMultiplier: 1.08,
+        rationale: ['Frutteto: allegagione, calibro e continuita produttiva aumentano il costo del ritardo irriguo.'],
+      },
+      health: {
+        delayCostMultiplier: 1.12,
+        protectedValueMultiplier: 1.1,
+        rationale: ['Frutteto: difetti e danni sanitari hanno carry-over commerciale e di conservazione.'],
+      },
+      quality: {
+        delayCostMultiplier: 1.16,
+        protectedValueMultiplier: 1.16,
+        rationale: ['Frutteto: pezzatura e difettosita guidano direttamente la valorizzazione del lotto.'],
+      },
+    },
+    irrigationTuning: {
+      baseAdjustment: 0.02,
+      sensitiveStageAdjustment: 0.04,
+      measuredFeedbackWeight: 1.02,
+      rationale: ['Arboree da frutto: stress nascosti in post-allegagione richiedono letture piu preventive.'],
+    },
+    actionComparisonTuning: {
+      water: {
+        nextCycle: { interventionCostMultiplier: 0.96, residualDelayMultiplier: 0.92, protectedValueMultiplier: 1.04 },
+        nextCyclePreferenceThresholdMultiplier: 1.04,
+        rationale: ['Frutteto: si puo attendere il prossimo ciclo solo quando il vantaggio dell immediato resta contenuto.'],
+      },
+      health: {
+        immediate: { interventionCostMultiplier: 0.98, residualDelayMultiplier: 0.9, protectedValueMultiplier: 1.08 },
+        nextCyclePreferenceThresholdMultiplier: 0.88,
+        rationale: ['Frutteto: difetti e marciumi rendono meno tollerabile il rinvio delle azioni sanitarie.'],
+      },
+      quality: {
+        immediate: { interventionCostMultiplier: 0.96, residualDelayMultiplier: 0.88, protectedValueMultiplier: 1.14 },
+        nextCycle: { protectedValueMultiplier: 0.92 },
+        nextCyclePreferenceThresholdMultiplier: 0.8,
+        rationale: ['Frutteto: la finestra qualita/commerciabilita premia un intervento piu tempestivo.'],
+      },
+    },
+    actionComparisonContextOverrides: {
+      quality: [
+        {
+          requiredTags: ['high_altitude_site'],
+          tuning: {
+            immediate: { protectedValueMultiplier: 1.08, residualDelayMultiplier: 0.92 },
+            nextCyclePreferenceThresholdMultiplier: 0.9,
+            rationale: ['Frutteto di quota: le finestre qualitative utili tendono a comprimersi per maturazione e sbalzi termici.'],
+          },
+        },
+        {
+          requiredTags: ['steep_slope_site'],
+          tuning: {
+            immediate: { interventionCostMultiplier: 1.02, protectedValueMultiplier: 1.06 },
+            nextCyclePreferenceThresholdMultiplier: 0.94,
+            rationale: ['Frutteto in pendenza: accessibilita e omogeneita di raccolta rendono il rinvio meno efficiente.'],
+          },
+        },
       ],
     },
   },
@@ -569,6 +935,84 @@ export const AGRONOMIC_CROP_PROFILES: AgronomicCropProfile[] = [
       targetMetrics: ['oil_yield_percentage', 'oil_quality', 'defect_incidence'],
       recommendedSignals: [
         { key: 'quality_result', priority: 'P0', reason: 'Oil outcome must close the loop with agronomic decisions.' },
+      ],
+    },
+    decisionModifiers: {
+      water: { baseScoreDelta: 2, criticalStageWeight: 1.1, signalCoverageWeight: 1.06, environmentalPressureWeight: 1.1, confidenceDelta: 0.02 },
+      nutrition: { baseScoreDelta: 1, criticalStageWeight: 1.04, signalCoverageWeight: 1.02, environmentalPressureWeight: 1, confidenceDelta: 0.01 },
+      health: { baseScoreDelta: 3, criticalStageWeight: 1.14, signalCoverageWeight: 1.08, environmentalPressureWeight: 1.14, confidenceDelta: 0.02 },
+      quality: { baseScoreDelta: 5, criticalStageWeight: 1.24, signalCoverageWeight: 1.1, environmentalPressureWeight: 1.12, confidenceDelta: 0.03 },
+    },
+    economicModifiers: {
+      water: {
+        delayCostMultiplier: 1.08,
+        protectedValueMultiplier: 1.08,
+        rationale: ['Olivo: stress mirati tra allegagione e invaiatura influenzano resa in olio e regolarita produttiva.'],
+      },
+      health: {
+        delayCostMultiplier: 1.14,
+        protectedValueMultiplier: 1.12,
+        rationale: ['Olivo: mosca e malattie fogliari possono degradare resa e difetti sensoriali dell olio.'],
+      },
+      quality: {
+        delayCostMultiplier: 1.2,
+        protectedValueMultiplier: 1.22,
+        rationale: ['Olivo: la qualita dell olio amplifica il valore economico di timing e protezione.'],
+      },
+    },
+    irrigationTuning: {
+      baseAdjustment: 0.01,
+      sensitiveStageAdjustment: 0.03,
+      measuredFeedbackWeight: 0.98,
+      rationale: ['Olivo: coltura resiliente, ma la qualita peggiora se lo stress arriva nelle finestre sbagliate.'],
+    },
+    actionComparisonTuning: {
+      water: {
+        nextCycle: { interventionCostMultiplier: 0.98, residualDelayMultiplier: 0.94, protectedValueMultiplier: 1.02 },
+        monitor: { protectedValueMultiplier: 0.94 },
+        nextCyclePreferenceThresholdMultiplier: 1.02,
+        rationale: ['Olivo: in acqua si puo restare prudenti fuori dalle finestre piu sensibili.'],
+      },
+      health: {
+        immediate: { interventionCostMultiplier: 0.98, residualDelayMultiplier: 0.9, protectedValueMultiplier: 1.08 },
+        nextCyclePreferenceThresholdMultiplier: 0.86,
+        rationale: ['Olivo: le pressioni sanitarie con impatto su resa e difetti richiedono meno tolleranza al rinvio.'],
+      },
+      quality: {
+        immediate: { interventionCostMultiplier: 0.95, residualDelayMultiplier: 0.84, protectedValueMultiplier: 1.18 },
+        nextCycle: { protectedValueMultiplier: 0.9 },
+        nextCyclePreferenceThresholdMultiplier: 0.72,
+        rationale: ['Olivo: quando la qualita olio e in gioco conviene anticipare piu aggressivamente.'],
+      },
+    },
+    actionComparisonContextOverrides: {
+      health: [
+        {
+          requiredTags: ['coastal_site'],
+          tuning: {
+            immediate: { protectedValueMultiplier: 1.06, residualDelayMultiplier: 0.92 },
+            nextCyclePreferenceThresholdMultiplier: 0.9,
+            rationale: ['Olivo costiero: umidita e bagnature aumentano il costo del rinvio sanitario.'],
+          },
+        },
+      ],
+      quality: [
+        {
+          requiredTags: ['oil_cultivar'],
+          tuning: {
+            immediate: { protectedValueMultiplier: 1.08, residualDelayMultiplier: 0.9 },
+            nextCyclePreferenceThresholdMultiplier: 0.86,
+            rationale: ['Olivo da olio: resa e profilo sensoriale meritano piu anticipo sulle azioni qualitative.'],
+          },
+        },
+        {
+          requiredTags: ['high_altitude_site'],
+          tuning: {
+            immediate: { protectedValueMultiplier: 1.06, residualDelayMultiplier: 0.92 },
+            nextCyclePreferenceThresholdMultiplier: 0.9,
+            rationale: ['Olivo di quota: escursione termica e finestra di raccolta aumentano il premio per il timing corretto.'],
+          },
+        },
       ],
     },
   },
@@ -615,6 +1059,99 @@ export const AGRONOMIC_CROP_PROFILES: AgronomicCropProfile[] = [
         { key: 'quality_result', priority: 'P0', reason: 'Berry quality must validate the irrigation and canopy strategy.' },
       ],
     },
+    decisionModifiers: {
+      water: { baseScoreDelta: 2, criticalStageWeight: 1.12, signalCoverageWeight: 1.06, environmentalPressureWeight: 1.1, confidenceDelta: 0.02 },
+      nutrition: { baseScoreDelta: 1, criticalStageWeight: 1.08, signalCoverageWeight: 1.04, environmentalPressureWeight: 1.02, confidenceDelta: 0.01 },
+      health: { baseScoreDelta: 4, criticalStageWeight: 1.18, signalCoverageWeight: 1.1, environmentalPressureWeight: 1.18, confidenceDelta: 0.03 },
+      quality: { baseScoreDelta: 6, criticalStageWeight: 1.28, signalCoverageWeight: 1.12, environmentalPressureWeight: 1.16, confidenceDelta: 0.04 },
+    },
+    economicModifiers: {
+      water: {
+        delayCostMultiplier: 1.1,
+        protectedValueMultiplier: 1.08,
+        rationale: ['Vigneto: lo stress controllato va gestito con precisione per non compromettere la maturazione utile.'],
+      },
+      health: {
+        delayCostMultiplier: 1.16,
+        protectedValueMultiplier: 1.14,
+        rationale: ['Vigneto: pressione sanitaria e bagnature alterano rapidamente integrita del grappolo e qualita enologica.'],
+      },
+      quality: {
+        delayCostMultiplier: 1.24,
+        protectedValueMultiplier: 1.26,
+        rationale: ['Vigneto: Brix, acidita e sanita grappolo moltiplicano il valore della decisione giusta.'],
+      },
+    },
+    irrigationTuning: {
+      baseAdjustment: 0.01,
+      sensitiveStageAdjustment: 0.04,
+      measuredFeedbackWeight: 1,
+      rationale: ['Vigneto: il segnale irriguo va letto insieme a maturazione e obiettivo qualitativo.'],
+    },
+    actionComparisonTuning: {
+      water: {
+        nextCycle: { interventionCostMultiplier: 0.98, residualDelayMultiplier: 0.94, protectedValueMultiplier: 1.02 },
+        nextCyclePreferenceThresholdMultiplier: 1,
+        rationale: ['Vigneto: in acqua si resta prudenti, ma il margine del rinvio deve essere reale.'],
+      },
+      health: {
+        immediate: { interventionCostMultiplier: 0.97, residualDelayMultiplier: 0.88, protectedValueMultiplier: 1.1 },
+        nextCyclePreferenceThresholdMultiplier: 0.8,
+        rationale: ['Vigneto: peronospora, botrite e integrita grappolo comprimono la finestra di rinvio.'],
+      },
+      quality: {
+        immediate: { interventionCostMultiplier: 0.94, residualDelayMultiplier: 0.82, protectedValueMultiplier: 1.2 },
+        nextCycle: { protectedValueMultiplier: 0.88 },
+        nextCyclePreferenceThresholdMultiplier: 0.66,
+        rationale: ['Vigneto: vicino a invaiatura e raccolta la qualita vince quasi sempre sul rinvio.'],
+      },
+    },
+    actionComparisonContextOverrides: {
+      health: [
+        {
+          requiredTags: ['coastal_site'],
+          tuning: {
+            immediate: { protectedValueMultiplier: 1.08, residualDelayMultiplier: 0.88 },
+            nextCyclePreferenceThresholdMultiplier: 0.78,
+            rationale: ['Vigneto costiero: bagnature e umidita persistente comprimono la finestra sanitaria utile.'],
+          },
+        },
+        {
+          requiredTags: ['steep_slope_site'],
+          tuning: {
+            immediate: { interventionCostMultiplier: 1.02, protectedValueMultiplier: 1.06 },
+            nextCyclePreferenceThresholdMultiplier: 0.9,
+            rationale: ['Vigneto in forte pendenza: la logistica di filare rende costoso recuperare dopo un rinvio.'],
+          },
+        },
+      ],
+      quality: [
+        {
+          requiredTags: ['wine_grape'],
+          tuning: {
+            immediate: { protectedValueMultiplier: 1.1, residualDelayMultiplier: 0.88 },
+            nextCyclePreferenceThresholdMultiplier: 0.78,
+            rationale: ['Vitigno da vino: Brix, acidita e sanita del grappolo riducono la tolleranza al rinvio.'],
+          },
+        },
+        {
+          requiredTags: ['table_grape'],
+          tuning: {
+            nextCycle: { protectedValueMultiplier: 1.02, residualDelayMultiplier: 0.96 },
+            nextCyclePreferenceThresholdMultiplier: 1.08,
+            rationale: ['Uva da tavola: la qualita resta critica, ma una parte delle correzioni puo assorbirsi nel prossimo ciclo.'],
+          },
+        },
+        {
+          requiredTags: ['high_altitude_site'],
+          tuning: {
+            immediate: { protectedValueMultiplier: 1.06, residualDelayMultiplier: 0.9 },
+            nextCyclePreferenceThresholdMultiplier: 0.88,
+            rationale: ['Vigneto di quota: maturazione e raccolta hanno finestre piu strette e sensibili.'],
+          },
+        },
+      ],
+    },
   },
   {
     id: 'controlled_environment_leafy',
@@ -657,6 +1194,109 @@ export const AGRONOMIC_CROP_PROFILES: AgronomicCropProfile[] = [
         { key: 'quality_result', priority: 'P1', reason: 'Uniformity and quality validate setpoint strategy.' },
       ],
     },
+    decisionModifiers: {
+      water: { baseScoreDelta: 4, criticalStageWeight: 1.2, signalCoverageWeight: 1.12, environmentalPressureWeight: 1.08, confidenceDelta: 0.03 },
+      nutrition: { baseScoreDelta: 4, criticalStageWeight: 1.18, signalCoverageWeight: 1.12, environmentalPressureWeight: 1.06, confidenceDelta: 0.03 },
+      health: { baseScoreDelta: 5, criticalStageWeight: 1.2, signalCoverageWeight: 1.14, environmentalPressureWeight: 1.12, confidenceDelta: 0.03 },
+      quality: { baseScoreDelta: 4, criticalStageWeight: 1.18, signalCoverageWeight: 1.12, environmentalPressureWeight: 1.08, confidenceDelta: 0.03 },
+    },
+    economicModifiers: {
+      water: {
+        interventionCostMultiplier: 1.04,
+        delayCostMultiplier: 1.14,
+        protectedValueMultiplier: 1.12,
+        rationale: ['CEA leafy: deriva di pH/EC e squilibri di soluzione hanno impatto rapido su uniformita e resa vendibile.'],
+      },
+      nutrition: {
+        interventionCostMultiplier: 1.04,
+        delayCostMultiplier: 1.16,
+        protectedValueMultiplier: 1.14,
+        rationale: ['CEA leafy: la nutrizione in soluzione ha effetto immediato e richiede correzioni tempestive.'],
+      },
+      health: {
+        delayCostMultiplier: 1.18,
+        protectedValueMultiplier: 1.14,
+        rationale: ['CEA leafy: condensa e patogeni radicali possono propagarsi velocemente nell ambiente chiuso.'],
+      },
+      quality: {
+        delayCostMultiplier: 1.14,
+        protectedValueMultiplier: 1.12,
+        rationale: ['CEA leafy: uniformita e shelf life rispondono in tempi molto brevi a setpoint e soluzione.'],
+      },
+    },
+    irrigationTuning: {
+      baseAdjustment: 0.03,
+      sensitiveStageAdjustment: 0.05,
+      measuredFeedbackWeight: 1.08,
+      rationale: ['CEA leafy: piccoli scostamenti di soluzione si riflettono subito su crescita e uniformita.'],
+    },
+    actionComparisonTuning: {
+      water: {
+        immediate: { interventionCostMultiplier: 0.98, residualDelayMultiplier: 0.86, protectedValueMultiplier: 1.12 },
+        nextCyclePreferenceThresholdMultiplier: 0.76,
+        rationale: ['CEA leafy: nelle colture a ciclo rapido la soluzione va corretta con poca tolleranza al rinvio.'],
+      },
+      nutrition: {
+        immediate: { interventionCostMultiplier: 0.98, residualDelayMultiplier: 0.84, protectedValueMultiplier: 1.14 },
+        nextCycle: { protectedValueMultiplier: 0.9 },
+        nextCyclePreferenceThresholdMultiplier: 0.74,
+        rationale: ['CEA leafy: correzioni nutrizionali in soluzione perdono valore se posticipate troppo.'],
+      },
+      health: {
+        immediate: { interventionCostMultiplier: 0.97, residualDelayMultiplier: 0.82, protectedValueMultiplier: 1.16 },
+        monitor: { protectedValueMultiplier: 0.88 },
+        nextCyclePreferenceThresholdMultiplier: 0.68,
+        rationale: ['CEA leafy: in ambiente chiuso la pressione sanitaria cresce troppo in fretta per tollerare rinvii lunghi.'],
+      },
+    },
+    actionComparisonContextOverrides: {
+      water: [
+        {
+          requiredTags: ['nft_system'],
+          tuning: {
+            immediate: { protectedValueMultiplier: 1.08, residualDelayMultiplier: 0.88 },
+            nextCyclePreferenceThresholdMultiplier: 0.7,
+            rationale: ['CEA NFT: la continuita del film nutritivo riduce quasi a zero la tolleranza ai ritardi.'],
+          },
+        },
+        {
+          requiredTags: ['ebb_flow_system'],
+          tuning: {
+            nextCycle: { protectedValueMultiplier: 1.04, residualDelayMultiplier: 0.94 },
+            nextCyclePreferenceThresholdMultiplier: 0.92,
+            rationale: ['CEA ebb-flow: l inerzia del ciclo allagamento-svuotamento concede una tolleranza leggermente maggiore.'],
+          },
+        },
+      ],
+      nutrition: [
+        {
+          requiredTags: ['dwc_system'],
+          tuning: {
+            immediate: { protectedValueMultiplier: 1.06, residualDelayMultiplier: 0.9 },
+            nextCyclePreferenceThresholdMultiplier: 0.82,
+            rationale: ['CEA DWC: deriva di EC e ossigenazione pesa rapidamente su uniformita e crescita.'],
+          },
+        },
+        {
+          requiredTags: ['media_bed_system'],
+          tuning: {
+            nextCycle: { protectedValueMultiplier: 1.04, residualDelayMultiplier: 0.96 },
+            nextCyclePreferenceThresholdMultiplier: 0.96,
+            rationale: ['CEA media-bed: il buffer fisico del sistema assorbe meglio piccoli rinvii nutrizionali.'],
+          },
+        },
+      ],
+      health: [
+        {
+          requiredTags: ['high_pressure_aeroponic'],
+          tuning: {
+            immediate: { protectedValueMultiplier: 1.08, residualDelayMultiplier: 0.86 },
+            nextCyclePreferenceThresholdMultiplier: 0.76,
+            rationale: ['CEA aeroponico ad alta pressione: guasti o deriva sanitaria hanno effetto molto rapido sulle radici.'],
+          },
+        },
+      ],
+    },
   },
 ];
 
@@ -667,7 +1307,13 @@ export const AGRONOMIC_PROFILE_ALIASES: Record<string, string> = {
   frumento: 'winter_cereals',
   'grano duro': 'winter_cereals',
   'grano tenero': 'winter_cereals',
+  'frumento duro': 'winter_cereals',
+  'frumento tenero': 'winter_cereals',
+  'durum wheat': 'winter_cereals',
+  'soft wheat': 'winter_cereals',
+  'winter wheat': 'winter_cereals',
   orzo: 'winter_cereals',
+  'orzo invernale': 'winter_cereals',
   avena: 'winter_cereals',
   segale: 'winter_cereals',
   triticale: 'winter_cereals',
@@ -682,13 +1328,19 @@ export const AGRONOMIC_PROFILE_ALIASES: Record<string, string> = {
   sunflower: 'industrial_broadacre',
   colza: 'industrial_broadacre',
   canola: 'industrial_broadacre',
+  rapeseed: 'industrial_broadacre',
   soia: 'industrial_broadacre',
   soybean: 'industrial_broadacre',
+  soy: 'industrial_broadacre',
   'bietola da zucchero': 'industrial_broadacre',
+  'sugar beet': 'industrial_broadacre',
+  corn: 'industrial_broadacre',
   sorgum: 'industrial_broadacre',
   carciofo: 'artichoke_open_field',
+  carciofi: 'artichoke_open_field',
   asparago: 'perennial_field_vegetables',
   artichoke: 'artichoke_open_field',
+  artichokes: 'artichoke_open_field',
   asparagus: 'perennial_field_vegetables',
   pomodoro: 'fruiting_vegetables',
   peperone: 'fruiting_vegetables',
@@ -706,11 +1358,17 @@ export const AGRONOMIC_PROFILE_ALIASES: Record<string, string> = {
   bietola: 'leafy_vegetables',
   rucola: 'leafy_vegetables',
   cavolfiore: 'field_brassicas',
+  cauliflower: 'field_brassicas',
   broccoli: 'field_brassicas',
   cavolo: 'field_brassicas',
+  cabbage: 'field_brassicas',
   verza: 'field_brassicas',
   'cavolo cappuccio': 'field_brassicas',
   'cavolo nero': 'field_brassicas',
+  'cavolini di bruxelles': 'field_brassicas',
+  'brussels sprouts': 'field_brassicas',
+  kale: 'field_brassicas',
+  turnip: 'field_brassicas',
   brassicas: 'field_brassicas',
   brassicacee: 'field_brassicas',
   lettuce: 'leafy_vegetables',
@@ -723,11 +1381,15 @@ export const AGRONOMIC_PROFILE_ALIASES: Record<string, string> = {
   cece: 'broadacre_legumes',
   lenticchia: 'broadacre_legumes',
   'pisello proteico': 'broadacre_legumes',
+  'pisello da granella': 'broadacre_legumes',
+  'legumi da granella': 'broadacre_legumes',
   leguminose: 'broadacre_legumes',
   bean: 'legumes',
   pea: 'legumes',
   chickpea: 'broadacre_legumes',
   lentil: 'broadacre_legumes',
+  'faba bean': 'broadacre_legumes',
+  pulses: 'broadacre_legumes',
   'broadacre legumes': 'broadacre_legumes',
   basilico: 'aromatic_mediterranean',
   rosmarino: 'aromatic_mediterranean',
@@ -741,15 +1403,25 @@ export const AGRONOMIC_PROFILE_ALIASES: Record<string, string> = {
   oliveto: 'olive_grove_oil',
   olive: 'olive_grove_oil',
   'olive grove': 'olive_grove_oil',
+  oliveoil: 'olive_grove_oil',
+  'olive oil': 'olive_grove_oil',
   vite: 'vineyard_quality',
   uva: 'vineyard_quality',
   vigneto: 'vineyard_quality',
   vineyard: 'vineyard_quality',
   grapevine: 'vineyard_quality',
+  grapes: 'vineyard_quality',
+  'wine grape': 'vineyard_quality',
   frutteto: 'orchard_generic',
   orchard: 'orchard_generic',
+  orchards: 'orchard_generic',
+  fruittrees: 'orchard_generic',
+  'fruit trees': 'orchard_generic',
   greenhouse: 'controlled_environment_leafy',
   serra: 'controlled_environment_leafy',
+  cea: 'controlled_environment_leafy',
+  'controlled environment': 'controlled_environment_leafy',
+  indoor: 'controlled_environment_leafy',
   hydroponic: 'controlled_environment_leafy',
   aquaponic: 'controlled_environment_leafy',
   aeroponic: 'controlled_environment_leafy',

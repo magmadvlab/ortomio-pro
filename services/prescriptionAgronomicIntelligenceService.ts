@@ -14,11 +14,20 @@ import {
   scoreAgronomicPriority,
   type AgronomicPriorityFocus,
 } from '@/services/agronomicPriorityService'
+import { buildAgronomicEconomicPrioritySummary } from '@/services/agronomicEconomicPriorityService'
 import {
   buildAgronomicQualityLearningAdjustment,
   type AgronomicProfileLearningSnapshot,
 } from '@/services/agronomicProfileLearningService'
-import type { AgronomicSignalKey } from '@/types/agronomicKernel'
+import {
+  inferOperationalContextTagsFromProfile,
+  inferOperationalContextTagsFromText,
+  mergeOperationalContextTags,
+} from '@/services/agronomicOperationalContextService'
+import type {
+  AgronomicOperationalContextTag,
+  AgronomicSignalKey,
+} from '@/types/agronomicKernel'
 
 export interface PrescriptionAgronomicRecommendation {
   id: string
@@ -48,6 +57,7 @@ export interface PrescriptionAgronomicPriority {
   agronomicProfileId?: string
   priorityConfidence?: number
   missingSignals?: AgronomicSignalKey[]
+  operationalContextTags?: AgronomicOperationalContextTag[]
   environmentalSummary?: ZoneEnvironmentalHistorySummary | null
 }
 
@@ -218,6 +228,10 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       : null
   const recommendations: PrescriptionAgronomicRecommendation[] = []
   const operationalPriorities: PrescriptionAgronomicPriority[] = []
+  const baseOperationalContextTags = mergeOperationalContextTags(
+    inferOperationalContextTagsFromText(prescriptionMap.gardenName, prescriptionMap.name),
+    inferOperationalContextTagsFromProfile(resolvedAgronomicProfile?.profile)
+  )
 
   const sortedZones = [...efficacySummary.zoneScores].sort((left, right) => right.efficacyScore - left.efficacyScore)
   const bestZone = sortedZones[0]
@@ -304,30 +318,50 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       zoneId: zone.zoneId,
       plantName: efficacySummary.cropContextScores[0]?.label || prescriptionMap.gardenName,
     })
+    const operationalContextTags = mergeOperationalContextTags(
+      baseOperationalContextTags,
+      inferOperationalContextTagsFromText(zone.zoneName)
+    )
+    const baseConfidence =
+      outcome?.outcomeStatus === 'negative'
+        ? 0.86
+        : outcome?.outcomeStatus === 'mixed'
+          ? 0.76
+          : zone.microclimateStatus !== 'no_data' || zone.soilResponseStatus !== 'no_data'
+            ? 0.72
+            : 0.62 + (environmentalSummary ? 0.04 : 0)
+    const economicSummary = buildAgronomicEconomicPrioritySummary({
+      source: 'prescription',
+      focus: priorityFocus,
+      priorityScore: basePriorityScore,
+      priorityConfidence: baseConfidence,
+      agronomicProfileId: resolvedAgronomicProfile?.profile.id,
+      cropNameHint: efficacySummary.cropContextScores[0]?.label || prescriptionMap.gardenName,
+      operationalContextTags,
+      efficacyScore: zone.efficacyScore,
+      qualityScoreGap,
+      benchmarkGap: brixGap > 0 ? brixGap * 3 : qualityScoreGap,
+      environmentalSummary,
+    })
     const priorityResult = scoreAgronomicPriority({
       baseScore: basePriorityScore,
-      confidence:
-        outcome?.outcomeStatus === 'negative'
-          ? 0.86
-          : outcome?.outcomeStatus === 'mixed'
-            ? 0.76
-            : zone.microclimateStatus !== 'no_data' || zone.soilResponseStatus !== 'no_data'
-              ? 0.72
-              : 0.62 + (environmentalSummary ? 0.04 : 0),
+      confidence: baseConfidence,
       resolvedProfile: resolvedAgronomicProfile,
       focus: priorityFocus,
       availableSignals,
       measuredFeedbackSummary,
       environmentalSummary,
+      economicSummary,
     })
     const priorityScore = priorityResult.score
 
-    let urgency: PrescriptionAgronomicPriority['urgency'] = 'monitor'
-    if (priorityScore >= 75 || (outcome?.outcomeStatus === 'negative' && variance?.varianceStatus === 'off_target')) {
-      urgency = 'immediate'
-    } else if (priorityScore >= 45) {
-      urgency = 'next_cycle'
-    }
+    const urgency: PrescriptionAgronomicPriority['urgency'] =
+      priorityResult.economicSummary?.actionComparison?.recommendedUrgencyLabel ||
+      (priorityScore >= 75 || (outcome?.outcomeStatus === 'negative' && variance?.varianceStatus === 'off_target')
+        ? 'immediate'
+        : priorityScore >= 45
+          ? 'next_cycle'
+          : 'monitor')
 
     const drivers = [
       variance?.varianceStatus && variance.varianceStatus !== 'aligned' ? `esecuzione ${variance.varianceStatus}` : null,
@@ -400,6 +434,7 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       agronomicProfileId: resolvedAgronomicProfile?.profile.id,
       priorityConfidence: priorityResult.confidence,
       missingSignals: priorityResult.signalCoverage.missingP0Signals,
+      operationalContextTags,
       environmentalSummary,
       rationale: `${rationale}${profileSuffix}${coverageSuffix}${measuredFeedbackSuffix}${adaptiveQualitySuffix}${environmentalSuffix}`,
     })

@@ -47,6 +47,33 @@ export interface AgronomicPriorityScoreResult {
   environmentalSummary?: ZoneEnvironmentalHistorySummary | null
 }
 
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value))
+
+const alignScoreToEconomicRecommendation = (
+  score: number,
+  economicSummary?: AgronomicEconomicPrioritySummary | null
+): number => {
+  const comparison = economicSummary?.actionComparison
+  if (!comparison) {
+    return score
+  }
+
+  switch (comparison.recommendedUrgencyLabel) {
+    case 'immediate':
+      return clamp(Math.max(score, comparison.dominanceMargin >= 20 ? 78 : 75), 0, 100)
+    case 'next_cycle':
+      return clamp(score, 45, comparison.dominanceMargin >= 20 ? 72 : 74)
+    case 'monitor':
+    default:
+      return clamp(
+        Math.min(score, comparison.dominanceMargin >= 20 ? 38 : 44),
+        0,
+        44
+      )
+  }
+}
+
 const normalizeHint = (value?: string | null) =>
   value
     ?.toLowerCase()
@@ -152,6 +179,7 @@ export function scoreAgronomicPriority(
   input: AgronomicPriorityScoreInput
 ): AgronomicPriorityScoreResult {
   const normalizedConfidence = Math.max(0, Math.min(1, input.confidence ?? 0.5))
+  const focusModifier = input.resolvedProfile?.profile.decisionModifiers?.[input.focus]
   const signalCoverage = buildAgronomicSignalCoverage(
     input.resolvedProfile,
     input.focus,
@@ -160,10 +188,16 @@ export function scoreAgronomicPriority(
 
   let score = input.baseScore
   score += Math.round((normalizedConfidence - 0.5) * 18)
-  score += Math.round((signalCoverage.coverageRatio - 0.5) * 14)
+  score += Math.round(
+    (signalCoverage.coverageRatio - 0.5) * 14 * (focusModifier?.signalCoverageWeight ?? 1)
+  )
+
+  if (focusModifier?.baseScoreDelta) {
+    score += focusModifier.baseScoreDelta
+  }
 
   if (input.isCriticalStage) {
-    score += 6
+    score += Math.round(6 * (focusModifier?.criticalStageWeight ?? 1))
   }
 
   if (input.measuredFeedbackSummary) {
@@ -194,7 +228,9 @@ export function scoreAgronomicPriority(
             ? 4
             : 0
 
-    score += environmentalScoreAdjustment
+    score += Math.round(
+      environmentalScoreAdjustment * (focusModifier?.environmentalPressureWeight ?? 1)
+    )
   }
 
   switch (input.resolvedProfile?.source) {
@@ -231,6 +267,7 @@ export function scoreAgronomicPriority(
         signalCoverage.coverageRatio * 0.2 +
         0.08 +
         sourceConfidenceAdjustment +
+        (focusModifier?.confidenceDelta || 0) +
         (input.measuredFeedbackSummary?.confidenceAdjustment || 0) +
         (input.economicSummary?.confidenceAdjustment || 0) +
         (
@@ -248,9 +285,11 @@ export function scoreAgronomicPriority(
     )
   )
 
+  const alignedScore = alignScoreToEconomicRecommendation(Math.round(score), input.economicSummary)
+
   return {
-    score: Math.max(0, Math.min(100, Math.round(score))),
-    confidence: derivedConfidence,
+    score: clamp(alignedScore, 0, 100),
+    confidence: clamp(derivedConfidence, 0.3, 0.98),
     signalCoverage,
     measuredFeedbackSummary: input.measuredFeedbackSummary || null,
     economicSummary: input.economicSummary || null,

@@ -35,6 +35,11 @@ import {
 } from '@/services/soilAnalysisService'
 import { resolveIrrigationWaterQualityProfile } from '@/services/irrigationWaterQualityService'
 import {
+  inferOperationalContextTagsFromIrrigationSystems,
+  inferOperationalContextTagsFromSite,
+  mergeOperationalContextTags,
+} from '@/services/agronomicOperationalContextService'
+import {
   resolveAgronomicPriorityProfileSync,
   scoreAgronomicPriority,
 } from '@/services/agronomicPriorityService'
@@ -532,8 +537,13 @@ class AdvancedIrrigationService {
       // Calculate irrigation need (considering effective rainfall)
       const effectiveRainfallMm = enrichedWeatherData?.effectiveRainfallMm || 0
       const baseIrrigationNeedMm = Math.max(0, etcMm - effectiveRainfallMm)
-      const irrigationNeedMm = this.applyWaterQualityLeachingAdjustment(
+      const siteAdjustedBaseNeedMm = this.applySiteWeatherBindingAdjustment(
         baseIrrigationNeedMm,
+        zone.slope_percentage,
+        zone.sun_exposure
+      )
+      const irrigationNeedMm = this.applyWaterQualityLeachingAdjustment(
+        siteAdjustedBaseNeedMm,
         waterQualityProfile
       )
       const soilWaterBalance = this.buildEstimatedSoilWaterBalance(
@@ -586,7 +596,9 @@ class AdvancedIrrigationService {
         measuredFeedbackSummary,
         soilHydraulicProfile,
         soilWaterBalance,
-        waterQualityProfile
+        waterQualityProfile,
+        zone.slope_percentage,
+        zone.sun_exposure
       )
 
       const waterRequirement: Omit<WaterRequirement, 'id'> = {
@@ -971,10 +983,18 @@ class AdvancedIrrigationService {
         recommendations.push('Il sistema sta funzionando in modo ottimale')
       }
 
+      const systems = await this.getIrrigationSystems(zoneId).catch(() => [])
+      const operationalContextTags = mergeOperationalContextTags(
+        inferOperationalContextTagsFromIrrigationSystems(systems),
+        inferOperationalContextTagsFromSite({
+          slopePercentage: zone.slope_percentage,
+          sunExposure: zone.sun_exposure,
+        })
+      )
       const waterQualityProfile = await resolveIrrigationWaterQualityProfile({
         gardenId: zone.garden_id,
         zoneId,
-        systems: await this.getIrrigationSystems(zoneId).catch(() => []),
+        systems,
       })
 
       if (waterQualityProfile?.qualityBand === 'critical') {
@@ -1014,6 +1034,7 @@ class AdvancedIrrigationService {
         waterUseEfficiency,
         recommendations,
         agronomicProfileId: resolvedAgronomicProfile?.profile.id,
+        operationalContextTags,
         priorityScore: priorityResult.score,
         priorityConfidence: priorityResult.confidence,
         missingSignals: priorityResult.signalCoverage.missingP0Signals,
@@ -1730,6 +1751,7 @@ class AdvancedIrrigationService {
       const isSensitiveStage = cropStage
         ? profile.water.sensitiveStages.includes(cropStage)
         : false
+      const irrigationTuning = profile.irrigationTuning
 
       switch (profile.water.strategy) {
         case 'uniform_supply':
@@ -1751,13 +1773,23 @@ class AdvancedIrrigationService {
           baseFactor = 1
           break
       }
+
+      baseFactor += irrigationTuning?.baseAdjustment ?? 0
+
+      if (isSensitiveStage) {
+        baseFactor += irrigationTuning?.sensitiveStageAdjustment ?? 0
+      }
     }
 
     if (!measuredFeedbackSummary) {
-      return baseFactor
+      return Number(Math.max(0.9, Math.min(1.18, baseFactor)).toFixed(2))
     }
 
-    const correction = Math.max(-0.06, Math.min(0.12, measuredFeedbackSummary.scoreAdjustment / 100))
+    const feedbackWeight = profile?.irrigationTuning?.measuredFeedbackWeight ?? 1
+    const correction = Math.max(
+      -0.06,
+      Math.min(0.12, (measuredFeedbackSummary.scoreAdjustment / 100) * feedbackWeight)
+    )
     return Number(Math.max(0.9, Math.min(1.18, baseFactor + correction)).toFixed(2))
   }
 
@@ -1839,7 +1871,9 @@ class AdvancedIrrigationService {
     measuredFeedbackSummary?: AgronomicMeasuredFeedbackSummary | null,
     soilHydraulicProfile?: SoilHydraulicProfile | null,
     soilWaterBalance?: WaterRequirement['soilWaterBalance'],
-    waterQualityProfile?: IrrigationWaterQualityProfile | null
+    waterQualityProfile?: IrrigationWaterQualityProfile | null,
+    slopePercentage?: number,
+    sunExposure?: string
   ): string | undefined {
     if (!resolvedProfile) {
       return undefined
@@ -1860,6 +1894,11 @@ class AdvancedIrrigationService {
       `P0 signal coverage: ${coveredP0Signals.length}/${p0Signals.length || 0}.`,
       `Zone water retention: ${waterRetention || 'unknown'}. System efficiency: ${systemEfficiency}%.`,
     ]
+
+    const siteBindingSummary = this.summarizeSiteWeatherBinding(slopePercentage, sunExposure)
+    if (siteBindingSummary) {
+      notes.push(siteBindingSummary)
+    }
 
     if (soilHydraulicProfile && soilWaterBalance) {
       notes.push(
@@ -1954,6 +1993,55 @@ class AdvancedIrrigationService {
 
     const rootProfile = profile.water.rootProfile
     return Math.round((rootProfile.effectiveDepthCmMin + rootProfile.effectiveDepthCmMax) / 2)
+  }
+
+  private applySiteWeatherBindingAdjustment(
+    irrigationNeedMm: number,
+    slopePercentage?: number | null,
+    sunExposure?: string | null
+  ): number {
+    let multiplier = 1
+
+    const slope = typeof slopePercentage === 'number' ? slopePercentage : 0
+    if (slope >= 12) {
+      multiplier += 0.05
+    } else if (slope >= 5) {
+      multiplier += 0.02
+    }
+
+    const normalizedExposure = (sunExposure || '').toLowerCase()
+    if (normalizedExposure.includes('full')) {
+      multiplier += 0.04
+    } else if (normalizedExposure.includes('shade')) {
+      multiplier -= 0.04
+    } else if (normalizedExposure.includes('partial')) {
+      multiplier += 0.01
+    }
+
+    return Number((irrigationNeedMm * Math.max(0.9, Math.min(1.12, multiplier))).toFixed(2))
+  }
+
+  private summarizeSiteWeatherBinding(
+    slopePercentage?: number,
+    sunExposure?: string
+  ): string | null {
+    const notes: string[] = []
+    if (typeof slopePercentage === 'number' && slopePercentage > 0) {
+      if (slopePercentage >= 12) {
+        notes.push(`Steep slope ${slopePercentage}% increases runoff risk and tightens irrigation timing.`)
+      } else if (slopePercentage >= 5) {
+        notes.push(`Slope ${slopePercentage}% slightly reduces water residence after events.`)
+      }
+    }
+
+    const normalizedExposure = (sunExposure || '').toLowerCase()
+    if (normalizedExposure.includes('full')) {
+      notes.push('Full sun exposure likely pushes ET demand above the plain regional baseline.')
+    } else if (normalizedExposure.includes('shade')) {
+      notes.push('Sheltered exposure may slow canopy drying relative to the regional forecast.')
+    }
+
+    return notes.length > 0 ? notes.join(' ') : null
   }
 
   private buildEstimatedSoilWaterBalance(

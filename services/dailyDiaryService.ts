@@ -17,7 +17,9 @@ import { getSupabaseClient } from '@/config/supabase'
 import { getLocationInfo, formatLocationForDisplay } from './geocodingService'
 import { normalizeGeoCoordinates } from '@/utils/coordinates'
 import {
+  buildPersistedForecastSnapshots,
   buildPersistedWeatherEnvelope,
+  buildSiteWeatherBinding,
   getEnvironmentalMonitoringSnapshot,
   upsertZoneEnvironmentalLedger,
   type EnvironmentalZoneLedgerEntry,
@@ -496,7 +498,21 @@ class DailyDiaryService {
       const endpoint = isHistorical
         ? 'https://archive-api.open-meteo.com/v1/archive'
         : 'https://api.open-meteo.com/v1/forecast'
-      const url = `${endpoint}?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max,wind_speed_10m_mean,shortwave_radiation_sum,uv_index_max,weather_code&timezone=auto&start_date=${date}&end_date=${date}`
+      const baseDailyFields = [
+        'temperature_2m_max',
+        'temperature_2m_min',
+        'precipitation_sum',
+        'relative_humidity_2m_max',
+        'relative_humidity_2m_min',
+        'wind_speed_10m_max',
+        'wind_speed_10m_mean',
+        'shortwave_radiation_sum',
+        'uv_index_max',
+        'weather_code',
+      ].join(',')
+      const url = isHistorical
+        ? `${endpoint}?latitude=${lat}&longitude=${lon}&daily=${baseDailyFields}&timezone=auto&start_date=${date}&end_date=${date}`
+        : `${endpoint}?latitude=${lat}&longitude=${lon}&daily=${baseDailyFields}&timezone=auto&start_date=${date}&end_date=${date}&forecast_days=7`
 
       const response = await fetch(url)
       const data = await response.json()
@@ -516,6 +532,32 @@ class DailyDiaryService {
         console.warn('Errore geocoding:', geocodingError)
         // Continua senza nome della località
       }
+
+      const forecastSnapshots = !isHistorical
+        ? buildPersistedForecastSnapshots(
+            {
+              dates: data.daily.time || [],
+              tempMin: data.daily.temperature_2m_min || [],
+              tempMax: data.daily.temperature_2m_max || [],
+              precipitationMm: data.daily.precipitation_sum || [],
+              humidityMin: data.daily.relative_humidity_2m_min || [],
+              humidityMax: data.daily.relative_humidity_2m_max || [],
+              windSpeedMax: data.daily.wind_speed_10m_max || [],
+              conditions: Array.isArray(data.daily.weather_code)
+                ? data.daily.weather_code.map((code: number) => this.weatherCodeToCondition(code))
+                : [],
+            },
+            {
+              generatedFromDate: date,
+              generatedAt: new Date().toISOString(),
+              source: 'open_meteo_forecast',
+            }
+          )
+        : []
+      const siteWeatherBinding = buildSiteWeatherBinding({
+        latitude: lat,
+        longitude: lon,
+      })
 
       return {
         temp_min: tempMin,
@@ -543,6 +585,8 @@ class DailyDiaryService {
             longitude: lon,
             date,
           },
+          forecastSnapshots,
+          siteWeatherBinding,
           payload: data,
         }
       }
