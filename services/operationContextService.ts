@@ -23,6 +23,8 @@ export interface OperationContext {
     condition: string;
     pressure: number;
     source?: OperationContextWeatherSource;
+    primarySource?: 'open_meteo_forecast' | 'open_meteo_archive' | 'fallback_estimated';
+    signalQuality?: 'measured' | 'mixed' | 'estimated';
   };
   lunar: {
     phase: string;
@@ -55,7 +57,9 @@ class OperationContextService {
       windSpeed: overrides?.windSpeed ?? 0,
       condition: overrides?.condition ?? 'estimated',
       pressure: overrides?.pressure ?? 1013,
-      source: 'estimated'
+      source: 'estimated',
+      primarySource: 'fallback_estimated',
+      signalQuality: 'estimated'
     })
   }
 
@@ -67,7 +71,9 @@ class OperationContextService {
       windSpeed: 0,
       condition: 'unknown',
       pressure: 1013,
-      source: 'fallback'
+      source: 'fallback',
+      primarySource: 'fallback_estimated',
+      signalQuality: 'estimated'
     })
   }
 
@@ -99,6 +105,8 @@ class OperationContextService {
         condition: weather.condition || 'unknown',
         pressure: weather.pressure || 1013,
         source: weather.source || 'fallback',
+        primarySource: weather.primarySource || 'fallback_estimated',
+        signalQuality: weather.signalQuality || 'estimated',
       }, lunar);
     } catch (error) {
       console.error('Error getting operation context:', error);

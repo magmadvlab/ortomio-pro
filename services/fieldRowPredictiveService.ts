@@ -164,6 +164,7 @@ export class FieldRowPredictiveService {
     const virtualTask: GardenTask = {
       id: `virtual-${fieldRow.id}`,
       gardenId: context.garden.id,
+      zoneId: fieldRow.zoneId || undefined,
       plantName: fieldRow.cultivar || 'Coltura non specificata',
       taskType: 'Sowing',
       date: fieldRow.planted_date || new Date().toISOString().split('T')[0],

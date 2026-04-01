@@ -472,6 +472,19 @@ export interface SoilWaterBalance {
   compactionRisk?: 'low' | 'medium' | 'high' | 'unknown'
   salinityAccumulationRisk?: 'low' | 'medium' | 'high'
   hydraulicSource?: 'soil_analysis' | 'estimated_from_partial_analysis'
+  hydraulicQuality?: 'measured' | 'mixed' | 'estimated'
+  fieldCapacitySource?: 'measured' | 'estimated'
+  wiltingPointSource?: 'measured' | 'estimated'
+  infiltrationSource?: 'measured' | 'estimated'
+  rootDepthSource?: 'crop_profile' | 'user_override' | 'default'
+  effectiveStorageFraction?: number
+  refillTriggerThresholdPercent?: number
+  refillEventTargetMm?: number
+  pulseSplitRecommended?: boolean
+  pulseCountSuggestion?: number
+  drainageConstraintFactor?: number
+  compactionConstraintFactor?: number
+  salinityPressureIndex?: number
   notes?: string[]
 }
 

@@ -1,4 +1,5 @@
 import type { PrescriptionMap } from '@/types/prescriptionMaps'
+import type { ZoneEnvironmentalHistorySummary } from '@/services/environmentalMonitoringService'
 import {
   summarizeAgronomicMeasuredFeedback,
   type AgronomicMeasuredFeedbackRecord,
@@ -47,6 +48,7 @@ export interface PrescriptionAgronomicPriority {
   agronomicProfileId?: string
   priorityConfidence?: number
   missingSignals?: AgronomicSignalKey[]
+  environmentalSummary?: ZoneEnvironmentalHistorySummary | null
 }
 
 export interface PrescriptionAgronomicIntelligenceSummary {
@@ -98,6 +100,19 @@ const soilWeight = {
   watch: 9,
   poor: 18,
 } satisfies Record<PrescriptionExecutionEfficacySummary['zoneScores'][number]['soilResponseStatus'], number>
+
+const hasPersistentEnvironmentalDeficit = (
+  environmentalSummary?: ZoneEnvironmentalHistorySummary | null
+) =>
+  (environmentalSummary?.highSoilWaterStressDays || 0) >= 2 ||
+  (environmentalSummary?.deficitWaterBalanceDays || 0) >= 3
+
+const hasPersistentEnvironmentalHumidity = (
+  environmentalSummary?: ZoneEnvironmentalHistorySummary | null
+) =>
+  (environmentalSummary?.highDiseasePressureDays || 0) >= 2 ||
+  (environmentalSummary?.surplusWaterBalanceDays || 0) >= 2 ||
+  (environmentalSummary?.lowDryingPowerDays || 0) >= 2
 
 const getPriorityFocusFromMapType = (mapType: PrescriptionMap['mapType']): AgronomicPriorityFocus => {
   switch (mapType) {
@@ -181,7 +196,8 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
   varianceSummary: PrescriptionExecutionVarianceSummary,
   outcomeSummary: PrescriptionExecutionOutcomeSummary,
   measuredFeedbackRecords: AgronomicMeasuredFeedbackRecord[] = [],
-  learningSnapshots: AgronomicProfileLearningSnapshot[] = []
+  learningSnapshots: AgronomicProfileLearningSnapshot[] = [],
+  environmentalSummariesByZone?: Record<string, ZoneEnvironmentalHistorySummary | null | undefined>
 ): PrescriptionAgronomicIntelligenceSummary {
   const priorityFocus = getPriorityFocusFromMapType(prescriptionMap.mapType)
   const resolvedAgronomicProfile = resolveAgronomicPriorityProfileSync({
@@ -210,6 +226,9 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
   for (const zone of efficacySummary.zoneScores) {
     const variance = varianceSummary.zoneVariances.find((item) => item.zoneId === zone.zoneId)
     const outcome = outcomeSummary.zoneOutcomes.find((item) => item.zoneId === zone.zoneId)
+    const environmentalSummary = environmentalSummariesByZone?.[zone.zoneId]
+    const persistentDeficit = hasPersistentEnvironmentalDeficit(environmentalSummary)
+    const persistentHumidity = hasPersistentEnvironmentalHumidity(environmentalSummary)
 
     if (zone.soilResponseStatus === 'poor') {
       recommendations.push({
@@ -273,6 +292,8 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
         + outcomeWeight[outcome?.outcomeStatus || 'no_data']
         + microclimateWeight[zone.microclimateStatus]
         + soilWeight[zone.soilResponseStatus]
+        + (persistentDeficit ? 10 : 0)
+        + (persistentHumidity ? 12 : 0)
         + qualityScoreGap * 0.45
         + brixGap * 3
       )
@@ -292,11 +313,12 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
             ? 0.76
             : zone.microclimateStatus !== 'no_data' || zone.soilResponseStatus !== 'no_data'
               ? 0.72
-              : 0.62,
+              : 0.62 + (environmentalSummary ? 0.04 : 0),
       resolvedProfile: resolvedAgronomicProfile,
       focus: priorityFocus,
       availableSignals,
       measuredFeedbackSummary,
+      environmentalSummary,
     })
     const priorityScore = priorityResult.score
 
@@ -312,6 +334,8 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       outcome?.outcomeStatus && outcome.outcomeStatus !== 'positive' ? `outcome ${outcome.outcomeStatus}` : null,
       zone.microclimateStatus !== 'stable' ? `microclima ${zone.microclimateStatus}` : null,
       zone.soilResponseStatus !== 'responsive' ? `suolo ${zone.soilResponseStatus}` : null,
+      persistentDeficit ? 'storico deficit persistente' : null,
+      persistentHumidity ? 'storico umido persistente' : null,
       priorityFocus === 'quality' && qualityScoreGap > 0 ? `qualita sotto target ${(adaptiveQualityScoreTarget || 0).toFixed(0)}` : null,
       priorityFocus === 'quality' && brixGap > 0 ? `brix sotto target ${qualityLearningAdjustment?.brixTarget}` : null,
     ].filter((value): value is string => Boolean(value))
@@ -321,6 +345,11 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       recommendedAction = `Intervieni subito su ${zone.zoneName}: correggi dose/copertura ed elimina il fattore operativo o microclimatico dominante prima del prossimo passaggio.`
     } else if (urgency === 'next_cycle') {
       recommendedAction = `Pianifica un aggiustamento nel prossimo ciclo su ${zone.zoneName}, con target piu aderente e controllo post-intervento.`
+    }
+    if (persistentHumidity) {
+      recommendedAction += ' Usa una finestra piu asciutta e stabile prima di replicare la prescrizione.'
+    } else if (persistentDeficit) {
+      recommendedAction += ' Verifica la componente idrica e la risposta del suolo prima di aumentare la dose.'
     }
     if (
       priorityFocus === 'quality' &&
@@ -351,6 +380,9 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       priorityFocus === 'quality' && qualityLearningAdjustment
         ? ` Benchmark qualita sito-specifico: ${qualityLearningAdjustment.qualityTargetRating.toFixed(1)}/5, soglia ${qualityLearningAdjustment.qualityAlertFloorRating.toFixed(1)}/5, Brix ${qualityLearningAdjustment.brixTarget}°.`
         : ''
+    const environmentalSuffix = environmentalSummary
+      ? ` Storico ambientale: ${persistentDeficit ? `${environmentalSummary.highSoilWaterStressDays || 0} giorni con stress idrico alto` : ''}${persistentDeficit && persistentHumidity ? ', ' : ''}${persistentHumidity ? `${environmentalSummary.highDiseasePressureDays || 0} giorni con pressione ambientale alta` : ''}.`
+      : ''
 
     operationalPriorities.push({
       id: `priority:${zone.zoneId}`,
@@ -368,8 +400,33 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       agronomicProfileId: resolvedAgronomicProfile?.profile.id,
       priorityConfidence: priorityResult.confidence,
       missingSignals: priorityResult.signalCoverage.missingP0Signals,
-      rationale: `${rationale}${profileSuffix}${coverageSuffix}${measuredFeedbackSuffix}${adaptiveQualitySuffix}`,
+      environmentalSummary,
+      rationale: `${rationale}${profileSuffix}${coverageSuffix}${measuredFeedbackSuffix}${adaptiveQualitySuffix}${environmentalSuffix}`,
     })
+
+    if (
+      environmentalSummary &&
+      (persistentDeficit || persistentHumidity) &&
+      recommendations.every((entry) => entry.id !== `environment:${zone.zoneId}`)
+    ) {
+      recommendations.push({
+        id: `environment:${zone.zoneId}`,
+        severity:
+          persistentHumidity && (environmentalSummary.highDiseasePressureDays || 0) >= 3
+            ? 'high'
+            : persistentDeficit && (environmentalSummary.highSoilWaterStressDays || 0) >= 3
+              ? 'high'
+              : 'medium',
+        category: 'timing',
+        scopeLabel: zone.zoneName,
+        title: 'Pressione ambientale persistente sulla zona',
+        message: persistentHumidity
+          ? `Su ${zone.zoneName} il ledger ambientale mostra una sequenza recente umida. Conviene riaprire timing e copertura prima di ripetere la prescrizione.`
+          : `Su ${zone.zoneName} il ledger ambientale mostra deficit idrico persistente. Conviene riallineare componente irrigua e risposta del suolo prima di forzare ulteriormente la dose.`,
+        agronomicProfileId: resolvedAgronomicProfile?.profile.id,
+        confidence: Math.min(0.9, 0.62 + (priorityResult.confidence - 0.5) * 0.5),
+      })
+    }
 
     if (
       measuredFeedbackSummary &&

@@ -5,6 +5,7 @@
 
 import { Garden, GardenTask, SmartDevice } from '@/types'
 import type { IStorageProvider } from '@/packages/core/storage/interface'
+import { getSupabaseClient } from '@/config/supabase'
 import { weatherService } from '@/services/weatherService'
 import {
   getScopedHealthMicroclimateSnapshot,
@@ -32,6 +33,10 @@ import {
   getAgronomicProfileLearningSnapshots,
   type AgronomicHealthLearningAdjustment,
 } from '@/services/agronomicProfileLearningService'
+import {
+  getPersistedGardenEnvironmentalHistorySummary,
+  type GardenEnvironmentalHistorySummary,
+} from '@/services/environmentalMonitoringService'
 import { scoreAgronomicPriority } from '@/services/agronomicPriorityService'
 import type {
   AgronomicHealthPriority,
@@ -400,6 +405,7 @@ type HealthEnvironmentalContext = {
   cropContext: HealthCropContext
   weatherData: GardenWeatherData | null
   microclimate: HealthMicroclimateSnapshot | null
+  environmentalHistorySummary?: GardenEnvironmentalHistorySummary | null
   phenology: CurrentPhenologyState | null
   devices: SmartDevice[]
   agronomicProfile: ResolvedAgronomicCropProfile | null
@@ -428,9 +434,20 @@ export class PlantHealthMonitoringService {
     const devices = options.devices || []
     const dominantPlantNames = this.getDominantPlantNames(garden, tasks)
     const agronomicProfile = await this.resolveAgronomicHealthProfile(garden, dominantPlantNames)
-    const [weatherData, microclimate, phenology, measuredFeedbackRecords, learningSnapshots] = await Promise.all([
+    const gardenOwnerId = await this.resolveGardenOwnerId(garden)
+    const today = new Date().toISOString().split('T')[0]
+    const recentStartDate = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const [weatherData, microclimate, environmentalHistorySummary, phenology, measuredFeedbackRecords, learningSnapshots] = await Promise.all([
       garden.coordinates ? weatherService.getWeatherForGarden(garden).catch(() => null) : Promise.resolve(null),
       getScopedHealthMicroclimateSnapshot(garden, { devices }).catch(() => null),
+      gardenOwnerId
+        ? getPersistedGardenEnvironmentalHistorySummary({
+            userId: gardenOwnerId,
+            gardenId: garden.id,
+            startDate: recentStartDate,
+            endDate: today,
+          }).catch(() => null)
+        : Promise.resolve(null),
       getCurrentPhenologyState(options.storageProvider, garden, {}, {
         cropName: dominantPlantNames[0],
         profileId: agronomicProfile?.profile.id,
@@ -454,6 +471,7 @@ export class PlantHealthMonitoringService {
       cropContext: context,
       weatherData,
       microclimate,
+      environmentalHistorySummary,
       phenology,
       devices,
       agronomicProfile,
@@ -640,11 +658,79 @@ export class PlantHealthMonitoringService {
     const heatStress = microclimate?.heatStress || 'none'
     const waterStress = microclimate?.waterStress || 'none'
     const adaptiveLearning = environmentalContext.adaptiveLearning
+    const environmentalHistory = environmentalContext.environmentalHistorySummary
     const microclimateSignals = microclimate?.supportingSignals.length
       ? ` Sensori: ${microclimate.supportingSignals.join(', ')}.`
       : ''
+    const persistentDiseasePressure =
+      (environmentalHistory?.highDiseasePressureDays || 0) >= 2 ||
+      (environmentalHistory?.lowDryingPowerDays || 0) >= 2
+    const persistentWaterStress =
+      (environmentalHistory?.highSoilWaterStressDays || 0) >= 2 ||
+      (environmentalHistory?.deficitWaterBalanceDays || 0) >= 3
+    const historySuffix = this.buildEnvironmentalHistorySuffix(environmentalHistory)
 
     if (!weatherData && !microclimate?.hasRecentData) {
+      if (persistentDiseasePressure) {
+        alerts.push(
+          this.applyAdaptiveLearningToAlert(
+            {
+              id: `environmental_fungal_history_${Date.now()}`,
+              type: 'disease_risk',
+              severity: 'medium',
+              plantName: this.getFungalWeatherProfile(context).plantLabel,
+              description: `Lo storico ambientale recente mantiene alta la pressione fungina nel ${context.areaLabel}.${historySuffix}`,
+              detectedAt: new Date().toISOString(),
+              suggestedActions: [
+                {
+                  type: 'monitoring',
+                  title: 'Controllo Umidita Persistente',
+                  description: 'Verifica foglie, chioma e zone meno ventilate dopo la sequenza di giornate umide',
+                  priority: 'high',
+                  estimatedTime: '15 min',
+                },
+              ],
+              photoRequired: true,
+              agronomistConsultation: context.id !== 'generic',
+              urgencyDays: 2,
+              confidence: 0.7,
+              triggers: ['environmental_history'],
+            },
+            environmentalContext
+          )
+        )
+      }
+
+      if (persistentWaterStress) {
+        alerts.push(
+          this.applyAdaptiveLearningToAlert(
+            {
+              id: `environmental_water_history_${Date.now()}`,
+              type: 'weather_stress',
+              severity: 'medium',
+              plantName: this.getHeatStressProfile(context).plantLabel,
+              description: `Il ledger ambientale mostra stress idrico persistente nel ${context.areaLabel}.${historySuffix}`,
+              detectedAt: new Date().toISOString(),
+              suggestedActions: [
+                {
+                  type: 'monitoring',
+                  title: 'Verifica Bilancio Idrico',
+                  description: 'Controlla umidita del suolo, omogeneita tra zone e necessita di irrigazione di supporto',
+                  priority: 'high',
+                  estimatedTime: '15 min',
+                },
+              ],
+              photoRequired: false,
+              agronomistConsultation: false,
+              urgencyDays: 2,
+              confidence: 0.68,
+              triggers: ['environmental_history'],
+            },
+            environmentalContext
+          )
+        )
+      }
+
       return alerts
     }
 
@@ -707,13 +793,13 @@ export class PlantHealthMonitoringService {
             id: `fungal_risk_weather_${Date.now()}`,
             type: 'disease_risk',
             severity:
-              fungalPressure === 'high' && context.id === 'vineyard'
+              (fungalPressure === 'high' || persistentDiseasePressure) && context.id === 'vineyard'
                 ? 'critical'
-                : fungalPressure === 'high' || context.id === 'vineyard'
+                : fungalPressure === 'high' || persistentDiseasePressure || context.id === 'vineyard'
                   ? 'high'
                   : 'medium',
             plantName: fungalProfile.plantLabel,
-            description: `${fungalProfile.description}: umidita ${effectiveHumidity}%, temperatura ${effectiveTemperature.toFixed(1)}°C, pioggia fino a ${effectiveRain.toFixed(1)}mm tra oggi e i prossimi giorni.${microclimateSignals}`,
+            description: `${fungalProfile.description}: umidita ${effectiveHumidity}%, temperatura ${effectiveTemperature.toFixed(1)}°C, pioggia fino a ${effectiveRain.toFixed(1)}mm tra oggi e i prossimi giorni.${microclimateSignals}${historySuffix}`,
             detectedAt: new Date().toISOString(),
             suggestedActions: [
               {
@@ -732,12 +818,12 @@ export class PlantHealthMonitoringService {
               },
             ],
             photoRequired: false,
-            agronomistConsultation: fungalPressure === 'high' && context.id !== 'generic',
+            agronomistConsultation: (fungalPressure === 'high' || persistentDiseasePressure) && context.id !== 'generic',
             urgencyDays: fungalPressure === 'high' ? 1 : 2,
-            confidence: microclimate?.hasRecentData ? 0.9 : 0.75,
+            confidence: Math.min(0.96, (microclimate?.hasRecentData ? 0.9 : 0.75) + (persistentDiseasePressure ? 0.05 : 0)),
             triggers: microclimate?.hasRecentData
-              ? ['weather', 'leaf_wetness', 'dew_point', 'rain_gauge_local']
-              : ['weather'],
+              ? ['weather', 'leaf_wetness', 'dew_point', 'rain_gauge_local', ...(persistentDiseasePressure ? ['environmental_history'] : [])]
+              : ['weather', ...(persistentDiseasePressure ? ['environmental_history'] : [])],
           },
           environmentalContext
         )
@@ -750,7 +836,8 @@ export class PlantHealthMonitoringService {
     if (
       hotDays >= adaptiveLearning.hotDaysTriggerCount ||
       heatStress === 'high' ||
-      waterStress === 'high'
+      waterStress === 'high' ||
+      persistentWaterStress
     ) {
       const heatProfile = this.getHeatStressProfile(context)
       alerts.push(
@@ -758,12 +845,14 @@ export class PlantHealthMonitoringService {
           {
             id: `heat_stress_${Date.now()}`,
             type: 'stress_symptoms',
-            severity: heatStress === 'high' || waterStress === 'high' ? 'high' : 'medium',
+            severity: heatStress === 'high' || waterStress === 'high' || persistentWaterStress ? 'high' : 'medium',
             plantName: heatProfile.plantLabel,
             description:
               hotDays >= adaptiveLearning.hotDaysTriggerCount
-                ? `Previste ${hotDays} giornate con temperature >${adaptiveLearning.heatStressTemperatureThreshold}°C. ${heatProfile.description}${microclimateSignals}`
-                : `I sensori indicano stress idrico o termico nel ${context.areaLabel}. ${heatProfile.description}${microclimateSignals}`,
+                ? `Previste ${hotDays} giornate con temperature >${adaptiveLearning.heatStressTemperatureThreshold}°C. ${heatProfile.description}${microclimateSignals}${historySuffix}`
+                : persistentWaterStress
+                  ? `Lo storico ambientale conferma stress idrico ricorrente nel ${context.areaLabel}. ${heatProfile.description}${microclimateSignals}${historySuffix}`
+                  : `I sensori indicano stress idrico o termico nel ${context.areaLabel}. ${heatProfile.description}${microclimateSignals}${historySuffix}`,
             detectedAt: new Date().toISOString(),
             suggestedActions: [
               {
@@ -784,10 +873,10 @@ export class PlantHealthMonitoringService {
             photoRequired: true,
             agronomistConsultation: false,
             urgencyDays: 1,
-            confidence: microclimate?.hasRecentData ? 0.88 : 0.8,
+            confidence: Math.min(0.96, (microclimate?.hasRecentData ? 0.88 : 0.8) + (persistentWaterStress ? 0.05 : 0)),
             triggers: microclimate?.hasRecentData
-              ? ['weather', 'vpd', 'canopy_temperature', 'soil_tension_kpa']
-              : ['weather'],
+              ? ['weather', 'vpd', 'canopy_temperature', 'soil_tension_kpa', ...(persistentWaterStress ? ['environmental_history'] : [])]
+              : ['weather', ...(persistentWaterStress ? ['environmental_history'] : [])],
           },
           environmentalContext
         )
@@ -937,6 +1026,8 @@ export class PlantHealthMonitoringService {
   ): string {
     const context = environmentalContext.cropContext
     const microclimateSignals = environmentalContext.microclimate?.supportingSignals.slice(0, 3)
+    const measuredFeedbackNotes = environmentalContext.measuredFeedbackNotes || []
+    const adaptiveLearningNotes = environmentalContext.adaptiveLearning?.notes || []
     const sensorSuffix =
       microclimateSignals && microclimateSignals.length > 0
         ? ` Segnali sensore: ${microclimateSignals.join(', ')}.`
@@ -950,27 +1041,30 @@ export class PlantHealthMonitoringService {
       ? ` Profilo agronomico: ${environmentalContext.agronomicProfile.profile.label}. Priorita: ${environmentalContext.agronomicProfile.profile.health.priorities.join(', ')}.`
       : ''
     const measuredFeedbackSuffix =
-      environmentalContext.measuredFeedbackNotes.length > 0
-        ? ` Feedback osservato recente: ${environmentalContext.measuredFeedbackNotes.join(', ')}.`
+      measuredFeedbackNotes.length > 0
+        ? ` Feedback osservato recente: ${measuredFeedbackNotes.join(', ')}.`
         : ''
+    const environmentalHistorySuffix = this.buildEnvironmentalHistorySuffix(
+      environmentalContext.environmentalHistorySummary
+    )
     const adaptiveLearningSuffix =
-      environmentalContext.adaptiveLearning.notes.length > 0
-        ? ` Memoria sito-specifica: ${environmentalContext.adaptiveLearning.notes.join(' ')}.`
+      adaptiveLearningNotes.length > 0
+        ? ` Memoria sito-specifica: ${adaptiveLearningNotes.join(' ')}.`
         : ''
 
     if (context.id === 'vineyard') {
-      return `${rule.description} rilevate su ${plantName}. Concentrati sui filari piu umidi o chiusi.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${adaptiveLearningSuffix}`
+      return `${rule.description} rilevate su ${plantName}. Concentrati sui filari piu umidi o chiusi.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}`
     }
 
     if (context.id === 'olive') {
-      return `${rule.description} rilevato su ${plantName}. Verifica chioma, olive e uniformita dell impianto.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${adaptiveLearningSuffix}`
+      return `${rule.description} rilevato su ${plantName}. Verifica chioma, olive e uniformita dell impianto.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}`
     }
 
     if (context.id === 'orchard') {
-      return `${rule.description} rilevata su ${plantName}. Controlla insieme foglie, chioma e frutti.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${adaptiveLearningSuffix}`
+      return `${rule.description} rilevata su ${plantName}. Controlla insieme foglie, chioma e frutti.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}`
     }
 
-    return `${rule.description} rilevata per ${plantName}.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${adaptiveLearningSuffix}`
+    return `${rule.description} rilevata per ${plantName}.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}`
   }
 
   private shouldConsultAgronomist(rule: MonitoringRule): boolean {
@@ -1000,8 +1094,8 @@ export class PlantHealthMonitoringService {
   ): number {
     const baseConfidence = 0.8
     const hasWeatherTrigger = rule.triggers.some((trigger) => trigger.type === 'weather')
-    const measuredFeedbackBoost = environmentalContext.measuredFeedbackPressure * 0.01
-    const adaptiveBoost = environmentalContext.adaptiveLearning.confidenceBoost
+    const measuredFeedbackBoost = (environmentalContext.measuredFeedbackPressure || 0) * 0.01
+    const adaptiveBoost = environmentalContext.adaptiveLearning?.confidenceBoost || 0
 
     if (!hasWeatherTrigger) {
       return this.applyAgronomicConfidenceAdjustments(
@@ -1432,6 +1526,55 @@ export class PlantHealthMonitoringService {
     }
 
     return availableSignals
+  }
+
+  private buildEnvironmentalHistorySuffix(
+    environmentalHistorySummary?: GardenEnvironmentalHistorySummary | null
+  ): string {
+    if (!environmentalHistorySummary || environmentalHistorySummary.entries === 0) {
+      return ''
+    }
+
+    const clauses: string[] = []
+    if (environmentalHistorySummary.highDiseasePressureDays > 0) {
+      clauses.push(`${environmentalHistorySummary.highDiseasePressureDays} giorni recenti ad alta pressione fungina`)
+    }
+    if (environmentalHistorySummary.highSoilWaterStressDays > 0) {
+      clauses.push(`${environmentalHistorySummary.highSoilWaterStressDays} giorni recenti con forte stress idrico`)
+    }
+    if (environmentalHistorySummary.lowDryingPowerDays > 0) {
+      clauses.push(`${environmentalHistorySummary.lowDryingPowerDays} giornate con bassa capacita di asciugatura`)
+    }
+
+    if (clauses.length === 0) {
+      return ''
+    }
+
+    return ` Storico ambientale: ${clauses.join(', ')}.`
+  }
+
+  private async resolveGardenOwnerId(garden: Garden): Promise<string | null> {
+    const directCandidate =
+      (garden as Garden & { user_id?: string; userId?: string; ownerId?: string }).user_id ||
+      (garden as Garden & { user_id?: string; userId?: string; ownerId?: string }).userId ||
+      (garden as Garden & { user_id?: string; userId?: string; ownerId?: string }).ownerId
+
+    if (directCandidate) {
+      return directCandidate
+    }
+
+    const supabase = getSupabaseClient()
+    if (!supabase) {
+      return null
+    }
+
+    const { data } = await supabase
+      .from('gardens')
+      .select('user_id')
+      .eq('id', garden.id)
+      .maybeSingle()
+
+    return typeof data?.user_id === 'string' ? data.user_id : null
   }
 
   private scoreHealthAlert(

@@ -441,6 +441,9 @@ export interface NutritionWaterQualityInsight {
   worstQualityScore: number
   qualityBand: IrrigationWaterQualityBand
   sourceLabel?: string
+  soilConstraintZoneCount?: number
+  measuredSoilProfileZoneCount?: number
+  worstSoilConstraintLevel?: 'low' | 'medium' | 'high' | 'unknown'
   riskFlags: string[]
   recommendations: string[]
 }

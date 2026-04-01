@@ -154,6 +154,35 @@ class AdvancedIrrigationService {
     }
   }
 
+  async getIrrigationZone(zoneId: string): Promise<IrrigationZone | null> {
+    try {
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase
+        .from('irrigation_zones')
+        .select('*')
+        .eq('id', zoneId)
+        .single()
+
+      if (error) {
+        throw error
+      }
+
+      if (!data) {
+        return null
+      }
+
+      const mappedZone = this.mapZoneFromDatabase(data)
+      const systems = await this.getIrrigationSystems(zoneId).catch(() => [])
+      return {
+        ...mappedZone,
+        systems,
+      }
+    } catch (error) {
+      console.error('Error fetching irrigation zone:', error)
+      return null
+    }
+  }
+
   async createIrrigationZone(zone: Omit<IrrigationZone, 'id' | 'createdAt' | 'updatedAt'>): Promise<IrrigationZone> {
     try {
       const supabase = getSupabaseClient()
@@ -454,7 +483,7 @@ class AdvancedIrrigationService {
       // Get zone information for area calculation
       const { data: zone, error: zoneError } = await supabase
         .from('irrigation_zones')
-        .select('area_sqm, efficiency_percentage, water_retention, garden_id')
+        .select('area_sqm, efficiency_percentage, water_retention, garden_id, drainage_quality, slope_percentage, soil_type, ph_level, organic_matter_percentage')
         .eq('id', zoneId)
         .single()
 
@@ -465,15 +494,32 @@ class AdvancedIrrigationService {
       const hydraulicRootZoneDepthCm = this.getHydraulicRootZoneDepthCm(
         resolvedAgronomicProfile?.profile
       )
-      const latestSoilAnalysis = await getLatestSoilAnalysis(supabase, zoneId, zone.garden_id)
-      const soilHydraulicProfile = calculateSoilHydraulicProfile(latestSoilAnalysis, {
-        rootZoneDepthCm: hydraulicRootZoneDepthCm,
-      })
       const irrigationSystems = await this.getIrrigationSystems(zoneId).catch(() => [])
       const waterQualityProfile = await resolveIrrigationWaterQualityProfile({
         gardenId: zone.garden_id,
         zoneId,
         systems: irrigationSystems,
+      })
+      const latestSoilAnalysis = await getLatestSoilAnalysis(supabase, zoneId, zone.garden_id)
+      const soilHydraulicProfile = calculateSoilHydraulicProfile(latestSoilAnalysis, {
+        rootZoneDepthCm: hydraulicRootZoneDepthCm,
+        rootDepthSource: hydraulicRootZoneDepthCm ? 'crop_profile' : 'default',
+        zone: this.mapZoneFromDatabase({
+          id: zoneId,
+          garden_id: zone.garden_id,
+          area_sqm: zone.area_sqm,
+          water_retention: zone.water_retention,
+          drainage_quality: zone.drainage_quality,
+          slope_percentage: zone.slope_percentage,
+          soil_type: zone.soil_type,
+          ph_level: zone.ph_level,
+          organic_matter_percentage: zone.organic_matter_percentage,
+          is_active: true,
+          name: 'Zone',
+          created_at: date,
+          updated_at: date,
+        }),
+        waterQualityProfile,
       })
       const enrichedWeatherData = this.enrichWeatherDataWithWaterQuality(
         weatherData,
@@ -497,11 +543,21 @@ class AdvancedIrrigationService {
       )
 
       // Calculate recommended volume (1mm over 1m² = 1 liter)
-      const recommendedVolumeLiters = irrigationNeedMm * zone.area_sqm
+      const soilAdjustedIrrigationNeedMm = this.applySoilConstraintAdjustment(
+        irrigationNeedMm,
+        soilHydraulicProfile,
+        soilWaterBalance
+      )
+      const recommendedVolumeLiters = soilAdjustedIrrigationNeedMm * zone.area_sqm
 
       // Adjust for system efficiency (default 85%)
       const systemEfficiency = zone.efficiency_percentage || 85
       const adjustedVolumeLiters = recommendedVolumeLiters / (systemEfficiency / 100)
+      const recommendedDurationMinutes = this.estimateRecommendedDurationMinutes(
+        adjustedVolumeLiters,
+        irrigationSystems,
+        soilWaterBalance
+      )
       const measuredFeedbackSummary = await this.getWaterMeasuredFeedbackSummary(
         zoneId,
         agronomicInput?.cropName,
@@ -543,8 +599,9 @@ class AdvancedIrrigationService {
         weatherData: enrichedWeatherData || {},
         waterQualityProfile: waterQualityProfile || undefined,
         soilWaterBalance,
-        irrigationNeedMm,
+        irrigationNeedMm: soilAdjustedIrrigationNeedMm,
         recommendedVolumeLiters: adjustedVolumeLiters,
+        recommendedDurationMinutes,
         calculationMethod: 'penman_monteith',
         confidenceLevel,
         aiAdjustmentFactor,
@@ -565,7 +622,7 @@ class AdvancedIrrigationService {
         weatherData: enrichedWeatherData || {},
         waterQualityProfile: waterQualityProfile || undefined,
         soilWaterBalance,
-        irrigationNeedMm,
+        irrigationNeedMm: soilAdjustedIrrigationNeedMm,
       }
     } catch (error) {
       console.error('Error calculating water requirements:', error)
@@ -1806,11 +1863,16 @@ class AdvancedIrrigationService {
 
     if (soilHydraulicProfile && soilWaterBalance) {
       notes.push(
-        `Soil hydraulic profile (${soilHydraulicProfile.source}): ${soilHydraulicProfile.textureClass} texture, FC ${soilHydraulicProfile.fieldCapacityVolumetricPercent}%, WP ${soilHydraulicProfile.wiltingPointVolumetricPercent}%, AWH ${soilHydraulicProfile.availableWaterHoldingMmPerMeter} mm/m, infiltration ${soilHydraulicProfile.estimatedInfiltrationRateMmh} mm/h.`
+        `Soil hydraulic profile (${soilHydraulicProfile.source}, quality ${soilHydraulicProfile.hydraulicQuality}): ${soilHydraulicProfile.textureClass} texture, FC ${soilHydraulicProfile.fieldCapacityVolumetricPercent}% [${soilHydraulicProfile.fieldCapacitySource}], WP ${soilHydraulicProfile.wiltingPointVolumetricPercent}% [${soilHydraulicProfile.wiltingPointSource}], AWH ${soilHydraulicProfile.availableWaterHoldingMmPerMeter} mm/m, infiltration ${soilHydraulicProfile.estimatedInfiltrationRateMmh} mm/h [${soilHydraulicProfile.infiltrationSource}].`
       )
       notes.push(
-        `Estimated root-zone balance: depth ${soilWaterBalance.rootZoneDepthCm || soilHydraulicProfile.rootZoneDepthCm} cm, effective depth ${soilWaterBalance.effectiveRootableDepthCm || soilHydraulicProfile.effectiveRootableDepthCm} cm, available water ${soilWaterBalance.availableWaterMm || 0} mm, estimated deficit ${soilWaterBalance.soilWaterDeficitMm || 0} mm, compaction risk ${soilHydraulicProfile.compactionRisk}, drainage ${soilHydraulicProfile.drainageClass}, salinity accumulation risk ${soilWaterBalance.salinityAccumulationRisk || soilHydraulicProfile.salinityAccumulationRisk}.`
+        `Zone-first balance: depth ${soilWaterBalance.rootZoneDepthCm || soilHydraulicProfile.rootZoneDepthCm} cm, effective depth ${soilWaterBalance.effectiveRootableDepthCm || soilHydraulicProfile.effectiveRootableDepthCm} cm [${soilWaterBalance.rootDepthSource || soilHydraulicProfile.rootDepthSource}], available water ${soilWaterBalance.availableWaterMm || 0} mm, deficit ${soilWaterBalance.soilWaterDeficitMm || 0} mm, refill target ${soilWaterBalance.refillEventTargetMm || soilHydraulicProfile.refillEventTargetMm || 0} mm/event, compaction risk ${soilHydraulicProfile.compactionRisk}, drainage ${soilHydraulicProfile.drainageClass}, salinity accumulation risk ${soilWaterBalance.salinityAccumulationRisk || soilHydraulicProfile.salinityAccumulationRisk}.`
       )
+      if (soilWaterBalance.pulseSplitRecommended) {
+        notes.push(
+          `Pulse splitting recommended (${soilWaterBalance.pulseCountSuggestion || 2} pulses) because the zone cannot safely refill in one event under current drainage/compaction/salinity constraints.`
+        )
+      }
     } else {
       notes.push('No soil hydraulic profile available: irrigation volume still relies on ET0/Kc and generic zone retention only.')
     }
@@ -1903,7 +1965,7 @@ class AdvancedIrrigationService {
       return undefined
     }
 
-    const rootZoneDepthMm = soilHydraulicProfile.rootZoneDepthCm * 10
+    const rootZoneDepthMm = soilHydraulicProfile.effectiveRootableDepthCm * 10
     const fieldCapacityMm = Number(
       ((soilHydraulicProfile.fieldCapacityVolumetricPercent / 100) * rootZoneDepthMm).toFixed(1)
     )
@@ -1918,6 +1980,9 @@ class AdvancedIrrigationService {
 
     if (soilHydraulicProfile.compactionRisk === 'medium') deficitMultiplier += 0.04
     if (soilHydraulicProfile.compactionRisk === 'high') deficitMultiplier += 0.08
+    if (soilHydraulicProfile.drainageClass === 'slow') deficitMultiplier += 0.05
+    if (soilHydraulicProfile.salinityAccumulationRisk === 'medium') deficitMultiplier += 0.04
+    if (soilHydraulicProfile.salinityAccumulationRisk === 'high') deficitMultiplier += 0.08
 
     const soilWaterDeficitMm = Number(
       Math.min(availableWaterMm, Math.max(0, irrigationNeedMm * deficitMultiplier)).toFixed(1)
@@ -1937,9 +2002,72 @@ class AdvancedIrrigationService {
       drainageClass: soilHydraulicProfile.drainageClass,
       compactionRisk: soilHydraulicProfile.compactionRisk,
       salinityAccumulationRisk: soilHydraulicProfile.salinityAccumulationRisk,
+      hydraulicQuality: soilHydraulicProfile.hydraulicQuality,
+      fieldCapacitySource: soilHydraulicProfile.fieldCapacitySource,
+      wiltingPointSource: soilHydraulicProfile.wiltingPointSource,
+      infiltrationSource: soilHydraulicProfile.infiltrationSource,
+      rootDepthSource: soilHydraulicProfile.rootDepthSource,
+      effectiveStorageFraction: soilHydraulicProfile.effectiveStorageFraction,
+      refillTriggerThresholdPercent: soilHydraulicProfile.refillTriggerThresholdPercent,
+      refillEventTargetMm: soilHydraulicProfile.refillEventTargetMm,
+      pulseSplitRecommended: soilHydraulicProfile.pulseSplitRecommended,
+      pulseCountSuggestion: soilHydraulicProfile.pulseCountSuggestion,
+      drainageConstraintFactor: soilHydraulicProfile.drainageConstraintFactor,
+      compactionConstraintFactor: soilHydraulicProfile.compactionConstraintFactor,
+      salinityPressureIndex: soilHydraulicProfile.salinityPressureIndex,
       hydraulicSource: soilHydraulicProfile.source,
       notes: soilHydraulicProfile.notes,
     }
+  }
+
+  private applySoilConstraintAdjustment(
+    irrigationNeedMm: number,
+    soilHydraulicProfile?: SoilHydraulicProfile | null,
+    soilWaterBalance?: WaterRequirement['soilWaterBalance']
+  ): number {
+    if (!soilHydraulicProfile || irrigationNeedMm <= 0) {
+      return irrigationNeedMm
+    }
+
+    let factor = 1
+
+    factor *= soilHydraulicProfile.drainageConstraintFactor || 1
+    factor *= soilHydraulicProfile.compactionConstraintFactor || 1
+
+    if (soilHydraulicProfile.salinityAccumulationRisk === 'medium') factor *= 1.03
+    if (soilHydraulicProfile.salinityAccumulationRisk === 'high') factor *= 1.08
+    if (soilHydraulicProfile.hydraulicQuality === 'estimated') factor *= 0.97
+
+    const adjustedNeed = Number((irrigationNeedMm * factor).toFixed(2))
+    const refillCap = soilWaterBalance?.refillEventTargetMm
+
+    if (
+      typeof refillCap === 'number' &&
+      refillCap > 0 &&
+      soilWaterBalance?.pulseSplitRecommended !== true
+    ) {
+      return Number(Math.min(adjustedNeed, refillCap).toFixed(2))
+    }
+
+    return adjustedNeed
+  }
+
+  private estimateRecommendedDurationMinutes(
+    recommendedVolumeLiters: number,
+    systems: IrrigationSystem[],
+    soilWaterBalance?: WaterRequirement['soilWaterBalance']
+  ): number | undefined {
+    if (recommendedVolumeLiters <= 0) {
+      return undefined
+    }
+
+    const flowRateLh = systems.find((system) => typeof system.flowRateLh === 'number' && system.flowRateLh > 0)?.flowRateLh
+    if (!flowRateLh || flowRateLh <= 0) {
+      return undefined
+    }
+
+    const pulseCount = Math.max(1, soilWaterBalance?.pulseCountSuggestion || 1)
+    return Number(((recommendedVolumeLiters / flowRateLh) * 60 / pulseCount).toFixed(0))
   }
 
   private applyWaterQualityLeachingAdjustment(

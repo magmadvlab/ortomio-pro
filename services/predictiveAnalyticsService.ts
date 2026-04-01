@@ -3,13 +3,17 @@
  * Previsioni per agricoltura di precisione: data raccolto ottimale, resa, rischio malattie, fabbisogno idrico
  */
 
-import { SupabaseClient } from '@supabase/supabase-js';
 import { GardenTask, PlantMasterSheet, HarvestLogData } from '../types';
-import { getMasterSheetSync } from './plantMasterService';
 import { calculateDaysActive } from './taskCalculationService';
 import { determineLifecyclePhase } from '../logic/lifecycleEngine';
 import { getWeatherForecast7Days } from './weatherService';
-import { calculateHarvestAnalytics } from '../logic/harvestAnalyticsEngine';
+import { getSupabaseClient } from '@/config/supabase'
+import {
+  getPersistedGardenEnvironmentalHistorySummary,
+  getPersistedZoneEnvironmentalHistorySummary,
+  type GardenEnvironmentalHistorySummary,
+  type ZoneEnvironmentalHistorySummary,
+} from '@/services/environmentalMonitoringService'
 
 export interface HarvestPrediction {
   optimalHarvestDate: Date;
@@ -35,6 +39,7 @@ export interface YieldPrediction {
     healthScore: number; // 0-1
     weatherConditions: string;
     fertilizationLevel: 'low' | 'medium' | 'high';
+    environmentalPressure?: string;
   };
   range: {
     min: number;
@@ -56,6 +61,7 @@ export interface DiseaseRiskPrediction {
     precipitation: number;
     plantHealth: number;
     historicalPatterns: boolean;
+    environmentalPressure?: string;
   };
 }
 
@@ -78,7 +84,130 @@ export interface WaterRequirementPrediction {
     expectedPrecipitation: number;
     evapotranspiration: number;
     plantPhase: string;
+    environmentalPressure?: string;
   };
+}
+
+type PredictiveEnvironmentalSummary =
+  | GardenEnvironmentalHistorySummary
+  | ZoneEnvironmentalHistorySummary
+
+type PredictiveGardenContext = {
+  id?: string
+  user_id?: string
+  userId?: string
+  ownerId?: string
+  coordinates?: { latitude: number; longitude: number }
+  sizeSqMeters?: number
+}
+
+interface PredictiveEnvironmentalOptions {
+  environmentalHistorySummary?: PredictiveEnvironmentalSummary | null
+}
+
+function hasPersistentDryStress(summary?: PredictiveEnvironmentalSummary | null): boolean {
+  return (
+    (summary?.highSoilWaterStressDays || 0) >= 2 ||
+    (summary?.deficitWaterBalanceDays || 0) >= 3
+  )
+}
+
+function hasPersistentWetPressure(summary?: PredictiveEnvironmentalSummary | null): boolean {
+  return (
+    (summary?.highDiseasePressureDays || 0) >= 2 ||
+    (summary?.surplusWaterBalanceDays || 0) >= 2 ||
+    (summary?.lowDryingPowerDays || 0) >= 2
+  )
+}
+
+function describeEnvironmentalPressure(summary?: PredictiveEnvironmentalSummary | null): string | undefined {
+  if (!summary) {
+    return undefined
+  }
+
+  if (hasPersistentDryStress(summary) && hasPersistentWetPressure(summary)) {
+    return 'unstable_environment'
+  }
+
+  if (hasPersistentDryStress(summary)) {
+    return 'persistent_deficit'
+  }
+
+  if (hasPersistentWetPressure(summary)) {
+    return 'persistent_humidity'
+  }
+
+  return summary.entries > 0 ? 'stable_history' : undefined
+}
+
+async function resolveGardenOwnerId(garden: PredictiveGardenContext): Promise<string | null> {
+  const directCandidate = garden.user_id || garden.userId || garden.ownerId
+  if (directCandidate) {
+    return directCandidate
+  }
+
+  if (!garden.id) {
+    return null
+  }
+
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    return null
+  }
+
+  const { data } = await supabase
+    .from('gardens')
+    .select('user_id')
+    .eq('id', garden.id)
+    .maybeSingle()
+
+  return typeof data?.user_id === 'string' ? data.user_id : null
+}
+
+async function getPredictiveEnvironmentalSummary(
+  task: GardenTask,
+  garden: PredictiveGardenContext,
+  currentDate: Date,
+  override?: PredictiveEnvironmentalSummary | null
+): Promise<PredictiveEnvironmentalSummary | null> {
+  if (override !== undefined) {
+    return override
+  }
+
+  if (!garden.id) {
+    return null
+  }
+
+  const userId = await resolveGardenOwnerId(garden)
+  if (!userId) {
+    return null
+  }
+
+  const endDate = currentDate.toISOString().split('T')[0]
+  const startDate = new Date(currentDate)
+  startDate.setDate(startDate.getDate() - 6)
+  const startDateStr = startDate.toISOString().split('T')[0]
+
+  if (task.zoneId) {
+    const zoneSummary = await getPersistedZoneEnvironmentalHistorySummary({
+      userId,
+      gardenId: garden.id,
+      zoneId: task.zoneId,
+      startDate: startDateStr,
+      endDate,
+    }).catch(() => null)
+
+    if (zoneSummary) {
+      return zoneSummary
+    }
+  }
+
+  return getPersistedGardenEnvironmentalHistorySummary({
+    userId,
+    gardenId: garden.id,
+    startDate: startDateStr,
+    endDate,
+  }).catch(() => null)
 }
 
 /**
@@ -87,11 +216,18 @@ export interface WaterRequirementPrediction {
 export async function predictOptimalHarvestDate(
   task: GardenTask,
   masterData: PlantMasterSheet,
-  garden: { coordinates?: { latitude: number; longitude: number }; sizeSqMeters?: number },
-  currentDate: Date = new Date()
+  garden: PredictiveGardenContext,
+  currentDate: Date = new Date(),
+  options: PredictiveEnvironmentalOptions = {}
 ): Promise<HarvestPrediction> {
   const daysActive = calculateDaysActive(task);
   const currentPhase = determineLifecyclePhase(daysActive, masterData, task);
+  const environmentalSummary = await getPredictiveEnvironmentalSummary(
+    task,
+    garden,
+    currentDate,
+    options.environmentalHistorySummary
+  )
   
   // Calcola giorni attesi alla maturità da harvestWindow o default
   let expectedDaysToMaturity = 90; // Default
@@ -106,8 +242,6 @@ export async function predictOptimalHarvestDate(
       }
     }
   }
-  const daysRemaining = Math.max(0, expectedDaysToMaturity - daysActive);
-  
   // Ottieni previsioni meteo
   let weatherImpact = 'normal';
   let weatherDays = 0;
@@ -137,6 +271,12 @@ export async function predictOptimalHarvestDate(
       console.warn('Error fetching weather for harvest prediction:', error);
     }
   }
+
+  if (hasPersistentWetPressure(environmentalSummary)) {
+    weatherImpact = 'persistent_humidity'
+  } else if (hasPersistentDryStress(environmentalSummary) && weatherImpact !== 'unfavorable') {
+    weatherImpact = 'dry_window'
+  }
   
   // Determina crescita basata su fase e giorni
   let growthRate: 'slow' | 'normal' | 'fast' = 'normal';
@@ -160,6 +300,10 @@ export async function predictOptimalHarvestDate(
   // Aggiusta per meteo
   if (weatherImpact === 'favorable' && weatherDays > 0) {
     baseHarvestDate.setDate(baseHarvestDate.getDate() - 2);
+  } else if (weatherImpact === 'persistent_humidity' || weatherImpact === 'unfavorable') {
+    baseHarvestDate.setDate(baseHarvestDate.getDate() + 3);
+  } else if (weatherImpact === 'dry_window') {
+    baseHarvestDate.setDate(baseHarvestDate.getDate() - 1);
   }
   
   const optimalHarvestDate = baseHarvestDate;
@@ -175,6 +319,9 @@ export async function predictOptimalHarvestDate(
   }
   if (daysActive > expectedDaysToMaturity * 0.5) {
     confidence = 0.85;
+  }
+  if (environmentalSummary) {
+    confidence = Math.min(0.92, confidence + 0.03)
   }
   
   return {
@@ -198,12 +345,19 @@ export async function predictOptimalHarvestDate(
 export async function predictYield(
   task: GardenTask,
   masterData: PlantMasterSheet,
-  garden: { sizeSqMeters?: number },
+  garden: PredictiveGardenContext,
   historicalHarvests: HarvestLogData[],
-  currentDate: Date = new Date()
+  currentDate: Date = new Date(),
+  options: PredictiveEnvironmentalOptions = {}
 ): Promise<YieldPrediction> {
   const daysActive = calculateDaysActive(task);
   const currentPhase = determineLifecyclePhase(daysActive, masterData, task);
+  const environmentalSummary = await getPredictiveEnvironmentalSummary(
+    task,
+    garden,
+    currentDate,
+    options.environmentalHistorySummary
+  )
   
   // Calcola resa storica media per questa pianta
   const plantHarvests = historicalHarvests.filter(h => h.plantName === task.plantName);
@@ -227,6 +381,7 @@ export async function predictYield(
   // Determina crescita e salute
   let growthRate: 'slow' | 'normal' | 'fast' = 'normal';
   let healthScore = 0.8; // Default
+  const environmentalPressure = describeEnvironmentalPressure(environmentalSummary)
   
   // Determina crescita basata su fase e giorni
   // TODO: Integrare analisi foto per determinare crescita reale
@@ -235,6 +390,15 @@ export async function predictYield(
     growthRate = 'fast';
   } else if (currentPhase !== 'Production' && daysActive > expectedDaysToMaturity * 0.8) {
     growthRate = 'slow';
+  }
+
+  if (hasPersistentDryStress(environmentalSummary)) {
+    healthScore -= 0.12
+    if (growthRate === 'normal') {
+      growthRate = 'slow'
+    }
+  } else if (hasPersistentWetPressure(environmentalSummary)) {
+    healthScore -= 0.08
   }
   
   // Calcola resa prevista
@@ -264,16 +428,15 @@ export async function predictYield(
   
   const predictedYieldPerSqm = predictedYield / areaSqm;
   
-  // Range di confidenza (±20%)
-  const range = {
-    min: predictedYield * 0.8,
-    max: predictedYield * 1.2
-  };
-  
   // Confidence
   let confidence = 0.6;
   if (historicalAverage) confidence = 0.75;
   if (currentPhase === 'Production') confidence = 0.8;
+  if (environmentalSummary) confidence = Math.min(0.88, confidence + 0.05)
+
+  const spreadMultiplier = hasPersistentDryStress(environmentalSummary) || hasPersistentWetPressure(environmentalSummary)
+    ? 0.25
+    : 0.2
   
   return {
     predictedYieldKg: Math.round(predictedYield * 10) / 10,
@@ -282,11 +445,15 @@ export async function predictYield(
     factors: {
       historicalAverage,
       currentGrowthRate: growthRate,
-      healthScore,
-      weatherConditions: 'normal', // Potrebbe essere migliorato con previsioni meteo
-      fertilizationLevel: 'medium' // Potrebbe essere migliorato con analisi suolo
+      healthScore: Number(healthScore.toFixed(2)),
+      weatherConditions: environmentalPressure || 'normal',
+      fertilizationLevel: 'medium', // Potrebbe essere migliorato con analisi suolo
+      environmentalPressure,
     },
-    range
+    range: {
+      min: predictedYield * (1 - spreadMultiplier),
+      max: predictedYield * (1 + spreadMultiplier),
+    }
   };
 }
 
@@ -296,10 +463,17 @@ export async function predictYield(
 export async function predictDiseaseRisk(
   task: GardenTask,
   masterData: PlantMasterSheet,
-  garden: { coordinates?: { latitude: number; longitude: number } },
-  currentDate: Date = new Date()
+  garden: PredictiveGardenContext,
+  currentDate: Date = new Date(),
+  options: PredictiveEnvironmentalOptions = {}
 ): Promise<DiseaseRiskPrediction> {
   const diseases: DiseaseRiskPrediction['diseases'] = [];
+  const environmentalSummary = await getPredictiveEnvironmentalSummary(
+    task,
+    garden,
+    currentDate,
+    options.environmentalHistorySummary
+  )
   
   // Ottieni previsioni meteo
   let humidity = 60; // Default
@@ -325,6 +499,13 @@ export async function predictDiseaseRisk(
       console.warn('Error fetching weather for disease risk:', error);
     }
   }
+
+  const environmentalPressure = describeEnvironmentalPressure(environmentalSummary)
+  const historicalPatterns = hasPersistentWetPressure(environmentalSummary)
+  if (historicalPatterns) {
+    humidity = Math.max(humidity, 82)
+    precipitation += 8
+  }
   
   // Determina malattie comuni per questa pianta/famiglia
   const plantFamily = masterData.family || 'Unknown';
@@ -346,6 +527,9 @@ export async function predictDiseaseRisk(
     }
     if (disease.conditions.includes('cool_temperature') && temperature < 15) {
       probability += 0.1;
+    }
+    if (historicalPatterns) {
+      probability += 0.15
     }
     
     probability = Math.min(1, probability);
@@ -382,7 +566,8 @@ export async function predictDiseaseRisk(
       temperature,
       precipitation,
       plantHealth: 0.8, // Default, potrebbe essere migliorato
-      historicalPatterns: false // Potrebbe essere migliorato con storico
+      historicalPatterns,
+      environmentalPressure,
     }
   };
 }
@@ -393,12 +578,19 @@ export async function predictDiseaseRisk(
 export async function predictWaterRequirement(
   task: GardenTask,
   masterData: PlantMasterSheet,
-  garden: { coordinates?: { latitude: number; longitude: number }; sizeSqMeters?: number },
-  currentDate: Date = new Date()
+  garden: PredictiveGardenContext,
+  currentDate: Date = new Date(),
+  options: PredictiveEnvironmentalOptions = {}
 ): Promise<WaterRequirementPrediction> {
   const daysActive = calculateDaysActive(task);
   const currentPhase = determineLifecyclePhase(daysActive, masterData, task);
   const areaSqm = garden.sizeSqMeters || 1;
+  const environmentalSummary = await getPredictiveEnvironmentalSummary(
+    task,
+    garden,
+    currentDate,
+    options.environmentalHistorySummary
+  )
   
   // Fabbisogno base per fase (litri per m² per giorno)
   const baseRequirementPerSqm = getWaterRequirementForPhase(currentPhase, masterData);
@@ -406,10 +598,11 @@ export async function predictWaterRequirement(
   // Ottieni previsioni meteo
   let expectedPrecipitation = 0;
   let evapotranspiration = 4; // mm/giorno default
+  let forecast: Awaited<ReturnType<typeof getWeatherForecast7Days>> = []
   
   if (garden.coordinates) {
     try {
-      const forecast = await getWeatherForecast7Days(
+      forecast = await getWeatherForecast7Days(
         garden.coordinates.latitude,
         garden.coordinates.longitude
       );
@@ -427,6 +620,11 @@ export async function predictWaterRequirement(
       console.warn('Error fetching weather for water requirement:', error);
     }
   }
+
+  const environmentalPressure = describeEnvironmentalPressure(environmentalSummary)
+  const persistentDryStress = hasPersistentDryStress(environmentalSummary)
+  const persistentWetPressure = hasPersistentWetPressure(environmentalSummary)
+  const environmentalMultiplier = persistentDryStress ? 1.18 : persistentWetPressure ? 0.82 : 1
   
   // Calcola fabbisogno giornaliero
   const next7Days: WaterRequirementPrediction['next7Days'] = [];
@@ -441,20 +639,17 @@ export async function predictWaterRequirement(
     
     // Aggiusta per evapotranspiration
     dailyRequirementPerSqm += evapotranspiration * 0.1; // Conversione mm -> litri/m²
+    dailyRequirementPerSqm *= environmentalMultiplier
     
     // Riduci per precipitazioni previste (solo per primi 7 giorni)
-    if (i < 7 && garden.coordinates) {
-      try {
-        const forecast = await getWeatherForecast7Days(
-          garden.coordinates.latitude,
-          garden.coordinates.longitude
-        );
-        if (forecast && forecast[i]) {
-          const dailyPrecipitation = forecast[i].rainForecastMm || 0;
-          dailyRequirementPerSqm = Math.max(0, dailyRequirementPerSqm - dailyPrecipitation * 0.1);
-        }
-      } catch (error) {
-        // Ignora errori
+    if (i < 7 && forecast[i]) {
+      const dailyPrecipitation = forecast[i].rainForecastMm || 0;
+      dailyRequirementPerSqm = Math.max(0, dailyRequirementPerSqm - dailyPrecipitation * 0.1);
+      if (persistentDryStress && dailyPrecipitation > 0 && dailyPrecipitation < 10) {
+        dailyRequirementPerSqm += 0.3
+      }
+      if (persistentWetPressure && dailyPrecipitation > 5) {
+        dailyRequirementPerSqm = Math.max(0, dailyRequirementPerSqm - 0.4)
       }
     }
     
@@ -464,7 +659,7 @@ export async function predictWaterRequirement(
       date,
       litersPerSqm: Math.round(dailyRequirementPerSqm * 10) / 10,
       totalLiters: Math.round(totalLiters * 10) / 10,
-      reason: getWaterRequirementReason(currentPhase, dailyRequirementPerSqm)
+      reason: getWaterRequirementReason(currentPhase, dailyRequirementPerSqm, environmentalPressure)
     };
     
     if (i < 7) {
@@ -483,7 +678,8 @@ export async function predictWaterRequirement(
       currentSoilMoisture: undefined, // Potrebbe essere migliorato con sensori
       expectedPrecipitation,
       evapotranspiration,
-      plantPhase: currentPhase
+      plantPhase: currentPhase,
+      environmentalPressure,
     }
   };
 }
@@ -507,15 +703,25 @@ function getWaterRequirementForPhase(
   return requirements[phase] || 2;
 }
 
-function getWaterRequirementReason(phase: string, requirement: number): string {
+function getWaterRequirementReason(
+  phase: string,
+  requirement: number,
+  environmentalPressure?: string
+): string {
+  const suffix =
+    environmentalPressure === 'persistent_deficit'
+      ? ' con memoria recente di deficit idrico'
+      : environmentalPressure === 'persistent_humidity'
+        ? ' con suolo ancora influenzato da umidita persistente'
+        : ''
   if (phase === 'Production') {
-    return 'Fase produzione: alto fabbisogno idrico';
+    return `Fase produzione: alto fabbisogno idrico${suffix}`;
   } else if (phase === 'Germination') {
-    return 'Germinazione: mantenere terreno umido';
+    return `Germinazione: mantenere terreno umido${suffix}`;
   } else if (requirement > 3) {
-    return 'Alta evapotranspiration prevista';
+    return `Alta evapotranspiration prevista${suffix}`;
   }
-  return 'Fabbisogno normale per fase crescita';
+  return `Fabbisogno normale per fase crescita${suffix}`;
 }
 
 function getCommonDiseasesForFamily(family: string): Array<{
@@ -565,4 +771,3 @@ function getCommonDiseasesForFamily(family: string): Array<{
     }
   ];
 }
-

@@ -4,6 +4,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import type { IrrigationWaterQualityProfile, IrrigationZone } from '@/types/irrigation';
 
 export interface SoilAnalysis {
   id: string;
@@ -93,6 +94,19 @@ export interface SoilHydraulicProfile {
   drainageClass: 'free' | 'moderate' | 'slow';
   compactionRisk: 'low' | 'medium' | 'high' | 'unknown';
   salinityAccumulationRisk: 'low' | 'medium' | 'high';
+  hydraulicQuality: 'measured' | 'mixed' | 'estimated';
+  fieldCapacitySource: 'measured' | 'estimated';
+  wiltingPointSource: 'measured' | 'estimated';
+  infiltrationSource: 'measured' | 'estimated';
+  rootDepthSource: 'crop_profile' | 'user_override' | 'default';
+  effectiveStorageFraction: number;
+  refillTriggerThresholdPercent: number;
+  refillEventTargetMm: number;
+  pulseSplitRecommended: boolean;
+  pulseCountSuggestion: number;
+  drainageConstraintFactor: number;
+  compactionConstraintFactor: number;
+  salinityPressureIndex: number;
   source: 'soil_analysis' | 'estimated_from_partial_analysis';
   notes: string[];
 }
@@ -437,6 +451,9 @@ export function calculateSoilHydraulicProfile(
   analysis: SoilAnalysis | null | undefined,
   options?: {
     rootZoneDepthCm?: number;
+    rootDepthSource?: 'crop_profile' | 'user_override' | 'default';
+    zone?: Pick<IrrigationZone, 'drainageQuality' | 'waterRetention' | 'slopePercentage' | 'soilType'> | null;
+    waterQualityProfile?: IrrigationWaterQualityProfile | null;
   }
 ): SoilHydraulicProfile | null {
   if (!analysis) {
@@ -453,13 +470,39 @@ export function calculateSoilHydraulicProfile(
   const baseline = TEXTURE_HYDRAULIC_BASELINES[textureClass];
   const organicMatterPercent = analysis.organicMatterPercent ?? 2.5;
   const cec = analysis.cec ?? 15;
+  const zone = options?.zone;
+  const waterQualityProfile = options?.waterQualityProfile;
+  const textureMeasured =
+    analysis.sandPercent !== undefined ||
+    analysis.siltPercent !== undefined ||
+    analysis.clayPercent !== undefined;
+  const organicMatterMeasured = analysis.organicMatterPercent !== undefined;
+  const cecMeasured = analysis.cec !== undefined;
+  const phMeasured = analysis.ph !== undefined;
   const rootZoneDepthCm = roundTo(clamp(options?.rootZoneDepthCm ?? 45, 20, 140), 0);
+  const rootDepthSource = options?.rootDepthSource || 'default';
+  const waterRetentionModifier =
+    zone?.waterRetention === 'high' ? 1.6 : zone?.waterRetention === 'low' ? -1.8 : 0;
+  const drainageModifier =
+    zone?.drainageQuality === 'excellent'
+      ? 2.2
+      : zone?.drainageQuality === 'poor'
+        ? -2.4
+        : zone?.drainageQuality === 'fair'
+          ? -1
+          : 0;
+  const slopeDepthPenalty =
+    typeof zone?.slopePercentage === 'number' && zone.slopePercentage >= 12
+      ? 0.08
+      : typeof zone?.slopePercentage === 'number' && zone.slopePercentage >= 6
+        ? 0.04
+        : 0;
 
   const organicMatterModifier = clamp((organicMatterPercent - 2.5) * 0.8, -2.5, 4);
   const cecModifier = cec >= 25 ? 1.5 : cec <= 8 ? -1 : 0;
   const fieldCapacityVolumetricPercent = roundTo(
     clamp(
-      baseline.fieldCapacityVolumetricPercent + organicMatterModifier + cecModifier,
+      baseline.fieldCapacityVolumetricPercent + organicMatterModifier + cecModifier + waterRetentionModifier,
       baseline.wiltingPointVolumetricPercent + 6,
       48
     ),
@@ -479,7 +522,9 @@ export function calculateSoilHydraulicProfile(
   );
   const estimatedInfiltrationRateMmh = roundTo(
     clamp(
-      baseline.estimatedInfiltrationRateMmh + clamp((organicMatterPercent - 2.5) * 0.7, -2, 4),
+      baseline.estimatedInfiltrationRateMmh +
+        clamp((organicMatterPercent - 2.5) * 0.7, -2, 4) +
+        drainageModifier,
       2.5,
       30
     ),
@@ -491,12 +536,26 @@ export function calculateSoilHydraulicProfile(
     clamp(
       rootZoneDepthCm *
         (compactionRisk === 'high'
-          ? 0.78
+          ? 0.74
           : compactionRisk === 'medium'
-            ? 0.88
+            ? 0.84
             : drainageClass === 'slow'
-              ? 0.92
+              ? 0.9
               : 1),
+      20,
+      rootZoneDepthCm
+    ),
+    0
+  );
+  const salinityPressureIndex = deriveSalinityPressureIndex(
+    waterQualityProfile,
+    analysis.ph,
+    phMeasured
+  );
+  const effectiveRootableDepthAdjustedCm = roundTo(
+    clamp(
+      effectiveRootableDepthCm * (1 - slopeDepthPenalty) *
+        (salinityPressureIndex >= 75 ? 0.88 : salinityPressureIndex >= 45 ? 0.94 : 1),
       20,
       rootZoneDepthCm
     ),
@@ -506,8 +565,55 @@ export function calculateSoilHydraulicProfile(
     textureClass,
     estimatedInfiltrationRateMmh,
     compactionRisk,
-    analysis.ph
+    analysis.ph,
+    salinityPressureIndex
   );
+  const drainageConstraintFactor = roundTo(
+    drainageClass === 'slow' ? 1.16 : drainageClass === 'moderate' ? 1.06 : 0.96,
+    2
+  );
+  const compactionConstraintFactor = roundTo(
+    compactionRisk === 'high' ? 1.18 : compactionRisk === 'medium' ? 1.08 : 1,
+    2
+  );
+  const effectiveStorageFraction = roundTo(
+    salinityAccumulationRisk === 'high'
+      ? 0.38
+      : compactionRisk === 'high' || drainageClass === 'slow'
+        ? 0.42
+        : compactionRisk === 'medium' || drainageClass === 'moderate'
+          ? 0.5
+          : 0.58,
+    2
+  );
+  const refillTriggerThresholdPercent = roundTo(
+    salinityAccumulationRisk === 'high' ? 42 : compactionRisk === 'high' ? 46 : 52,
+    0
+  );
+  const refillEventTargetMm = roundTo(
+    Math.max(
+      6,
+      (availableWaterHoldingMmPerMeter * (effectiveRootableDepthAdjustedCm / 100)) * effectiveStorageFraction
+    ),
+    1
+  );
+  const pulseCountSuggestion =
+    salinityAccumulationRisk === 'high' || compactionRisk === 'high' || drainageClass === 'slow'
+      ? 2
+      : 1;
+  const pulseSplitRecommended = pulseCountSuggestion > 1;
+  const hydraulicQuality: SoilHydraulicProfile['hydraulicQuality'] =
+    textureMeasured && organicMatterMeasured && cecMeasured
+      ? 'measured'
+      : textureMeasured || organicMatterMeasured || cecMeasured || phMeasured
+        ? 'mixed'
+        : 'estimated';
+  const fieldCapacitySource: SoilHydraulicProfile['fieldCapacitySource'] =
+    textureMeasured || organicMatterMeasured || cecMeasured ? 'measured' : 'estimated';
+  const wiltingPointSource: SoilHydraulicProfile['wiltingPointSource'] =
+    textureMeasured || organicMatterMeasured ? 'measured' : 'estimated';
+  const infiltrationSource: SoilHydraulicProfile['infiltrationSource'] =
+    textureMeasured || organicMatterMeasured || zone?.drainageQuality ? 'measured' : 'estimated';
 
   notes.push(
     `Texture class estimated as ${textureClass.replace('_', ' ')} with root zone depth ${rootZoneDepthCm} cm.`
@@ -516,9 +622,23 @@ export function calculateSoilHydraulicProfile(
     `Estimated hydraulic envelope: FC ${fieldCapacityVolumetricPercent}%, WP ${wiltingPointVolumetricPercent}%, AWH ${availableWaterHoldingMmPerMeter} mm/m.`
   );
   notes.push(
-    `Estimated infiltration ${estimatedInfiltrationRateMmh} mm/h; drainage ${drainageClass}; effective rootable depth ${effectiveRootableDepthCm} cm; compaction risk ${compactionRisk}.`
+    `Estimated infiltration ${estimatedInfiltrationRateMmh} mm/h; drainage ${drainageClass}; effective rootable depth ${effectiveRootableDepthAdjustedCm} cm; compaction risk ${compactionRisk}.`
   );
   notes.push(`Estimated salinity accumulation risk ${salinityAccumulationRisk}.`);
+  notes.push(
+    `Hydraulic quality ${hydraulicQuality}; refill target ${refillEventTargetMm} mm/event with trigger near ${refillTriggerThresholdPercent}% depletion.`
+  );
+  if (pulseSplitRecommended) {
+    notes.push(`Pulse split recommended (${pulseCountSuggestion} pulses) due to drainage, compaction or salinity pressure.`);
+  }
+  if (zone?.drainageQuality || zone?.waterRetention || typeof zone?.slopePercentage === 'number') {
+    notes.push(
+      `Zone modifiers applied: drainage ${zone?.drainageQuality || 'n/a'}, retention ${zone?.waterRetention || 'n/a'}, slope ${zone?.slopePercentage ?? 0}%.`
+    );
+  }
+  if (salinityPressureIndex > 0) {
+    notes.push(`Water-quality salinity pressure index ${salinityPressureIndex}/100 propagated into the soil-water profile.`);
+  }
 
   if (analysis.organicMatterPercent === undefined) {
     notes.push('Organic matter missing: hydraulic adjustment uses a conservative default of 2.5%.');
@@ -534,10 +654,23 @@ export function calculateSoilHydraulicProfile(
     availableWaterHoldingMmPerMeter,
     estimatedInfiltrationRateMmh,
     rootZoneDepthCm,
-    effectiveRootableDepthCm,
+    effectiveRootableDepthCm: effectiveRootableDepthAdjustedCm,
     drainageClass,
     compactionRisk,
     salinityAccumulationRisk,
+    hydraulicQuality,
+    fieldCapacitySource,
+    wiltingPointSource,
+    infiltrationSource,
+    rootDepthSource,
+    effectiveStorageFraction,
+    refillTriggerThresholdPercent,
+    refillEventTargetMm,
+    pulseSplitRecommended,
+    pulseCountSuggestion,
+    drainageConstraintFactor,
+    compactionConstraintFactor,
+    salinityPressureIndex,
     source:
       analysis.sandPercent === undefined &&
       analysis.siltPercent === undefined &&
@@ -608,7 +741,8 @@ function deriveSalinityAccumulationRisk(
   textureClass: SoilTextureClass,
   infiltrationRateMmh: number,
   compactionRisk: 'low' | 'medium' | 'high' | 'unknown',
-  ph?: number
+  ph?: number,
+  salinityPressureIndex?: number
 ): 'low' | 'medium' | 'high' {
   let riskScore = 0;
 
@@ -617,10 +751,52 @@ function deriveSalinityAccumulationRisk(
   if (compactionRisk === 'medium') riskScore += 1;
   if (compactionRisk === 'high') riskScore += 2;
   if (typeof ph === 'number' && ph >= 7.8) riskScore += 1;
+  if (typeof salinityPressureIndex === 'number' && salinityPressureIndex >= 70) riskScore += 2;
+  if (typeof salinityPressureIndex === 'number' && salinityPressureIndex >= 45) riskScore += 1;
 
   if (riskScore >= 5) return 'high';
   if (riskScore >= 3) return 'medium';
   return 'low';
+}
+
+function deriveSalinityPressureIndex(
+  waterQualityProfile?: IrrigationWaterQualityProfile | null,
+  soilPh?: number,
+  soilPhMeasured?: boolean
+): number {
+  if (!waterQualityProfile && typeof soilPh !== 'number') {
+    return 0;
+  }
+
+  let pressure = 0;
+
+  if (waterQualityProfile?.qualityBand === 'critical') pressure += 45;
+  else if (waterQualityProfile?.qualityBand === 'caution') pressure += 25;
+  else if (waterQualityProfile?.qualityBand === 'acceptable') pressure += 10;
+
+  if (waterQualityProfile?.salinity?.value) {
+    pressure += waterQualityProfile.salinity.value >= 2.2
+      ? 35
+      : waterQualityProfile.salinity.value >= 1.3
+        ? 22
+        : waterQualityProfile.salinity.value >= 0.8
+          ? 10
+          : 0;
+  }
+
+  if (waterQualityProfile?.bicarbonates?.value) {
+    pressure += waterQualityProfile.bicarbonates.value >= 3.5
+      ? 15
+      : waterQualityProfile.bicarbonates.value >= 2
+        ? 8
+        : 0;
+  }
+
+  if (typeof soilPh === 'number' && soilPhMeasured && soilPh >= 7.8) {
+    pressure += 10;
+  }
+
+  return clamp(Math.round(pressure), 0, 100);
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -631,8 +807,3 @@ function roundTo(value: number, decimals: number): number {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
 }
-
-
-
-
-

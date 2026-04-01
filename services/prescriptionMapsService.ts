@@ -23,6 +23,8 @@ import {
   getPrescriptionExecutionVarianceSummary,
   getPrescriptionExecutionOutcomeSummary,
 } from './prescriptionExecutionService';
+import { getSupabaseClient } from '@/config/supabase'
+import { getPersistedZoneEnvironmentalHistorySummary } from '@/services/environmentalMonitoringService'
 import { getAgronomicMeasuredFeedbackRecords } from './agronomicMeasuredFeedbackService';
 import { getAgronomicProfileLearningSnapshots } from './agronomicProfileLearningService';
 import { buildPrescriptionAgronomicIntelligenceSummary } from './prescriptionAgronomicIntelligenceService';
@@ -156,6 +158,7 @@ export class PrescriptionMapsService {
       getAgronomicMeasuredFeedbackRecords(this.storageProvider, map.gardenId).catch(() => []),
       getAgronomicProfileLearningSnapshots(this.storageProvider, map.gardenId).catch(() => []),
     ])
+    const environmentalSummariesByZone = await this.getEnvironmentalSummariesByZone(map, efficacySummary.zoneScores.map((zone) => zone.zoneId))
 
     return buildPrescriptionAgronomicIntelligenceSummary(
       map,
@@ -163,8 +166,60 @@ export class PrescriptionMapsService {
       varianceSummary,
       outcomeSummary,
       measuredFeedbackRecords,
-      learningSnapshots
+      learningSnapshots,
+      environmentalSummariesByZone
     )
+  }
+
+  private async getEnvironmentalSummariesByZone(map: PrescriptionMap, zoneIds: string[]) {
+    const ownerId = await this.resolveMapOwnerId(map)
+    if (!ownerId || zoneIds.length === 0) {
+      return undefined
+    }
+
+    const endDate = new Date().toISOString().split('T')[0]
+    const startDate = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const summaries = await Promise.all(
+      Array.from(new Set(zoneIds)).map(async (zoneId) => ({
+        zoneId,
+        summary: await getPersistedZoneEnvironmentalHistorySummary({
+          userId: ownerId,
+          gardenId: map.gardenId,
+          zoneId,
+          startDate,
+          endDate,
+        }).catch(() => null),
+      }))
+    )
+
+    return Object.fromEntries(summaries.map((entry) => [entry.zoneId, entry.summary]))
+  }
+
+  private async resolveMapOwnerId(map: PrescriptionMap): Promise<string | null> {
+    if (map.createdBy) {
+      return map.createdBy
+    }
+
+    if (this.storageProvider?.getGarden) {
+      const garden = await this.storageProvider.getGarden(map.gardenId).catch(() => null)
+      const ownerId = garden?.user_id || garden?.userId || garden?.ownerId
+      if (typeof ownerId === 'string' && ownerId) {
+        return ownerId
+      }
+    }
+
+    const supabase = getSupabaseClient()
+    if (!supabase) {
+      return null
+    }
+
+    const { data } = await supabase
+      .from('gardens')
+      .select('user_id')
+      .eq('id', map.gardenId)
+      .maybeSingle()
+
+    return typeof data?.user_id === 'string' ? data.user_id : null
   }
 
   async getPrescriptionMapExportRecords(

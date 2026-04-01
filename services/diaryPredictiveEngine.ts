@@ -13,6 +13,10 @@
 
 import { getSupabaseClient } from '@/config/supabase'
 import { dailyDiaryService, type CultivationDailyTracking, type DailyWeatherLog, type DiaryEvent, type PredictiveInsight, type YearlyComparisonData } from './dailyDiaryService'
+import {
+  getPersistedZoneEnvironmentalHistorySummary,
+  type ZoneEnvironmentalHistorySummary,
+} from '@/services/environmentalMonitoringService'
 
 // ============================================================================
 // TYPES
@@ -93,6 +97,7 @@ interface CultivationRecord {
   id: string
   crop_type: string
   status?: string
+  zone_id?: string
 }
 
 interface TrackingWithCultivation extends CultivationDailyTracking {
@@ -296,6 +301,11 @@ class DiaryPredictiveEngine {
 
     const latest = tracking[0]
     const gddParams = await dailyDiaryService.getGDDParameters(cultivation.crop_type)
+    const zoneHistorySummary = await this.getRecentZoneHistorySummary(
+      userId,
+      cultivation.zone_id,
+      new Date().toISOString().split('T')[0]
+    )
 
     // Calcola data raccolta prevista
     const remainingGDD = (gddParams.gdd_to_harvest || 1000) - (latest.accumulated_gdd || 0)
@@ -306,14 +316,20 @@ class DiaryPredictiveEngine {
     harvestDate.setDate(harvestDate.getDate() + daysToHarvest)
 
     // Analizza fattori di rischio
-    const riskFactors = await this.analyzeRiskFactors(userId, cultivationId, tracking)
+    const riskFactors = await this.analyzeRiskFactors(
+      userId,
+      cultivationId,
+      tracking,
+      zoneHistorySummary
+    )
 
     // Genera azioni ottimali
     const optimalActions = await this.generateOptimalActions(
       userId,
       cultivation,
       tracking,
-      riskFactors
+      riskFactors,
+      zoneHistorySummary
     )
 
     // Stima resa basata su stress accumulato
@@ -338,7 +354,8 @@ class DiaryPredictiveEngine {
   private async analyzeRiskFactors(
     userId: string,
     cultivationId: string,
-    tracking: CultivationDailyTracking[]
+    tracking: CultivationDailyTracking[],
+    zoneHistorySummary?: ZoneEnvironmentalHistorySummary | null
   ): Promise<CropPrediction['risk_factors']> {
     const risks: CropPrediction['risk_factors'] = []
 
@@ -353,6 +370,32 @@ class DiaryPredictiveEngine {
           'Aumentare frequenza irrigazione',
           'Verificare sistema di irrigazione',
           'Applicare pacciamatura per ridurre evaporazione'
+        ]
+      })
+    }
+
+    if (
+      zoneHistorySummary &&
+      (
+        zoneHistorySummary.highSoilWaterStressDays >= 3 ||
+        zoneHistorySummary.latestSoilWaterStressLevel === 'high'
+      )
+    ) {
+      risks.push({
+        factor: 'Vincolo idrico persistente di zona',
+        probability: Math.min(
+          0.92,
+          0.35 + zoneHistorySummary.highSoilWaterStressDays * 0.1
+        ),
+        impact:
+          zoneHistorySummary.latestSoilWaterStressLevel === 'high' ||
+          zoneHistorySummary.highSoilWaterStressDays >= 5
+            ? 'high'
+            : 'medium',
+        mitigation: [
+          'Ricalibrare i turni irrigui sulla storia ambientale della zona',
+          'Verificare umidita del suolo a 30-60 cm e uniformita di distribuzione',
+          'Preferire interventi piu frazionati se il deficit resta alto per piu giorni'
         ]
       })
     }
@@ -402,6 +445,19 @@ class DiaryPredictiveEngine {
       }
     }
 
+    if (zoneHistorySummary && zoneHistorySummary.highDiseasePressureDays >= 3) {
+      risks.push({
+        factor: 'Pressione ambientale favorevole a patogeni',
+        probability: Math.min(0.9, 0.4 + zoneHistorySummary.highDiseasePressureDays * 0.08),
+        impact: zoneHistorySummary.highDiseasePressureDays >= 5 ? 'high' : 'medium',
+        mitigation: [
+          'Usare il ledger ambientale di zona per scegliere la finestra di trattamento',
+          'Ridurre bagnatura fogliare e migliorare aerazione',
+          'Controllare se i sensori locali confermano umidita persistente'
+        ]
+      })
+    }
+
     // Rischio da GDD insufficienti
     const avgGDD = tracking.reduce((sum, t) => sum + t.daily_gdd, 0) / tracking.length
     if (avgGDD < 5) {
@@ -427,7 +483,8 @@ class DiaryPredictiveEngine {
     userId: string,
     cultivation: { crop_type: string; status: string },
     tracking: CultivationDailyTracking[],
-    risks: CropPrediction['risk_factors']
+    risks: CropPrediction['risk_factors'],
+    zoneHistorySummary?: ZoneEnvironmentalHistorySummary | null
   ): Promise<CropPrediction['optimal_actions']> {
     const actions: CropPrediction['optimal_actions'] = []
     const today = new Date()
@@ -442,6 +499,30 @@ class DiaryPredictiveEngine {
         timing: 'Entro 24-48 ore',
         priority: avgWaterStress > 0.6 ? 'high' : 'medium',
         expected_benefit: 'Riduzione stress idrico del 50-70%'
+      })
+    }
+
+    if (
+      zoneHistorySummary &&
+      (
+        zoneHistorySummary.highSoilWaterStressDays >= 2 ||
+        zoneHistorySummary.latestSoilWaterStressLevel === 'high'
+      )
+    ) {
+      actions.push({
+        action: 'Ricalibrazione irrigua sulla storia di zona',
+        timing: zoneHistorySummary.latestSoilWaterStressLevel === 'high' ? 'Entro 24 ore' : 'Questa settimana',
+        priority: zoneHistorySummary.latestSoilWaterStressLevel === 'high' ? 'high' : 'medium',
+        expected_benefit: 'Riduzione del rischio di deficit persistente e migliore coerenza tra meteo, sensori e suolo'
+      })
+    }
+
+    if (zoneHistorySummary && zoneHistorySummary.highDiseasePressureDays >= 3) {
+      actions.push({
+        action: 'Sfrutta una finestra asciutta confermata dal ledger ambientale',
+        timing: 'Prossimi 2-3 giorni',
+        priority: zoneHistorySummary.highDiseasePressureDays >= 5 ? 'high' : 'medium',
+        expected_benefit: 'Migliore efficacia dei trattamenti e minore pressione fungina residua'
       })
     }
 
@@ -697,7 +778,7 @@ class DiaryPredictiveEngine {
     // Ottieni coltivazioni attive
     const { data: cultivationsData } = await this.supabase
       .from('cultivations')
-      .select('id, crop_type, status')
+      .select('id, crop_type, status, zone_id')
       .eq('user_id', userId)
       .in('status', ['active', 'growing', 'flowering', 'fruiting'])
 
@@ -715,6 +796,24 @@ class DiaryPredictiveEngine {
 
     // Analizza pattern meteo
     const patterns = await this.detectWeatherPatterns(userId, 7)
+    const zoneIds = Array.from(
+      new Set(
+        cultivations
+          .map((cultivation) => cultivation.zone_id)
+          .filter((zoneId): zoneId is string => Boolean(zoneId))
+      )
+    )
+    const zoneHistorySummaries = await Promise.all(
+      zoneIds.map((zoneId) => this.getRecentZoneHistorySummary(userId, zoneId, today))
+    )
+    const stressedZones = zoneHistorySummaries.filter(
+      (summary): summary is ZoneEnvironmentalHistorySummary =>
+        Boolean(summary) &&
+        (
+          summary.highSoilWaterStressDays >= 2 ||
+          summary.latestSoilWaterStressLevel === 'high'
+        )
+    )
 
     // Raccomandazione irrigazione basata su stress idrico
     const allTracking = (allTrackingData || []) as CultivationDailyTracking[]
@@ -737,6 +836,25 @@ class DiaryPredictiveEngine {
           data_basis: ['tracking_water_stress', 'weather_eto']
         })
       }
+    }
+
+    if (stressedZones.length > 0) {
+      recommendations.push({
+        id: `zone-ledger-irr-${Date.now()}`,
+        action_type: 'irrigation',
+        title: 'Zone con deficit idrico persistente',
+        description: `${stressedZones.length} zone mostrano stress idrico medio-alto nel ledger ambientale persistito. Prioritizzare turni e verifiche sulle zone piu instabili.`,
+        urgency: stressedZones.some((summary) => summary.latestSoilWaterStressLevel === 'high')
+          ? 'today'
+          : 'this_week',
+        confidence: 0.82,
+        affected_cultivations: cultivations
+          .filter((cultivation) =>
+            stressedZones.some((summary) => summary.zoneId === cultivation.zone_id)
+          )
+          .map((cultivation) => cultivation.id),
+        data_basis: ['zone_environmental_ledger', 'soil_water_balance_history', 'tracking_water_stress']
+      })
     }
 
     // Raccomandazione protezione gelo
@@ -805,6 +923,27 @@ class DiaryPredictiveEngine {
     recommendations.sort((a, b) => urgencyOrder[a.urgency] - urgencyOrder[b.urgency])
 
     return recommendations
+  }
+
+  private async getRecentZoneHistorySummary(
+    userId: string,
+    zoneId?: string,
+    endDate: string = new Date().toISOString().split('T')[0],
+    days: number = 7
+  ): Promise<ZoneEnvironmentalHistorySummary | null> {
+    if (!zoneId) {
+      return null
+    }
+
+    const startDate = new Date(`${endDate}T12:00:00.000Z`)
+    startDate.setDate(startDate.getDate() - Math.max(0, days - 1))
+
+    return getPersistedZoneEnvironmentalHistorySummary({
+      userId,
+      zoneId,
+      startDate: startDate.toISOString().split('T')[0],
+      endDate,
+    }).catch(() => null)
   }
 
   /**

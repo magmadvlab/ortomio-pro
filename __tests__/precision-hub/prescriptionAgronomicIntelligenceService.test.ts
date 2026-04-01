@@ -160,7 +160,25 @@ test('buildPrescriptionAgronomicIntelligenceSummary returns high-signal recommen
     prescriptionMap,
     efficacySummary,
     varianceSummary,
-    outcomeSummary
+    outcomeSummary,
+    [],
+    [],
+    {
+      'zone-weak': {
+        zoneId: 'zone-weak',
+        gardenId: 'garden-1',
+        entries: 6,
+        highSoilWaterStressDays: 3,
+        mediumSoilWaterStressDays: 1,
+        highDiseasePressureDays: 2,
+        sensorLocalDays: 2,
+        deficitWaterBalanceDays: 4,
+        surplusWaterBalanceDays: 0,
+        lowDryingPowerDays: 2,
+        latestSoilWaterStressLevel: 'high',
+        dominantWeatherSourceClass: 'station',
+      },
+    }
   )
 
   assert.equal(summary.bestZoneLabel, 'Zona Buona')
@@ -178,5 +196,7 @@ test('buildPrescriptionAgronomicIntelligenceSummary returns high-signal recommen
   assert.equal(summary.operationalPriorities[0]?.urgency, 'immediate')
   assert.equal(summary.operationalPriorities[0]?.drivers.includes('esecuzione off_target'), true)
   assert.equal(summary.operationalPriorities[0]?.drivers.includes('outcome negative'), true)
+  assert.equal(summary.operationalPriorities[0]?.drivers.includes('storico deficit persistente'), true)
+  assert.equal(summary.recommendations.some((item) => item.id === 'environment:zone-weak'), true)
   assert.equal(summary.operationalPriorities[1]?.urgency, 'monitor')
 })

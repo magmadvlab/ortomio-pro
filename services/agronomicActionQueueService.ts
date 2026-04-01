@@ -9,6 +9,7 @@ import {
   type AgronomicMeasuredFeedbackRecord,
   type AgronomicMeasuredFeedbackSummary,
 } from '@/services/agronomicMeasuredFeedbackService'
+import type { ZoneEnvironmentalHistorySummary } from '@/services/environmentalMonitoringService'
 import type { AgronomicSignalKey } from '@/types/agronomicKernel'
 import type { HealthAlert } from '@/services/plantHealthMonitoringService'
 import type { EfficiencyReport } from '@/types/irrigation'
@@ -54,6 +55,7 @@ export interface BuildAgronomicActionQueueInput {
   directorActions?: PrioritizedAction[]
   phenologyCandidates?: AgronomicPhenologyQueueCandidate[]
   measuredFeedbackRecords?: AgronomicMeasuredFeedbackRecord[]
+  environmentalSummariesByZone?: Record<string, ZoneEnvironmentalHistorySummary | null | undefined>
 }
 
 const healthSeverityScore: Record<HealthAlert['severity'], number> = {
@@ -152,9 +154,11 @@ const toHealthQueueItems = (
 
 const toIrrigationQueueItems = (
   reports: EfficiencyReport[],
-  measuredFeedbackRecords?: AgronomicMeasuredFeedbackRecord[]
+  measuredFeedbackRecords?: AgronomicMeasuredFeedbackRecord[],
+  environmentalSummariesByZone?: Record<string, ZoneEnvironmentalHistorySummary | null | undefined>
 ): AgronomicActionQueueItem[] => {
   return reports.map((report) => {
+    const environmentalSummary = environmentalSummariesByZone?.[report.zoneId]
     const observationSummary = summarizeAgronomicEconomicObservations(measuredFeedbackRecords || [], {
       focus: 'water',
       zoneId: report.zoneId,
@@ -169,6 +173,7 @@ const toIrrigationQueueItems = (
       confidence: report.priorityConfidence ?? 0.55,
       focus: 'water',
       measuredFeedbackSummary,
+      environmentalSummary,
       economicSummary: buildAgronomicEconomicPrioritySummary({
         source: 'irrigation',
         focus: 'water',
@@ -180,6 +185,7 @@ const toIrrigationQueueItems = (
         uniformityCoefficient: report.uniformityCoefficient,
         waterUseEfficiency: report.waterUseEfficiency,
         observationSummary,
+        environmentalSummary,
       }),
     })
 
@@ -202,6 +208,7 @@ const toIrrigationQueueItems = (
         period: report.period,
         measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
         economicSummary: priorityResult.economicSummary,
+        environmentalSummary: priorityResult.environmentalSummary,
       },
     }
   })
@@ -209,13 +216,17 @@ const toIrrigationQueueItems = (
 
 const toPrescriptionQueueItems = (
   summary: PrescriptionAgronomicIntelligenceSummary | null | undefined,
-  measuredFeedbackRecords?: AgronomicMeasuredFeedbackRecord[]
+  measuredFeedbackRecords?: AgronomicMeasuredFeedbackRecord[],
+  environmentalSummariesByZone?: Record<string, ZoneEnvironmentalHistorySummary | null | undefined>
 ): AgronomicActionQueueItem[] => {
   if (!summary) {
     return []
   }
 
   return summary.operationalPriorities.map((priority: PrescriptionAgronomicPriority) => {
+    const environmentalSummary = priority.zoneId
+      ? environmentalSummariesByZone?.[priority.zoneId]
+      : undefined
     const observationSummary = summarizeAgronomicEconomicObservations(measuredFeedbackRecords || [], {
       focus: 'nutrition',
       zoneId: priority.zoneId,
@@ -231,6 +242,7 @@ const toPrescriptionQueueItems = (
       confidence: priority.priorityConfidence ?? 0.6,
       focus: 'nutrition',
       measuredFeedbackSummary,
+      environmentalSummary,
       economicSummary: buildAgronomicEconomicPrioritySummary({
         source: 'prescription',
         focus: 'nutrition',
@@ -241,6 +253,7 @@ const toPrescriptionQueueItems = (
         cropNameHint: summary.benchmarkCropLabel,
         efficacyScore: priority.efficacyScore,
         observationSummary,
+        environmentalSummary,
       }),
     })
 
@@ -262,6 +275,7 @@ const toPrescriptionQueueItems = (
         efficacyScore: priority.efficacyScore,
         measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
         economicSummary: priorityResult.economicSummary,
+        environmentalSummary: priorityResult.environmentalSummary,
       },
     }
   })
@@ -388,8 +402,16 @@ export function buildAgronomicActionQueue(
 ): AgronomicActionQueueItem[] {
   const queue = [
     ...toHealthQueueItems(input.healthAlerts || [], input.measuredFeedbackRecords),
-    ...toIrrigationQueueItems(input.irrigationReports || [], input.measuredFeedbackRecords),
-    ...toPrescriptionQueueItems(input.prescriptionSummary, input.measuredFeedbackRecords),
+    ...toIrrigationQueueItems(
+      input.irrigationReports || [],
+      input.measuredFeedbackRecords,
+      input.environmentalSummariesByZone
+    ),
+    ...toPrescriptionQueueItems(
+      input.prescriptionSummary,
+      input.measuredFeedbackRecords,
+      input.environmentalSummariesByZone
+    ),
     ...toDirectorQueueItems(input.directorActions || [], input.measuredFeedbackRecords),
     ...toPhenologyQueueItems(input.phenologyCandidates || [], input.measuredFeedbackRecords),
   ]

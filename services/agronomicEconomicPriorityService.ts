@@ -1,4 +1,5 @@
 import type { AgronomicMeasuredFeedbackRecord } from '@/services/agronomicMeasuredFeedbackService'
+import type { ZoneEnvironmentalHistorySummary } from '@/services/environmentalMonitoringService'
 import {
   getAgronomicCropProfileById,
   resolveAgronomicCropProfileSync,
@@ -34,6 +35,7 @@ export interface AgronomicEconomicPriorityInput {
   benchmarkGap?: number | null
   qualityScoreGap?: number | null
   observationSummary?: AgronomicEconomicObservationSummary | null
+  environmentalSummary?: ZoneEnvironmentalHistorySummary | null
 }
 
 export interface AgronomicEconomicPrioritySummary {
@@ -55,6 +57,9 @@ export interface AgronomicEconomicObservationSummary {
   averageObservedValueProtected: number | null
   averageObservedNetImpact: number | null
   averageObservedRoiRatio: number | null
+  observedCostSampleCount: number
+  observedValueSampleCount: number
+  dataQuality: 'observed' | 'inventory_derived' | 'estimated' | 'mixed' | 'unknown'
   confidenceAdjustment: number
   rationale: string[]
 }
@@ -90,6 +95,56 @@ const normalizeText = (value?: string | null) =>
     ?.toLowerCase()
     .trim()
     .replace(/\s+/g, ' ')
+
+const getTextMetric = (record: AgronomicMeasuredFeedbackRecord, keys: string[]): string | null => {
+  for (const key of keys) {
+    const value = record.metrics[key]
+    if (typeof value === 'string' && value.trim()) {
+      return value
+    }
+  }
+
+  return null
+}
+
+const blendObservedWithModeled = (
+  observedValue: number | null | undefined,
+  modeledValue: number | null | undefined,
+  sampleCount: number,
+  options?: {
+    minObservedWeight?: number
+    maxObservedWeight?: number
+  }
+): number | null => {
+  const hasObserved = typeof observedValue === 'number' && Number.isFinite(observedValue)
+  const hasModeled = typeof modeledValue === 'number' && Number.isFinite(modeledValue)
+
+  if (!hasObserved && !hasModeled) {
+    return null
+  }
+
+  if (hasObserved && !hasModeled) {
+    return roundMetric(observedValue as number, 0)
+  }
+
+  if (!hasObserved && hasModeled) {
+    return roundMetric(modeledValue as number, 0)
+  }
+
+  const minObservedWeight = options?.minObservedWeight ?? 0.45
+  const maxObservedWeight = options?.maxObservedWeight ?? 0.8
+  const observedWeight = clamp(
+    minObservedWeight + sampleCount * 0.05,
+    minObservedWeight,
+    maxObservedWeight
+  )
+
+  return roundMetric(
+    (observedValue as number) * observedWeight +
+      (modeledValue as number) * (1 - observedWeight),
+    0
+  )
+}
 
 const getNumericMetric = (record: AgronomicMeasuredFeedbackRecord, keys: string[]): number | null => {
   for (const key of keys) {
@@ -330,21 +385,38 @@ export function summarizeAgronomicEconomicObservations(
     .sort((left, right) => new Date(right.recordedAt).getTime() - new Date(left.recordedAt).getTime())
     .slice(0, 8)
 
-  const averageObservedInterventionCost = average(
-    recentRecords.map((record) => getNumericMetric(record, ['cost', 'totalCost', 'estimatedCost']))
-  )
-  const averageObservedValueProtected = average(
-    recentRecords.map((record) => getNumericMetric(record, ['estimatedValue', 'valueProtected', 'revenue']))
-  )
+  const costValues = recentRecords
+    .map((record) => getNumericMetric(record, ['actualCost', 'cost', 'totalCost', 'estimatedCost']))
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+  const valueValues = recentRecords
+    .map((record) =>
+      getNumericMetric(record, [
+        'economicValue',
+        'estimatedValue',
+        'valueProtected',
+        'estimatedRevenue',
+        'revenue',
+      ])
+    )
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+
+  const averageObservedInterventionCost = average(costValues)
+  const averageObservedValueProtected = average(valueValues)
   const averageObservedNetImpact = average(
     recentRecords.map((record) => {
-      const explicitNet = getNumericMetric(record, ['netImpact'])
+      const explicitNet = getNumericMetric(record, ['netImpact', 'estimatedNetImpact'])
       if (typeof explicitNet === 'number') {
         return explicitNet
       }
 
-      const cost = getNumericMetric(record, ['cost', 'totalCost', 'estimatedCost'])
-      const value = getNumericMetric(record, ['estimatedValue', 'valueProtected', 'revenue'])
+      const cost = getNumericMetric(record, ['actualCost', 'cost', 'totalCost', 'estimatedCost'])
+      const value = getNumericMetric(record, [
+        'economicValue',
+        'estimatedValue',
+        'valueProtected',
+        'estimatedRevenue',
+        'revenue',
+      ])
       if (typeof cost === 'number' && typeof value === 'number') {
         return value - cost
       }
@@ -359,8 +431,14 @@ export function summarizeAgronomicEconomicObservations(
         return explicitRoi
       }
 
-      const cost = getNumericMetric(record, ['cost', 'totalCost', 'estimatedCost'])
-      const value = getNumericMetric(record, ['estimatedValue', 'valueProtected', 'revenue'])
+      const cost = getNumericMetric(record, ['actualCost', 'cost', 'totalCost', 'estimatedCost'])
+      const value = getNumericMetric(record, [
+        'economicValue',
+        'estimatedValue',
+        'valueProtected',
+        'estimatedRevenue',
+        'revenue',
+      ])
       if (typeof cost === 'number' && cost > 0 && typeof value === 'number') {
         return (value - cost) / cost
       }
@@ -378,6 +456,21 @@ export function summarizeAgronomicEconomicObservations(
     return null
   }
 
+  const costSources = recentRecords
+    .map((record) => getTextMetric(record, ['costSource']))
+    .filter((value): value is string => Boolean(value))
+  const uniqueCostSources = new Set(costSources)
+  const dataQuality: AgronomicEconomicObservationSummary['dataQuality'] =
+    uniqueCostSources.size === 0
+      ? 'unknown'
+      : uniqueCostSources.size > 1
+        ? 'mixed'
+        : uniqueCostSources.has('observed')
+          ? 'observed'
+          : uniqueCostSources.has('inventory_derived')
+            ? 'inventory_derived'
+            : 'estimated'
+
   const rationale: string[] = []
   if (averageObservedInterventionCost !== null) {
     rationale.push(`Costo osservato medio ${toCurrency(averageObservedInterventionCost)}.`)
@@ -388,6 +481,11 @@ export function summarizeAgronomicEconomicObservations(
   if (averageObservedRoiRatio !== null) {
     rationale.push(`ROI osservato medio ${averageObservedRoiRatio.toFixed(1)}x.`)
   }
+  if (dataQuality === 'observed' || dataQuality === 'inventory_derived') {
+    rationale.push('Base economica supportata da costi osservati o derivati da inventario.')
+  } else if (dataQuality === 'estimated') {
+    rationale.push('Base economica storica ancora prevalentemente stimata.')
+  }
 
   return {
     sampleCount: recentRecords.length,
@@ -396,7 +494,21 @@ export function summarizeAgronomicEconomicObservations(
     averageObservedValueProtected,
     averageObservedNetImpact,
     averageObservedRoiRatio,
-    confidenceAdjustment: clamp(0.02 + recentRecords.length * 0.01, 0.02, 0.12),
+    observedCostSampleCount: costValues.length,
+    observedValueSampleCount: valueValues.length,
+    dataQuality,
+    confidenceAdjustment: clamp(
+      0.02 +
+        recentRecords.length * 0.008 +
+        (matchedBy === 'focus' ? 0 : 0.015) +
+        (dataQuality === 'observed' || dataQuality === 'inventory_derived'
+          ? 0.025
+          : dataQuality === 'mixed'
+            ? 0.015
+            : 0),
+      0.02,
+      0.14
+    ),
     rationale,
   }
 }
@@ -433,66 +545,77 @@ const severityWeight = (
 
 const deriveInterventionCost = (input: AgronomicEconomicPriorityInput): number => {
   const cropEconomicModel = resolveAgronomicCropEconomicModel(input)
+  const observedCost =
+    typeof input.observationSummary?.averageObservedInterventionCost === 'number'
+      ? Math.max(0, input.observationSummary.averageObservedInterventionCost)
+      : null
+  const explicitCost =
+    typeof input.interventionCost === 'number' && Number.isFinite(input.interventionCost)
+      ? Math.max(0, input.interventionCost) * cropEconomicModel.interventionCostMultiplier
+      : null
 
-  if (typeof input.observationSummary?.averageObservedInterventionCost === 'number') {
-    return roundMetric(
-      Math.max(0, input.observationSummary.averageObservedInterventionCost) *
-        cropEconomicModel.interventionCostMultiplier,
-      0
-    )
-  }
+  let modeledCost: number | null = explicitCost
 
-  if (typeof input.interventionCost === 'number' && Number.isFinite(input.interventionCost)) {
-    return roundMetric(
-      Math.max(0, input.interventionCost) * cropEconomicModel.interventionCostMultiplier,
-      0
-    )
-  }
-
-  switch (input.source) {
-    case 'director':
-      return roundMetric(
-        (32 + input.priorityScore * 0.18) * cropEconomicModel.interventionCostMultiplier,
-        0
-      )
-    case 'irrigation': {
-      const efficiencyGap = Math.max(0, 100 - (input.averageEfficiency ?? 78))
-      const uniformityGap = Math.max(0, 100 - (input.uniformityCoefficient ?? 82))
-      const waterUseGap = Math.max(0, 100 - (input.waterUseEfficiency ?? 76))
-      return roundMetric(
-        (18 + efficiencyGap * 0.32 + uniformityGap * 0.14 + waterUseGap * 0.18) *
-          cropEconomicModel.interventionCostMultiplier,
-        0
-      )
+  if (modeledCost === null) {
+    switch (input.source) {
+      case 'director':
+        modeledCost =
+          (32 + input.priorityScore * 0.18) * cropEconomicModel.interventionCostMultiplier
+        break
+      case 'irrigation': {
+        const efficiencyGap = Math.max(0, 100 - (input.averageEfficiency ?? 78))
+        const uniformityGap = Math.max(0, 100 - (input.uniformityCoefficient ?? 82))
+        const waterUseGap = Math.max(0, 100 - (input.waterUseEfficiency ?? 76))
+        modeledCost =
+          (18 + efficiencyGap * 0.32 + uniformityGap * 0.14 + waterUseGap * 0.18) *
+          cropEconomicModel.interventionCostMultiplier
+        break
+      }
+      case 'prescription': {
+        const efficacyGap = Math.max(0, 100 - (input.efficacyScore ?? 72))
+        const benchmarkGap = Math.max(0, input.benchmarkGap ?? input.qualityScoreGap ?? 0)
+        modeledCost =
+          (26 + efficacyGap * 0.38 + benchmarkGap * 0.45) *
+          cropEconomicModel.interventionCostMultiplier
+        break
+      }
+      case 'health':
+        modeledCost =
+          (24 + input.priorityScore * 0.14 + severityWeight(input.severity)) *
+          cropEconomicModel.interventionCostMultiplier
+        break
+      case 'phenology':
+        modeledCost =
+          (10 + (input.qualityScoreGap ?? 0) * 0.35 + input.priorityScore * 0.05) *
+          cropEconomicModel.interventionCostMultiplier
+        break
+      default:
+        modeledCost =
+          (20 + input.priorityScore * 0.12) * cropEconomicModel.interventionCostMultiplier
     }
-    case 'prescription': {
-      const efficacyGap = Math.max(0, 100 - (input.efficacyScore ?? 72))
-      const benchmarkGap = Math.max(0, input.benchmarkGap ?? input.qualityScoreGap ?? 0)
-      return roundMetric(
-        (26 + efficacyGap * 0.38 + benchmarkGap * 0.45) *
-          cropEconomicModel.interventionCostMultiplier,
-        0
-      )
-    }
-    case 'health':
-      return roundMetric(
-        (24 + input.priorityScore * 0.14 + severityWeight(input.severity)) *
-          cropEconomicModel.interventionCostMultiplier,
-        0
-      )
-    case 'phenology':
-      return roundMetric(
-        (10 + (input.qualityScoreGap ?? 0) * 0.35 + input.priorityScore * 0.05) *
-          cropEconomicModel.interventionCostMultiplier,
-        0
-      )
-    default:
-      return roundMetric(
-        (20 + input.priorityScore * 0.12) * cropEconomicModel.interventionCostMultiplier,
-        0
-      )
   }
+
+  return (
+    blendObservedWithModeled(
+      observedCost,
+      modeledCost,
+      input.observationSummary?.observedCostSampleCount || input.observationSummary?.sampleCount || 0
+    ) || 0
+  )
 }
+
+const hasPersistentEnvironmentalDeficit = (
+  environmentalSummary?: ZoneEnvironmentalHistorySummary | null
+) =>
+  (environmentalSummary?.highSoilWaterStressDays || 0) >= 2 ||
+  (environmentalSummary?.deficitWaterBalanceDays || 0) >= 3
+
+const hasPersistentEnvironmentalHumidity = (
+  environmentalSummary?: ZoneEnvironmentalHistorySummary | null
+) =>
+  (environmentalSummary?.highDiseasePressureDays || 0) >= 2 ||
+  (environmentalSummary?.surplusWaterBalanceDays || 0) >= 2 ||
+  (environmentalSummary?.lowDryingPowerDays || 0) >= 2
 
 const deriveCostOfDelay = (input: AgronomicEconomicPriorityInput): number => {
   if (typeof input.costOfDelay === 'number' && Number.isFinite(input.costOfDelay)) {
@@ -528,6 +651,26 @@ const deriveCostOfDelay = (input: AgronomicEconomicPriorityInput): number => {
     costOfDelay += severityWeight(input.severity)
   }
 
+  if (hasPersistentEnvironmentalDeficit(input.environmentalSummary)) {
+    if (input.focus === 'water') {
+      costOfDelay += 18
+    } else if (input.focus === 'nutrition') {
+      costOfDelay += 10
+    } else if (input.focus === 'quality') {
+      costOfDelay += 14
+    }
+  }
+
+  if (hasPersistentEnvironmentalHumidity(input.environmentalSummary)) {
+    if (input.focus === 'health') {
+      costOfDelay += 18
+    } else if (input.focus === 'nutrition') {
+      costOfDelay += 8
+    } else if (input.focus === 'quality') {
+      costOfDelay += 10
+    }
+  }
+
   return roundMetric(costOfDelay * cropEconomicModel.delayCostMultiplier, 0)
 }
 
@@ -537,21 +680,14 @@ const deriveValueProtected = (
   costOfDelay: number
 ): number => {
   const cropEconomicModel = resolveAgronomicCropEconomicModel(input)
-
-  if (typeof input.observationSummary?.averageObservedValueProtected === 'number') {
-    return roundMetric(
-      Math.max(0, input.observationSummary.averageObservedValueProtected) *
-        cropEconomicModel.protectedValueMultiplier,
-      0
-    )
-  }
-
-  if (typeof input.valueProtected === 'number' && Number.isFinite(input.valueProtected)) {
-    return roundMetric(
-      Math.max(0, input.valueProtected) * cropEconomicModel.protectedValueMultiplier,
-      0
-    )
-  }
+  const observedValue =
+    typeof input.observationSummary?.averageObservedValueProtected === 'number'
+      ? Math.max(0, input.observationSummary.averageObservedValueProtected)
+      : null
+  const explicitValue =
+    typeof input.valueProtected === 'number' && Number.isFinite(input.valueProtected)
+      ? Math.max(0, input.valueProtected) * cropEconomicModel.protectedValueMultiplier
+      : null
 
   const multiplierByFocus: Record<AgronomicEconomicFocus, number> = {
     water: 1.18,
@@ -560,10 +696,28 @@ const deriveValueProtected = (
     quality: 1.4,
   }
 
-  return roundMetric(
+  const modeledValue =
+    explicitValue ??
     Math.max(interventionCost * 1.2, costOfDelay * multiplierByFocus[input.focus]) *
-      cropEconomicModel.protectedValueMultiplier,
-    0
+      cropEconomicModel.protectedValueMultiplier
+
+  const environmentalProtectedValueMultiplier =
+    hasPersistentEnvironmentalDeficit(input.environmentalSummary) && input.focus !== 'health'
+      ? 1.08
+      : hasPersistentEnvironmentalHumidity(input.environmentalSummary) && input.focus !== 'water'
+        ? 1.1
+        : 1
+
+  return (
+    blendObservedWithModeled(
+      observedValue,
+      modeledValue * environmentalProtectedValueMultiplier,
+      input.observationSummary?.observedValueSampleCount || input.observationSummary?.sampleCount || 0,
+      {
+        minObservedWeight: 0.5,
+        maxObservedWeight: 0.82,
+      }
+    ) || 0
   )
 }
 
@@ -632,7 +786,11 @@ export function buildAgronomicEconomicPrioritySummary(
   const confidenceAdjustment = clamp(
     0.02 +
       explicitInputs * 0.01 +
-      (input.observationSummary?.confidenceAdjustment || 0),
+      (input.observationSummary?.confidenceAdjustment || 0) +
+      (input.environmentalSummary
+        ? 0.01 +
+          Math.min(0.02, (input.environmentalSummary.sensorLocalDays || 0) * 0.005)
+        : 0),
     0.02,
     0.16
   )
@@ -662,6 +820,14 @@ export function buildAgronomicEconomicPrioritySummary(
   }
   if (input.observationSummary?.rationale?.length) {
     rationale.push(...input.observationSummary.rationale.slice(0, 2))
+  }
+  if (input.environmentalSummary) {
+    if (hasPersistentEnvironmentalDeficit(input.environmentalSummary)) {
+      rationale.push('Storico ambientale: deficit idrico persistente aumenta il costo del ritardo.')
+    }
+    if (hasPersistentEnvironmentalHumidity(input.environmentalSummary)) {
+      rationale.push('Storico ambientale: umidita persistente aumenta il valore da proteggere nella finestra utile.')
+    }
   }
   if (cropEconomicModel.rationale.length > 0) {
     rationale.push(...cropEconomicModel.rationale.slice(0, 2))

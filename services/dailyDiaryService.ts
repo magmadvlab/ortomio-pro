@@ -16,6 +16,12 @@
 import { getSupabaseClient } from '@/config/supabase'
 import { getLocationInfo, formatLocationForDisplay } from './geocodingService'
 import { normalizeGeoCoordinates } from '@/utils/coordinates'
+import {
+  buildPersistedWeatherEnvelope,
+  getEnvironmentalMonitoringSnapshot,
+  upsertZoneEnvironmentalLedger,
+  type EnvironmentalZoneLedgerEntry,
+} from '@/services/environmentalMonitoringService'
 
 // ============================================================================
 // TYPES
@@ -188,6 +194,7 @@ class DailyDiaryService {
       // 3. Genera eventi automatici basati sui dati
       const events = await this.generateAutomaticEvents(userId, weatherLog, logDate)
       eventsGenerated = events.length
+      weatherLog = await this.persistZoneEnvironmentalLedger(userId, weatherLog, logDate)
 
     } catch (err) {
       errors.push(`Errore generale: ${err}`)
@@ -251,8 +258,30 @@ class DailyDiaryService {
         location_latitude: weatherData.location_latitude,
         location_longitude: weatherData.location_longitude,
         eto_calculated: eto,
-        data_source: 'api',
-        raw_data: weatherData.raw_data
+        data_source:
+          (weatherData.data_source as DailyWeatherLog['data_source'] | undefined) || 'api',
+        raw_data: buildPersistedWeatherEnvelope(
+          {
+            log_date: date,
+            temp_min: weatherData.temp_min ?? 0,
+            temp_max: weatherData.temp_max ?? 0,
+            temp_avg: weatherData.temp_avg ?? 0,
+            precipitation_mm: weatherData.precipitation_mm ?? 0,
+            humidity_avg: weatherData.humidity_avg,
+            weather_conditions: weatherData.weather_conditions,
+            eto_calculated: eto,
+            data_source:
+              (weatherData.data_source as DailyWeatherLog['data_source'] | undefined) || 'api',
+            raw_data: weatherData.raw_data,
+          },
+          {
+            recordedAt: new Date().toISOString(),
+            providerPayload:
+              weatherData.raw_data && typeof weatherData.raw_data === 'object'
+                ? (weatherData.raw_data as Record<string, unknown>)
+                : undefined,
+          }
+        )
       }
 
       const { data, error } = await this.supabase
@@ -351,12 +380,123 @@ class DailyDiaryService {
     }
   }
 
+  private async persistZoneEnvironmentalLedger(
+    userId: string,
+    weatherLog: DailyWeatherLog,
+    date: string
+  ): Promise<DailyWeatherLog> {
+    const zones = await this.getActiveEnvironmentalZones(userId)
+    if (zones.length === 0) {
+      return weatherLog
+    }
+
+    let nextRawData =
+      weatherLog.raw_data && typeof weatherLog.raw_data === 'object'
+        ? { ...weatherLog.raw_data }
+        : {}
+
+    const entries: EnvironmentalZoneLedgerEntry[] = []
+    for (const zone of zones) {
+      const snapshot = await getEnvironmentalMonitoringSnapshot({
+        userId,
+        gardenId: zone.gardenId,
+        zoneId: zone.zoneId,
+        date,
+      }).catch(() => null)
+
+      if (!snapshot) {
+        continue
+      }
+
+      entries.push({
+        gardenId: zone.gardenId,
+        zoneId: zone.zoneId,
+        zoneName: zone.zoneName,
+        recordedAt: new Date().toISOString(),
+        snapshot,
+      })
+    }
+
+    if (entries.length === 0) {
+      return weatherLog
+    }
+
+    for (const entry of entries) {
+      nextRawData = upsertZoneEnvironmentalLedger(nextRawData, entry)
+    }
+
+    const { data, error } = await this.supabase
+      .from('daily_weather_log')
+      .update({ raw_data: nextRawData })
+      .eq('user_id', userId)
+      .eq('log_date', date)
+      .select()
+      .single()
+
+    if (error || !data) {
+      console.warn('Impossibile aggiornare zone environmental ledger sul daily weather log:', error)
+      return {
+        ...weatherLog,
+        raw_data: nextRawData,
+      }
+    }
+
+    return data as DailyWeatherLog
+  }
+
+  private async getActiveEnvironmentalZones(userId: string): Promise<Array<{
+    gardenId: string
+    zoneId: string
+    zoneName?: string
+  }>> {
+    const { data: gardens, error: gardensError } = await this.supabase
+      .from('gardens')
+      .select('id')
+      .eq('user_id', userId)
+
+    if (gardensError || !gardens || gardens.length === 0) {
+      return []
+    }
+
+    const gardenIds = gardens
+      .map((garden: { id?: string }) => garden.id)
+      .filter((gardenId): gardenId is string => Boolean(gardenId))
+
+    if (gardenIds.length === 0) {
+      return []
+    }
+
+    const { data: zones, error: zonesError } = await this.supabase
+      .from('irrigation_zones')
+      .select('id, garden_id, name, is_active')
+      .in('garden_id', gardenIds)
+      .eq('is_active', true)
+
+    if (zonesError || !zones) {
+      console.warn('Impossibile recuperare irrigation_zones per environmental ledger:', zonesError)
+      return []
+    }
+
+    return zones
+      .map((zone: { id?: string; garden_id?: string; name?: string | null }) => ({
+        gardenId: zone.garden_id || '',
+        zoneId: zone.id || '',
+        zoneName: zone.name || undefined,
+      }))
+      .filter((zone) => zone.gardenId && zone.zoneId)
+  }
+
   /**
    * Fetch da Open-Meteo API con reverse geocoding della posizione
    */
   private async fetchFromOpenMeteo(lat: number, lon: number, date: string): Promise<Partial<DailyWeatherLog> | null> {
     try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max,wind_speed_10m_mean,shortwave_radiation_sum,uv_index_max,weather_code&timezone=auto&start_date=${date}&end_date=${date}`
+      const today = new Date().toISOString().split('T')[0]
+      const isHistorical = date < today
+      const endpoint = isHistorical
+        ? 'https://archive-api.open-meteo.com/v1/archive'
+        : 'https://api.open-meteo.com/v1/forecast'
+      const url = `${endpoint}?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max,wind_speed_10m_mean,shortwave_radiation_sum,uv_index_max,weather_code&timezone=auto&start_date=${date}&end_date=${date}`
 
       const response = await fetch(url)
       const data = await response.json()
@@ -395,7 +535,16 @@ class DailyDiaryService {
         location_name: locationName,
         location_latitude: lat,
         location_longitude: lon,
-        raw_data: data
+        data_source: 'api',
+        raw_data: {
+          provider: isHistorical ? 'open_meteo_archive' : 'open_meteo_forecast',
+          query: {
+            latitude: lat,
+            longitude: lon,
+            date,
+          },
+          payload: data,
+        }
       }
     } catch (err) {
       console.error('Errore Open-Meteo:', err)

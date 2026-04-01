@@ -43,8 +43,11 @@ test('generateDescription appends confirmed phenology when available', () => {
         createdAt: '2026-03-20T10:00:00.000Z',
         updatedAt: '2026-03-20T10:00:00.000Z',
       },
+      stageKey: 'veraison',
       stageLabel: 'Invaiatura',
       scopeLabel: 'filare row-3',
+      source: 'observation',
+      confidence: 0.95,
     },
     devices: [],
   })
@@ -79,8 +82,11 @@ test('calculateRuleConfidence increases when a real phenology observation suppor
         createdAt: '2026-03-20T10:00:00.000Z',
         updatedAt: '2026-03-20T10:00:00.000Z',
       },
+      stageKey: 'veraison',
       stageLabel: 'Invaiatura',
       scopeLabel: 'giardino',
+      source: 'observation',
+      confidence: 0.95,
     },
     devices: [],
   })
@@ -88,4 +94,60 @@ test('calculateRuleConfidence increases when a real phenology observation suppor
   assert.equal(withoutPhenology, 0.84)
   assert.equal(withPhenology, 0.88)
   assert.ok(withPhenology > withoutPhenology)
+})
+
+test('analyzeWeatherConditions escalates risk when persisted environmental history shows recurring pressure', async () => {
+  const service = new PlantHealthMonitoringService()
+
+  const alerts = await (service as any).analyzeWeatherConditions(vineyardGarden, {
+    cropContext: vineyardContext,
+    weatherData: {
+      humidity: 88,
+      temp: 20,
+      rainMm: 3,
+      forecast: [
+        { date: '2026-04-01', tempMin: 16, tempMax: 24, rainMm: 3, humidity: 88, windSpeed: 8 },
+        { date: '2026-04-02', tempMin: 15, tempMax: 23, rainMm: 2, humidity: 86, windSpeed: 9 },
+      ],
+    },
+    microclimate: null,
+    environmentalHistorySummary: {
+      gardenId: 'garden-1',
+      entries: 5,
+      trackedZones: 2,
+      highSoilWaterStressDays: 0,
+      mediumSoilWaterStressDays: 1,
+      highDiseasePressureDays: 3,
+      sensorLocalDays: 2,
+      deficitWaterBalanceDays: 0,
+      surplusWaterBalanceDays: 2,
+      lowDryingPowerDays: 3,
+      latestSensorPrecedence: 'sensor_local',
+      latestSoilWaterStressLevel: 'medium',
+      dominantWeatherSourceClass: 'historical_archive',
+    },
+    phenology: null,
+    devices: [],
+    agronomicProfile: null,
+    dominantPlantNames: ['Sangiovese'],
+    measuredFeedbackPressure: 0,
+    measuredFeedbackNotes: [],
+    adaptiveLearning: {
+      pressureBoost: 0,
+      urgencyDaysOffset: 0,
+      confidenceBoost: 0,
+      fungalHumidityThreshold: 80,
+      fungalRainThreshold: 1,
+      leafWetnessThreshold: 50,
+      heatStressTemperatureThreshold: 32,
+      hotDaysTriggerCount: 2,
+      notes: [],
+    },
+  })
+
+  const fungalAlert = alerts.find((alert: any) => alert.type === 'disease_risk')
+  assert.ok(fungalAlert)
+  assert.equal(fungalAlert?.severity, 'critical')
+  assert.match(fungalAlert?.description || '', /Storico ambientale/)
+  assert.ok(fungalAlert?.triggers.includes('environmental_history'))
 })

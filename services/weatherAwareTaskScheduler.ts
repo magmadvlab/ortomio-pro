@@ -17,7 +17,14 @@
 
 import { GardenTask, Garden } from '../types'
 import { getWeatherForecast7Days, WeatherForecast } from './weatherService'
-import { addDays, parseISO, format, isBefore, isAfter } from 'date-fns'
+import { addDays, subDays, parseISO, format, isBefore, isAfter } from 'date-fns'
+import { getSupabaseClient } from '@/config/supabase'
+import {
+  getPersistedGardenEnvironmentalHistorySummary,
+  getPersistedZoneEnvironmentalHistorySummary,
+  type GardenEnvironmentalHistorySummary,
+  type ZoneEnvironmentalHistorySummary,
+} from '@/services/environmentalMonitoringService'
 
 /**
  * Condizioni meteo richieste per tipo di task
@@ -228,6 +235,88 @@ export interface WeatherTaskAnalysis {
   autoRescheduled: boolean
 }
 
+type TaskEnvironmentalHistorySummary =
+  | GardenEnvironmentalHistorySummary
+  | ZoneEnvironmentalHistorySummary
+
+const WET_SOIL_SENSITIVE_TASK_TYPES = new Set<GardenTask['taskType']>([
+  'Sowing',
+  'Fertilize',
+  'Plowing',
+  'Subsoiling',
+  'Harrowing',
+  'Tilling',
+  'Rolling',
+  'Hoeing',
+  'EarthingUp',
+  'Digging',
+  'DeepHarrowing',
+  'Crumbling',
+  'SurfaceLeveling',
+  'MinimumTillage',
+  'StripTillage',
+  'NoTill',
+])
+
+function hasPersistentWaterDeficit(summary?: TaskEnvironmentalHistorySummary | null): boolean {
+  return (
+    (summary?.highSoilWaterStressDays || 0) >= 2 ||
+    (summary?.deficitWaterBalanceDays || 0) >= 3
+  )
+}
+
+function hasPersistentWetPattern(summary?: TaskEnvironmentalHistorySummary | null): boolean {
+  return (
+    (summary?.surplusWaterBalanceDays || 0) >= 2 ||
+    (summary?.lowDryingPowerDays || 0) >= 2
+  )
+}
+
+function collectEnvironmentalHistoryIssues(
+  task: GardenTask,
+  dayForecast: WeatherForecast,
+  summary?: TaskEnvironmentalHistorySummary | null
+): string[] {
+  if (!summary) {
+    return []
+  }
+
+  const issues: string[] = []
+
+  if (
+    WET_SOIL_SENSITIVE_TASK_TYPES.has(task.taskType) &&
+    hasPersistentWetPattern(summary)
+  ) {
+    issues.push('Storico recente troppo umido: il suolo puo essere ancora poco lavorabile o soggetto a compattazione')
+  }
+
+  if (
+    task.taskType === 'Treatment' &&
+    ((summary.highDiseasePressureDays || 0) >= 2 || (summary.lowDryingPowerDays || 0) >= 2) &&
+    ((dayForecast.humidity || 0) >= 85 || dayForecast.rainMm > 0)
+  ) {
+    issues.push('Sequenza recente umida: copertura e asciugatura del trattamento ancora poco affidabili')
+  }
+
+  if (
+    task.taskType === 'Harvest' &&
+    hasPersistentWetPattern(summary) &&
+    ((dayForecast.humidity || 0) >= 85 || dayForecast.rainMm > 0)
+  ) {
+    issues.push('Storico di bagnatura persistente: raccolta penalizzata per qualita e conservazione')
+  }
+
+  if (
+    task.taskType === 'Transplant' &&
+    hasPersistentWaterDeficit(summary) &&
+    (dayForecast.tempMax || 0) >= 30
+  ) {
+    issues.push('Storico siccitoso recente: trapianto ad alto rischio di stress senza supporto idrico forte')
+  }
+
+  return issues
+}
+
 /**
  * Analizza se un task può essere eseguito nella data schedulata dato il meteo
  */
@@ -235,7 +324,8 @@ export function analyzeTaskWeatherSuitability(
   task: GardenTask,
   scheduledDate: Date,
   forecast: WeatherForecast[],
-  requirements?: TaskWeatherRequirements
+  requirements?: TaskWeatherRequirements,
+  environmentalHistorySummary?: TaskEnvironmentalHistorySummary | null
 ): WeatherTaskAnalysis {
   // 1. Start con requisiti base per task type
   let taskReqs = requirements || TASK_WEATHER_REQUIREMENTS[task.taskType]
@@ -281,6 +371,11 @@ export function analyzeTaskWeatherSuitability(
   }
 
   const issues: string[] = []
+  const persistentWaterDeficit = hasPersistentWaterDeficit(environmentalHistorySummary)
+  const effectiveMaxRain =
+    task.taskType === 'Irrigation' && persistentWaterDeficit
+      ? Math.max(taskReqs.maxRain ?? 0, 15)
+      : taskReqs.maxRain
 
   // Verifica temperatura minima
   if (taskReqs.minTemp && dayForecast.tempMin !== undefined && dayForecast.tempMin < taskReqs.minTemp) {
@@ -295,8 +390,8 @@ export function analyzeTaskWeatherSuitability(
   // Verifica pioggia
   if (taskReqs.noRainRequired && dayForecast.rainMm > 0) {
     issues.push(`Pioggia prevista: ${dayForecast.rainMm.toFixed(1)}mm (richiesto 0mm)`)
-  } else if (taskReqs.maxRain !== undefined && dayForecast.rainMm > taskReqs.maxRain) {
-    issues.push(`Pioggia eccessiva: ${dayForecast.rainMm.toFixed(1)}mm (max: ${taskReqs.maxRain}mm)`)
+  } else if (effectiveMaxRain !== undefined && dayForecast.rainMm > effectiveMaxRain) {
+    issues.push(`Pioggia eccessiva: ${dayForecast.rainMm.toFixed(1)}mm (max: ${effectiveMaxRain}mm)`)
   }
 
   // Verifica vento (se disponibile)
@@ -328,6 +423,8 @@ export function analyzeTaskWeatherSuitability(
     }
   }
 
+  issues.push(...collectEnvironmentalHistoryIssues(task, dayForecast, environmentalHistorySummary))
+
   const isSuitable = issues.length === 0
 
   return {
@@ -348,7 +445,8 @@ export function findNextSuitableDay(
   task: GardenTask,
   currentScheduled: Date,
   forecast: WeatherForecast[],
-  requirements?: TaskWeatherRequirements
+  requirements?: TaskWeatherRequirements,
+  environmentalHistorySummary?: TaskEnvironmentalHistorySummary | null
 ): string | null {
   const taskReqs = requirements || TASK_WEATHER_REQUIREMENTS[task.taskType]
 
@@ -365,7 +463,13 @@ export function findNextSuitableDay(
       continue
     }
 
-    const analysis = analyzeTaskWeatherSuitability(task, checkDate, forecast, taskReqs)
+    const analysis = analyzeTaskWeatherSuitability(
+      task,
+      checkDate,
+      forecast,
+      taskReqs,
+      environmentalHistorySummary
+    )
 
     if (analysis.isSuitable) {
       return forecast[i].date!
@@ -385,6 +489,99 @@ export interface RescheduleNotification {
   newDate: string
   reason: string
   severity: 'info' | 'warning'
+}
+
+async function resolveGardenOwnerId(garden: Garden): Promise<string | null> {
+  const directCandidate =
+    (garden as Garden & { user_id?: string; userId?: string; ownerId?: string }).user_id ||
+    (garden as Garden & { user_id?: string; userId?: string; ownerId?: string }).userId ||
+    (garden as Garden & { user_id?: string; userId?: string; ownerId?: string }).ownerId
+
+  if (directCandidate) {
+    return directCandidate
+  }
+
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    return null
+  }
+
+  const { data } = await supabase
+    .from('gardens')
+    .select('user_id')
+    .eq('id', garden.id)
+    .maybeSingle()
+
+  return typeof data?.user_id === 'string' ? data.user_id : null
+}
+
+async function buildEnvironmentalHistoryByTask(
+  garden: Garden,
+  tasks: GardenTask[],
+  endDate: string
+): Promise<{
+  gardenSummary: GardenEnvironmentalHistorySummary | null
+  zoneSummaries: Map<string, ZoneEnvironmentalHistorySummary>
+}> {
+  const userId = await resolveGardenOwnerId(garden)
+  if (!userId) {
+    return {
+      gardenSummary: null,
+      zoneSummaries: new Map(),
+    }
+  }
+
+  const startDate = format(subDays(parseISO(endDate), 6), 'yyyy-MM-dd')
+  const zoneIds = Array.from(
+    new Set(tasks.map((task) => task.zoneId).filter((zoneId): zoneId is string => Boolean(zoneId)))
+  )
+
+  const [gardenSummary, zoneSummaryEntries] = await Promise.all([
+    getPersistedGardenEnvironmentalHistorySummary({
+      userId,
+      gardenId: garden.id,
+      startDate,
+      endDate,
+    }).catch(() => null),
+    Promise.all(
+      zoneIds.map(async (zoneId) => ({
+        zoneId,
+        summary: await getPersistedZoneEnvironmentalHistorySummary({
+          userId,
+          gardenId: garden.id,
+          zoneId,
+          startDate,
+          endDate,
+        }).catch(() => null),
+      }))
+    ),
+  ])
+
+  return {
+    gardenSummary,
+    zoneSummaries: new Map(
+      zoneSummaryEntries
+        .filter(
+          (entry): entry is { zoneId: string; summary: ZoneEnvironmentalHistorySummary } =>
+            Boolean(entry.summary)
+        )
+        .map((entry) => [entry.zoneId, entry.summary])
+    ),
+  }
+}
+
+function resolveTaskEnvironmentalHistory(
+  task: GardenTask,
+  histories: {
+    gardenSummary: GardenEnvironmentalHistorySummary | null
+    zoneSummaries: Map<string, ZoneEnvironmentalHistorySummary>
+  }
+): TaskEnvironmentalHistorySummary | null {
+  if (task.zoneId && histories.zoneSummaries.has(task.zoneId)) {
+    return histories.zoneSummaries.get(task.zoneId) || null
+  }
+
+  return histories.gardenSummary
 }
 
 /**
@@ -427,17 +624,32 @@ export async function rescheduleTasksBasedOnWeather(
   const analyses: WeatherTaskAnalysis[] = []
   const rescheduled: RescheduleNotification[] = []
   const updatedTasks: GardenTask[] = []
+  const todayStr = format(today, 'yyyy-MM-dd')
+  const environmentalHistories = await buildEnvironmentalHistoryByTask(garden, upcomingTasks, todayStr)
 
   for (const task of upcomingTasks) {
     const scheduledDate = task.nextDueDate ? parseISO(task.nextDueDate) : parseISO(task.date)
+    const environmentalHistorySummary = resolveTaskEnvironmentalHistory(task, environmentalHistories)
 
     // Analizza compatibilità meteo
-    const analysis = analyzeTaskWeatherSuitability(task, scheduledDate, forecast)
+    const analysis = analyzeTaskWeatherSuitability(
+      task,
+      scheduledDate,
+      forecast,
+      undefined,
+      environmentalHistorySummary
+    )
     analyses.push(analysis)
 
     if (!analysis.isSuitable) {
       // Trova primo giorno utile
-      const newDate = findNextSuitableDay(task, scheduledDate, forecast)
+      const newDate = findNextSuitableDay(
+        task,
+        scheduledDate,
+        forecast,
+        undefined,
+        environmentalHistorySummary
+      )
 
       if (newDate) {
         // Riprogramma task
@@ -510,12 +722,26 @@ export async function checkTomorrowTasksWeather(
   )
 
   const notifications: RescheduleNotification[] = []
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+  const environmentalHistories = await buildEnvironmentalHistoryByTask(garden, tomorrowTasks, todayStr)
 
   for (const task of tomorrowTasks) {
-    const analysis = analyzeTaskWeatherSuitability(task, tomorrow, forecast)
+    const analysis = analyzeTaskWeatherSuitability(
+      task,
+      tomorrow,
+      forecast,
+      undefined,
+      resolveTaskEnvironmentalHistory(task, environmentalHistories)
+    )
 
     if (!analysis.isSuitable) {
-      const newDate = findNextSuitableDay(task, tomorrow, forecast)
+      const newDate = findNextSuitableDay(
+        task,
+        tomorrow,
+        forecast,
+        undefined,
+        resolveTaskEnvironmentalHistory(task, environmentalHistories)
+      )
 
       notifications.push({
         taskId: task.id,

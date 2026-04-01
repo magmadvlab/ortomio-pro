@@ -3,7 +3,11 @@ import type { WateringLog } from '@/types/microzoneTracking'
 import type { NutritionTreatment } from '@/types/nutrition'
 import type { MechanicalWorkLog } from '@/services/mechanicalWorkService'
 import type { HarvestLogData } from '@/types'
-import { getMarketPrice } from '@/data/marketPrices'
+import {
+  estimateHarvestOperationEconomics,
+  estimateIrrigationOperationEconomics,
+  estimateMechanicalOperationEconomics,
+} from '@/services/agronomicOperationalEconomicsService'
 
 export type AgronomicMeasuredFeedbackFocus =
   | 'water'
@@ -48,6 +52,23 @@ type MeasuredFeedbackStorage = Pick<
   'getUserPreference' | 'setUserPreference'
 >
 
+type MeasuredWateringFeedbackLog = Pick<
+  WateringLog,
+  | 'gardenId'
+  | 'taskId'
+  | 'zoneId'
+  | 'date'
+  | 'litersApplied'
+  | 'durationMinutes'
+  | 'method'
+  | 'soilMoistureBefore'
+  | 'soilMoistureAfter'
+  | 'airTemperatureC'
+  | 'notes'
+> & {
+  rowId?: string
+}
+
 const getMeasuredFeedbackPreferenceKey = (gardenId: string) =>
   `agronomic_measured_feedback:${gardenId}`
 
@@ -79,12 +100,6 @@ const getNumericMetricAverage = (
       return typeof value === 'number' ? value : undefined
     })
   )
-
-const getSeasonFromDate = (value?: string): 'Winter' | 'Summer' => {
-  const date = value ? new Date(value) : new Date()
-  const month = date.getMonth()
-  return month >= 5 && month <= 8 ? 'Summer' : 'Winter'
-}
 
 export async function getAgronomicMeasuredFeedbackRecords(
   storageProvider: MeasuredFeedbackStorage | null | undefined,
@@ -272,22 +287,7 @@ export function summarizeAgronomicMeasuredFeedback(
 }
 
 export function buildWateringMeasuredFeedback(
-  logs: Array<
-    Pick<
-      WateringLog,
-      | 'gardenId'
-      | 'taskId'
-      | 'zoneId'
-      | 'rowId'
-      | 'date'
-      | 'litersApplied'
-      | 'durationMinutes'
-      | 'soilMoistureBefore'
-      | 'soilMoistureAfter'
-      | 'airTemperatureC'
-      | 'notes'
-    >
-  >,
+  logs: MeasuredWateringFeedbackLog[],
   options?: {
     gardenId?: string
     plantName?: string
@@ -308,6 +308,25 @@ export function buildWateringMeasuredFeedback(
   const averageAfter = average(validLogs.map((log) => log.soilMoistureAfter))
   const totalLiters = Number(validLogs.reduce((sum, log) => sum + (log.litersApplied || 0), 0).toFixed(2))
   const totalDuration = Number(validLogs.reduce((sum, log) => sum + (log.durationMinutes || 0), 0).toFixed(2))
+  const economicAssessments = validLogs.map((log) =>
+    estimateIrrigationOperationEconomics({
+      litersApplied: log.litersApplied || 0,
+      durationMinutes: log.durationMinutes || 0,
+      method: log.method,
+    })
+  )
+  const estimatedWaterCost = Number(
+    economicAssessments.reduce((sum, assessment) => sum + (assessment.waterCost || 0), 0).toFixed(2)
+  )
+  const estimatedEnergyCost = Number(
+    economicAssessments.reduce((sum, assessment) => sum + (assessment.energyCost || 0), 0).toFixed(2)
+  )
+  const estimatedLaborCost = Number(
+    economicAssessments.reduce((sum, assessment) => sum + (assessment.laborCost || 0), 0).toFixed(2)
+  )
+  const totalCost = Number(
+    economicAssessments.reduce((sum, assessment) => sum + assessment.estimatedCost, 0).toFixed(2)
+  )
 
   return {
     id: `agro_feedback:watering:${firstLog.taskId || firstLog.zoneId}:${getDateOnly(firstLog.date)}`,
@@ -337,7 +356,12 @@ export function buildWateringMeasuredFeedback(
           ? Number((averageAfter - averageBefore).toFixed(2))
           : null,
       averageAirTemperatureC: average(validLogs.map((log) => log.airTemperatureC)) ?? null,
-      estimatedCost: Number((totalLiters * 0.0018 + totalDuration * 0.14).toFixed(2)),
+      estimatedWaterCost,
+      estimatedEnergyCost,
+      estimatedLaborCost,
+      estimatedCost: totalCost,
+      totalCost,
+      costSource: 'estimated',
     },
   }
 }
@@ -369,6 +393,12 @@ export function buildNutritionMeasuredFeedback(
     | 'notes'
   >
 ): AgronomicMeasuredFeedbackRecord {
+  const derivedTotalCost =
+    treatment.totalCost ??
+    [treatment.productCost, treatment.laborCost, treatment.equipmentCost]
+      .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+      .reduce((sum, value) => sum + value, 0)
+
   return {
     id: `agro_feedback:nutrition:${treatment.id}:${getDateOnly(treatment.actualApplicationDate || treatment.scheduledDate)}`,
     gardenId: treatment.gardenId,
@@ -393,7 +423,10 @@ export function buildNutritionMeasuredFeedback(
       productCost: treatment.productCost ?? null,
       laborCost: treatment.laborCost ?? null,
       equipmentCost: treatment.equipmentCost ?? null,
-      cost: treatment.totalCost ?? null,
+      cost: derivedTotalCost || null,
+      totalCost: derivedTotalCost || null,
+      actualCost: treatment.totalCost ?? null,
+      costSource: treatment.totalCost ? 'observed' : 'estimated',
     },
   }
 }
@@ -409,6 +442,8 @@ export function buildHarvestMeasuredFeedback(
     | 'rating'
     | 'date'
     | 'brix'
+    | 'marketValue'
+    | 'costPerKg'
     | 'notes'
   >
 ): AgronomicMeasuredFeedbackRecord | null {
@@ -418,20 +453,15 @@ export function buildHarvestMeasuredFeedback(
 
   const qualityScore =
     typeof harvest.rating === 'number' ? Number((harvest.rating * 20).toFixed(1)) : null
-  const season = getSeasonFromDate(harvest.date)
-  const baseUnitPrice = getMarketPrice((harvest.plantName || 'GENERIC').toUpperCase(), season)
-  const qualityMultiplier =
-    typeof qualityScore === 'number'
-      ? qualityScore >= 90
-        ? 1.2
-        : qualityScore >= 80
-          ? 1.1
-          : qualityScore >= 60
-            ? 1
-            : 0.88
-      : 1
-  const estimatedUnitPrice = Number((baseUnitPrice * qualityMultiplier).toFixed(2))
-  const estimatedValue = Number((harvest.quantity * estimatedUnitPrice).toFixed(2))
+  const economics = estimateHarvestOperationEconomics(harvest)
+  const estimatedValue =
+    typeof economics.economicValue === 'number' ? economics.economicValue : null
+  const estimatedUnitPrice =
+    estimatedValue !== null &&
+    harvest.unit !== 'units' &&
+    harvest.quantity > 0
+      ? Number((estimatedValue / (harvest.unit === 'g' ? harvest.quantity / 1000 : harvest.quantity)).toFixed(2))
+      : null
 
   return {
     id: `agro_feedback:harvest:${harvest.taskId || harvest.plantName}:${getDateOnly(harvest.date)}`,
@@ -451,6 +481,11 @@ export function buildHarvestMeasuredFeedback(
       brix: harvest.brix ?? null,
       estimatedUnitPrice,
       estimatedValue,
+      cost: economics.estimatedCost,
+      estimatedCost: economics.estimatedCost,
+      actualCost: economics.actualCost ?? null,
+      costSource: economics.costSource,
+      netImpact: economics.netEconomicImpact ?? null,
     },
   }
 }
@@ -480,6 +515,16 @@ export function buildMechanicalMeasuredFeedback(
     return null
   }
 
+  const economics = estimateMechanicalOperationEconomics({
+    area_m2: log.areaCoveredSqm || 0,
+    equipment_type: log.equipmentType,
+    operator_name: log.operatorName,
+    work_metadata: {
+      durationMinutes: log.durationMinutes,
+      cost: log.cost,
+    },
+  })
+
   return {
     id: `agro_feedback:mechanical:${options?.sourceTaskId || log.workType}:${getDateOnly(log.workDate)}`,
     gardenId: log.gardenId,
@@ -497,7 +542,12 @@ export function buildMechanicalMeasuredFeedback(
       durationMinutes: log.durationMinutes ?? null,
       areaCoveredSqm: log.areaCoveredSqm ?? null,
       depthCm: log.depthCm ?? null,
-      cost: log.cost ?? null,
+      cost: economics.actualCost ?? economics.estimatedCost,
+      estimatedCost: economics.estimatedCost,
+      actualCost: economics.actualCost ?? null,
+      laborCost: economics.laborCost ?? null,
+      equipmentCost: economics.equipmentCost ?? null,
+      costSource: economics.costSource,
       equipmentType: log.equipmentType ?? null,
       operatorName: log.operatorName ?? null,
     },

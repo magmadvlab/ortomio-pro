@@ -4,6 +4,7 @@ import {
 } from '@/services/agronomicKernelService'
 import type { AgronomicEconomicPrioritySummary } from '@/services/agronomicEconomicPriorityService'
 import type { AgronomicMeasuredFeedbackSummary } from '@/services/agronomicMeasuredFeedbackService'
+import type { ZoneEnvironmentalHistorySummary } from '@/services/environmentalMonitoringService'
 import type {
   AgronomicCropProfile,
   AgronomicSignalKey,
@@ -34,6 +35,7 @@ export interface AgronomicPriorityScoreInput {
   isCriticalStage?: boolean
   measuredFeedbackSummary?: AgronomicMeasuredFeedbackSummary | null
   economicSummary?: AgronomicEconomicPrioritySummary | null
+  environmentalSummary?: ZoneEnvironmentalHistorySummary | null
 }
 
 export interface AgronomicPriorityScoreResult {
@@ -42,6 +44,7 @@ export interface AgronomicPriorityScoreResult {
   signalCoverage: AgronomicSignalCoverage
   measuredFeedbackSummary?: AgronomicMeasuredFeedbackSummary | null
   economicSummary?: AgronomicEconomicPrioritySummary | null
+  environmentalSummary?: ZoneEnvironmentalHistorySummary | null
 }
 
 const normalizeHint = (value?: string | null) =>
@@ -171,6 +174,29 @@ export function scoreAgronomicPriority(
     score += input.economicSummary.scoreAdjustment
   }
 
+  if (input.environmentalSummary) {
+    const environmentalScoreAdjustment =
+      input.focus === 'water'
+        ? input.environmentalSummary.highSoilWaterStressDays >= 4 ||
+          input.environmentalSummary.latestSoilWaterStressLevel === 'high'
+          ? 9
+          : input.environmentalSummary.mediumSoilWaterStressDays >= 3
+            ? 5
+            : 0
+        : input.focus === 'nutrition'
+          ? input.environmentalSummary.highSoilWaterStressDays >= 3 ||
+            input.environmentalSummary.highDiseasePressureDays >= 3
+            ? 6
+            : input.environmentalSummary.mediumSoilWaterStressDays >= 2
+              ? 3
+              : 0
+          : input.environmentalSummary.highDiseasePressureDays >= 4
+            ? 4
+            : 0
+
+    score += environmentalScoreAdjustment
+  }
+
   switch (input.resolvedProfile?.source) {
     case 'plant_id':
       score += 4
@@ -206,7 +232,19 @@ export function scoreAgronomicPriority(
         0.08 +
         sourceConfidenceAdjustment +
         (input.measuredFeedbackSummary?.confidenceAdjustment || 0) +
-        (input.economicSummary?.confidenceAdjustment || 0)
+        (input.economicSummary?.confidenceAdjustment || 0) +
+        (
+          input.environmentalSummary
+            ? Math.max(
+                -0.02,
+                Math.min(
+                  0.08,
+                  input.environmentalSummary.entries >= 4 ? 0.03 : 0.01 +
+                  input.environmentalSummary.sensorLocalDays * 0.01
+                )
+              )
+            : 0
+        )
     )
   )
 
@@ -216,5 +254,6 @@ export function scoreAgronomicPriority(
     signalCoverage,
     measuredFeedbackSummary: input.measuredFeedbackSummary || null,
     economicSummary: input.economicSummary || null,
+    environmentalSummary: input.environmentalSummary || null,
   }
 }

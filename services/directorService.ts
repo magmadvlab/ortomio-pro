@@ -32,6 +32,12 @@ import { getCurrentPhenologyState } from '@/services/phenologyService'
 import { plantHealthMonitoringService } from '@/services/plantHealthMonitoringService'
 import { PrescriptionMapsService } from '@/services/prescriptionMapsService'
 import type { PrescriptionAgronomicIntelligenceSummary } from '@/services/prescriptionAgronomicIntelligenceService'
+import {
+  getEnvironmentalMonitoringSnapshot,
+  getPersistedGardenEnvironmentalHistorySummary,
+  getPersistedZoneEnvironmentalHistorySummary,
+  type GardenEnvironmentalHistorySummary,
+} from '@/services/environmentalMonitoringService'
 
 // ============================================================================
 // TYPES
@@ -77,6 +83,18 @@ export interface DailyBriefing {
     heat_stress_hours?: number
     water_stress_index?: number
     photoperiod_hours?: number
+  }
+  environmentalSummary?: {
+    weatherSourceClass?: string
+    weatherPrimarySource?: string
+    weatherSignalQuality?: string
+    sensorPrecedence?: string
+    sensorSignals?: string[]
+    soilWaterStressLevel?: string
+    circulationNotes?: string[]
+    recentHighDiseasePressureDays?: number
+    recentHighSoilWaterStressDays?: number
+    recentLowDryingPowerDays?: number
   }
   lunarPhase?: {
     phase?: string
@@ -127,6 +145,14 @@ class DirectorService {
       
       // 1. Ottieni dati dal diario automatico
       const diaryEntry = await dailyDiaryService.getDailyEntry(gardenId, today)
+      const [environmentalSummary, environmentalHistorySummary] = await Promise.all([
+        getEnvironmentalMonitoringSnapshot({
+          userId,
+          gardenId,
+          date: today,
+        }).catch(() => null),
+        this.getGardenEnvironmentalHistorySummary(userId, gardenId, today),
+      ])
       
       // 2. Ottieni suggerimenti AI attivi
       const suggestions = await collaborativeAIService.getActiveSuggestions(userId, gardenId)
@@ -135,7 +161,7 @@ class DirectorService {
       const actions = suggestions
         .map((suggestion) => this.suggestionToAction(suggestion))
         .sort((left, right) => right.priorityScore - left.priorityScore)
-      const transversalQueue = await this.buildTransversalQueue(gardenId, actions)
+      const transversalQueue = await this.buildTransversalQueue(userId, gardenId, actions)
       
       // 5. Filtra azioni critiche
       const criticalActions = actions.filter(a => 
@@ -143,7 +169,11 @@ class DirectorService {
       ).slice(0, 5)
       
       // 6. Genera raccomandazioni testuali
-      const recommendations = this.generateRecommendations(diaryEntry, criticalActions)
+      const recommendations = this.generateRecommendations(
+        diaryEntry,
+        criticalActions,
+        environmentalHistorySummary
+      )
       
       // 7. Calcola statistiche
       const stats = {
@@ -179,6 +209,23 @@ class DirectorService {
         transversalQueue,
         weatherSummary,
         agronomicInsights,
+        environmentalSummary: environmentalSummary
+          ? {
+              weatherSourceClass: environmentalSummary.weather.sourceClass,
+              weatherPrimarySource: environmentalSummary.weather.primarySource,
+              weatherSignalQuality: environmentalSummary.weather.signalQuality,
+              sensorPrecedence: environmentalSummary.sensors.precedence,
+              sensorSignals: environmentalSummary.sensors.availableSignals,
+              soilWaterStressLevel: environmentalSummary.soilWater.stressLevel,
+              circulationNotes: environmentalSummary.circulation.notes,
+              recentHighDiseasePressureDays:
+                environmentalHistorySummary?.highDiseasePressureDays,
+              recentHighSoilWaterStressDays:
+                environmentalHistorySummary?.highSoilWaterStressDays,
+              recentLowDryingPowerDays:
+                environmentalHistorySummary?.lowDryingPowerDays,
+            }
+          : undefined,
         lunarPhase: undefined, // TODO: aggiungere calcolo fase lunare
         recommendations,
         stats
@@ -356,6 +403,7 @@ class DirectorService {
   }
 
   private async buildTransversalQueue(
+    userId: string,
     gardenId: string,
     directorActions: PrioritizedAction[]
   ): Promise<AgronomicActionQueueItem[]> {
@@ -368,6 +416,11 @@ class DirectorService {
       this.getIrrigationReports(storageProvider, gardenId),
       getAgronomicMeasuredFeedbackRecords(storageProvider, gardenId).catch(() => []),
     ])
+    const environmentalSummariesByZone = await this.getEnvironmentalSummariesByZone(
+      userId,
+      irrigationReports,
+      prescriptionSummary
+    )
 
     if (!garden) {
       return buildAgronomicActionQueue({
@@ -375,6 +428,7 @@ class DirectorService {
         irrigationReports,
         prescriptionSummary,
         measuredFeedbackRecords,
+        environmentalSummariesByZone,
       }).slice(0, 12)
     }
 
@@ -393,7 +447,45 @@ class DirectorService {
       directorActions,
       phenologyCandidates: phenologyCandidate ? [phenologyCandidate] : [],
       measuredFeedbackRecords,
+      environmentalSummariesByZone,
     }).slice(0, 12)
+  }
+
+  private async getEnvironmentalSummariesByZone(
+    userId: string,
+    irrigationReports: EfficiencyReport[],
+    prescriptionSummary: PrescriptionAgronomicIntelligenceSummary | null
+  ): Promise<Record<string, Awaited<ReturnType<typeof getPersistedZoneEnvironmentalHistorySummary>>>> {
+    const today = new Date().toISOString().split('T')[0]
+    const startDate = new Date(`${today}T12:00:00.000Z`)
+    startDate.setDate(startDate.getDate() - 6)
+
+    const zoneIds = Array.from(
+      new Set([
+        ...irrigationReports.map((report) => report.zoneId).filter(Boolean),
+        ...(prescriptionSummary?.operationalPriorities || []).map((priority) => priority.zoneId).filter(Boolean),
+      ])
+    )
+
+    if (zoneIds.length === 0) {
+      return {}
+    }
+
+    const summaries = await Promise.all(
+      zoneIds.map(async (zoneId) => ({
+        zoneId,
+        summary: await getPersistedZoneEnvironmentalHistorySummary({
+          userId,
+          zoneId,
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: today,
+        }).catch(() => null),
+      }))
+    )
+
+    return Object.fromEntries(
+      summaries.map((entry) => [entry.zoneId, entry.summary])
+    )
   }
 
   private async getLatestPrescriptionSummary(
@@ -506,7 +598,8 @@ class DirectorService {
    */
   private generateRecommendations(
     diaryEntry: any,
-    actions: PrioritizedAction[]
+    actions: PrioritizedAction[],
+    environmentalHistorySummary?: GardenEnvironmentalHistorySummary | null
   ): string[] {
     const recommendations: string[] = []
     
@@ -543,6 +636,29 @@ class DirectorService {
         recommendations.push('📈 Accumulo GDD significativo: monitora sviluppo colture')
       }
     }
+
+    if (environmentalHistorySummary) {
+      if (environmentalHistorySummary.highDiseasePressureDays >= 2) {
+        recommendations.push(
+          '🦠 Pressione ambientale persistente: mantieni monitoraggio fungino e usa finestre asciutte per i trattamenti'
+        )
+      }
+
+      if (
+        environmentalHistorySummary.highSoilWaterStressDays >= 2 ||
+        environmentalHistorySummary.deficitWaterBalanceDays >= 3
+      ) {
+        recommendations.push(
+          '💧 Deficit idrico persistente: verifica uniformita irrigua e priorita le zone piu stressate'
+        )
+      }
+
+      if (environmentalHistorySummary.lowDryingPowerDays >= 2) {
+        recommendations.push(
+          '🌫️ Bassa capacita di asciugatura negli ultimi giorni: evita interventi fogliari senza vera finestra asciutta'
+        )
+      }
+    }
     
     // Raccomandazioni lunari
     if (diaryEntry?.lunar_phase?.favorable_for) {
@@ -558,6 +674,23 @@ class DirectorService {
     }
     
     return recommendations
+  }
+
+  private async getGardenEnvironmentalHistorySummary(
+    userId: string,
+    gardenId: string,
+    date: Date
+  ): Promise<GardenEnvironmentalHistorySummary | null> {
+    const endDate = date.toISOString().split('T')[0]
+    const startDate = new Date(date)
+    startDate.setDate(startDate.getDate() - 6)
+
+    return getPersistedGardenEnvironmentalHistorySummary({
+      userId,
+      gardenId,
+      startDate: startDate.toISOString().split('T')[0],
+      endDate,
+    }).catch(() => null)
   }
   
   /**

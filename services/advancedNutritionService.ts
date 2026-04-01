@@ -19,6 +19,7 @@ import {
 import { getSupabaseClient } from '@/config/supabase'
 import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
 import { resolveIrrigationWaterQualityProfile } from '@/services/irrigationWaterQualityService'
+import { calculateSoilHydraulicProfile, getLatestSoilAnalysis } from '@/services/soilAnalysisService'
 import type { IrrigationSystem } from '@/types/irrigation'
 import {
   buildAgronomicNutritionLearningAdjustment,
@@ -930,6 +931,23 @@ class AdvancedNutritionService {
       })
     }
 
+    if ((waterQualityInsight?.soilConstraintZoneCount || 0) > 0) {
+      recommendations.push({
+        type: 'timing_optimization',
+        title: 'Rendi la nutrizione piu sensibile ai vincoli suolo-acqua',
+        description:
+          waterQualityInsight?.worstSoilConstraintLevel === 'high'
+            ? `Almeno ${waterQualityInsight.soilConstraintZoneCount} zone mostrano vincoli idraulici forti: compattazione, drenaggio lento o accumulo salino stanno alterando la finestra nutrizionale.`
+            : `Sono presenti ${waterQualityInsight?.soilConstraintZoneCount} zone con vincoli suolo-acqua che meritano una strategia nutrizionale differenziata.`,
+        priority: waterQualityInsight?.worstSoilConstraintLevel === 'high' ? 'high' : 'medium',
+        actionItems: [
+          'Riduci dosi singole e preferisci interventi frazionati nelle zone piu lente o compattate',
+          'Evita fertirrigazione concentrata dove la salinita accumulata e gia in crescita',
+          ...(waterQualityInsight?.recommendations.slice(0, 2) || []),
+        ],
+      })
+    }
+
     return recommendations
   }
 
@@ -944,7 +962,7 @@ class AdvancedNutritionService {
 
     const { data: zones } = await supabase
       .from('irrigation_zones')
-      .select('id')
+      .select('id, drainage_quality, water_retention, slope_percentage, soil_type')
       .eq('garden_id', gardenId)
       .eq('is_active', true)
 
@@ -983,17 +1001,19 @@ class AdvancedNutritionService {
       systemsByZone.set(system.zone_id, zoneSystems)
     })
 
-    const profiles = (
-      await Promise.all(
-        zoneList.map((zone: any) =>
-          resolveIrrigationWaterQualityProfile({
-            gardenId,
-            zoneId: zone.id,
-            systems: systemsByZone.get(zone.id) || [],
-          })
-        )
-      )
-    ).filter((profile): profile is NonNullable<typeof profile> => Boolean(profile))
+    const zoneProfiles = await Promise.all(
+      zoneList.map(async (zone: any) => ({
+        zoneId: zone.id,
+        profile: await resolveIrrigationWaterQualityProfile({
+          gardenId,
+          zoneId: zone.id,
+          systems: systemsByZone.get(zone.id) || [],
+        }),
+      }))
+    )
+    const profiles = zoneProfiles
+      .map((entry) => entry.profile)
+      .filter((profile): profile is NonNullable<typeof profile> => Boolean(profile))
 
     if (profiles.length === 0) {
       return fertigationExposure
@@ -1012,6 +1032,52 @@ class AdvancedNutritionService {
 
     const sortedProfiles = [...profiles].sort((left, right) => left.qualityScore - right.qualityScore)
     const worstProfile = sortedProfiles[0]
+    const soilProfiles = (
+      await Promise.all(
+        zoneList.map(async (zone: any) => {
+          const waterQualityProfile =
+            zoneProfiles.find((entry) => entry.zoneId === zone.id)?.profile || null
+          const latestSoilAnalysis = await getLatestSoilAnalysis(supabase as any, zone.id, gardenId)
+          return calculateSoilHydraulicProfile(latestSoilAnalysis, {
+            zone: {
+              id: zone.id,
+              name: zone.id,
+              createdAt: '',
+              updatedAt: '',
+              drainageQuality: zone.drainage_quality || 'good',
+              waterRetention: zone.water_retention || 'medium',
+              slopePercentage: zone.slope_percentage || 0,
+              soilType: zone.soil_type || 'mixed',
+            },
+            waterQualityProfile,
+          })
+        })
+      )
+    ).filter((profile): profile is NonNullable<typeof profile> => Boolean(profile))
+    const soilConstraintProfiles = soilProfiles.filter(
+      (profile) =>
+        profile.compactionRisk === 'high' ||
+        profile.drainageClass === 'slow' ||
+        profile.salinityAccumulationRisk !== 'low'
+    )
+    const worstSoilConstraintLevel: NutritionWaterQualityInsight['worstSoilConstraintLevel'] =
+      soilConstraintProfiles.some(
+        (profile) => profile.compactionRisk === 'high' || profile.salinityAccumulationRisk === 'high'
+      )
+        ? 'high'
+        : soilConstraintProfiles.some(
+            (profile) => profile.compactionRisk === 'medium' || profile.salinityAccumulationRisk === 'medium'
+          )
+          ? 'medium'
+          : soilProfiles.length > 0
+            ? 'low'
+            : 'unknown'
+    const soilDrivenRecommendations =
+      worstSoilConstraintLevel === 'high'
+        ? ['Le zone con compattazione, drenaggio lento o salinita richiedono dosi piu frazionate e miscela meno aggressiva.']
+        : worstSoilConstraintLevel === 'medium'
+          ? ['Adatta la fertirrigazione alle zone con vincoli idraulici moderati prima di inseguire uniformita di dose.']
+          : []
 
     return {
       hasFertigationExposure: fertigationExposure,
@@ -1021,10 +1087,21 @@ class AdvancedNutritionService {
       worstQualityScore: worstProfile.qualityScore,
       qualityBand: worstProfile.qualityBand,
       sourceLabel: worstProfile.sourceLabel,
-      riskFlags: Array.from(new Set(profiles.flatMap((profile) => profile.riskFlags))).slice(0, 4),
+      soilConstraintZoneCount: soilConstraintProfiles.length,
+      measuredSoilProfileZoneCount: soilProfiles.filter((profile) => profile.hydraulicQuality !== 'estimated').length,
+      worstSoilConstraintLevel,
+      riskFlags: Array.from(
+        new Set([
+          ...profiles.flatMap((profile) => profile.riskFlags),
+          ...(soilConstraintProfiles.length > 0 ? [`vincoli_suolo_zone:${soilConstraintProfiles.length}`] : []),
+        ])
+      ).slice(0, 5),
       recommendations: Array.from(
-        new Set(profiles.flatMap((profile) => profile.recommendations))
-      ).slice(0, 4),
+        new Set([
+          ...profiles.flatMap((profile) => profile.recommendations),
+          ...soilDrivenRecommendations,
+        ])
+      ).slice(0, 5),
     }
   }
 

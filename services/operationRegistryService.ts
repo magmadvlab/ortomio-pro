@@ -4,8 +4,24 @@
  */
 
 import type { IStorageProvider } from '@/packages/core/storage/interface'
-import type { FieldRow, HarvestLogData, MechanicalWorkRecord, TreatmentRecordDB, FertilizerApplicationLogDB } from '@/types'
+import type {
+  FieldRow,
+  FertilizerApplicationLogDB,
+  FertilizerInventoryItemDB,
+  HarvestLogData,
+  MechanicalWorkRecord,
+  PhytoInventoryItemDB,
+  TreatmentRecordDB,
+} from '@/types'
 import type { WateringLog } from '@/types/irrigation'
+import {
+  estimateFertilizationOperationEconomics,
+  estimateHarvestOperationEconomics,
+  estimateIrrigationOperationEconomics,
+  estimateMechanicalOperationEconomics,
+  estimateTreatmentOperationEconomics,
+  type OperationalEconomicsAssessment,
+} from '@/services/agronomicOperationalEconomicsService'
 
 export interface OperationRecord {
   id: string
@@ -74,6 +90,10 @@ export interface OperationRecord {
     totalAmount: number // Quantità totale applicata
     estimatedCost: number // €
     actualCost?: number // € (se diverso da stimato)
+    costSource?: 'observed' | 'inventory_derived' | 'estimated'
+    economicValue?: number // € valore protetto o generato
+    netEconomicImpact?: number // € valore meno costo
+    economicRationale?: string[]
     duration?: number // minuti effettivi
   }
   
@@ -92,6 +112,8 @@ export interface OperationSummary {
   totalOperations: number
   operationsByType: Record<string, number>
   totalCost: number
+  totalEconomicValue: number
+  totalNetEconomicImpact: number
   totalPlantsAffected: number
   averageEfficiency: number
   lastOperation?: OperationRecord
@@ -120,7 +142,8 @@ export class OperationRegistryService {
     | 'getTreatments'
     | 'getMechanicalWorks'
     | 'getHarvestLogs'
-  >
+  > &
+    Partial<Pick<IStorageProvider, 'getFertilizerInventory' | 'getPhytoInventory'>>
 
   constructor(storageProvider?: OperationRegistryService['storageProvider']) {
     this.storageProvider = storageProvider
@@ -145,14 +168,30 @@ export class OperationRegistryService {
       return this.getOperations(gardenId)
     }
 
-    const [garden, fieldRows, wateringLogs, fertilizerLogs, treatments, mechanicalWorks, harvestLogs] = await Promise.all([
+    const [
+      garden,
+      fieldRows,
+      wateringLogs,
+      fertilizerLogs,
+      treatments,
+      mechanicalWorks,
+      harvestLogs,
+      fertilizerInventory,
+      phytoInventory,
+    ] = await Promise.all([
       this.storageProvider.getGarden(gardenId),
       this.storageProvider.getFieldRows(gardenId),
       this.storageProvider.getWateringLogs(undefined, gardenId),
       this.storageProvider.getFertilizerApplicationLogs(gardenId),
       this.storageProvider.getTreatments(gardenId),
       this.storageProvider.getMechanicalWorks(gardenId),
-      this.storageProvider.getHarvestLogs(gardenId)
+      this.storageProvider.getHarvestLogs(gardenId),
+      this.storageProvider.getFertilizerInventory
+        ? this.storageProvider.getFertilizerInventory(gardenId).catch(() => [])
+        : Promise.resolve([] as FertilizerInventoryItemDB[]),
+      this.storageProvider.getPhytoInventory
+        ? this.storageProvider.getPhytoInventory(gardenId).catch(() => [])
+        : Promise.resolve([] as PhytoInventoryItemDB[]),
     ])
 
     const rowNameById = new Map<string, string>(
@@ -162,8 +201,12 @@ export class OperationRegistryService {
 
     const records: OperationRecord[] = [
       ...wateringLogs.map(log => this.mapWateringLog(log, gardenId, gardenName, rowNameById)),
-      ...fertilizerLogs.map(log => this.mapFertilizerLog(log, gardenName, rowNameById)),
-      ...treatments.map(treatment => this.mapTreatmentLog(treatment, gardenName, rowNameById)),
+      ...fertilizerLogs.map(log =>
+        this.mapFertilizerLog(log, gardenName, rowNameById, fertilizerInventory)
+      ),
+      ...treatments.map(treatment =>
+        this.mapTreatmentLog(treatment, gardenName, rowNameById, phytoInventory)
+      ),
       ...mechanicalWorks.map(work => this.mapMechanicalWork(work, gardenName, rowNameById)),
       ...harvestLogs.map(harvest => this.mapHarvestLog(harvest, gardenId, gardenName, rowNameById))
     ]
@@ -227,18 +270,33 @@ export class OperationRegistryService {
       return acc
     }, {} as Record<string, number>)
     
-    const totalCost = operations.reduce((sum, op) => sum + op.results.estimatedCost, 0)
+    const totalCost = operations.reduce((sum, op) => sum + this.getOperationCost(op), 0)
+    const totalEconomicValue = operations.reduce(
+      (sum, op) => sum + (op.results.economicValue || 0),
+      0
+    )
+    const totalNetEconomicImpact = operations.reduce(
+      (sum, op) =>
+        sum + (typeof op.results.netEconomicImpact === 'number'
+          ? op.results.netEconomicImpact
+          : (op.results.economicValue || 0) - this.getOperationCost(op)),
+      0
+    )
     const totalPlantsAffected = operations.reduce((sum, op) => sum + op.results.plantsAffected, 0)
     
     // Calcola efficienza media (basata su costo per pianta)
-    const averageEfficiency = operations.length > 0 
-      ? totalCost / totalPlantsAffected 
+    const averageEfficiency = totalPlantsAffected > 0
+      ? totalCost / totalPlantsAffected
+      : operations.length > 0
+        ? totalCost / operations.length
       : 0
     
     return {
       totalOperations: operations.length,
       operationsByType,
       totalCost,
+      totalEconomicValue,
+      totalNetEconomicImpact,
       totalPlantsAffected,
       averageEfficiency,
       lastOperation: operations[0] // Più recente
@@ -283,6 +341,19 @@ export class OperationRegistryService {
     
     if (summary.averageEfficiency < 1) {
       insights.push('Costo per pianta molto efficiente (< €1 per pianta)')
+    }
+
+    if (summary.totalEconomicValue > 0 && summary.totalNetEconomicImpact > 0) {
+      insights.push('Registro operativo con valore economico netto positivo nel periodo selezionato')
+    }
+
+    const inventoryBackedOperations = operations.filter(
+      operation => operation.results.costSource === 'inventory_derived' || operation.results.costSource === 'observed'
+    ).length
+    if (inventoryBackedOperations > 0) {
+      insights.push(
+        `${inventoryBackedOperations} operazioni con costo osservato o derivato da inventario`
+      )
     }
     
     if (operations.length > 0) {
@@ -371,27 +442,60 @@ export class OperationRegistryService {
       'Piante',
       'Quantità',
       'Costo',
+      'Valore',
+      'ImpattoNetto',
+      'FonteCosto',
       'Temperatura',
       'Condizioni',
       'Note'
     ]
     
-    const rows = operations.map(op => [
-      op.executedAt.split('T')[0],
-      op.executedAt.split('T')[1].slice(0, 5),
+    const rows = operations.map(op => {
+      const [datePart, timePart = '00:00'] = op.executedAt.split('T')
+      return [
+      datePart,
+      timePart.slice(0, 5),
       op.type,
       op.fieldRowName,
       op.results.plantsAffected.toString(),
       op.results.totalAmount.toString(),
-      `€${op.results.estimatedCost.toFixed(2)}`,
+      `€${this.getOperationCost(op).toFixed(2)}`,
+      `€${(op.results.economicValue || 0).toFixed(2)}`,
+      `€${(op.results.netEconomicImpact || ((op.results.economicValue || 0) - this.getOperationCost(op))).toFixed(2)}`,
+      op.results.costSource || 'estimated',
       `${op.weatherConditions.temperature}°C`,
       op.weatherConditions.condition,
       op.notes || ''
-    ])
+      ]
+    })
     
     return [headers, ...rows]
       .map(row => row.map(cell => `"${cell}"`).join(','))
       .join('\n')
+  }
+
+  private getOperationCost(operation: OperationRecord): number {
+    return operation.results.actualCost ?? operation.results.estimatedCost
+  }
+
+  private buildOperationResults(
+    base: Pick<OperationRecord['results'], 'plantsAffected' | 'fieldRowsAffected' | 'totalAmount' | 'duration'>,
+    economics: OperationalEconomicsAssessment
+  ): OperationRecord['results'] {
+    return {
+      ...base,
+      estimatedCost: economics.estimatedCost,
+      actualCost: economics.actualCost,
+      costSource: economics.costSource,
+      economicValue: economics.economicValue,
+      netEconomicImpact:
+        typeof economics.netEconomicImpact === 'number'
+          ? economics.netEconomicImpact
+          : typeof economics.economicValue === 'number'
+            ? Number((economics.economicValue - (economics.actualCost ?? economics.estimatedCost)).toFixed(2))
+            : undefined,
+      economicRationale: economics.rationale,
+    }
   }
 
   private getRowName(fieldRowId: string | undefined, rowNameById: Map<string, string>): string {
@@ -422,6 +526,7 @@ export class OperationRegistryService {
     rowNameById: Map<string, string>
   ): OperationRecord {
     const fieldRowId = log.fieldRowId || log.rowId || log.bedRowId || 'unknown'
+    const economics = estimateIrrigationOperationEconomics(log)
     return {
       id: log.id,
       type: 'irrigation',
@@ -446,11 +551,15 @@ export class OperationRegistryService {
         source: 'manual'
       },
       results: {
-        plantsAffected: log.plantsAffected || log.plantIds?.length || 0,
-        fieldRowsAffected: 1,
-        totalAmount: log.litersApplied,
-        estimatedCost: 0,
-        duration: log.durationMinutes
+        ...this.buildOperationResults(
+          {
+            plantsAffected: log.plantsAffected || log.plantIds?.length || 0,
+            fieldRowsAffected: 1,
+            totalAmount: log.litersApplied,
+            duration: log.durationMinutes,
+          },
+          economics
+        )
       },
       notes: log.notes,
       photosCount: 0,
@@ -462,9 +571,11 @@ export class OperationRegistryService {
   private mapFertilizerLog(
     log: FertilizerApplicationLogDB,
     gardenName: string,
-    rowNameById: Map<string, string>
+    rowNameById: Map<string, string>,
+    inventoryItems: FertilizerInventoryItemDB[]
   ): OperationRecord {
     const fieldRowId = log.fieldRowId || log.bedRowId || 'unknown'
+    const economics = estimateFertilizationOperationEconomics(log, inventoryItems)
     return {
       id: log.id,
       type: 'fertilization',
@@ -490,12 +601,16 @@ export class OperationRegistryService {
         source: 'manual'
       },
       results: {
-        plantsAffected: 0,
-        fieldRowsAffected: 1,
-        totalAmount: log.dosageAmount,
-        estimatedCost: 0
+        ...this.buildOperationResults(
+          {
+            plantsAffected: 0,
+            fieldRowsAffected: 1,
+            totalAmount: log.dosageAmount,
+          },
+          economics
+        )
       },
-      notes: undefined,
+      notes: log.notes || economics.rationale[0],
       photosCount: 0,
       createdAt: log.applicationDate,
       status: 'completed'
@@ -505,9 +620,11 @@ export class OperationRegistryService {
   private mapTreatmentLog(
     treatment: TreatmentRecordDB,
     gardenName: string,
-    rowNameById: Map<string, string>
+    rowNameById: Map<string, string>,
+    inventoryItems: PhytoInventoryItemDB[]
   ): OperationRecord {
     const fieldRowId = treatment.field_row_id || treatment.bed_row_id || 'unknown'
+    const economics = estimateTreatmentOperationEconomics(treatment, inventoryItems)
     return {
       id: treatment.id,
       type: 'treatment',
@@ -544,10 +661,14 @@ export class OperationRegistryService {
         source: 'manual'
       },
       results: {
-        plantsAffected: 0,
-        fieldRowsAffected: 1,
-        totalAmount: treatment.dosage || 0,
-        estimatedCost: 0
+        ...this.buildOperationResults(
+          {
+            plantsAffected: 0,
+            fieldRowsAffected: 1,
+            totalAmount: treatment.dosage || 0,
+          },
+          economics
+        )
       },
       notes: treatment.notes,
       photosCount: 0,
@@ -562,6 +683,7 @@ export class OperationRegistryService {
     rowNameById: Map<string, string>
   ): OperationRecord {
     const fieldRowId = work.field_row_id || work.bed_row_id || 'unknown'
+    const economics = estimateMechanicalOperationEconomics(work)
     return {
       id: work.id,
       type: 'cultivation',
@@ -585,10 +707,14 @@ export class OperationRegistryService {
         source: 'manual'
       },
       results: {
-        plantsAffected: 0,
-        fieldRowsAffected: 1,
-        totalAmount: work.area_m2,
-        estimatedCost: 0
+        ...this.buildOperationResults(
+          {
+            plantsAffected: 0,
+            fieldRowsAffected: 1,
+            totalAmount: work.area_m2,
+          },
+          economics
+        )
       },
       notes: work.notes,
       photosCount: 0,
@@ -604,6 +730,7 @@ export class OperationRegistryService {
     rowNameById: Map<string, string>
   ): OperationRecord {
     const fieldRowId = harvest.strawberryHarvest?.plantPosition?.rowId || 'unknown'
+    const economics = estimateHarvestOperationEconomics(harvest)
     return {
       id: harvest.id || `harvest-${gardenId}-${harvest.date}-${harvest.quantity}`,
       type: 'harvest',
@@ -629,10 +756,14 @@ export class OperationRegistryService {
         source: 'manual'
       },
       results: {
-        plantsAffected: 1,
-        fieldRowsAffected: fieldRowId === 'unknown' ? 0 : 1,
-        totalAmount: harvest.quantity,
-        estimatedCost: 0
+        ...this.buildOperationResults(
+          {
+            plantsAffected: 1,
+            fieldRowsAffected: fieldRowId === 'unknown' ? 0 : 1,
+            totalAmount: harvest.quantity,
+          },
+          economics
+        )
       },
       notes: harvest.notes,
       photosCount: 0,
