@@ -51,6 +51,17 @@ export interface AgronomicQueueTaskMetadata {
   economicSummary?: AgronomicEconomicPrioritySummary | null
 }
 
+export interface AgronomicQueueTaskOperationalSummary {
+  readiness: 'ready' | 'partial' | 'blocked'
+  readinessLabel: string
+  focusLabel: string
+  urgencyLabel: string
+  confidenceLabel: string
+  missingSignalsLabel?: string
+  contextLabels: string[]
+  primaryRationale?: string
+}
+
 export const AGRONOMIC_QUEUE_SUGGESTED_BY_PREFIX = 'agronomic_queue:'
 const AGRONOMIC_QUEUE_META_MARKER = 'AQ_META::'
 
@@ -61,6 +72,19 @@ const HEALTH_ALERT_TYPE_LABELS: Record<string, string> = {
   stress_symptoms: 'Segni di stress',
   harvest_timing: 'Finestra di raccolta',
   weather_stress: 'Stress meteo',
+}
+
+const AGRONOMIC_FOCUS_LABELS: Record<string, string> = {
+  water: 'Focus acqua',
+  nutrition: 'Focus nutrizione',
+  health: 'Focus salute',
+  quality: 'Focus qualita',
+}
+
+const AGRONOMIC_URGENCY_LABELS: Record<string, string> = {
+  immediate: 'Urgente oggi',
+  next_cycle: 'Prossimo ciclo',
+  monitor: 'Monitoraggio',
 }
 
 const AGRONOMIC_SIGNAL_LABELS: Record<AgronomicSignalKey, string> = {
@@ -187,6 +211,89 @@ const sanitizeAgronomicQueueVisibleText = (value?: string | null): string => {
   return normalizeReadableText(cleaned)
 }
 
+const humanizeProductionIntent = (value?: string | null): string | null => {
+  switch (value) {
+    case 'wine':
+      return 'Vino'
+    case 'table':
+      return 'Fresco'
+    case 'oil':
+      return 'Olio'
+    case 'processing':
+      return 'Trasformazione'
+    case 'fresh_market':
+      return 'Mercato fresco'
+    case 'storage':
+      return 'Conservazione'
+    default:
+      return value ? value.replace(/_/g, ' ') : null
+  }
+}
+
+const humanizeSystemType = (value?: string | null): string | null => {
+  switch (value) {
+    case 'vineyard':
+      return 'Vigneto'
+    case 'orchard':
+      return 'Frutteto'
+    case 'olive_grove':
+      return 'Oliveto'
+    case 'open_field':
+      return 'Pieno campo'
+    case 'protected_culture':
+      return 'Coltura protetta'
+    case 'nursery':
+      return 'Vivaio'
+    default:
+      return value ? value.replace(/_/g, ' ') : null
+  }
+}
+
+const humanizeIrrigationMode = (value?: string | null): string | null => {
+  switch (value) {
+    case 'pressurized_irrigation':
+      return 'Irrigazione pressurizzata'
+    case 'manual_irrigation':
+      return 'Irrigazione manuale'
+    case 'rainfed':
+      return 'Asciutta'
+    case 'hydroponic':
+      return 'Idroponica'
+    default:
+      return value ? value.replace(/_/g, ' ') : null
+  }
+}
+
+const buildOperationalContextLabels = (
+  refinedContext?: AgronomicRefinedContext | null
+): string[] => {
+  if (!refinedContext) {
+    return []
+  }
+
+  const rawLabels = [
+    refinedContext.cultivarContext?.cultivarLabel
+      ? `Cultivar ${refinedContext.cultivarContext.cultivarLabel}`
+      : null,
+    humanizeProductionIntent(refinedContext.cultivarContext?.productionIntent)
+      ? `Target ${humanizeProductionIntent(refinedContext.cultivarContext?.productionIntent)}`
+      : null,
+    humanizeSystemType(refinedContext.subSystemContext?.systemType),
+    humanizeIrrigationMode(refinedContext.subSystemContext?.irrigationMode),
+    refinedContext.siteOperationalProfile?.terroir
+      ? `Terroir ${refinedContext.siteOperationalProfile.terroir}`
+      : null,
+    refinedContext.siteOperationalProfile?.soilType
+      ? `Suolo ${refinedContext.siteOperationalProfile.soilType}`
+      : null,
+  ].filter((value): value is string => Boolean(value))
+
+  return Array.from(new Set(rawLabels)).slice(0, 3)
+}
+
+const formatConfidenceLabel = (confidence: number): string =>
+  `Conf. ${Math.round(confidence * 100)}%`
+
 const formatAgronomicQueueTitle = (item: AgronomicActionQueueItem): string => {
   const title = item.title.trim()
 
@@ -286,6 +393,59 @@ export const parseAgronomicQueueTaskMetadata = (
   notes?: string | null
 ): AgronomicQueueTaskMetadata | null => {
   return splitAgronomicQueueTaskNotes(notes).metadata
+}
+
+export const buildAgronomicQueueTaskOperationalSummary = (
+  taskOrNotes?: Pick<GardenTask, 'notes'> | string | null
+): AgronomicQueueTaskOperationalSummary | null => {
+  const metadata =
+    typeof taskOrNotes === 'string'
+      ? parseAgronomicQueueTaskMetadata(taskOrNotes)
+      : parseAgronomicQueueTaskMetadata(taskOrNotes?.notes)
+
+  if (!metadata) {
+    return null
+  }
+
+  const missingSignalsCount = metadata.missingSignals.length
+  const confidence = metadata.priorityConfidence
+
+  let readiness: AgronomicQueueTaskOperationalSummary['readiness'] = 'partial'
+  let readinessLabel = 'Eseguibile con presidio'
+
+  if (missingSignalsCount === 0 && confidence >= 0.75) {
+    readiness = 'ready'
+    readinessLabel = 'Pronto all esecuzione'
+  } else if (missingSignalsCount >= 3 || confidence < 0.45) {
+    readiness = 'blocked'
+    readinessLabel = 'Verifica segnali prima di eseguire'
+  } else if (missingSignalsCount > 0) {
+    readiness = 'partial'
+    readinessLabel = 'Eseguibile con dati parziali'
+  }
+
+  const primaryRationale =
+    metadata.decisionExplanation?.agronomicRationale?.[0] ||
+    metadata.decisionExplanation?.contextRationale?.[0]
+
+  return {
+    readiness,
+    readinessLabel,
+    focusLabel: AGRONOMIC_FOCUS_LABELS[metadata.focus] || metadata.focus,
+    urgencyLabel: AGRONOMIC_URGENCY_LABELS[metadata.urgencyLabel] || metadata.urgencyLabel,
+    confidenceLabel: formatConfidenceLabel(confidence),
+    missingSignalsLabel:
+      missingSignalsCount > 0
+        ? `Segnali mancanti: ${metadata.missingSignals
+            .slice(0, 2)
+            .map(humanizeAgronomicSignal)
+            .join(', ')}${missingSignalsCount > 2 ? ' +' : ''}`
+        : undefined,
+    contextLabels: buildOperationalContextLabels(
+      metadata.refinedContext || metadata.decisionExplanation?.refinedContext || null
+    ),
+    primaryRationale,
+  }
 }
 
 const buildTaskNotes = (

@@ -18,6 +18,7 @@ Il registro attività di OrtoMio contiene già dati persistiti utili, ma non tut
 - registri irrigazione, trattamenti, concimazioni e lavorazioni
 - molte operazioni filare -> pianta propagate con più contesto di prima
 - date, note, quantità e riferimenti orto/filare in buona parte dei flussi principali
+- per i task agronomici avanzati, snapshot decisionale e riferimenti di contesto salvati come metadata tecnici del task
 
 ---
 
@@ -47,6 +48,7 @@ Per avere uno storico utile anno su anno:
 - confrontare periodi e stagioni
 - vedere se un intervento è stato pianificato ed eseguito
 - collegare parte delle operazioni a filari e piante
+- distinguere, in parte dei flussi agronomici, perche un task e nato e con quale livello di confidence
 
 ---
 
@@ -56,6 +58,7 @@ Per avere uno storico utile anno su anno:
 - persistenza uniforme di foto, diagnosi AI e outcome
 - tracciamento completo sorgente `manuale / AI / IoT / device`
 - confronto automatico multi-annuale su resa, salute, input e meteo
+- normalizzazione completa del contratto di evidence operativo tra planner, moduli di esecuzione e outcome
 
 ---
 

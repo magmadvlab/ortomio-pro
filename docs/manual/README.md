@@ -2,7 +2,7 @@
 
 ## 🌟 PANORAMICA
 
-Questo manuale è allineato allo stato reale del prodotto al **10 marzo 2026**.
+Questo manuale è allineato allo stato reale del prodotto al **19 aprile 2026**.
 
 OrtoMio oggi combina moduli già utilizzabili in produzione con moduli ancora in consolidamento. Per questo motivo il manuale non usa più la logica "tutto completo al 100%", ma distingue chiaramente tra:
 
@@ -17,6 +17,7 @@ OrtoMio oggi combina moduli già utilizzabili in produzione con moduli ancora in
 ### **Operativi**
 - **Irrigazione**: calcoli acqua e durata più coerenti con filari, piante, portate e meteo
 - **Task base e pianificazione calendario/lista**: salvataggio reale in `garden_tasks`
+- **Task agronomici evoluti nel planner**: summary operativo con urgenza, confidence e readiness prima del lancio esecuzione
 - **Registri trattamenti, concimazioni, lavorazioni, irrigazioni**: persistiti nel database
 - **Frutteto, oliveto, vigneto, filari**: gestione reale dei domini principali
 
@@ -64,9 +65,12 @@ OrtoMio oggi combina moduli già utilizzabili in produzione con moduli ancora in
 
 ## 🔄 ALLINEAMENTO MARZO 2026
 
+Questa revisione e stata estesa il **19 aprile 2026**.
+
 In questa revisione il manuale è stato riallineato in particolare su:
 
 - **Planner e Advice**: differenza tra task reali e suggerimenti ancora guidati
+- **Loop planner -> esecuzione**: disponibilita di summary operativo sui task agronomici piu evoluti
 - **Health**: alert meteo/monitoraggi con task reali, ma motore non ancora totalmente consolidato
 - **Irrigazione**: compatibilità schema legacy/advanced e calcoli filari più precisi
 - **NDVI**: uso corretto come supporto decisionale, non ancora come misura satellitare sempre certificabile
@@ -78,7 +82,7 @@ In questa revisione il manuale è stato riallineato in particolare su:
 ## 📋 INFORMAZIONI DOCUMENTO
 
 - **Versione**: 2026.3
-- **Ultimo aggiornamento**: 10 marzo 2026
+- **Ultimo aggiornamento**: 19 aprile 2026
 - **Formato**: Markdown modulare
 - **Lingua**: Italiano
 

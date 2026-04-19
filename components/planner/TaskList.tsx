@@ -10,6 +10,7 @@ import { it } from 'date-fns/locale'
 import { translateTaskType, getCommonTaskTypesItalian } from '@/utils/taskTranslations'
 import { buildTaskExecutionUrl, canLaunchTaskExecution } from '@/services/taskExecutionLaunchService'
 import {
+  buildAgronomicQueueTaskOperationalSummary,
   preserveAgronomicQueueTaskMetadata,
   stripAgronomicQueueTaskMetadata,
 } from '@/services/agronomicQueueTaskService'
@@ -133,6 +134,18 @@ export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, on
     }
   }
 
+  const getOperationalReadinessClasses = (readiness: 'ready' | 'partial' | 'blocked') => {
+    switch (readiness) {
+      case 'ready':
+        return 'bg-emerald-100 text-emerald-700'
+      case 'blocked':
+        return 'bg-amber-100 text-amber-800'
+      case 'partial':
+      default:
+        return 'bg-sky-100 text-sky-700'
+    }
+  }
+
   const handleCompleteTask = async (task: GardenTask) => {
     await onTaskUpdate({ ...task, completed: !task.completed })
   }
@@ -243,6 +256,7 @@ export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, on
                   {groupTasks.map((task) => {
                     const priority = getTaskPriority(task)
                     const taskDate = task.nextDueDate ? parseISO(task.nextDueDate) : parseISO(task.date)
+                    const operationalSummary = buildAgronomicQueueTaskOperationalSummary(task)
                     
                     return (
                       <div
@@ -299,6 +313,45 @@ export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, on
                                   {stripAgronomicQueueTaskMetadata(task.notes)}
                                 </p>
                               )}
+
+                              {operationalSummary && (
+                                <div className="mb-3 space-y-2">
+                                  <div className="flex flex-wrap gap-2 text-xs">
+                                    <span
+                                      className={`rounded-full px-2 py-1 font-medium ${getOperationalReadinessClasses(
+                                        operationalSummary.readiness
+                                      )}`}
+                                    >
+                                      {operationalSummary.readinessLabel}
+                                    </span>
+                                    <span className="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-700">
+                                      {operationalSummary.focusLabel}
+                                    </span>
+                                    <span className="rounded-full bg-rose-100 px-2 py-1 font-medium text-rose-700">
+                                      {operationalSummary.urgencyLabel}
+                                    </span>
+                                    <span className="rounded-full bg-gray-100 px-2 py-1 font-medium text-gray-700">
+                                      {operationalSummary.confidenceLabel}
+                                    </span>
+                                    {operationalSummary.contextLabels.map((label) => (
+                                      <span
+                                        key={`${task.id}:${label}`}
+                                        className="rounded-full bg-indigo-50 px-2 py-1 font-medium text-indigo-700"
+                                      >
+                                        {label}
+                                      </span>
+                                    ))}
+                                  </div>
+
+                                  {operationalSummary.primaryRationale && (
+                                    <p className="text-xs text-gray-700">{operationalSummary.primaryRationale}</p>
+                                  )}
+
+                                  {operationalSummary.missingSignalsLabel && (
+                                    <p className="text-xs text-amber-700">{operationalSummary.missingSignalsLabel}</p>
+                                  )}
+                                </div>
+                              )}
                               
                               <div className="flex items-center gap-4 text-xs text-gray-500">
                                 <div className="flex items-center gap-1">
@@ -319,7 +372,9 @@ export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, on
                                     onClick={() => openTaskExecution(task)}
                                     className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
                                   >
-                                    Apri esecuzione
+                                    {operationalSummary?.readiness === 'ready'
+                                      ? 'Esegui ora'
+                                      : 'Apri esecuzione guidata'}
                                   </button>
                                 </div>
                               )}
