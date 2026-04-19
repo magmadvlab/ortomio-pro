@@ -2,6 +2,7 @@ import type {
   AgronomicOperationalContextTag,
   AgronomicSignalKey,
 } from './agronomicKernel'
+import type { AgronomicDecisionExplanation } from '@/services/agronomicDecisionExplanationService'
 
 // Advanced + legacy irrigation system types
 // This file intentionally models both the new "advanced irrigation" domain
@@ -593,6 +594,7 @@ export interface EfficiencyReport {
   priorityScore?: number
   priorityConfidence?: number
   missingSignals?: AgronomicSignalKey[]
+  decisionExplanation?: AgronomicDecisionExplanation
 }
 
 // System configuration types

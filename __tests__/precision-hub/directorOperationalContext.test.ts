@@ -54,4 +54,10 @@ test('director suggestionToAction carries operational context into economic comp
       (openFieldAction.economicSummary?.actionComparison?.dominanceMargin || 0)
   )
   assert.equal(protectedAction.actionComparisonExplanation?.length > 0, true)
+  assert.equal(protectedAction.decisionExplanation?.source, 'director')
+  assert.equal(protectedAction.decisionExplanation?.profileResolution?.profileId, 'field_brassicas')
+  assert.ok(
+    (protectedAction.decisionExplanation?.signals.requiredP0Signals.length || 0) >=
+      (openFieldAction.decisionExplanation?.signals.coveredP0Signals.length || 0)
+  )
 })

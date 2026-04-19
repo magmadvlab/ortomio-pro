@@ -5,6 +5,7 @@ import {
   buildEnvironmentalMonitoringSnapshot,
   buildPersistedForecastSnapshots,
   buildPersistedWeatherEnvelope,
+  buildWeatherSnapshotFromPersistedLog,
   buildSiteWeatherBinding,
   derivePersistedWeatherLineage,
   extractGardenEnvironmentalHistory,
@@ -244,6 +245,83 @@ test('resolvePersistedWeatherLogForDate materializes future dates from persisted
   assert.equal(snapshot.weather.regionalConfidence, 'medium')
   assert.equal(snapshot.weather.localConfidence, 'medium')
   assert.ok(snapshot.circulation.notes.some((note) => note.includes('Persisted forecast snapshot')))
+})
+
+test('buildWeatherSnapshotFromPersistedLog preserves canonical telemetry from persisted forecast materialization', () => {
+  const forecastSnapshots = buildPersistedForecastSnapshots(
+    {
+      dates: ['2026-03-21', '2026-03-22', '2026-03-23'],
+      tempMin: [10, 12, 13],
+      tempMax: [19, 22, 24],
+      precipitationMm: [0, 1, 6],
+      humidityMin: [45, 55, 70],
+      humidityMax: [65, 75, 90],
+      windSpeedMax: [11, 15, 21],
+      conditions: ['sereno', 'variabile', 'pioggia'],
+    },
+    {
+      generatedFromDate: '2026-03-21',
+      generatedAt: '2026-03-21T05:00:00.000Z',
+      source: 'open_meteo_forecast',
+    }
+  )
+
+  const resolved = resolvePersistedWeatherLogForDate(
+    [
+      {
+        log_date: '2026-03-21',
+        temp_min: 10,
+        temp_max: 19,
+        temp_avg: 14.5,
+        precipitation_mm: 0,
+        humidity_avg: 55,
+        weather_conditions: 'sereno',
+        data_source: 'api',
+        raw_data: buildPersistedWeatherEnvelope(
+          {
+            log_date: '2026-03-21',
+            temp_min: 10,
+            temp_max: 19,
+            temp_avg: 14.5,
+            precipitation_mm: 0,
+            humidity_avg: 55,
+            weather_conditions: 'sereno',
+            data_source: 'api',
+          },
+          {
+            forecastSnapshots,
+            siteWeatherBinding: buildSiteWeatherBinding({
+              latitude: 41.1,
+              longitude: 16.8,
+              slopePercentage: 9,
+              sunExposure: 'partial',
+            }),
+            now: new Date('2026-03-21T10:00:00.000Z'),
+          }
+        ),
+      },
+    ],
+    '2026-03-22',
+    {
+      now: new Date('2026-03-21T10:00:00.000Z'),
+    }
+  )
+
+  assert.ok(resolved)
+
+  const weatherSnapshot = buildWeatherSnapshotFromPersistedLog(resolved!, {
+    targetDate: '2026-03-22',
+    now: new Date('2026-03-21T10:00:00.000Z'),
+  })
+
+  assert.equal(weatherSnapshot.source, 'forecast')
+  assert.equal(weatherSnapshot.sourceClass, 'forecast')
+  assert.equal(weatherSnapshot.primarySource, 'open_meteo_forecast')
+  assert.equal(weatherSnapshot.regionalConfidence, 'high')
+  assert.equal(weatherSnapshot.localConfidence, 'medium')
+  assert.equal(weatherSnapshot.temperature, 17)
+  assert.equal(weatherSnapshot.humidity, 65)
+  assert.equal(weatherSnapshot.windSpeed, 15)
 })
 
 test('zone environmental ledger upserts by garden-zone-date and can be extracted as history', () => {

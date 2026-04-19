@@ -1,4 +1,5 @@
 import type { GardenTask } from '@/types'
+import type { AgronomicDecisionExplanation } from '@/services/agronomicDecisionExplanationService'
 import type { AgronomicEconomicPrioritySummary } from '@/services/agronomicEconomicPriorityService'
 import type { AgronomicSignalKey } from '@/types/agronomicKernel'
 import type { AgronomicActionQueueItem } from '@/services/agronomicActionQueueService'
@@ -13,7 +14,25 @@ export interface AgronomicQueueTaskDraft {
   urgencyLabel: AgronomicActionQueueItem['urgencyLabel']
   missingSignals: AgronomicSignalKey[]
   economicSummary?: AgronomicEconomicPrioritySummary | null
+  decisionSnapshot?: AgronomicDecisionSnapshot | null
   task: Omit<GardenTask, 'id'>
+}
+
+export interface AgronomicDecisionSnapshot {
+  id: string
+  capturedAt: string
+  queueItemId: string
+  source: AgronomicActionQueueItem['source']
+  focus: AgronomicActionQueueItem['focus']
+  title: string
+  scopeLabel?: string
+  agronomicProfileId?: string
+  priorityScore: number
+  priorityConfidence: number
+  urgencyLabel: AgronomicActionQueueItem['urgencyLabel']
+  missingSignals: AgronomicSignalKey[]
+  decisionExplanation?: AgronomicDecisionExplanation | null
+  economicSummary?: AgronomicEconomicPrioritySummary | null
 }
 
 export interface AgronomicQueueTaskMetadata {
@@ -25,6 +44,8 @@ export interface AgronomicQueueTaskMetadata {
   urgencyLabel: AgronomicActionQueueItem['urgencyLabel']
   agronomicProfileId?: string
   missingSignals: AgronomicSignalKey[]
+  decisionExplanation?: AgronomicDecisionExplanation | null
+  decisionSnapshot?: AgronomicDecisionSnapshot | null
   economicSummary?: AgronomicEconomicPrioritySummary | null
 }
 
@@ -195,19 +216,55 @@ export const parseAgronomicQueueSuggestedBy = (value?: string | null): string | 
 
 export const buildAgronomicQueueTaskMetadata = (
   item: AgronomicActionQueueItem
-): AgronomicQueueTaskMetadata => ({
+): AgronomicQueueTaskMetadata => {
+  const economicSummary =
+    item.metadata && 'economicSummary' in item.metadata
+      ? (item.metadata.economicSummary as AgronomicEconomicPrioritySummary | null | undefined) || null
+      : null
+  const decisionExplanation =
+    item.metadata && 'decisionExplanation' in item.metadata
+      ? (item.metadata.decisionExplanation as AgronomicDecisionExplanation | null | undefined) || null
+      : null
+
+  return {
+    queueItemId: item.id,
+    source: item.source,
+    focus: item.focus,
+    priorityScore: item.priorityScore,
+    priorityConfidence: item.priorityConfidence,
+    urgencyLabel: item.urgencyLabel,
+    agronomicProfileId: item.agronomicProfileId,
+    missingSignals: item.missingSignals,
+    decisionExplanation,
+    decisionSnapshot: buildAgronomicDecisionSnapshot(item, {
+      economicSummary,
+      decisionExplanation,
+    }),
+    economicSummary,
+  }
+}
+
+export const buildAgronomicDecisionSnapshot = (
+  item: AgronomicActionQueueItem,
+  overrides?: {
+    economicSummary?: AgronomicEconomicPrioritySummary | null
+    decisionExplanation?: AgronomicDecisionExplanation | null
+  }
+): AgronomicDecisionSnapshot => ({
+  id: `aq_snapshot:${item.id}`,
+  capturedAt: new Date().toISOString(),
   queueItemId: item.id,
   source: item.source,
   focus: item.focus,
+  title: item.title,
+  scopeLabel: item.scopeLabel,
+  agronomicProfileId: item.agronomicProfileId,
   priorityScore: item.priorityScore,
   priorityConfidence: item.priorityConfidence,
   urgencyLabel: item.urgencyLabel,
-  agronomicProfileId: item.agronomicProfileId,
   missingSignals: item.missingSignals,
-  economicSummary:
-    item.metadata && 'economicSummary' in item.metadata
-      ? (item.metadata.economicSummary as AgronomicEconomicPrioritySummary | null | undefined) || null
-      : null,
+  decisionExplanation: overrides?.decisionExplanation || null,
+  economicSummary: overrides?.economicSummary || null,
 })
 
 export const parseAgronomicQueueTaskMetadata = (
@@ -216,8 +273,10 @@ export const parseAgronomicQueueTaskMetadata = (
   return splitAgronomicQueueTaskNotes(notes).metadata
 }
 
-const buildTaskNotes = (item: AgronomicActionQueueItem): string => {
-  const metadata = buildAgronomicQueueTaskMetadata(item)
+const buildTaskNotes = (
+  item: AgronomicActionQueueItem,
+  metadata: AgronomicQueueTaskMetadata = buildAgronomicQueueTaskMetadata(item)
+): string => {
   const visibleDescription = sanitizeAgronomicQueueVisibleText(item.description)
   const parts = [
     visibleDescription,
@@ -301,6 +360,7 @@ export function buildAgronomicQueueTaskDrafts(
     }
 
     const date = resolveTaskDate(item)
+    const metadata = buildAgronomicQueueTaskMetadata(item)
 
     return [
       {
@@ -312,10 +372,8 @@ export function buildAgronomicQueueTaskDrafts(
         priorityConfidence: item.priorityConfidence,
         urgencyLabel: item.urgencyLabel,
         missingSignals: item.missingSignals,
-        economicSummary:
-          item.metadata && 'economicSummary' in item.metadata
-            ? (item.metadata.economicSummary as AgronomicEconomicPrioritySummary | null | undefined) || null
-            : null,
+        economicSummary: metadata.economicSummary || null,
+        decisionSnapshot: metadata.decisionSnapshot || null,
         task: {
           gardenId,
           plantName: resolvePlantName(item),
@@ -329,7 +387,7 @@ export function buildAgronomicQueueTaskDrafts(
           suggestedDate: new Date().toISOString(),
           schedulingType: resolveSchedulingType(item),
           durationMinutes: resolveDurationMinutes(taskType),
-          notes: buildTaskNotes(item),
+          notes: buildTaskNotes(item, metadata),
         },
       },
     ]

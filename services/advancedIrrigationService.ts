@@ -43,6 +43,10 @@ import {
   resolveAgronomicPriorityProfileSync,
   scoreAgronomicPriority,
 } from '@/services/agronomicPriorityService'
+import {
+  buildAgronomicDecisionExplanation,
+  resolveAgronomicDecisionUrgencyLabel,
+} from '@/services/agronomicDecisionExplanationService'
 import type {
   AgronomicCropProfile,
   AgronomicSignalKey,
@@ -1013,6 +1017,7 @@ class AdvancedIrrigationService {
           : resolveAgronomicPriorityProfileSync({
               hints: [zone.name, zone.description],
             })) || null
+      const availableSignals = this.getAvailableWaterSignalsFromEfficiencyLogs(irrigationLogs)
       const priorityResult = scoreAgronomicPriority({
         baseScore: this.calculateIrrigationRecommendationPriorityBaseScore(
           averageEfficiency,
@@ -1022,7 +1027,15 @@ class AdvancedIrrigationService {
         confidence: this.calculateIrrigationRecommendationConfidence(validLogs),
         resolvedProfile: resolvedAgronomicProfile,
         focus: 'water',
-        availableSignals: this.getAvailableWaterSignalsFromEfficiencyLogs(irrigationLogs),
+        availableSignals,
+      })
+      const decisionExplanation = buildAgronomicDecisionExplanation({
+        source: 'irrigation',
+        focus: 'water',
+        priorityResult,
+        urgencyLabel: resolveAgronomicDecisionUrgencyLabel(priorityResult.score),
+        resolvedProfile: resolvedAgronomicProfile,
+        availableSignals,
       })
 
       return {
@@ -1038,6 +1051,7 @@ class AdvancedIrrigationService {
         priorityScore: priorityResult.score,
         priorityConfidence: priorityResult.confidence,
         missingSignals: priorityResult.signalCoverage.missingP0Signals,
+        decisionExplanation,
       }
     } catch (error) {
       console.error('Error generating efficiency report:', error)

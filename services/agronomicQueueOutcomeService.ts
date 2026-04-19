@@ -5,6 +5,7 @@ import {
   parseAgronomicQueueTaskMetadata,
   type AgronomicQueueTaskMetadata,
 } from '@/services/agronomicQueueTaskService'
+import { markAgronomicDecisionCompleted } from '@/services/agronomicDecisionLedgerService'
 import { extractSourceTaskReference } from '@/services/taskExecutionTraceService'
 import type { WateringLog } from '@/types/irrigation'
 import type {
@@ -34,6 +35,7 @@ export interface AgronomicQueueOutcomeSummary {
   totalCompleted: number
   completedThisWeek: number
   averagePriorityScore: number
+  explainedDecisions: number
   verifiedExecutions: number
   measuredOutcomes: number
   bySource: Partial<Record<NonNullable<AgronomicQueueTaskMetadata['source']>, number>>
@@ -213,6 +215,17 @@ export async function recordAgronomicQueueTaskOutcome(
     ...existingRecords,
   ])
 
+  await markAgronomicDecisionCompleted(storageProvider, task.gardenId, {
+    queueItemId,
+    completedAt,
+    taskId: task.id,
+    taskSuggestedBy: task.suggestedBy,
+    taskType: task.taskType,
+    plantName: task.plantName,
+    plannedDate: task.date,
+    metadata,
+  })
+
   return nextRecord
 }
 
@@ -221,19 +234,14 @@ const matchWateringEvidence = (
   logs: WateringLog[]
 ): AgronomicQueueExecutionEvidence | null => {
   const candidates = logs.filter((log) => getDayDistance(log.date, task.completedAt || task.date) <= 1)
-  const strongCandidate = candidates.find(
-    (log) => log.taskId === task.id || includesTaskReference(log.notes, task)
-  )
+  const strongCandidate = candidates.find((log) => includesTaskReference(log.notes, task))
   if (strongCandidate) {
     return {
       kind: 'watering',
       logId: strongCandidate.id,
       executionDate: strongCandidate.date,
       confidence: 'high',
-      rationale:
-        strongCandidate.taskId === task.id
-          ? 'Log irrigazione agganciato direttamente al task.'
-          : 'Log irrigazione con riferimento esplicito al task nelle note.',
+      rationale: 'Log irrigazione con riferimento esplicito al task nelle note.',
     }
   }
 
@@ -364,7 +372,7 @@ const matchHarvestMeasurementEvidence = (
 
   return {
     kind: 'harvest',
-    recordId: matched.id,
+    recordId: matched.id || `harvest:${task.id}:${matched.date}`,
     recordedAt: matched.date,
     rationale:
       matched.taskId === task.id
@@ -494,6 +502,11 @@ export async function getAgronomicQueueOutcomeSummary(
       (record) => new Date(record.completedAt).getTime() >= weekStart
     ).length,
     averagePriorityScore,
+    explainedDecisions: records.filter(
+      (record) =>
+        Boolean(record.metadata?.decisionExplanation) ||
+        Boolean(record.metadata?.decisionSnapshot?.decisionExplanation)
+    ).length,
     verifiedExecutions: records.filter((record) => Boolean(record.executionEvidence)).length,
     measuredOutcomes: records.filter((record) => Boolean(record.measurementEvidence)).length,
     bySource,

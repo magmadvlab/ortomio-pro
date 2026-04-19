@@ -5,9 +5,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { WeatherForecast, WeatherAlert } from '../services/weatherService';
+import { WeatherAlert } from '../services/weatherService';
 import { getWeatherForecast7Days, generateWeatherAlerts } from '../services/weatherService';
-import { getCachedForecast, cacheForecast } from '../services/weatherCacheService';
+import {
+  cacheForecast,
+  getCachedForecast,
+  normalizeForecastList,
+  type WeatherWidgetForecast,
+} from '../services/weatherCacheService';
 import { useTier } from '../packages/core/hooks/useTier';
 import { Garden } from '../types';
 import { normalizeGeoCoordinates } from '../utils/coordinates';
@@ -27,7 +32,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
   gardens = [],
 }) => {
   const { can } = useTier();
-  const [forecast, setForecast] = useState<WeatherForecast[]>([]);
+  const [forecast, setForecast] = useState<WeatherWidgetForecast[]>([]);
   const [alerts, setAlerts] = useState<WeatherAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,8 +103,9 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
         clearTimeout(timeoutId);
 
         if (data && data.length > 0) {
-          setForecast(data);
-          await cacheForecast(weatherLat, weatherLng, data);
+          const normalizedForecast = normalizeForecastList(data);
+          setForecast(normalizedForecast);
+          await cacheForecast(weatherLat, weatherLng, normalizedForecast);
           const generatedAlerts = generateWeatherAlerts(data, activePlants);
           setAlerts(generatedAlerts);
         } else {

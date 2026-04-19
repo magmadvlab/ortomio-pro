@@ -3,46 +3,16 @@
  * Arricchisce automaticamente le operazioni con contesto meteo e lunare
  */
 
+import type {
+  EnvironmentalWeatherSource,
+  OperationContext,
+  WeatherSnapshot,
+} from '@/types/environmental'
 import { createWeatherService } from './weatherService';
 import { createLunarService } from './lunarService';
 
-export type OperationContextWeatherSource =
-  | 'current'
-  | 'forecast'
-  | 'historical'
-  | 'estimated'
-  | 'fallback';
-
-export interface OperationContext {
-  timestamp: string;
-  weather: {
-    temperature: number;
-    humidity: number;
-    precipitation: number;
-    windSpeed: number;
-    condition: string;
-    pressure: number;
-    source?: OperationContextWeatherSource;
-    sourceClass?: 'forecast' | 'historical_archive' | 'current_runtime' | 'synthetic_fallback';
-    primarySource?: 'open_meteo_forecast' | 'open_meteo_archive' | 'fallback_estimated';
-    signalQuality?: 'measured' | 'mixed' | 'estimated';
-    regionalConfidence?: 'high' | 'medium' | 'low';
-    localConfidence?: 'high' | 'medium' | 'low';
-  };
-  lunar: {
-    phase: string;
-    phaseEmoji: string;
-    illumination: number;
-    isWaxing: boolean;
-    dayInCycle: number;
-  };
-  season: string;
-  daylight: {
-    sunrise: string;
-    sunset: string;
-    hoursOfLight: number;
-  };
-}
+export type OperationContextWeatherSource = EnvironmentalWeatherSource
+export type { OperationContext } from '@/types/environmental'
 
 class OperationContextService {
   private weatherService = createWeatherService();
@@ -51,7 +21,7 @@ class OperationContextService {
   buildEstimatedContext(
     date: Date,
     latitude: number = 45,
-    overrides?: Partial<OperationContext['weather']>
+    overrides?: Partial<WeatherSnapshot>
   ): OperationContext {
     return this.buildDerivedContext(date, latitude, {
       temperature: overrides?.temperature ?? 20,
@@ -131,7 +101,7 @@ class OperationContextService {
   private buildDerivedContext(
     date: Date,
     latitude: number,
-    weather: OperationContext['weather'],
+    weather: WeatherSnapshot,
     lunar = this.lunarService.getLunarPhase(date)
   ): OperationContext {
     return {

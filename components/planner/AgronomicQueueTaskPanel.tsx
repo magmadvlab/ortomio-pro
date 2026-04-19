@@ -6,12 +6,19 @@ import type { Garden, GardenTask } from '@/types'
 import { useAuth } from '@/packages/core/hooks/useAuth'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { directorService } from '@/services/directorService'
+import {
+  getAgronomicDecisionLedgerAnalyticsSummary,
+  getAgronomicDecisionLedgerHistory,
+  type AgronomicDecisionLedgerAnalyticsSummary,
+  type AgronomicDecisionLedgerHistoryItem,
+} from '@/services/agronomicDecisionLedgerAnalyticsService'
 import { formatAgronomicEconomicSummary } from '@/services/agronomicEconomicPriorityService'
 import {
   buildAgronomicQueueTaskDrafts,
   humanizeAgronomicSignal,
   stripAgronomicQueueTaskMetadata,
 } from '@/services/agronomicQueueTaskService'
+import { recordAgronomicDecisionTaskCreation } from '@/services/agronomicDecisionLedgerService'
 import {
   getAgronomicQueueOutcomeSummary,
   type AgronomicQueueOutcomeSummary,
@@ -21,6 +28,12 @@ interface AgronomicQueueTaskPanelProps {
   garden: Garden
   tasks: GardenTask[]
   onTaskCreate: (taskData: Omit<GardenTask, 'id'>) => Promise<void>
+}
+
+const PROFILE_LABELS: Record<string, string> = {
+  vineyard_quality: 'Vigneto',
+  olive_grove_oil: 'Oliveto',
+  orchard_generic: 'Frutteto',
 }
 
 export default function AgronomicQueueTaskPanel({
@@ -36,6 +49,9 @@ export default function AgronomicQueueTaskPanel({
   const [creatingIds, setCreatingIds] = useState<Record<string, boolean>>({})
   const [feedback, setFeedback] = useState<Record<string, string>>({})
   const [outcomeSummary, setOutcomeSummary] = useState<AgronomicQueueOutcomeSummary | null>(null)
+  const [ledgerAnalytics, setLedgerAnalytics] = useState<AgronomicDecisionLedgerAnalyticsSummary | null>(null)
+  const [ledgerHistory, setLedgerHistory] = useState<AgronomicDecisionLedgerHistoryItem[]>([])
+  const [selectedLedgerProfile, setSelectedLedgerProfile] = useState<string>('all')
 
   useEffect(() => {
     if (!garden?.id || !user?.id) {
@@ -46,12 +62,16 @@ export default function AgronomicQueueTaskPanel({
       try {
         setLoading(true)
         setError(null)
-        const [briefing, summary] = await Promise.all([
+        const [briefing, summary, analytics, history] = await Promise.all([
           directorService.getDailyBriefing(user.id, garden.id),
           getAgronomicQueueOutcomeSummary(storageProvider, garden.id),
+          getAgronomicDecisionLedgerAnalyticsSummary(storageProvider, garden.id),
+          getAgronomicDecisionLedgerHistory(storageProvider, garden.id, { limit: 18 }),
         ])
         setQueue(briefing.transversalQueue || [])
         setOutcomeSummary(summary)
+        setLedgerAnalytics(analytics)
+        setLedgerHistory(history)
       } catch (loadError) {
         console.error('Error loading agronomic queue briefing:', loadError)
         setError('Impossibile caricare la coda trasversale.')
@@ -64,6 +84,35 @@ export default function AgronomicQueueTaskPanel({
   }, [garden.id, user?.id, storageProvider, tasks.length, tasks.filter(task => task.completed).length])
 
   const drafts = buildAgronomicQueueTaskDrafts(garden.id, queue, tasks).slice(0, 6)
+  const availableLedgerProfiles = ['vineyard_quality', 'olive_grove_oil', 'orchard_generic'].filter(
+    (profileId) => ledgerHistory.some((entry) => entry.agronomicProfileId === profileId)
+  )
+  const visibleLedgerHistory =
+    selectedLedgerProfile === 'all'
+      ? ledgerHistory.slice(0, 6)
+      : ledgerHistory
+          .filter((entry) => entry.agronomicProfileId === selectedLedgerProfile)
+          .slice(0, 6)
+  const selectedLedgerPopulation =
+    selectedLedgerProfile === 'all'
+      ? ledgerHistory
+      : ledgerHistory.filter((entry) => entry.agronomicProfileId === selectedLedgerProfile)
+  const selectedUrgentEntries = selectedLedgerPopulation.filter((entry) => entry.urgencyLabel === 'immediate')
+  const selectedUrgentCompleted = selectedUrgentEntries.filter((entry) => entry.status === 'completed')
+  const selectedUrgentVerified = selectedUrgentCompleted.filter((entry) => Boolean(entry.executionEvidence))
+  const selectedUrgentHighConfidence = selectedUrgentCompleted.filter(
+    (entry) => entry.executionEvidence?.confidence === 'high'
+  )
+  const selectedUrgentMeasured = selectedUrgentCompleted.filter((entry) => Boolean(entry.measurementEvidence))
+  const selectedAgronomicMeasured = selectedLedgerPopulation.filter(
+    (entry) => entry.agronomicOutcome.status !== 'unknown'
+  )
+  const selectedAgronomicPositive = selectedLedgerPopulation.filter(
+    (entry) => entry.agronomicOutcome.status === 'positive'
+  )
+  const selectedAgronomicNegative = selectedLedgerPopulation.filter(
+    (entry) => entry.agronomicOutcome.status === 'negative'
+  )
 
   const handleCreateTask = async (draftId: string) => {
     const draft = drafts.find((candidate) => candidate.id === draftId)
@@ -79,7 +128,8 @@ export default function AgronomicQueueTaskPanel({
         return next
       })
       await onTaskCreate(draft.task)
-      setFeedback((current) => ({ ...current, [draftId]: 'Task creato.' }))
+      await recordAgronomicDecisionTaskCreation(storageProvider, garden.id, draft)
+      setFeedback((current) => ({ ...current, [draftId]: 'Task creato e snapshot registrato.' }))
     } catch (creationError) {
       console.error('Error creating agronomic queue task:', creationError)
       setFeedback((current) => ({ ...current, [draftId]: 'Errore nella creazione del task.' }))
@@ -132,7 +182,7 @@ export default function AgronomicQueueTaskPanel({
       </div>
 
       {outcomeSummary && outcomeSummary.totalCompleted > 0 && (
-        <div className="grid grid-cols-1 gap-3 rounded-lg border border-emerald-100 bg-emerald-50 p-4 md:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 rounded-lg border border-emerald-100 bg-emerald-50 p-4 md:grid-cols-6">
           <div>
             <div className="text-xs uppercase tracking-wide text-emerald-700">Completati</div>
             <div className="text-lg font-semibold text-emerald-900">{outcomeSummary.totalCompleted}</div>
@@ -146,12 +196,209 @@ export default function AgronomicQueueTaskPanel({
             <div className="text-lg font-semibold text-emerald-900">{outcomeSummary.averagePriorityScore}</div>
           </div>
           <div>
+            <div className="text-xs uppercase tracking-wide text-emerald-700">Decisioni spiegate</div>
+            <div className="text-lg font-semibold text-emerald-900">{outcomeSummary.explainedDecisions}</div>
+          </div>
+          <div>
             <div className="text-xs uppercase tracking-wide text-emerald-700">Esecuzioni verificate</div>
             <div className="text-lg font-semibold text-emerald-900">{outcomeSummary.verifiedExecutions}</div>
           </div>
           <div>
             <div className="text-xs uppercase tracking-wide text-emerald-700">Risultati misurati</div>
             <div className="text-lg font-semibold text-emerald-900">{outcomeSummary.measuredOutcomes}</div>
+          </div>
+        </div>
+      )}
+
+      {ledgerAnalytics && ledgerAnalytics.totalEntries > 0 && (
+        <div className="grid grid-cols-1 gap-3 rounded-lg border border-sky-100 bg-sky-50 p-4 md:grid-cols-5">
+          <div>
+            <div className="text-xs uppercase tracking-wide text-sky-700">Tasso chiusura</div>
+            <div className="text-lg font-semibold text-sky-950">{(ledgerAnalytics.completionRate * 100).toFixed(0)}%</div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wide text-sky-700">Esecuzioni verificate</div>
+            <div className="text-lg font-semibold text-sky-950">{(ledgerAnalytics.verifiedExecutionRate * 100).toFixed(0)}%</div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wide text-sky-700">Esiti misurati</div>
+            <div className="text-lg font-semibold text-sky-950">{(ledgerAnalytics.measuredOutcomeRate * 100).toFixed(0)}%</div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wide text-sky-700">Tempo medio chiusura</div>
+            <div className="text-lg font-semibold text-sky-950">
+              {ledgerAnalytics.averageCompletionDays !== null ? `${ledgerAnalytics.averageCompletionDays} g` : 'n.d.'}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wide text-sky-700">Profilo piu attivo</div>
+            <div className="text-lg font-semibold text-sky-950">
+              {ledgerAnalytics.topProfiles[0]?.profileId || 'n.d.'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {ledgerHistory.length > 0 && (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">Storico Decisionale</h3>
+              <p className="text-xs text-gray-600">
+                Timeline sintetica di decisione, esecuzione ed esito per i profili piu rilevanti.
+              </p>
+            </div>
+            <div className="text-xs text-gray-500">{visibleLedgerHistory.length} eventi</div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedLedgerProfile('all')}
+              className={`rounded-full px-3 py-1 text-xs font-medium ${
+                selectedLedgerProfile === 'all'
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-white text-gray-700 border border-gray-200'
+              }`}
+            >
+              Tutti
+            </button>
+            {availableLedgerProfiles.map((profileId) => (
+              <button
+                key={profileId}
+                onClick={() => setSelectedLedgerProfile(profileId)}
+                className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  selectedLedgerProfile === profileId
+                    ? 'bg-sky-700 text-white'
+                    : 'bg-white text-gray-700 border border-gray-200'
+                }`}
+              >
+                {PROFILE_LABELS[profileId] || profileId}
+              </button>
+            ))}
+          </div>
+
+          <div className="space-y-2">
+            {visibleLedgerHistory.map((entry) => (
+              <div key={entry.entryId} className="rounded-lg border border-gray-200 bg-white p-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-700">
+                        {PROFILE_LABELS[entry.agronomicProfileId || ''] || entry.agronomicProfileId || 'Profilo non risolto'}
+                      </span>
+                      <span className="rounded-full bg-sky-100 px-2 py-1 text-[11px] font-medium text-sky-700">
+                        {entry.focus}
+                      </span>
+                      <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-medium text-emerald-700">
+                        {entry.urgencyLabel}
+                      </span>
+                    </div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {entry.scopeLabel || entry.plantName || entry.queueItemId}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      score {entry.priorityScore} · conf. {(entry.priorityConfidence * 100).toFixed(0)}% · stato {entry.status === 'completed' ? 'completato' : 'creato'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      creato {entry.createdAt.split('T')[0]}
+                      {entry.completedAt ? ` · chiuso ${entry.completedAt.split('T')[0]}` : ''}
+                      {entry.taskType ? ` · task ${entry.taskType}` : ''}
+                    </div>
+                    {entry.agronomicRationale[0] && (
+                      <div className="text-xs text-gray-700">{entry.agronomicRationale[0]}</div>
+                    )}
+                  </div>
+                  <div className="text-right text-xs space-y-1">
+                    <div className={entry.executionEvidence ? 'text-emerald-700' : 'text-gray-400'}>
+                      {entry.executionEvidence ? 'esecuzione verificata' : 'esecuzione non verificata'}
+                    </div>
+                    <div className={entry.measurementEvidence ? 'text-emerald-700' : 'text-gray-400'}>
+                      {entry.measurementEvidence ? 'esito misurato' : 'esito non misurato'}
+                    </div>
+                    <div
+                      className={
+                        entry.agronomicOutcome.status === 'positive'
+                          ? 'text-emerald-700'
+                          : entry.agronomicOutcome.status === 'negative'
+                            ? 'text-red-700'
+                            : entry.agronomicOutcome.status === 'mixed'
+                              ? 'text-amber-700'
+                              : 'text-gray-400'
+                      }
+                    >
+                      {entry.agronomicOutcome.status === 'positive'
+                        ? 'outcome agronomico positivo'
+                        : entry.agronomicOutcome.status === 'negative'
+                          ? 'outcome agronomico negativo'
+                          : entry.agronomicOutcome.status === 'mixed'
+                            ? 'outcome agronomico intermedio'
+                            : 'outcome agronomico non disponibile'}
+                    </div>
+                    <div
+                      className={
+                        entry.evidenceStatus === 'outcome_measured'
+                          ? 'text-emerald-700'
+                          : entry.evidenceStatus === 'execution_verified'
+                            ? 'text-sky-700'
+                            : entry.evidenceStatus === 'completed_unverified'
+                              ? 'text-amber-700'
+                              : 'text-gray-400'
+                      }
+                    >
+                      {entry.evidenceStatus === 'outcome_measured'
+                        ? 'coerenza evidenziale completa'
+                        : entry.evidenceStatus === 'execution_verified'
+                          ? 'coerenza operativa verificata'
+                          : entry.evidenceStatus === 'completed_unverified'
+                            ? 'task chiuso senza evidenze'
+                            : 'in attesa di esecuzione'}
+                    </div>
+                  </div>
+                </div>
+                {entry.agronomicOutcome.summary && (
+                  <div className="mt-2 text-xs text-gray-600">
+                    Misura osservata: {entry.agronomicOutcome.summary}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {selectedLedgerPopulation.length > 0 && (
+        <div className="grid grid-cols-1 gap-3 rounded-lg border border-amber-100 bg-amber-50 p-4 md:grid-cols-8">
+          <div>
+            <div className="text-xs uppercase tracking-wide text-amber-700">Urgenti</div>
+            <div className="text-lg font-semibold text-amber-950">{selectedUrgentEntries.length}</div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wide text-amber-700">Urgenti chiuse</div>
+            <div className="text-lg font-semibold text-amber-950">{selectedUrgentCompleted.length}</div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wide text-amber-700">Urgenti verificate</div>
+            <div className="text-lg font-semibold text-amber-950">{selectedUrgentVerified.length}</div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wide text-amber-700">Urgenti evidenza forte</div>
+            <div className="text-lg font-semibold text-amber-950">{selectedUrgentHighConfidence.length}</div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wide text-amber-700">Urgenti con esito</div>
+            <div className="text-lg font-semibold text-amber-950">{selectedUrgentMeasured.length}</div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wide text-amber-700">Outcome agronomici</div>
+            <div className="text-lg font-semibold text-amber-950">{selectedAgronomicMeasured.length}</div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wide text-amber-700">Outcome positivi</div>
+            <div className="text-lg font-semibold text-emerald-800">{selectedAgronomicPositive.length}</div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wide text-amber-700">Outcome negativi</div>
+            <div className="text-lg font-semibold text-red-800">{selectedAgronomicNegative.length}</div>
           </div>
         </div>
       )}

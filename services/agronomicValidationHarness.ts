@@ -8,6 +8,10 @@ import {
   type AgronomicEconomicPrioritySummary,
 } from '@/services/agronomicEconomicPriorityService'
 import {
+  buildAgronomicDecisionExplanation,
+  type AgronomicDecisionExplanation,
+} from '@/services/agronomicDecisionExplanationService'
+import {
   resolveAgronomicPriorityProfileSync,
   scoreAgronomicPriority,
 } from '@/services/agronomicPriorityService'
@@ -19,6 +23,7 @@ export interface AgronomicValidationCandidateResult {
   priorityScore: number
   priorityConfidence: number
   economicSummary: AgronomicEconomicPrioritySummary
+  decisionExplanation: AgronomicDecisionExplanation
 }
 
 export interface AgronomicValidationScenarioResult {
@@ -102,6 +107,16 @@ const buildCandidateResult = (
     priorityScore: priorityResult.score,
     priorityConfidence: priorityResult.confidence,
     economicSummary,
+    decisionExplanation: buildAgronomicDecisionExplanation({
+      source: candidate.source,
+      focus: candidate.focus,
+      priorityResult,
+      urgencyLabel:
+        economicSummary.actionComparison?.recommendedUrgencyLabel || candidate.urgencyLabel,
+      resolvedProfile,
+      availableSignals: candidate.availableSignals || [],
+      isCriticalStage: candidate.isCriticalStage,
+    }),
   }
 }
 

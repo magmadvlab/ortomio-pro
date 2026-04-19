@@ -5,8 +5,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { WeatherForecast, WeatherAlert, getWeatherForecast7Days, generateWeatherAlerts } from '@/services/weatherService';
-import { getCachedForecast, cacheForecast } from '@/services/weatherCacheService';
+import { WeatherAlert, getWeatherForecast7Days, generateWeatherAlerts } from '@/services/weatherService';
+import { cacheForecast, normalizeForecastList } from '@/services/weatherCacheService';
 import { calculateMoonPhase } from '@/logic/lunarCalendar';
 import { useTier } from '@/packages/core/hooks/useTier';
 import { Garden } from '../types';
@@ -246,7 +246,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
           
           setForecast(transformedData);
           // Aggiorna la cache con i nuovi dati
-          await cacheForecast(weatherLat, weatherLng, transformedData);
+          await cacheForecast(weatherLat, weatherLng, normalizeForecastList(transformedData));
           const generatedAlerts = generateWeatherAlerts(data, activePlants);
           setAlerts(generatedAlerts);
         } else {

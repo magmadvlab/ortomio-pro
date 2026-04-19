@@ -14,6 +14,10 @@ import {
   scoreAgronomicPriority,
   type AgronomicPriorityFocus,
 } from '@/services/agronomicPriorityService'
+import {
+  buildAgronomicDecisionExplanation,
+  type AgronomicDecisionExplanation,
+} from '@/services/agronomicDecisionExplanationService'
 import { buildAgronomicEconomicPrioritySummary } from '@/services/agronomicEconomicPriorityService'
 import {
   buildAgronomicQualityLearningAdjustment,
@@ -59,6 +63,7 @@ export interface PrescriptionAgronomicPriority {
   missingSignals?: AgronomicSignalKey[]
   operationalContextTags?: AgronomicOperationalContextTag[]
   environmentalSummary?: ZoneEnvironmentalHistorySummary | null
+  decisionExplanation?: AgronomicDecisionExplanation
 }
 
 export interface PrescriptionAgronomicIntelligenceSummary {
@@ -417,6 +422,15 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
     const environmentalSuffix = environmentalSummary
       ? ` Storico ambientale: ${persistentDeficit ? `${environmentalSummary.highSoilWaterStressDays || 0} giorni con stress idrico alto` : ''}${persistentDeficit && persistentHumidity ? ', ' : ''}${persistentHumidity ? `${environmentalSummary.highDiseasePressureDays || 0} giorni con pressione ambientale alta` : ''}.`
       : ''
+    const decisionExplanation = buildAgronomicDecisionExplanation({
+      source: 'prescription',
+      focus: priorityFocus,
+      priorityResult,
+      urgencyLabel: urgency,
+      resolvedProfile: resolvedAgronomicProfile,
+      availableSignals,
+      isCriticalStage: persistentDeficit || persistentHumidity,
+    })
 
     operationalPriorities.push({
       id: `priority:${zone.zoneId}`,
@@ -436,6 +450,7 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       missingSignals: priorityResult.signalCoverage.missingP0Signals,
       operationalContextTags,
       environmentalSummary,
+      decisionExplanation,
       rationale: `${rationale}${profileSuffix}${coverageSuffix}${measuredFeedbackSuffix}${adaptiveQualitySuffix}${environmentalSuffix}`,
     })
 

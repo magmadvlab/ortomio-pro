@@ -1,153 +1,33 @@
 import { getSupabaseClient } from '@/config/supabase'
 import type { SensorReading, SensorType } from '@/services/sensorDataService'
 import { getLatestSensorReading } from '@/services/sensorDataService'
+import type {
+  GardenEnvironmentalHistorySummary,
+  DerivedWeatherIndicators,
+  EnvironmentalMonitoringSnapshot,
+  EnvironmentalZoneLedgerEntry,
+  PersistedDailyWeatherLike,
+  PersistedForecastSnapshot,
+  PersistedWeatherDataSource,
+  PersistedWeatherLineage,
+  SiteWeatherBinding,
+  WeatherSnapshot,
+  ZoneEnvironmentalHistorySummary,
+} from '@/types/environmental'
 import { normalizeGeoCoordinates } from '@/utils/coordinates'
-
-type PersistedWeatherDataSource = 'api' | 'manual' | 'station'
-
-export interface PersistedDailyWeatherLike {
-  log_date: string
-  temp_min: number
-  temp_max: number
-  temp_avg: number
-  precipitation_mm: number
-  humidity_avg?: number
-  weather_conditions?: string
-  eto_calculated?: number
-  data_source: PersistedWeatherDataSource
-  raw_data?: Record<string, unknown>
-}
-
-export interface PersistedWeatherLineage {
-  sourceType: PersistedWeatherDataSource
-  primarySource:
-    | 'open_meteo_forecast'
-    | 'open_meteo_archive'
-    | 'local_station'
-    | 'manual_entry'
-    | 'synthetic_fallback'
-  signalClass: 'forecast' | 'historical_archive' | 'station' | 'manual' | 'synthetic_fallback'
-  signalQuality: 'measured' | 'mixed' | 'estimated'
-  observationDate: string
-  recordedAt: string
-  persisted: true
-}
-
-export interface PersistedForecastSnapshot {
-  forecastDate: string
-  generatedFromDate: string
-  generatedAt: string
-  daysAhead: number
-  source: 'open_meteo_forecast' | 'synthetic_fallback'
-  confidence: 'high' | 'medium' | 'low' | 'estimated'
-  tempMin: number
-  tempMax: number
-  precipitationMm: number
-  humidityAvg?: number
-  windSpeedMax?: number
-  condition?: string
-}
-
-export interface SiteWeatherBinding {
-  latitude?: number
-  longitude?: number
-  altitudeMeters?: number
-  slopePercentage?: number
-  sunExposure?: string
-  exposureClass: 'sheltered' | 'balanced' | 'exposed' | 'unknown'
-  slopeClass: 'flat' | 'rolling' | 'steep' | 'unknown'
-  dryingPowerAdjustment: 'lower' | 'neutral' | 'higher'
-  diseasePressureAdjustment: 'lower' | 'neutral' | 'higher'
-  thermalLoadAdjustment: 'lower' | 'neutral' | 'higher'
-  notes: string[]
-}
-
-export interface DerivedWeatherIndicators {
-  thermalAmplitudeC?: number
-  precipitationToEtoRatio?: number
-  waterBalanceClass: 'deficit' | 'neutral' | 'surplus'
-  diseasePressureClass: 'low' | 'medium' | 'high'
-  dryingPowerClass: 'low' | 'medium' | 'high'
-}
-
-export interface EnvironmentalMonitoringSnapshot {
-  date: string
-  weather: {
-    persisted: boolean
-    sourceClass: PersistedWeatherLineage['signalClass'] | 'unknown'
-    primarySource: PersistedWeatherLineage['primarySource'] | 'unknown'
-    signalQuality: PersistedWeatherLineage['signalQuality'] | 'unknown'
-    regionalConfidence: 'high' | 'medium' | 'low' | 'unknown'
-    localConfidence: 'high' | 'medium' | 'low' | 'unknown'
-    forecastDaysAhead?: number
-    temperatureMinC?: number
-    temperatureMaxC?: number
-    temperatureAvgC?: number
-    precipitationMm?: number
-    etoMm?: number
-    condition?: string
-    waterBalanceClass?: DerivedWeatherIndicators['waterBalanceClass']
-    diseasePressureClass?: DerivedWeatherIndicators['diseasePressureClass']
-    dryingPowerClass?: DerivedWeatherIndicators['dryingPowerClass']
-    siteBinding?: SiteWeatherBinding
-  }
-  sensors: {
-    precedence: 'sensor_local' | 'sensor_garden' | 'persisted_weather' | 'estimated'
-    availableSignals: SensorType[]
-    readingCount: number
-    freshestReadingAt?: string
-  }
-  soilWater: {
-    deficitMm?: number
-    availableWaterMm?: number
-    lastCalculatedAt?: string
-    stressLevel: 'low' | 'medium' | 'high' | 'unknown'
-  }
-  circulation: {
-    impacts: Array<'crop_tracking' | 'irrigation' | 'nutrition' | 'health' | 'operations'>
-    notes: string[]
-  }
-}
-
-export interface EnvironmentalZoneLedgerEntry {
-  gardenId: string
-  zoneId: string
-  zoneName?: string
-  recordedAt: string
-  snapshot: EnvironmentalMonitoringSnapshot
-}
-
-export interface ZoneEnvironmentalHistorySummary {
-  zoneId: string
-  gardenId?: string
-  entries: number
-  highSoilWaterStressDays: number
-  mediumSoilWaterStressDays: number
-  highDiseasePressureDays: number
-  sensorLocalDays: number
-  deficitWaterBalanceDays: number
-  surplusWaterBalanceDays: number
-  lowDryingPowerDays: number
-  latestSensorPrecedence?: EnvironmentalMonitoringSnapshot['sensors']['precedence']
-  latestSoilWaterStressLevel?: EnvironmentalMonitoringSnapshot['soilWater']['stressLevel']
-  dominantWeatherSourceClass?: EnvironmentalMonitoringSnapshot['weather']['sourceClass']
-}
-
-export interface GardenEnvironmentalHistorySummary {
-  gardenId: string
-  entries: number
-  trackedZones: number
-  highSoilWaterStressDays: number
-  mediumSoilWaterStressDays: number
-  highDiseasePressureDays: number
-  sensorLocalDays: number
-  deficitWaterBalanceDays: number
-  surplusWaterBalanceDays: number
-  lowDryingPowerDays: number
-  latestSensorPrecedence?: EnvironmentalMonitoringSnapshot['sensors']['precedence']
-  latestSoilWaterStressLevel?: EnvironmentalMonitoringSnapshot['soilWater']['stressLevel']
-  dominantWeatherSourceClass?: EnvironmentalMonitoringSnapshot['weather']['sourceClass']
-}
+export type {
+  CanonicalEnvironmentalContext,
+  GardenEnvironmentalHistorySummary,
+  DerivedWeatherIndicators,
+  EnvironmentalMonitoringSnapshot,
+  EnvironmentalZoneLedgerEntry,
+  PersistedDailyWeatherLike,
+  PersistedForecastSnapshot,
+  PersistedWeatherDataSource,
+  PersistedWeatherLineage,
+  SiteWeatherBinding,
+  ZoneEnvironmentalHistorySummary,
+} from '@/types/environmental'
 
 const normalizeDateString = (value?: string | null) => {
   if (!value) return null
@@ -187,9 +67,9 @@ export function buildPersistedForecastSnapshots(
   }
 
   const maxDays = options.maxDays ?? 7
-  return forecast.dates
+  const snapshots = forecast.dates
     .slice(0, maxDays)
-    .map((forecastDate, index) => {
+    .map<PersistedForecastSnapshot | null>((forecastDate, index) => {
       const normalizedDate = normalizeDateString(forecastDate)
       const tempMin = toFiniteNumber(forecast.tempMin[index])
       const tempMax = toFiniteNumber(forecast.tempMax[index])
@@ -228,7 +108,9 @@ export function buildPersistedForecastSnapshots(
         condition: forecast.conditions?.[index] || undefined,
       }
     })
-    .filter((snapshot): snapshot is PersistedForecastSnapshot => Boolean(snapshot))
+    .filter((snapshot): snapshot is PersistedForecastSnapshot => snapshot !== null)
+
+  return snapshots
 }
 
 export function buildSiteWeatherBinding(input: {
@@ -457,6 +339,82 @@ export function buildPersistedWeatherEnvelope(
   }
 }
 
+export function buildWeatherSnapshotFromPersistedLog(
+  weatherLog: PersistedDailyWeatherLike,
+  options?: {
+    targetDate?: string
+    now?: Date
+    localConfidenceHint?: WeatherSnapshot['localConfidence']
+  }
+): WeatherSnapshot {
+  const now = options?.now || new Date()
+  const today = now.toISOString().split('T')[0]
+  const targetDate =
+    normalizeDateString(options?.targetDate || weatherLog.log_date) || weatherLog.log_date
+  const lineage =
+    weatherLog.raw_data?.environmentalLineage &&
+    typeof weatherLog.raw_data.environmentalLineage === 'object'
+      ? (weatherLog.raw_data.environmentalLineage as PersistedWeatherLineage)
+      : derivePersistedWeatherLineage(weatherLog, { now })
+  const forecastSnapshot =
+    weatherLog.raw_data?.forecastSnapshot &&
+    typeof weatherLog.raw_data.forecastSnapshot === 'object'
+      ? (weatherLog.raw_data.forecastSnapshot as PersistedForecastSnapshot)
+      : null
+  const siteWeatherBinding =
+    weatherLog.raw_data?.siteWeatherBinding &&
+    typeof weatherLog.raw_data.siteWeatherBinding === 'object'
+      ? (weatherLog.raw_data.siteWeatherBinding as SiteWeatherBinding)
+      : null
+
+  let regionalConfidence: WeatherSnapshot['regionalConfidence'] = 'low'
+  if (forecastSnapshot) {
+    regionalConfidence =
+      forecastSnapshot.confidence === 'estimated' ? 'low' : forecastSnapshot.confidence
+  } else if (
+    lineage.signalClass === 'station' ||
+    lineage.signalClass === 'historical_archive' ||
+    lineage.signalClass === 'manual'
+  ) {
+    regionalConfidence = 'high'
+  } else if (lineage.signalClass === 'forecast') {
+    regionalConfidence = 'medium'
+  }
+
+  const localConfidence: WeatherSnapshot['localConfidence'] =
+    options?.localConfidenceHint ||
+    (siteWeatherBinding ? 'medium' : lineage.signalClass === 'station' ? 'medium' : 'low')
+
+  const source: WeatherSnapshot['source'] = forecastSnapshot
+    ? 'forecast'
+    : lineage.signalClass === 'historical_archive'
+      ? 'historical'
+      : lineage.signalClass === 'synthetic_fallback'
+        ? 'estimated'
+        : targetDate > today
+          ? 'forecast'
+          : targetDate < today
+            ? 'historical'
+            : 'current'
+
+  return {
+    temperature:
+      weatherLog.temp_avg ??
+      Number((((weatherLog.temp_min || 20) + (weatherLog.temp_max || 20)) / 2).toFixed(1)),
+    humidity: weatherLog.humidity_avg ?? forecastSnapshot?.humidityAvg ?? 60,
+    precipitation: weatherLog.precipitation_mm ?? forecastSnapshot?.precipitationMm ?? 0,
+    windSpeed: forecastSnapshot?.windSpeedMax ?? 0,
+    condition: weatherLog.weather_conditions || forecastSnapshot?.condition || 'unknown',
+    pressure: 1013,
+    source,
+    sourceClass: lineage.signalClass,
+    primarySource: lineage.primarySource,
+    signalQuality: lineage.signalQuality,
+    regionalConfidence,
+    localConfidence,
+  }
+}
+
 export function resolvePersistedWeatherLogForDate(
   weatherLogs: PersistedDailyWeatherLike[],
   targetDate: string,
@@ -614,13 +572,17 @@ export function extractGardenEnvironmentalHistory(
 
 function summarizeEnvironmentalEntries(entries: EnvironmentalZoneLedgerEntry[]) {
   const latest = entries[entries.length - 1]
-  const sourceClassCounts = new Map<string, number>()
+  const sourceClassCounts = new Map<
+    EnvironmentalMonitoringSnapshot['weather']['sourceClass'],
+    number
+  >()
   for (const entry of entries) {
-    const sourceClass = entry.snapshot.weather.sourceClass || 'unknown'
+    const sourceClass: EnvironmentalMonitoringSnapshot['weather']['sourceClass'] =
+      entry.snapshot.weather.sourceClass || 'unknown'
     sourceClassCounts.set(sourceClass, (sourceClassCounts.get(sourceClass) || 0) + 1)
   }
 
-  const dominantWeatherSourceClass =
+  const dominantWeatherSourceClass: EnvironmentalMonitoringSnapshot['weather']['sourceClass'] =
     [...sourceClassCounts.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ||
     'unknown'
 

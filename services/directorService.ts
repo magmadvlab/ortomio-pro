@@ -31,6 +31,10 @@ import {
   type AgronomicEconomicPrioritySummary,
 } from '@/services/agronomicEconomicPriorityService'
 import {
+  buildAgronomicDecisionExplanation,
+  type AgronomicDecisionExplanation,
+} from '@/services/agronomicDecisionExplanationService'
+import {
   inferOperationalContextTagsFromProfile,
   inferOperationalContextTagsFromSite,
   inferOperationalContextTagsFromText,
@@ -78,6 +82,7 @@ export interface PrioritizedAction {
   missingSignals?: AgronomicSignalKey[]
   agronomicFocus?: AgronomicPriorityFocus
   economicSummary?: AgronomicEconomicPrioritySummary | null
+  decisionExplanation?: AgronomicDecisionExplanation | null
   actionComparisonExplanation?: string | null
 }
 
@@ -344,6 +349,16 @@ class DirectorService {
       availableSignals: this.getAvailableSignalsFromSuggestion(suggestion),
       economicSummary,
     })
+    const decisionExplanation = buildAgronomicDecisionExplanation({
+      source: 'director',
+      focus: agronomicFocus,
+      priorityResult,
+      urgencyLabel:
+        priorityResult.economicSummary?.actionComparison?.recommendedUrgencyLabel || undefined,
+      resolvedProfile: resolvedAgronomicProfile,
+      availableSignals: this.getAvailableSignalsFromSuggestion(suggestion),
+      isCriticalStage: suggestion.action_priority === 'CRITICAL',
+    })
     
     return {
       id: suggestion.id,
@@ -368,6 +383,7 @@ class DirectorService {
       missingSignals: priorityResult.signalCoverage.missingP0Signals,
       agronomicFocus,
       economicSummary,
+      decisionExplanation,
       actionComparisonExplanation: economicSummary.actionComparison?.explanation || null,
     }
   }
