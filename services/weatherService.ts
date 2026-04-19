@@ -2,8 +2,15 @@
  * Weather Service - Servizio per recuperare dati meteo reali
  * Integra OpenWeatherMap e Open-Meteo per dati accurati
  */
+import { getSupabaseClient } from '@/config/supabase'
 import type { Garden } from '@/types';
+import type { WeatherSnapshot } from '@/types/environmental'
 import type { HealthAlert as AgronomicHealthAlert } from '@/logic/healthAlertEngine';
+import {
+  buildWeatherSnapshotFromPersistedLog,
+  resolvePersistedWeatherLogForDate,
+  type PersistedDailyWeatherLike,
+} from '@/services/environmentalMonitoringService'
 import { normalizeGeoCoordinates } from '../utils/coordinates';
 
 interface WeatherData {
@@ -44,21 +51,7 @@ interface GardenLocation {
   lon: number
   name?: string
 }
-
-export interface WeatherSnapshot {
-  temperature: number
-  humidity: number
-  precipitation: number
-  windSpeed: number
-  condition: string
-  pressure: number
-  source?: 'current' | 'forecast' | 'historical' | 'fallback'
-  primarySource?:
-    | 'open_meteo_forecast'
-    | 'open_meteo_archive'
-    | 'fallback_estimated'
-  signalQuality?: 'measured' | 'mixed' | 'estimated'
-}
+export type { WeatherSnapshot } from '@/types/environmental'
 
 // Export standalone functions for compatibility
 export async function getWeatherForecast(lat: number, lng: number, days: number = 7): Promise<any[]> {
@@ -302,6 +295,8 @@ function getConditionFromCode(code: number): string {
 class WeatherService {
   private readonly OPENWEATHER_API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY
   private readonly CACHE_DURATION = 10 * 60 * 1000 // 10 minuti
+  private readonly PERSISTED_COORD_TOLERANCE = 0.2
+  private readonly PERSISTED_LOOKBACK_DAYS = 7
   private cache = new Map<string, { data: WeatherData; timestamp: number }>()
 
   private readSavedUserLocation(): GardenLocation | null {
@@ -438,9 +433,91 @@ class WeatherService {
     return this.getWeatherForDate(latitude, longitude, new Date())
   }
 
+  private async getPersistedWeatherForDate(
+    latitude: number,
+    longitude: number,
+    date: Date
+  ): Promise<WeatherSnapshot | null> {
+    const supabase = getSupabaseClient()
+    if (!supabase || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return null
+    }
+
+    const targetDate = this.formatWeatherDate(date)
+    const lookupStart = new Date(`${targetDate}T12:00:00.000Z`)
+    lookupStart.setDate(lookupStart.getDate() - this.PERSISTED_LOOKBACK_DAYS)
+    const lookupStartDate = this.formatWeatherDate(lookupStart)
+    const tolerance = this.PERSISTED_COORD_TOLERANCE
+
+    const { data, error } = await supabase
+      .from('daily_weather_log')
+      .select(
+        'log_date,temp_min,temp_max,temp_avg,precipitation_mm,humidity_avg,weather_conditions,data_source,raw_data,location_latitude,location_longitude'
+      )
+      .gte('log_date', lookupStartDate)
+      .lte('log_date', targetDate)
+      .gte('location_latitude', latitude - tolerance)
+      .lte('location_latitude', latitude + tolerance)
+      .gte('location_longitude', longitude - tolerance)
+      .lte('location_longitude', longitude + tolerance)
+      .order('log_date', { ascending: false })
+      .limit(24)
+
+    if (error || !Array.isArray(data) || data.length === 0) {
+      return null
+    }
+
+    const rankedLogs = (
+      data as Array<
+        PersistedDailyWeatherLike & {
+          location_latitude?: number | null
+          location_longitude?: number | null
+        }
+      >
+    )
+      .map((log) => ({
+        ...log,
+        proximity:
+          Math.abs(Number(log.location_latitude ?? latitude) - latitude) +
+          Math.abs(Number(log.location_longitude ?? longitude) - longitude),
+      }))
+      .sort((left, right) => {
+        if (left.proximity !== right.proximity) {
+          return left.proximity - right.proximity
+        }
+
+        return right.log_date.localeCompare(left.log_date)
+      })
+
+    const resolvedLog = resolvePersistedWeatherLogForDate(
+      rankedLogs.map(({ proximity, location_latitude, location_longitude, ...log }) => log),
+      targetDate,
+      { now: new Date() }
+    )
+
+    if (!resolvedLog) {
+      return null
+    }
+
+    return buildWeatherSnapshotFromPersistedLog(resolvedLog, {
+      targetDate,
+      now: new Date(),
+    })
+  }
+
   async getWeatherForDate(latitude: number, longitude: number, date: Date): Promise<WeatherSnapshot> {
     const targetDate = this.formatWeatherDate(date)
     const today = this.formatWeatherDate(new Date())
+
+    try {
+      const persistedSnapshot = await this.getPersistedWeatherForDate(latitude, longitude, date)
+      if (persistedSnapshot) {
+        return persistedSnapshot
+      }
+    } catch (persistedError) {
+      console.warn(`Persisted weather lookup failed for ${targetDate}:`, persistedError)
+    }
+
     const source: WeatherSnapshot['source'] =
       targetDate < today ? 'historical' : targetDate === today ? 'current' : 'forecast'
 
@@ -503,8 +580,16 @@ class WeatherService {
         condition: getConditionFromCode(weatherCode),
         pressure: 1013,
         source,
+        sourceClass:
+          source === 'historical'
+            ? 'historical_archive'
+            : source === 'forecast'
+              ? 'forecast'
+              : 'current_runtime',
         primarySource: source === 'historical' ? 'open_meteo_archive' : 'open_meteo_forecast',
         signalQuality: source === 'historical' ? 'mixed' : 'mixed',
+        regionalConfidence: source === 'historical' ? 'high' : source === 'forecast' ? 'medium' : 'medium',
+        localConfidence: 'low',
       }
     } catch (error) {
       console.error(`Error getting weather for ${targetDate}:`, error)
@@ -516,8 +601,11 @@ class WeatherService {
         condition: 'unknown',
         pressure: 1013,
         source: 'fallback',
+        sourceClass: 'synthetic_fallback',
         primarySource: 'fallback_estimated',
         signalQuality: 'estimated',
+        regionalConfidence: 'low',
+        localConfidence: 'low',
       }
     }
   }

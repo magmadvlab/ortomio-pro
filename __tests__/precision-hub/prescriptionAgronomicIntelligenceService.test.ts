@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
+import { buildAgronomicActionQueue } from '@/services/agronomicActionQueueService'
 import { buildPrescriptionAgronomicIntelligenceSummary } from '@/services/prescriptionAgronomicIntelligenceService'
 import type {
   PrescriptionExecutionEfficacySummary,
@@ -184,9 +185,9 @@ test('buildPrescriptionAgronomicIntelligenceSummary returns high-signal recommen
   assert.equal(summary.bestZoneLabel, 'Zona Buona')
   assert.equal(summary.worstZoneLabel, 'Zona Debole')
   assert.equal(summary.topPriorityLabel, 'Zona Debole')
-  assert.equal(summary.immediatePriorities, 1)
+  assert.equal(summary.immediatePriorities, 2)
   assert.equal(summary.nextCyclePriorities, 0)
-  assert.equal(summary.monitorPriorities, 1)
+  assert.equal(summary.monitorPriorities, 0)
   assert.equal(summary.recommendations.length > 0, true)
   assert.equal(summary.recommendations[0]?.severity, 'urgent')
   assert.equal(summary.recommendations.some((item) => item.category === 'soil'), true)
@@ -194,9 +195,135 @@ test('buildPrescriptionAgronomicIntelligenceSummary returns high-signal recommen
   assert.equal(summary.operationalPriorities.length, 2)
   assert.equal(summary.operationalPriorities[0]?.scopeLabel, 'Zona Debole')
   assert.equal(summary.operationalPriorities[0]?.urgency, 'immediate')
+  assert.equal(summary.operationalPriorities[1]?.urgency, 'immediate')
   assert.equal(summary.operationalPriorities[0]?.drivers.includes('esecuzione off_target'), true)
   assert.equal(summary.operationalPriorities[0]?.drivers.includes('outcome negative'), true)
   assert.equal(summary.operationalPriorities[0]?.drivers.includes('storico deficit persistente'), true)
   assert.equal(summary.recommendations.some((item) => item.id === 'environment:zone-weak'), true)
-  assert.equal(summary.operationalPriorities[1]?.urgency, 'monitor')
+  assert.equal(summary.operationalPriorities[1]?.operationalContextTags?.includes('vineyard'), true)
+})
+
+test('prescription flow propagates protected vs open-field context into queue economics', () => {
+  const efficacySummary: PrescriptionExecutionEfficacySummary = {
+    totalZones: 1,
+    scoredZones: 1,
+    averageEfficacyScore: 24,
+    averageMicroclimateScore: 28,
+    averageSoilResponseScore: 26,
+    highZones: 0,
+    mediumZones: 0,
+    lowZones: 1,
+    unknownZones: 0,
+    cropContextScores: [{ key: 'broccoli', label: 'broccoli', averageScore: 24, zones: 1 }],
+    seasonScores: [{ key: 'Primavera', label: 'Primavera', averageScore: 24, zones: 1 }],
+    zoneScores: [
+      {
+        zoneId: 'zone-ctx',
+        zoneName: 'Zona Test',
+        efficacyScore: 24,
+        efficacyStatus: 'low',
+        varianceStatus: 'off_target',
+        outcomeStatus: 'negative',
+        microclimateStatus: 'critical',
+        microclimateScore: 30,
+        soilResponseStatus: 'poor',
+        soilResponseScore: 22,
+        fungalPressure: 'high',
+        waterStress: 'low',
+        heatStress: 'none',
+        cropContextId: 'broccoli',
+        seasonLabel: 'Primavera',
+      },
+    ],
+  }
+
+  const varianceSummary: PrescriptionExecutionVarianceSummary = {
+    totalZones: 1,
+    alignedZones: 0,
+    partialZones: 0,
+    offTargetZones: 1,
+    missedZones: 0,
+    pendingZones: 0,
+    averageAdherenceScore: 20,
+    zoneVariances: [
+      {
+        zoneId: 'zone-ctx',
+        zoneName: 'Zona Test',
+        latestStatus: 'completed',
+        varianceStatus: 'off_target',
+        plannedRate: 100,
+        actualRate: 55,
+        plannedAreaSqm: 5000,
+        areaAppliedSqm: 2200,
+        rateDeviationPercent: 45,
+        areaCoveragePercent: 44,
+        adherenceScore: 20,
+      },
+    ],
+  }
+
+  const outcomeSummary: PrescriptionExecutionOutcomeSummary = {
+    totalZones: 1,
+    zonesWithOutcome: 1,
+    positiveZones: 0,
+    mixedZones: 0,
+    negativeZones: 1,
+    noDataZones: 0,
+    averageOutcomeScore: 18,
+    zoneOutcomes: [
+      {
+        zoneId: 'zone-ctx',
+        zoneName: 'Zona Test',
+        latestStatus: 'completed',
+        outcomeStatus: 'negative',
+        outcomeScore: 18,
+      },
+    ],
+  }
+
+  const protectedMap: PrescriptionMap = {
+    ...prescriptionMap,
+    id: 'map-protected',
+    gardenName: 'Serra Brassiche',
+    name: 'Trattamento broccoli serra',
+    mapType: 'treatment',
+  }
+  const openFieldMap: PrescriptionMap = {
+    ...prescriptionMap,
+    id: 'map-open',
+    gardenName: 'Campo Aperto Brassiche',
+    name: 'Trattamento broccoli pieno campo',
+    mapType: 'treatment',
+  }
+
+  const protectedSummary = buildPrescriptionAgronomicIntelligenceSummary(
+    protectedMap,
+    efficacySummary,
+    varianceSummary,
+    outcomeSummary
+  )
+  const openFieldSummary = buildPrescriptionAgronomicIntelligenceSummary(
+    openFieldMap,
+    efficacySummary,
+    varianceSummary,
+    outcomeSummary
+  )
+
+  const protectedQueue = buildAgronomicActionQueue({ prescriptionSummary: protectedSummary })
+  const openFieldQueue = buildAgronomicActionQueue({ prescriptionSummary: openFieldSummary })
+
+  assert.equal(
+    protectedSummary.operationalPriorities[0]?.operationalContextTags?.includes('protected_culture'),
+    true
+  )
+  assert.equal(
+    openFieldSummary.operationalPriorities[0]?.operationalContextTags?.includes('open_field'),
+    true
+  )
+  assert.ok(
+    (((protectedQueue[0]?.metadata?.actionComparison as { dominanceMargin?: number } | undefined)
+      ?.dominanceMargin) || 0) >
+      (((openFieldQueue[0]?.metadata?.actionComparison as { dominanceMargin?: number } | undefined)
+        ?.dominanceMargin) || 0)
+  )
 })

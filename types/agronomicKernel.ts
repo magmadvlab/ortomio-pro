@@ -78,6 +78,12 @@ export type AgronomicSignalKey =
 
 export type AgronomicSignalPriority = 'P0' | 'P1' | 'P2';
 
+export type AgronomicDecisionFocus =
+  | 'water'
+  | 'nutrition'
+  | 'health'
+  | 'quality';
+
 export interface AgronomicSignalRequirement {
   key: AgronomicSignalKey;
   priority: AgronomicSignalPriority;
@@ -118,6 +124,68 @@ export interface AgronomicQualityProfile {
   recommendedSignals: AgronomicSignalRequirement[];
 }
 
+export interface AgronomicPriorityModifier {
+  baseScoreDelta?: number;
+  criticalStageWeight?: number;
+  signalCoverageWeight?: number;
+  environmentalPressureWeight?: number;
+  confidenceDelta?: number;
+}
+
+export interface AgronomicEconomicModifier {
+  interventionCostMultiplier?: number;
+  delayCostMultiplier?: number;
+  protectedValueMultiplier?: number;
+  rationale?: string[];
+}
+
+export interface AgronomicIrrigationTuning {
+  baseAdjustment?: number;
+  sensitiveStageAdjustment?: number;
+  measuredFeedbackWeight?: number;
+  rationale?: string[];
+}
+
+export interface AgronomicActionScenarioTuning {
+  interventionCostMultiplier?: number;
+  residualDelayMultiplier?: number;
+  protectedValueMultiplier?: number;
+}
+
+export type AgronomicOperationalContextTag =
+  | AgronomicSystemType
+  | 'rainfed'
+  | 'pressurized_irrigation'
+  | 'manual_irrigation'
+  | 'broadacre_scale'
+  | 'wine_grape'
+  | 'table_grape'
+  | 'oil_cultivar'
+  | 'table_olive'
+  | 'high_altitude_site'
+  | 'coastal_site'
+  | 'steep_slope_site'
+  | 'exposed_site'
+  | 'sheltered_site'
+  | 'nft_system'
+  | 'dwc_system'
+  | 'ebb_flow_system'
+  | 'media_bed_system'
+  | 'high_pressure_aeroponic';
+
+export interface AgronomicActionComparisonTuning {
+  immediate?: AgronomicActionScenarioTuning;
+  nextCycle?: AgronomicActionScenarioTuning;
+  monitor?: AgronomicActionScenarioTuning;
+  nextCyclePreferenceThresholdMultiplier?: number;
+  rationale?: string[];
+}
+
+export interface AgronomicActionComparisonContextOverride {
+  requiredTags: AgronomicOperationalContextTag[];
+  tuning: AgronomicActionComparisonTuning;
+}
+
 export interface AgronomicCropProfile {
   id: string;
   label: string;
@@ -134,6 +202,13 @@ export interface AgronomicCropProfile {
   nutrition: AgronomicNutritionProfile;
   health: AgronomicHealthProfile;
   quality: AgronomicQualityProfile;
+  decisionModifiers?: Partial<Record<AgronomicDecisionFocus, AgronomicPriorityModifier>>;
+  economicModifiers?: Partial<Record<AgronomicDecisionFocus, AgronomicEconomicModifier>>;
+  irrigationTuning?: AgronomicIrrigationTuning;
+  actionComparisonTuning?: Partial<Record<AgronomicDecisionFocus, AgronomicActionComparisonTuning>>;
+  actionComparisonContextOverrides?: Partial<
+    Record<AgronomicDecisionFocus, AgronomicActionComparisonContextOverride[]>
+  >;
 }
 
 export type AgronomicProfileResolutionSource =

@@ -3,43 +3,16 @@
  * Arricchisce automaticamente le operazioni con contesto meteo e lunare
  */
 
+import type {
+  EnvironmentalWeatherSource,
+  OperationContext,
+  WeatherSnapshot,
+} from '@/types/environmental'
 import { createWeatherService } from './weatherService';
 import { createLunarService } from './lunarService';
 
-export type OperationContextWeatherSource =
-  | 'current'
-  | 'forecast'
-  | 'historical'
-  | 'estimated'
-  | 'fallback';
-
-export interface OperationContext {
-  timestamp: string;
-  weather: {
-    temperature: number;
-    humidity: number;
-    precipitation: number;
-    windSpeed: number;
-    condition: string;
-    pressure: number;
-    source?: OperationContextWeatherSource;
-    primarySource?: 'open_meteo_forecast' | 'open_meteo_archive' | 'fallback_estimated';
-    signalQuality?: 'measured' | 'mixed' | 'estimated';
-  };
-  lunar: {
-    phase: string;
-    phaseEmoji: string;
-    illumination: number;
-    isWaxing: boolean;
-    dayInCycle: number;
-  };
-  season: string;
-  daylight: {
-    sunrise: string;
-    sunset: string;
-    hoursOfLight: number;
-  };
-}
+export type OperationContextWeatherSource = EnvironmentalWeatherSource
+export type { OperationContext } from '@/types/environmental'
 
 class OperationContextService {
   private weatherService = createWeatherService();
@@ -48,7 +21,7 @@ class OperationContextService {
   buildEstimatedContext(
     date: Date,
     latitude: number = 45,
-    overrides?: Partial<OperationContext['weather']>
+    overrides?: Partial<WeatherSnapshot>
   ): OperationContext {
     return this.buildDerivedContext(date, latitude, {
       temperature: overrides?.temperature ?? 20,
@@ -58,8 +31,11 @@ class OperationContextService {
       condition: overrides?.condition ?? 'estimated',
       pressure: overrides?.pressure ?? 1013,
       source: 'estimated',
+      sourceClass: 'synthetic_fallback',
       primarySource: 'fallback_estimated',
-      signalQuality: 'estimated'
+      signalQuality: 'estimated',
+      regionalConfidence: 'low',
+      localConfidence: 'low',
     })
   }
 
@@ -72,8 +48,11 @@ class OperationContextService {
       condition: 'unknown',
       pressure: 1013,
       source: 'fallback',
+      sourceClass: 'synthetic_fallback',
       primarySource: 'fallback_estimated',
-      signalQuality: 'estimated'
+      signalQuality: 'estimated',
+      regionalConfidence: 'low',
+      localConfidence: 'low',
     })
   }
 
@@ -105,8 +84,11 @@ class OperationContextService {
         condition: weather.condition || 'unknown',
         pressure: weather.pressure || 1013,
         source: weather.source || 'fallback',
+        sourceClass: weather.sourceClass || 'synthetic_fallback',
         primarySource: weather.primarySource || 'fallback_estimated',
         signalQuality: weather.signalQuality || 'estimated',
+        regionalConfidence: weather.regionalConfidence || 'low',
+        localConfidence: weather.localConfidence || 'low',
       }, lunar);
     } catch (error) {
       console.error('Error getting operation context:', error);
@@ -119,7 +101,7 @@ class OperationContextService {
   private buildDerivedContext(
     date: Date,
     latitude: number,
-    weather: OperationContext['weather'],
+    weather: WeatherSnapshot,
     lunar = this.lunarService.getLunarPhase(date)
   ): OperationContext {
     return {
