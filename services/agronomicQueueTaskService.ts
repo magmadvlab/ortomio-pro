@@ -1,7 +1,7 @@
 import type { GardenTask } from '@/types'
 import type { AgronomicDecisionExplanation } from '@/services/agronomicDecisionExplanationService'
 import type { AgronomicEconomicPrioritySummary } from '@/services/agronomicEconomicPriorityService'
-import type { AgronomicSignalKey } from '@/types/agronomicKernel'
+import type { AgronomicRefinedContext, AgronomicSignalKey } from '@/types/agronomicKernel'
 import type { AgronomicActionQueueItem } from '@/services/agronomicActionQueueService'
 
 export interface AgronomicQueueTaskDraft {
@@ -31,6 +31,7 @@ export interface AgronomicDecisionSnapshot {
   priorityConfidence: number
   urgencyLabel: AgronomicActionQueueItem['urgencyLabel']
   missingSignals: AgronomicSignalKey[]
+  refinedContext?: AgronomicRefinedContext | null
   decisionExplanation?: AgronomicDecisionExplanation | null
   economicSummary?: AgronomicEconomicPrioritySummary | null
 }
@@ -44,6 +45,7 @@ export interface AgronomicQueueTaskMetadata {
   urgencyLabel: AgronomicActionQueueItem['urgencyLabel']
   agronomicProfileId?: string
   missingSignals: AgronomicSignalKey[]
+  refinedContext?: AgronomicRefinedContext | null
   decisionExplanation?: AgronomicDecisionExplanation | null
   decisionSnapshot?: AgronomicDecisionSnapshot | null
   economicSummary?: AgronomicEconomicPrioritySummary | null
@@ -225,6 +227,12 @@ export const buildAgronomicQueueTaskMetadata = (
     item.metadata && 'decisionExplanation' in item.metadata
       ? (item.metadata.decisionExplanation as AgronomicDecisionExplanation | null | undefined) || null
       : null
+  const refinedContext =
+    item.metadata && 'refinedContext' in item.metadata
+      ? (item.metadata.refinedContext as AgronomicRefinedContext | null | undefined) ||
+        decisionExplanation?.refinedContext ||
+        null
+      : decisionExplanation?.refinedContext || null
 
   return {
     queueItemId: item.id,
@@ -235,9 +243,11 @@ export const buildAgronomicQueueTaskMetadata = (
     urgencyLabel: item.urgencyLabel,
     agronomicProfileId: item.agronomicProfileId,
     missingSignals: item.missingSignals,
+    refinedContext,
     decisionExplanation,
     decisionSnapshot: buildAgronomicDecisionSnapshot(item, {
       economicSummary,
+      refinedContext,
       decisionExplanation,
     }),
     economicSummary,
@@ -248,6 +258,7 @@ export const buildAgronomicDecisionSnapshot = (
   item: AgronomicActionQueueItem,
   overrides?: {
     economicSummary?: AgronomicEconomicPrioritySummary | null
+    refinedContext?: AgronomicRefinedContext | null
     decisionExplanation?: AgronomicDecisionExplanation | null
   }
 ): AgronomicDecisionSnapshot => ({
@@ -263,6 +274,10 @@ export const buildAgronomicDecisionSnapshot = (
   priorityConfidence: item.priorityConfidence,
   urgencyLabel: item.urgencyLabel,
   missingSignals: item.missingSignals,
+  refinedContext:
+    overrides?.refinedContext ||
+    overrides?.decisionExplanation?.refinedContext ||
+    null,
   decisionExplanation: overrides?.decisionExplanation || null,
   economicSummary: overrides?.economicSummary || null,
 })

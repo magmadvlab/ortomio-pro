@@ -35,12 +35,10 @@ import {
   type AgronomicDecisionExplanation,
 } from '@/services/agronomicDecisionExplanationService'
 import {
-  inferOperationalContextTagsFromProfile,
-  inferOperationalContextTagsFromSite,
-  inferOperationalContextTagsFromText,
-  mergeOperationalContextTags,
-} from '@/services/agronomicOperationalContextService'
+  buildAgronomicRefinedContext,
+} from '@/services/agronomicRefinedContextService'
 import type {
+  AgronomicRefinedContext,
   AgronomicOperationalContextTag,
   AgronomicSignalKey,
 } from '@/types/agronomicKernel'
@@ -78,6 +76,7 @@ export interface PrioritizedAction {
   confidence?: number
   agronomicProfileId?: string
   operationalContextTags?: AgronomicOperationalContextTag[]
+  refinedContext?: AgronomicRefinedContext | null
   priorityConfidence?: number
   missingSignals?: AgronomicSignalKey[]
   agronomicFocus?: AgronomicPriorityFocus
@@ -306,28 +305,37 @@ class DirectorService {
       ],
       fallbackProfileId: this.getFallbackAgronomicProfileIdFromSuggestion(suggestion),
     })
-    const operationalContextTags = mergeOperationalContextTags(
-      inferOperationalContextTagsFromText(
+    const refinedContextResult = buildAgronomicRefinedContext({
+      cropProfile: resolvedAgronomicProfile?.profile,
+      textValues: [
         suggestion.context,
         suggestion.title,
         suggestion.description,
         suggestion.metadata?.plantName,
         suggestion.metadata?.cropName,
         suggestion.metadata?.gardenType,
-        suggestion.metadata?.cultivationSystem,
-        suggestion.metadata?.irrigationMode,
-        suggestion.metadata?.varietyType,
-        suggestion.metadata?.trainingSystem,
-        suggestion.metadata?.rootstock,
-        suggestion.metadata?.terroir
-      ),
-      inferOperationalContextTagsFromSite({
-        altitudeMeters: suggestion.metadata?.altitudeMeters,
-        slopePercentage: suggestion.metadata?.slopePercentage,
-        sunExposure: suggestion.metadata?.sunExposure,
-      }),
-      inferOperationalContextTagsFromProfile(resolvedAgronomicProfile?.profile)
-    )
+      ],
+      cultivarLabel:
+        suggestion.metadata?.cultivar ||
+        suggestion.metadata?.variety ||
+        suggestion.metadata?.cropVariety,
+      speciesLabel:
+        suggestion.metadata?.plantName ||
+        suggestion.metadata?.cropName ||
+        suggestion.context,
+      productionIntent: suggestion.metadata?.varietyType,
+      gardenType: suggestion.metadata?.gardenType,
+      cultivationSystem: suggestion.metadata?.cultivationSystem,
+      irrigationMode: suggestion.metadata?.irrigationMode,
+      trainingSystem: suggestion.metadata?.trainingSystem,
+      rootstock: suggestion.metadata?.rootstock,
+      altitudeMeters: suggestion.metadata?.altitudeMeters,
+      slopePercentage: suggestion.metadata?.slopePercentage,
+      sunExposure: suggestion.metadata?.sunExposure,
+      soilType: suggestion.metadata?.soilType,
+      terroir: suggestion.metadata?.terroir,
+    })
+    const operationalContextTags = refinedContextResult.operationalContextTags
     const economicSummary = buildAgronomicEconomicPrioritySummary({
       source: 'director',
       focus: agronomicFocus,
@@ -358,6 +366,7 @@ class DirectorService {
       resolvedProfile: resolvedAgronomicProfile,
       availableSignals: this.getAvailableSignalsFromSuggestion(suggestion),
       isCriticalStage: suggestion.action_priority === 'CRITICAL',
+      refinedContext: refinedContextResult.refinedContext,
     })
     
     return {
@@ -379,6 +388,7 @@ class DirectorService {
       confidence: suggestion.confidence_score,
       agronomicProfileId: resolvedAgronomicProfile?.profile.id,
       operationalContextTags,
+      refinedContext: refinedContextResult.refinedContext,
       priorityConfidence: priorityResult.confidence,
       missingSignals: priorityResult.signalCoverage.missingP0Signals,
       agronomicFocus,

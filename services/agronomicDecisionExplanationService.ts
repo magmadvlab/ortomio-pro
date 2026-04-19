@@ -3,6 +3,7 @@ import type { AgronomicMeasuredFeedbackSummary } from '@/services/agronomicMeasu
 import type { ZoneEnvironmentalHistorySummary } from '@/types/environmental'
 import type {
   AgronomicDecisionFocus,
+  AgronomicRefinedContext,
   AgronomicProfileResolutionSource,
   AgronomicSignalKey,
   ResolvedAgronomicCropProfile,
@@ -49,6 +50,8 @@ export interface AgronomicDecisionExplanation {
   agronomicRationale: string[]
   economicRationale: string[]
   warnings: string[]
+  refinedContext?: AgronomicRefinedContext | null
+  contextRationale?: string[]
 }
 
 export interface BuildAgronomicDecisionExplanationInput {
@@ -59,6 +62,7 @@ export interface BuildAgronomicDecisionExplanationInput {
   resolvedProfile?: ResolvedAgronomicCropProfile | null
   availableSignals?: Iterable<AgronomicSignalKey>
   isCriticalStage?: boolean
+  refinedContext?: AgronomicRefinedContext | null
 }
 
 const dedupeStrings = (values: Array<string | null | undefined>) =>
@@ -112,6 +116,30 @@ export function buildAgronomicDecisionExplanation(
       : null,
     ...(input.priorityResult.measuredFeedbackSummary?.rationale || []),
   ])
+  const refinedContext = input.refinedContext || null
+  const contextRationale = dedupeStrings([
+    refinedContext?.cultivarContext?.cultivarLabel
+      ? `Cultivar considerata: ${refinedContext.cultivarContext.cultivarLabel}.`
+      : null,
+    refinedContext?.cultivarContext?.productionIntent
+      ? `Intento produttivo: ${refinedContext.cultivarContext.productionIntent}.`
+      : null,
+    refinedContext?.subSystemContext?.systemType
+      ? `Sottosistema: ${refinedContext.subSystemContext.systemType}.`
+      : null,
+    refinedContext?.subSystemContext?.irrigationMode
+      ? `Gestione irrigua: ${refinedContext.subSystemContext.irrigationMode}.`
+      : null,
+    refinedContext?.siteOperationalProfile?.exposureClass
+      ? `Esposizione sito: ${refinedContext.siteOperationalProfile.exposureClass}.`
+      : null,
+    refinedContext?.siteOperationalProfile?.slopeClass
+      ? `Pendenza sito: ${refinedContext.siteOperationalProfile.slopeClass}.`
+      : null,
+    refinedContext?.siteOperationalProfile?.soilType
+      ? `Suolo: ${refinedContext.siteOperationalProfile.soilType}.`
+      : null,
+  ])
 
   return {
     source: input.source,
@@ -135,5 +163,7 @@ export function buildAgronomicDecisionExplanation(
     agronomicRationale,
     economicRationale: dedupeStrings(input.priorityResult.economicSummary?.rationale || []),
     warnings,
+    refinedContext,
+    contextRationale,
   }
 }

@@ -49,6 +49,8 @@ test('director suggestionToAction carries operational context into economic comp
 
   assert.equal(protectedAction.operationalContextTags?.includes('protected_culture'), true)
   assert.equal(openFieldAction.operationalContextTags?.includes('open_field'), true)
+  assert.equal(protectedAction.refinedContext?.subSystemContext?.systemType, 'protected_culture')
+  assert.equal(openFieldAction.refinedContext?.subSystemContext?.systemType, 'open_field')
   assert.ok(
     (protectedAction.economicSummary?.actionComparison?.dominanceMargin || 0) >
       (openFieldAction.economicSummary?.actionComparison?.dominanceMargin || 0)
@@ -56,6 +58,15 @@ test('director suggestionToAction carries operational context into economic comp
   assert.equal(protectedAction.actionComparisonExplanation?.length > 0, true)
   assert.equal(protectedAction.decisionExplanation?.source, 'director')
   assert.equal(protectedAction.decisionExplanation?.profileResolution?.profileId, 'field_brassicas')
+  assert.equal(
+    protectedAction.decisionExplanation?.refinedContext?.subSystemContext?.systemType,
+    'protected_culture'
+  )
+  assert.ok(
+    protectedAction.decisionExplanation?.contextRationale?.some((entry) =>
+      entry.includes('Sottosistema: protected_culture.')
+    )
+  )
   assert.ok(
     (protectedAction.decisionExplanation?.signals.requiredP0Signals.length || 0) >=
       (openFieldAction.decisionExplanation?.signals.coveredP0Signals.length || 0)

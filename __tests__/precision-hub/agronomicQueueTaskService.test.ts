@@ -37,6 +37,17 @@ test('buildAgronomicQueueTaskDrafts persists decision snapshot metadata into tas
     agronomicRationale: ['Finestra decisionale marcata come critica.'],
     economicRationale: [],
     warnings: [],
+    refinedContext: {
+      cultivarContext: {
+        cultivarLabel: 'Sangiovese',
+        productionIntent: 'wine',
+      },
+      subSystemContext: {
+        systemType: 'vineyard',
+        irrigationMode: 'pressurized_irrigation',
+      },
+    },
+    contextRationale: ['Cultivar considerata: Sangiovese.'],
   }
 
   const queueItem: AgronomicActionQueueItem = {
@@ -52,6 +63,7 @@ test('buildAgronomicQueueTaskDrafts persists decision snapshot metadata into tas
     missingSignals: [],
     urgencyLabel: 'immediate',
     metadata: {
+      refinedContext: decisionExplanation.refinedContext,
       decisionExplanation,
       economicSummary: null,
     },
@@ -67,6 +79,12 @@ test('buildAgronomicQueueTaskDrafts persists decision snapshot metadata into tas
   const metadata = parseAgronomicQueueTaskMetadata(draft.task.notes)
   assert.equal(metadata?.queueItemId, queueItem.id)
   assert.equal(metadata?.decisionExplanation?.profileResolution?.profileId, 'vineyard_quality')
+  assert.equal(metadata?.refinedContext?.cultivarContext?.cultivarLabel, 'Sangiovese')
+  assert.equal(
+    (metadata?.decisionSnapshot as AgronomicDecisionSnapshot | null)?.refinedContext?.subSystemContext
+      ?.systemType,
+    'vineyard'
+  )
   assert.equal(
     (metadata?.decisionSnapshot as AgronomicDecisionSnapshot | null)?.decisionExplanation?.urgencyLabel,
     'immediate'

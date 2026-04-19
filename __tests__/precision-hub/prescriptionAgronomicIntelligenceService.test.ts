@@ -25,7 +25,64 @@ const prescriptionMap: PrescriptionMap = {
     soilData: true,
     weatherData: true,
   },
-  zones: [],
+  zones: [
+    {
+      id: 'zone-good',
+      prescriptionMapId: 'map-1',
+      zoneNumber: 1,
+      zoneName: 'Zona Buona',
+      zoneType: 'uniform',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[[12.1, 42.1], [12.2, 42.1], [12.2, 42.2], [12.1, 42.2], [12.1, 42.1]]],
+      },
+      centroid: {
+        latitude: 42.15,
+        longitude: 12.15,
+      },
+      areaSqm: 5000,
+      prescription: {
+        applicationRate: 100,
+        unit: 'kg/ha',
+        applicationMethod: 'variable_rate',
+      },
+      sourceData: {
+        soilType: 'Loamy',
+      },
+      dataQuality: 88,
+      confidence: 80,
+      createdAt: '2026-03-21T08:00:00.000Z',
+      updatedAt: '2026-03-21T08:00:00.000Z',
+    },
+    {
+      id: 'zone-weak',
+      prescriptionMapId: 'map-1',
+      zoneNumber: 2,
+      zoneName: 'Zona Debole',
+      zoneType: 'variable',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[[12.2, 42.2], [12.3, 42.2], [12.3, 42.3], [12.2, 42.3], [12.2, 42.2]]],
+      },
+      centroid: {
+        latitude: 42.25,
+        longitude: 12.25,
+      },
+      areaSqm: 5000,
+      prescription: {
+        applicationRate: 90,
+        unit: 'kg/ha',
+        applicationMethod: 'variable_rate',
+      },
+      sourceData: {
+        soilType: 'Clay',
+      },
+      dataQuality: 82,
+      confidence: 74,
+      createdAt: '2026-03-21T08:00:00.000Z',
+      updatedAt: '2026-03-21T08:00:00.000Z',
+    },
+  ],
   totalZones: 2,
   totalAreaSqm: 10000,
   exportFormats: { shapefile: true, kml: true, isoxml: false, geojson: true, csv: true },
@@ -201,6 +258,14 @@ test('buildPrescriptionAgronomicIntelligenceSummary returns high-signal recommen
   assert.equal(summary.operationalPriorities[0]?.drivers.includes('storico deficit persistente'), true)
   assert.equal(summary.recommendations.some((item) => item.id === 'environment:zone-weak'), true)
   assert.equal(summary.operationalPriorities[1]?.operationalContextTags?.includes('vineyard'), true)
+  assert.equal(
+    summary.operationalPriorities[0]?.refinedContext?.siteOperationalProfile?.soilType,
+    'Clay'
+  )
+  assert.equal(
+    summary.operationalPriorities[1]?.refinedContext?.siteOperationalProfile?.soilType,
+    'Loamy'
+  )
 })
 
 test('prescription flow propagates protected vs open-field context into queue economics', () => {
@@ -319,6 +384,19 @@ test('prescription flow propagates protected vs open-field context into queue ec
   assert.equal(
     openFieldSummary.operationalPriorities[0]?.operationalContextTags?.includes('open_field'),
     true
+  )
+  assert.equal(
+    protectedSummary.operationalPriorities[0]?.refinedContext?.subSystemContext?.systemType,
+    'protected_culture'
+  )
+  assert.equal(
+    openFieldSummary.operationalPriorities[0]?.refinedContext?.subSystemContext?.systemType,
+    'open_field'
+  )
+  assert.ok(
+    protectedSummary.operationalPriorities[0]?.decisionExplanation?.contextRationale?.some((entry) =>
+      entry.includes('Sottosistema: protected_culture.')
+    )
   )
   assert.ok(
     (((protectedQueue[0]?.metadata?.actionComparison as { dominanceMargin?: number } | undefined)
