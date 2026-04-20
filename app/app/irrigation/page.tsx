@@ -13,6 +13,7 @@ import { IrrigationSystemCard } from '@/components/irrigation/IrrigationSystemCa
 import { WateringLogForm } from '@/components/irrigation/WateringLogForm'
 import { advancedIrrigationService } from '@/services/advancedIrrigationService'
 import { buildWateringMeasuredFeedback } from '@/services/agronomicMeasuredFeedbackService'
+import { buildWateringOperatorEvidence } from '@/services/agronomicOperatorEvidenceService'
 import { executeWateringLogThroughUnifiedService } from '@/services/operationExecutionBridgeService'
 import { finalizeTaskExecutionPostAction } from '@/services/taskExecutionPostActionService'
 import type { IrrigationSystem, IrrigationZone } from '@/types/irrigation'
@@ -274,16 +275,19 @@ export default function IrrigationPage() {
       return
     }
 
+    const normalizedLogs = (executedLogs || []).map((log) => ({
+      ...log,
+      gardenId: log.gardenId || activeGarden.id,
+      taskId: log.taskId || wateringSourceTaskId,
+    }))
+
     await finalizeTaskExecutionPostAction({
       storageProvider,
       gardenId: activeGarden.id,
       sourceTaskId: wateringSourceTaskId,
+      operatorEvidence: buildWateringOperatorEvidence(normalizedLogs),
       measuredFeedback: buildWateringMeasuredFeedback(
-        (executedLogs || []).map((log) => ({
-          ...log,
-          gardenId: log.gardenId || activeGarden.id,
-          taskId: log.taskId || wateringSourceTaskId,
-        })),
+        normalizedLogs,
         {
           gardenId: activeGarden.id,
           plantName: taskExecutionContext?.plantName,

@@ -23,7 +23,7 @@ Rule:
    Goal:
    - make planner task -> execution module -> outcome registration a faster and clearer field workflow
    Current sub-slice:
-   - next recommended: `P2-C operator evidence payloads`
+   - next recommended: `P2-D Mobile fast path`
    Current document:
    - `docs/reports/execution-plans/ORTOMIO_EXECUTION_PLAN_P2_FIELD_EXECUTION_LOOP_2026-04-19.md`
 

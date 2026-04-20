@@ -9,6 +9,7 @@ import LocationSelector from '@/components/shared/LocationSelector'
 import TaskExecutionBanner from '@/components/shared/TaskExecutionBanner'
 import { MechanicalWorkLogForm } from '@/components/mechanicalWork/MechanicalWorkLogForm'
 import { buildMechanicalMeasuredFeedback } from '@/services/agronomicMeasuredFeedbackService'
+import { buildMechanicalOperatorEvidence } from '@/services/agronomicOperatorEvidenceService'
 import { finalizeTaskExecutionPostAction } from '@/services/taskExecutionPostActionService'
 import { appendSourceTaskReference } from '@/services/taskExecutionTraceService'
 import type { MechanicalWorkLog } from '@/services/mechanicalWorkService'
@@ -209,6 +210,10 @@ function MechanicalWorkContent() {
       storageProvider,
       gardenId: activeGarden.id,
       sourceTaskId: taskExecutionContext?.sourceTaskId,
+      operatorEvidence: buildMechanicalOperatorEvidence({
+        ...log,
+        notes: mergedNotes,
+      }),
       measuredFeedback: buildMechanicalMeasuredFeedback(
         {
           ...log,

@@ -34,6 +34,7 @@ import {
 } from '@/types/nutrition'
 import { advancedNutritionService } from '@/services/advancedNutritionService'
 import { buildNutritionMeasuredFeedback } from '@/services/agronomicMeasuredFeedbackService'
+import { buildNutritionOperatorEvidence } from '@/services/agronomicOperatorEvidenceService'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { executeNutritionTreatmentThroughUnifiedService } from '@/services/operationExecutionBridgeService'
 import { finalizeTaskExecutionPostAction } from '@/services/taskExecutionPostActionService'
@@ -192,6 +193,7 @@ export default function TreatmentPlanner({
         storageProvider,
         gardenId: garden.id,
         sourceTaskId: treatment.sourceTaskId,
+        operatorEvidence: buildNutritionOperatorEvidence(treatmentForExecution),
         measuredFeedback: buildNutritionMeasuredFeedback(treatmentForExecution),
         refresh: [loadData],
       })

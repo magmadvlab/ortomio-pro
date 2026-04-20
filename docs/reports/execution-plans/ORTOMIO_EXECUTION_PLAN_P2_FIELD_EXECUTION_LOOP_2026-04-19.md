@@ -87,6 +87,17 @@ Status:
 Next sub-slice:
 - attach richer operator evidence payloads at source, especially structured notes, photos and module-specific execution metadata
 
+Status:
+- source-side operator evidence payloads completed on 2026-04-20
+
+Delivered in this sub-slice:
+- source-side operator evidence payload now propagates from irrigation, nutrition, harvest and mechanical execution flows into agronomic queue outcomes
+- normalized outcome snapshots now expose whether operator evidence was captured
+- decision ledger history can consume operator evidence alongside measured outcome feedback
+
+Next recommended step:
+- move to `P2-D Mobile fast path`, using the enriched execution context and operator evidence as the baseline for a faster phone-sized execution loop
+
 ### P2-D Mobile fast path
 Goal:
 - identify one tap-first flow for operator actions on phone-sized screens
@@ -102,3 +113,4 @@ Goal:
 - 2026-04-20: P2-A closed
 - 2026-04-20: P2-B closed
 - 2026-04-20: P2-C current slice closed (normalized outcome snapshot + post-action sequencing)
+- 2026-04-20: P2-C operator evidence payloads closed

@@ -7,6 +7,7 @@ import { HarvestRegistrationModal } from './HarvestRegistrationModal';
 import type { HarvestLaunchRequest } from './HarvestRegistrationModal';
 import { GardenTask } from '@/types';
 import { buildHarvestMeasuredFeedback } from '@/services/agronomicMeasuredFeedbackService';
+import { buildHarvestOperatorEvidence } from '@/services/agronomicOperatorEvidenceService';
 import { useStorage } from '@/packages/core/hooks/useStorage';
 import { finalizeTaskExecutionPostAction } from '@/services/taskExecutionPostActionService';
 import { HarvestTrackingService } from '@/services/harvestTrackingService';
@@ -164,13 +165,15 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, la
 
   const finalizeHarvestExecution = async (
     sourceTaskId?: string,
-    measuredFeedback?: ReturnType<typeof buildHarvestMeasuredFeedback>
+    measuredFeedback?: ReturnType<typeof buildHarvestMeasuredFeedback>,
+    operatorEvidence?: ReturnType<typeof buildHarvestOperatorEvidence>
   ) => {
     await finalizeTaskExecutionPostAction({
       storageProvider,
       gardenId,
       sourceTaskId,
       markHarvestedTask: Boolean(sourceTaskId),
+      operatorEvidence,
       measuredFeedback,
       close: () => {
         setEditingHarvest(null);
@@ -194,6 +197,15 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, la
         buildHarvestMeasuredFeedback({
           gardenId,
           taskId: harvestData.task_id,
+          plantName: harvestData.plant_name,
+          quantity: harvestData.quantity,
+          unit: harvestData.unit,
+          rating: harvestData.rating,
+          date: harvestData.harvest_date,
+          brix: undefined,
+          notes: harvestData.notes,
+        }),
+        buildHarvestOperatorEvidence({
           plantName: harvestData.plant_name,
           quantity: harvestData.quantity,
           unit: harvestData.unit,
@@ -228,6 +240,15 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, la
           date: harvestData.harvest_date,
           brix: undefined,
           notes: harvestData.notes,
+        }),
+        buildHarvestOperatorEvidence({
+          plantName: harvestData.plant_name,
+          quantity: harvestData.quantity,
+          unit: harvestData.unit,
+          rating: harvestData.rating,
+          date: harvestData.harvest_date,
+          brix: undefined,
+          notes: harvestData.notes,
         })
       );
     } catch (error) {
@@ -248,6 +269,15 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, la
         buildHarvestMeasuredFeedback({
           gardenId,
           taskId: harvestData.task_id,
+          plantName: harvestData.plant_name,
+          quantity: harvestData.quantity,
+          unit: harvestData.unit,
+          rating: harvestData.rating,
+          date: harvestData.harvest_date,
+          brix: undefined,
+          notes: harvestData.notes,
+        }),
+        buildHarvestOperatorEvidence({
           plantName: harvestData.plant_name,
           quantity: harvestData.quantity,
           unit: harvestData.unit,
@@ -276,6 +306,15 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, la
         buildHarvestMeasuredFeedback({
           gardenId,
           taskId: harvestData.task_id,
+          plantName: harvestData.plant_name,
+          quantity: harvestData.quantity,
+          unit: harvestData.unit,
+          rating: harvestData.rating,
+          date: harvestData.harvest_date,
+          brix: undefined,
+          notes: harvestData.notes,
+        }),
+        buildHarvestOperatorEvidence({
           plantName: harvestData.plant_name,
           quantity: harvestData.quantity,
           unit: harvestData.unit,

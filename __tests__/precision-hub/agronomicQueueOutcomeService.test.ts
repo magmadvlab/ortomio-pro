@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  attachAgronomicQueueOperatorEvidence,
   recordAgronomicQueueTaskOutcome,
   syncAgronomicQueueOutcomeEvidence,
 } from '@/services/agronomicQueueOutcomeService'
@@ -87,6 +88,49 @@ test('syncAgronomicQueueOutcomeEvidence stores normalized evidence snapshot with
   assert.equal(records[0]?.evidenceSnapshot?.status, 'execution_verified')
   assert.equal(records[0]?.evidenceSnapshot?.executionVerified, true)
   assert.equal(records[0]?.evidenceSnapshot?.highConfidenceExecution, true)
+  assert.equal(records[0]?.evidenceSnapshot?.operatorEvidenceCaptured, false)
   assert.equal(records[0]?.evidenceSnapshot?.agronomicOutcome.status, 'positive')
   assert.equal(records[0]?.evidenceSnapshot?.agronomicOutcome.matchedBy, 'task')
+})
+
+test('attachAgronomicQueueOperatorEvidence stores source-side execution payload on matching outcome record', async () => {
+  const store = new Map<string, unknown>()
+  const storage = {
+    async getUserPreference<T>(key: string): Promise<T | null> {
+      return (store.get(key) as T | undefined) || null
+    },
+    async setUserPreference<T>(key: string, value: T): Promise<void> {
+      store.set(key, value)
+    },
+  }
+
+  await storage.setUserPreference('agronomic_queue_outcomes:garden-1', [
+    {
+      id: 'aq_outcome:task-1',
+      gardenId: 'garden-1',
+      taskId: 'task-1',
+      queueItemId: 'irrigation:zone-1',
+      completedAt: '2026-04-20T08:00:00.000Z',
+      taskType: 'Irrigation',
+      plantName: 'Sangiovese',
+      success: true,
+    },
+  ])
+
+  const updated = await attachAgronomicQueueOperatorEvidence(storage as any, {
+    gardenId: 'garden-1',
+    sourceTaskId: 'task-1',
+    operatorEvidence: {
+      operation: 'watering',
+      recordedAt: '2026-04-20',
+      summary: 'Irrigazione registrata a fonte.',
+      notes: 'Turno concluso.',
+      metrics: {
+        totalLiters: 20,
+      },
+    },
+  })
+
+  assert.equal(updated?.operatorEvidence?.operation, 'watering')
+  assert.equal(updated?.operatorEvidence?.metrics.totalLiters, 20)
 })

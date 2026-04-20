@@ -5,7 +5,11 @@ import {
   type AgronomicMeasuredFeedbackRecord,
 } from '@/services/agronomicMeasuredFeedbackService'
 import { rebuildAgronomicProfileLearningSnapshots } from '@/services/agronomicProfileLearningService'
-import { syncAgronomicQueueOutcomeEvidence } from '@/services/agronomicQueueOutcomeService'
+import {
+  attachAgronomicQueueOperatorEvidence,
+  syncAgronomicQueueOutcomeEvidence,
+  type AgronomicQueueOperatorEvidence,
+} from '@/services/agronomicQueueOutcomeService'
 
 type TaskExecutionPostActionStorage = Pick<
   IStorageProvider,
@@ -26,6 +30,7 @@ interface FinalizeTaskExecutionPostActionOptions {
   gardenId?: string
   sourceTaskId?: string
   markHarvestedTask?: boolean
+  operatorEvidence?: AgronomicQueueOperatorEvidence | null
   measuredFeedback?:
     | AgronomicMeasuredFeedbackRecord
     | AgronomicMeasuredFeedbackRecord[]
@@ -62,6 +67,7 @@ export async function finalizeTaskExecutionPostAction({
   gardenId,
   sourceTaskId,
   markHarvestedTask = false,
+  operatorEvidence,
   measuredFeedback,
   close,
   refresh = [],
@@ -74,6 +80,14 @@ export async function finalizeTaskExecutionPostAction({
 
   if (measuredFeedback) {
     await recordAgronomicMeasuredFeedback(storageProvider, measuredFeedback)
+  }
+
+  if (gardenId && sourceTaskId && operatorEvidence) {
+    await attachAgronomicQueueOperatorEvidence(storageProvider, {
+      gardenId,
+      sourceTaskId,
+      operatorEvidence,
+    })
   }
 
   if (gardenId) {

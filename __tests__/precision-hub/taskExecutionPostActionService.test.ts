@@ -86,6 +86,15 @@ test('finalizeTaskExecutionPostAction records feedback before syncing queue outc
     storageProvider: storage as any,
     gardenId: 'garden-1',
     sourceTaskId: 'task-1',
+    operatorEvidence: {
+      operation: 'watering',
+      recordedAt: '2026-04-20',
+      summary: 'Irrigazione registrata a fonte.',
+      notes: 'Turno completato.',
+      metrics: {
+        totalLiters: 21.2,
+      },
+    },
     measuredFeedback: {
       id: 'feedback-1',
       gardenId: 'garden-1',
@@ -105,6 +114,8 @@ test('finalizeTaskExecutionPostAction records feedback before syncing queue outc
 
   assert.equal(outcomes[0]?.evidenceSnapshot?.agronomicOutcome.status, 'positive')
   assert.equal(outcomes[0]?.evidenceSnapshot?.agronomicOutcome.matchedBy, 'task')
+  assert.equal(outcomes[0]?.operatorEvidence?.operation, 'watering')
+  assert.equal(outcomes[0]?.evidenceSnapshot?.operatorEvidenceCaptured, true)
   assert.ok(
     callOrder.indexOf('set:agronomic_measured_feedback:garden-1') <
       callOrder.lastIndexOf('set:agronomic_queue_outcomes:garden-1')

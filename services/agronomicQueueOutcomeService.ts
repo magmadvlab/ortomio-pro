@@ -34,6 +34,7 @@ export interface AgronomicQueueOutcomeRecord {
   executionEvidence?: AgronomicQueueExecutionEvidence | null
   measurementEvidence?: AgronomicQueueMeasurementEvidence | null
   evidenceSnapshot?: AgronomicQueueOutcomeEvidenceSnapshot | null
+  operatorEvidence?: AgronomicQueueOperatorEvidence | null
 }
 
 export interface AgronomicQueueOutcomeSummary {
@@ -74,8 +75,20 @@ export interface AgronomicQueueOutcomeEvidenceSnapshot {
   executionVerified: boolean
   measuredOutcomeRecorded: boolean
   highConfidenceExecution: boolean
+  operatorEvidenceCaptured: boolean
   lastEvidenceAt?: string
   agronomicOutcome: AgronomicQueueMeasuredOutcome
+}
+
+export interface AgronomicQueueOperatorEvidence {
+  operation: 'watering' | 'nutrition' | 'harvest' | 'mechanical_work'
+  recordedAt: string
+  summary: string
+  notes?: string
+  operatorName?: string
+  photoCount?: number
+  followUpRequired?: boolean
+  metrics: Record<string, string | number | boolean | null>
 }
 
 const getOutcomePreferenceKey = (gardenId: string) =>
@@ -252,6 +265,7 @@ const buildOutcomeEvidenceSnapshot = (
   const executionVerified = Boolean(record.executionEvidence)
   const measuredOutcomeRecorded = Boolean(record.measurementEvidence)
   const highConfidenceExecution = record.executionEvidence?.confidence === 'high'
+  const operatorEvidenceCaptured = Boolean(record.operatorEvidence)
 
   let status: AgronomicQueueOutcomeEvidenceSnapshot['status'] = 'completed_unverified'
   if (measuredOutcomeRecorded) {
@@ -262,6 +276,7 @@ const buildOutcomeEvidenceSnapshot = (
 
   const lastEvidenceAt =
     record.measurementEvidence?.recordedAt ||
+    record.operatorEvidence?.recordedAt ||
     agronomicOutcome.recordedAt ||
     record.executionEvidence?.executionDate ||
     record.completedAt
@@ -271,6 +286,7 @@ const buildOutcomeEvidenceSnapshot = (
     executionVerified,
     measuredOutcomeRecorded,
     highConfidenceExecution,
+    operatorEvidenceCaptured,
     lastEvidenceAt,
     agronomicOutcome,
   }
@@ -408,6 +424,45 @@ export async function recordAgronomicQueueTaskOutcome(
   })
 
   return nextRecord
+}
+
+export async function attachAgronomicQueueOperatorEvidence(
+  storageProvider:
+    | Pick<IStorageProvider, 'getUserPreference' | 'setUserPreference'>
+    | null
+    | undefined,
+  options: {
+    gardenId: string
+    sourceTaskId?: string
+    operatorEvidence?: AgronomicQueueOperatorEvidence | null
+  }
+): Promise<AgronomicQueueOutcomeRecord | null> {
+  if (
+    !storageProvider?.getUserPreference ||
+    !storageProvider?.setUserPreference ||
+    !options.sourceTaskId ||
+    !options.operatorEvidence
+  ) {
+    return null
+  }
+
+  const existingRecords = await getAgronomicQueueOutcomeRecords(storageProvider, options.gardenId)
+  const targetRecord = existingRecords.find((record) => record.taskId === options.sourceTaskId)
+  if (!targetRecord) {
+    return null
+  }
+
+  const updatedRecord: AgronomicQueueOutcomeRecord = {
+    ...targetRecord,
+    operatorEvidence: options.operatorEvidence,
+  }
+
+  const nextRecords = existingRecords.map((record) =>
+    record.id === targetRecord.id ? updatedRecord : record
+  )
+
+  await storageProvider.setUserPreference(getOutcomePreferenceKey(options.gardenId), nextRecords)
+  return updatedRecord
 }
 
 const matchWateringEvidence = (
@@ -631,12 +686,14 @@ export async function syncAgronomicQueueOutcomeEvidence(
       ...record,
       executionEvidence,
       measurementEvidence,
+      operatorEvidence: record.operatorEvidence || null,
       evidenceSnapshot: buildOutcomeEvidenceSnapshot(
         task,
         {
           ...record,
           executionEvidence,
           measurementEvidence,
+          operatorEvidence: record.operatorEvidence || null,
         },
         measuredFeedbackRecords
       ),

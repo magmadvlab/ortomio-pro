@@ -12,6 +12,7 @@ import {
   type AgronomicQueueExecutionEvidence,
   type AgronomicQueueMeasuredOutcome,
   type AgronomicQueueMeasurementEvidence,
+  type AgronomicQueueOperatorEvidence,
   type AgronomicQueueOutcomeRecord,
 } from '@/services/agronomicQueueOutcomeService'
 
@@ -71,6 +72,7 @@ export interface AgronomicDecisionLedgerHistoryItem {
   completedAt?: string
   executionEvidence?: AgronomicQueueExecutionEvidence | null
   measurementEvidence?: AgronomicQueueMeasurementEvidence | null
+  operatorEvidence?: AgronomicQueueOperatorEvidence | null
   evidenceStatus: 'pending' | 'completed_unverified' | 'execution_verified' | 'outcome_measured'
   agronomicOutcome: AgronomicMeasuredOutcome
   agronomicRationale: string[]
@@ -298,6 +300,7 @@ export async function getAgronomicDecisionLedgerHistory(
         completedAt: entry.completedAt,
         executionEvidence: outcome?.executionEvidence || null,
         measurementEvidence: outcome?.measurementEvidence || null,
+        operatorEvidence: outcome?.operatorEvidence || null,
         evidenceStatus: resolveEvidenceStatus(entry, outcome),
         agronomicOutcome,
         agronomicRationale: entry.decisionSnapshot.decisionExplanation?.agronomicRationale || [],
