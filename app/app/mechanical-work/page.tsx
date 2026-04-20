@@ -243,6 +243,7 @@ function MechanicalWorkContent() {
         <TaskExecutionBanner
           context={taskExecutionContext}
           theme="mechanical"
+          storageProvider={storageProvider}
           onResume={() => openMechanicalExecution(taskExecutionContext)}
           onDismiss={() => setTaskExecutionContext(null)}
         />

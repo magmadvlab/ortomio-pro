@@ -145,6 +145,7 @@ export default function NutritionPage() {
         <TaskExecutionBanner
           context={taskExecutionContext}
           theme="nutrition"
+          storageProvider={storageProvider}
           onResume={() => resumeTaskAwarePlanner(taskExecutionContext)}
           onDismiss={() => setTaskExecutionContext(null)}
         />

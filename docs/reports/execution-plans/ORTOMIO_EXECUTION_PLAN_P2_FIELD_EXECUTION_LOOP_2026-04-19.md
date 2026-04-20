@@ -42,11 +42,32 @@ Exit criteria:
 - operator can distinguish ready vs partial vs blocked execution contexts
 - no regression in precision-hub tests
 
-## Next Slices After P2-A
+Status:
+- completed on 2026-04-20
+
 ### P2-B Execution banner enrichment
-Goal:
+Objective:
 - carry decision snapshot hints into execution pages so the operator sees why the task was opened
 
+Deliverables:
+- load source task metadata from `sourceTaskId`
+- expose readiness, urgency, confidence and compact context labels inside execution banners
+- surface task rationale and visible operational note when available
+
+Primary files:
+- `components/shared/TaskExecutionBanner.tsx`
+- `services/taskExecutionBannerService.ts`
+- execution pages for irrigation, nutrition, harvest and mechanical work
+
+Exit criteria:
+- execution pages no longer show only the task id and scope
+- banner surfaces enough context to support a fast resume decision
+- no regression in precision-hub tests
+
+Status:
+- completed on 2026-04-20
+
+## Next Slices After P2-A
 ### P2-C Outcome and evidence normalization
 Goal:
 - converge toward a clearer contract for notes, measurements, photos and execution source
@@ -63,3 +84,5 @@ Goal:
 ## Status
 - 2026-04-19: audit completed
 - 2026-04-19: P2-A implementation started
+- 2026-04-20: P2-A closed
+- 2026-04-20: P2-B closed

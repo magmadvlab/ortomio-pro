@@ -316,6 +316,7 @@ export default function IrrigationPage() {
         <TaskExecutionBanner
           context={taskExecutionContext}
           theme="irrigation"
+          storageProvider={storageProvider}
           onResume={() => openWateringExecution(taskExecutionContext)}
           onDismiss={() => setTaskExecutionContext(null)}
         />
