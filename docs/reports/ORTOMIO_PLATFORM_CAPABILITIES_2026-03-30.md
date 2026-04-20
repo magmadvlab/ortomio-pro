@@ -1,5 +1,12 @@
 # ORTOMIO: CAPACITA ATTUALI, VALORE PER GLI AGRICOLTORI E RUOLO DELL'INTELLIGENZA ARTIFICIALE (2026-03-30)
 
+## Nota di aggiornamento
+Per una fotografia piu rigorosa e aderente al codice locale aggiornata al 18 aprile 2026, usare come riferimento principale:
+
+- `docs/reports/ORTOMIO_APPLICATION_CURRENT_STATE_2026-04-18.md`
+
+Questo documento del 30 marzo 2026 resta utile come quadro strategico, ma non deve essere considerato da solo la fonte canonica dello stato reale dell'app.
+
 ## Executive summary
 OrtoMio oggi si presenta come una piattaforma agricola evoluta che unisce:
 - gestione operativa
