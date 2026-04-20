@@ -68,29 +68,20 @@ export async function finalizeTaskExecutionPostAction({
 }: FinalizeTaskExecutionPostActionOptions): Promise<void> {
   await Promise.resolve(close?.())
 
-  const reconciliationJobs: Array<Promise<unknown>> = []
-
   if (markHarvestedTask && sourceTaskId) {
-    reconciliationJobs.push(
-      setTaskStageHarvestedIfNeeded(storageProvider, sourceTaskId)
-    )
+    await setTaskStageHarvestedIfNeeded(storageProvider, sourceTaskId)
   }
 
   if (measuredFeedback) {
-    reconciliationJobs.push(
-      recordAgronomicMeasuredFeedback(storageProvider, measuredFeedback)
-    )
+    await recordAgronomicMeasuredFeedback(storageProvider, measuredFeedback)
   }
 
   if (gardenId) {
-    reconciliationJobs.push(
-      rebuildAgronomicProfileLearningSnapshots(storageProvider, gardenId)
-    )
-    reconciliationJobs.push(
-      syncAgronomicQueueOutcomeEvidence(storageProvider, gardenId)
-    )
+    await rebuildAgronomicProfileLearningSnapshots(storageProvider, gardenId)
+    await syncAgronomicQueueOutcomeEvidence(storageProvider, gardenId)
   }
 
+  const reconciliationJobs: Array<Promise<unknown>> = []
   for (const refreshAction of refresh) {
     reconciliationJobs.push(Promise.resolve(refreshAction()))
   }

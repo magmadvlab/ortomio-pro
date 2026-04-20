@@ -72,6 +72,21 @@ Status:
 Goal:
 - converge toward a clearer contract for notes, measurements, photos and execution source
 
+Current slice:
+- normalize queue outcome evidence into one snapshot that merges execution verification, measured outcome state and agronomic feedback status
+- remove the post-action race between feedback persistence and outcome sync
+
+Delivered in this slice:
+- `evidenceSnapshot` added to agronomic queue outcomes
+- decision ledger history and analytics can now consume one normalized outcome/evidence payload
+- post-action flow now persists measured feedback before syncing queue outcome evidence
+
+Status:
+- current slice completed on 2026-04-20
+
+Next sub-slice:
+- attach richer operator evidence payloads at source, especially structured notes, photos and module-specific execution metadata
+
 ### P2-D Mobile fast path
 Goal:
 - identify one tap-first flow for operator actions on phone-sized screens
@@ -86,3 +101,4 @@ Goal:
 - 2026-04-19: P2-A implementation started
 - 2026-04-20: P2-A closed
 - 2026-04-20: P2-B closed
+- 2026-04-20: P2-C current slice closed (normalized outcome snapshot + post-action sequencing)

@@ -1,6 +1,10 @@
 import type { GardenTask } from '@/types'
 import type { IStorageProvider } from '@/packages/core/storage/interface'
 import {
+  getAgronomicMeasuredFeedbackRecords,
+  type AgronomicMeasuredFeedbackRecord,
+} from '@/services/agronomicMeasuredFeedbackService'
+import {
   parseAgronomicQueueSuggestedBy,
   parseAgronomicQueueTaskMetadata,
   type AgronomicQueueTaskMetadata,
@@ -29,6 +33,7 @@ export interface AgronomicQueueOutcomeRecord {
   metadata?: AgronomicQueueTaskMetadata | null
   executionEvidence?: AgronomicQueueExecutionEvidence | null
   measurementEvidence?: AgronomicQueueMeasurementEvidence | null
+  evidenceSnapshot?: AgronomicQueueOutcomeEvidenceSnapshot | null
 }
 
 export interface AgronomicQueueOutcomeSummary {
@@ -55,6 +60,22 @@ export interface AgronomicQueueMeasurementEvidence {
   recordId: string
   recordedAt: string
   rationale: string
+}
+
+export interface AgronomicQueueMeasuredOutcome {
+  status: 'positive' | 'mixed' | 'negative' | 'unknown'
+  matchedBy: 'task' | 'plant' | 'focus' | 'none'
+  recordedAt?: string
+  summary?: string
+}
+
+export interface AgronomicQueueOutcomeEvidenceSnapshot {
+  status: 'pending' | 'completed_unverified' | 'execution_verified' | 'outcome_measured'
+  executionVerified: boolean
+  measuredOutcomeRecorded: boolean
+  highConfidenceExecution: boolean
+  lastEvidenceAt?: string
+  agronomicOutcome: AgronomicQueueMeasuredOutcome
 }
 
 const getOutcomePreferenceKey = (gardenId: string) =>
@@ -94,6 +115,166 @@ const includesTaskReference = (
 
 const normalizeText = (value?: string | null): string =>
   (value || '').trim().toLowerCase()
+
+const resolveMeasuredFeedbackFocus = (
+  task: GardenTask,
+  metadata?: AgronomicQueueTaskMetadata | null
+): AgronomicMeasuredFeedbackRecord['focus'] | null => {
+  if (metadata?.focus && metadata.focus !== 'health') {
+    return metadata.focus
+  }
+
+  if (task.taskType === 'Irrigation') {
+    return 'water'
+  }
+
+  if (task.taskType === 'Fertilize' || task.taskType === 'Treatment') {
+    return 'nutrition'
+  }
+
+  if (task.taskType === 'Harvest') {
+    return 'quality'
+  }
+
+  if (mechanicalTaskTypes.has(task.taskType)) {
+    return 'operations'
+  }
+
+  return null
+}
+
+const getNumericMetric = (record: AgronomicMeasuredFeedbackRecord, key: string): number | null => {
+  const value = record.metrics[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+const resolveAgronomicOutcomeFromMeasuredFeedback = (
+  task: GardenTask,
+  records: AgronomicMeasuredFeedbackRecord[],
+  metadata?: AgronomicQueueTaskMetadata | null
+): AgronomicQueueMeasuredOutcome => {
+  const feedbackFocus = resolveMeasuredFeedbackFocus(task, metadata)
+  if (!feedbackFocus) {
+    return { status: 'unknown', matchedBy: 'none' }
+  }
+
+  const focusRecords = records.filter((record) => record.focus === feedbackFocus)
+  const taskRecords = focusRecords.filter((record) => record.sourceTaskId === task.id)
+  const plantRecords =
+    task.plantName
+      ? focusRecords.filter(
+          (record) => normalizeText(record.plantName) === normalizeText(task.plantName)
+        )
+      : []
+
+  const matchedRecords =
+    taskRecords.length > 0
+      ? taskRecords
+      : plantRecords.length > 0
+        ? plantRecords
+        : focusRecords
+
+  const matchedBy: AgronomicQueueMeasuredOutcome['matchedBy'] =
+    taskRecords.length > 0
+      ? 'task'
+      : plantRecords.length > 0
+        ? 'plant'
+        : matchedRecords.length > 0
+          ? 'focus'
+          : 'none'
+
+  const latestRecord = [...matchedRecords].sort(
+    (left, right) => new Date(right.recordedAt).getTime() - new Date(left.recordedAt).getTime()
+  )[0]
+
+  if (!latestRecord) {
+    return { status: 'unknown', matchedBy: 'none' }
+  }
+
+  let status: AgronomicQueueMeasuredOutcome['status'] = 'mixed'
+
+  if (feedbackFocus === 'water') {
+    const moistureDelta = getNumericMetric(latestRecord, 'averageSoilMoistureDelta')
+    status =
+      moistureDelta === null
+        ? 'unknown'
+        : moistureDelta <= 0
+          ? 'negative'
+          : moistureDelta >= 4
+            ? 'positive'
+            : 'mixed'
+  } else if (feedbackFocus === 'nutrition') {
+    const effectivenessScore = getNumericMetric(latestRecord, 'effectivenessScore')
+    const followUpRequired = latestRecord.metrics.followUpRequired === true
+    status =
+      effectivenessScore === null
+        ? followUpRequired
+          ? 'negative'
+          : 'unknown'
+        : effectivenessScore < 5 || followUpRequired
+          ? 'negative'
+          : effectivenessScore >= 7
+            ? 'positive'
+            : 'mixed'
+  } else if (feedbackFocus === 'quality') {
+    const qualityRating = getNumericMetric(latestRecord, 'qualityRating')
+    const brix = getNumericMetric(latestRecord, 'brix')
+    status =
+      qualityRating === null && brix === null
+        ? 'unknown'
+        : qualityRating !== null && qualityRating < 3
+          ? 'negative'
+          : (qualityRating !== null && qualityRating >= 4) || (brix !== null && brix >= 12)
+            ? 'positive'
+            : 'mixed'
+  } else {
+    status = latestRecord.summary ? 'mixed' : 'unknown'
+  }
+
+  return {
+    status,
+    matchedBy,
+    recordedAt: latestRecord.recordedAt,
+    summary: latestRecord.summary,
+  }
+}
+
+const buildOutcomeEvidenceSnapshot = (
+  task: GardenTask,
+  record: AgronomicQueueOutcomeRecord,
+  feedbackRecords: AgronomicMeasuredFeedbackRecord[]
+): AgronomicQueueOutcomeEvidenceSnapshot => {
+  const agronomicOutcome = resolveAgronomicOutcomeFromMeasuredFeedback(
+    task,
+    feedbackRecords,
+    record.metadata
+  )
+  const executionVerified = Boolean(record.executionEvidence)
+  const measuredOutcomeRecorded = Boolean(record.measurementEvidence)
+  const highConfidenceExecution = record.executionEvidence?.confidence === 'high'
+
+  let status: AgronomicQueueOutcomeEvidenceSnapshot['status'] = 'completed_unverified'
+  if (measuredOutcomeRecorded) {
+    status = 'outcome_measured'
+  } else if (executionVerified) {
+    status = 'execution_verified'
+  }
+
+  const lastEvidenceAt =
+    record.measurementEvidence?.recordedAt ||
+    agronomicOutcome.recordedAt ||
+    record.executionEvidence?.executionDate ||
+    record.completedAt
+
+  return {
+    status,
+    executionVerified,
+    measuredOutcomeRecorded,
+    highConfidenceExecution,
+    lastEvidenceAt,
+    agronomicOutcome,
+  }
+}
 
 const mechanicalTaskTypes = new Set<GardenTask['taskType']>([
   'Plowing',
@@ -406,7 +587,7 @@ export async function syncAgronomicQueueOutcomeEvidence(
     return []
   }
 
-  const [records, tasks, wateringLogs, fertilizerLogs, treatments, mechanicalWorks, harvestLogs] =
+  const [records, tasks, wateringLogs, fertilizerLogs, treatments, mechanicalWorks, harvestLogs, measuredFeedbackRecords] =
     await Promise.all([
       getAgronomicQueueOutcomeRecords(storageProvider, gardenId),
       storageProvider.getTasks(gardenId).catch(() => []),
@@ -418,6 +599,7 @@ export async function syncAgronomicQueueOutcomeEvidence(
       storageProvider.getTreatments(gardenId).catch(() => []),
       storageProvider.getMechanicalWorks(gardenId).catch(() => []),
       storageProvider.getHarvestLogs(gardenId).catch(() => []),
+      getAgronomicMeasuredFeedbackRecords(storageProvider, gardenId).catch(() => []),
     ])
 
   const updatedRecords = records.map((record) => {
@@ -449,6 +631,15 @@ export async function syncAgronomicQueueOutcomeEvidence(
       ...record,
       executionEvidence,
       measurementEvidence,
+      evidenceSnapshot: buildOutcomeEvidenceSnapshot(
+        task,
+        {
+          ...record,
+          executionEvidence,
+          measurementEvidence,
+        },
+        measuredFeedbackRecords
+      ),
     }
   })
 
