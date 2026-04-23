@@ -117,6 +117,30 @@ Primary files:
 Status:
 - first mobile fast path slice completed on 2026-04-23
 
+Next sub-slice:
+- carry the same compact mobile execution summary into execution page headers and modal headers
+- expose the evidence contract directly inside execution forms so the operator sees what is minimally required before saving
+- keep the implementation additive and metadata-driven, reusing queue operational summary fields where possible
+
+Primary files:
+- `components/shared/TaskExecutionBanner.tsx`
+- `services/taskExecutionBannerService.ts`
+- execution modules and forms for irrigation, nutrition, harvest and mechanical work
+- post-action / evidence helpers where the visible contract needs alignment
+
+Exit criteria:
+- execution headers on phone-sized screens show the same readiness / urgency / confidence language already exposed in planner cards
+- evidence forms expose a compact and explicit execution contract before submit
+- no regression in precision-hub tests or global type-check
+
+Status:
+- second mobile fast path slice completed on 2026-04-23
+
+Delivered in this sub-slice:
+- execution banners now expose the same compact evidence contract already introduced in planner cards on phone-sized screens
+- irrigation, nutrition, harvest and mechanical execution entry forms now show the minimal evidence contract before submit
+- the implementation stays additive by reusing `loadTaskExecutionBannerDetails` and the queue operational summary instead of duplicating per-module rules
+
 ## Risks
 - planner surfaces mix legacy and newer task flows, so improvements must stay additive
 - not every task is agronomic-queue generated, therefore summaries must degrade gracefully
@@ -130,3 +154,5 @@ Status:
 - 2026-04-20: P2-C current slice closed (normalized outcome snapshot + post-action sequencing)
 - 2026-04-20: P2-C operator evidence payloads closed
 - 2026-04-23: P2-D first mobile fast path slice closed
+- 2026-04-23: global type-check remediation completed and no longer blocks P2 delivery
+- 2026-04-23: P2-D second mobile fast path slice closed (execution headers + evidence contract in forms)

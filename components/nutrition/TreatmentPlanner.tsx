@@ -40,6 +40,7 @@ import { executeNutritionTreatmentThroughUnifiedService } from '@/services/opera
 import { finalizeTaskExecutionPostAction } from '@/services/taskExecutionPostActionService'
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns'
 import { it } from 'date-fns/locale'
+import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvidenceContract'
 
 interface TreatmentPlannerProps {
   garden: Garden
@@ -673,6 +674,7 @@ function TreatmentModal({
   onClose,
   onSave
 }: TreatmentModalProps) {
+  const { storageProvider } = useStorage()
   const [formData, setFormData] = useState<any>({})
   const [saving, setSaving] = useState(false)
 
@@ -875,6 +877,8 @@ function TreatmentModal({
         <div className="p-6">
           {viewMode === 'treatments' ? (
             <div className="space-y-4">
+              <TaskExecutionEvidenceContract sourceTaskId={formData.sourceTaskId} storageProvider={storageProvider} />
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Tipo trattamento</label>

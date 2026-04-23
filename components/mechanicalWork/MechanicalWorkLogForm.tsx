@@ -6,19 +6,22 @@ import { Garden, GardenBed, GardenRow } from '@/types'
 import { WorkType, EquipmentType } from '@/logic/mechanicalWorkEngine'
 import { MechanicalWorkLog } from '@/services/mechanicalWorkService'
 import { useStorage } from '@/packages/core/hooks/useStorage'
+import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvidenceContract'
 
 interface MechanicalWorkLogFormProps {
   garden: Garden
   onSubmit: (log: MechanicalWorkLog) => Promise<void>
   onCancel: () => void
   initialData?: Partial<MechanicalWorkLog>
+  sourceTaskId?: string
 }
 
 export function MechanicalWorkLogForm({
   garden,
   onSubmit,
   onCancel,
-  initialData
+  initialData,
+  sourceTaskId
 }: MechanicalWorkLogFormProps) {
   const { storageProvider } = useStorage()
   const [formData, setFormData] = useState<Partial<MechanicalWorkLog>>({
@@ -125,6 +128,8 @@ export function MechanicalWorkLogForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <TaskExecutionEvidenceContract sourceTaskId={sourceTaskId} storageProvider={storageProvider} />
+
       {/* TIPO LAVORAZIONE */}
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">

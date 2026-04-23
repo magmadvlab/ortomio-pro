@@ -675,6 +675,7 @@ function MechanicalWorkContent() {
                   gardenId: activeGarden.id,
                   completed: true,
                 }}
+                sourceTaskId={taskExecutionContext?.sourceTaskId}
                 onSubmit={handleCreateMechanicalExecution}
                 onCancel={() => setShowExecutionForm(false)}
               />
