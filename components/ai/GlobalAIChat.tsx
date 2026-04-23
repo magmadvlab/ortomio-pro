@@ -71,10 +71,37 @@ export default function GlobalAIChat() {
     setIsLoading(true)
 
     try {
-      // Simula chiamata API AI
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      const aiResponse = generateAIResponse(messageText)
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: messageText,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => null)
+        const aiMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          type: 'ai',
+          content: buildChatErrorMessage(response.status, errorPayload?.error, messageText),
+          timestamp: new Date(),
+          suggestions: errorPayload?.error === 'insufficient_credits'
+            ? ['Controlla i credits AI', 'Riformula la domanda', 'Usa una domanda più specifica']
+            : buildFallbackResponse(messageText).suggestions,
+        }
+
+        setMessages(prev => [...prev, aiMessage])
+        return
+      }
+
+      const payload = await response.json()
+      const aiResponse = {
+        content: appendCreditsHint(payload.reply, payload.creditsRemaining),
+        suggestions: buildFallbackResponse(messageText).suggestions,
+      }
       
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -86,11 +113,13 @@ export default function GlobalAIChat() {
 
       setMessages(prev => [...prev, aiMessage])
     } catch (error) {
+      const fallback = buildFallbackResponse(messageText)
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: '❌ Mi dispiace, c\'è stato un errore. Riprova tra poco.',
-        timestamp: new Date()
+        content: `⚠️ La connessione al motore AI non è disponibile in questo momento.\n\n${fallback.content}`,
+        timestamp: new Date(),
+        suggestions: fallback.suggestions
       }
       setMessages(prev => [...prev, errorMessage])
     } finally {
@@ -98,7 +127,7 @@ export default function GlobalAIChat() {
     }
   }
 
-  const generateAIResponse = (question: string) => {
+  const buildFallbackResponse = (question: string) => {
     const lowerQuestion = question.toLowerCase()
     
     // Risposte intelligenti basate sulla domanda
@@ -281,6 +310,37 @@ Fai pure la tua domanda specifica!`,
         'Consigli per principianti'
       ]
     }
+  }
+
+  const buildChatErrorMessage = (status: number, errorCode?: string, question?: string) => {
+    if (errorCode === 'insufficient_credits') {
+      return '⚠️ Credits AI insufficienti per usare la chat globale. Ricarica i credits oppure riprova quando disponibili.'
+    }
+
+    if (status === 401 || status === 403) {
+      return '⚠️ Questa chat AI richiede un accesso autorizzato con piano compatibile.'
+    }
+
+    if (status >= 500) {
+      const fallback = question ? buildFallbackResponse(question) : null
+      return fallback
+        ? `⚠️ Il backend AI ha restituito un errore temporaneo.\n\n${fallback.content}`
+        : '⚠️ Il backend AI ha restituito un errore temporaneo. Riprova tra poco.'
+    }
+
+    return '⚠️ La richiesta alla chat AI non è andata a buon fine. Riprova con una domanda più specifica.'
+  }
+
+  const appendCreditsHint = (reply?: string, creditsRemaining?: number) => {
+    if (!reply) {
+      return '⚠️ La chat AI non ha restituito contenuto.'
+    }
+
+    if (typeof creditsRemaining === 'number') {
+      return `${reply}\n\n_Credits AI rimanenti: ${creditsRemaining}_`
+    }
+
+    return reply
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
