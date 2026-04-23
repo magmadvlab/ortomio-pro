@@ -348,6 +348,7 @@ export interface StructureConfig {
 export interface Garden {
   id: string;
   name: string;
+  location?: string;
   coordinates?: GeoLocation;
   sizeSqMeters: number; // Sempre in m² per calcoli interni
   sizeUnit?: 'sqm' | 'are' | 'hectare'; // Unità di misura per display (default: 'sqm')

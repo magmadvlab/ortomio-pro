@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, List, Grid } from 'lucide-react';
 import { getSupabaseClient } from '../../config/supabase';
+import { useAuth } from '@/packages/core/hooks/useAuth';
 
 interface CalendarEvent {
   id: string;
@@ -19,6 +20,7 @@ interface CalendarEvent {
 type ViewMode = 'month' | 'week' | 'list';
 
 export const IntegratedCalendar: React.FC = () => {
+  const { user } = useAuth();
   const supabase = getSupabaseClient();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +45,9 @@ export const IntegratedCalendar: React.FC = () => {
   const loadEvents = async () => {
     try {
       setLoading(true);
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
       
       // Load events for the current month
       const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
@@ -69,6 +74,10 @@ export const IntegratedCalendar: React.FC = () => {
     if (!eventTitle.trim() || !eventDate) return;
 
     try {
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+
       const { data, error } = await supabase
         .from('calendar_events')
         .insert([{
@@ -95,6 +104,10 @@ export const IntegratedCalendar: React.FC = () => {
 
   const handleToggleComplete = async (eventId: string, completed: boolean) => {
     try {
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+
       const { error } = await supabase
         .from('calendar_events')
         .update({ completed: !completed })

@@ -1181,13 +1181,16 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
         plant={selectedPlantForDetail || {
           id: '',
           gardenId: garden.id,
+          positionInRow: 1,
           plantCode: '',
           plantName: '',
           variety: '',
           plantedDate: new Date().toISOString(),
           status: 'healthy',
           healthScore: 100,
-          photos: []
+          photos: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         } as GardenPlant}
         isOpen={showPlantDetailModal && selectedPlantForDetail !== null}
         onClose={() => {

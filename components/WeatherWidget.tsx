@@ -25,6 +25,49 @@ interface WeatherWidgetProps {
   gardens?: Garden[]; // Array di tutti i giardini con coordinate
 }
 
+const buildAgronomicActions = (
+  alert: WeatherAlert,
+  day?: WeatherWidgetForecast
+): string[] => {
+  const actions: string[] = [];
+
+  switch (alert.type) {
+    case 'temperature':
+      if ((day?.tempMin ?? 99) <= 2) {
+        actions.push('Proteggi le colture sensibili e rinvia i trapianti più delicati.');
+      }
+      if ((day?.tempMax ?? 0) >= 32) {
+        actions.push('Verifica turni irrigui, stress idrico e ombreggiamento delle colture più esposte.');
+      }
+      if (actions.length === 0) {
+        actions.push('Controlla lo stato vegetativo e adegua irrigazione o protezioni termiche.');
+      }
+      break;
+    case 'rain':
+      actions.push('Ricalibra irrigazione e fertirrigazione sulle precipitazioni previste.');
+      if ((day?.rainForecastMm ?? 0) >= 10) {
+        actions.push('Controlla drenaggio, ristagni e accessibilità dei filari prima delle lavorazioni.');
+      }
+      break;
+    case 'wind':
+      actions.push('Verifica tutori, legature e stabilità delle colture alte o appena trapiantate.');
+      if ((day?.windSpeed ?? 0) >= 35) {
+        actions.push('Evita trattamenti e operazioni leggere nelle ore di picco del vento.');
+      }
+      break;
+    case 'humidity':
+      actions.push('Aumenta il monitoraggio fitosanitario sulle colture sensibili a muffe e patogeni fogliari.');
+      if ((day?.humidity ?? 0) >= 85) {
+        actions.push('Favorisci aerazione e valuta la finestra utile per trattamenti preventivi.');
+      }
+      break;
+    default:
+      break;
+  }
+
+  return actions;
+};
+
 const WeatherWidget: React.FC<WeatherWidgetProps> = ({
   latitude,
   longitude,
@@ -161,33 +204,53 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
 
   const getAlertIcon = (type: WeatherAlert['type']) => {
     switch (type) {
-      case 'FROST':
-        return <Snowflake size={18} className="text-blue-600" />;
-      case 'HEATWAVE':
+      case 'temperature':
         return <ThermometerSun size={18} className="text-red-600" />;
-      case 'HEAVYRAIN':
+      case 'rain':
         return <CloudRain size={18} className="text-blue-600" />;
-      case 'DROUGHT':
-        return <Droplets size={18} className="text-orange-600" />;
+      case 'wind':
+        return <Wind size={18} className="text-gray-600" />;
+      case 'humidity':
+        return <Droplets size={18} className="text-cyan-600" />;
       default:
-        return <AlertTriangle size={18} />;
+        return <AlertTriangle size={18} className="text-amber-600" />;
     }
   };
 
   const getAlertColor = (severity: WeatherAlert['severity']) => {
     switch (severity) {
-      case 'CRITICAL':
-        return 'bg-red-50 border-red-300 text-red-900';
       case 'HIGH':
-        return 'bg-orange-50 border-orange-300 text-orange-900';
+        return 'bg-red-50 border-red-300 text-red-900';
       case 'MEDIUM':
-        return 'bg-yellow-50 border-yellow-300 text-yellow-900';
+        return 'bg-amber-50 border-amber-300 text-amber-900';
       case 'LOW':
         return 'bg-blue-50 border-blue-300 text-blue-900';
       default:
         return 'bg-gray-50 border-gray-300 text-gray-900';
     }
   };
+
+  const getAlertLabel = (type: WeatherAlert['type']) => {
+    switch (type) {
+      case 'temperature':
+        return 'Stress termico';
+      case 'rain':
+        return 'Precipitazioni';
+      case 'wind':
+        return 'Vento';
+      case 'humidity':
+        return 'Umidità';
+      default:
+        return 'Allerta meteo';
+    }
+  };
+
+  const todayForecast = forecast[0];
+  const agronomicAlerts = alerts.map((alert) => ({
+    ...alert,
+    advisoryTitle: getAlertLabel(alert.type),
+    advisoryActions: buildAgronomicActions(alert, todayForecast),
+  }));
 
   if (!can('advancedWeather')) {
     return (
@@ -247,9 +310,9 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
       </div>
 
       {/* Alerts */}
-      {alerts.length > 0 && (
+      {agronomicAlerts.length > 0 && (
         <div className="mb-4 space-y-2">
-          {alerts.map((alert, idx) => (
+          {agronomicAlerts.map((alert, idx) => (
             <div
               key={idx}
               className={`${getAlertColor(alert.severity)} rounded-lg p-4 border-l-4`}
@@ -257,10 +320,11 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
               <div className="flex items-start gap-3">
                 {getAlertIcon(alert.type)}
                 <div className="flex-1">
-                  <p className="font-bold mb-1">{alert.message}</p>
-                  {alert.actionRequired && alert.actionRequired.length > 0 && (
+                  <p className="font-bold mb-1">{alert.advisoryTitle}</p>
+                  <p className="text-sm">{alert.message}</p>
+                  {alert.advisoryActions.length > 0 && (
                     <ul className="list-disc list-inside text-sm mt-2 space-y-1">
-                      {alert.actionRequired.map((action, i) => (
+                      {alert.advisoryActions.map((action: string, i: number) => (
                         <li key={i}>{action}</li>
                       ))}
                     </ul>

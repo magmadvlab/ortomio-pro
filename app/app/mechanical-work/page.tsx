@@ -190,13 +190,8 @@ function MechanicalWorkContent() {
       equipment_type: log.equipmentType,
       equipment_attachment: log.equipmentAttachment,
       work_metadata: {
-        sourceTaskId: taskExecutionContext?.sourceTaskId,
-        selectedBedIds: log.bedIds || [],
-        selectedRowIds: log.rowIds || [],
-        durationMinutes: log.durationMinutes,
-        cost: log.cost,
-        completed: log.completed,
         category: 'General',
+        description: deduplicatedNotes.join(' | ') || undefined,
       },
       weather_conditions: {
         temp: log.weatherConditions?.temperature,

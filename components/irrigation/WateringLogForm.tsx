@@ -215,6 +215,7 @@ export function WateringLogForm({
         alert('La zona irrigua non ha un gardenId associato')
         return
       }
+      const gardenId = zone.gardenId
 
       const wateredAt = `${formData.date}T${formData.time}:00`
 
@@ -222,7 +223,7 @@ export function WateringLogForm({
       if (!selectedZone?.bedIds?.length || selectedRowIds.length === 0) {
         await onSubmit({
           zoneId: formData.zoneId,
-          gardenId: zone.gardenId,
+          gardenId,
           taskId: sourceTaskId,
           wateredAt,
           date: formData.date,
@@ -241,10 +242,10 @@ export function WateringLogForm({
           const minutes = minutesByRowId[row.id]
           return {
             zoneId: formData.zoneId,
-            gardenId: zone.gardenId,
+            gardenId,
             taskId: sourceTaskId,
             bedId: formData.bedId,
-            rowId: row.id,
+            bedRowId: row.id,
             wateredAt,
             date: formData.date,
             durationMinutes: minutes,

@@ -11,6 +11,9 @@ export default function SupabaseConnectionDebug() {
     const checkConnection = async () => {
       try {
         const supabase = getSupabaseClient()
+        if (!supabase) {
+          throw new Error('Supabase client not available')
+        }
         
         // Get current user
         const { data: { user } } = await supabase.auth.getUser()

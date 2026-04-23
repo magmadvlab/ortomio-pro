@@ -60,10 +60,10 @@ const normalizeKey = (value?: string | null) =>
 const uniqueStrings = (values: Array<string | null | undefined>) =>
   Array.from(new Set(values.map((value) => normalizeToken(value)).filter(Boolean))) as string[]
 
-const hasValues = (value?: Record<string, unknown>) =>
+const hasValues = (value?: object) =>
   Boolean(
     value &&
-      Object.values(value).some((entry) =>
+      Object.values(value as Record<string, unknown>).some((entry) =>
         Array.isArray(entry) ? entry.length > 0 : entry !== undefined && entry !== null && entry !== ''
       )
   )

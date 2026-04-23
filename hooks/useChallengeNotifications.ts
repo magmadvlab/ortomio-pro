@@ -4,7 +4,6 @@
  */
 
 import { useState, useCallback } from 'react'
-// import { getChallengeForDate } from '@/data/giornateSpeciali' // REMOVED: gamification
 import { useStorage } from '@/packages/core/hooks/useStorage'
 
 export interface ChallengeProgress {
@@ -15,8 +14,6 @@ export interface ChallengeProgress {
   message: string
   isCompleted: boolean
 }
-
-type ChallengeCompletion = { challenge_id: string }
 
 export type ChallengeAction = 'sowing' | 'harvest' | 'photo' | 'task_complete' | 'treatment' | 'fertilize'
 
@@ -38,38 +35,7 @@ export function useChallengeNotifications() {
     if (!userId) return null
     
     try {
-      // 1. Controlla challenge giornaliero
-      // const todayChallenge = getChallengeForDate(new Date()) // REMOVED: gamification
-      const todayChallenge = null; // Gamification removed
-      if (todayChallenge) {
-        // Verifica se l'azione corrisponde al challenge del giorno
-        const actionMatches = checkActionMatchesChallenge(action, todayChallenge)
-        
-        if (actionMatches) {
-          // Controlla se già completato
-          const completions: ChallengeCompletion[] =
-            (await storageProvider.getChallengeCompletions?.(userId)) || []
-          const alreadyCompleted = completions.some(
-            (completion) => completion.challenge_id === `${todayChallenge.giorno}-${todayChallenge.mese}`
-          )
-          
-          if (!alreadyCompleted) {
-            const challengeBadge = todayChallenge.challenge.badge
-            return {
-              challengeId: `${todayChallenge.giorno}-${todayChallenge.mese}`,
-              title: todayChallenge.challenge.titolo,
-              progress: { current: 1, target: todayChallenge.challenge.azioni.length },
-              badge: challengeBadge
-                ? { emoji: challengeBadge.emoji, name: challengeBadge.nome }
-                : undefined,
-              message: `Stai completando la challenge di oggi: ${todayChallenge.challenge.titolo}`,
-              isCompleted: false
-            }
-          }
-        }
-      }
-      
-      // 2. Controlla challenge progressivi (es. "5 semine completate")
+      // Solo traguardi progressivi operativi; la gamification giornaliera e' stata rimossa.
       const progressiveChallenges = await checkProgressiveChallenges(action, userId, metadata)
       if (progressiveChallenges) {
         return progressiveChallenges
@@ -81,29 +47,6 @@ export function useChallengeNotifications() {
       return null
     }
   }, [storageProvider])
-  
-  /**
-   * Verifica se un'azione corrisponde a un challenge
-   */
-  const checkActionMatchesChallenge = (
-    action: ChallengeAction,
-    challenge: any
-  ): boolean => {
-    // Mappa azioni a tipi di challenge
-    const actionMap: Record<ChallengeAction, string[]> = {
-      sowing: ['semina', 'sowing', 'pianta'],
-      harvest: ['raccolta', 'harvest', 'raccolto'],
-      photo: ['foto', 'photo', 'immagine'],
-      task_complete: ['task', 'completa', 'attività'],
-      treatment: ['trattamento', 'treatment'],
-      fertilize: ['concimazione', 'fertilize']
-    }
-    
-    const actionKeywords = actionMap[action] || []
-    const challengeText = `${challenge.challenge.titolo} ${challenge.challenge.descrizione}`.toLowerCase()
-    
-    return actionKeywords.some(keyword => challengeText.includes(keyword))
-  }
   
   /**
    * Controlla challenge progressivi (es. "Completa 5 semine")
@@ -193,7 +136,6 @@ export function useChallengeNotifications() {
     activeNotification
   }
 }
-
 
 
 

@@ -6,6 +6,15 @@ import { SeedlingBatch } from '@/services/seedlingService'
 import { SeedPacket } from '@/types'
 import { Sprout, Package, Plus, ExternalLink } from 'lucide-react'
 
+const getPacketPlantName = (packet: SeedPacket) => packet.speciesName
+const getPacketVariety = (packet: SeedPacket) => packet.varietyName
+const getPacketAvailableSeeds = (packet: SeedPacket) =>
+  packet.currentQuantity ??
+  packet.quantityExact ??
+  packet.quantityMax ??
+  packet.initialQuantity ??
+  0
+
 interface CultivationSelectorProps {
   gardenId: string
   value: string
@@ -60,8 +69,8 @@ export function CultivationSelector({
   )
 
   const filteredPackets = seedPackets.filter(packet =>
-    packet.plantName.toLowerCase().includes(value.toLowerCase()) ||
-    packet.variety?.toLowerCase().includes(value.toLowerCase())
+    getPacketPlantName(packet).toLowerCase().includes(value.toLowerCase()) ||
+    getPacketVariety(packet).toLowerCase().includes(value.toLowerCase())
   )
 
   const handleBatchSelect = (batch: SeedlingBatch) => {
@@ -72,14 +81,16 @@ export function CultivationSelector({
   }
 
   const handlePacketSelect = (packet: SeedPacket) => {
-    const cultivarName = packet.variety ? `${packet.plantName} ${packet.variety}` : packet.plantName
+    const plantName = getPacketPlantName(packet)
+    const variety = getPacketVariety(packet)
+    const cultivarName = variety ? `${plantName} ${variety}` : plantName
     onChange(cultivarName)
     setShowSuggestions(false)
     onSeedPacketSelect?.(packet)
   }
 
-  const readyBatches = filteredBatches.filter(b => b.currentPhase === 'ready')
-  const availablePackets = filteredPackets.filter(p => (p.remainingSeeds || 0) > 0)
+  const readyBatches = filteredBatches.filter(b => b.phase === 'ReadyToTransplant')
+  const availablePackets = filteredPackets.filter(p => getPacketAvailableSeeds(p) > 0)
 
   return (
     <div className="relative">
@@ -156,10 +167,12 @@ export function CultivationSelector({
                 >
                   <div>
                     <div className="font-medium text-sm">
-                      {packet.variety ? `${packet.plantName} ${packet.variety}` : packet.plantName}
+                      {getPacketVariety(packet)
+                        ? `${getPacketPlantName(packet)} ${getPacketVariety(packet)}`
+                        : getPacketPlantName(packet)}
                     </div>
                     <div className="text-xs text-gray-600">
-                      {packet.remainingSeeds} semi disponibili
+                      {getPacketAvailableSeeds(packet)} semi disponibili
                     </div>
                   </div>
                   <div className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">

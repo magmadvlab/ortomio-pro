@@ -198,7 +198,8 @@ export const calculateBrixProgress = (
         baseBrix += 0.5;
       }
       // Pioggia può rallentare
-      if (weather.rainForecastMm > 10) {
+      const rainForecastMm = weather.rainForecastMm ?? weather.precipitation ?? 0;
+      if (rainForecastMm > 10) {
         baseBrix -= 0.3;
       }
     }
@@ -262,4 +263,3 @@ export const estimateDaysToHarvest = (
   
   return Math.ceil(brixRemaining / dailyBrixIncrease);
 };
-

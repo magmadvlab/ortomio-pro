@@ -133,7 +133,7 @@ const SentinelHubStatus: React.FC<SentinelHubStatusProps> = ({ onStatusChange })
             {config.description}
           </p>
           
-          {errorMessage && status !== 'simulated' && (
+          {errorMessage && status === 'error' && (
             <p className="text-xs text-red-600 mt-2 font-mono">
               {errorMessage}
             </p>

@@ -102,6 +102,21 @@ Next recommended step:
 Goal:
 - identify one tap-first flow for operator actions on phone-sized screens
 
+First slice delivered on 2026-04-23:
+- agronomic queue task operational summaries now expose mobile action labels and evidence prompts
+- planner task cards render a phone-sized execution CTA with the minimal evidence contract before launch
+- refined context contract was aligned with the existing `terroir` usage in queue summaries
+
+Primary files:
+- `services/agronomicQueueTaskService.ts`
+- `components/planner/TaskList.tsx`
+- `types/agronomicKernel.ts`
+- `services/agronomicRefinedContextService.ts`
+- `__tests__/precision-hub/agronomicQueueTaskService.test.ts`
+
+Status:
+- first mobile fast path slice completed on 2026-04-23
+
 ## Risks
 - planner surfaces mix legacy and newer task flows, so improvements must stay additive
 - not every task is agronomic-queue generated, therefore summaries must degrade gracefully
@@ -114,3 +129,4 @@ Goal:
 - 2026-04-20: P2-B closed
 - 2026-04-20: P2-C current slice closed (normalized outcome snapshot + post-action sequencing)
 - 2026-04-20: P2-C operator evidence payloads closed
+- 2026-04-23: P2-D first mobile fast path slice closed

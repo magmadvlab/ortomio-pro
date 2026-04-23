@@ -22,6 +22,26 @@ if (!isApiKeyConfigured()) {
 
 const ai = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
+const generateWithLegacyGemini = async (request: {
+  model: string;
+  contents: any;
+  config?: Record<string, unknown>;
+}): Promise<{ text: string }> => {
+  if (!ai) {
+    throw new Error("API Key non configurata");
+  }
+
+  const modelClient = ai.getGenerativeModel({ model: request.model });
+  const result = await modelClient.generateContent({
+    contents: request.contents,
+    generationConfig: request.config,
+  });
+
+  return {
+    text: result.response.text() || "",
+  };
+};
+
 // Helper per verificare se l'API è disponibile (usa configurazione personalizzata se disponibile)
 const checkApiAvailable = (): boolean => {
   // Per retrocompatibilità, verifica solo configurazione default
@@ -237,7 +257,7 @@ export const getSeasonalSuggestions = async (lat: number, lng: number): Promise<
       );
     } else if (ai) {
       // Usa provider legacy
-      response = await ai.models.generateContent({
+      response = await generateWithLegacyGemini({
         model,
         contents: prompt,
         config: {
@@ -584,7 +604,7 @@ Rispondi SOLO in formato JSON valido, rispettando esattamente lo schema fornito.
   }
 
   try {
-    const response = await ai!.models.generateContent({
+    const response = await generateWithLegacyGemini({
       model,
       contents: prompt,
       config: {
@@ -631,7 +651,7 @@ export const getTreatmentAdvice = async (query: string): Promise<TreatmentAdvice
   `;
 
   try {
-    const response = await ai!.models.generateContent({
+    const response = await generateWithLegacyGemini({
       model,
       contents: prompt,
       config: {
@@ -736,7 +756,7 @@ export const analyzePlantImage = async (
   prompt += `\n\nRispondi in Italiano in modo conciso ma utile.`;
   
   try {
-    const response = await ai!.models.generateContent({
+    const response = await generateWithLegacyGemini({
       model,
       contents: {
         parts: [
@@ -750,7 +770,7 @@ export const analyzePlantImage = async (
             text: prompt
           }
         ]
-      }
+      },
     });
 
     return response.text || "Impossibile analizzare l'immagine.";
@@ -772,7 +792,7 @@ export const diagnosePlantHealth = async (base64Image: string): Promise<Treatmen
   const model = "gemini-2.5-flash";
 
   try {
-    const response = await ai!.models.generateContent({
+    const response = await generateWithLegacyGemini({
       model,
       contents: {
         parts: [
@@ -831,7 +851,7 @@ export const checkHarvestReadiness = async (plantName: string, brix: number): Pr
   `;
 
   try {
-    const response = await ai!.models.generateContent({
+    const response = await generateWithLegacyGemini({
       model,
       contents: prompt,
     });
@@ -861,7 +881,7 @@ export const analyzeSensorData = async (moisture: number, temperature: number, g
   `;
   
   try {
-    const response = await ai!.models.generateContent({
+    const response = await generateWithLegacyGemini({
       model,
       contents: prompt,
     });

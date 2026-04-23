@@ -808,7 +808,7 @@ class DiaryPredictiveEngine {
     )
     const stressedZones = zoneHistorySummaries.filter(
       (summary): summary is ZoneEnvironmentalHistorySummary =>
-        Boolean(summary) &&
+        summary !== null &&
         (
           summary.highSoilWaterStressDays >= 2 ||
           summary.latestSoilWaterStressLevel === 'high'

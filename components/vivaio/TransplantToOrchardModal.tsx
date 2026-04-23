@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { SeedlingBatch } from '@/services/seedlingService'
 import { Garden } from '@/types'
 import { useStorage } from '@/packages/core/hooks/useStorage'
@@ -36,11 +37,12 @@ export const TransplantToOrchardModal: React.FC<TransplantToOrchardModalProps> =
   onTransplantComplete
 }) => {
   const { storageProvider } = useStorage()
+  const availableQuantity = batch.survivingQuantity ?? batch.currentQuantity ?? batch.quantity ?? 0
   
   // State
   const [fieldRows, setFieldRows] = useState<any[]>([])
   const [selectedFieldRow, setSelectedFieldRow] = useState<string>('')
-  const [quantityToTransplant, setQuantityToTransplant] = useState(batch.survivingQuantity)
+  const [quantityToTransplant, setQuantityToTransplant] = useState<number>(availableQuantity)
   const [plantSpacing, setPlantSpacing] = useState(50) // cm
   const [startingPosition, setStartingPosition] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -76,7 +78,7 @@ export const TransplantToOrchardModal: React.FC<TransplantToOrchardModalProps> =
         console.log('🎯 TransplantModal: Filare compatibile trovato:', compatibleRow.name, compatibleRow.cultivar)
         setSelectedFieldRow(compatibleRow.id)
         if (compatibleRow.plant_spacing) {
-          setPlantSpacing(compatibleRow.plant_spacing)
+          setPlantSpacing(Number(compatibleRow.plant_spacing) || 50)
         }
       } else {
         console.log('⚠️ TransplantModal: Nessun filare compatibile trovato per:', batch.plantName)
@@ -90,7 +92,7 @@ export const TransplantToOrchardModal: React.FC<TransplantToOrchardModalProps> =
     setCalculating(true)
     
     // Calcola posizioni e lunghezza necessaria
-    const positions = quantityToTransplant
+    const positions = quantityToTransplant || 0
     const lengthNeeded = (positions * plantSpacing) / 100 // metri
     
     setCalculatedPositions(positions)
@@ -129,7 +131,7 @@ export const TransplantToOrchardModal: React.FC<TransplantToOrchardModalProps> =
         batch,
         selectedFieldRow,
         garden.id,
-        quantityToTransplant,
+        quantityToTransplant || 0,
         plantSpacing,
         startingPosition
       )
@@ -168,12 +170,12 @@ export const TransplantToOrchardModal: React.FC<TransplantToOrchardModalProps> =
           ...fieldRow,
           cultivar: batch.plantName + (batch.variety ? ` ${batch.variety}` : ''),
           plant_spacing: plantSpacing,
-          plant_count: (fieldRow.plant_count || 0) + quantityToTransplant,
+          plant_count: (fieldRow.plant_count || 0) + (quantityToTransplant || 0),
           planted_date: operation.transplantDate,
           last_transplant: {
             date: operation.transplantDate,
             batchId: batch.id,
-            quantity: quantityToTransplant,
+            quantity: quantityToTransplant || 0,
             operationId: operation.id
           }
         }
@@ -256,11 +258,13 @@ export const TransplantToOrchardModal: React.FC<TransplantToOrchardModalProps> =
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
                 <p className="text-blue-600">Piantine Vive</p>
-                <p className="font-bold text-blue-900">{batch.survivingQuantity}</p>
+                <p className="font-bold text-blue-900">{availableQuantity}</p>
               </div>
               <div>
                 <p className="text-blue-600">Sopravvivenza</p>
-                <p className="font-bold text-blue-900">{Math.round((batch.survivingQuantity / batch.quantity) * 100)}%</p>
+                <p className="font-bold text-blue-900">
+                  {batch.quantity > 0 ? Math.round((availableQuantity / batch.quantity) * 100) : 0}%
+                </p>
               </div>
               <div>
                 <p className="text-blue-600">Fase</p>
@@ -314,7 +318,7 @@ export const TransplantToOrchardModal: React.FC<TransplantToOrchardModalProps> =
               <input
                 type="number"
                 min="1"
-                max={batch.survivingQuantity}
+                max={availableQuantity}
                 value={quantityToTransplant}
                 onChange={(e) => setQuantityToTransplant(parseInt(e.target.value) || 0)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
@@ -362,7 +366,7 @@ export const TransplantToOrchardModal: React.FC<TransplantToOrchardModalProps> =
               <div>
                 <p className="text-green-600">Posizioni</p>
                 <p className="font-bold text-green-900">
-                  {startingPosition} → {startingPosition + quantityToTransplant - 1}
+                  {startingPosition} → {startingPosition + (quantityToTransplant || 0) - 1}
                 </p>
               </div>
               <div>
@@ -373,7 +377,7 @@ export const TransplantToOrchardModal: React.FC<TransplantToOrchardModalProps> =
                 <p className="text-green-600">Codici Pianta</p>
                 <p className="font-bold text-green-900">
                   F{selectedRow?.rowNumber?.toString().padStart(2, '0') || '01'}-P{startingPosition.toString().padStart(3, '0')} → 
-                  F{selectedRow?.rowNumber?.toString().padStart(2, '0') || '01'}-P{(startingPosition + quantityToTransplant - 1).toString().padStart(3, '0')}
+                  F{selectedRow?.rowNumber?.toString().padStart(2, '0') || '01'}-P{(startingPosition + (quantityToTransplant || 0) - 1).toString().padStart(3, '0')}
                 </p>
               </div>
               <div>
@@ -435,7 +439,7 @@ export const TransplantToOrchardModal: React.FC<TransplantToOrchardModalProps> =
             
             <button
               onClick={handleTransplant}
-              disabled={!selectedFieldRow || !canFitInRow || loading || quantityToTransplant <= 0}
+              disabled={!selectedFieldRow || !canFitInRow || loading || (quantityToTransplant || 0) <= 0}
               className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
               {loading ? (

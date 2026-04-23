@@ -7,6 +7,15 @@ import { APIKey, APIService, APIKeyTestResult, API_SERVICES } from '@/types/apiK
 import { getSupabaseClient } from '@/config/supabase';
 import { encryptText, decryptText, simpleEncrypt, simpleDecrypt, isCryptoAvailable } from '@/utils/crypto';
 
+const getAPIKeysSupabaseClient = () => {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
+
+  return supabase;
+};
+
 /**
  * Encrypt API key value
  */
@@ -51,7 +60,7 @@ export const createAPIKey = async (
   config?: Record<string, any>,
   organizationId?: string
 ): Promise<APIKey> => {
-  const supabase = getSupabaseClient();
+  const supabase = getAPIKeysSupabaseClient();
   
   const apiKey: APIKey = {
     id: crypto.randomUUID(),
@@ -115,7 +124,7 @@ export const getUserAPIKeys = async (
   userId: string,
   organizationId?: string
 ): Promise<APIKey[]> => {
-  const supabase = getSupabaseClient();
+  const supabase = getAPIKeysSupabaseClient();
 
   let query = supabase
     .from('api_keys')
@@ -154,7 +163,7 @@ export const getUserAPIKeys = async (
  * Get API key by ID
  */
 export const getAPIKey = async (keyId: string): Promise<APIKey | null> => {
-  const supabase = getSupabaseClient();
+  const supabase = getAPIKeysSupabaseClient();
 
   const { data, error } = await supabase
     .from('api_keys')
@@ -201,7 +210,7 @@ export const updateAPIKey = async (
   keyId: string,
   updates: Partial<APIKey>
 ): Promise<void> => {
-  const supabase = getSupabaseClient();
+  const supabase = getAPIKeysSupabaseClient();
 
   // If updating keyValue, encrypt it
   const dbUpdates: any = { ...updates };
@@ -243,7 +252,7 @@ export const updateAPIKey = async (
  * Delete API key
  */
 export const deleteAPIKey = async (keyId: string): Promise<void> => {
-  const supabase = getSupabaseClient();
+  const supabase = getAPIKeysSupabaseClient();
 
   const { error } = await supabase
     .from('api_keys')
@@ -260,7 +269,7 @@ export const deleteAPIKey = async (keyId: string): Promise<void> => {
  * Toggle API key active status
  */
 export const toggleAPIKeyStatus = async (keyId: string): Promise<void> => {
-  const supabase = getSupabaseClient();
+  const supabase = getAPIKeysSupabaseClient();
 
   // First get current status
   const { data: currentKey, error: getError } = await supabase
@@ -293,12 +302,23 @@ export const toggleAPIKeyStatus = async (keyId: string): Promise<void> => {
  * Increment usage count
  */
 export const incrementUsageCount = async (keyId: string): Promise<void> => {
-  const supabase = getSupabaseClient();
+  const supabase = getAPIKeysSupabaseClient();
+
+  const { data: currentKey, error: currentKeyError } = await supabase
+    .from('api_keys')
+    .select('usage_count')
+    .eq('id', keyId)
+    .single();
+
+  if (currentKeyError) {
+    console.error('Error reading API key usage count:', currentKeyError);
+    throw new Error(`Failed to read API key usage count: ${currentKeyError.message}`);
+  }
 
   const { error } = await supabase
     .from('api_keys')
     .update({ 
-      usage_count: supabase.raw('usage_count + 1'),
+      usage_count: (currentKey?.usage_count || 0) + 1,
       last_used: new Date().toISOString(),
       updated_at: new Date().toISOString()
     })

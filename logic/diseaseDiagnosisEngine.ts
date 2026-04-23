@@ -98,8 +98,13 @@ export const diagnoseFromPhoto = async (
   ).join('\n');
 
   const seasonInfo = context?.season || getSeasonForDate(new Date(), context?.garden?.coordinates?.latitude || 0);
+  const currentWeather = context?.weather?.[0];
+  const currentTemp =
+    currentWeather?.temp ??
+    currentWeather?.tempMax ??
+    currentWeather?.tempMin;
   const weatherInfo = context?.weather && context.weather.length > 0
-    ? `Condizioni meteo: ${getConditionFromCode(context.weather[0].code)}, temperatura ${context.weather[0].temp}°C, umidità ${context.weather[0].humidity || 'N/A'}%`
+    ? `Condizioni meteo: ${getConditionFromCode(currentWeather?.code ?? 0)}, temperatura ${currentTemp ?? 'N/A'}°C, umidità ${currentWeather?.humidity || 'N/A'}%`
     : '';
 
   const prompt = `Analizza questa foto di una pianta di ${plantName} che mostra sintomi di malattia.
@@ -266,7 +271,7 @@ export const matchSymptoms = (
     if (weather && weather.length > 0) {
       const currentWeather = weather[0];
       if (disease.conditions.weather) {
-        const weatherCondition = getConditionFromCode(currentWeather.code);
+        const weatherCondition = getConditionFromCode(currentWeather.code ?? 0);
         for (const condition of disease.conditions.weather) {
           if (weatherCondition.toLowerCase().includes(condition.toLowerCase())) {
             confidence += 0.1;
@@ -277,8 +282,15 @@ export const matchSymptoms = (
       
       // Match temperatura
       if (disease.conditions.temperature) {
-        const temp = currentWeather.temp;
-        if (temp >= disease.conditions.temperature.min && temp <= disease.conditions.temperature.max) {
+        const temp =
+          currentWeather.temp ??
+          currentWeather.tempMax ??
+          currentWeather.tempMin;
+        if (
+          typeof temp === 'number' &&
+          temp >= disease.conditions.temperature.min &&
+          temp <= disease.conditions.temperature.max
+        ) {
           confidence += 0.1;
         }
       }
@@ -429,4 +441,3 @@ export const getPreventiveMeasures = (
 
   return Array.from(measures);
 };
-

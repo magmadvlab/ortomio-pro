@@ -57,6 +57,9 @@ export interface AgronomicQueueTaskOperationalSummary {
   focusLabel: string
   urgencyLabel: string
   confidenceLabel: string
+  mobileActionLabel: string
+  mobileEvidencePrompt: string
+  evidenceLabels: string[]
   missingSignalsLabel?: string
   contextLabels: string[]
   primaryRationale?: string
@@ -109,6 +112,19 @@ const AGRONOMIC_SIGNAL_LABELS: Record<AgronomicSignalKey, string> = {
   operation_ledger: 'registro operazioni',
   ndvi: 'NDVI',
   satellite_vigor: 'vigore satellitare',
+}
+
+const MOBILE_ACTION_LABELS: Record<AgronomicQueueTaskOperationalSummary['readiness'], string> = {
+  ready: 'Esegui ora',
+  partial: 'Esegui guidato',
+  blocked: 'Verifica prima',
+}
+
+const FOCUS_EVIDENCE_LABELS: Record<string, string[]> = {
+  water: ['ora esecuzione', 'litri o durata', 'umidita dopo intervento'],
+  nutrition: ['prodotto e dose', 'area trattata', 'note risposta coltura'],
+  health: ['prodotto o rilievo', 'foto sintomi', 'note evoluzione'],
+  quality: ['quantita o qualita', 'foto lotto', 'note raccolta'],
 }
 
 const toISODate = (date: Date): string => date.toISOString().split('T')[0]
@@ -427,6 +443,11 @@ export const buildAgronomicQueueTaskOperationalSummary = (
   const primaryRationale =
     metadata.decisionExplanation?.agronomicRationale?.[0] ||
     metadata.decisionExplanation?.contextRationale?.[0]
+  const evidenceLabels = FOCUS_EVIDENCE_LABELS[metadata.focus] || [
+    'azione eseguita',
+    'note operatore',
+    'risultato osservato',
+  ]
 
   return {
     readiness,
@@ -434,6 +455,9 @@ export const buildAgronomicQueueTaskOperationalSummary = (
     focusLabel: AGRONOMIC_FOCUS_LABELS[metadata.focus] || metadata.focus,
     urgencyLabel: AGRONOMIC_URGENCY_LABELS[metadata.urgencyLabel] || metadata.urgencyLabel,
     confidenceLabel: formatConfidenceLabel(confidence),
+    mobileActionLabel: MOBILE_ACTION_LABELS[readiness],
+    mobileEvidencePrompt: `Registra ${evidenceLabels.slice(0, 2).join(' + ')}`,
+    evidenceLabels,
     missingSignalsLabel:
       missingSignalsCount > 0
         ? `Segnali mancanti: ${metadata.missingSignals

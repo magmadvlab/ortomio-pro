@@ -26,7 +26,7 @@ export function buildWateringOperatorEvidence(
       | 'airTemperatureC'
       | 'notes'
       | 'zoneId'
-      | 'rowId'
+      | 'bedRowId'
     >
   >
 ): AgronomicQueueOperatorEvidence | null {
@@ -39,7 +39,7 @@ export function buildWateringOperatorEvidence(
     logs.reduce((sum, log) => sum + (typeof log.litersApplied === 'number' ? log.litersApplied : 0), 0).toFixed(2)
   )
   const zoneCount = new Set(logs.map((log) => log.zoneId).filter(Boolean)).size
-  const rowCount = new Set(logs.map((log) => log.rowId).filter(Boolean)).size
+  const rowCount = new Set(logs.map((log) => log.bedRowId).filter(Boolean)).size
 
   return {
     operation: 'watering',

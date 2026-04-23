@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Settings, User, Bell, Shield, Database, Palette, MapPin, Edit, Trash2, Plus } from 'lucide-react'
+import { Settings, User, Bell, Shield, Database, Palette, MapPin, Trash2, Plus } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
 import { GardenTypeWizard } from '@/components/GardenTypeWizard'
@@ -45,7 +45,6 @@ export default function SettingsPage() {
 
   const handleGardenEdited = async () => {
     console.log('✅ Garden edited')
-    setEditingGarden(null)
     // Reload gardens list
     const loadedGardens = await storageProvider.getGardens()
     setGardens(loadedGardens)

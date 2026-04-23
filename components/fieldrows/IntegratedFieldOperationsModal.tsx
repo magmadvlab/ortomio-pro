@@ -85,7 +85,8 @@ export const IntegratedFieldOperationsModal: React.FC<IntegratedFieldOperationsM
     
     // Raccolta
     expectedYield: 2.0, // kg per pianta
-    qualityGrade: 'A' as 'A' | 'B' | 'C'
+    qualityGrade: 'A' as 'A' | 'B' | 'C',
+    qualityScore: 90
   })
   
   // Plant application

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Garden } from '../types';
-import { SaplingBatch } from '../services/saplingService';
+import type { SaplingBatch } from '../types/sapling';
 import { useStorage } from '../packages/core/context/StorageContext';
 import SaplingManager from './SaplingManager';
 
@@ -34,12 +34,17 @@ const SaplingDashboard: React.FC<SaplingDashboardProps> = ({ garden }) => {
     }
   };
 
-  const handleBatchCreate = async (batch: SaplingBatch) => {
+  const handleBatchCreate = async (batch: Omit<SaplingBatch, 'id' | 'saplings'>) => {
     try {
       if (!storageProvider) return;
       
-      await storageProvider.createSaplingBatch?.(batch);
-      setBatches(prev => [batch, ...prev]);
+      const createdBatch = await storageProvider.createSaplingBatch?.({
+        ...batch,
+        saplings: [],
+      });
+      if (createdBatch) {
+        setBatches(prev => [createdBatch, ...prev]);
+      }
     } catch (error) {
       console.error('Error creating sapling batch:', error);
       alert('Errore nella creazione del batch alberelli');

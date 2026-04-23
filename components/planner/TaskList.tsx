@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Plus, Edit, Trash2, Check, Clock, Filter, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { Calendar, Plus, Edit, Trash2, Check, Clock, Search, ChevronDown, ChevronUp, Play, ClipboardCheck } from 'lucide-react'
 import { Garden, GardenTask } from '@/types'
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -367,14 +367,31 @@ export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, on
                               </div>
 
                               {canLaunchTaskExecution(task) && (
-                                <div className="mt-3">
+                                <div className="mt-3 space-y-2">
+                                  {operationalSummary && (
+                                    <div className="rounded-lg border border-emerald-100 bg-white/80 p-3 sm:hidden">
+                                      <div className="flex items-start gap-2">
+                                        <ClipboardCheck size={16} className="mt-0.5 text-emerald-700" />
+                                        <div className="min-w-0">
+                                          <p className="text-xs font-semibold text-gray-900">
+                                            {operationalSummary.mobileEvidencePrompt}
+                                          </p>
+                                          <p className="mt-1 text-xs text-gray-600">
+                                            {operationalSummary.evidenceLabels.join(' · ')}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                   <button
                                     onClick={() => openTaskExecution(task)}
-                                    className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 sm:min-h-0 sm:w-auto sm:bg-emerald-50 sm:px-3 sm:py-1.5 sm:text-xs sm:text-emerald-700 sm:hover:bg-emerald-100"
                                   >
-                                    {operationalSummary?.readiness === 'ready'
-                                      ? 'Esegui ora'
-                                      : 'Apri esecuzione guidata'}
+                                    <Play size={14} />
+                                    {operationalSummary?.mobileActionLabel ||
+                                      (operationalSummary?.readiness === 'ready'
+                                        ? 'Esegui ora'
+                                        : 'Apri esecuzione guidata')}
                                   </button>
                                 </div>
                               )}

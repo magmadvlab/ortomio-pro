@@ -23,7 +23,8 @@ Rule:
    Goal:
    - make planner task -> execution module -> outcome registration a faster and clearer field workflow
    Current sub-slice:
-   - next recommended: `P2-D Mobile fast path`
+   - `P2-D Mobile fast path` first slice completed on 2026-04-23
+   - next recommended: extend the same mobile fast path into execution headers and evidence capture forms
    Current document:
    - `docs/reports/execution-plans/ORTOMIO_EXECUTION_PLAN_P2_FIELD_EXECUTION_LOOP_2026-04-19.md`
 

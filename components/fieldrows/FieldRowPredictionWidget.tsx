@@ -363,15 +363,15 @@ export function FieldRowPredictionWidget({
         )}
 
         {/* Ottimizzazioni resa */}
-        {showDetails && prediction.yieldPrediction?.optimizationTips.length > 0 && (
-          <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+	        {showDetails && (prediction.yieldPrediction?.optimizationTips?.length ?? 0) > 0 && (
+	          <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
             <h4 className="font-semibold text-yellow-900 mb-3 flex items-center gap-2">
               <TrendingUp size={18} />
               Ottimizzazioni Resa
             </h4>
             <ul className="text-sm text-yellow-800 space-y-2">
-              {prediction.yieldPrediction.optimizationTips.map((tip, index) => (
-                <li key={index} className="flex items-center gap-2">
+	              {(prediction.yieldPrediction?.optimizationTips ?? []).map((tip, index) => (
+	                <li key={index} className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full"></div>
                   {tip}
                 </li>

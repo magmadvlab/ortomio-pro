@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import crypto from 'node:crypto'
+import type { SmartDevice, SmartDeviceAutomationLog } from '@/types'
 
 import { SupabaseStorageProvider } from '@/packages/storage-cloud/SupabaseStorageProvider'
 import { createTelemetryPostHandler } from '@/app/api/iot/devices/telemetry/route'
@@ -179,6 +179,14 @@ const createDbAdapter = (userId: string) => ({
   },
 })
 
+type ValidationProvider = {
+  createDevice(device: Omit<SmartDevice, 'id' | 'lastUpdate'>): Promise<SmartDevice>
+  updateDevice(id: string, updates: Partial<SmartDevice>): Promise<SmartDevice>
+  createSmartDeviceAutomationLog(
+    input: Omit<SmartDeviceAutomationLog, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<SmartDeviceAutomationLog>
+}
+
 const main = async () => {
   const baseGarden = runSqlOne<{ id: string; user_id: string }>(
     `SELECT id, user_id FROM public.gardens WHERE user_id IS NOT NULL ORDER BY created_at ASC LIMIT 1`
@@ -190,8 +198,9 @@ const main = async () => {
 
   const validationId = `precision-e2e-${Date.now()}`
   const adapter = createDbAdapter(baseGarden.user_id)
-  const provider = new SupabaseStorageProvider() as SupabaseStorageProvider & { client: ReturnType<typeof createDbAdapter> }
-  provider.client = adapter
+  const providerInstance = new SupabaseStorageProvider()
+  Reflect.set(providerInstance as object, 'client', adapter)
+  const provider = providerInstance as unknown as ValidationProvider
 
   let createdDeviceId: string | undefined
 

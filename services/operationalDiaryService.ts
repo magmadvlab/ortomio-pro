@@ -275,11 +275,11 @@ export class OperationalDiaryService {
     }
     
     // Suggerimenti basati su trend
-    if (analytics?.recentTrends.efficiency < -10) {
+    if ((analytics?.recentTrends.efficiency ?? 0) < -10) {
       suggestions.push('Efficienza in calo: rivedi i processi operativi')
     }
     
-    if (analytics?.recentTrends.issues > 2) {
+    if ((analytics?.recentTrends.issues ?? 0) > 2) {
       suggestions.push('Aumento problemi: intensifica controlli preventivi')
     }
     

@@ -13,7 +13,7 @@ interface QuickHarvestFormProps {
 }
 
 export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormProps) {
-  const storage = useStorage()
+  const { storageProvider } = useStorage()
   const [garden, setGarden] = useState<Garden | null>(null)
   const [quantity, setQuantity] = useState<number>(1)
   const [unit, setUnit] = useState<'kg' | 'g' | 'units'>('kg')
@@ -33,9 +33,9 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
   // Load garden data
   useEffect(() => {
     const loadGarden = async () => {
-      if (task.gardenId && storage) {
+      if (task.gardenId) {
         try {
-          const gardenData = await storage.getGarden(task.gardenId)
+          const gardenData = await storageProvider.getGarden(task.gardenId)
           setGarden(gardenData)
         } catch (error) {
           console.error('Error loading garden:', error)
@@ -43,7 +43,7 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
       }
     }
     loadGarden()
-  }, [task.gardenId, storage])
+  }, [task.gardenId, storageProvider])
 
   // Check if garden is hydroponic/aquaponic/aeroponic
   const isHydroponic = useMemo(() => {

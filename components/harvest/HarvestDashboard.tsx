@@ -5,7 +5,7 @@ import { Plus, Calendar, Weight, TrendingUp, Package, Edit2, Trash2, Sprout, Ale
 import { getSupabaseClient } from '../../config/supabase';
 import { HarvestRegistrationModal } from './HarvestRegistrationModal';
 import type { HarvestLaunchRequest } from './HarvestRegistrationModal';
-import { GardenTask } from '@/types';
+import type { GardenTask, HarvestLogData } from '@/types';
 import { buildHarvestMeasuredFeedback } from '@/services/agronomicMeasuredFeedbackService';
 import { buildHarvestOperatorEvidence } from '@/services/agronomicOperatorEvidenceService';
 import { useStorage } from '@/packages/core/hooks/useStorage';
@@ -17,14 +17,16 @@ import {
   type AgronomicQualityLearningAdjustment,
 } from '@/services/agronomicProfileLearningService';
 
+const DEFAULT_HARVEST_RATING: HarvestLogData['rating'] = 3;
+
 interface Harvest {
   id: string;
   plant_name: string;
   variety?: string;
   quantity: number;
-  unit: string;
+  unit: HarvestLogData['unit'];
   harvest_date: string;
-  rating?: number; // Changed from quality_rating to match database
+  rating?: HarvestLogData['rating']; // Changed from quality_rating to match database
   notes?: string;
   garden_id: string;
   zone_id?: string;
@@ -200,7 +202,7 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, la
           plantName: harvestData.plant_name,
           quantity: harvestData.quantity,
           unit: harvestData.unit,
-          rating: harvestData.rating,
+          rating: harvestData.rating ?? DEFAULT_HARVEST_RATING,
           date: harvestData.harvest_date,
           brix: undefined,
           notes: harvestData.notes,
@@ -209,7 +211,7 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, la
           plantName: harvestData.plant_name,
           quantity: harvestData.quantity,
           unit: harvestData.unit,
-          rating: harvestData.rating,
+          rating: harvestData.rating ?? DEFAULT_HARVEST_RATING,
           date: harvestData.harvest_date,
           brix: undefined,
           notes: harvestData.notes,
@@ -236,7 +238,7 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, la
           plantName: harvestData.plant_name,
           quantity: harvestData.quantity,
           unit: harvestData.unit,
-          rating: harvestData.rating,
+          rating: harvestData.rating ?? DEFAULT_HARVEST_RATING,
           date: harvestData.harvest_date,
           brix: undefined,
           notes: harvestData.notes,
@@ -245,7 +247,7 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, la
           plantName: harvestData.plant_name,
           quantity: harvestData.quantity,
           unit: harvestData.unit,
-          rating: harvestData.rating,
+          rating: harvestData.rating ?? DEFAULT_HARVEST_RATING,
           date: harvestData.harvest_date,
           brix: undefined,
           notes: harvestData.notes,
@@ -272,7 +274,7 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, la
           plantName: harvestData.plant_name,
           quantity: harvestData.quantity,
           unit: harvestData.unit,
-          rating: harvestData.rating,
+          rating: harvestData.rating ?? DEFAULT_HARVEST_RATING,
           date: harvestData.harvest_date,
           brix: undefined,
           notes: harvestData.notes,
@@ -281,7 +283,7 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, la
           plantName: harvestData.plant_name,
           quantity: harvestData.quantity,
           unit: harvestData.unit,
-          rating: harvestData.rating,
+          rating: harvestData.rating ?? DEFAULT_HARVEST_RATING,
           date: harvestData.harvest_date,
           brix: undefined,
           notes: harvestData.notes,
@@ -309,7 +311,7 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, la
           plantName: harvestData.plant_name,
           quantity: harvestData.quantity,
           unit: harvestData.unit,
-          rating: harvestData.rating,
+          rating: harvestData.rating ?? DEFAULT_HARVEST_RATING,
           date: harvestData.harvest_date,
           brix: undefined,
           notes: harvestData.notes,
@@ -318,7 +320,7 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, la
           plantName: harvestData.plant_name,
           quantity: harvestData.quantity,
           unit: harvestData.unit,
-          rating: harvestData.rating,
+          rating: harvestData.rating ?? DEFAULT_HARVEST_RATING,
           date: harvestData.harvest_date,
           brix: undefined,
           notes: harvestData.notes,

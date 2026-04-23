@@ -217,6 +217,7 @@ export interface SiteOperationalProfile {
   slopePercentage?: number;
   sunExposure?: string;
   soilType?: string;
+  terroir?: string;
   exposureClass?: AgronomicSiteExposureClass;
   slopeClass?: AgronomicSiteSlopeClass;
   siteTags?: AgronomicOperationalContextTag[];

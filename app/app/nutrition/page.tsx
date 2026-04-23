@@ -118,6 +118,14 @@ export default function NutritionPage() {
     setActiveTab('treatments')
   }
 
+  const openPlanner = (request: Omit<TreatmentPlannerLaunchRequest, 'key'>) => {
+    setActiveTab('treatments')
+    setPlannerLaunchRequest({
+      key: Date.now(),
+      ...request,
+    })
+  }
+
   const handleNavigateToSchedules = () => {
     setActiveTab('treatments') // Schedules are part of treatment planner
   }

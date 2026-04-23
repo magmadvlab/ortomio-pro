@@ -12,7 +12,14 @@ import {
   PlantLifecycleStatus
 } from '../types/plantLifecycle';
 
-const supabase = getSupabaseClient();
+const getLifecycleSupabaseClient = () => {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
+
+  return supabase;
+};
 
 /**
  * Crea un nuovo evento lifecycle quando viene creato un filare con coltura
@@ -31,6 +38,7 @@ export async function createLifecycleEvent(
   }
 ): Promise<PlantLifecycleEvent> {
   try {
+    const supabase = getLifecycleSupabaseClient();
     // Cerca dati varietà nel database
     const { data: varietyData } = await supabase
       .from('crop_varieties_database')
@@ -86,6 +94,7 @@ export async function updateLifecycleEvent(
   updates: LifecycleUpdateData
 ): Promise<PlantLifecycleEvent> {
   try {
+    const supabase = getLifecycleSupabaseClient();
     const { data, error } = await supabase
       .from('plant_lifecycle_events')
       .update(updates)
@@ -108,6 +117,7 @@ export async function getActiveLifecycleEvents(
   gardenId: string
 ): Promise<PlantLifecycleEvent[]> {
   try {
+    const supabase = getLifecycleSupabaseClient();
     const { data, error } = await supabase
       .from('plant_lifecycle_events')
       .select('*')
@@ -130,6 +140,7 @@ export async function getPendingNotifications(
   gardenId: string
 ): Promise<PendingNotification[]> {
   try {
+    const supabase = getLifecycleSupabaseClient();
     const { data, error } = await supabase
       .from('plant_lifecycle_pending_notifications')
       .select('*')
@@ -153,6 +164,7 @@ export async function markNotificationSent(
   notificationType: 'germination' | 'transplant' | 'harvest' | 'end_cycle'
 ): Promise<void> {
   try {
+    const supabase = getLifecycleSupabaseClient();
     const fieldName = `notification_sent_${notificationType}`;
     
     const { error } = await supabase
@@ -194,6 +206,7 @@ export async function endLifecycle(
  */
 export async function getCropVarieties(): Promise<CropVariety[]> {
   try {
+    const supabase = getLifecycleSupabaseClient();
     const { data, error } = await supabase
       .from('crop_varieties_database')
       .select('*')
@@ -214,6 +227,7 @@ export async function getCropVarietiesByName(
   cropName: string
 ): Promise<CropVariety[]> {
   try {
+    const supabase = getLifecycleSupabaseClient();
     const { data, error } = await supabase
       .from('crop_varieties_database')
       .select('*')
@@ -238,6 +252,7 @@ export async function getLifecycleStats(gardenId: string): Promise<{
   averageYield: number;
 }> {
   try {
+    const supabase = getLifecycleSupabaseClient();
     // Eventi attivi
     const { data: activeData } = await supabase
       .from('plant_lifecycle_events')

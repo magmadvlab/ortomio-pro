@@ -212,7 +212,7 @@ export function RowManagerModal({ bed, open, onClose }: RowManagerModalProps) {
           gardenId: bed.gardenId,
           bedId: bed.id,
           name: rowForm.name.trim(),
-          rowNumber: typeof rowForm.rowNumber === 'number' ? rowForm.rowNumber : undefined,
+          rowNumber: typeof rowForm.rowNumber === 'number' ? rowForm.rowNumber : 1,
           lengthMeters: rowForm.lengthMeters,
           irrigationLine,
           notes: rowForm.notes ? rowForm.notes : undefined,

@@ -515,7 +515,10 @@ class CollaborativeAIService {
         .single()
       
       if (error) throw error
-      return data
+      if (!data || typeof data !== 'object') {
+        return null
+      }
+      return data as AIPerformanceScore
     } catch (error) {
       console.error('Error fetching AI performance score:', error)
       return null

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { SeedPacket, Garden } from '../types';
+import { Garden } from '../types';
+import type { SeedPacket } from '../types/seedInventory';
 import { 
   addSeedPacket, 
   getSeedPackets, 
@@ -65,8 +66,7 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
       qtyRemaining = newPacket.quantityRemaining;
     }
     
-    const packet: SeedPacket = {
-      id: crypto.randomUUID(),
+    const packet: Omit<SeedPacket, 'id'> = {
       varietyId: newPacket.varietyName.toLowerCase(),
       varietyName: newPacket.varietyName,
       speciesName: newPacket.speciesName,
@@ -83,6 +83,7 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
       quantityMax: parsedQty?.max,
       quantityExact: parsedQty?.exact,
       notes: newPacket.notes,
+      source: 'purchased',
       gardenId: garden.id
     };
     
@@ -525,8 +526,6 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
 };
 
 export default SeedInventory;
-
-
 
 
 

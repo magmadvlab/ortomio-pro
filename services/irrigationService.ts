@@ -261,6 +261,7 @@ export function updateZoneFlowRateFromComponents(
  * Crea log irrigazione
  */
 export function createWateringLog(
+  gardenId: string,
   zoneId: string,
   durationMinutes: number,
   flowRateLph: number,
@@ -273,6 +274,7 @@ export function createWateringLog(
   return {
     id: crypto.randomUUID(),
     zoneId,
+    gardenId,
     date: new Date().toISOString().split('T')[0],
     durationMinutes,
     litersApplied,

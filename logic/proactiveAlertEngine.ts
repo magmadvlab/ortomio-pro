@@ -177,7 +177,8 @@ async function generateWeatherProactiveAlerts(
       garden.coordinates.latitude,
       garden.coordinates.longitude
     );
-    if (!forecast) return alerts;
+	    const currentForecast = Array.isArray(forecast) ? forecast[0] : forecast;
+	    if (!currentForecast) return alerts;
 
     // Cerca task di trapianto recenti (ultimi 7 giorni)
     const recentTransplants = tasks.filter((t) => {
@@ -190,21 +191,22 @@ async function generateWeatherProactiveAlerts(
     });
 
     // Se gelo previsto e ci sono trapianti recenti
-    if (forecast.tempMin !== undefined && forecast.tempMin < 2 && recentTransplants.length > 0) {
-      const plants = recentTransplants.map((t) => t.plantName).join(', ');
+	    const tempMin = currentForecast.tempMin ?? currentForecast.temp_min;
+	    if (tempMin !== undefined && tempMin < 2 && recentTransplants.length > 0) {
+	      const plants = recentTransplants.map((t) => t.plantName).join(', ');
 
-      alerts.push({
-        type: 'Frost',
-        message: `⚠️ GELATA PREVISTA + TRAPIANTI RECENTI: ${forecast.tempMin.toFixed(1)}°C previsto`,
-        action: `Copri immediatamente: ${plants}. Usa TNT o sposta vasi al riparo.`,
-        blockOperations: true,
-        proactiveContext: {
-          historicalPattern: 'Gelo previsto con piantine ancora fragili',
-          currentConditions: `Trapianti effettuati ${recentTransplants.length} giorni fa`,
-          predictedRisk: `Gelo ${forecast.tempMin.toFixed(1)}°C previsto`,
-          confidence: 0.9,
-        },
-        timing: 'now',
+	      alerts.push({
+	        type: 'Frost',
+	        message: `⚠️ GELATA PREVISTA + TRAPIANTI RECENTI: ${tempMin.toFixed(1)}°C previsto`,
+	        action: `Copri immediatamente: ${plants}. Usa TNT o sposta vasi al riparo.`,
+	        blockOperations: true,
+	        proactiveContext: {
+	          historicalPattern: 'Gelo previsto con piantine ancora fragili',
+	          currentConditions: `Trapianti effettuati ${recentTransplants.length} giorni fa`,
+	          predictedRisk: `Gelo ${tempMin.toFixed(1)}°C previsto`,
+	          confidence: 0.9,
+	        },
+	        timing: 'now',
       });
     }
   } catch (error) {
@@ -258,4 +260,3 @@ export function determineAlertTiming(
 
   return alert.timing || 'this_week';
 }
-

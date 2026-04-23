@@ -19,6 +19,26 @@ const getApiKey = () => {
 const apiKey = getApiKey();
 const ai = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
+const generateGeoClimateContent = async (request: {
+  model: string;
+  contents: any;
+  config?: Record<string, unknown>;
+}): Promise<{ text: string }> => {
+  if (!ai) {
+    throw new Error('AI client not available');
+  }
+
+  const modelClient = ai.getGenerativeModel({ model: request.model });
+  const result = await modelClient.generateContent({
+    contents: request.contents,
+    generationConfig: request.config,
+  });
+
+  return {
+    text: result.response.text() || '',
+  };
+};
+
 export interface GeoClimateInfo {
   altitude: number; // Metri sul livello del mare
   delayFactorDays: number; // Ritardo giorni semina pomodoro vs costa
@@ -288,7 +308,7 @@ IMPORTANTE: L'altitudine deve essere quella del centro abitato più vicino, non 
       throw new Error('AI client not available');
     }
     
-    const result = await ai.models.generateContent({
+    const result = await generateGeoClimateContent({
       model: "gemini-2.0-flash-exp",
       contents: prompt,
       config: {
@@ -407,4 +427,3 @@ export default {
   getGeoClimateInfo,
   inferGeoClimate
 };
-

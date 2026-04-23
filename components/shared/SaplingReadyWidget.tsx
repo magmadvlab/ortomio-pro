@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { Garden } from '@/types'
-import { SaplingBatch, isReadyToOrchard } from '@/services/saplingService'
+import { isReadyToOrchard } from '@/services/saplingService'
+import type { SaplingBatch } from '@/types/sapling'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { TreePine, Calendar, ChevronRight, AlertCircle } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
@@ -37,8 +38,22 @@ export function SaplingReadyWidget({ garden, onOpenManager, onCreateOrchard }: S
   }, [garden.id, storageProvider])
 
   const readyBatches = batches.filter(batch => {
-    const ready = isReadyToOrchard(batch, garden)
-    return ready.ready && !batch.specializedCropId
+    const ready = isReadyToOrchard({
+      id: batch.saplings[0]?.id || batch.id,
+      plantName: batch.plantName,
+      variety: batch.variety,
+      source: batch.source,
+      status: batch.plantingDate ? 'planted' : 'ready_to_plant',
+      purchaseDate: batch.purchaseDate,
+      quantity: batch.remainingQuantity || batch.totalQuantity || batch.quantity || 1,
+      supplier: batch.supplier,
+      rootstockType: batch.rootstockType || batch.rootstock,
+      plantingDate: batch.plantingDate,
+      location: batch.location,
+      notes: batch.notes,
+      gardenId: batch.gardenId,
+    })
+    return ready && !batch.specializedCropId
   })
 
   const plantedBatches = batches.filter(batch => batch.plantingDate && !batch.specializedCropId)
@@ -63,9 +78,12 @@ export function SaplingReadyWidget({ garden, onOpenManager, onCreateOrchard }: S
     }
   }
 
-  const handleBatchCreate = async (batch: SaplingBatch) => {
+  const handleBatchCreate = async (batch: Omit<SaplingBatch, 'id' | 'saplings'>) => {
     try {
-      await storageProvider.createSaplingBatch(batch)
+      await storageProvider.createSaplingBatch({
+        ...batch,
+        saplings: [],
+      })
       // Ricarica i batch
       const allBatches = await storageProvider.getSaplingBatches(garden.id)
       setBatches(allBatches)
@@ -190,4 +208,3 @@ export function SaplingReadyWidget({ garden, onOpenManager, onCreateOrchard }: S
     </>
   )
 }
-

@@ -3,7 +3,6 @@
  * Integra visualizzazione calendario mensile con:
  * - Eventi stagionali (equinozi, solstizi, candelora)
  * - Detti contadini del giorno
- * - Challenge giornaliere
  * - Fasi lunari
  * - Almanacco integrato come componente accessorio
  */
@@ -12,7 +11,6 @@ import React, { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isSameDay, isToday, addMonths, subMonths, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { getDettiForDate } from '../data/dettiContadini';
-// import { getChallengeForDate } from '../data/giornateSpeciali'; // REMOVED: gamification
 import { getSeasonalEventForDate } from '../logic/seasonalEvents';
 import { calculateMoonPhase, MoonPhaseInfo } from '../logic/lunarCalendar';
 import { GardenTask } from '../types';
@@ -38,8 +36,6 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
   
   // Dati per il giorno selezionato
   const dettiOggi = getDettiForDate(selectedDate);
-  // const challengeOggi = getChallengeForDate(selectedDate); // REMOVED: gamification
-  const challengeOggi = null; // Gamification removed
   const eventoStagionale = getSeasonalEventForDate(selectedDate);
   const faseLunareInfo = calculateMoonPhase(selectedDate);
   
@@ -176,8 +172,6 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
             
             // Dati per questo giorno
             const dettiGiorno = getDettiForDate(day);
-            // const challengeGiorno = getChallengeForDate(day); // REMOVED: gamification
-            const challengeGiorno = null; // Gamification removed
             const eventoGiorno = getSeasonalEventForDate(day);
             const faseLunareGiornoInfo = calculateMoonPhase(day);
             const faseLunareGiorno = faseLunareGiornoInfo ? {
@@ -229,11 +223,6 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
                     {eventoGiorno && (
                       <span className="text-sm" title={eventoGiorno.name}>
                         {eventoGiorno.emoji}
-                      </span>
-                    )}
-                    {challengeGiorno && (
-                      <span className="text-sm" title="Challenge disponibile">
-                        🎯
                       </span>
                     )}
                     {faseLunareGiorno && ['Full', 'New'].includes(faseLunareGiorno.phase) && (
@@ -675,50 +664,6 @@ const CalendarAlmanac: React.FC<CalendarAlmanacProps> = ({ tasks = [], onDateCli
           );
         })()}
 
-        {/* Challenge del Giorno */}
-        {challengeOggi && (
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h4 className="font-bold text-lg text-purple-900">{challengeOggi.challenge.titolo}</h4>
-                {challengeOggi.challenge.sottotitolo && (
-                  <p className="text-sm text-purple-700 italic">{challengeOggi.challenge.sottotitolo}</p>
-                )}
-              </div>
-              <span className="bg-yellow-full max-w-sm text-white px-3 py-1 rounded-full text-sm font-semibold">
-                +{challengeOggi.challenge.punti} punti
-              </span>
-            </div>
-            
-            <p className="text-sm text-purple-800 mb-3">{challengeOggi.challenge.descrizione}</p>
-            
-            {challengeOggi.challenge.azioni && challengeOggi.challenge.azioni.length > 0 && (
-              <div className="space-y-2">
-                <p className="font-semibold text-purple-900 text-sm">Azioni da completare:</p>
-                {challengeOggi.challenge.azioni.map((azione, idx) => (
-                  <div key={idx} className="bg-white/70 rounded-lg p-3 border border-purple-200">
-                    <div className="flex items-start gap-3">
-                      <span className="text-lg md:text-lg md:text-xl">{azione.emoji}</span>
-                      <div className="flex-1">
-                        <p className="font-medium text-purple-900">{azione.azione}</p>
-                        <p className="text-xs text-purple-700 mt-1">{azione.perche}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {challengeOggi.challenge.badge && (
-              <div className="mt-3 bg-white/70 rounded-lg p-3 border border-purple-200">
-                <p className="text-sm text-purple-800">
-                  <span className="font-semibold">Badge:</span> {challengeOggi.challenge.badge.emoji} {challengeOggi.challenge.badge.nome}
-                </p>
-                <p className="text-xs text-purple-600 mt-1">{challengeOggi.challenge.badge.descrizione}</p>
-              </div>
-            )}
-          </div>
-        )}
       </div>
       
       {/* Dialog per completamento task suggerito */}

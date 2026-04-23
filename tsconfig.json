@@ -38,6 +38,8 @@
   ],
   "exclude": [
     "node_modules",
+    ".next",
+    "EXAMPLE_INTEGRATION_GUIDES.tsx",
     "capacitor.config.ts",
     "ortomio",
     "orto-mio",

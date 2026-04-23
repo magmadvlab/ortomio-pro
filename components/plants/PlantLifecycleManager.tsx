@@ -173,6 +173,9 @@ const OPERATION_TEMPLATES: OperationTemplate[] = [
   }
 ]
 
+const resolveOperationDate = (operation: Pick<PlantOperation, 'date' | 'operationDate'>): string =>
+  operation.operationDate || operation.date
+
 export default function PlantLifecycleManager({
   plant,
   operations,
@@ -201,7 +204,7 @@ export default function PlantLifecycleManager({
     const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
     
     const recentOperations = operations.filter(op => 
-      new Date(op.operationDate) >= last30Days
+      new Date(resolveOperationDate(op)) >= last30Days
     )
     
     const operationsByType = recentOperations.reduce((acc, op) => {
@@ -221,18 +224,18 @@ export default function PlantLifecycleManager({
     
     const lastWatering = operations
       .filter(op => op.operationType === 'watering')
-      .sort((a, b) => new Date(b.operationDate).getTime() - new Date(a.operationDate).getTime())[0]
+      .sort((a, b) => new Date(resolveOperationDate(b)).getTime() - new Date(resolveOperationDate(a)).getTime())[0]
     
     const lastFertilizing = operations
       .filter(op => op.operationType === 'fertilizing')
-      .sort((a, b) => new Date(b.operationDate).getTime() - new Date(a.operationDate).getTime())[0]
+      .sort((a, b) => new Date(resolveOperationDate(b)).getTime() - new Date(resolveOperationDate(a)).getTime())[0]
     
     const daysSinceWatering = lastWatering 
-      ? Math.floor((now.getTime() - new Date(lastWatering.operationDate).getTime()) / (1000 * 60 * 60 * 24))
+      ? Math.floor((now.getTime() - new Date(resolveOperationDate(lastWatering)).getTime()) / (1000 * 60 * 60 * 24))
       : null
     
     const daysSinceFertilizing = lastFertilizing
-      ? Math.floor((now.getTime() - new Date(lastFertilizing.operationDate).getTime()) / (1000 * 60 * 60 * 24))
+      ? Math.floor((now.getTime() - new Date(resolveOperationDate(lastFertilizing)).getTime()) / (1000 * 60 * 60 * 24))
       : null
     
     return {
@@ -253,12 +256,12 @@ export default function PlantLifecycleManager({
     if (searchQuery && !op.productName?.toLowerCase().includes(searchQuery.toLowerCase()) &&
         !op.notes?.toLowerCase().includes(searchQuery.toLowerCase())) return false
     
-    const opDate = new Date(op.operationDate)
+    const opDate = new Date(resolveOperationDate(op))
     const startDate = new Date(dateRange.start)
     const endDate = new Date(dateRange.end)
     
     return opDate >= startDate && opDate <= endDate
-  }).sort((a, b) => new Date(b.operationDate).getTime() - new Date(a.operationDate).getTime())
+  }).sort((a, b) => new Date(resolveOperationDate(b)).getTime() - new Date(resolveOperationDate(a)).getTime())
 
   // Calcola prossime operazioni suggerite
   const suggestedOperations = React.useMemo(() => {
@@ -312,14 +315,16 @@ export default function PlantLifecycleManager({
   }, [plant, plantStats])
 
   const handleAddOperation = () => {
-    if (!selectedTemplate || !newOperation.operationDate) return
+    const operationDate = newOperation.operationDate || newOperation.date
+    if (!selectedTemplate || !operationDate) return
     
     const operation: Omit<PlantOperation, 'id' | 'createdAt' | 'updatedAt'> = {
       plantId: plant.id,
       gardenId: plant.gardenId,
       operationType: selectedTemplate.type,
       operationCategory: selectedTemplate.category,
-      operationDate: newOperation.operationDate,
+      date: operationDate,
+      operationDate: operationDate,
       quantity: newOperation.quantity || selectedTemplate.defaultQuantity,
       unit: selectedTemplate.unit,
       productName: newOperation.productName || selectedTemplate.name,
@@ -334,12 +339,14 @@ export default function PlantLifecycleManager({
   }
 
   const handleQuickOperation = (template: OperationTemplate) => {
+    const today = new Date().toISOString().split('T')[0]
     const operation: Omit<PlantOperation, 'id' | 'createdAt' | 'updatedAt'> = {
       plantId: plant.id,
       gardenId: plant.gardenId,
       operationType: template.type,
       operationCategory: template.category,
-      operationDate: new Date().toISOString().split('T')[0],
+      date: today,
+      operationDate: today,
       quantity: template.defaultQuantity,
       unit: template.unit,
       productName: template.name,
@@ -546,7 +553,7 @@ export default function PlantLifecycleManager({
                         <div>
                           <p className="font-medium">{operation.productName}</p>
                           <p className="text-sm text-gray-600">
-                            {operation.quantity} {operation.unit} • {new Date(operation.operationDate).toLocaleDateString('it-IT')}
+                            {operation.quantity} {operation.unit} • {new Date(resolveOperationDate(operation)).toLocaleDateString('it-IT')}
                           </p>
                         </div>
                       </div>
@@ -665,7 +672,7 @@ export default function PlantLifecycleManager({
                             </span>
                           </div>
                           <p className="text-sm text-gray-600 mb-2">
-                            {operation.quantity} {operation.unit} • {new Date(operation.operationDate).toLocaleDateString('it-IT')}
+                            {operation.quantity} {operation.unit} • {new Date(resolveOperationDate(operation)).toLocaleDateString('it-IT')}
                           </p>
                           {operation.notes && (
                             <p className="text-sm text-gray-700 mb-2">{operation.notes}</p>

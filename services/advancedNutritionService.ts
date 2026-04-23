@@ -9,6 +9,7 @@ import {
   NutritionAnalytics,
   NutritionDashboardData,
   NutritionFilters,
+  AnalyticsRecommendation,
   DateRange,
   ComplianceRecord,
   ProductCompatibility,
@@ -45,6 +46,15 @@ const average = (values: number[]): number =>
     ? roundMetric(values.reduce((sum, value) => sum + value, 0) / values.length)
     : 0
 
+const requireNutritionSupabaseClient = () => {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    throw new Error('Supabase client not available')
+  }
+
+  return supabase
+}
+
 class AdvancedNutritionService {
   // ============================================================================
   // FERTILIZER PRODUCTS MANAGEMENT
@@ -52,7 +62,7 @@ class AdvancedNutritionService {
 
   async getFertilizerProducts(gardenId: string, filters?: NutritionFilters): Promise<FertilizerProduct[]> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       let query = supabase
         .from('fertilizer_products')
         .select('*')
@@ -77,7 +87,7 @@ class AdvancedNutritionService {
 
   async createFertilizerProduct(product: Omit<FertilizerProduct, 'id' | 'createdAt' | 'updatedAt'>): Promise<FertilizerProduct> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       const { data, error } = await supabase
         .from('fertilizer_products')
         .insert([this.mapFertilizerToDatabase(product)])
@@ -95,7 +105,7 @@ class AdvancedNutritionService {
 
   async updateFertilizerProduct(id: string, updates: Partial<FertilizerProduct>): Promise<FertilizerProduct> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       const { data, error } = await supabase
         .from('fertilizer_products')
         .update(this.mapFertilizerToDatabase(updates))
@@ -114,7 +124,7 @@ class AdvancedNutritionService {
 
   async deleteFertilizerProduct(id: string): Promise<void> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       const { error } = await supabase
         .from('fertilizer_products')
         .update({ is_active: false })
@@ -133,7 +143,7 @@ class AdvancedNutritionService {
 
   async getTreatmentProducts(gardenId: string, filters?: NutritionFilters): Promise<TreatmentProduct[]> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       let query = supabase
         .from('treatment_products')
         .select('*')
@@ -162,7 +172,7 @@ class AdvancedNutritionService {
 
   async createTreatmentProduct(product: Omit<TreatmentProduct, 'id' | 'createdAt' | 'updatedAt'>): Promise<TreatmentProduct> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       const { data, error } = await supabase
         .from('treatment_products')
         .insert([this.mapTreatmentProductToDatabase(product)])
@@ -180,7 +190,7 @@ class AdvancedNutritionService {
 
   async updateTreatmentProduct(id: string, updates: Partial<TreatmentProduct>): Promise<TreatmentProduct> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       const { data, error } = await supabase
         .from('treatment_products')
         .update(this.mapTreatmentProductToDatabase(updates))
@@ -199,7 +209,7 @@ class AdvancedNutritionService {
 
   async deleteTreatmentProduct(id: string): Promise<void> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       const { error } = await supabase
         .from('treatment_products')
         .update({ is_active: false })
@@ -218,7 +228,7 @@ class AdvancedNutritionService {
 
   async getNutritionTreatments(gardenId: string, filters?: NutritionFilters): Promise<NutritionTreatment[]> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       let query = supabase
         .from('nutrition_treatments')
         .select('*')
@@ -260,7 +270,7 @@ class AdvancedNutritionService {
 
   async createNutritionTreatment(treatment: Omit<NutritionTreatment, 'id' | 'createdAt' | 'updatedAt'>): Promise<NutritionTreatment> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       
       // Get current user ID
       const { data: { user } } = await supabase.auth.getUser()
@@ -292,7 +302,7 @@ class AdvancedNutritionService {
 
   async updateNutritionTreatment(id: string, updates: Partial<NutritionTreatment>): Promise<NutritionTreatment> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       
       // Get original treatment for inventory management
       const { data: originalTreatment } = await supabase
@@ -324,7 +334,7 @@ class AdvancedNutritionService {
 
   async deleteTreatment(id: string): Promise<void> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       const { error } = await supabase
         .from('nutrition_treatments')
         .delete()
@@ -343,7 +353,7 @@ class AdvancedNutritionService {
 
   async getNutritionSchedules(gardenId: string): Promise<NutritionSchedule[]> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       const { data, error } = await supabase
         .from('nutrition_schedules')
         .select('*')
@@ -362,7 +372,7 @@ class AdvancedNutritionService {
 
   async createNutritionSchedule(schedule: Omit<NutritionSchedule, 'id' | 'createdAt' | 'updatedAt'>): Promise<NutritionSchedule> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       const { data, error } = await supabase
         .from('nutrition_schedules')
         .insert([this.mapScheduleToDatabase(schedule)])
@@ -380,7 +390,7 @@ class AdvancedNutritionService {
 
   async updateNutritionSchedule(id: string, updates: Partial<NutritionSchedule>): Promise<NutritionSchedule> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       const { data, error } = await supabase
         .from('nutrition_schedules')
         .update(this.mapScheduleToDatabase(updates))
@@ -399,7 +409,7 @@ class AdvancedNutritionService {
 
   async deleteNutritionSchedule(id: string): Promise<void> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       const { error } = await supabase
         .from('nutrition_schedules')
         .update({ is_active: false })
@@ -418,7 +428,7 @@ class AdvancedNutritionService {
 
   async getProductInventory(gardenId: string): Promise<ProductInventory[]> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       const { data, error } = await supabase
         .from('product_inventory')
         .select('*')
@@ -436,7 +446,7 @@ class AdvancedNutritionService {
 
   async getLowStockProducts(gardenId: string): Promise<ProductInventory[]> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       const { data, error } = await supabase
         .rpc('get_low_stock_products', { garden_id_param: gardenId })
 
@@ -451,7 +461,7 @@ class AdvancedNutritionService {
 
   async updateProductStock(productId: string, quantity: number, movementType: 'purchase' | 'usage' | 'waste' | 'adjustment', notes?: string): Promise<void> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       
       // Get current user ID
       const { data: { user } } = await supabase.auth.getUser()
@@ -501,7 +511,7 @@ class AdvancedNutritionService {
 
   async getStockMovements(gardenId: string): Promise<StockMovement[]> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       const { data, error } = await supabase
         .from('stock_movements')
         .select('*')
@@ -545,7 +555,7 @@ class AdvancedNutritionService {
 
   async getNutritionAnalytics(gardenId: string, period: string): Promise<NutritionAnalytics> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       
       // Calculate date range
       const endDate = new Date()
@@ -652,7 +662,7 @@ class AdvancedNutritionService {
 
   async getDashboardData(gardenId: string): Promise<NutritionDashboardData> {
     try {
-      const supabase = getSupabaseClient()
+      const supabase = requireNutritionSupabaseClient()
       const monthStart = new Date()
       monthStart.setDate(1)
       const ninetyDaysAgo = new Date()
@@ -843,8 +853,8 @@ class AdvancedNutritionService {
     nutritionAdjustment: AgronomicNutritionLearningAdjustment,
     qualityAdjustment: AgronomicQualityLearningAdjustment,
     waterQualityInsight?: NutritionWaterQualityInsight | null
-  ) {
-    const recommendations = []
+  ): AnalyticsRecommendation[] {
+    const recommendations: AnalyticsRecommendation[] = []
     const effectivenessValues = treatments
       .map((treatment) => toEffectivenessPercent(treatment.effectiveness))
       .filter((value) => value > 0)
@@ -955,7 +965,7 @@ class AdvancedNutritionService {
     gardenId: string,
     treatments: any[]
   ): Promise<NutritionWaterQualityInsight | undefined> {
-    const supabase = getSupabaseClient()
+    const supabase = requireNutritionSupabaseClient()
     const fertigationExposure = treatments.some(
       (treatment) => treatment.application_method === 'fertigation' || treatment.applicationMethod === 'fertigation'
     )
@@ -1040,14 +1050,10 @@ class AdvancedNutritionService {
           const latestSoilAnalysis = await getLatestSoilAnalysis(supabase as any, zone.id, gardenId)
           return calculateSoilHydraulicProfile(latestSoilAnalysis, {
             zone: {
-              id: zone.id,
-              name: zone.id,
-              createdAt: '',
-              updatedAt: '',
+              soilType: zone.soil_type || 'mixed',
+              slopePercentage: zone.slope_percentage || 0,
               drainageQuality: zone.drainage_quality || 'good',
               waterRetention: zone.water_retention || 'medium',
-              slopePercentage: zone.slope_percentage || 0,
-              soilType: zone.soil_type || 'mixed',
             },
             waterQualityProfile,
           })

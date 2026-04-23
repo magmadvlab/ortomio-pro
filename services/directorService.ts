@@ -37,6 +37,7 @@ import {
 import {
   buildAgronomicRefinedContext,
 } from '@/services/agronomicRefinedContextService'
+import type { EfficiencyReport } from '@/types/irrigation'
 import type {
   AgronomicRefinedContext,
   AgronomicOperationalContextTag,

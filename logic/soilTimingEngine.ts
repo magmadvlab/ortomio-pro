@@ -42,9 +42,11 @@ export async function calculateTemperaDate(
   }
 
   // Verifica previsioni: se piove ancora, aggiungi giorni
-  if (forecast?.rainForecastMm && forecast.rainForecastMm > 5) {
-    requiredDays += 1;
-  }
+	  const currentForecast = Array.isArray(forecast) ? forecast[0] : forecast
+	  const rainForecastMm = currentForecast?.rainForecastMm ?? currentForecast?.precipitation ?? 0
+	  if (rainForecastMm > 5) {
+	    requiredDays += 1;
+	  }
 
   const temperaDate = new Date(lastRainDate);
   temperaDate.setDate(temperaDate.getDate() + requiredDays);
@@ -110,9 +112,11 @@ export async function getOptimalWorkWindow(
   if (garden.coordinates) {
     try {
       const forecast = await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude);
-      if (forecast?.rainForecastMm && forecast.rainForecastMm > 10) {
-        confidence = 0.5; // Pioggia prevista riduce confidence
-      }
+	      const currentForecast = Array.isArray(forecast) ? forecast[0] : forecast
+	      const rainForecastMm = currentForecast?.rainForecastMm ?? currentForecast?.precipitation ?? 0
+	      if (rainForecastMm > 10) {
+	        confidence = 0.5; // Pioggia prevista riduce confidence
+	      }
     } catch (error) {
       // Ignora errori meteo
     }
@@ -125,4 +129,3 @@ export async function getOptimalWorkWindow(
     reason: `Terreno sarà in tempera tra ${startDate.toLocaleDateString('it-IT')} e ${endDate.toLocaleDateString('it-IT')}`,
   };
 }
-
