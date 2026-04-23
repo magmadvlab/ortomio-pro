@@ -6,6 +6,7 @@ import type { IStorageProvider } from '@/packages/core/storage/interface'
 import type { TaskExecutionContext } from '@/services/taskExecutionLaunchService'
 import type { TaskExecutionBannerDetails } from '@/services/taskExecutionBannerService'
 import { loadTaskExecutionBannerDetails } from '@/services/taskExecutionBannerService'
+import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvidenceContract'
 
 interface TaskExecutionBannerProps {
   context: TaskExecutionContext
@@ -163,6 +164,8 @@ export default function TaskExecutionBanner({
             {details?.visibleNotes && (
               <p className="text-xs text-gray-600">{details.visibleNotes}</p>
             )}
+
+            <TaskExecutionEvidenceContract operationalSummary={operationalSummary} className="sm:hidden" />
           </div>
         </div>
 

@@ -12,6 +12,7 @@ import type { WateringLog } from '@/types/microzoneTracking'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { X } from 'lucide-react'
 import { executeWateringLogThroughUnifiedService } from '@/services/operationExecutionBridgeService'
+import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvidenceContract'
 
 type WateringZone = IrrigationZone & {
   bedIds?: string[]
@@ -289,6 +290,8 @@ export function WateringLogForm({
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <TaskExecutionEvidenceContract sourceTaskId={sourceTaskId} storageProvider={storageProvider} />
+
             {/* Zona */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

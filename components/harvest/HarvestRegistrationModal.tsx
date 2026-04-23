@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Star, Sprout, AlertCircle, CheckCircle } from 'lucide-react';
 import type { GardenTask, HarvestLogData } from '@/types';
 import { addPassiveEventListener } from '@/utils/passiveEventListeners';
+import { useStorage } from '@/packages/core/hooks/useStorage';
+import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvidenceContract';
 
 interface Harvest {
   id: string;
@@ -66,6 +68,7 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
   onSave,
   onClose
 }) => {
+  const { storageProvider } = useStorage();
   const [selectedTaskId, setSelectedTaskId] = useState<string>('');
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [plantName, setPlantName] = useState('');
@@ -368,6 +371,11 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6">
+          <TaskExecutionEvidenceContract
+            sourceTaskId={launchContext?.sourceTaskId}
+            storageProvider={storageProvider}
+          />
+
           {/* Selezione Tipo di Registrazione */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">

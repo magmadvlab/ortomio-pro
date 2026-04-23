@@ -24,7 +24,9 @@ Rule:
    - make planner task -> execution module -> outcome registration a faster and clearer field workflow
    Current sub-slice:
    - `P2-D Mobile fast path` first slice completed on 2026-04-23
-   - next recommended: extend the same mobile fast path into execution headers and evidence capture forms
+   - type-check remediation and contract cleanup completed on 2026-04-23, no longer blocking implementation
+   - execution headers and evidence capture forms aligned with the mobile fast path on 2026-04-23
+   - next recommended: validate the phone-sized loop end-to-end in runtime and then decide whether to close `P2-D` or open the next `P2` follow-up slice
    Current document:
    - `docs/reports/execution-plans/ORTOMIO_EXECUTION_PLAN_P2_FIELD_EXECUTION_LOOP_2026-04-19.md`
 
@@ -40,9 +42,13 @@ Rule:
    - `docs/manual/10-activity-registry.md`
 
 4. `P4 Type-check and contract cleanup`
-   Status: pending
+   Status: completed on 2026-04-23
    Goal:
    - reduce residual contract drift and prepare a cleaner verification loop beyond precision-hub tests
+   Output:
+   - global `tsc --noEmit` loop restored to clean state
+   - residual contract drift closed across planner, execution, weather, irrigation, lifecycle, queue evidence and supporting services
+   - precision-hub targeted verification rerun on the cleaned branch
 
 ## Companion Documents
 - `docs/reports/ORTOMIO_TECHNICAL_IMPLEMENTATION_PLAN_2026-04-18.md`
