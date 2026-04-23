@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Plus, Edit, Trash2, Check, Clock, Filter, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { Calendar, Plus, Edit, Trash2, Check, Clock, Search, ChevronDown, ChevronUp, Play, ClipboardCheck } from 'lucide-react'
 import { Garden, GardenTask } from '@/types'
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -10,6 +10,7 @@ import { it } from 'date-fns/locale'
 import { translateTaskType, getCommonTaskTypesItalian } from '@/utils/taskTranslations'
 import { buildTaskExecutionUrl, canLaunchTaskExecution } from '@/services/taskExecutionLaunchService'
 import {
+  buildAgronomicQueueTaskOperationalSummary,
   preserveAgronomicQueueTaskMetadata,
   stripAgronomicQueueTaskMetadata,
 } from '@/services/agronomicQueueTaskService'
@@ -133,6 +134,18 @@ export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, on
     }
   }
 
+  const getOperationalReadinessClasses = (readiness: 'ready' | 'partial' | 'blocked') => {
+    switch (readiness) {
+      case 'ready':
+        return 'bg-emerald-100 text-emerald-700'
+      case 'blocked':
+        return 'bg-amber-100 text-amber-800'
+      case 'partial':
+      default:
+        return 'bg-sky-100 text-sky-700'
+    }
+  }
+
   const handleCompleteTask = async (task: GardenTask) => {
     await onTaskUpdate({ ...task, completed: !task.completed })
   }
@@ -243,6 +256,7 @@ export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, on
                   {groupTasks.map((task) => {
                     const priority = getTaskPriority(task)
                     const taskDate = task.nextDueDate ? parseISO(task.nextDueDate) : parseISO(task.date)
+                    const operationalSummary = buildAgronomicQueueTaskOperationalSummary(task)
                     
                     return (
                       <div
@@ -299,6 +313,45 @@ export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, on
                                   {stripAgronomicQueueTaskMetadata(task.notes)}
                                 </p>
                               )}
+
+                              {operationalSummary && (
+                                <div className="mb-3 space-y-2">
+                                  <div className="flex flex-wrap gap-2 text-xs">
+                                    <span
+                                      className={`rounded-full px-2 py-1 font-medium ${getOperationalReadinessClasses(
+                                        operationalSummary.readiness
+                                      )}`}
+                                    >
+                                      {operationalSummary.readinessLabel}
+                                    </span>
+                                    <span className="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-700">
+                                      {operationalSummary.focusLabel}
+                                    </span>
+                                    <span className="rounded-full bg-rose-100 px-2 py-1 font-medium text-rose-700">
+                                      {operationalSummary.urgencyLabel}
+                                    </span>
+                                    <span className="rounded-full bg-gray-100 px-2 py-1 font-medium text-gray-700">
+                                      {operationalSummary.confidenceLabel}
+                                    </span>
+                                    {operationalSummary.contextLabels.map((label) => (
+                                      <span
+                                        key={`${task.id}:${label}`}
+                                        className="rounded-full bg-indigo-50 px-2 py-1 font-medium text-indigo-700"
+                                      >
+                                        {label}
+                                      </span>
+                                    ))}
+                                  </div>
+
+                                  {operationalSummary.primaryRationale && (
+                                    <p className="text-xs text-gray-700">{operationalSummary.primaryRationale}</p>
+                                  )}
+
+                                  {operationalSummary.missingSignalsLabel && (
+                                    <p className="text-xs text-amber-700">{operationalSummary.missingSignalsLabel}</p>
+                                  )}
+                                </div>
+                              )}
                               
                               <div className="flex items-center gap-4 text-xs text-gray-500">
                                 <div className="flex items-center gap-1">
@@ -314,12 +367,31 @@ export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, on
                               </div>
 
                               {canLaunchTaskExecution(task) && (
-                                <div className="mt-3">
+                                <div className="mt-3 space-y-2">
+                                  {operationalSummary && (
+                                    <div className="rounded-lg border border-emerald-100 bg-white/80 p-3 sm:hidden">
+                                      <div className="flex items-start gap-2">
+                                        <ClipboardCheck size={16} className="mt-0.5 text-emerald-700" />
+                                        <div className="min-w-0">
+                                          <p className="text-xs font-semibold text-gray-900">
+                                            {operationalSummary.mobileEvidencePrompt}
+                                          </p>
+                                          <p className="mt-1 text-xs text-gray-600">
+                                            {operationalSummary.evidenceLabels.join(' · ')}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                   <button
                                     onClick={() => openTaskExecution(task)}
-                                    className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 sm:min-h-0 sm:w-auto sm:bg-emerald-50 sm:px-3 sm:py-1.5 sm:text-xs sm:text-emerald-700 sm:hover:bg-emerald-100"
                                   >
-                                    Apri esecuzione
+                                    <Play size={14} />
+                                    {operationalSummary?.mobileActionLabel ||
+                                      (operationalSummary?.readiness === 'ready'
+                                        ? 'Esegui ora'
+                                        : 'Apri esecuzione guidata')}
                                   </button>
                                 </div>
                               )}

@@ -31,6 +31,7 @@ import VineHarvest from '@/components/VineHarvest'
 import { IrrigationZonesWidget } from '@/components/irrigation/IrrigationZonesWidget'
 import IrrigationZoneManager from '@/components/irrigation/IrrigationZoneManager'
 import { IrrigationZone } from '@/types/irrigation'
+import type { SaplingBatch } from '@/types/sapling'
 
 
 
@@ -1095,7 +1096,10 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                 }}
                 onBatchCreate={async (batch) => {
                   try {
-                    await storageProvider.createSaplingBatch(batch)
+                    await storageProvider.createSaplingBatch({
+                      ...batch,
+                      saplings: [],
+                    })
                     // Il componente si ricaricherà automaticamente
                   } catch (error) {
                     console.error('Error creating sapling batch:', error)
@@ -1125,10 +1129,9 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                     await storageProvider.createTask(orchardTask)
 
                     // Update the batch to link it to the created orchard
-                    const updatedBatch = {
-                      ...batch,
+                    const updatedBatch: Partial<SaplingBatch> = {
                       specializedCropId: orchardTask.id,
-                      phase: 'ReadyToOrchard' as const
+                      phase: 'Planted'
                     }
                     await storageProvider.updateSaplingBatch(batch.id, updatedBatch)
 
@@ -1289,43 +1292,6 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
               {/* TODO: Caricare zone da storage */}
               <IrrigationZoneManager
                 garden={activeGarden}
-                zones={irrigationZones}
-                onZoneUpdate={async (zone) => {
-                  try {
-                    await storageProvider.updateIrrigationZone(zone.id, zone)
-                    // Ricarica le zone
-                    const systems = await storageProvider.getIrrigationSystems(activeGarden.id)
-                    const allZones: IrrigationZone[] = []
-                    for (const system of systems) {
-                      const zones = await storageProvider.getIrrigationZones(system.id)
-                      allZones.push(...zones)
-                    }
-                    setIrrigationZones(allZones)
-                  } catch (error) {
-                    console.error('Error updating irrigation zone:', error)
-                    alert('Errore durante l\'aggiornamento della zona')
-                  }
-                }}
-                onZoneDelete={async (zoneId) => {
-                  try {
-                    await storageProvider.deleteIrrigationZone(zoneId)
-                    // Rimuovi la zona dallo stato locale
-                    setIrrigationZones(prev => (prev || []).filter(z => z.id !== zoneId))
-                  } catch (error) {
-                    console.error('Error deleting irrigation zone:', error)
-                    alert('Errore durante l\'eliminazione della zona')
-                  }
-                }}
-                onZoneCreate={async (zone) => {
-                  try {
-                    const newZone = await storageProvider.createIrrigationZone(zone)
-                    // Aggiungi la nuova zona allo stato locale
-                    setIrrigationZones(prev => [...prev, newZone])
-                  } catch (error) {
-                    console.error('Error creating irrigation zone:', error)
-                    alert('Errore durante la creazione della zona')
-                  }
-                }}
               />
             </div>
           </div>

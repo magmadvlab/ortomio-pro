@@ -130,9 +130,11 @@ export async function calculateMechanicalWorkTasks(
           garden.coordinates.latitude,
           garden.coordinates.longitude
         );
-        if (weather && weather.rainForecastMm > 10) {
-          weatherWarning = `⚠️ Pioggia prevista (${weather.rainForecastMm.toFixed(1)}mm). Evita aratura con terreno bagnato.`;
-        }
+	        const currentWeather = Array.isArray(weather) ? weather[0] : weather;
+	        const rainForecastMm = currentWeather?.rainForecastMm ?? currentWeather?.precipitation ?? 0;
+	        if (rainForecastMm > 10) {
+	          weatherWarning = `⚠️ Pioggia prevista (${rainForecastMm.toFixed(1)}mm). Evita aratura con terreno bagnato.`;
+	        }
       } catch (error) {
         console.error('Error fetching weather for mechanical work:', error);
       }
@@ -173,9 +175,11 @@ export async function calculateMechanicalWorkTasks(
           garden.coordinates.latitude,
           garden.coordinates.longitude
         );
-        if (weather && weather.rainForecastMm > 5) {
-          weatherWarning = `⚠️ Pioggia prevista. Attendi terreno asciutto per fresatura.`;
-        }
+	        const currentWeather = Array.isArray(weather) ? weather[0] : weather;
+	        const rainForecastMm = currentWeather?.rainForecastMm ?? currentWeather?.precipitation ?? 0;
+	        if (rainForecastMm > 5) {
+	          weatherWarning = `⚠️ Pioggia prevista. Attendi terreno asciutto per fresatura.`;
+	        }
       } catch (error) {
         console.error('Error fetching weather for mechanical work:', error);
       }

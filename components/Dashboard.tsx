@@ -46,6 +46,26 @@ interface DashboardProps {
   onUpdateTask: (task: GardenTask) => void;
 }
 
+const getFertigationSummary = (info: unknown) => {
+  if (!info || typeof info !== 'object') {
+    return null;
+  }
+
+  const record = info as Record<string, unknown>;
+  if (record.shouldFertigate !== true) {
+    return null;
+  }
+
+  return {
+    totalDosage:
+      typeof record.totalDosage === 'number' && Number.isFinite(record.totalDosage)
+        ? record.totalDosage
+        : null,
+    unit: typeof record.unit === 'string' ? record.unit : '',
+    productName: typeof record.productName === 'string' ? record.productName : '',
+  };
+};
+
 const Dashboard: React.FC<DashboardProps> = ({ 
     tasks, onNavigateToJournal, gardens, activeGardenId, 
     onSelectGarden, onAddGarden, onUpdateGarden, onDeleteGarden, onUpdateTask
@@ -988,11 +1008,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <Droplets size={14} />
                 Irrigazione Zone
               </h3>
-              <div className="space-y-2">
-                {dailyPlan.irrigationTasks.map((task, idx) => {
-                  const showLitersOnly = task.showLitersOnly || (task.durationMinutes === 0 && task.manualMode === 'liters');
-                  
-                  return (
+	              <div className="space-y-2">
+	                {dailyPlan.irrigationTasks.map((task, idx) => {
+	                  const showLitersOnly = task.showLitersOnly || (task.durationMinutes === 0 && task.manualMode === 'liters');
+                    const fertigationSummary = getFertigationSummary(task.fertigationInfo);
+	                  
+	                  return (
                     <div key={idx} className="bg-blue-50 rounded-lg p-3 border border-blue-200">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
@@ -1021,14 +1042,14 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 <span className="text-xs">{task.weatherAdjustment.reason}</span>
                               </div>
                             )}
-                            {task.fertigationInfo && task.fertigationInfo.shouldFertigate && (
-                              <div className="flex items-center gap-3 text-green-700">
-                                <FlaskConical size={12} />
-                                <span className="text-xs">
-                                  Fertirrigazione: {task.fertigationInfo.totalDosage?.toFixed(1)} {task.fertigationInfo.unit} {task.fertigationInfo.productName}
-                                </span>
-                              </div>
-                            )}
+	                            {fertigationSummary && (
+	                              <div className="flex items-center gap-3 text-green-700">
+	                                <FlaskConical size={12} />
+	                                <span className="text-xs">
+	                                  Fertirrigazione: {fertigationSummary.totalDosage?.toFixed(1)} {fertigationSummary.unit} {fertigationSummary.productName}
+	                                </span>
+	                              </div>
+	                            )}
                           </div>
                         </div>
                         <span className={`text-xs px-2 py-1 rounded ${
@@ -1064,12 +1085,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                               if (systems.length > 0) {
                                 const zones = await storageProvider.getIrrigationZones(systems[0].id);
                                 setIrrigationZones(zones);
-                                const zone = zones.find(z => z.id === task.zoneId);
-                                if (zone) {
-                                  setSelectedZoneForLog(zone);
-                                  setSourceTaskIdForWateringLog(task.id);
-                                  setShowWateringLogForm(true);
-                                }
+	                                const zone = zones.find(z => z.id === task.zoneId);
+	                                if (zone) {
+	                                  setSelectedZoneForLog(zone);
+	                                  setSourceTaskIdForWateringLog(undefined);
+	                                  setShowWateringLogForm(true);
+	                                }
                               }
                             }}
                             className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 flex items-center justify-center gap-3"
@@ -1090,12 +1111,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                               if (systems.length > 0) {
                                 const zones = await storageProvider.getIrrigationZones(systems[0].id);
                                 setIrrigationZones(zones);
-                                const zone = zones.find(z => z.id === task.zoneId);
-                                if (zone) {
-                                  setSelectedZoneForLog(zone);
-                                  setSourceTaskIdForWateringLog(task.id);
-                                  setShowWateringLogForm(true);
-                                }
+	                                const zone = zones.find(z => z.id === task.zoneId);
+	                                if (zone) {
+	                                  setSelectedZoneForLog(zone);
+	                                  setSourceTaskIdForWateringLog(undefined);
+	                                  setShowWateringLogForm(true);
+	                                }
                               }
                             }}
                             className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700"

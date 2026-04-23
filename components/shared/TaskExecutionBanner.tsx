@@ -1,11 +1,16 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Calendar, MapPin, Play, X } from 'lucide-react'
+import type { IStorageProvider } from '@/packages/core/storage/interface'
 import type { TaskExecutionContext } from '@/services/taskExecutionLaunchService'
+import type { TaskExecutionBannerDetails } from '@/services/taskExecutionBannerService'
+import { loadTaskExecutionBannerDetails } from '@/services/taskExecutionBannerService'
 
 interface TaskExecutionBannerProps {
   context: TaskExecutionContext
   theme?: 'nutrition' | 'irrigation' | 'mechanical' | 'harvest'
+  storageProvider?: Pick<IStorageProvider, 'getTask'> | null
   onResume: () => void
   onDismiss: () => void
 }
@@ -44,9 +49,11 @@ const themeStyles = {
 export default function TaskExecutionBanner({
   context,
   theme = 'nutrition',
+  storageProvider,
   onResume,
   onDismiss,
 }: TaskExecutionBannerProps) {
+  const [details, setDetails] = useState<TaskExecutionBannerDetails | null>(null)
   const styles = themeStyles[theme]
   const scopeLabel = context.rowNumber
     ? `Fila ${context.rowNumber}`
@@ -55,6 +62,37 @@ export default function TaskExecutionBanner({
       : context.zoneId
         ? `Zona ${context.zoneId}`
         : null
+
+  useEffect(() => {
+    let isActive = true
+
+    const loadDetails = async () => {
+      const nextDetails = await loadTaskExecutionBannerDetails(storageProvider, context.sourceTaskId)
+      if (isActive) {
+        setDetails(nextDetails)
+      }
+    }
+
+    void loadDetails()
+
+    return () => {
+      isActive = false
+    }
+  }, [context.sourceTaskId, storageProvider])
+
+  const operationalSummary = details?.operationalSummary
+
+  const getReadinessClasses = (readiness: 'ready' | 'partial' | 'blocked') => {
+    switch (readiness) {
+      case 'ready':
+        return 'bg-emerald-100 text-emerald-700'
+      case 'blocked':
+        return 'bg-amber-100 text-amber-800'
+      case 'partial':
+      default:
+        return 'bg-sky-100 text-sky-700'
+    }
+  }
 
   return (
     <div className={`mb-6 rounded-xl border p-4 ${styles.wrapper}`}>
@@ -84,6 +122,47 @@ export default function TaskExecutionBanner({
                 </span>
               )}
             </div>
+
+            {operationalSummary && (
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-1 font-medium ${getReadinessClasses(
+                    operationalSummary.readiness
+                  )}`}
+                >
+                  {operationalSummary.readinessLabel}
+                </span>
+                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 ${styles.badge}`}>
+                  {operationalSummary.focusLabel}
+                </span>
+                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 ${styles.badge}`}>
+                  {operationalSummary.urgencyLabel}
+                </span>
+                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 ${styles.badge}`}>
+                  {operationalSummary.confidenceLabel}
+                </span>
+                {operationalSummary.contextLabels.map((label) => (
+                  <span
+                    key={`${context.sourceTaskId}:${label}`}
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-1 ${styles.badge}`}
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {operationalSummary?.primaryRationale && (
+              <p className="text-xs text-gray-700">{operationalSummary.primaryRationale}</p>
+            )}
+
+            {operationalSummary?.missingSignalsLabel && (
+              <p className="text-xs text-amber-700">{operationalSummary.missingSignalsLabel}</p>
+            )}
+
+            {details?.visibleNotes && (
+              <p className="text-xs text-gray-600">{details.visibleNotes}</p>
+            )}
           </div>
         </div>
 

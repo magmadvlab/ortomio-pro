@@ -650,21 +650,22 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
           onTransplantComplete={(result) => {
             if (result.success) {
               // Aggiorna il batch per riflettere il trapianto
+              const availableQuantity =
+                batchToTransplant.survivingQuantity ??
+                batchToTransplant.currentQuantity ??
+                batchToTransplant.quantity;
+              const remainingQuantity = Math.max(0, availableQuantity - result.plantsCreated.length);
               const updatedBatch = {
                 ...batchToTransplant,
-                survivingQuantity: batchToTransplant.survivingQuantity - result.plantsCreated.length,
-                phase: batchToTransplant.survivingQuantity - result.plantsCreated.length > 0 
+                survivingQuantity: remainingQuantity,
+                currentQuantity: remainingQuantity,
+                phase: remainingQuantity > 0 
                   ? batchToTransplant.phase 
-                  : 'Completed' as const,
-                transplantHistory: [
-                  ...(batchToTransplant.transplantHistory || []),
-                  {
-                    date: result.transplantOperation.transplantDate,
-                    quantity: result.plantsCreated.length,
-                    fieldRowId: result.transplantOperation.fieldRowId,
-                    operationId: result.transplantOperation.id
-                  }
-                ]
+                  : 'ReadyToTransplant' as const,
+                notes: [
+                  batchToTransplant.notes,
+                  `Trapiantate ${result.plantsCreated.length} piantine il ${result.transplantOperation.transplantDate} nel filare ${result.transplantOperation.fieldRowId}.`
+                ].filter(Boolean).join('\n')
               };
               onBatchUpdate(updatedBatch);
             }
@@ -678,4 +679,3 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
 };
 
 export default SeedlingManager;
-

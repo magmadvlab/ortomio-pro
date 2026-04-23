@@ -33,10 +33,24 @@ function createGeminiProvider(apiKey: string, config?: any): AIProvider {
   const ai = new GoogleGenerativeAI(apiKey);
   const model = config?.model || 'gemini-2.5-flash';
 
+  const generateGeminiContent = async (request: {
+    contents: any;
+    config?: Record<string, unknown>;
+  }) => {
+    const modelClient = ai.getGenerativeModel({ model });
+    const result = await modelClient.generateContent({
+      contents: request.contents,
+      generationConfig: request.config,
+    });
+
+    return {
+      text: result.response.text() || '',
+    };
+  };
+
   return {
     async generateContent(prompt: string, options?: any) {
-      const response = await ai.models.generateContent({
-        model,
+      const response = await generateGeminiContent({
         contents: prompt,
         config: {
           temperature: options?.temperature || 0.7,
@@ -44,12 +58,11 @@ function createGeminiProvider(apiKey: string, config?: any): AIProvider {
           systemInstruction: options?.systemInstruction,
         },
       });
-      return { text: response.text || '' };
+      return response;
     },
     async generateContentWithSchema(prompt: string, schema: any, options?: any) {
       // Per Gemini, usa responseMimeType e responseSchema nel config
-      const response = await ai.models.generateContent({
-        model,
+      const response = await generateGeminiContent({
         contents: prompt,
         config: {
           temperature: options?.temperature || 0.7,
@@ -238,4 +251,3 @@ export async function isAIProviderAvailable(serviceType: AIServiceType = 'ai_gem
   const provider = await getAIProvider(serviceType);
   return provider !== null;
 }
-

@@ -18,6 +18,8 @@ Il Planner AI oggi unisce funzioni realmente persistite con parti ancora guidate
 - creazione e aggiornamento task nel planner classico e nelle viste principali
 - pagina `Advice` con azioni che possono creare task veri
 - navigazione integrata tra planner, advice e salute
+- task-aware launch verso irrigazione, nutrizione, raccolta e lavorazioni
+- per i task agronomici di nuova generazione: summary operativo in lista con urgenza, confidence, contesto sintetico e segnali mancanti
 
 ---
 
@@ -27,6 +29,7 @@ Il Planner AI oggi unisce funzioni realmente persistite con parti ancora guidate
 - parte dei suggerimenti AI resta guidata o mock e non va trattata come piano agronomico già validato
 - il planner classico è ancora più adatto a **orto e colture annuali** che a frutteti, vigneti e coorti miste
 - il passaggio da suggerimento AI a operazione eseguita non è ancora completamente uniforme in tutti i moduli
+- il summary operativo esiste soprattutto per i task generati dalla coda agronomica, non ancora per ogni task manuale o legacy
 
 ---
 
@@ -60,6 +63,7 @@ Il Planner AI oggi unisce funzioni realmente persistite con parti ancora guidate
 
 ### **3. Esegui e registra**
 - completa i task nel planner
+- quando presente, usa il pulsante di esecuzione guidata dal task stesso
 - collega poi l'esecuzione ai registri operativi quando disponibili
 
 ---
@@ -68,6 +72,7 @@ Il Planner AI oggi unisce funzioni realmente persistite con parti ancora guidate
 
 - Il planner sta convergendo verso un unico orchestratore, ma non ci è ancora arrivato in ogni sottosistema
 - Per audit e storico, oggi il task persistito è più affidabile del semplice suggerimento AI
+- I task agronomici piu evoluti portano gia con se parte della spiegazione decisionale che li ha generati
 
 ---
 

@@ -28,7 +28,9 @@ import {
   inferOperationalContextTagsFromText,
   mergeOperationalContextTags,
 } from '@/services/agronomicOperationalContextService'
+import { buildAgronomicRefinedContext } from '@/services/agronomicRefinedContextService'
 import type {
+  AgronomicRefinedContext,
   AgronomicOperationalContextTag,
   AgronomicSignalKey,
 } from '@/types/agronomicKernel'
@@ -62,6 +64,7 @@ export interface PrescriptionAgronomicPriority {
   priorityConfidence?: number
   missingSignals?: AgronomicSignalKey[]
   operationalContextTags?: AgronomicOperationalContextTag[]
+  refinedContext?: AgronomicRefinedContext | null
   environmentalSummary?: ZoneEnvironmentalHistorySummary | null
   decisionExplanation?: AgronomicDecisionExplanation
 }
@@ -243,6 +246,7 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
   const worstZone = [...sortedZones].reverse()[0]
 
   for (const zone of efficacySummary.zoneScores) {
+    const zoneDefinition = prescriptionMap.zones.find((item) => item.id === zone.zoneId)
     const variance = varianceSummary.zoneVariances.find((item) => item.zoneId === zone.zoneId)
     const outcome = outcomeSummary.zoneOutcomes.find((item) => item.zoneId === zone.zoneId)
     const environmentalSummary = environmentalSummariesByZone?.[zone.zoneId]
@@ -323,8 +327,27 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       zoneId: zone.zoneId,
       plantName: efficacySummary.cropContextScores[0]?.label || prescriptionMap.gardenName,
     })
+    const refinedContextResult = buildAgronomicRefinedContext({
+      cropProfile: resolvedAgronomicProfile?.profile,
+      operationalContextTags: baseOperationalContextTags,
+      textValues: [
+        prescriptionMap.gardenName,
+        prescriptionMap.name,
+        zone.zoneName,
+        efficacySummary.cropContextScores[0]?.label,
+        efficacySummary.cropContextScores[0]?.key,
+      ],
+      speciesLabel: efficacySummary.cropContextScores[0]?.label || prescriptionMap.gardenName,
+      productionIntent:
+        prescriptionMap.mapType === 'harvest'
+          ? 'fresh_market'
+          : undefined,
+      gardenType: prescriptionMap.gardenName,
+      soilType: zoneDefinition?.sourceData.soilType,
+    })
     const operationalContextTags = mergeOperationalContextTags(
       baseOperationalContextTags,
+      refinedContextResult.operationalContextTags,
       inferOperationalContextTagsFromText(zone.zoneName)
     )
     const baseConfidence =
@@ -430,6 +453,7 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       resolvedProfile: resolvedAgronomicProfile,
       availableSignals,
       isCriticalStage: persistentDeficit || persistentHumidity,
+      refinedContext: refinedContextResult.refinedContext,
     })
 
     operationalPriorities.push({
@@ -449,6 +473,7 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       priorityConfidence: priorityResult.confidence,
       missingSignals: priorityResult.signalCoverage.missingP0Signals,
       operationalContextTags,
+      refinedContext: refinedContextResult.refinedContext,
       environmentalSummary,
       decisionExplanation,
       rationale: `${rationale}${profileSuffix}${coverageSuffix}${measuredFeedbackSuffix}${adaptiveQualitySuffix}${environmentalSuffix}`,

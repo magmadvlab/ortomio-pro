@@ -6,16 +6,20 @@
 export interface FieldRow {
   id: string
   gardenId: string
-  zoneId?: string  // Optional: può appartenere a una zona specifica
+  zoneId?: string | null  // Optional: può appartenere a una zona specifica
 
   // Identificazione
   name: string  // es. "Fila 1", "Filare Pomodori Nord"
   rowNumber: number  // Numero progressivo filare
+  row_number?: number
 
   // Dimensioni
   lengthMeters: number  // Lunghezza filare in metri
+  length_meters?: number
   distanceFromPreviousRow?: number  // Distanza dal filare precedente (cm)
+  distance_from_previous_row?: number
   plantSpacing?: number  // Distanza tra piante nel filare (cm)
+  plant_spacing?: number
 
   // Coltura
   cultivar?: string  // es. "Pomodoro Datterino", "Lattuga Romana"
@@ -33,9 +37,11 @@ export interface FieldRow {
     emitterSpacingCm?: number
     emitterFlowRateLph?: number
   }
+  irrigationConfig?: FieldRow['irrigationLine']
 
   // Tracking produzioni scalari
   plantedDate?: string  // Data semina/trapianto (ISO string)
+  planted_date?: string
   isActive: boolean  // Se il filare è attualmente in produzione
 
   // Metadata

@@ -33,14 +33,24 @@ export interface WeatherForecast {
   date: string
   tempMin: number
   tempMax: number
+  temp?: number
   condition: string
   rainMm: number
+  rainForecastMm?: number
+  precipitation?: number
   windSpeed: number
+  wind?: number
+  code?: number
+  weathercode?: number
+  temp_min?: number
+  temp_max?: number
+  wind_speed?: number
   humidity: number
+  snowfall?: number
   snowForecastMm?: number
 }
 
-interface WeatherAlert {
+export interface WeatherAlert {
   severity: 'LOW' | 'MEDIUM' | 'HIGH'
   message: string
   type: 'temperature' | 'rain' | 'wind' | 'humidity'
@@ -1015,4 +1025,4 @@ export const createWeatherService = () => ({
   getWeatherForDate: weatherService.getWeatherForDate.bind(weatherService)
 });
 
-export type { WeatherData, WeatherAlert, GardenLocation }
+export type { WeatherData, GardenLocation }

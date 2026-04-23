@@ -6,6 +6,26 @@ const apiKey = typeof window !== 'undefined'
   : (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY);
 const ai = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
+const generateRecipeContent = async (request: {
+  model: string;
+  contents: any;
+  config?: Record<string, unknown>;
+}): Promise<{ text: string }> => {
+  if (!ai) {
+    throw new Error('AI client not available');
+  }
+
+  const modelClient = ai.getGenerativeModel({ model: request.model });
+  const result = await modelClient.generateContent({
+    contents: request.contents,
+    generationConfig: request.config,
+  });
+
+  return {
+    text: result.response.text() || '',
+  };
+};
+
 export interface Recipe {
   name: string;
   ingredients: string[];
@@ -77,7 +97,7 @@ Rispondi in italiano.
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await generateRecipeContent({
       model,
       contents: prompt,
       config: {
@@ -198,7 +218,6 @@ const getFallbackRecipes = (plantName: string): Recipe[] => {
     }
   ];
 };
-
 
 
 

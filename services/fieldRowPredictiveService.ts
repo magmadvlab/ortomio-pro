@@ -314,8 +314,10 @@ export class FieldRowPredictiveService {
         .filter(op => op.type === 'harvest')
         .map(op => ({
           plantName: task.plantName,
+          date: op.date || op.harvest_date || new Date().toISOString().split('T')[0],
           quantity: op.quantity || 1,
-          unit: op.unit || 'kg'
+          unit: op.unit || 'kg',
+          rating: typeof op.rating === 'number' ? op.rating : 3
         }))
 
       const prediction = await predictYield(task, masterData, context.garden, harvestLogs)

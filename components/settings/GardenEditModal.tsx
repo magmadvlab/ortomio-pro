@@ -40,6 +40,30 @@ const formatFieldRowOrderingLabel = (value?: string) => {
   }
 }
 
+const toFieldRowIrrigationConfig = (config: {
+  enabled: boolean
+  irrigationType: 'drip' | 'sprinkler' | 'micro_sprinkler' | 'manual'
+  tubeDiameter: number
+  emitterSpacing: number
+  emitterFlowRate: number
+}) => {
+  if (!config.enabled || config.irrigationType === 'manual') {
+    return undefined
+  }
+
+  return {
+    lineType:
+      config.irrigationType === 'micro_sprinkler'
+        ? 'MicroSprinkler' as const
+        : config.irrigationType === 'sprinkler'
+          ? 'PipeWithDrippers' as const
+          : 'Dripline' as const,
+    pipeDiameterMm: config.tubeDiameter,
+    emitterSpacingCm: config.emitterSpacing,
+    emitterFlowRateLph: config.emitterFlowRate
+  }
+}
+
 export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditModalProps) {
   const { storageProvider } = useStorage()
   const [activeTab, setActiveTab] = useState<TabType>('info')
@@ -398,7 +422,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
         rowOrdering: fieldRowForm.rowOrdering || undefined,
         plantOrderingInRow: fieldRowForm.plantOrderingInRow || undefined,
         // Salva configurazione irrigazione
-        irrigationConfig: fieldRowForm.irrigationConfig.enabled ? fieldRowForm.irrigationConfig : undefined
+        irrigationConfig: toFieldRowIrrigationConfig(fieldRowForm.irrigationConfig)
       }
 
       if (editingFieldRow) {

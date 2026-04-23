@@ -1,5 +1,5 @@
 
-import { preciseIrrigationService, DripperConfig, PlantPosition } from '../services/preciseIrrigationService.ts';
+import { preciseIrrigationService, DripperConfig, PlantPosition } from '../services/preciseIrrigationService';
 
 // Configurazione test
 const rowLengthCm = 500; // 5 metri

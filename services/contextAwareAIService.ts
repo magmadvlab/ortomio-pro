@@ -114,9 +114,13 @@ export class ContextAwareAIService {
           context.garden.coordinates.latitude,
           context.garden.coordinates.longitude
         );
-        if (weather) {
-          context.weatherContext = `Temp: ${weather.tempMin}°-${weather.tempMax}°C, Pioggia: ${weather.rainForecastMm}mm`;
-        }
+	        const currentWeather = Array.isArray(weather) ? weather[0] : weather;
+	        if (currentWeather) {
+	          const tempMin = currentWeather.tempMin ?? currentWeather.temp_min ?? 0;
+	          const tempMax = currentWeather.tempMax ?? currentWeather.temp_max ?? currentWeather.temp ?? 0;
+	          const rainForecastMm = currentWeather.rainForecastMm ?? currentWeather.precipitation ?? 0;
+	          context.weatherContext = `Temp: ${tempMin}°-${tempMax}°C, Pioggia: ${rainForecastMm}mm`;
+	        }
       } catch (error) {
         console.warn('Could not load weather context:', error);
       }

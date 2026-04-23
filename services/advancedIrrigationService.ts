@@ -492,7 +492,7 @@ class AdvancedIrrigationService {
       // Get zone information for area calculation
       const { data: zone, error: zoneError } = await supabase
         .from('irrigation_zones')
-        .select('area_sqm, efficiency_percentage, water_retention, garden_id, drainage_quality, slope_percentage, soil_type, ph_level, organic_matter_percentage')
+        .select('area_sqm, efficiency_percentage, water_retention, garden_id, drainage_quality, slope_percentage, sun_exposure, soil_type, ph_level, organic_matter_percentage')
         .eq('id', zoneId)
         .single()
 
@@ -612,7 +612,7 @@ class AdvancedIrrigationService {
         kcCoefficient,
         etcMm,
         cropStage: effectiveCropStage,
-        weatherData: enrichedWeatherData || {},
+        weatherData: enrichedWeatherData,
         waterQualityProfile: waterQualityProfile || undefined,
         soilWaterBalance,
         irrigationNeedMm: soilAdjustedIrrigationNeedMm,
@@ -635,7 +635,7 @@ class AdvancedIrrigationService {
 
       return {
         ...this.mapWaterRequirementFromDatabase(data),
-        weatherData: enrichedWeatherData || {},
+        weatherData: enrichedWeatherData,
         waterQualityProfile: waterQualityProfile || undefined,
         soilWaterBalance,
         irrigationNeedMm: soilAdjustedIrrigationNeedMm,
@@ -907,7 +907,7 @@ class AdvancedIrrigationService {
       // Get zone info
       const { data: zone, error: zoneError } = await supabase
         .from('irrigation_zones')
-        .select('name, description, garden_id')
+        .select('name, description, garden_id, slope_percentage, sun_exposure')
         .eq('id', zoneId)
         .single()
 
@@ -2189,7 +2189,25 @@ class AdvancedIrrigationService {
     weatherData: any,
     waterQualityProfile?: IrrigationWaterQualityProfile | null
   ): WaterRequirement['weatherData'] {
-    const baseWeatherData = (weatherData || {}) as WaterRequirement['weatherData']
+    const baseWeatherData: WaterRequirement['weatherData'] = {
+      effectiveRainfallMm: Number(weatherData?.effectiveRainfallMm ?? 0),
+      temperatureAvgCelsius:
+        weatherData?.temperatureAvgCelsius !== undefined
+          ? Number(weatherData.temperatureAvgCelsius)
+          : undefined,
+      humidityAvgPercentage:
+        weatherData?.humidityAvgPercentage !== undefined
+          ? Number(weatherData.humidityAvgPercentage)
+          : undefined,
+      windSpeedAvgKmh:
+        weatherData?.windSpeedAvgKmh !== undefined
+          ? Number(weatherData.windSpeedAvgKmh)
+          : undefined,
+      solarRadiationMjm2:
+        weatherData?.solarRadiationMjm2 !== undefined
+          ? Number(weatherData.solarRadiationMjm2)
+          : undefined,
+    }
 
     if (!waterQualityProfile) {
       return baseWeatherData

@@ -120,6 +120,12 @@ export const isDateSafeForTransplant = (
   }
 
   const minTemp = dayForecast.tempMin !== undefined ? dayForecast.tempMin : dayForecast.temp;
+  if (minTemp === undefined) {
+    return {
+      safe: false,
+      reason: 'Temperatura minima non disponibile per questa data.',
+    };
+  }
 
   if (minTemp < plantMinTemp) {
     return {
@@ -158,4 +164,3 @@ export const isDateSafeForTransplant = (
     reason: `Temperature notturne adatte (min: ${minTemp.toFixed(1)}°C).`,
   };
 };
-

@@ -6,6 +6,15 @@
 
 import { getSupabaseClient } from '@/config/supabase'
 
+const getLandZoneSupabaseClient = () => {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    throw new Error('Supabase client not available')
+  }
+
+  return supabase
+}
+
 export interface LandZone {
   id: string
   garden_id: string
@@ -82,7 +91,7 @@ export interface ZoneHistoryEntry {
  */
 export async function getLandZones(gardenId: string): Promise<LandZone[]> {
   try {
-    const supabase = getSupabaseClient()
+    const supabase = getLandZoneSupabaseClient()
     const { data, error } = await supabase
       .from('land_zones')
       .select('*')
@@ -102,7 +111,7 @@ export async function getLandZones(gardenId: string): Promise<LandZone[]> {
  */
 export async function getLandZone(zoneId: string): Promise<LandZone | null> {
   try {
-    const supabase = getSupabaseClient()
+    const supabase = getLandZoneSupabaseClient()
     const { data, error } = await supabase
       .from('land_zones')
       .select('*')
@@ -133,7 +142,7 @@ export async function createLandZone(
   }
 ): Promise<LandZone> {
   try {
-    const supabase = getSupabaseClient()
+    const supabase = getLandZoneSupabaseClient()
     const { data, error } = await supabase
       .from('land_zones')
       .insert({
@@ -160,7 +169,7 @@ export async function updateLandZone(
   updates: Partial<Omit<LandZone, 'id' | 'garden_id' | 'user_id' | 'created_at' | 'updated_at'>>
 ): Promise<LandZone> {
   try {
-    const supabase = getSupabaseClient()
+    const supabase = getLandZoneSupabaseClient()
     const { data, error } = await supabase
       .from('land_zones')
       .update(updates)
@@ -181,7 +190,7 @@ export async function updateLandZone(
  */
 export async function deleteLandZone(zoneId: string): Promise<void> {
   try {
-    const supabase = getSupabaseClient()
+    const supabase = getLandZoneSupabaseClient()
     const { error } = await supabase
       .from('land_zones')
       .delete()
@@ -224,7 +233,7 @@ export async function getZoneRotationSuggestions(
   yearsBack: number = 4
 ): Promise<ZoneRotationSuggestion[]> {
   try {
-    const supabase = getSupabaseClient()
+    const supabase = getLandZoneSupabaseClient()
     const { data, error } = await supabase
       .rpc('get_zone_rotation_suggestions', {
         zone_id: zoneId,
@@ -244,7 +253,7 @@ export async function getZoneRotationSuggestions(
  */
 export async function calculateZoneSoilHealth(zoneId: string): Promise<ZoneSoilHealth | null> {
   try {
-    const supabase = getSupabaseClient()
+    const supabase = getLandZoneSupabaseClient()
     const { data, error } = await supabase
       .rpc('calculate_zone_soil_health', {
         zone_id: zoneId
@@ -266,7 +275,7 @@ export async function getZoneHistory(
   yearsBack: number = 10
 ): Promise<ZoneHistoryEntry[]> {
   try {
-    const supabase = getSupabaseClient()
+    const supabase = getLandZoneSupabaseClient()
     const { data, error } = await supabase
       .rpc('get_zone_history', {
         zone_id: zoneId,
@@ -286,7 +295,7 @@ export async function getZoneHistory(
  */
 export async function getZoneSoilMemory(zoneId: string): Promise<SoilMemory[]> {
   try {
-    const supabase = getSupabaseClient()
+    const supabase = getLandZoneSupabaseClient()
     const { data, error } = await supabase
       .from('soil_memory')
       .select('*')
@@ -306,7 +315,7 @@ export async function getZoneSoilMemory(zoneId: string): Promise<SoilMemory[]> {
  */
 export async function countActiveFieldRowsInZone(zoneId: string): Promise<number> {
   try {
-    const supabase = getSupabaseClient()
+    const supabase = getLandZoneSupabaseClient()
     const { count, error } = await supabase
       .from('garden_rows')
       .select('*', { count: 'exact', head: true })
@@ -326,7 +335,7 @@ export async function countActiveFieldRowsInZone(zoneId: string): Promise<number
  */
 export async function getFieldRowsInZone(zoneId: string): Promise<any[]> {
   try {
-    const supabase = getSupabaseClient()
+    const supabase = getLandZoneSupabaseClient()
     const { data, error } = await supabase
       .from('garden_rows')
       .select('*')
@@ -354,7 +363,7 @@ export async function getZoneStats(zoneId: string): Promise<{
   lastCropFamily?: string
 }> {
   try {
-    const supabase = getSupabaseClient()
+    const supabase = getLandZoneSupabaseClient()
     
     // Count field rows
     const fieldRowsCount = await countActiveFieldRowsInZone(zoneId)

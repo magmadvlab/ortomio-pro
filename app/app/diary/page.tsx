@@ -123,11 +123,11 @@ export default function DiaryPage() {
       ) : (
         <>
           {activeView === 'timeline' && (
-            <UnifiedTimelineDiary garden={activeGarden} />
+            <UnifiedTimelineDiary gardenId={activeGarden.id} garden={activeGarden} />
           )}
           
           {activeView === 'operational' && (
-            <OperationalDiary garden={activeGarden} />
+            <OperationalDiary gardenId={activeGarden.id} />
           )}
           
           {activeView === 'automated' && (

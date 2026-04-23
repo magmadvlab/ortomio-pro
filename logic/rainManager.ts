@@ -86,12 +86,16 @@ export const adjustIrrigationForRain = (
   // Filtra ultimi 3 giorni con precipitazioni
   const recentRain: RainEvent[] = weatherHistory
     .slice(0, 3)
-    .filter(f => f.rainForecastMm > 0)
+    .filter((f) => (f.rainForecastMm ?? f.rainMm ?? 0) > 0)
     .map(f => ({
       date: f.date || new Date().toISOString().split('T')[0],
-      precipitationMM: f.rainForecastMm,
+      precipitationMM: f.rainForecastMm ?? f.rainMm ?? 0,
       duration: 60, // Stima: 1 ora per default
-      intensity: (f.rainForecastMm > 10 ? 'heavy' : f.rainForecastMm > 5 ? 'moderate' : 'light') as 'light' | 'moderate' | 'heavy',
+      intensity: ((f.rainForecastMm ?? f.rainMm ?? 0) > 10
+        ? 'heavy'
+        : (f.rainForecastMm ?? f.rainMm ?? 0) > 5
+          ? 'moderate'
+          : 'light') as 'light' | 'moderate' | 'heavy',
     }));
 
   if (recentRain.length === 0) {
@@ -149,15 +153,16 @@ export const adjustIrrigationForRain = (
  * Converte WeatherForecast in RainEvent per calcoli
  */
 export const forecastToRainEvent = (forecast: WeatherForecast): RainEvent | null => {
-  if (forecast.rainForecastMm <= 0) {
+  const rainAmount = forecast.rainForecastMm ?? forecast.rainMm ?? 0;
+
+  if (rainAmount <= 0) {
     return null;
   }
 
   return {
     date: forecast.date || new Date().toISOString().split('T')[0],
-    precipitationMM: forecast.rainForecastMm,
+    precipitationMM: rainAmount,
     duration: 60, // Stima default
-    intensity: forecast.rainForecastMm > 10 ? 'heavy' : forecast.rainForecastMm > 5 ? 'moderate' : 'light',
+    intensity: rainAmount > 10 ? 'heavy' : rainAmount > 5 ? 'moderate' : 'light',
   };
 };
-

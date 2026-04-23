@@ -135,7 +135,8 @@ export const calculateOptimalHarvestDate = (
   if (currentMonth >= harvestStartMonth || currentMonth <= harvestEndMonth) {
     if (weather) {
       // Evita giorni di pioggia
-      const daysToAdd = weather.rainForecastMm > 5 ? 3 : 0;
+      const rainForecastMm = weather.rainForecastMm ?? weather.precipitation ?? 0;
+      const daysToAdd = rainForecastMm > 5 ? 3 : 0;
       return new Date(currentDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
     }
     return currentDate;
@@ -173,4 +174,3 @@ export const isMillingUrgent = (
   // Urgente se passate più di 24h
   return hoursSinceHarvest > 24;
 };
-

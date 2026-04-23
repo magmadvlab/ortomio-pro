@@ -3,8 +3,21 @@
  * Converte le azioni di una challenge in calendar tasks tracciabili
  */
 
-// import { GiornataSpeciale } from '@/data/giornateSpeciali'; // REMOVED: gamification
 import { SupabaseClient } from '@supabase/supabase-js';
+
+interface LegacyChallengeAction {
+  azione: string;
+  perche: string;
+}
+
+interface LegacyChallenge {
+  giorno: number;
+  mese: number;
+  evento: string;
+  challenge: {
+    azioni: LegacyChallengeAction[];
+  };
+}
 
 interface ConvertOptions {
   autoSchedule?: boolean; // Se true, distribuisce i task nei prossimi giorni
@@ -18,7 +31,7 @@ interface ConvertOptions {
 export async function convertChallengeActionsToTasks(
   supabase: SupabaseClient,
   userId: string,
-  challenge: GiornataSpeciale,
+  challenge: LegacyChallenge,
   options?: ConvertOptions
 ): Promise<string[]> {
   const challengeId = `${challenge.giorno}-${challenge.mese}`;
@@ -145,4 +158,3 @@ export async function checkChallengeTasksExist(
   
   return (data?.length || 0) > 0;
 }
-

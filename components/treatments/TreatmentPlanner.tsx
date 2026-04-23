@@ -49,6 +49,10 @@ export const TreatmentPlanner: React.FC<TreatmentPlannerProps> = ({
     setLoading(true);
     
     try {
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+
       const treatmentData = {
         plant_name: plantName.trim(),
         product_name: productName.trim(),

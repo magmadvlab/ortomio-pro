@@ -9,6 +9,7 @@ import LocationSelector from '@/components/shared/LocationSelector'
 import TaskExecutionBanner from '@/components/shared/TaskExecutionBanner'
 import { MechanicalWorkLogForm } from '@/components/mechanicalWork/MechanicalWorkLogForm'
 import { buildMechanicalMeasuredFeedback } from '@/services/agronomicMeasuredFeedbackService'
+import { buildMechanicalOperatorEvidence } from '@/services/agronomicOperatorEvidenceService'
 import { finalizeTaskExecutionPostAction } from '@/services/taskExecutionPostActionService'
 import { appendSourceTaskReference } from '@/services/taskExecutionTraceService'
 import type { MechanicalWorkLog } from '@/services/mechanicalWorkService'
@@ -189,13 +190,8 @@ function MechanicalWorkContent() {
       equipment_type: log.equipmentType,
       equipment_attachment: log.equipmentAttachment,
       work_metadata: {
-        sourceTaskId: taskExecutionContext?.sourceTaskId,
-        selectedBedIds: log.bedIds || [],
-        selectedRowIds: log.rowIds || [],
-        durationMinutes: log.durationMinutes,
-        cost: log.cost,
-        completed: log.completed,
         category: 'General',
+        description: deduplicatedNotes.join(' | ') || undefined,
       },
       weather_conditions: {
         temp: log.weatherConditions?.temperature,
@@ -209,6 +205,10 @@ function MechanicalWorkContent() {
       storageProvider,
       gardenId: activeGarden.id,
       sourceTaskId: taskExecutionContext?.sourceTaskId,
+      operatorEvidence: buildMechanicalOperatorEvidence({
+        ...log,
+        notes: mergedNotes,
+      }),
       measuredFeedback: buildMechanicalMeasuredFeedback(
         {
           ...log,
@@ -243,6 +243,7 @@ function MechanicalWorkContent() {
         <TaskExecutionBanner
           context={taskExecutionContext}
           theme="mechanical"
+          storageProvider={storageProvider}
           onResume={() => openMechanicalExecution(taskExecutionContext)}
           onDismiss={() => setTaskExecutionContext(null)}
         />

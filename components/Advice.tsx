@@ -274,17 +274,19 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
               }
             }
 
-            const phytoRec = await suggestPhytoProduct(
-              advice.problem,
-              masterSheet,
-              weatherForecast ? {
-                tempMin: weatherForecast.tempMin,
-                tempMax: weatherForecast.tempMax,
-                precipitation: weatherForecast.rainForecastMm,
-                wind: weatherForecast.windSpeed
-              } : undefined,
-              undefined // userProfile - TODO: caricare da context
-            );
+	            const currentForecast = Array.isArray(weatherForecast) ? weatherForecast[0] : weatherForecast;
+
+	            const phytoRec = await suggestPhytoProduct(
+	              advice.problem,
+	              masterSheet,
+	              currentForecast ? {
+	                tempMin: currentForecast.tempMin ?? currentForecast.temp_min,
+	                tempMax: currentForecast.tempMax ?? currentForecast.temp_max,
+	                precipitation: currentForecast.rainForecastMm ?? currentForecast.precipitation ?? 0,
+	                wind: currentForecast.windSpeed ?? currentForecast.wind_speed
+	              } : undefined,
+	              undefined // userProfile - TODO: caricare da context
+	            );
 
             if (phytoRec) {
               recommendations.push(phytoRec);

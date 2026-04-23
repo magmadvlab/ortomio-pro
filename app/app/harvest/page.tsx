@@ -109,6 +109,7 @@ export default function HarvestPage() {
           <TaskExecutionBanner
             context={taskExecutionContext}
             theme="harvest"
+            storageProvider={storageProvider}
             onResume={() => setLaunchRequest(buildHarvestExecutionBootstrapState(taskExecutionContext).launchRequest)}
             onDismiss={() => setTaskExecutionContext(null)}
           />

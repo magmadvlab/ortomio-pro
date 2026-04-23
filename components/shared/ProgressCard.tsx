@@ -1,9 +1,6 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { useAuth } from '@/packages/core/hooks/useAuth'
-import { useStorage } from '@/packages/core/hooks/useStorage'
-// import { getChallengeForDate } from '@/data/giornateSpeciali' // REMOVED: gamification
 import { GardenTask } from '@/types'
 import { Trophy, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
@@ -14,8 +11,6 @@ interface ProgressCardProps {
 }
 
 export function ProgressCard({ tasks, gardenId }: ProgressCardProps) {
-  const { user } = useAuth()
-  const { storageProvider } = useStorage()
   const [challengeProgress, setChallengeProgress] = useState<{
     title: string
     progress: number
@@ -25,48 +20,17 @@ export function ProgressCard({ tasks, gardenId }: ProgressCardProps) {
   } | null>(null)
 
   useEffect(() => {
-    const loadChallengeProgress = async () => {
-      if (!user?.id || !gardenId) return
-
+    const loadChallengeProgress = () => {
       try {
-        // 1. Controlla challenge giornaliero
-        // const todayChallenge = getChallengeForDate(new Date()) // REMOVED: gamification
-        const todayChallenge = null; // Gamification removed
-        if (todayChallenge) {
-          const challengeId = `${todayChallenge.giorno}-${todayChallenge.mese}`
-          
-          // Verifica se challenge già completata usando localStorage (fallback)
-          const completedKey = `challenge_${challengeId}_${user.id}`
-          const alreadyCompleted = localStorage.getItem(completedKey) !== null
-
-          if (!alreadyCompleted) {
-            // Calcola progresso basato su azioni completate
-            // Per semplicità, assumiamo che almeno un'azione sia stata completata se ci sono task completati oggi
-            const today = new Date().toISOString().split('T')[0]
-            const todayCompletedTasks = (tasks || []).filter(t => t.completed && t.date === today).length
-            const progress = Math.min(todayCompletedTasks, todayChallenge.challenge.azioni.length)
-
-            if (progress > 0) {
-              const challengeBadge = todayChallenge.challenge.badge
-              setChallengeProgress({
-                title: todayChallenge.challenge.titolo,
-                progress,
-                target: todayChallenge.challenge.azioni.length,
-                badge: challengeBadge
-                  ? { emoji: challengeBadge.emoji, name: challengeBadge.nome }
-                  : undefined,
-                isCompleted: progress >= todayChallenge.challenge.azioni.length
-              })
-              return
-            }
-          }
+        if (!gardenId) {
+          setChallengeProgress(null)
+          return
         }
 
-        // 2. Controlla challenge progressivi
+        // Traguardi operativi progressivi, senza gamification giornaliera.
         const sowingCount = (tasks || []).filter(t => t.taskType === 'Sowing' && t.completed).length
         const harvestCount = (tasks || []).filter(t => t.taskType === 'Harvest' && t.completed).length
 
-        // Challenge "Pollice Verde" - 5 semine
         if (sowingCount >= 5 && sowingCount < 10) {
           setChallengeProgress({
             title: 'Pollice Verde',
@@ -78,7 +42,6 @@ export function ProgressCard({ tasks, gardenId }: ProgressCardProps) {
           return
         }
 
-        // Challenge "Maestro Seminatore" - 10 semine
         if (sowingCount >= 10 && sowingCount < 20) {
           setChallengeProgress({
             title: 'Maestro Seminatore',
@@ -90,7 +53,6 @@ export function ProgressCard({ tasks, gardenId }: ProgressCardProps) {
           return
         }
 
-        // Challenge "Primo Raccolto"
         if (harvestCount === 1) {
           setChallengeProgress({
             title: 'Primo Raccolto',
@@ -102,7 +64,6 @@ export function ProgressCard({ tasks, gardenId }: ProgressCardProps) {
           return
         }
 
-        // Nessun challenge attivo
         setChallengeProgress(null)
       } catch (error) {
         console.error('Error loading challenge progress:', error)
@@ -111,7 +72,7 @@ export function ProgressCard({ tasks, gardenId }: ProgressCardProps) {
     }
 
     loadChallengeProgress()
-  }, [user?.id, gardenId, tasks, storageProvider])
+  }, [gardenId, tasks])
 
   if (!challengeProgress) {
     return null

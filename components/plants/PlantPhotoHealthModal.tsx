@@ -70,7 +70,9 @@ const PlantPhotoHealthModal: React.FC<PlantPhotoHealthModalProps> = ({
       // Upload photos
       const photoUrls: string[] = [];
       for (const photo of photos) {
-        const url = await storageProvider.uploadPhoto?.(photo, plant.id);
+        const url = plant.gardenId
+          ? await storageProvider.uploadPhoto?.(photo, plant.id, plant.gardenId)
+          : undefined;
         if (url) photoUrls.push(url);
       }
 
@@ -90,7 +92,7 @@ const PlantPhotoHealthModal: React.FC<PlantPhotoHealthModalProps> = ({
       await storageProvider.createPlantOperation?.(operation);
 
       // Update plant health score
-      await storageProvider.updatePlant?.(plant.id, {
+      await storageProvider.updateIndividualPlant?.(plant.id, {
         ...plant,
         healthScore,
         photos: [...(plant.photos || []), ...photoUrls],

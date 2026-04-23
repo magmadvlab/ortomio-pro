@@ -28,6 +28,9 @@ const AdminDashboard: React.FC = () => {
   const checkAdminAccess = async () => {
     try {
       const supabase = getSupabaseClient();
+      if (!supabase) {
+        throw new Error('Supabase client not available')
+      }
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -62,6 +65,9 @@ const AdminDashboard: React.FC = () => {
   const loadStats = async () => {
     try {
       const supabase = getSupabaseClient();
+      if (!supabase) {
+        throw new Error('Supabase client not available')
+      }
       
       // Get total users
       const { count: usersCount } = await supabase

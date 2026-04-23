@@ -173,6 +173,62 @@ export type AgronomicOperationalContextTag =
   | 'media_bed_system'
   | 'high_pressure_aeroponic';
 
+export type AgronomicProductionIntent =
+  | 'wine'
+  | 'table_grape'
+  | 'oil'
+  | 'table_olive'
+  | 'fresh_market'
+  | 'processing';
+
+export type AgronomicIrrigationMode =
+  | 'rainfed'
+  | 'manual_irrigation'
+  | 'pressurized_irrigation';
+
+export type AgronomicSiteExposureClass =
+  | 'sheltered'
+  | 'balanced'
+  | 'exposed'
+  | 'unknown';
+
+export type AgronomicSiteSlopeClass =
+  | 'flat'
+  | 'rolling'
+  | 'steep'
+  | 'unknown';
+
+export interface CultivarContext {
+  cultivarId?: string;
+  cultivarLabel?: string;
+  speciesLabel?: string;
+  productionIntent?: AgronomicProductionIntent;
+}
+
+export interface SubSystemContext {
+  systemType?: AgronomicSystemType;
+  irrigationMode?: AgronomicIrrigationMode;
+  trainingSystem?: string;
+  rootstock?: string;
+}
+
+export interface SiteOperationalProfile {
+  altitudeMeters?: number;
+  slopePercentage?: number;
+  sunExposure?: string;
+  soilType?: string;
+  terroir?: string;
+  exposureClass?: AgronomicSiteExposureClass;
+  slopeClass?: AgronomicSiteSlopeClass;
+  siteTags?: AgronomicOperationalContextTag[];
+}
+
+export interface AgronomicRefinedContext {
+  cultivarContext?: CultivarContext;
+  subSystemContext?: SubSystemContext;
+  siteOperationalProfile?: SiteOperationalProfile;
+}
+
 export interface AgronomicActionComparisonTuning {
   immediate?: AgronomicActionScenarioTuning;
   nextCycle?: AgronomicActionScenarioTuning;

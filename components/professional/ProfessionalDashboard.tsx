@@ -175,7 +175,7 @@ export default function ProfessionalDashboard({
         <div className="flex flex-col gap-4 mb-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 md:text-2xl md:gap-3">
-              <BarChart3 className="text-green-600" size={24} className="md:w-7 md:h-7" />
+              <BarChart3 className="text-green-600 md:w-7 md:h-7" size={24} />
               <span className="hidden sm:inline">Command Center Professionale</span>
               <span className="sm:hidden">Dashboard Pro</span>
             </h2>

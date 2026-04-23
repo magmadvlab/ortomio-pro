@@ -10,18 +10,15 @@ import {
 import {
   getAgronomicQueueOutcomeRecords,
   type AgronomicQueueExecutionEvidence,
+  type AgronomicQueueMeasuredOutcome,
   type AgronomicQueueMeasurementEvidence,
+  type AgronomicQueueOperatorEvidence,
   type AgronomicQueueOutcomeRecord,
 } from '@/services/agronomicQueueOutcomeService'
 
 type AgronomicDecisionLedgerAnalyticsStorage = Pick<IStorageProvider, 'getUserPreference'>
 
-export interface AgronomicMeasuredOutcome {
-  status: 'positive' | 'mixed' | 'negative' | 'unknown'
-  matchedBy: 'task' | 'plant' | 'focus' | 'none'
-  recordedAt?: string
-  summary?: string
-}
+export interface AgronomicMeasuredOutcome extends AgronomicQueueMeasuredOutcome {}
 
 export interface AgronomicDecisionLedgerProfileSummary {
   profileId: string
@@ -75,6 +72,7 @@ export interface AgronomicDecisionLedgerHistoryItem {
   completedAt?: string
   executionEvidence?: AgronomicQueueExecutionEvidence | null
   measurementEvidence?: AgronomicQueueMeasurementEvidence | null
+  operatorEvidence?: AgronomicQueueOperatorEvidence | null
   evidenceStatus: 'pending' | 'completed_unverified' | 'execution_verified' | 'outcome_measured'
   agronomicOutcome: AgronomicMeasuredOutcome
   agronomicRationale: string[]
@@ -137,8 +135,13 @@ const getNumericMetric = (record: AgronomicMeasuredFeedbackRecord, key: string) 
 
 const resolveAgronomicMeasuredOutcome = (
   entry: AgronomicDecisionLedgerEntry,
+  outcome: AgronomicQueueOutcomeRecord | null,
   feedbackRecords: AgronomicMeasuredFeedbackRecord[]
 ): AgronomicMeasuredOutcome => {
+  if (outcome?.evidenceSnapshot?.agronomicOutcome) {
+    return outcome.evidenceSnapshot.agronomicOutcome
+  }
+
   const feedbackFocus = resolveFocusForMeasuredFeedback(entry.focus)
   if (!feedbackFocus) {
     return { status: 'unknown', matchedBy: 'none' }
@@ -230,6 +233,10 @@ const resolveEvidenceStatus = (
   entry: AgronomicDecisionLedgerEntry,
   outcome?: AgronomicQueueOutcomeRecord | null
 ): AgronomicDecisionLedgerHistoryItem['evidenceStatus'] => {
+  if (outcome?.evidenceSnapshot?.status) {
+    return outcome.evidenceSnapshot.status
+  }
+
   if (entry.status !== 'completed') {
     return 'pending'
   }
@@ -275,7 +282,7 @@ export async function getAgronomicDecisionLedgerHistory(
     })
     .map((entry) => {
       const outcome = resolveMatchingOutcome(entry, outcomeMaps)
-      const agronomicOutcome = resolveAgronomicMeasuredOutcome(entry, feedbackRecords)
+      const agronomicOutcome = resolveAgronomicMeasuredOutcome(entry, outcome, feedbackRecords)
       return {
         entryId: entry.id,
         queueItemId: entry.queueItemId,
@@ -293,6 +300,7 @@ export async function getAgronomicDecisionLedgerHistory(
         completedAt: entry.completedAt,
         executionEvidence: outcome?.executionEvidence || null,
         measurementEvidence: outcome?.measurementEvidence || null,
+        operatorEvidence: outcome?.operatorEvidence || null,
         evidenceStatus: resolveEvidenceStatus(entry, outcome),
         agronomicOutcome,
         agronomicRationale: entry.decisionSnapshot.decisionExplanation?.agronomicRationale || [],
@@ -342,7 +350,7 @@ export async function getAgronomicDecisionLedgerAnalyticsSummary(
     .map((entry) => getElapsedDays(entry.taskCreatedAt || entry.createdAt, entry.completedAt))
     .filter((value): value is number => typeof value === 'number')
   const measuredAgronomicOutcomes = completedEntries
-    .map((entry) => resolveAgronomicMeasuredOutcome(entry, feedbackRecords))
+    .map((entry) => resolveAgronomicMeasuredOutcome(entry, resolveMatchingOutcome(entry, outcomeMaps), feedbackRecords))
     .filter((outcome) => outcome.status !== 'unknown')
   const positiveAgronomicOutcomes = measuredAgronomicOutcomes.filter(
     (outcome) => outcome.status === 'positive'
@@ -351,7 +359,7 @@ export async function getAgronomicDecisionLedgerAnalyticsSummary(
     (outcome) => outcome.status === 'negative'
   )
   const urgentAgronomicOutcomes = urgentCompletedEntries.map((entry) =>
-    resolveAgronomicMeasuredOutcome(entry, feedbackRecords)
+    resolveAgronomicMeasuredOutcome(entry, resolveMatchingOutcome(entry, outcomeMaps), feedbackRecords)
   )
   const urgentPositiveAgronomicOutcomes = urgentAgronomicOutcomes.filter(
     (outcome) => outcome.status === 'positive'

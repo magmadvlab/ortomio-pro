@@ -69,7 +69,7 @@ const PlantHarvestModal: React.FC<PlantHarvestModalProps> = ({
 
       // Update plant status to harvested if fully harvested
       if (notes.toLowerCase().includes('completo') || notes.toLowerCase().includes('finale')) {
-        await storageProvider.updatePlant?.(plant.id, {
+        await storageProvider.updateIndividualPlant?.(plant.id, {
           ...plant,
           status: 'harvested',
         });

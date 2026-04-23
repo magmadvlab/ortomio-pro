@@ -7,6 +7,7 @@ import { Garden } from '@/types'
 import { ArrowLeft, Save, Droplets, AlertCircle, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import { CultivationSelector } from '@/components/settings/CultivationSelector'
+import type { FieldRow } from '@/types/fieldRow'
 
 export default function EditFieldRowPage() {
   const { storageProvider } = useStorage()
@@ -52,6 +53,8 @@ export default function EditFieldRowPage() {
     }
   })
 
+  type LegacyIrrigationConfig = typeof fieldRowForm.irrigationConfig
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -80,7 +83,7 @@ export default function EditFieldRowPage() {
           
           if (existingRow) {
             // Load existing configuration preserving irrigation state
-            const existingIrrigationConfig = existingRow.irrigationConfig
+            const existingIrrigationConfig = existingRow.irrigationLine as Partial<LegacyIrrigationConfig> | undefined
             
             // DEBUG: Log per identificare problema persistenza irrigazione
             console.log('🔍 IRRIGATION DEBUG - Existing row:', existingRow)
@@ -92,9 +95,9 @@ export default function EditFieldRowPage() {
             const irrigationConfig = existingIrrigationConfig ? {
               // CRITICO: Preserva esattamente lo stato enabled esistente
               // Gestisce sia boolean che stringhe ("true"/"false") da localStorage
-              enabled: existingIrrigationConfig.enabled === true || existingIrrigationConfig.enabled === 'true',
+              enabled: existingIrrigationConfig.enabled === true,
               irrigationType: existingIrrigationConfig.irrigationType || 'drip' as const,
-              tubeLength: existingIrrigationConfig.tubeLength || existingRow.length_meters || 10,
+              tubeLength: existingIrrigationConfig.tubeLength || existingRow.lengthMeters || existingRow.length_meters || 10,
               tubeDiameter: existingIrrigationConfig.tubeDiameter || 16,
               emitterSpacing: existingIrrigationConfig.emitterSpacing || 30,
               emitterFlowRate: existingIrrigationConfig.emitterFlowRate || 2.0,
@@ -109,7 +112,7 @@ export default function EditFieldRowPage() {
             } : {
               enabled: false,
               irrigationType: 'drip' as const,
-              tubeLength: existingRow.length_meters || 10,
+              tubeLength: existingRow.lengthMeters || existingRow.length_meters || 10,
               tubeDiameter: 16,
               emitterSpacing: 30,
               emitterFlowRate: 2.0,
@@ -139,7 +142,7 @@ export default function EditFieldRowPage() {
           }
         } else {
           // New field row - get next row number
-          const fieldRows = await storageProvider.getFieldRows(gardenId)
+        const fieldRows = await storageProvider.getFieldRows(gardenId)
           const nextRowNumber = (fieldRows?.length || 0) + 1
           setFieldRowForm(prev => ({
             ...prev,
@@ -252,7 +255,21 @@ export default function EditFieldRowPage() {
         throw new Error('Garden not found or invalid garden ID')
       }
 
-      const fieldRowData = {
+      const irrigationLine: FieldRow['irrigationLine'] | undefined = fieldRowForm.irrigationConfig.enabled
+        ? {
+            lineType:
+              fieldRowForm.irrigationConfig.irrigationType === 'micro_sprinkler'
+                ? 'MicroSprinkler'
+                : fieldRowForm.irrigationConfig.irrigationType === 'drip'
+                ? 'Dripline'
+                : 'PipeWithDrippers',
+            pipeDiameterMm: fieldRowForm.irrigationConfig.tubeDiameter,
+            emitterSpacingCm: fieldRowForm.irrigationConfig.emitterSpacing,
+            emitterFlowRateLph: fieldRowForm.irrigationConfig.emitterFlowRate,
+          }
+        : undefined
+
+      const fieldRowData: Partial<FieldRow> = {
         name: fieldRowForm.name.trim(),
         rowNumber: fieldRowForm.rowNumber,
         lengthMeters: fieldRowForm.lengthMeters,
@@ -261,10 +278,8 @@ export default function EditFieldRowPage() {
         plantSpacing: fieldRowForm.plantSpacing || undefined,
         plantedDate: fieldRowForm.plantedDate || undefined,
         orientation: fieldRowForm.orientation || undefined,
-        // Converti irrigationConfig in irrigation_line (JSONB)
-        irrigationLine: fieldRowForm.irrigationConfig.enabled ? fieldRowForm.irrigationConfig : undefined,
-        // Assicurati che zoneId sia definito (può essere null)
-        zoneId: null, // Per ora null, in futuro potresti collegarlo a una zona specifica
+        irrigationLine,
+        zoneId: undefined, // Per ora non collegato a una zona specifica
         isActive: true
       }
 
@@ -290,10 +305,19 @@ export default function EditFieldRowPage() {
       } else {
         console.log('💾 SAVE DEBUG - Calling createFieldRow...')
         try {
-          const createData = {
+          const createData: Omit<FieldRow, 'id' | 'createdAt' | 'updatedAt'> = {
             gardenId: garden.id,
-            ...fieldRowData,
-            isActive: true
+            name: fieldRowData.name || '',
+            rowNumber: fieldRowData.rowNumber || 1,
+            lengthMeters: fieldRowData.lengthMeters || 0,
+            distanceFromPreviousRow: fieldRowData.distanceFromPreviousRow,
+            cultivar: fieldRowData.cultivar,
+            plantSpacing: fieldRowData.plantSpacing,
+            plantedDate: fieldRowData.plantedDate,
+            orientation: fieldRowData.orientation,
+            irrigationLine: fieldRowData.irrigationLine,
+            zoneId: fieldRowData.zoneId,
+            isActive: true,
           }
           console.log('💾 SAVE DEBUG - createFieldRow data:', createData)
           const result = await storageProvider.createFieldRow(createData)

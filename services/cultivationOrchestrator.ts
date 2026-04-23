@@ -812,7 +812,7 @@ export class CultivationOrchestrator {
     recommendations: string[];
   }> {
     try {
-      return await diaryPredictiveEngine.compareYears(userId, planId, years);
+      return await diaryPredictiveEngine.compareYears(userId, planId, years ?? []);
     } catch (err) {
       console.error('Errore confronto annate:', err);
       return {

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, MapPin, Grid, Layers, AlertTriangle } from 'lucide-react';
 import { getSupabaseClient } from '../../config/supabase';
+import { useAuth } from '@/packages/core/hooks/useAuth';
 
 interface Zone {
   id: string;
@@ -35,6 +36,7 @@ interface Row {
 
 export const ZoneFieldRowManager: React.FC = () => {
   const supabase = getSupabaseClient();
+  const { user } = useAuth();
   const [zones, setZones] = useState<Zone[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
   const [rows, setRows] = useState<Row[]>([]);
@@ -64,6 +66,10 @@ export const ZoneFieldRowManager: React.FC = () => {
 
   const loadData = async () => {
     try {
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+
       setLoading(true);
       
       // Load zones
@@ -104,6 +110,10 @@ export const ZoneFieldRowManager: React.FC = () => {
     if (!zoneName.trim()) return;
 
     try {
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+
       const { data, error } = await supabase
         .from('zones')
         .insert([{
@@ -129,6 +139,10 @@ export const ZoneFieldRowManager: React.FC = () => {
     if (!fieldName.trim() || !selectedZone) return;
 
     try {
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+
       const { data, error } = await supabase
         .from('zone_fields')
         .insert([{
@@ -153,6 +167,10 @@ export const ZoneFieldRowManager: React.FC = () => {
     if (!rowName.trim() || !selectedField) return;
 
     try {
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+
       const { data, error } = await supabase
         .from('zone_rows')
         .insert([{
@@ -178,6 +196,10 @@ export const ZoneFieldRowManager: React.FC = () => {
     if (!confirm('Sei sicuro di voler eliminare questa zona? Verranno eliminati anche tutti i campi e filari associati.')) return;
 
     try {
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+
       const { error } = await supabase
         .from('zones')
         .delete()
@@ -204,6 +226,10 @@ export const ZoneFieldRowManager: React.FC = () => {
     if (!confirm('Sei sicuro di voler eliminare questo campo? Verranno eliminati anche tutti i filari associati.')) return;
 
     try {
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+
       const { error } = await supabase
         .from('zone_fields')
         .delete()
@@ -227,6 +253,10 @@ export const ZoneFieldRowManager: React.FC = () => {
     if (!confirm('Sei sicuro di voler eliminare questo filare?')) return;
 
     try {
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+
       const { error } = await supabase
         .from('zone_rows')
         .delete()

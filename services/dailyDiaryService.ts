@@ -160,6 +160,60 @@ class DailyDiaryService {
    * Esegue la registrazione giornaliera completa
    * Da chiamare una volta al giorno (idealmente la sera)
    */
+  async recordDailyEntries(date?: string): Promise<{
+    processedUsers: number
+    succeededUsers: number
+    failedUsers: number
+    errors: string[]
+  }> {
+    const errors: string[] = []
+    const logDate = date || new Date().toISOString().split('T')[0]
+
+    const { data: gardens, error } = await this.supabase
+      .from('gardens')
+      .select('user_id')
+      .not('user_id', 'is', null)
+
+    if (error) {
+      throw new Error(`Unable to load gardens for daily diary: ${error.message}`)
+    }
+
+    const userIds = Array.from(
+      new Set(
+        (gardens || [])
+          .map((garden) => garden.user_id)
+          .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0)
+      )
+    )
+
+    let succeededUsers = 0
+    let failedUsers = 0
+
+    for (const userId of userIds) {
+      try {
+        const result = await this.runDailyRegistration(userId, logDate)
+        if (result.errors.length > 0) {
+          errors.push(...result.errors.map((entry) => `${userId}: ${entry}`))
+        }
+        succeededUsers += 1
+      } catch (entry) {
+        failedUsers += 1
+        errors.push(`${userId}: ${entry instanceof Error ? entry.message : String(entry)}`)
+      }
+    }
+
+    return {
+      processedUsers: userIds.length,
+      succeededUsers,
+      failedUsers,
+      errors,
+    }
+  }
+
+  /**
+   * Esegue la registrazione giornaliera completa
+   * Da chiamare una volta al giorno (idealmente la sera)
+   */
   async runDailyRegistration(userId: string, date?: string): Promise<{
     weatherLog: DailyWeatherLog | null
     cultivationsUpdated: number

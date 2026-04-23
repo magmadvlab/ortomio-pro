@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Star, Sprout, AlertCircle, CheckCircle } from 'lucide-react';
-import { GardenTask } from '@/types';
+import type { GardenTask, HarvestLogData } from '@/types';
 import { addPassiveEventListener } from '@/utils/passiveEventListeners';
 
 interface Harvest {
@@ -10,9 +10,9 @@ interface Harvest {
   plant_name: string;
   variety?: string;
   quantity: number;
-  unit: string;
+  unit: HarvestLogData['unit'];
   harvest_date: string;
-  rating?: number; // Changed from quality_rating to match database
+  rating?: HarvestLogData['rating']; // Changed from quality_rating to match database
   notes?: string;
   garden_id: string;
   zone_id?: string;
@@ -21,6 +21,8 @@ interface Harvest {
   is_tracked?: boolean; // true se collegato a una coltura tracciata
   created_at: string;
 }
+
+const HARVEST_UNITS: HarvestLogData['unit'][] = ['kg', 'g', 'units'];
 
 interface PlantedCrop {
   taskId: string;
@@ -52,7 +54,7 @@ interface HarvestRegistrationModalProps {
   gardenId: string;
   plantedCrops: GardenTask[]; // Colture effettivamente piantate
   launchContext?: HarvestLaunchRequest | null;
-  onSave: (harvest: Omit<Harvest, 'id' | 'created_at'>) => void;
+  onSave: (harvest: Omit<Harvest, 'id' | 'created_at'>) => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -69,9 +71,9 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
   const [plantName, setPlantName] = useState('');
   const [variety, setVariety] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [unit, setUnit] = useState('kg');
+  const [unit, setUnit] = useState<HarvestLogData['unit']>('kg');
   const [harvestDate, setHarvestDate] = useState('');
-  const [qualityRating, setQualityRating] = useState<number | null>(null);
+  const [qualityRating, setQualityRating] = useState<HarvestLogData['rating'] | null>(null);
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -208,7 +210,7 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
     }
   }, [selectedTaskId, isManualEntry, availableCrops]);
 
-  const getSuggestedUnit = (plantName: string): string => {
+  const getSuggestedUnit = (plantName: string): HarvestLogData['unit'] => {
     const lowerName = plantName.toLowerCase();
     
     // Frutti grandi/ortaggi da peso
@@ -218,12 +220,12 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
     
     // Verdure a foglia/erbe
     if (['lattuga', 'spinaci', 'rucola', 'basilico', 'prezzemolo', 'salvia'].some(p => lowerName.includes(p))) {
-      return 'mazzi';
+      return 'units';
     }
     
     // Radici/tuberi piccoli
     if (['ravanello', 'carota', 'cipolla', 'aglio'].some(p => lowerName.includes(p))) {
-      return 'pz';
+      return 'units';
     }
     
     // Legumi
@@ -271,7 +273,7 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
         quantity: parseFloat(quantity),
         unit,
         harvest_date: harvestDate,
-        rating: qualityRating || undefined,
+        rating: qualityRating ?? undefined,
         notes: notes.trim() || undefined,
         garden_id: gardenId,
         zone_id: selectedCrop?.zoneId,
@@ -584,7 +586,12 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
                 </label>
                 <select
                   value={unit}
-                  onChange={(e) => setUnit(e.target.value)}
+                  onChange={(e) => {
+                    const nextUnit = e.target.value as HarvestLogData['unit'];
+                    if (HARVEST_UNITS.includes(nextUnit)) {
+                      setUnit(nextUnit);
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
                   {units.map(u => (
@@ -618,7 +625,7 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
                 Qualità
               </label>
               <div className="flex items-center gap-2">
-                {[1, 2, 3, 4, 5].map((rating) => (
+                {([1, 2, 3, 4, 5] as HarvestLogData['rating'][]).map((rating) => (
                   <button
                     key={rating}
                     type="button"

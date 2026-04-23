@@ -23,6 +23,7 @@ import {
   getAgronomicQueueOutcomeSummary,
   type AgronomicQueueOutcomeSummary,
 } from '@/services/agronomicQueueOutcomeService'
+import type { AgronomicRefinedContext } from '@/types/agronomicKernel'
 
 interface AgronomicQueueTaskPanelProps {
   garden: Garden
@@ -34,6 +35,69 @@ const PROFILE_LABELS: Record<string, string> = {
   vineyard_quality: 'Vigneto',
   olive_grove_oil: 'Oliveto',
   orchard_generic: 'Frutteto',
+}
+
+const REFINED_CONTEXT_LABELS: Record<string, string> = {
+  protected_culture: 'Coltura protetta',
+  open_field: 'Campo aperto',
+  orchard: 'Frutteto',
+  vineyard: 'Vigneto',
+  olive_grove: 'Oliveto',
+  indoor: 'Indoor',
+  hydroponic: 'Idroponica',
+  aquaponic: 'Acquaponica',
+  aeroponic: 'Aeroponica',
+  mixed: 'Sistema misto',
+  rainfed: 'Asciutta',
+  manual_irrigation: 'Irrigazione manuale',
+  pressurized_irrigation: 'Irrigazione in pressione',
+  wine: 'Vino',
+  table_grape: 'Uva da tavola',
+  oil: 'Olio',
+  table_olive: 'Oliva da mensa',
+  fresh_market: 'Mercato fresco',
+  processing: 'Trasformazione',
+  sheltered: 'Riparato',
+  balanced: 'Bilanciato',
+  exposed: 'Esposto',
+  flat: 'Pianeggiante',
+  rolling: 'Ondulato',
+  steep: 'Ripido',
+}
+
+const humanizeRefinedContextValue = (value?: string | null) =>
+  value ? REFINED_CONTEXT_LABELS[value] || value.replace(/_/g, ' ') : null
+
+const buildRefinedContextPills = (context?: AgronomicRefinedContext | null) => {
+  if (!context) {
+    return []
+  }
+
+  const pills = [
+    context.cultivarContext?.cultivarLabel
+      ? `Cultivar: ${context.cultivarContext.cultivarLabel}`
+      : null,
+    context.cultivarContext?.productionIntent
+      ? `Target: ${humanizeRefinedContextValue(context.cultivarContext.productionIntent)}`
+      : null,
+    context.subSystemContext?.systemType
+      ? `Sistema: ${humanizeRefinedContextValue(context.subSystemContext.systemType)}`
+      : null,
+    context.subSystemContext?.irrigationMode
+      ? `Irrigazione: ${humanizeRefinedContextValue(context.subSystemContext.irrigationMode)}`
+      : null,
+    context.siteOperationalProfile?.exposureClass
+      ? `Esposizione: ${humanizeRefinedContextValue(context.siteOperationalProfile.exposureClass)}`
+      : null,
+    context.siteOperationalProfile?.slopeClass
+      ? `Pendenza: ${humanizeRefinedContextValue(context.siteOperationalProfile.slopeClass)}`
+      : null,
+    context.siteOperationalProfile?.soilType
+      ? `Suolo: ${context.siteOperationalProfile.soilType}`
+      : null,
+  ].filter((value): value is string => Boolean(value))
+
+  return pills
 }
 
 export default function AgronomicQueueTaskPanel({
@@ -307,6 +371,9 @@ export default function AgronomicQueueTaskPanel({
                     {entry.agronomicRationale[0] && (
                       <div className="text-xs text-gray-700">{entry.agronomicRationale[0]}</div>
                     )}
+                    {entry.agronomicRationale.length > 1 && (
+                      <div className="text-xs text-gray-500">{entry.agronomicRationale[1]}</div>
+                    )}
                   </div>
                   <div className="text-right text-xs space-y-1">
                     <div className={entry.executionEvidence ? 'text-emerald-700' : 'text-gray-400'}>
@@ -409,7 +476,16 @@ export default function AgronomicQueueTaskPanel({
         </div>
       ) : (
         <div className="space-y-3">
-          {drafts.map((draft) => (
+          {drafts.map((draft) => {
+            const refinedContext =
+              draft.decisionSnapshot?.refinedContext ||
+              draft.decisionSnapshot?.decisionExplanation?.refinedContext ||
+              null
+            const refinedContextPills = buildRefinedContextPills(refinedContext)
+            const contextRationale =
+              draft.decisionSnapshot?.decisionExplanation?.contextRationale?.slice(0, 2) || []
+
+            return (
             <div
               key={draft.id}
               className="rounded-lg border border-gray-200 p-4"
@@ -442,6 +518,31 @@ export default function AgronomicQueueTaskPanel({
                       </p>
                     )}
                   </div>
+                  {(refinedContextPills.length > 0 || contextRationale.length > 0) && (
+                    <div className="rounded-lg border border-sky-100 bg-sky-50 p-3 space-y-2">
+                      {refinedContextPills.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {refinedContextPills.map((pill) => (
+                            <span
+                              key={pill}
+                              className="rounded-full bg-white px-2 py-1 text-[11px] font-medium text-sky-700 border border-sky-100"
+                            >
+                              {pill}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {contextRationale.length > 0 && (
+                        <div className="space-y-1">
+                          {contextRationale.map((item) => (
+                            <div key={item} className="text-xs text-sky-900">
+                              {item}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="text-xs text-gray-500">
                     Pianificato per {draft.task.date}
                     {draft.missingSignals.length > 0
@@ -469,7 +570,7 @@ export default function AgronomicQueueTaskPanel({
                 </button>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>

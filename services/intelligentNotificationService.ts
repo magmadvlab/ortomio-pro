@@ -169,7 +169,7 @@ export class IntelligentNotificationService {
   ): Promise<IntelligentNotification | null> {
     if (alerts.length === 0) return null
     
-    const highestPriority = Math.min(...alerts.map(a => a.priority))
+    const highestPriority = Math.min(...alerts.map(a => a.priority)) as IntelligentNotification['priority']
     const isTimesSensitive = alerts.some(a => a.type === 'critical')
     
     // Determina tipo di notifica
@@ -185,6 +185,7 @@ export class IntelligentNotificationService {
       alerts,
       context
     )
+    const notificationActions = actions ?? []
     
     const notification: IntelligentNotification = {
       id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -195,8 +196,8 @@ export class IntelligentNotificationService {
       category: this.mapAlertCategoryToNotificationCategory(alerts[0].category),
       title,
       message,
-      actionable: actions.length > 0,
-      actions,
+      actionable: notificationActions.length > 0,
+      actions: notificationActions,
       context: {
         alertIds: alerts.map(a => a.id),
         plantIds: alerts.filter(a => a.plantId).map(a => a.plantId!),
@@ -397,12 +398,14 @@ export class IntelligentNotificationService {
       (sum, n) => sum + (n.metadata?.alertCount || 1), 0
     )
     
+    const digestPriority = Math.min(...digestNotifications.map(n => n.priority)) as IntelligentNotification['priority']
+    
     return {
       id: `digest-${Date.now()}`,
       userId: context.user.id,
       gardenId: context.garden.id,
       type: 'digest',
-      priority: Math.min(...digestNotifications.map(n => n.priority)),
+      priority: digestPriority,
       category: 'informational',
       title: `Riepilogo giornaliero: ${totalAlerts} alert`,
       message: `Il tuo orto ha ${totalAlerts} situazioni che richiedono attenzione.`,

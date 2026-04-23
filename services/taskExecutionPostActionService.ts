@@ -5,7 +5,11 @@ import {
   type AgronomicMeasuredFeedbackRecord,
 } from '@/services/agronomicMeasuredFeedbackService'
 import { rebuildAgronomicProfileLearningSnapshots } from '@/services/agronomicProfileLearningService'
-import { syncAgronomicQueueOutcomeEvidence } from '@/services/agronomicQueueOutcomeService'
+import {
+  attachAgronomicQueueOperatorEvidence,
+  syncAgronomicQueueOutcomeEvidence,
+  type AgronomicQueueOperatorEvidence,
+} from '@/services/agronomicQueueOutcomeService'
 
 type TaskExecutionPostActionStorage = Pick<
   IStorageProvider,
@@ -26,6 +30,7 @@ interface FinalizeTaskExecutionPostActionOptions {
   gardenId?: string
   sourceTaskId?: string
   markHarvestedTask?: boolean
+  operatorEvidence?: AgronomicQueueOperatorEvidence | null
   measuredFeedback?:
     | AgronomicMeasuredFeedbackRecord
     | AgronomicMeasuredFeedbackRecord[]
@@ -62,35 +67,35 @@ export async function finalizeTaskExecutionPostAction({
   gardenId,
   sourceTaskId,
   markHarvestedTask = false,
+  operatorEvidence,
   measuredFeedback,
   close,
   refresh = [],
 }: FinalizeTaskExecutionPostActionOptions): Promise<void> {
   await Promise.resolve(close?.())
 
-  const reconciliationJobs: Array<Promise<unknown>> = []
-
   if (markHarvestedTask && sourceTaskId) {
-    reconciliationJobs.push(
-      setTaskStageHarvestedIfNeeded(storageProvider, sourceTaskId)
-    )
+    await setTaskStageHarvestedIfNeeded(storageProvider, sourceTaskId)
   }
 
   if (measuredFeedback) {
-    reconciliationJobs.push(
-      recordAgronomicMeasuredFeedback(storageProvider, measuredFeedback)
-    )
+    await recordAgronomicMeasuredFeedback(storageProvider, measuredFeedback)
+  }
+
+  if (gardenId && sourceTaskId && operatorEvidence) {
+    await attachAgronomicQueueOperatorEvidence(storageProvider, {
+      gardenId,
+      sourceTaskId,
+      operatorEvidence,
+    })
   }
 
   if (gardenId) {
-    reconciliationJobs.push(
-      rebuildAgronomicProfileLearningSnapshots(storageProvider, gardenId)
-    )
-    reconciliationJobs.push(
-      syncAgronomicQueueOutcomeEvidence(storageProvider, gardenId)
-    )
+    await rebuildAgronomicProfileLearningSnapshots(storageProvider, gardenId)
+    await syncAgronomicQueueOutcomeEvidence(storageProvider, gardenId)
   }
 
+  const reconciliationJobs: Array<Promise<unknown>> = []
   for (const refreshAction of refresh) {
     reconciliationJobs.push(Promise.resolve(refreshAction()))
   }

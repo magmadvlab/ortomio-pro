@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Calendar, Droplets, Shield, Leaf, Edit2, Trash2 } from 'lucide-react';
 import { getSupabaseClient } from '../../config/supabase';
 import { TreatmentPlanner } from './TreatmentPlanner';
+import { useAuth } from '@/packages/core/hooks/useAuth';
 
 interface Treatment {
   id: string;
@@ -21,6 +22,7 @@ interface Treatment {
 }
 
 export const TreatmentDashboard: React.FC = () => {
+  const { user } = useAuth();
   const supabase = getSupabaseClient();
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +39,9 @@ export const TreatmentDashboard: React.FC = () => {
   const loadTreatments = async () => {
     try {
       setLoading(true);
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
       
       const { data, error } = await supabase
         .from('treatments')
@@ -54,6 +59,10 @@ export const TreatmentDashboard: React.FC = () => {
   };
   const handleToggleComplete = async (treatmentId: string, completed: boolean) => {
     try {
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+
       const { error } = await supabase
         .from('treatments')
         .update({ completed: !completed })
@@ -73,6 +82,10 @@ export const TreatmentDashboard: React.FC = () => {
     if (!confirm('Sei sicuro di voler eliminare questo trattamento?')) return;
 
     try {
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+
       const { error } = await supabase
         .from('treatments')
         .delete()

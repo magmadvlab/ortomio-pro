@@ -8,6 +8,7 @@ import {
   TrendingUp,
   TrendingDown,
   DollarSign,
+  Award,
   Calendar,
   BarChart3,
   PieChart,

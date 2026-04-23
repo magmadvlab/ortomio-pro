@@ -101,6 +101,51 @@ import { getSoilState } from '../services/soilStateService';
 import { suggestPhytoProduct, checkTreatmentTiming } from './phytoEngine';
 import { getActiveSafetyIntervals } from '../services/treatmentRegistryService';
 
+const normalizeWeatherForecastEntry = (entry: any): WeatherForecast => ({
+  date:
+    entry?.date instanceof Date
+      ? entry.date.toISOString()
+      : typeof entry?.date === 'string'
+        ? entry.date
+        : new Date().toISOString(),
+  tempMin: Number(entry?.tempMin ?? entry?.temp_min ?? entry?.temp ?? 0),
+  tempMax: Number(entry?.tempMax ?? entry?.temp_max ?? entry?.temp ?? 0),
+  temp:
+    entry?.temp !== undefined
+      ? Number(entry.temp)
+      : Number(entry?.tempMax ?? entry?.temp_max ?? entry?.tempMin ?? entry?.temp_min ?? 0),
+  condition: String(entry?.condition ?? 'unknown'),
+  rainMm: Number(entry?.rainMm ?? entry?.precipitation ?? entry?.rainForecastMm ?? 0),
+  rainForecastMm: Number(entry?.rainForecastMm ?? entry?.precipitation ?? entry?.rainMm ?? 0),
+  precipitation: Number(entry?.precipitation ?? entry?.rainMm ?? entry?.rainForecastMm ?? 0),
+  windSpeed: Number(entry?.windSpeed ?? entry?.wind_speed ?? entry?.wind ?? 0),
+  wind: Number(entry?.wind ?? entry?.windSpeed ?? entry?.wind_speed ?? 0),
+  code: entry?.code ?? entry?.weathercode,
+  weathercode: entry?.weathercode ?? entry?.code,
+  temp_min: Number(entry?.temp_min ?? entry?.tempMin ?? entry?.temp ?? 0),
+  temp_max: Number(entry?.temp_max ?? entry?.tempMax ?? entry?.temp ?? 0),
+  wind_speed: Number(entry?.wind_speed ?? entry?.windSpeed ?? entry?.wind ?? 0),
+  humidity: Number(entry?.humidity ?? 0),
+  snowfall: entry?.snowfall !== undefined ? Number(entry.snowfall) : undefined,
+  snowForecastMm:
+    entry?.snowForecastMm !== undefined
+      ? Number(entry.snowForecastMm)
+      : entry?.snowfall !== undefined
+        ? Number(entry.snowfall)
+        : undefined,
+})
+
+const getCurrentWeatherForecast = async (
+  coordinates?: { latitude: number; longitude: number }
+): Promise<WeatherForecast | undefined> => {
+  if (!coordinates) {
+    return undefined
+  }
+
+  const forecast = await getWeatherForecast(coordinates.latitude, coordinates.longitude)
+  return forecast.length > 0 ? normalizeWeatherForecastEntry(forecast[0]) : undefined
+}
+
 /**
  * Verifica urgenze climatiche (gelo, caldo estremo, siccità)
  * PRIORITÀ 1: Clima incontrollabile che blocca operazioni
@@ -116,7 +161,7 @@ export const checkWeatherUrgency = async (
   }
 
   try {
-    const forecast = await getWeatherForecast(coordinates.latitude, coordinates.longitude);
+    const forecast = await getCurrentWeatherForecast(coordinates);
     
     if (!forecast) {
       return { alerts, warnings };
@@ -143,18 +188,20 @@ export const checkWeatherUrgency = async (
     }
 
     // Check siccità (nessuna pioggia prevista)
-    if (forecast.rainForecastMm < 1) {
+    const rainForecastMm = forecast.rainForecastMm ?? 0;
+
+    if (rainForecastMm < 1) {
       warnings.push({
         type: 'Rain',
         severity: 'Medium',
         message: 'Nessuna pioggia prevista nei prossimi giorni',
         recommendation: 'Programma irrigazioni regolari, considera pacciamatura per trattenere umidità'
       });
-    } else if (forecast.rainForecastMm > 20) {
+    } else if (rainForecastMm > 20) {
       warnings.push({
         type: 'Rain',
         severity: 'High',
-        message: `Pioggia intensa prevista: ${forecast.rainForecastMm.toFixed(1)}mm`,
+        message: `Pioggia intensa prevista: ${rainForecastMm.toFixed(1)}mm`,
         recommendation: 'Evita trattamenti fogliari, verifica drenaggio, sospendi irrigazioni'
       });
     }
@@ -515,11 +562,12 @@ export const getDailyGardenPlan = async (
   let forecast7Days: WeatherForecast[] = [];
   if (garden.coordinates) {
     try {
-      forecast7Days =
+      const rawForecast =
         (await getWeatherForecast7Days(
           garden.coordinates.latitude,
           garden.coordinates.longitude
         )) || [];
+      forecast7Days = rawForecast.map(normalizeWeatherForecastEntry);
     } catch (error) {
       console.warn('Could not load 7-day forecast:', error);
     }
@@ -1692,7 +1740,7 @@ export const getDailyGardenPlan = async (
         if (healthAdvice.actionType === 'Prevent') {
           try {
             const weatherForecast = garden.coordinates
-              ? await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude) || undefined
+              ? await getCurrentWeatherForecast(garden.coordinates)
               : undefined;
             const phytoRec = await suggestPhytoProduct(
               healthAdvice.reason,
@@ -1813,8 +1861,7 @@ export const getDailyGardenPlan = async (
 
   if (garden.coordinates) {
     try {
-      const forecast = await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude);
-      weatherForecast = forecast || undefined;
+      weatherForecast = await getCurrentWeatherForecast(garden.coordinates);
     } catch (error) {
       console.error('Error fetching weather for specialized crops:', error);
     }
@@ -2256,14 +2303,14 @@ export const getDailyGardenPlan = async (
       let weather = null;
       if (garden.coordinates) {
         try {
-          weather = await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude);
+          weather = await getCurrentWeatherForecast(garden.coordinates) ?? null;
         } catch (error) {
           console.warn('Could not load weather for irrigation:', error);
         }
       }
       
       for (const zone of zones) {
-        if (zone.plantTaskIds.length === 0) continue; // Salta zone senza piante
+        if (!zone.plantTaskIds || zone.plantTaskIds.length === 0) continue; // Salta zone senza piante
         
         const schedule = await calculateZoneIrrigationSchedule(
           zone,
@@ -2274,13 +2321,13 @@ export const getDailyGardenPlan = async (
         );
         
         // Includi anche zone manuali senza portata (mostrano solo litri)
-        if (schedule.litersNeeded > 0) {
+        if ((schedule.litersNeeded ?? 0) > 0) {
           irrigationTasks.push({
             zoneId: schedule.zoneId,
-            zoneName: schedule.zoneName,
-            litersNeeded: schedule.litersNeeded,
-            durationMinutes: schedule.suggestedDurationMinutes,
-            priority: schedule.priority,
+            zoneName: schedule.zoneName ?? zone.name,
+            litersNeeded: schedule.litersNeeded ?? 0,
+            durationMinutes: schedule.suggestedDurationMinutes ?? 0,
+            priority: schedule.priority ?? 'Low',
             valveId: zone.valveId,
             manualMode: schedule.manualMode,
             showLitersOnly: schedule.showLitersOnly,
@@ -2513,4 +2560,3 @@ export const generateBaselinePrompts = async (
   
   return baselinePrompts;
 };
-

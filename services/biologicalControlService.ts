@@ -57,6 +57,34 @@ const CHECKLIST_TEMPLATES = {
     priority: 'MEDIUM' as ChecklistPriority,
     certificationTypes: ['BIO']
   },
+  ROTAZIONE: {
+    title: 'Pianificazione Rotazione Colturale',
+    description: 'Rotazione delle colture per ridurre pressione di parassiti e patogeni',
+    subtasks: [
+      { title: 'Mappare colture precedenti', description: 'Verificare cosa è stato coltivato nelle ultime stagioni' },
+      { title: 'Definire famiglie botaniche', description: 'Evitare successioni della stessa famiglia' },
+      { title: 'Pianificare colture miglioratrici', description: 'Inserire specie che rigenerano il suolo' },
+      { title: 'Registrare la rotazione', description: 'Aggiornare piano colturale e storico appezzamenti' },
+      { title: 'Verificare effetti fitosanitari', description: 'Controllare riduzione di malattie ricorrenti' }
+    ],
+    frequency: 'SEASONAL' as ChecklistFrequency,
+    priority: 'HIGH' as ChecklistPriority,
+    certificationTypes: ['BIO', 'GLOBALGAP', 'INTEGRATED_PEST_MANAGEMENT']
+  },
+  CONSOCIAZIONE: {
+    title: 'Piano di Consociazione Funzionale',
+    description: 'Abbinamento di specie utili a contenere parassiti e migliorare equilibrio biologico',
+    subtasks: [
+      { title: 'Identificare colture compatibili', description: 'Scegliere specie consociabili per il ciclo corrente' },
+      { title: 'Posizionare specie repellente/attrattive', description: 'Distribuire correttamente aromatiche o specie esca' },
+      { title: 'Verificare competizione', description: 'Controllare che non ci sia eccessiva competizione idrica o luminosa' },
+      { title: 'Monitorare impatto sui parassiti', description: 'Registrare variazioni di infestazione' },
+      { title: 'Aggiornare schema impianto', description: 'Consolidare la consociazione utile per la stagione successiva' }
+    ],
+    frequency: 'SEASONAL' as ChecklistFrequency,
+    priority: 'MEDIUM' as ChecklistPriority,
+    certificationTypes: ['BIO', 'INTEGRATED_PEST_MANAGEMENT']
+  },
   MONITORAGGIO: {
     title: 'Monitoraggio Parassiti e Malattie',
     description: 'Ispezione regolare per rilevamento precoce',
@@ -71,7 +99,14 @@ const CHECKLIST_TEMPLATES = {
     priority: 'HIGH' as ChecklistPriority,
     certificationTypes: ['BIO', 'GLOBALGAP', 'INTEGRATED_PEST_MANAGEMENT']
   }
-}
+} as const satisfies Record<BiologicalControlCategory, {
+  title: string
+  description: string
+  subtasks: Array<{ title: string; description: string }>
+  frequency: ChecklistFrequency
+  priority: ChecklistPriority
+  certificationTypes: string[]
+}>
 
 class BiologicalControlService {
   private getClient() {

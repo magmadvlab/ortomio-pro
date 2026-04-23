@@ -96,7 +96,7 @@ export class IntegratedTreatmentService {
         notes: this.generateTaskNotes(productCard, quantityPerApplication, request.applicationArea, i + 1, totalApplications),
         completed: false,
         season: this.getCurrentSeason(),
-        locationType: request.applicationArea?.type === 'field' ? 'Ground' : 'Container',
+        locationType: request.applicationArea?.type === 'field' ? 'Ground' : 'Pot',
         stage: 'Vegetative',
         // Metadati per collegamento con scheda prodotto
         metadata: {
@@ -268,11 +268,9 @@ export class IntegratedTreatmentService {
   /**
    * Determina stagione corrente
    */
-  private static getCurrentSeason(): 'Spring' | 'Summer' | 'Autumn' | 'Winter' {
+  private static getCurrentSeason(): 'Summer' | 'Winter' {
     const month = new Date().getMonth() + 1;
-    if (month >= 3 && month <= 5) return 'Spring';
-    if (month >= 6 && month <= 8) return 'Summer';
-    if (month >= 9 && month <= 11) return 'Autumn';
+    if (month >= 4 && month <= 9) return 'Summer';
     return 'Winter';
   }
 
@@ -315,7 +313,7 @@ export class IntegratedTreatmentService {
   ): Array<{ taskId: string; message: string; suggestedAction: 'postpone' | 'proceed' | 'advance' }> {
     if (!weatherForecast) return [];
 
-    const reminders = [];
+    const reminders: Array<{ taskId: string; message: string; suggestedAction: 'postpone' | 'proceed' | 'advance' }> = [];
 
     for (const task of tasks) {
       const taskDate = task.nextDueDate || task.date;

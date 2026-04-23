@@ -23,14 +23,15 @@ const BrixMonitor: React.FC<BrixMonitorProps> = ({ task, garden, onUpdateBrix })
     if (!vineCrop || vineCrop.cropType !== 'Vine') return;
 
     // Calcola Brix stimato
-    const updateBrix = async () => {
-      let weather;
-      if (garden.coordinates) {
-        weather = await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude);
-      }
-      const estimated = calculateBrixProgress(vineCrop, new Date(), weather ?? undefined);
-      setEstimatedBrix(estimated ?? null);
-    };
+	    const updateBrix = async () => {
+	      let weather;
+	      if (garden.coordinates) {
+	        weather = await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude);
+	      }
+	      const currentWeather = Array.isArray(weather) ? weather[0] : weather;
+	      const estimated = calculateBrixProgress(vineCrop, new Date(), currentWeather ?? undefined);
+	      setEstimatedBrix(estimated ?? null);
+	    };
 
     updateBrix();
   }, [vineCrop, garden.coordinates]);
@@ -149,4 +150,3 @@ const BrixMonitor: React.FC<BrixMonitorProps> = ({ task, garden, onUpdateBrix })
 };
 
 export default BrixMonitor;
-
