@@ -105,6 +105,2072 @@ Hard constraints:
 - `docs/reports/ORTOMIO_STAKEHOLDER_PRESENTATION_2026-04-18.md`
 - `docs/reports/ORTOMIO_DOCUMENTATION_AUDIT_2026-04-23.md`
 
+## Strategic TODO Map
+This section is Phase 2 of the audit: convert `todo-source` chapters and open gaps into grouped execution blocks that can later be implemented, removed or archived explicitly.
+
+Rule:
+- every block below is a real master-plan `todo`
+- each block groups multiple documentation promises into one product/program decision area
+- only capabilities that still make sense for the product should stay here
+- obsolete or purely speculative promises should move toward explicit removal/archive, not silent persistence
+
+1. `T1 AI Surfaces Consolidation`
+   Status: todo
+   Goal:
+   - unify what should be a real AI surface across global chat, planner assistance, director and overview layers
+   Source chapters:
+   - `docs/manual/07-ai-overview.md`
+   - `docs/manual/08-global-ai-chat.md`
+   - `docs/manual/09-planner-ai-chat.md`
+   - `docs/manual/34-director-orchestrator.md`
+   Includes:
+   - global AI chat UI/backend wiring and post-wiring hardening
+   - contextual AI memory strategy
+   - planner chat versus real planner task/orchestration boundary
+   - director versus distributed orchestration clarity
+   First TODO candidates:
+   - define the canonical AI entry surfaces that are meant to be real product capabilities
+   - decide which AI surfaces remain assistive/lightweight and which must be fully connected
+   - converge or explicitly separate `global chat`, `planner chat` and `director` responsibilities
+   Closure rule:
+   - AI capabilities shown in the manual correspond to explicit, named product surfaces with clear ownership and maturity
+   Working breakdown:
+   - `T1-A AI Surface Inventory`
+     Status: done
+     Scope:
+     - inventory `global chat`, `planner chat`, `director`, `ai-predictions`, `advice` and related assistive layers
+     - classify each one as `execution-grade`, `assistive`, or `legacy/distributed`
+     Sources:
+     - `GAP-2026-04-23-AE`
+     - `GAP-2026-04-23-N`
+     - `GAP-2026-04-23-Y`
+     Output:
+     - one explicit AI surface map with owner, runtime path and maturity
+     Current inventory snapshot:
+     - `Global AI Chat`
+       Owner area:
+       - cross-app assistant entry surface
+       UI/runtime:
+       - `components/ai/GlobalAIChat.tsx`
+       - mounted in `app/app/layout.tsx`
+       Service/backend:
+       - `app/api/ai/chat/route.ts`
+       Maturity:
+       - `assistive`
+       Main gap:
+       - real backend path exists, but memory, contextual grounding, action layer and support escalation are not closed
+     - `Planner AI Chat`
+       Owner area:
+       - planner assistive conversation layer
+       UI/runtime:
+       - `components/planner/PlannerAIChat.tsx`
+       - `components/planner/PlannerAIChatFixed.tsx`
+       - used around planner/diary integrations
+       Service/backend:
+       - local canned-response logic in component layer
+       Maturity:
+       - `assistive`
+       Main gap:
+       - not yet part of the durable planner task/orchestration substrate
+     - `Planner Task/Queue Intelligence`
+       Owner area:
+       - planner execution-grade agronomic orchestration
+       UI/runtime:
+       - `app/app/planner/page.tsx`
+       - `components/planner/AgronomicQueueTaskPanel.tsx`
+       Service/backend:
+       - `services/directorService.ts`
+       - agronomic queue and execution launch services
+       Maturity:
+       - `execution-grade`
+       Main gap:
+       - strong operational path exists, but the product boundary versus planner chat is still unclear
+     - `Director`
+       Owner area:
+       - cross-module briefing and orchestration
+       UI/runtime:
+       - `components/director/DirectorBriefingWidget.tsx`
+       - dashboard embeddings
+       Service/backend:
+       - `services/directorService.ts`
+       - `logic/director.ts`
+       Maturity:
+       - `legacy/distributed`
+       Main gap:
+       - responsibilities are split between newer service flows and older orchestration logic
+     - `AI Predictions`
+       Owner area:
+       - predictive analytics and recommendation domain
+       UI/runtime:
+       - `app/app/ai-predictions/page.tsx`
+       - predictive dashboards/components
+       Service/backend:
+       - `services/predictiveAnalyticsService.ts`
+       - related predictive services
+       Maturity:
+       - `execution-grade`
+       Main gap:
+       - predictive capability is real, but distributed across multiple services and UI layers rather than one unified engine
+     - `Advice`
+       Owner area:
+       - assistive agronomic recommendation surface
+       UI/runtime:
+       - `app/app/advice/page.tsx`
+       Service/backend:
+       - mixed component logic and selected task-creation integrations
+       Maturity:
+       - `assistive`
+       Main gap:
+       - useful recommendation surface, but much of the page still behaves as guided/sample assistance rather than a fully grounded decision engine
+     - `Health`
+       Owner area:
+       - assistive and monitoring-heavy health surface
+       UI/runtime:
+       - `app/app/health/page.tsx`
+       - health dashboard components
+       Service/backend:
+       - `services/health*`
+       - monitoring and microclimate services
+       Maturity:
+       - `hybrid`
+       Main gap:
+       - real monitoring context exists, but the surface is not a unified diagnostic AI engine
+   - `T1-B Global Chat Hardening`
+     Status: in_progress
+     Scope:
+     - stabilize the real global AI chat path now that UI -> backend wiring exists
+     - define what current chat guarantees are actually supported
+     - defer or reject unsupported promises such as full memory/action/support escalation until explicitly planned
+     Sources:
+     - `GAP-2026-04-23-AF`
+     Output:
+     - global chat documented and implemented as a real bounded capability
+     Current guaranteed scope:
+     - globally mounted chat entry exists in the authenticated app shell
+     - the widget calls the real backend route `app/api/ai/chat/route.ts`
+     - the route performs real model invocation with tier/credit checks
+     - the surface is currently an `assistive` conversational entry point, not an execution-grade orchestrator
+     Verified current code:
+     - `components/ai/GlobalAIChat.tsx`
+       Current behavior:
+       - sends only `{ message }` to `/api/ai/chat`
+       - renders backend reply
+       - handles insufficient credits, auth/tier failure and backend errors with user-facing fallback text
+       - appends remaining credits when returned
+       Gap:
+       - no bounded app/module context is sent yet
+       - suggestions are fallback/static, not returned by a verified action registry
+     - `app/api/ai/chat/route.ts`
+       Current behavior:
+       - requires `PLUS` or `PRO`
+       - charges `getCreditCost('chat')`
+       - calls Gemini with raw message text
+       - deducts credits and logs a credit transaction
+       Gap:
+       - no structured prompt contract
+       - no context schema validation
+       - no routing/action response contract
+     Not yet guaranteed:
+     - durable conversation memory across sessions
+     - strong page-aware contextual grounding
+     - direct in-app actions and tool execution from chat
+     - human escalation/support workflow
+     - source-attributed domain grounding across the product
+     Concrete TODOs:
+     - `T1-B1 Chat Contract`
+       Status: done
+       Goal:
+       - define the exact supported contract of global chat today: who can use it, what it answers, and what it explicitly does not guarantee
+       Closure rule:
+       - one short bounded capability statement exists in master/docs and matches the actual implementation
+       Current proposed contract:
+       - `Global AI Chat` is a cross-app assistive chat entry available inside the authenticated application shell
+       - it is intended for natural-language agronomic and product-support questions
+       - it uses the real backend AI route with tier/credit checks
+       - it may answer using general agronomic and product guidance, but it is not yet a guaranteed page-aware orchestration surface
+       - it does not yet guarantee durable memory, direct operational execution, official support escalation, or source-grounded product reasoning across every module
+       Decision target:
+       - accept this bounded contract as the current product truth unless a broader chat scope is explicitly planned and implemented
+       Implementation:
+       - `app/api/ai/chat/route.ts` now builds a controlled OrtoMio prompt rather than sending raw user text directly
+       - prompt guardrails explicitly prohibit claiming task creation, operation logging, device control or hidden data mutation
+       Verification:
+       - `npx tsc --noEmit` passes
+     - `T1-B2 Error and Credit UX`
+       Status: done
+       Goal:
+       - standardize the user-facing behaviour for auth/tier failure, insufficient credits and backend errors
+       Closure rule:
+       - error states are consistent and do not silently degrade into misleading “AI worked” behaviour
+       Implementation:
+       - `components/ai/GlobalAIChat.tsx` now separates recoverable UI error messages from AI answers
+       - insufficient credits, auth/tier failure, invalid input, backend failure and network failure have explicit user-facing messages
+       - backend/network failures no longer append canned agronomic fallback content that could look like a successful AI response
+       - `app/api/ai/chat/route.ts` returns a stable generic `internal_error` message instead of leaking raw exception text
+       Verification:
+       - `npx tsc --noEmit` passes
+     - `T1-B3 Context Strategy`
+       Status: done
+       Goal:
+       - decide whether global chat should remain mostly generic or receive a first bounded layer of app/page context
+       Closure rule:
+       - context strategy is explicit: either intentionally generic, or context-aware with named inputs
+       Current backend decision:
+       - global chat supports optional bounded context
+       - if context is missing or invalid, the route continues as generic assistive chat
+       - accepted context is schema-limited and must be declared by `type`
+       Current frontend decision:
+       - `components/ai/GlobalAIChat.tsx` sends a first bounded `director-context`
+       - the first UI context contains only current route, inferred module and safe routing hints
+       - no hidden page state, garden records, sensor data, task mutation context or durable memory is passed implicitly
+       Verification:
+       - `npx tsc --noEmit` passes
+     - `T1-B4 Memory and Action Triage`
+       Status: done
+       Goal:
+       - decide whether memory, action execution and support escalation belong to the product target of global chat or should stay out of scope
+       Closure rule:
+       - unsupported promises are either promoted into planned work or explicitly excluded from the global chat contract
+       Current decision:
+       - `support escalation`:
+         - `out of scope` for now
+       - `context-aware analysis`:
+         - `in scope`
+       - `decision assistance`:
+         - `in scope`
+       - `suggested next actions`:
+         - `in scope`
+       - `launch into existing modules / guided operational routing`:
+         - `in scope`
+       - `autonomous open-ended execution`:
+         - `out of scope` for now
+       - `durable memory`:
+         - `defer`
+       Working product boundary:
+       - global chat is allowed to understand context, evaluate signals, suggest next actions and route the operator into existing product flows
+       - global chat is not yet a free-form autonomous agent and is not a human support escalation channel
+       Code audit:
+       - `components/ai/GlobalAIChat.tsx` keeps conversation state only in local React state for the current widget session
+       - no durable chat transcript table, memory store or cross-session recall is wired to the global chat route
+       - `app/api/ai/chat/route.ts` performs model invocation, credit deduction and credit transaction logging only
+       - the global chat route does not create tasks, mutate agronomic records, command devices or open support tickets
+       - real task creation exists in explicit planner surfaces such as `components/planner/AgronomicQueueTaskPanel.tsx`, where the user clicks to create the task and the decision snapshot is registered
+       - separate AI suggestion surfaces such as `components/ai/AISuggestionsWidget.tsx` support accept/reject feedback, but they are not the global chat action layer
+       - `components/ai/AIActionButton.tsx` is a contextual assistive AI button, not a governed global-chat tool execution system
+       Promoted future work:
+       - durable memory remains a future explicit block after the operational ledger/memory model is clarified
+       - write-capable AI actions require a dedicated suggested-action registry and user-confirmed execution contract before they can be exposed from global chat
+       - support escalation remains excluded until a real support workflow exists
+       Verification:
+       - code search confirms no global-chat write path beyond credits and transaction logging
+     Implementation tracks now allowed by the boundary:
+     - `T1-B5 Context Input Contract`
+       Status: in_progress
+       Goal:
+       - define which module-level signals can be passed to global chat in a bounded and explicit way
+       Candidate first contexts:
+       - health
+       - planner/task context
+       - irrigation summary
+       - diary/environmental summary
+       - harvest/maturity context where available
+       Closure rule:
+       - the chat receives only named, documented context payloads per module instead of undefined implicit app state
+       Current proposed allowed context families:
+       - `garden-context`
+         Fields:
+         - `gardenId`
+         - `gardenName`
+         - `zoneId`
+         - `fieldRowId`
+         - `primaryCrop`
+         Use:
+         - base anchoring of the conversation to the active agronomic perimeter
+       - `task-context`
+         Fields:
+         - `sourceTaskId`
+         - `taskType`
+         - `plantName`
+         - `date`
+         - `zoneId`
+         - `rowId`
+         - `rowNumber`
+         Source baseline:
+         - `services/taskExecutionLaunchService.ts`
+         Use:
+         - interpret next actions from planner/task-aware flows
+       - `health-context`
+         Fields:
+         - `scopeType`
+         - `scopeId`
+         - `scopeName`
+         - `fungalPressure`
+         - `waterStress`
+         - `heatStress`
+         - `supportingSignals`
+         - `note`
+         Source baseline:
+         - `services/healthScopeService.ts`
+         Use:
+         - bounded health-state interpretation and next-action assistance
+       - `diary-environment-context`
+         Fields:
+         - `date`
+         - `weather_data`
+         - `agronomic_data`
+         - `automated_events`
+         Source baseline:
+         - `components/diary/AutomatedDiaryViewer.tsx`
+         - diary/environmental services
+         Use:
+         - interpret recent environmental conditions and diary-derived agronomic signals
+       - `irrigation-context`
+         Fields:
+         - `gardenId`
+         - `zoneId`
+         - `fieldRowId`
+         - latest operational watering/task summary when available
+         Use:
+         - evaluate irrigation-related next actions without granting actuator autonomy
+       - `harvest-maturity-context`
+         Fields:
+         - `gardenId`
+         - `plantName`
+         - `analysisType`
+         - `maturityPercentage`
+         - `harvestRecommendation`
+         Source baseline:
+         - `types/plantMonitoring.ts`
+         - crop-specific maturity/harvest types where available
+         Use:
+         - bounded maturity interpretation and harvest preparation guidance
+       Explicit exclusions for this stage:
+       - arbitrary full-page state dumps
+       - hidden internal stores with no declared schema
+       - unrestricted write-capable action contexts
+       Decision note:
+       - every context family must have a named schema and a documented source before it can be passed into global chat
+       Backend implementation:
+       - `app/api/ai/chat/route.ts` accepts optional `context`
+       - accepted context types:
+         - `garden-context`
+         - `task-context`
+         - `health-context`
+         - `diary-environment-context`
+         - `irrigation-context`
+         - `harvest-maturity-context`
+         - `director-context`
+       - accepted context fields:
+         - `type`
+         - `scope`
+         - `summary`
+         - `signals`
+         - `missingSignals`
+         - `routingHints`
+       Guardrail:
+       - unknown context types are ignored rather than trusted
+       - only primitive values from `scope` and `signals` are passed into the prompt
+       Frontend implementation:
+       - `components/ai/GlobalAIChat.tsx` now sends the first `director-context`
+       - current payload includes:
+         - `scope.primaryScope = site`
+         - `scope.route`
+         - `scope.module`
+         - a human-readable summary of the active app module
+         - module-specific safe routing hints
+       Remaining TODO:
+       - wire module-owned `health-context`, `task-context`, `irrigation-context`, `diary-environment-context` and `harvest-maturity-context` only where the source data is explicit and schema-mapped
+     - `T1-B6 Decision Templates`
+       Status: todo
+       Goal:
+       - define the first bounded agronomic decision templates the chat is allowed to support
+       Candidate first templates:
+       - health-state interpretation
+       - fruit maturity interpretation
+       - planting opportunity analysis from weather/soil/history signals
+       - next-action recommendation from task/diary/environment context
+       Closure rule:
+       - the product exposes a bounded set of recognized decision-support patterns instead of generic “ask anything” ambiguity
+       Current proposed first template set:
+       - `DT-01 Health State Interpretation`
+         Inputs:
+         - `health-context`
+         - optional `garden-context`
+         Output:
+         - concise interpretation of current pressure/stress signals
+         - operator-facing risk framing
+         - suggested next checks or actions
+         Guardrail:
+         - no claim of definitive diagnosis unless backed by a dedicated diagnostic flow
+       - `DT-02 Fruit Maturity Interpretation`
+         Inputs:
+         - `harvest-maturity-context`
+         - optional `garden-context`
+         Output:
+         - maturity reading
+         - harvest timing guidance
+         - suggested preparation actions
+         Guardrail:
+         - support interpretation only; not an autonomous harvest decision engine
+       - `DT-03 Planting Opportunity Analysis`
+         Inputs:
+         - `diary-environment-context`
+         - `garden-context`
+         - optional historical/task context when available
+         Output:
+         - whether current conditions support planting/planning
+         - main blocking or enabling signals
+         - suggested next planning action
+         Guardrail:
+         - no guarantee of full agronomic optimization from incomplete context
+       - `DT-04 Next Action Recommendation`
+         Inputs:
+         - `task-context`
+         - optional `diary-environment-context`
+         - optional `health-context`
+         Output:
+         - prioritized next action
+         - reason for recommendation
+         - routing suggestion into the right module
+         Guardrail:
+         - recommendation must map to a supported action in the action registry
+       - `DT-05 Irrigation Support Interpretation`
+         Inputs:
+         - `irrigation-context`
+         - optional `diary-environment-context`
+         Output:
+         - bounded interpretation of irrigation-related signals
+         - suggested next review or intervention
+         Guardrail:
+         - no autonomous actuator command or automatic watering commitment
+       - `DT-06 Product Navigation and Capability Clarification`
+         Inputs:
+         - current module context when available
+         Output:
+         - explain what the module can do now
+         - clarify whether the user should use planner, health, irrigation, nutrition, harvest or mechanical flow next
+         Guardrail:
+         - must follow the current manual/master truth contract, not legacy promises
+     - `T1-B7 Suggested Action Registry`
+       Status: todo
+       Goal:
+       - define the set of allowed next-action suggestions the chat can emit
+       Candidate first actions:
+       - create or open a task
+       - open health module
+       - open nutrition/treatments
+       - open irrigation
+       - open harvest registration
+       - open mechanical work execution
+       Closure rule:
+       - chat suggestions map to an explicit registry of supported actions, not to free-form promises
+       Current proposed first registry:
+       - `AR-01 Open Planner`
+         Effect:
+         - route the user to planner for review or task follow-up
+         Type:
+         - navigation
+       - `AR-02 Open Health`
+         Effect:
+         - route the user to health for monitoring or diagnostic follow-up
+         Type:
+         - navigation
+       - `AR-03 Open Irrigation`
+         Effect:
+         - route the user to irrigation for review or watering execution
+         Type:
+         - navigation / guided routing
+       - `AR-04 Open Nutrition/Treatments`
+         Effect:
+         - route the user to nutrition/treatments for treatment planning or execution
+         Type:
+         - navigation / guided routing
+       - `AR-05 Open Harvest Registration`
+         Effect:
+         - route the user to harvest flow for maturity follow-up or registration
+         Type:
+         - navigation / guided routing
+       - `AR-06 Open Mechanical Work`
+         Effect:
+         - route the user to mechanical-work execution or logging
+         Type:
+         - navigation / guided routing
+       - `AR-07 Suggest Task Creation`
+         Effect:
+         - propose that the operator create a task or continue from planner rather than pretending the chat already created it
+         Type:
+         - recommendation
+       - `AR-08 Suggest Monitoring Check`
+         Effect:
+         - ask the operator to inspect, measure or confirm a condition before proceeding
+         Type:
+         - recommendation
+       - `AR-09 Suggest Evidence Capture`
+         Effect:
+         - ask the operator to collect photo, observation or field evidence before deciding
+         Type:
+         - recommendation
+       - `AR-10 Clarify Capability Boundary`
+         Effect:
+         - explain that a requested action is not directly executable from chat and route the user to the correct module instead
+         Type:
+         - boundary / explanation
+       Guardrail:
+       - no suggested action may imply that the chat has already executed a field operation, persisted a record, or commanded hardware unless a real guided routing hook exists for that action
+     - `T1-B8 Guided Routing Hooks`
+       Status: todo
+       Goal:
+       - connect supported chat suggestions to existing module entrypoints in a controlled way
+       Closure rule:
+       - when chat suggests an action, the user can be routed into a real existing product flow without pretending the chat executed the work itself
+       Current verified hook classes:
+       - `HR-01 Plain navigation hooks`
+         Verified targets:
+         - `/app/planner`
+         - `/app/health`
+         - `/app/irrigation`
+         - `/app/nutrition`
+         - `/app/mechanical-work`
+         - `/app/harvest`
+         Availability:
+         - real route-level navigation exists through sidebar/menu/link patterns
+         Current use:
+         - safe baseline for `open module` actions
+       - `HR-02 Task-aware execution hooks`
+         Verified source:
+         - `services/taskExecutionLaunchService.ts`
+         Verified routed targets:
+         - nutrition execution URL builder
+         - irrigation execution URL builder
+         - harvest execution URL builder
+         - mechanical-work execution URL builder
+         Availability:
+         - real guided routing exists when a valid task context is present
+         Current use:
+         - strongest existing foundation for `suggested next action -> open execution flow`
+       - `HR-03 Planner queue creation hooks`
+         Verified source:
+         - `components/planner/AgronomicQueueTaskPanel.tsx`
+         Availability:
+         - queue intelligence can already create task drafts and persist decision snapshots
+         Current use:
+         - supports bounded routing toward planner-centered operational follow-up
+       - `HR-04 Non-verified direct action hooks`
+         Current status:
+         - not yet verified for global chat
+         Includes:
+         - direct task creation from global chat
+         - direct device/actuator commands
+         - direct write actions into health/diary without entering the target module flow
+         Rule:
+         - remain suggestion-only until a dedicated hook is explicitly implemented and verified
+       Immediate routing policy:
+       - `open module` actions may route immediately
+       - `execute task-aware flow` actions may route only when task context is present and compatible
+       - all other actions stay advisory until promoted into a verified hook class
+   - `T1-C Planner AI Boundary`
+     Status: done
+     Scope:
+     - decide whether planner chat remains lightweight assistive UX or is promoted into the real planner task/orchestration substrate
+     - prevent confusion between chat suggestions and durable planner operations
+     Sources:
+     - `GAP-2026-04-23-AG`
+     Output:
+     - one declared planner-AI boundary, reflected in code and docs
+     Current boundary reading:
+     - `planner chat` exists as an assistive conversational UI
+     - `planner task/queue intelligence` is the real execution-grade planner surface
+     - planner value today is strongest where tasks, queue, execution launches and evidence contracts are durable
+     - planner chat does not yet define or own the durable planner state machine
+     Current product decision to formalize:
+     - the planner should be described first as a task/orchestration product surface
+     - planner chat should remain a secondary assistive layer until explicitly promoted
+     Concrete TODOs:
+     - `T1-C1 Planner Surface Contract`
+       Status: done
+       Goal:
+       - define the canonical planner surface in product terms: task list, calendar, queue, execution launches, advice linkage
+       Closure rule:
+       - one bounded planner contract exists and is not confused with chat assistance
+       Current proposed contract:
+       - `Planner` is the primary operational surface for persisted agronomic work planning
+       - its canonical core consists of:
+         - task list
+         - calendar view
+         - agronomic queue/task drafts
+         - task creation and persistence
+         - execution launches into supported modules
+         - evidence-aware follow-through in the covered execution flows
+       - `Advice` may feed the planner, but does not replace it
+       - `Planner chat` may explain or support the planner, but does not define the canonical planner state
+       What the planner contract must guarantee:
+       - a task can exist independently of chat
+       - a task can be reviewed and acted on through planner-native surfaces
+       - supported task types can route into real execution modules
+       - the planner remains the strongest operational anchor for year-over-year work history
+       What the planner contract does not yet guarantee:
+       - complete closure of every smart/AI suggestion into one unified historical loop
+       - native full-depth vertical planning for every orchard/vineyard/olive complexity
+       - planner chat as an execution-grade orchestration engine
+     - `T1-C2 Planner Chat Scope`
+       Status: done
+       Goal:
+       - define what planner chat is actually allowed to do now
+       Candidate allowed roles:
+       - explain planner state
+       - suggest next planning actions
+       - clarify agronomic timing/rotation logic
+       Candidate excluded roles for now:
+       - silently creating durable planner objects without an explicit planner flow
+       - replacing the real queue/task execution pipeline
+       Closure rule:
+       - planner chat has an explicit assistive scope with clear exclusions
+       Current proposed scope:
+       - planner chat is a conversational planner assistant connected to the real planner surface
+       - it may:
+         - explain planner state
+         - interpret timing, rotation and agronomic planning logic
+         - suggest one or more next tasks
+         - prefill or prepare planner task drafts
+         - route the user into planner-native task creation or task execution flows
+       - it may not:
+         - commit durable planner objects silently
+         - bypass planner-native confirmation steps
+         - replace the queue/task execution model
+       Decision authority rule:
+       - the user remains the final decision authority
+       - AI may prepare and trigger execution only after explicit user confirmation
+       Commitment rule:
+       - the source of truth is the persisted planner task or downstream execution record, not the chat transcript itself
+     - `T1-C3 Queue vs Chat Ownership`
+       Status: done
+       Goal:
+       - declare which planner intelligence belongs to queue/orchestration services and which belongs to conversational UX
+       Closure rule:
+       - no planner capability is ambiguously “owned” by both chat and queue layers
+       Current proposed ownership split:
+       - `Queue / orchestration owns:`
+         - agronomic prioritization
+         - task draft generation
+         - durable task semantics
+         - task-to-execution routing
+         - evidence-aware operational follow-through
+         - decision ledger and measurable outcome linkage where present
+       - `Planner chat owns:`
+         - conversational explanation
+         - interactive clarification with the user
+         - proposal framing
+         - user-facing translation of queue/planner logic into natural language
+         - prefill assistance before planner confirmation
+       - `Shared but with single source of truth:`
+         - next-task recommendation:
+           - source of truth belongs to queue/planner intelligence
+           - chat may explain or present it
+         - task creation:
+           - source of truth belongs to planner persistence flow
+           - chat may prepare the draft but not own commitment
+       Explicit non-ownership for planner chat:
+       - no independent planner state machine
+       - no hidden task creation authority
+       - no ownership of execution evidence or downstream records
+     - `T1-C4 Promotion Gate`
+       Status: done
+       Goal:
+       - define the conditions under which planner chat could later be promoted into a more execution-aware surface
+       Candidate gate conditions:
+       - durable planner context inputs
+       - verified action registry
+       - safe routing hooks
+       - explicit write-path governance
+       Closure rule:
+       - planner chat cannot silently evolve into a pseudo-agent without meeting declared promotion conditions
+       Current proposed promotion conditions:
+       - `PG-01 Garden-system-aware context`
+         Requirement:
+         - planner chat must receive structured `garden` context, not only orto-specific context
+         - the context must remain compatible with:
+           - orto / annual crops
+           - orchard
+           - olive grove
+           - vineyard
+           - other supported cultivation systems
+         - where relevant, the base garden context must be enriched by vertical/system context rather than inferred loosely from chat alone
+       - `PG-02 Verified action registry`
+         Requirement:
+         - planner chat may only promote actions that exist in the explicit action registry
+       - `PG-03 Verified routing hooks`
+         Requirement:
+         - any promoted action must connect to a real planner-native or module-native flow
+       - `PG-04 Explicit user confirmation`
+         Requirement:
+         - AI may prepare or trigger, but durable commitment requires explicit user confirmation
+       - `PG-05 Auditability`
+         Requirement:
+         - the system must be able to reconstruct what the AI proposed, what the user confirmed, and which durable object was created or launched
+       - `PG-06 Source-of-truth protection`
+         Requirement:
+         - planner chat must not become a second hidden planner state machine
+         - durable planner truth remains in planner persistence, queue/orchestration and downstream execution records
+   - `T1-D Director Consolidation Decision`
+     Status: done
+     Scope:
+     - decide whether director stays distributed across legacy/new services or converges toward one explicit orchestrator surface
+     Sources:
+     - `GAP-2026-04-23-N`
+     - `GAP-2026-04-23-AE`
+     Output:
+     - one architectural decision for director ownership and product positioning
+     Target product role:
+     - `Director` is intended to be the central agronomic orchestrator of the system
+     - it should relate heterogeneous signals coming from:
+       - IoT
+       - manual records
+       - planner/task state
+       - diary/environment
+       - health
+       - execution records
+       - vertical/system context
+     - it should be scope-aware across:
+       - `garden`
+       - `zone`
+       - `row`
+       - `plant id`
+     - it should:
+       - understand current context
+       - remember historical context
+       - anticipate next priorities
+       - coordinate downstream layers and operational flows
+     Current state:
+     - this target is not yet fully closed
+     - current logic is still distributed between `services/directorService.ts`, `logic/director.ts` and dependent planner/dashboard layers
+     Current proposed direction:
+     - do not reduce Director to a mere briefing widget in product language
+     - describe it as the target central orchestrator, while explicitly acknowledging that the current implementation is still partial and distributed
+     Concrete TODOs:
+     - `T1-D1 Director Target Model`
+       Status: done
+       Goal:
+       - define the formal target model of Director as a multi-level agronomic orchestrator
+       Closure rule:
+       - the master contains one explicit Director target model with scope hierarchy and responsibilities
+       Current proposed target model:
+       - `Scope hierarchy`
+         - `garden`
+         - `zone`
+         - `row`
+         - `plant id`
+       - `Scope rules`
+         - every signal, memory item, recommendation and action should resolve to one primary scope
+         - higher scopes may aggregate lower scopes
+         - lower scopes may inherit context from higher scopes, but not overwrite it silently
+       - `Signal families`
+         - `iot-signals`
+           - sensor telemetry
+           - device state
+           - environmental readings
+         - `manual-signals`
+           - observations
+           - operator notes
+           - explicit field measurements
+         - `planner-signals`
+           - open tasks
+           - scheduled work
+           - overdue work
+         - `execution-signals`
+           - completed operations
+           - evidence captured
+           - measured outcomes
+         - `environmental-signals`
+           - weather
+           - diary-derived agronomic indicators
+           - local environmental history
+         - `health-signals`
+           - risk pressures
+           - monitoring summaries
+           - crop/plant stress signals
+         - `vertical-context-signals`
+           - orchard / olive / vineyard / annual-crop specific context
+       - `Director memory layers`
+         - `current-state memory`
+           - what is active now at each scope
+         - `historical memory`
+           - what happened before at each scope
+         - `decision memory`
+           - what was suggested, accepted, rejected or executed
+         - `outcome memory`
+           - what results or feedback followed the action
+       - `Core Director responsibilities`
+         - normalize signals across scopes
+         - maintain scope-aware operational memory
+         - prioritize actions
+         - explain why an action is being prioritized
+         - pass structured context to downstream layers
+       - `Primary downstream outputs`
+         - `briefing outputs`
+         - `planner queue outputs`
+         - `chat context outputs`
+         - `health support outputs`
+         - `execution launch context outputs`
+       - `Non-goals for now`
+         - unconstrained autonomous action execution
+         - hidden mutation of durable records without passing through governed product flows
+     - `T1-D2 Director Current-State Map`
+       Status: done
+       Goal:
+       - map which current Director responsibilities live in `directorService`, which in `logic/director`, and which in adjacent services
+       Closure rule:
+       - the distributed implementation is explicitly mapped before any consolidation decision
+       Current implementation map:
+       - `services/directorService.ts`
+         Current role:
+         - modern daily briefing and agronomic queue service
+         Owns today:
+         - `getDailyBriefing(userId, gardenId)`
+         - `DailyBriefing`
+         - `PrioritizedAction`
+         - conversion of active collaborative AI suggestions into prioritized actions
+         - transversal agronomic queue construction
+         - refined agronomic context attachment
+         - decision explanations and economic priority summaries
+         - environmental summaries from garden/zone history where available
+         - measured feedback intake for queue/outcome context
+         Main consumers:
+         - `components/director/DirectorBriefingWidget.tsx`
+         - `components/planner/AgronomicQueueTaskPanel.tsx`
+       - `logic/director.ts`
+         Current role:
+         - legacy broad daily-plan generator and rule engine
+         Owns today:
+         - `checkWeatherUrgency`
+         - `getDailyGardenPlan`
+         - `generateLifecycleTasks`
+         - `generateUrgentAlerts`
+         - `generateBaselinePrompts`
+         - broad seasonal, weather, lifecycle, crop-system and legacy prompt logic
+         Main consumers:
+         - `components/Dashboard.tsx`
+         - `components/professional/ProfessionalDashboard.tsx`
+         - `components/shared/HomeDashboard.tsx`
+         - `services/fieldRowPredictiveService.ts`
+         - `services/continuousMonitoringService.ts`
+       - Adjacent service contributors:
+         - `services/agronomicActionQueueService.ts`
+           Role:
+           - builds transversal queue items from health, irrigation, prescription, phenology, director actions and feedback
+         - `services/agronomicDecision*`
+           Role:
+           - explanation, decision ledger, analytics and outcome history around queue/task decisions
+         - `services/environmentalMonitoringService.ts`
+           Role:
+           - weather/sensor/environmental summaries at garden/zone level
+         - `services/plantHealthMonitoringService.ts`
+           Role:
+           - health alerts used by the modern queue
+         - `services/prescriptionMapsService.ts`
+           Role:
+           - prescription intelligence summaries fed into queue prioritization
+         - `services/advancedIrrigationService.ts`
+           Role:
+           - irrigation efficiency reports fed into queue prioritization
+       Current scope coverage:
+       - `garden`
+         Status:
+         - substantially covered by both modern and legacy director flows
+       - `zone`
+         Status:
+         - partially covered through irrigation, prescription and environmental zone summaries
+       - `row`
+         Status:
+         - partially covered in adjacent field-row predictive and task/execution layers, not yet a first-class Director scope
+       - `plant id`
+         Status:
+         - not yet first-class in Director; plant-level services exist elsewhere but are not centrally orchestrated by Director
+       Main architectural gap:
+       - Director target is multi-level and memory-aware, but current implementation is split between modern briefing/queue service and broad legacy daily-plan logic
+       - row and plant-level scope resolution are not yet first-class Director responsibilities
+       Decision needed before consolidation:
+       - choose whether `directorService.ts` becomes the canonical Director facade and progressively absorbs/contracts legacy responsibilities from `logic/director.ts`
+       - or keep both paths but document a stable facade contract that hides the distribution from downstream product layers
+     - `T1-D3 Director Downstream Contract`
+       Status: done
+       Goal:
+       - define how Director hands context to planner, chat, health and execution modules
+       Closure rule:
+       - downstream layers receive named Director outputs rather than ambiguous implicit intelligence
+       Verified downstream output contracts:
+       - `DO-01 Briefing Output`
+         Target consumer:
+         - `components/director/DirectorBriefingWidget.tsx`
+         Current code basis:
+         - `DailyBriefing` from `services/directorService.ts`
+         Minimum payload:
+         - briefing summary
+         - critical actions
+         - transversal agronomic queue
+         - weather summary
+         - agronomic insights
+         - environmental summary
+         - recommendations
+         - briefing stats
+         Director rule:
+         - this is the user-facing daily command summary, not the canonical durable task source
+       - `DO-02 Planner Queue Output`
+         Target consumer:
+         - `components/planner/AgronomicQueueTaskPanel.tsx`
+         Current code basis:
+         - `AgronomicActionQueueItem` from `services/agronomicActionQueueService.ts`
+         Minimum payload:
+         - `id`
+         - `source`
+         - `title`
+         - `description`
+         - `scopeLabel`
+         - `focus`
+         - `priorityScore`
+         - `priorityConfidence`
+         - `agronomicProfileId`
+         - `missingSignals`
+         - `urgencyLabel`
+         - metadata carrying decision explanation, refined context and supporting signals where available
+         Director rule:
+         - this is the operational bridge from intelligence to planner-visible work, but durable task creation still belongs to planner/task flows
+       - `DO-03 Chat Context Output`
+         Target consumers:
+         - `Global AI Chat`
+         - Planner chat
+         Current code basis:
+         - partially present through queue metadata, refined agronomic context and planned AI context hooks
+         Minimum payload:
+         - scope path: `garden -> zone -> row -> plant id` where known
+         - current priorities
+         - relevant signals
+         - missing signals
+         - suggested action registry item
+         - routing hint
+         - decision explanation
+         Director rule:
+         - chat receives bounded context packets, not arbitrary raw application state
+         Gap:
+         - this contract is not yet implemented as a stable Director output for all chat surfaces
+       - `DO-04 Health Support Output`
+         Target consumer:
+         - health surface and health-aware AI context
+         Current code basis:
+         - `HealthScopeInsight` from `services/healthScopeService.ts`
+         - health-sourced queue items from `services/agronomicActionQueueService.ts`
+         Minimum payload:
+         - `scopeType`
+         - `scopeId`
+         - `scopeName`
+         - `zoneId`
+         - `zoneName`
+         - `plantCount`
+         - `plantNames`
+         - fungal pressure
+         - water stress
+         - heat stress
+         - supporting signals
+         - next checks
+         Director rule:
+         - health output must preserve scope precision and should not collapse row/plant symptoms into generic garden advice when lower-level context exists
+       - `DO-05 Execution Launch Context Output`
+         Target consumers:
+         - nutrition execution
+         - irrigation/watering execution
+         - harvest execution
+         - mechanical work execution
+         Current code basis:
+         - `taskExecutionLaunchService.ts`
+         - `taskExecutionOrchestratorService.ts`
+         Minimum payload:
+         - `route`
+         - `sourceTaskId`
+         - `taskType`
+         - `plantName`
+         - `zoneId`
+         - `rowId`
+         - `rowNumber`
+         - `date`
+         Director rule:
+         - Director may prepare/route execution context, but execution records must be created by the governed module flow
+       - `DO-06 Decision Memory Output`
+         Target consumers:
+         - decision ledger
+         - planner/task history
+         - future Director memory layer
+         Current code basis:
+         - `AgronomicDecisionLedgerEntry` from `services/agronomicDecisionLedgerService.ts`
+         Minimum payload:
+         - queue item reference
+         - source
+         - focus
+         - scope label
+         - suggested task
+         - user confirmation or task creation state
+         - completion state
+         - decision snapshot
+         Director rule:
+         - accepted, rejected, created and completed decisions must be recoverable as memory rather than remaining only in chat/briefing text
+       - `DO-07 Outcome Feedback Output`
+         Target consumers:
+         - queue outcome layer
+         - Director priority refinement
+         - future contextual AI memory
+         Current code basis:
+         - `agronomicMeasuredFeedbackService.ts`
+         - `agronomicOperatorEvidenceService.ts`
+         - `agronomicQueueOutcomeService.ts`
+         Minimum payload:
+         - source task or queue item reference
+         - operator evidence
+         - measured feedback
+         - confidence
+         - outcome metrics
+         - linked agronomic context where available
+         Director rule:
+         - outcomes close the loop and should feed future priority/context calculation, not remain isolated evidence attachments
+       Contract guardrails:
+       - every downstream output must carry a scope reference when available
+       - `plant id` is a target scope, but it is often absent today and must not be implied when not present
+       - downstream layers should consume named Director outputs rather than call random Director internals
+       - downstream layers must not mutate durable records directly unless passing through governed planner, execution, ledger or module-specific flows
+     - `T1-D4 Consolidation Strategy`
+       Status: done
+       Goal:
+       - decide whether Director converges toward one orchestrator service or remains distributed behind a clear product contract
+       Closure rule:
+       - Director has an explicit architectural ownership strategy instead of legacy drift
+       Recommended decision:
+       - `services/directorService.ts` becomes the canonical Director facade
+       - `logic/director.ts` remains a legacy intelligence source to be wrapped, migrated or decomposed progressively
+       - downstream product layers should converge toward the canonical facade instead of importing legacy Director logic directly
+       Why this direction:
+       - `services/directorService.ts` already owns the modern user-facing briefing and transversal queue path
+       - `components/director/DirectorBriefingWidget.tsx` and `components/planner/AgronomicQueueTaskPanel.tsx` already consume the modern facade
+       - `logic/director.ts` still contains broad agronomic intelligence that should not be discarded: weather urgency, lifecycle prompts, baseline prompts, lunar/seasonal/soil/altitude/vertical crop engines and legacy daily plan generation
+       - a hard replacement would risk losing mature but scattered intelligence implemented by previous development passes
+       Current import split:
+       - modern facade consumers:
+         - `components/director/DirectorBriefingWidget.tsx`
+         - `components/planner/AgronomicQueueTaskPanel.tsx`
+         - precision-hub tests around Director operational context and environmental recommendations
+       - legacy logic consumers:
+         - `components/Dashboard.tsx`
+         - `components/Planner.tsx`
+         - `components/professional/ProfessionalDashboard.tsx`
+         - `components/shared/HomeDashboard.tsx`
+         - `services/fieldRowPredictiveService.ts`
+         - `services/continuousMonitoringService.ts`
+       Consolidation pattern:
+       - `directorService.ts` exposes named stable outputs aligned with `T1-D3`
+       - legacy functions from `logic/director.ts` are treated as internal contributors until replaced
+       - dashboard/planner consumers migrate toward facade outputs where product behaviour overlaps
+       - specialized legacy engines are not deleted until their output is either represented in facade contracts or explicitly archived
+       Initial facade responsibilities to add or stabilize:
+       - `getDailyBriefing`
+         Status:
+         - exists
+       - `getPlannerQueueContext`
+         Status:
+         - todo
+         Purpose:
+         - expose planner queue and priority context without forcing planner consumers to parse the full briefing object
+       - `getChatContext`
+         Status:
+         - todo
+         Purpose:
+         - provide bounded Director context packets for global/planner chat using the `DO-03` contract
+       - `getHealthSupportContext`
+         Status:
+         - todo
+         Purpose:
+         - provide scope-aware health support context without collapsing row/plant-level insight into generic garden advice
+       - `getExecutionLaunchContext`
+         Status:
+         - todo
+         Purpose:
+         - normalize task-aware execution routing context for supported operational modules
+       - `getDecisionMemoryContext`
+         Status:
+         - todo
+         Purpose:
+         - expose decision ledger and outcome memory to future Director reasoning without making chat transcript the source of truth
+       - `getLegacyDailyPlanBridge`
+         Status:
+         - todo
+         Purpose:
+         - wrap `getDailyGardenPlan` output while legacy dashboard flows still depend on it
+       Migration guardrails:
+       - no mass rewrite of dashboard/planner consumers before facade outputs are implemented
+       - no deletion of `logic/director.ts` until its useful engines have an explicit destination or removal decision
+       - no direct downstream mutation through Director; writes still pass through planner, execution, ledger or module-specific services
+       - row and `plant id` scope must be introduced as explicit optional scope fields before being promised in UI/manual language
+       Implementation TODOs opened by this decision:
+       - `T1-D4.1 Facade Method Skeleton`
+         Status: done
+         Goal:
+         - add or define stable facade methods for planner, chat, health, execution, decision memory and legacy bridge outputs
+         First implementation:
+         - `services/directorService.ts` now exposes typed facade contexts for:
+           - planner queue context
+           - bounded chat context
+           - health support context
+           - execution launch context
+           - decision memory context
+           - legacy daily-plan bridge
+         Added facade methods:
+         - `getPlannerQueueContext(userId, gardenId)`
+         - `getChatContext(userId, gardenId)`
+         - `getHealthSupportContext(userId, gardenId)`
+         - `getExecutionLaunchContext(gardenId)`
+         - `getDecisionMemoryContext(gardenId)`
+         - `getLegacyDailyPlanBridge(...args)`
+         Verification:
+         - `npx tsc --noEmit` passes after adding the facade skeleton
+         - `npm run test:precision-hub` passes with focused facade coverage
+         Tests added:
+         - `__tests__/precision-hub/directorFacadeContext.test.ts`
+         Covered:
+         - bounded chat context generation
+         - execution launch context extraction
+         - decision memory context extraction
+         - legacy bridge method availability
+         Follow-up:
+         - consumer migration and optional API exposure belong to `T1-D4.2` / `T1-D4.5`, not to this skeleton task
+       - `T1-D4.2 Legacy Import Reduction Plan`
+         Status: done
+         Goal:
+         - list every direct import of `logic/director.ts` and decide whether it should migrate, remain as legacy, or become a specialized engine call
+         Current direct imports:
+         - `services/directorService.ts`
+           Import:
+           - `getDailyGardenPlan`
+           Current use:
+           - canonical facade bridge through `getLegacyDailyPlanBridge`
+           Decision:
+           - keep
+           Rationale:
+           - this is the intended legacy containment point
+         - `components/Dashboard.tsx`
+           Import:
+           - `getDailyGardenPlan`
+           Current use:
+           - main legacy daily-plan UI: priority, urgent alerts, climate warnings, solar classification, lifecycle tasks, nutrient tasks, health tasks, irrigation tasks, lunar advice and refresh after watering execution
+           Decision:
+           - migrated through compatibility facade
+           Risk:
+           - high UI breadth; do not migrate until output parity is tested
+           Implementation:
+           - now calls `directorService.getLegacyDailyPlanBridge(...)`
+           - no `DailyPlan` output shape change
+           Verification:
+           - `npx tsc --noEmit` passes
+           - `npm run test:precision-hub` passes
+         - `components/Planner.tsx`
+           Import:
+           - `getDailyGardenPlan`
+           Current use:
+           - loads daily plan mostly for urgent alert visibility and solar classification support
+           Decision:
+           - migrated through compatibility facade
+           Rationale:
+           - narrower usage than `Dashboard.tsx`
+           Implementation:
+           - now calls `directorService.getLegacyDailyPlanBridge(...)`
+           - no `DailyPlan` output shape change
+           Verification:
+           - `npx tsc --noEmit` passes
+         - `components/professional/ProfessionalDashboard.tsx`
+           Import:
+           - `getDailyGardenPlan`
+           Current use:
+           - professional command center rendering urgent alerts, lifecycle tasks, baseline prompts, irrigation tasks, priority, climate warnings, lunar advice and task counts
+           Decision:
+           - migrated through compatibility facade
+           Risk:
+           - broad dependency on full `DailyPlan` shape
+           Implementation:
+           - now calls `directorService.getLegacyDailyPlanBridge(...)`
+           - no `DailyPlan` output shape change
+           Verification:
+           - `npx tsc --noEmit` passes
+           - `npm run test:precision-hub` passes
+         - `components/shared/HomeDashboard.tsx`
+           Import:
+           - `getDailyGardenPlan`
+           Current use:
+           - debounced daily-plan loading, baseline prompts and fallback empty plan
+           Decision:
+           - migrated through compatibility facade
+           Rationale:
+           - narrower visible dependency than the full dashboard
+           Implementation:
+           - now calls `directorService.getLegacyDailyPlanBridge(...)`
+           - no `DailyPlan` output shape change
+           Verification:
+           - `npx tsc --noEmit` passes
+         - `services/fieldRowPredictiveService.ts`
+           Import:
+           - `getDailyGardenPlan`
+           Current use:
+           - row-level insights from lifecycle tasks, baseline prompts, lunar advice and climate warnings
+           Decision:
+           - migrated to specialized row-aware Director facade method
+           Target:
+           - `getFieldRowDirectorInsights` or row-aware extension of `getHealthSupportContext` / `getChatContext`
+           Risk:
+           - this service is close to the target `garden -> zone -> row -> plant id` model and should not stay tied to garden-only legacy plan extraction
+           Implementation:
+           - `directorService.getFieldRowDirectorInsights(...)` now returns a scope-aware row context with lifecycle phase, seasonal advice, lunar timing and weather alerts
+           - `services/fieldRowPredictiveService.ts` now consumes the facade method instead of importing `getDailyGardenPlan` directly
+           - the facade output includes `gardenId`, `gardenName`, `zoneId`, `rowId` and cultivar/plant name where known
+           Verification:
+           - `npx tsc --noEmit` passes
+           - `npm run test:precision-hub` passes
+         - `services/continuousMonitoringService.ts`
+           Import:
+           - `generateUrgentAlerts`
+           Current use:
+           - converts weather/operation-blocking Director alerts into monitoring alerts
+         Decision:
+         - migrated to a small facade method
+         Target:
+         - `getUrgentWeatherAlerts` exposed through `directorService.ts`, backed initially by legacy `generateUrgentAlerts`
+         Rationale:
+         - narrowest and safest import to eliminate first
+         Implementation:
+         - `directorService.getUrgentWeatherAlerts(garden, currentDate?)` now wraps legacy `generateUrgentAlerts`
+         - `services/continuousMonitoringService.ts` now imports `directorService` instead of `generateUrgentAlerts` from `logic/director.ts`
+         Verification:
+         - `npx tsc --noEmit` passes
+         - `npm run test:precision-hub` passes
+         Preferred migration order:
+         - done: `services/continuousMonitoringService.ts`
+         - done: `components/Planner.tsx`
+         - done: `components/shared/HomeDashboard.tsx`
+         - done: `services/fieldRowPredictiveService.ts` with row-aware contract design
+         - done: `components/Dashboard.tsx`
+         - done: `components/professional/ProfessionalDashboard.tsx`
+       Closure result:
+       - direct imports of `logic/director.ts` are now contained inside `services/directorService.ts`
+       - all former downstream consumers route through the canonical Director facade
+       Migration rule:
+       - no consumer should be moved from `getDailyGardenPlan` to `getDailyBriefing` directly unless the required output shape is explicitly equivalent
+       - broad `DailyPlan` consumers need a compatibility facade or dashboard-plan contract
+       - specialized service consumers should move toward narrower facade methods instead of importing the whole legacy plan
+       - `T1-D4.3 Scope Model Extension`
+         Status: done
+         Goal:
+         - introduce a common Director scope descriptor supporting `garden`, `zone`, `row` and `plant id`
+         Implementation:
+         - `types/agronomicKernel.ts` now defines `AgronomicScopeDescriptor`
+         - `DirectorScopeDescriptor` now aliases the canonical agronomic scope descriptor
+         - `getChatContext` emits a `site` scoped context
+         - `getFieldRowDirectorInsights` emits a `row` scoped context with `gardenId`, `gardenName`, `zoneId`, `rowId`, `fieldRowId`, `rowName` and plant/cultivar name where known
+         Verification:
+         - `npx tsc --noEmit` passes
+         - `npm run test:precision-hub` passes with 108/108 tests
+         Closure note:
+         - `plantId` is included in the canonical descriptor but not yet populated broadly; this remains a future implementation concern, not a current product promise
+       - `T1-D4.4 Legacy Engine Extraction Map`
+         Status: done
+         Goal:
+         - classify useful logic inside `logic/director.ts` into weather, lifecycle, nutrient, health, vertical, lunar, soil/altitude and baseline prompt contributors
+         Current source:
+         - `logic/director.ts`
+         Current size:
+         - about 2500+ lines
+         Current role:
+         - broad legacy daily-plan aggregator, not a single coherent engine
+         Extraction map:
+         - `LEG-01 Weather urgency engine`
+           Current code:
+           - `checkWeatherUrgency`
+           - `generateUrgentAlerts`
+           Inputs:
+           - garden coordinates
+           - current weather forecast
+           Output:
+           - urgent alerts and climate warnings
+           Decision:
+           - keep as specialized weather contributor behind Director facade
+           Current facade:
+           - `directorService.getUrgentWeatherAlerts(...)`
+         - `LEG-02 Legacy DailyPlan compatibility engine`
+           Current code:
+           - `getDailyGardenPlan`
+           Inputs:
+           - garden
+           - tasks
+           - date
+           - annual plan
+           - user profile
+           - seedling batches
+           - storage provider
+           - seed inventory
+           Output:
+           - legacy `DailyPlan`
+           Decision:
+           - keep as compatibility bridge until dashboard-grade outputs are replaced by named facade contracts
+           Current facade:
+           - `directorService.getLegacyDailyPlanBridge(...)`
+         - `LEG-03 Lifecycle and basic crop advice`
+           Current code:
+           - `checkLifecycleStatus`
+           - inline lifecycle processing in `getDailyGardenPlan`
+           - placeholder `generateLifecycleTasks`
+           Decision:
+           - extract later only if lifecycle tasks become a named Director output
+           Risk:
+           - standalone helper is currently placeholder while real behaviour is mostly inside `getDailyGardenPlan`
+         - `LEG-04 Baseline seasonal prompt engine`
+           Current code:
+           - large inline baseline prompt logic inside `getDailyGardenPlan`
+           - partial `generateBaselinePrompts`
+           Covers:
+           - cleaning/preparing soil
+           - compost/fondo
+           - indoor sowing
+           - seed inventory
+           - lunar windows
+           - equipment checks
+           Decision:
+           - keep, then extract only after baseline prompts have their own product contract
+           Risk:
+           - partial helper does not yet cover full inline behaviour
+         - `LEG-05 Soil, altitude and solar suitability engine`
+           Current code:
+           - `applySoilAndAltitudeAdjustments`
+           - `getPlantTypeForAltitude`
+           - `calculateGardenSolarClassification`
+           - `validatePlantCompatibility`
+           - soil temperature and altitude utilities
+           Decision:
+           - preserve as specialized suitability contributor
+           Target:
+           - future `Director suitability context` or planner planting-window contributor
+         - `LEG-06 Nutrition and treatment recommendation contributor`
+           Current code:
+           - `calculateNutrientNeeds`
+           - `suggestFertilizerProduct`
+           - fertilizer inventory checks
+           - `suggestPhytoProduct`
+           - safety interval checks
+           Decision:
+           - preserve, but do not document as complete compliance closure
+           Target:
+           - future nutrition/treatments facade contract or `T3`/`T4` implementation work
+         - `LEG-07 Health and prevention contributor`
+           Current code:
+           - `calculateHealthStrategy`
+           - `calculateWindEffect`
+           - `getPreventiveMeasures`
+           - treatment weather checks
+           Decision:
+           - preserve as health-support contributor
+           Target:
+           - future linkage with `getHealthSupportContext`
+         - `LEG-08 Specialized crop vertical contributors`
+           Current code:
+           - strawberry engine
+           - fruit tree engine
+           - aromatic engine
+           - olive engine
+           - vine engine
+           - exotic fruit engine
+           - raspberry engine
+           Decision:
+           - keep as vertical contributors; do not flatten into generic garden logic
+           Target:
+           - future `T6 Specialized Verticals Completion`
+         - `LEG-09 Advanced growing system contributors`
+           Current code:
+           - hydroponic Director
+           - aquaponic Director
+           - aeroponic Director
+           - greenhouse Director
+           - filtering of non-applicable traditional tasks
+           Decision:
+           - keep as system-specific contributors
+           Risk:
+           - should not be mixed into open-field/orchard assumptions
+         - `LEG-10 Mechanical and pruning contributors`
+           Current code:
+           - `calculateMechanicalWorkTasks`
+           - `calculateTreePruningTasks`
+           - tillage engine
+           - soil state/tempera checks
+           Decision:
+           - preserve and later align with mechanical execution/ledger flows
+           Target:
+           - `T2 Operational Ledger Closure` and `T4 Precision Execution Chain`
+         - `LEG-11 Irrigation and fertigation contributors`
+           Current code:
+           - `adjustIrrigationForRain`
+           - `calculateFertigationPlan`
+           - irrigation design suggestions
+           - weather-adjusted irrigation task generation
+           Decision:
+           - preserve; future consolidation belongs with Smart Hub/Irrigation boundary
+           Target:
+           - `T5 IoT and Smart Hub Consolidation`
+         - `LEG-12 Lunar/traditional timing contributor`
+           Current code:
+           - `generateLunarAdvice`
+           - lunar windows for sowing/transplant timing
+           Decision:
+           - keep as advisory/traditional timing contributor, not as hard agronomic rule
+         - `LEG-13 Learning, memory and synchronizer hooks`
+           Current code:
+           - learning engine suggestions
+           - zone/tree memory
+           - pending suggestions
+           - task synchronizer hooks
+           Decision:
+           - preserve as legacy intelligence inputs, but do not treat as final durable Director memory model
+           Target:
+           - future memory/outcome layer after `T2`
+         Extraction rule:
+         - do not delete `logic/director.ts` while `getLegacyDailyPlanBridge` remains needed
+         - extract contributors only when a named facade output or strategic block needs them
+         - prioritize narrow contributors before broad `DailyPlan` replacement
+         - avoid moving placeholder helpers as if they represented full behaviour when the real logic remains inline
+         Recommended extraction order:
+         - first: weather urgency contributor because it is already facade-contained
+         - second: row/scope-aware field-row insights where scope contracts are now explicit
+         - third: dashboard-plan compatibility output only when Dashboard and ProfessionalDashboard can be validated visually
+         - fourth: vertical/system contributors under `T6`
+         - fifth: Smart Hub/irrigation contributors under `T5`
+         Closure result:
+         - useful legacy intelligence is now classified and protected from accidental deletion
+         - extraction is tied to named product/facade contracts instead of arbitrary file cleanup
+       - `T1-D4.5 Consumer Migration Gate`
+         Status: done
+         Goal:
+         - migrate consumers only after each target facade output is present and tested
+         Closure verification:
+         - no downstream app/component/service consumer imports `logic/director.ts` directly anymore
+         - `logic/director.ts` imports are contained in `services/directorService.ts`
+         - broad UI consumers use `directorService.getLegacyDailyPlanBridge(...)`
+         - narrow service consumers use named facade methods:
+           - `directorService.getUrgentWeatherAlerts(...)`
+           - `directorService.getFieldRowDirectorInsights(...)`
+         Gate policy:
+         - future consumers must not import `logic/director.ts` directly
+         - future migrations from legacy `DailyPlan` must use a named facade output or compatibility bridge
+         - a facade output is migration-ready only when it has:
+           - typed return contract
+           - explicit scope semantics when scope is relevant
+           - precision-hub or equivalent targeted test coverage
+           - no hidden durable mutations outside governed planner/execution/ledger/module flows
+         Enforcement query:
+         - `rg -n "from ['\"](@/logic/director|\\.\\./logic/director|../logic/director)['\"]|getDailyGardenPlan\\(|generateUrgentAlerts\\(|checkWeatherUrgency\\(" components services app --glob '!*.backup'`
+         Current allowed result:
+         - only `services/directorService.ts` may match legacy Director imports/calls
+         Closure result:
+         - Director consolidation gate is now explicit and test-backed; future drift can be detected with a simple search
+
+2. `T2 Operational Ledger Closure`
+   Status: in_progress
+   Goal:
+   - close the operational chain `plan -> operation -> observation -> result` across the modules already carrying real field execution value
+   Source chapters:
+   - `docs/manual/10-activity-registry.md`
+   - `docs/manual/35-automated-diary.md`
+   - `docs/manual/03-traceability.md`
+   - `docs/manual/21-individual-plants.md`
+   Includes:
+   - unified activity/operation ledger
+   - diary closure and durable event semantics
+   - durable evidence, observations and outcomes
+   - stronger traceability of source/manual/AI/device origin
+   First TODO candidates:
+   - define the canonical entities for `plan`, `operation`, `observation` and `result`
+   - map which current modules already write durable records and which do not
+   - decide whether traceability stays bounded prototype support or becomes a broader operational chain
+   Newly confirmed ledger gap:
+   - `GAP-2026-04-24-A` decision history is partially durable but not yet a normalized decision/outcome ledger
+   Evidence:
+   - `services/agronomicDecisionLedgerService.ts` records agronomic queue decisions through `getUserPreference` / `setUserPreference`
+   - `packages/storage-cloud/SupabaseStorageProvider.ts` persists those preferences inside `profiles.preferences` JSONB when cloud storage is active
+   - local storage mode persists the same preference keys in browser `localStorage`
+   - `services/agronomicQueueOutcomeService.ts` stores queue outcomes through the same preference mechanism
+   - stronger normalized database histories already exist for adjacent domains:
+     - `ai_suggestions`, `user_decisions`, `success_metrics`
+     - `daily_diary_entries`, `diary_events`
+     - `garden_tasks`, operation tables and `unified_operations`
+     - `smart_device_automation_logs`
+   Risk:
+   - the product can show recent decision/outcome history, but the agronomic queue ledger is not yet robust enough for long-term audit, cross-device consistency, indexed analytics or predictive learning
+   TODO:
+   - promote agronomic decision ledger and queue outcomes from preference JSON into normalized DB tables
+   - link `decision -> suggested task -> execution record -> observation/result -> measured outcome`
+   - include scope fields `garden`, `zone`, `field_row`, `tree`, `plant_id` where available
+   - preserve source and actor fields: `AI`, `user`, `device`, `automation`, `manual`
+   - define retention/query strategy for predictive analytics and future AI memory
+   Working breakdown:
+   - `T2-A Canonical Ledger Data Model`
+     Status: done
+     Goal:
+     - create the normalized DB substrate for durable decision and outcome history
+     Current implementation:
+     - migration `supabase/migrations/20260424120000_create_agronomic_decision_outcome_ledger.sql`
+     - creates `agronomic_decision_ledger_entries`
+     - creates `agronomic_queue_outcomes`
+     - includes RLS, user/garden ownership checks, query indexes, JSONB snapshots/evidence and scope fields for `zone`, `field_row`, `tree`, `plant_id`
+     Service wiring:
+     - `packages/core/storage/interface.ts` now exposes optional normalized ledger provider methods
+     - `packages/storage-cloud/SupabaseStorageProvider.ts` reads and upserts `agronomic_decision_ledger_entries`
+     - `packages/storage-cloud/SupabaseStorageProvider.ts` reads and upserts `agronomic_queue_outcomes`
+     - `services/agronomicDecisionLedgerService.ts` now prefers normalized DB rows and falls back to preference JSON
+     - `services/agronomicQueueOutcomeService.ts` now prefers normalized DB rows and falls back to preference JSON
+     Remaining limitation:
+     - existing `profiles.preferences` records are not migrated yet; fallback keeps them readable until `T2-B`
+     Verification:
+     - `npx tsc --noEmit` passes
+   - `T2-B Preference Ledger Migration`
+     Status: done
+     Goal:
+     - migrate existing `agronomic_decision_ledger:*` and `agronomic_queue_outcomes:*` preference payloads into normalized rows without losing historical records
+     Implementation:
+     - `services/agronomicDecisionLedgerService.ts` lazily migrates legacy preference-backed decision entries into `agronomic_decision_ledger_entries` when normalized rows are absent
+     - `services/agronomicQueueOutcomeService.ts` lazily migrates legacy preference-backed outcome entries into `agronomic_queue_outcomes` when normalized rows are absent
+     - migration is fallback-safe: legacy preference data remains readable even if normalized upsert fails
+     - no destructive cleanup of `profiles.preferences` is performed in this step
+     Verification:
+     - `npx tsc --noEmit` passes
+   - `T2-C Execution Evidence Linkage`
+     Status: done
+     Goal:
+     - connect ledger rows to real operation logs, measured feedback and outcome records with queryable foreign/source references
+     Current implementation:
+     - migration `supabase/migrations/20260424123000_extend_agronomic_queue_outcomes_evidence_columns.sql`
+     - extends `agronomic_queue_outcomes` with queryable evidence columns derived from the existing evidence JSON
+     - migration `supabase/migrations/20260424124500_backfill_agronomic_queue_outcome_evidence_columns.sql`
+     - backfills queryable evidence columns from existing `execution_evidence`, `measurement_evidence` and `evidence_snapshot` JSON values
+     - adds evidence status, execution verification flags, measurement flags, operator evidence flag, last evidence timestamp
+     - adds source operation evidence fields:
+       - `execution_evidence_kind`
+       - `execution_evidence_log_id`
+       - `execution_evidence_date`
+       - `execution_evidence_confidence`
+     - adds measured outcome evidence fields:
+       - `measurement_evidence_kind`
+       - `measurement_evidence_record_id`
+       - `measurement_evidence_recorded_at`
+     - adds agronomic outcome fields:
+       - `agronomic_outcome_status`
+       - `agronomic_outcome_matched_by`
+       - `agronomic_outcome_recorded_at`
+     - `packages/storage-cloud/SupabaseStorageProvider.ts` now writes these derived fields on each `agronomic_queue_outcomes` upsert
+     Remaining TODO:
+     - future hardening may decide whether source evidence ids should become strict foreign keys or remain polymorphic source references
+     Closure result:
+     - queue outcome evidence is no longer only opaque JSON; it is available as queryable columns for audit, analytics and future predictive learning
+     Verification:
+     - `npx tsc --noEmit` passes
+   - `T2-D Operational Ledger Coverage Map`
+     Status: done
+     Goal:
+     - map which operational modules already write durable records and how they relate to the common `plan -> operation -> observation -> result` chain
+     Coverage snapshot:
+     - `Planner / agronomic queue`
+       Current durable records:
+       - `garden_tasks`
+       - `agronomic_decision_ledger_entries`
+       - `agronomic_queue_outcomes`
+       Chain role:
+       - `plan`
+       - `decision`
+       - `completion/outcome bridge`
+       Maturity:
+       - `execution-grade after T2-A/B/C`
+     - `Unified operations service`
+       Current durable records:
+       - creates `watering_logs`
+       - creates `fertilizer_application_logs`
+       - creates `treatments`
+       - creates `mechanical_work_register`
+       - creates `individual_plant_operations`
+       Chain role:
+       - `operation`
+       - row/plant propagation
+       Maturity:
+       - `execution-grade bridge`
+       Notes:
+       - `services/unifiedOperationsService.ts` is the closest implementation to the canonical operational chain
+       - it propagates selected row operations to plant operations and preserves source task references in notes/context
+     - `Irrigation`
+       Current durable records:
+       - `watering_logs`
+       - `irrigation_logs`
+       - `smart_device_automation_logs`
+       Chain role:
+       - `operation`
+       - `device decision/command/outcome`
+       - `execution evidence`
+       Maturity:
+       - `execution-grade but split across manual/device histories`
+     - `Nutrition / fertilization`
+       Current durable records:
+       - `fertilizer_application_logs`
+       - advanced nutrition/treatment records where used
+       Chain role:
+       - `operation`
+       - `execution evidence`
+       Maturity:
+       - `execution-grade for application logs; broader scientific/compliance claims stay under T3/T4`
+     - `Treatments / protection`
+       Current durable records:
+       - `treatments`
+       - plant treatment tracking/outcome objects in plant monitoring flows
+       Chain role:
+       - `operation`
+       - partial `result`
+       Maturity:
+       - `execution-grade for treatment records; outcome linkage remains uneven`
+     - `Mechanical work`
+       Current durable records:
+       - `mechanical_work_register`
+       Chain role:
+       - `operation`
+       - `execution evidence`
+       Maturity:
+       - `execution-grade for work logging; no fleet/telematics closure`
+     - `Harvest`
+       Current durable records:
+       - `harvest_logs`
+       - `plant_harvests`
+       - vertical harvest records such as orchard/vineyard harvest records
+       Chain role:
+       - `result`
+       - `measurement evidence`
+       Maturity:
+       - `execution-grade but multi-surface`
+     - `Individual plant operations`
+       Current durable records:
+       - `individual_plant_operations`
+       - `plant_operations`
+       - `operation_sync_log`
+       Chain role:
+       - `operation`
+       - row-to-plant propagation
+       Maturity:
+       - `execution-grade in places; schema duplication/history split remains`
+     - `Automated diary`
+       Current durable records:
+       - `daily_diary_entries`
+       - `diary_events`
+       Chain role:
+       - `observation`
+       - environmental context
+       Maturity:
+       - `durable observation layer`
+     - `Prescription maps`
+       Current durable records:
+       - `prescription_maps`
+       - `prescription_execution_records`
+       - `prescription_map_export_records`
+       Chain role:
+       - `plan/recommendation`
+       - `field execution`
+       - `execution variance/outcome analysis`
+       Maturity:
+       - `execution-grade precision chain component`
+     - `AI suggestions / feedback`
+       Current durable records:
+       - `ai_suggestions`
+       - `user_decisions`
+       - `success_metrics`
+       - `ai_transparency_log`
+       Chain role:
+       - `decision support`
+       - `user decision`
+       - `expected vs actual result`
+       Maturity:
+       - `durable but separate from global chat`
+     Current architectural conclusion:
+     - the product already has many durable operational histories
+     - the main gap is not raw persistence but canonical cross-module semantics and consistent source linkage
+     - `unifiedOperationsService` plus `agronomic_decision_ledger_entries` / `agronomic_queue_outcomes` should become the canonical bridge rather than creating another competing operational table immediately
+     Recommended next sub-block:
+     - `T2-E Canonical Operation Projection`
+       Status: done
+       Goal:
+       - define whether the product needs a DB view/service projection that reads all durable operation sources into one `decision -> operation -> outcome` shape
+       Core product rule:
+       - the projection must not only answer “what was done?”
+       - it must also answer “what happened after doing it?” whenever outcome or measured feedback exists
+       Candidate sources:
+       - `unified_operations`
+       - `watering_logs`
+       - `fertilizer_application_logs`
+       - `treatments`
+       - `mechanical_work_register`
+       - `harvest_logs`
+       - `individual_plant_operations`
+       - `smart_device_automation_logs`
+       - `prescription_execution_records`
+       Closure rule:
+       - consumers can ask one canonical question: “what was decided, what was done, where, why, from which plan/actor/source, and what result was obtained?”
+       Current implementation:
+       - migration `supabase/migrations/20260424130000_create_agronomic_operation_outcome_projection.sql`
+       - creates view `agronomic_operation_outcome_projection`
+       - first projection joins:
+         - `agronomic_queue_outcomes`
+         - `agronomic_decision_ledger_entries`
+         - `garden_tasks`
+       - exposes decision source/focus/snapshot, planned task, completion, execution evidence, measurement evidence, agronomic outcome and result class
+       Current scope:
+       - covers the agronomic queue chain first because it already has the strongest `decision -> task -> evidence -> outcome` linkage
+       Remaining TODO:
+       - future extension can decide whether additional operation families should be folded directly into this projection or exposed through companion projections
+       Closure result:
+       - first canonical outcome-first projection is available in DB as `agronomic_operation_outcome_projection`
+       - the projection is intentionally centered on the strongest current chain: agronomic queue decision -> planned task -> execution evidence -> measured outcome
+       Verification:
+       - migration applied successfully to production database
+       - `npx tsc --noEmit` passes
+     - `T2-F Real Operation History Projection`
+       Status: done
+       Goal:
+       - extend the outcome-first projection beyond agronomic queue outcomes without introducing another competing ledger table
+       Decision:
+       - keep `agronomic_operation_outcome_projection` as a virtual projection over existing durable histories
+       - do not create a new physical `operations_ledger` table at this stage
+       - use existing operation tables as source of truth and expose their rows through the canonical projection shape
+       Implementation started:
+       - migration `supabase/migrations/20260424133000_extend_operation_outcome_projection_to_real_histories.sql`
+       - adds queryable `task_id` linkage to:
+         - `watering_logs`
+         - `treatment_register`
+         - `mechanical_work_register`
+       - keeps existing `SOURCE_TASK::...` note markers as fallback linkage for historical records
+       - recreates `agronomic_operation_outcome_projection` with:
+         - existing agronomic queue outcome rows
+         - real operation-history rows from `watering_logs`, `fertilizer_application_logs`, `treatment_register`, `mechanical_work_register` and `harvest_logs`
+         - deduplication when an operation is already represented as queue execution or measurement evidence
+       Service wiring started:
+       - `packages/storage-cloud/SupabaseStorageProvider.ts` writes and reads `task_id` for watering logs
+       - treatment and mechanical work creation now persist `task_id` when launched from a source task
+       - `services/unifiedOperationsService.ts` passes source task ids into treatment and mechanical operation records
+       Current scope:
+       - folds high-value real histories into one queryable projection
+       - preserves existing tables and RLS ownership semantics
+       - treats harvest rows as measured-result evidence even when they do not originate from a queue decision
+       Production verification:
+       - migration applied successfully to production database on 2026-04-24
+       - pre-apply rollback validation succeeded against the live schema
+       - production columns `task_id` now exist on:
+         - `watering_logs`
+         - `fertilizer_application_logs`
+         - `treatment_register`
+         - `mechanical_work_register`
+       - production view `agronomic_operation_outcome_projection` was recreated successfully
+       Current data caveat:
+       - production projection currently returns 0 rows because the covered operational source tables are empty:
+         - `agronomic_queue_outcomes`: 0
+         - `watering_logs`: 0
+         - `fertilizer_application_logs`: 0
+         - `treatment_register`: 0
+         - `mechanical_work_register`: 0
+         - `harvest_logs`: 0
+       Remaining future TODO:
+       - decide whether `individual_plant_operations`, `smart_device_automation_logs`, prescription execution records and quality results should enter this same projection or companion projections
+       - decide whether older operation rows should be backfilled from `SOURCE_TASK` markers into `task_id` if/when legacy rows exist
+       Closure rule:
+       - the product can query queue decisions and non-queue real operation histories through one outcome-first projection without duplicating durable operational tables
+     - `T2-G Specialized Operation Signal Projection`
+       Status: done
+       Goal:
+       - decide how to expose specialized histories that are real but not identical to the primary task/outcome ledger shape
+       Decision:
+       - keep `agronomic_operation_outcome_projection` focused on the primary `decision/task -> operation -> outcome` chain
+       - add a companion virtual projection for plant-level operations, device automation, measured quality and prescription export signals
+       - do not create a new physical table and do not force semantically different histories into the primary projection prematurely
+       Implementation:
+       - migration `supabase/migrations/20260424140000_create_agronomic_operation_signal_projection.sql`
+       - creates view `agronomic_operation_signal_projection`
+       - includes:
+         - `individual_plant_operations`
+         - `smart_device_automation_logs`
+         - `quality_results`
+         - `prescription_map_exports`
+       Production verification:
+       - rollback validation succeeded against the production schema on 2026-04-24
+       - migration applied successfully to production database on 2026-04-24
+       - production view currently returns:
+         - `individual_plant_operations`: 1 row
+         - smart automation, quality and prescription export sources: 0 rows because their source tables are currently empty
+       Important gap:
+       - production does not currently have a table named `prescription_execution_records`
+       - follow-up inspection showed that the real cloud storage contract persists `PrescriptionExecutionRecord` rows in `variable_rate_applications`
+       - the gap is therefore naming/visibility rather than total absence of a durable execution substrate
+       Remaining future TODO:
+       - decide whether a true prescription execution record table should be promoted into T4 Precision Execution Chain
+       - decide whether the manual should describe prescription exports as export/import/application signals rather than full execution records until that table exists
+       Closure rule:
+       - specialized histories are visible through a shared virtual projection without weakening the primary outcome-first ledger semantics
+     - `T2-H Prescription Execution Projection`
+       Status: done
+       Goal:
+       - close the naming/visibility gap around prescription execution records without creating a duplicate execution table
+       Decision:
+       - do not create `prescription_execution_records`
+       - keep using the existing provider-backed table `variable_rate_applications` as the durable prescription execution record table
+       - expose it through a named projection so downstream documentation and analytics can refer to a truthful execution surface
+       Evidence:
+       - `packages/storage-cloud/SupabaseStorageProvider.ts` reads and writes `PrescriptionExecutionRecord` through `variable_rate_applications`
+       - production table `variable_rate_applications` exists and matches the service mapper contract
+       Implementation:
+       - migration `supabase/migrations/20260424143000_create_agronomic_precision_execution_projection.sql`
+       - creates view `agronomic_precision_execution_projection`
+       - joins:
+         - `variable_rate_applications`
+         - `prescription_maps`
+         - `gardens`
+         - optional `prescription_map_exports`
+       - exposes planned rate, actual rate, planned/applied area, accuracy, costs, source operation, export linkage and derived variance classes
+       Production verification:
+       - rollback validation succeeded against the production schema on 2026-04-24
+       - migration applied successfully to production database on 2026-04-24
+       - projection currently returns 0 rows because `variable_rate_applications` is empty in production
+       Manual/doc implication:
+       - the truthful wording is not “no prescription execution ledger exists”
+       - the truthful wording is “prescription execution records are persisted as variable-rate applications; production currently has no rows yet”
+       Closure rule:
+       - prescription execution has a named queryable projection without duplicating the existing provider-backed execution table
+     - `T2-I Operational Ledger Read Contract`
+       Status: done
+       Goal:
+       - make the DB projections consumable by application code through a typed storage contract instead of leaving them as SQL-only artifacts
+       Decision:
+       - expose the three projection families as optional storage-provider reads
+       - keep writes governed by the existing source tables/services; projection reads are read-only
+       Implementation:
+       - `types/operationalLedger.ts` defines typed rows and shared filters for:
+         - `AgronomicOperationOutcomeProjection`
+         - `AgronomicOperationSignalProjection`
+         - `AgronomicPrecisionExecutionProjection`
+       - `packages/core/storage/interface.ts` exposes optional provider methods:
+         - `getAgronomicOperationOutcomeProjection`
+         - `getAgronomicOperationSignalProjection`
+         - `getAgronomicPrecisionExecutionProjection`
+       - `packages/storage-cloud/SupabaseStorageProvider.ts` reads from:
+         - `agronomic_operation_outcome_projection`
+         - `agronomic_operation_signal_projection`
+         - `agronomic_precision_execution_projection`
+       - supports bounded filters by garden, task/source/projection family, prescription map/status and date/limit where relevant
+       Closure result:
+       - the operational ledger projections are no longer only database artifacts; cloud storage consumers have a typed read path
+       Remaining future TODO:
+       - decide which UI/reporting surface should first consume these projections
+       - decide whether local storage should synthesize equivalent projections or remain source-table based for development/offline mode
+       Closure rule:
+       - application code can read the unified ledger projections without directly hand-writing Supabase view queries
+     - `T2-J Operational Ledger Service Aggregation`
+       Status: done
+       Goal:
+       - provide one application-level aggregation over the three projection families so UI/report consumers do not need to understand every DB view directly
+       Decision:
+       - keep the DB projections separate by semantics
+       - add a service that normalizes them into a lightweight unified event stream and summary
+       - do not introduce a write path; this remains a read-only composition layer
+       Implementation:
+       - `services/operationalLedgerService.ts`
+       - exposes:
+         - `getOperationalLedgerUnifiedEvents`
+         - `getOperationalLedgerSummary`
+       - normalizes:
+         - outcome projection rows as `outcome`
+         - specialized signal projection rows as `signal`
+         - precision execution projection rows as `precision_execution`
+       - summarizes:
+         - total events
+         - family counts
+         - measured-result count
+         - verified-execution count
+         - category counts
+         - result-class counts
+         - latest event
+       Verification:
+       - `__tests__/precision-hub/operationalLedgerService.test.ts`
+       Closure result:
+       - the operational ledger has a stable service-level read model ready for a first UI/report consumer
+       Remaining future TODO:
+       - wire the first real app surface to the service-level read model without reintroducing demo-only events
+       Closure rule:
+       - app code can ask for a unified operational ledger summary without manually combining the three projection families
+     - `T2-K Activity Registry Truthful Ledger Consumer`
+       Status: done
+       Goal:
+       - make the existing activity registry compatible with the outcome-first operational ledger without overstating demo/sample activity as real history
+       Decision:
+       - choose Activity Registry as the first UI-level consumer boundary for the T2-J service
+       - keep the registry task list based only on real task props
+       - expose operational ledger data as an optional real summary loaded from the projection service when `gardenId` and a compatible storage provider are available
+       - do not add a new durable table or synthetic “activity” source
+       Implementation:
+       - `components/garden/ActivityRegistry.tsx`
+       - removed hard-coded simulated observation/harvest rows from the activity list
+       - added optional `gardenId` + ledger-capable `storageProvider` props
+       - added month-bounded `getOperationalLedgerSummary` loading for outcome, signal, and precision execution projection families
+       - guarded empty CSV export and zero-activity completion percentage
+       - `app/app/analytics/page.tsx` mounts the registry in the overview tab for the active garden and passes the live storage provider
+       Verification:
+       - `npm run type-check -- --noEmit`
+       - `npm run test:precision-hub`
+       Closure result:
+       - the Activity Registry no longer presents demo events as real activity history and displays a real operational ledger summary on the active analytics page
+       Remaining future TODO:
+       - decide whether the activity list itself should later be expanded from task-only rows to normalized operational ledger events
+       Closure rule:
+       - no simulated activity appears in the truthful registry path; ledger totals come from T2 projections only
+   Closure rule:
+   - the product has an explicit cross-module record model and the manual can describe one truthful operational ledger rather than fragmented histories
+
+3. `T3 Compliance and Certifications Closure`
+   Status: todo
+   Goal:
+   - decide which compliance and certification workflows are meant to become truly durable operational product features
+   Source chapters:
+   - `docs/manual/04-certifications.md`
+   - `docs/manual/04b-bio-certification-guide.md`
+   - `docs/manual/16-nutrition-treatments.md`
+   Includes:
+   - BIO persistence and retrieval
+   - GlobalG.A.P. action realism
+   - treatment/compliance/quaderno-campagna boundaries
+   - certification-readiness versus full certification operations
+   First TODO candidates:
+   - define per-certification maturity and intended target state
+   - decide if BIO becomes a persisted loop or stays assisted assessment
+   - separate simulated compliance actions from durable ones
+   Closure rule:
+   - each certification/compliance workflow has an explicit target state and the manual no longer overstates regulatory closure
+
+4. `T4 Precision Execution Chain`
+   Status: todo
+   Goal:
+   - decide which precision-agriculture flows should become fully connected from analysis to field execution and measured outcome
+   Source chapters:
+   - `docs/manual/05-ndvi-satellite.md`
+   - `docs/manual/06-prescription-maps.md`
+   - `docs/manual/16-nutrition-treatments.md`
+   - `docs/manual/17-mechanical-operations.md`
+   Includes:
+   - NDVI source quality and role
+   - prescription maps field closure
+   - nutrition VRT ambitions
+   - machinery/execution linkage
+   First TODO candidates:
+   - define the intended end-to-end chain for `remote sensing -> recommendation/map -> field execution -> outcome`
+   - decide what remains assistive analysis versus what becomes execution-grade
+   - isolate unsupported VRT/machinery promises from the real precision baseline
+   Closure rule:
+   - the precision chain is documented and implemented according to a real execution path, not a mixture of analysis previews and aspirational automation
+
+5. `T5 IoT and Smart Hub Consolidation`
+   Status: todo
+   Goal:
+   - consolidate sensor ingestion, device registry, actuator control and automation into an explicit Smart Hub target state
+   Source chapters:
+   - `docs/manual/14-smart-hub.md`
+   - `docs/manual/15-irrigation-system.md`
+   Includes:
+   - sensor persistence
+   - device registry maturity
+   - actuator/command boundary
+   - automation rules versus telemetry-only support
+   First TODO candidates:
+   - define the intended Smart Hub perimeter for production use
+   - distinguish ingestion-ready capabilities from control/automation capabilities
+   - decide whether irrigation automation becomes a first-class product target
+   Closure rule:
+   - Smart Hub and irrigation docs can state one explicit truth about telemetry, control and automation maturity
+
+6. `T6 Specialized Verticals Completion`
+   Status: todo
+   Goal:
+   - decide which vertical domains should be deepened into durable, coherent product slices versus remain hybrid/specialized overlays
+   Source chapters:
+   - `docs/manual/18-orchard-management.md`
+   - `docs/manual/19-olive-management.md`
+   - `docs/manual/20-vineyard-management.md`
+   - `docs/manual/21-individual-plants.md`
+   - `docs/manual/22-business-intelligence.md`
+   - `docs/manual/11-agronomist-consultations.md`
+   Includes:
+   - orchard/olive/vineyard maturity mapping
+   - per-plant persistence and monitoring consistency
+   - agronomist backend depth
+   - BI/reporting truthfulness for verticals
+   First TODO candidates:
+   - define which verticals are strategic product pillars versus opportunistic extensions
+   - identify the minimum durable backend/persistence expectations for each one
+   - separate local assistive tools from team-shared operational records
+   Closure rule:
+   - each vertical has a declared target maturity and the manual reflects only the chosen supported depth
+
+7. `T7 Strategic Promise Triage`
+   Status: todo
+   Goal:
+   - remove or archive non-product narrative promises from the manual unless they are promoted into explicit strategic work
+   Source chapters:
+   - `docs/manual/25-research-development.md`
+   - `docs/manual/28-economic-benefits.md`
+   - `docs/manual/30-use-cases.md`
+   - `docs/manual/31-success-stories.md`
+   - `docs/manual/32-roadmap.md`
+   Includes:
+   - R&D manifesto material
+   - ROI/commercial claims
+   - scenario material
+   - roadmap promises
+   - testimonial/success-story content
+   First TODO candidates:
+   - mark which chapters are to be archived/removed outright
+   - keep only future capabilities that still deserve explicit product consideration
+   - remove named customer/testimonial material from the operational manual perimeter
+   Closure rule:
+   - the manual contains no strategic or commercial promise layer that is not explicitly backed by either current code or an approved master-plan TODO
+
+## Recommended Start Order
+To turn this map into execution without losing precision, start in this order:
+
+1. `T1 AI Surfaces Consolidation`
+   Reason:
+   - highest leverage on user-visible product truth
+   - already partially live in code
+   - easiest place to separate real AI from assistive AI
+
+2. `T2 Operational Ledger Closure`
+   Reason:
+   - foundational for many other modules
+   - directly affects diary, evidence, registry and outcome truthfulness
+
+3. `T3 Compliance and Certifications Closure`
+   Reason:
+   - high documentation risk and real product value
+   - already has working surfaces that need explicit target states
+
+4. `T5 IoT and Smart Hub Consolidation`
+   Reason:
+   - prevents telemetry/control promises from staying vague
+   - clarifies automation scope for irrigation and sensors
+
+5. `T4 Precision Execution Chain`
+   Reason:
+   - depends in part on clearer execution/ledger and Smart Hub boundaries
+
+6. `T6 Specialized Verticals Completion`
+   Reason:
+   - important, but easier to prioritize once shared platform blocks are clearer
+
+7. `T7 Strategic Promise Triage`
+   Reason:
+   - should continue in parallel as governance, but not block product-facing implementation choices
+
 ## Open Gap Register
 Use this section for cross-cutting gaps that emerge while comparing UI, architecture and documentation. Do not leave them only in chat history.
 
@@ -587,6 +2653,45 @@ Meta-rule for this register:
    - convert the missing automatic-diary closure into tracked work before any final rewrite of the chapter
    Closure rule:
    - the diary chapter reflects only verified daily-tracking behaviour and all stronger automation claims are either implemented or explicitly tracked as open work
+
+36. `GAP-2026-04-23-AJ` Nutrition and treatments chapter mixes a real operational core with much broader scientific/compliance promises
+   Priority: high
+   Related block: `P5`
+   Evidence:
+   - real nutrition/treatments routes, dashboards, planners, products and execution flows exist
+   - `docs/manual/16-nutrition-treatments.md` then expands into full scientific nutrient engines, complete fitopharmaceutical/compliance systems, residue frameworks and mature VRT nutritional chains not verified as closed product behaviour
+   Risk:
+   - a useful real module is documented as if it were already a fully scientific, normative and precision-application platform
+   TODO:
+   - separate the verified operational nutrition/treatments core from still-open scientific/compliance/VRT ambitions
+   Closure rule:
+   - nutrition/treatments documentation clearly distinguishes current operational capability from tracked future extensions
+
+37. `GAP-2026-04-23-AK` Mechanical operations chapter extends a real register/execution module into telematics and fleet-management promises
+   Priority: medium
+   Related block: `P5`
+   Evidence:
+   - real mechanical-work route, forms, service layer and task-aware execution flow exist
+   - `docs/manual/17-mechanical-operations.md` then adds GPS fleet tracking, guidance systems, auto-steer, telematics integrations and broad optimization layers not verified as current product capability
+   Risk:
+   - users can mistake a real operational register module for a complete machinery telematics platform
+   TODO:
+   - isolate current mechanical execution/recording capability from still-open fleet/telematics ambitions
+   Closure rule:
+   - mechanical documentation describes the real module truthfully and tracks precision/telematics ambitions separately
+
+38. `GAP-2026-04-23-AL` R&D and roadmap chapters are future-capability/backlog material currently living inside the manual
+   Priority: high
+   Related block: `P5`
+   Evidence:
+   - `docs/manual/25-research-development.md` and `docs/manual/32-roadmap.md` describe partnerships, patents, labs, commercialization paths and speculative future technologies rather than verified in-app capability
+   Risk:
+   - the manual continues to mix operational product truth with strategic aspiration and speculative backlog
+   TODO:
+   - convert still-relevant future capability claims from these chapters into explicit tracked roadmap/TODO items
+   - later decide what should be archived, removed from the manual or retained only as internal planning material
+   Closure rule:
+   - no future-facing capability chapter remains in the user manual unless it is explicitly justified as tracked roadmap material and clearly separated from current product truth
 
 ## Resume Protocol
 When a new chat resumes work:

@@ -1865,6 +1865,7 @@ export interface MechanicalWorkRecord {
   id: string
   user_id: string
   garden_id?: string
+  task_id?: string | null
   bed_id?: string // Micro-zone tracking (aiuole/letti)
   bed_row_id?: string // Micro-zone tracking (filari di aiuole/letti) - renamed from row_id
   zone_id?: string // Garden zone reference
@@ -1900,6 +1901,7 @@ export interface TreatmentRecordDB {
   id: string
   user_id: string
   garden_id?: string
+  task_id?: string | null
   bed_id?: string
   bed_row_id?: string // Filari di aiuole/letti - renamed from row_id
   zone_id?: string // Garden zone reference

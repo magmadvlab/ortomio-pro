@@ -375,6 +375,7 @@ export interface WateringLog {
   id: string
   zoneId: string
   gardenId: string
+  taskId?: string
   bedId?: string
   rowId?: string
   bedRowId?: string

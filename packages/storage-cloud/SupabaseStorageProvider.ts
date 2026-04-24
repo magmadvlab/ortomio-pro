@@ -55,6 +55,14 @@ import {
 } from '@/utils/prescriptionMapExportDb';
 import type { PrescriptionExecutionRecord, PrescriptionMap, PrescriptionMapExportRecord, PrescriptionZone } from '@/types/prescriptionMaps';
 import type { PlantOperation } from '@/types/individualPlant';
+import type { AgronomicDecisionLedgerEntry } from '@/services/agronomicDecisionLedgerService';
+import type { AgronomicQueueOutcomeRecord } from '@/services/agronomicQueueOutcomeService';
+import type {
+  AgronomicOperationOutcomeProjection,
+  AgronomicOperationSignalProjection,
+  AgronomicPrecisionExecutionProjection,
+  OperationalLedgerProjectionFilters,
+} from '@/types/operationalLedger';
 import { StoragePersistenceError, StorageReadError } from '../core/storage/errors';
 
 export class SupabaseStorageProvider implements IStorageProvider {
@@ -431,6 +439,220 @@ export class SupabaseStorageProvider implements IStorageProvider {
     } catch {
       // ignore errors (fallback to localStorage handled by caller)
     }
+  }
+
+  private async getAuthenticatedUserId(): Promise<string | null> {
+    const client = this.ensureClient();
+    const {
+      data: { user },
+    } = await client.auth.getUser();
+    return user?.id || null;
+  }
+
+  private mapAgronomicDecisionLedgerEntryFromDb(db: any): AgronomicDecisionLedgerEntry {
+    return {
+      id: db.id,
+      gardenId: db.garden_id,
+      queueItemId: db.queue_item_id,
+      source: db.source,
+      focus: db.focus,
+      agronomicProfileId: db.agronomic_profile_id ?? undefined,
+      scopeLabel: db.scope_label ?? undefined,
+      plantName: db.plant_name ?? undefined,
+      taskSuggestedBy: db.task_suggested_by ?? undefined,
+      taskId: db.task_id ?? undefined,
+      taskType: db.task_type ?? undefined,
+      plannedDate: db.planned_date ?? undefined,
+      status: db.status,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at,
+      taskCreatedAt: db.task_created_at ?? undefined,
+      completedAt: db.completed_at ?? undefined,
+      decisionSnapshot: db.decision_snapshot || {},
+    };
+  }
+
+  private async mapAgronomicDecisionLedgerEntryToDb(entry: AgronomicDecisionLedgerEntry): Promise<any> {
+    const userId = await this.getAuthenticatedUserId();
+    if (!userId) {
+      throw this.buildCloudPersistenceError(
+        'upsertAgronomicDecisionLedgerEntry',
+        'Utente non autenticato: impossibile salvare il ledger decisionale.'
+      );
+    }
+
+    return {
+      id: entry.id,
+      user_id: userId,
+      garden_id: entry.gardenId,
+      queue_item_id: entry.queueItemId,
+      source: entry.source,
+      focus: entry.focus,
+      agronomic_profile_id: entry.agronomicProfileId ?? null,
+      scope_label: entry.scopeLabel ?? null,
+      plant_name: entry.plantName ?? null,
+      task_suggested_by: entry.taskSuggestedBy ?? null,
+      task_id: entry.taskId ?? null,
+      task_type: entry.taskType ?? null,
+      planned_date: entry.plannedDate ?? null,
+      status: entry.status,
+      task_created_at: entry.taskCreatedAt ?? null,
+      completed_at: entry.completedAt ?? null,
+      decision_snapshot: entry.decisionSnapshot || {},
+      actor_type: 'ai',
+      source_type: 'agronomic_queue',
+      created_at: entry.createdAt,
+      updated_at: entry.updatedAt,
+    };
+  }
+
+  async getAgronomicDecisionLedgerEntries(gardenId: string): Promise<AgronomicDecisionLedgerEntry[]> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('agronomic_decision_ledger_entries')
+      .select('*')
+      .eq('garden_id', gardenId)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      throw this.buildCloudReadError(
+        'getAgronomicDecisionLedgerEntries',
+        'Impossibile leggere il ledger decisionale agronomico.',
+        error
+      );
+    }
+
+    return (data || []).map((entry) => this.mapAgronomicDecisionLedgerEntryFromDb(entry));
+  }
+
+  async upsertAgronomicDecisionLedgerEntry(
+    entry: AgronomicDecisionLedgerEntry
+  ): Promise<AgronomicDecisionLedgerEntry> {
+    const client = this.ensureClient();
+    const dbEntry = await this.mapAgronomicDecisionLedgerEntryToDb(entry);
+    const { data, error } = await client
+      .from('agronomic_decision_ledger_entries')
+      .upsert(dbEntry)
+      .select('*')
+      .single();
+
+    if (error) {
+      throw this.buildCloudPersistenceError(
+        'upsertAgronomicDecisionLedgerEntry',
+        'Impossibile salvare il ledger decisionale agronomico.',
+        error
+      );
+    }
+
+    return this.mapAgronomicDecisionLedgerEntryFromDb(data);
+  }
+
+  private mapAgronomicQueueOutcomeRecordFromDb(db: any): AgronomicQueueOutcomeRecord {
+    return {
+      id: db.id,
+      gardenId: db.garden_id,
+      taskId: db.task_id,
+      queueItemId: db.queue_item_id,
+      completedAt: db.completed_at,
+      taskType: db.task_type,
+      plantName: db.plant_name,
+      schedulingType: db.scheduling_type ?? undefined,
+      success: db.success,
+      notes: db.notes ?? undefined,
+      metadata: db.metadata || null,
+      executionEvidence: db.execution_evidence || null,
+      measurementEvidence: db.measurement_evidence || null,
+      evidenceSnapshot: db.evidence_snapshot || null,
+      operatorEvidence: db.operator_evidence || null,
+    };
+  }
+
+  private async mapAgronomicQueueOutcomeRecordToDb(record: AgronomicQueueOutcomeRecord): Promise<any> {
+    const userId = await this.getAuthenticatedUserId();
+    if (!userId) {
+      throw this.buildCloudPersistenceError(
+        'upsertAgronomicQueueOutcomeRecord',
+        'Utente non autenticato: impossibile salvare outcome agronomico.'
+      );
+    }
+
+    return {
+      id: record.id,
+      user_id: userId,
+      garden_id: record.gardenId,
+      task_id: record.taskId,
+      queue_item_id: record.queueItemId,
+      completed_at: record.completedAt,
+      task_type: record.taskType,
+      plant_name: record.plantName,
+      scheduling_type: record.schedulingType ?? null,
+      success: record.success,
+      notes: record.notes ?? null,
+      metadata: record.metadata || {},
+      execution_evidence: record.executionEvidence || null,
+      measurement_evidence: record.measurementEvidence || null,
+      evidence_snapshot: record.evidenceSnapshot || null,
+      operator_evidence: record.operatorEvidence || null,
+      evidence_status: record.evidenceSnapshot?.status || null,
+      execution_verified: record.evidenceSnapshot?.executionVerified || false,
+      measured_outcome_recorded: record.evidenceSnapshot?.measuredOutcomeRecorded || false,
+      high_confidence_execution: record.evidenceSnapshot?.highConfidenceExecution || false,
+      operator_evidence_captured: record.evidenceSnapshot?.operatorEvidenceCaptured || false,
+      last_evidence_at: record.evidenceSnapshot?.lastEvidenceAt || null,
+      execution_evidence_kind: record.executionEvidence?.kind || null,
+      execution_evidence_log_id: record.executionEvidence?.logId || null,
+      execution_evidence_date: record.executionEvidence?.executionDate || null,
+      execution_evidence_confidence: record.executionEvidence?.confidence || null,
+      measurement_evidence_kind: record.measurementEvidence?.kind || null,
+      measurement_evidence_record_id: record.measurementEvidence?.recordId || null,
+      measurement_evidence_recorded_at: record.measurementEvidence?.recordedAt || null,
+      agronomic_outcome_status: record.evidenceSnapshot?.agronomicOutcome?.status || null,
+      agronomic_outcome_matched_by: record.evidenceSnapshot?.agronomicOutcome?.matchedBy || null,
+      agronomic_outcome_recorded_at: record.evidenceSnapshot?.agronomicOutcome?.recordedAt || null,
+      actor_type: record.operatorEvidence ? 'user' : 'automation',
+      source_type: 'agronomic_queue',
+    };
+  }
+
+  async getAgronomicQueueOutcomeRecords(gardenId: string): Promise<AgronomicQueueOutcomeRecord[]> {
+    const client = this.ensureClient();
+    const { data, error } = await client
+      .from('agronomic_queue_outcomes')
+      .select('*')
+      .eq('garden_id', gardenId)
+      .order('completed_at', { ascending: false });
+
+    if (error) {
+      throw this.buildCloudReadError(
+        'getAgronomicQueueOutcomeRecords',
+        'Impossibile leggere gli outcome della coda agronomica.',
+        error
+      );
+    }
+
+    return (data || []).map((record) => this.mapAgronomicQueueOutcomeRecordFromDb(record));
+  }
+
+  async upsertAgronomicQueueOutcomeRecord(
+    record: AgronomicQueueOutcomeRecord
+  ): Promise<AgronomicQueueOutcomeRecord> {
+    const client = this.ensureClient();
+    const dbRecord = await this.mapAgronomicQueueOutcomeRecordToDb(record);
+    const { data, error } = await client
+      .from('agronomic_queue_outcomes')
+      .upsert(dbRecord)
+      .select('*')
+      .single();
+
+    if (error) {
+      throw this.buildCloudPersistenceError(
+        'upsertAgronomicQueueOutcomeRecord',
+        'Impossibile salvare outcome della coda agronomica.',
+        error
+      );
+    }
+
+    return this.mapAgronomicQueueOutcomeRecordFromDb(data);
   }
 
   // Gardens
@@ -2177,6 +2399,221 @@ export class SupabaseStorageProvider implements IStorageProvider {
     }
   }
 
+  private applyCommonOperationalLedgerProjectionFilters(query: any, filters?: OperationalLedgerProjectionFilters) {
+    let nextQuery = query;
+    if (filters?.gardenId) nextQuery = nextQuery.eq('garden_id', filters.gardenId);
+    if (filters?.taskId) nextQuery = nextQuery.eq('task_id', filters.taskId);
+    if (filters?.from) nextQuery = nextQuery.gte('created_at', filters.from);
+    if (filters?.to) nextQuery = nextQuery.lte('created_at', filters.to);
+    if (typeof filters?.limit === 'number') nextQuery = nextQuery.limit(filters.limit);
+    return nextQuery;
+  }
+
+  private mapOperationOutcomeProjectionFromDb(db: any): AgronomicOperationOutcomeProjection {
+    return {
+      projectionId: db.projection_id,
+      projectionSource: db.projection_source,
+      userId: db.user_id,
+      gardenId: db.garden_id,
+      taskId: db.task_id,
+      queueItemId: db.queue_item_id,
+      decisionLedgerId: db.decision_ledger_id,
+      decisionSource: db.decision_source,
+      decisionFocus: db.decision_focus,
+      plannedTaskType: db.planned_task_type,
+      plannedPlantName: db.planned_plant_name,
+      plannedDate: db.planned_date,
+      taskCompleted: db.task_completed,
+      taskCompletedAt: db.task_completed_at,
+      outcomeCompletedAt: db.outcome_completed_at,
+      outcomeTaskType: db.outcome_task_type,
+      outcomePlantName: db.outcome_plant_name,
+      operationSuccess: db.operation_success,
+      evidenceStatus: db.evidence_status,
+      executionVerified: db.execution_verified,
+      measuredOutcomeRecorded: db.measured_outcome_recorded,
+      executionEvidenceKind: db.execution_evidence_kind,
+      executionEvidenceLogId: db.execution_evidence_log_id,
+      measurementEvidenceKind: db.measurement_evidence_kind,
+      measurementEvidenceRecordId: db.measurement_evidence_record_id,
+      agronomicOutcomeStatus: db.agronomic_outcome_status,
+      zoneId: db.zone_id,
+      fieldRowId: db.field_row_id,
+      treeId: db.tree_id,
+      plantId: db.plant_id,
+      operationSourceTable: db.operation_source_table,
+      operationSourceId: db.operation_source_id,
+      operationKind: db.operation_kind,
+      operationCategory: db.operation_category,
+      operationDate: db.operation_date,
+      operationTimestamp: db.operation_timestamp,
+      operationQuantity: db.operation_quantity === null || db.operation_quantity === undefined ? null : Number(db.operation_quantity),
+      operationUnit: db.operation_unit,
+      operationProductName: db.operation_product_name,
+      hasMeasuredResult: db.has_measured_result,
+      resultClass: db.result_class,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at,
+    };
+  }
+
+  async getAgronomicOperationOutcomeProjection(
+    filters?: OperationalLedgerProjectionFilters
+  ): Promise<AgronomicOperationOutcomeProjection[]> {
+    const client = this.ensureClient();
+    let query = client
+      .from('agronomic_operation_outcome_projection')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    query = this.applyCommonOperationalLedgerProjectionFilters(query, filters);
+    if (filters?.projectionSource) query = query.eq('projection_source', filters.projectionSource);
+    if (filters?.sourceTable) query = query.eq('operation_source_table', filters.sourceTable);
+
+    const { data, error } = await query;
+    if (error) {
+      throw this.buildCloudReadError(
+        'getAgronomicOperationOutcomeProjection',
+        'Impossibile leggere la proiezione operation/outcome agronomica.',
+        error
+      );
+    }
+
+    return (data || []).map((row) => this.mapOperationOutcomeProjectionFromDb(row));
+  }
+
+  private mapOperationSignalProjectionFromDb(db: any): AgronomicOperationSignalProjection {
+    return {
+      projectionId: db.projection_id,
+      sourceTable: db.source_table,
+      sourceRecordId: db.source_record_id,
+      userId: db.user_id,
+      gardenId: db.garden_id,
+      taskId: db.task_id,
+      parentOperationId: db.parent_operation_id,
+      parentOperationTable: db.parent_operation_table,
+      signalRole: db.signal_role,
+      operationKind: db.operation_kind,
+      operationCategory: db.operation_category,
+      signalDate: db.signal_date,
+      signalAt: db.signal_at,
+      zoneId: db.zone_id,
+      fieldRowId: db.field_row_id,
+      treeId: db.tree_id,
+      plantId: db.plant_id,
+      quantity: db.quantity === null || db.quantity === undefined ? null : Number(db.quantity),
+      unit: db.unit,
+      productName: db.product_name,
+      actorType: db.actor_type,
+      sourceType: db.source_type,
+      deviceId: db.device_id,
+      decision: db.decision,
+      commandStatus: db.command_status,
+      qualityScore: db.quality_score === null || db.quality_score === undefined ? null : Number(db.quality_score),
+      marketableYieldKg: db.marketable_yield_kg === null || db.marketable_yield_kg === undefined ? null : Number(db.marketable_yield_kg),
+      rejectedYieldKg: db.rejected_yield_kg === null || db.rejected_yield_kg === undefined ? null : Number(db.rejected_yield_kg),
+      brix: db.brix === null || db.brix === undefined ? null : Number(db.brix),
+      resultClass: db.result_class,
+      notes: db.notes,
+      metadata: db.metadata || null,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at,
+    };
+  }
+
+  async getAgronomicOperationSignalProjection(
+    filters?: OperationalLedgerProjectionFilters
+  ): Promise<AgronomicOperationSignalProjection[]> {
+    const client = this.ensureClient();
+    let query = client
+      .from('agronomic_operation_signal_projection')
+      .select('*')
+      .order('signal_at', { ascending: false });
+
+    query = this.applyCommonOperationalLedgerProjectionFilters(query, filters);
+    if (filters?.sourceTable) query = query.eq('source_table', filters.sourceTable);
+
+    const { data, error } = await query;
+    if (error) {
+      throw this.buildCloudReadError(
+        'getAgronomicOperationSignalProjection',
+        'Impossibile leggere la proiezione dei segnali operativi agronomici.',
+        error
+      );
+    }
+
+    return (data || []).map((row) => this.mapOperationSignalProjectionFromDb(row));
+  }
+
+  private mapPrecisionExecutionProjectionFromDb(db: any): AgronomicPrecisionExecutionProjection {
+    return {
+      projectionId: db.projection_id,
+      executionRecordId: db.execution_record_id,
+      prescriptionMapId: db.prescription_map_id,
+      prescriptionZoneId: db.prescription_zone_id,
+      gardenId: db.garden_id,
+      userId: db.user_id,
+      prescriptionMapName: db.prescription_map_name,
+      prescriptionMapType: db.prescription_map_type,
+      applicationDate: db.application_date,
+      productName: db.product_name,
+      productType: db.product_type,
+      plannedRate: db.planned_rate === null || db.planned_rate === undefined ? null : Number(db.planned_rate),
+      actualRate: db.actual_rate === null || db.actual_rate === undefined ? null : Number(db.actual_rate),
+      unit: db.unit,
+      plannedAreaSqm: db.planned_area_sqm === null || db.planned_area_sqm === undefined ? null : Number(db.planned_area_sqm),
+      areaAppliedSqm: db.area_applied_sqm === null || db.area_applied_sqm === undefined ? null : Number(db.area_applied_sqm),
+      totalProductUsed: db.total_product_used === null || db.total_product_used === undefined ? null : Number(db.total_product_used),
+      applicationAccuracy: db.application_accuracy === null || db.application_accuracy === undefined ? null : Number(db.application_accuracy),
+      applicationQuality: db.application_quality === null || db.application_quality === undefined ? null : Number(db.application_quality),
+      totalCost: db.total_cost === null || db.total_cost === undefined ? null : Number(db.total_cost),
+      executionStatus: db.execution_status,
+      sourceOperationType: db.source_operation_type,
+      sourceOperationId: db.source_operation_id,
+      prescriptionExportId: db.prescription_export_id,
+      smartDeviceId: db.smart_device_id,
+      exportFormat: db.export_format,
+      exportFieldStatus: db.export_field_status,
+      varianceClass: db.variance_class,
+      rateDeviationPercent: db.rate_deviation_percent === null || db.rate_deviation_percent === undefined ? null : Number(db.rate_deviation_percent),
+      areaCoveragePercent: db.area_coverage_percent === null || db.area_coverage_percent === undefined ? null : Number(db.area_coverage_percent),
+      executionMetadata: db.execution_metadata || null,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at,
+    };
+  }
+
+  async getAgronomicPrecisionExecutionProjection(
+    filters?: OperationalLedgerProjectionFilters & {
+      prescriptionMapId?: string;
+      executionStatus?: string;
+    }
+  ): Promise<AgronomicPrecisionExecutionProjection[]> {
+    const client = this.ensureClient();
+    let query = client
+      .from('agronomic_precision_execution_projection')
+      .select('*')
+      .order('application_date', { ascending: false });
+
+    if (filters?.gardenId) query = query.eq('garden_id', filters.gardenId);
+    if (filters?.prescriptionMapId) query = query.eq('prescription_map_id', filters.prescriptionMapId);
+    if (filters?.executionStatus) query = query.eq('execution_status', filters.executionStatus);
+    if (filters?.from) query = query.gte('application_date', filters.from);
+    if (filters?.to) query = query.lte('application_date', filters.to);
+    if (typeof filters?.limit === 'number') query = query.limit(filters.limit);
+
+    const { data, error } = await query;
+    if (error) {
+      throw this.buildCloudReadError(
+        'getAgronomicPrecisionExecutionProjection',
+        'Impossibile leggere la proiezione delle esecuzioni precision.',
+        error
+      );
+    }
+
+    return (data || []).map((row) => this.mapPrecisionExecutionProjectionFromDb(row));
+  }
+
   // Seed Inventory
   async getSeedPackets(gardenId?: string): Promise<SeedPacket[]> {
     const client = this.ensureClient();
@@ -3806,6 +4243,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .insert({
         user_id: user.id,
         garden_id: work.garden_id || null,
+        task_id: work.task_id || null,
         bed_id: work.bed_id || null,
         bed_row_id: work.bed_row_id || null,
         zone_id: work.zone_id || null,
@@ -3833,6 +4271,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const dbData: any = {};
 
     if (updates.garden_id !== undefined) dbData.garden_id = updates.garden_id || null;
+    if (updates.task_id !== undefined) dbData.task_id = updates.task_id || null;
     if (updates.bed_id !== undefined) dbData.bed_id = updates.bed_id || null;
     if (updates.bed_row_id !== undefined) dbData.bed_row_id = updates.bed_row_id || null;
     if (updates.zone_id !== undefined) dbData.zone_id = updates.zone_id || null;
@@ -4107,6 +4546,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       id: db.id,
       user_id: db.user_id,
       garden_id: db.garden_id,
+      task_id: db.task_id || undefined,
       bed_id: db.bed_id || undefined,
       bed_row_id: db.bed_row_id || undefined,
       zone_id: db.zone_id || undefined,
@@ -4167,6 +4607,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .insert({
         user_id: user.id,
         garden_id: treatment.garden_id || null,
+        task_id: treatment.task_id || null,
         bed_id: (treatment as any).bed_id || null,
         bed_row_id: (treatment as any).bed_row_id || null,
         zone_id: (treatment as any).zone_id || null,
@@ -4196,6 +4637,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const dbData: any = {};
 
     if (updates.garden_id !== undefined) dbData.garden_id = updates.garden_id || null;
+    if (updates.task_id !== undefined) dbData.task_id = updates.task_id || null;
     if ((updates as any).bed_id !== undefined) dbData.bed_id = (updates as any).bed_id || null;
     if ((updates as any).bed_row_id !== undefined) dbData.bed_row_id = (updates as any).bed_row_id || null;
     if ((updates as any).zone_id !== undefined) dbData.zone_id = (updates as any).zone_id || null;
@@ -4239,6 +4681,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       id: db.id,
       user_id: db.user_id,
       garden_id: db.garden_id,
+      task_id: db.task_id || undefined,
       bed_id: db.bed_id || undefined,
       bed_row_id: db.bed_row_id || undefined,
       zone_id: db.zone_id || undefined,
@@ -5131,6 +5574,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .insert({
         zone_id: log.zoneId,
         garden_id: gardenId,
+        task_id: log.taskId || null,
         bed_id: log.bedId || null,
         bed_row_id: log.rowId || null,
         field_row_id: log.fieldRowId || null,
@@ -5165,6 +5609,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     const dbUpdates: any = {};
     if (updates.date !== undefined) dbUpdates.date = updates.date;
+    if (updates.taskId !== undefined) dbUpdates.task_id = updates.taskId || null;
     if (updates.bedId !== undefined) dbUpdates.bed_id = updates.bedId || null;
     if (updates.rowId !== undefined) dbUpdates.bed_row_id = updates.rowId || null;
     if (updates.fieldRowId !== undefined) dbUpdates.field_row_id = updates.fieldRowId || null;
@@ -5459,6 +5904,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       id: db.id,
       zoneId: db.zone_id,
       gardenId: db.garden_id || undefined,
+      taskId: db.task_id || undefined,
       bedId: db.bed_id || undefined,
       rowId: db.bed_row_id || undefined, // bed_row_id maps to rowId
       fieldRowId: db.field_row_id || undefined,
