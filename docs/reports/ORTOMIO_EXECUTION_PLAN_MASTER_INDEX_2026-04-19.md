@@ -1571,7 +1571,7 @@ Rule:
          - Director consolidation gate is now explicit and test-backed; future drift can be detected with a simple search
 
 2. `T2 Operational Ledger Closure`
-   Status: in_progress
+   Status: done
    Goal:
    - close the operational chain `plan -> operation -> observation -> result` across the modules already carrying real field execution value
    Source chapters:
@@ -2142,6 +2142,21 @@ Rule:
        - `npm run type-check -- --noEmit`
        Closure result:
        - the automated diary/weather observation layer now matches the DB-first runtime contract without duplicating durable weather history
+     - `T2-Q Manual Truth Alignment`
+       Status: done
+       Goal:
+       - align the T2 source manual chapters with the implemented DB-first operational ledger instead of describing future/marketing capabilities as current product behavior
+       Decision:
+       - keep the manual derived from code, production migrations and this master plan
+       - describe unimplemented capabilities as limits or TODOs, not as active features
+       - preserve the DB-first runtime rule from `T2-O`
+       Implementation:
+       - updated `docs/manual/10-activity-registry.md`
+       - updated `docs/manual/35-automated-diary.md`
+       - updated `docs/manual/03-traceability.md`
+       - updated `docs/manual/21-individual-plants.md`
+       Closure result:
+       - T2 source chapters now describe the real ledger projections, service consumer, diary/weather schema, signal projection and known limits without promising blockchain, QR, full offline ledger or complete per-plant analytics
    Closure rule:
    - the product has an explicit cross-module record model and the manual can describe one truthful operational ledger rather than fragmented histories
 

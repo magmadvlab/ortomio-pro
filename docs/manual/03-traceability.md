@@ -1,301 +1,78 @@
-# 🔗 TRACCIABILITÀ INTEGRATA
+# Tracciabilita Operativa
 
 [← Torna all'Indice](./README.md)
 
 ---
 
-## 🎯 PANORAMICA
+## Stato Modulo
 
-Sistema di tracciabilità integrato direttamente nel workflow operativo di "Il Mio Orto". Ogni operazione viene automaticamente registrata creando una storia completa e immutabile di ogni prodotto, dalla semina alla vendita, con QR code automatici per trasparenza totale verso i consumatori.
+**Stato attuale**: **parziale, DB-backed per le fonti operative principali**
 
-**Percorso**: Il Mio Orto → Tab "Tracciabilità"
+La tracciabilita di OrtoMio oggi non e una blockchain completa e non genera automaticamente una storia commerciale immutabile per ogni prodotto. Il valore reale implementato e la possibilita di ricostruire una catena operativa usando i record persistiti gia presenti nel database: task, decisioni agronomiche, operazioni, osservazioni, segnali specializzati e risultati.
 
----
-
-## 🔄 AUTO-TRACKING INTELLIGENTE
-
-### **Registrazione Automatica**
-- **Ogni Operazione Tracciata**: Semina, trapianto, irrigazione, trattamenti, raccolto
-- **Metadati Completi**: Data, ora, operatore, condizioni meteo, ubicazione GPS
-- **Foto Automatiche**: Documentazione visiva di ogni fase
-- **Sensori IoT**: Dati ambientali in tempo reale
-- **Blockchain Immutabile**: Tutti i record sono verificabili e non modificabili
-
-### **Timeline Completa**
-- **Dalla Semina alla Vendita**: Storia completa in un'unica vista
-- **Fasi Fenologiche**: Tracking automatico sviluppo piante
-- **Interventi Registrati**: Ogni trattamento e cura documentata
-- **Controlli Qualità**: Verifiche e test registrati automaticamente
-- **Certificazioni**: Badge automatici per standard raggiunti
-
-### **Verifiche Immutabili**
-- **Hash Crittografici**: Ogni record ha firma digitale univoca
-- **Timestamp Blockchain**: Prove temporali incontestabili
-- **Audit Trail**: Tracciabilità completa di ogni modifica
-- **Validazione Terze Parti**: Verifiche indipendenti possibili
-- **Conformità Normativa**: Rispetto GDPR e normative alimentari
+La fonte di verita per la chiusura T2 e il ledger operativo outcome-first descritto nel master plan.
 
 ---
 
-## 🎨 INTERFACCIA SEMPLIFICATA
+## Cosa E Tracciato Oggi
 
-### **Vista Prodotti**
-- **Panoramica Generale**: Tutti i prodotti tracciati in un colpo d'occhio
-- **Filtri Intelligenti**: Per tipo, stagione, stato, certificazioni
-- **Ricerca Rapida**: Trova prodotti per nome, lotto, data
-- **Ordinamento**: Per data, qualità, valore, certificazioni
-- **Vista Griglia/Lista**: Modalità visualizzazione personalizzabili
+- task agronomici in `garden_tasks`
+- decisioni e outcome della coda agronomica in `agronomic_decision_ledger_entries` e `agronomic_queue_outcomes`
+- irrigazioni, concimazioni, trattamenti, lavorazioni meccaniche e raccolti nelle rispettive tabelle operative
+- operazioni su piante individuali dove il flusso le registra
+- segnali da automazioni, qualita e prescription map export tramite proiezioni specializzate
+- dati meteo/diario automatico in `daily_weather_log`, `daily_diary_entries` e `diary_events` dove disponibili
 
-### **Punteggi Qualità Automatici**
-- **Algoritmo AI**: Valutazione basata su tutte le operazioni registrate
-- **Score 0-100**: Punteggio qualità facile da comprendere
-- **Fattori Considerati**: Tempestività cure, condizioni crescita, trattamenti
-- **Benchmark**: Confronto con standard settoriali
-- **Miglioramento Continuo**: Suggerimenti per aumentare qualità
+Le proiezioni DB principali sono:
 
-### **Certificazioni Visibili**
-- **Badge Automatici**: Biologico, GlobalG.A.P., HACCP, sostenibilità
-- **Stato Real-time**: Aggiornamento automatico certificazioni
-- **Scadenze**: Alert per rinnovi e controlli
-- **Documentazione**: Link diretti a certificati e analisi
-- **Condivisione**: Badge utilizzabili per marketing
+- `agronomic_operation_outcome_projection`
+- `agronomic_operation_signal_projection`
+- `agronomic_precision_execution_projection`
 
-### **QR Code Automatici**
-- **Generazione Istantanea**: QR code per ogni prodotto raccolto
-- **Personalizzazione**: Logo aziendale e design personalizzato
-- **Contenuto Ricco**: Storia completa, certificazioni, foto
-- **Aggiornamento Live**: Contenuto sempre aggiornato
-- **Analytics**: Tracking scansioni e engagement consumatori
+Queste viste non duplicano i dati: leggono le tabelle storiche reali e le espongono in una forma piu coerente per audit, analytics e interfacce.
 
 ---
 
-## 💰 VANTAGGI COMMERCIALI
+## Cosa Permette Gia
 
-### **Premium Pricing (+40%)**
-- **Trasparenza Totale**: I consumatori pagano di più per la fiducia
-- **Storia Completa**: Ogni prodotto ha la sua storia unica
-- **Certificazioni Visibili**: Badge di qualità immediatamente riconoscibili
-- **Differenziazione**: Prodotti tracciati si distinguono dalla concorrenza
-- **Valore Aggiunto**: Tracciabilità come servizio premium
-
-### **Fiducia Consumatori**
-- **Trasparenza Completa**: Niente da nascondere, tutto documentato
-- **Verificabilità**: Ogni informazione è verificabile indipendentemente
-- **Responsabilità**: Produttore si assume responsabilità totale
-- **Educazione**: Consumatori imparano il valore del lavoro agricolo
-- **Fidelizzazione**: Clienti fedeli a produttori trasparenti
-
-### **Accesso Mercati Premium**
-- **GDO Premium**: Catene richiedono sempre più tracciabilità
-- **Export**: Mercati internazionali esigono documentazione completa
-- **Ristorazione**: Chef valorizzano prodotti con storia
-- **E-commerce**: Piattaforme premium privilegiano prodotti tracciati
-- **B2B**: Aziende alimentari cercano fornitori certificati
-
-### **Marketing Automatico**
-- **Storia Come Strumento**: Ogni prodotto racconta la sua storia
-- **Contenuti Automatici**: Foto e video generati durante produzione
-- **Social Media**: Condivisione automatica milestone produzione
-- **Storytelling**: Narrativa autentica per brand building
-- **Engagement**: Consumatori coinvolti nel processo produttivo
+- capire quale task o decisione ha originato parte delle operazioni
+- distinguere piani, operazioni, segnali e risultati quando la fonte lo consente
+- leggere uno stream normalizzato nel registro attivita
+- mostrare evidenze di esecuzione e misurazione quando sono state persistite
+- mantenere una singola fonte DB canonicale invece di creare un ledger locale parallelo
 
 ---
 
-## 🎛️ CONFIGURAZIONE E USO
+## Limiti Attuali
 
-### **Setup Automatico**
-1. **Attivazione Immediata**: Sistema attivo dal primo utilizzo
-2. **Configurazione Prodotti**: Definizione tipologie coltivate
-3. **Personalizzazione QR**: Logo e design aziendale
-4. **Integrazione Certificazioni**: Collegamento standard attivi
-5. **Test Funzionalità**: Verifica completa sistema
-
-### **Uso Quotidiano**
-1. **Lavora Normalmente**: Ogni operazione viene registrata automaticamente
-2. **Visualizza Tracciabilità**: Vai in "Il Mio Orto" → Tab "Tracciabilità"
-3. **Monitora Qualità**: Controlla punteggi e certificazioni
-4. **Genera QR Code**: Per prodotti pronti alla vendita
-5. **Condividi Storia**: Usa QR code per marketing e vendite
-
-### **Gestione Avanzata**
-- **Lotti Personalizzati**: Creazione lotti per gestione commerciale
-- **Etichette Custom**: Design personalizzato per ogni prodotto
-- **Integrazione POS**: Collegamento sistemi vendita
-- **Analytics Vendite**: Tracking performance prodotti tracciati
-- **Feedback Clienti**: Raccolta recensioni via QR code
+- non tutte le azioni AI o smart scrivono ancora nella stessa catena operativa
+- alcune evidenze sono ancora riferimenti polimorfici, non foreign key strette verso ogni tabella sorgente
+- la produzione puo avere poche o zero righe in alcune proiezioni finche non vengono eseguite operazioni reali
+- QR code commerciale, blockchain, certificazioni automatiche e immutabilita crittografica non sono parte della chiusura T2 implementata
+- la resilienza offline completa del ledger non e implementata: il ledger operativo e DB/Supabase-first
 
 ---
 
-## 📊 ANALYTICS E REPORTING
+## Uso Consigliato
 
-### **Dashboard Tracciabilità**
-- **Prodotti Attivi**: Panoramica prodotti in produzione
-- **Qualità Media**: Score qualità per tipologia prodotto
-- **Certificazioni**: Stato compliance per ogni standard
-- **Scansioni QR**: Analytics engagement consumatori
-- **Trend Temporali**: Andamento qualità e performance
+Per ottenere una tracciabilita utile oggi:
 
-### **Report Automatici**
-- **Schede Prodotto**: Documentazione completa per ogni lotto
-- **Certificati Conformità**: Documenti per enti di controllo
-- **Report Qualità**: Analisi performance produttiva
-- **Analytics Marketing**: Engagement e conversioni QR code
-- **Compliance**: Documentazione per audit e controlli
-
-### **Export e Condivisione**
-- **PDF Professionali**: Schede prodotto per clienti
-- **Excel Analytics**: Dati per analisi approfondite
-- **API Integration**: Connessione sistemi gestionali
-- **Blockchain Export**: Prove crittografiche per verifiche
-- **Social Media**: Contenuti pronti per condivisione
+- creare task dal planner quando l'operazione nasce da una raccomandazione o decisione
+- registrare l'esecuzione nei moduli operativi dedicati
+- compilare note, quantita, data, area e riferimenti a zona/filare/pianta quando disponibili
+- usare il registro attivita come vista di lettura, non come sorgente separata
+- considerare il fallback task-only come modalita degradata, non come ledger completo
 
 ---
 
-## 🔒 SICUREZZA E PRIVACY
+## TODO Futuri
 
-### **Protezione Dati**
-- **Crittografia Avanzata**: Tutti i dati sono crittografati
-- **Blockchain Privata**: Controllo completo sui dati aziendali
-- **GDPR Compliance**: Conformità normative privacy
-- **Accesso Controllato**: Permessi granulari per team
-- **Backup Automatici**: Ridondanza e disaster recovery
-
-### **Immutabilità Record**
-- **Hash Crittografici**: Ogni record ha firma digitale
-- **Timestamp Blockchain**: Prove temporali incontestabili
-- **Audit Trail**: Tracciabilità completa modifiche
-- **Validazione Esterna**: Verifiche indipendenti possibili
-- **Conformità Legale**: Valore probatorio in tribunale
-
-### **Privacy Consumatori**
-- **Anonimizzazione**: Dati personali protetti
-- **Consenso Informato**: Trasparenza su uso dati
-- **Diritto Oblio**: Gestione richieste cancellazione
-- **Portabilità**: Export dati per consumatori
-- **Controllo Accesso**: Gestione permessi visualizzazione
+- valutare foreign key strette per le evidence source oggi polimorfiche
+- estendere la copertura dei flussi AI/smart che non scrivono ancora eventi durevoli
+- definire se e quando introdurre QR code commerciale o blockchain verificabile
+- definire requisiti separati per una vera modalita offline/read-only del ledger
+- fare visual QA con dati produzione rappresentativi quando le proiezioni contengono volumi reali
 
 ---
 
-## 🌍 SOSTENIBILITÀ E AMBIENTE
-
-### **Carbon Footprint Tracking**
-- **Calcolo Automatico**: Emissioni per ogni operazione
-- **Bilancio Carbonio**: Assorbimento vs emissioni
-- **Certificazione Carbon Neutral**: Documentazione automatica
-- **Offset Credits**: Generazione crediti carbonio
-- **Reporting ESG**: Documentazione sostenibilità
-
-### **Biodiversità e Ecosistema**
-- **Monitoraggio Biodiversità**: Tracking specie e habitat
-- **Pratiche Sostenibili**: Documentazione tecniche eco-friendly
-- **Uso Risorse**: Efficienza acqua, energia, suolo
-- **Economia Circolare**: Tracking riuso e riciclo
-- **Certificazioni Ambientali**: Badge sostenibilità automatici
-
----
-
-## 🔗 INTEGRAZIONI
-
-### **Sistemi Gestionali**
-- **ERP**: Integrazione sistemi aziendali
-- **CRM**: Collegamento gestione clienti
-- **E-commerce**: Sincronizzazione cataloghi prodotti
-- **POS**: Integrazione sistemi vendita
-- **Accounting**: Collegamento contabilità
-
-### **Certificazioni**
-- **GlobalG.A.P.**: Integrazione automatica dati
-- **Biologico**: Sincronizzazione controlli
-- **HACCP**: Collegamento sistema qualità
-- **ISO**: Integrazione standard internazionali
-- **DOP/IGP**: Supporto denominazioni origine
-
-### **Marketplace e Vendite**
-- **Amazon**: Integrazione marketplace
-- **eBay**: Sincronizzazione prodotti
-- **Shopify**: E-commerce automatizzato
-- **Alibaba**: Accesso mercati internazionali
-- **B2B Platforms**: Marketplace specializzati
-
----
-
-## 🎓 FORMAZIONE E BEST PRACTICES
-
-### **Guida Implementazione**
-- **Setup Iniziale**: Configurazione ottimale sistema
-- **Workflow Integration**: Integrazione processi esistenti
-- **Team Training**: Formazione personale aziendale
-- **Best Practices**: Tecniche per massimizzare valore
-- **Case Studies**: Esempi successo settoriali
-
-### **Ottimizzazione Risultati**
-- **Qualità Score**: Come migliorare punteggi
-- **Marketing**: Uso tracciabilità per promozione
-- **Pricing**: Strategie premium pricing
-- **Customer Engagement**: Coinvolgimento consumatori
-- **Brand Building**: Costruzione reputazione
-
-### **Supporto Continuo**
-- **Webinar**: Formazione mensile avanzata
-- **Community**: Forum utenti e condivisione
-- **Consulenza**: Supporto strategico personalizzato
-- **Updates**: Aggiornamenti funzionalità automatici
-- **Feedback**: Miglioramento continuo sistema
-
----
-
-## 🆘 TROUBLESHOOTING
-
-### **Problemi Comuni**
-- **QR Code Non Funziona**: Verifica connessione internet
-- **Dati Mancanti**: Controlla registrazione operazioni
-- **Certificazioni Non Visibili**: Verifica stato compliance
-- **Qualità Score Basso**: Analizza fattori penalizzanti
-
-### **Ottimizzazione Performance**
-- **Velocità Caricamento**: Ottimizzazione immagini e dati
-- **Sincronizzazione**: Verifica connessioni sistemi esterni
-- **Storage**: Gestione spazio archiviazione
-- **Backup**: Verifica integrità backup automatici
-
-### **Supporto Avanzato**
-- **Hotline**: +39 02 1234 5683
-- **Chat Specializzata**: Esperti tracciabilità
-- **Remote Assistance**: Supporto configurazione remota
-- **Consulenza**: Sessioni strategiche personalizzate
-
----
-
-## 🔮 ROADMAP SVILUPPO
-
-### **Q2 2026**
-- **NFT Integration**: Certificati digitali unici
-- **AI Enhancement**: Miglioramento algoritmi qualità
-- **Mobile App**: App dedicata consumatori
-- **Voice Integration**: Comandi vocali per registrazione
-
-### **Q3 2026**
-- **IoT Expansion**: Integrazione sensori avanzati
-- **Predictive Quality**: Predizione qualità finale
-- **Marketplace**: Piattaforma vendita integrata
-- **Global Standards**: Supporto standard internazionali
-
----
-
-## 📞 SUPPORTO TRACCIABILITÀ
-
-### **Contatti Specializzati**
-- **Email**: traceability@ortomio.com
-- **Telefono**: +39 02 1234 5683
-- **WhatsApp**: +39 345 678 9015
-- **Video**: Consulenza strategica personalizzata
-
-### **Esperti Settoriali**
-- **Blockchain Specialists**: Esperti tecnologia
-- **Quality Managers**: Specialisti sistemi qualità
-- **Marketing Experts**: Consulenti comunicazione
-- **Legal Advisors**: Supporto normativo e compliance
-
----
-
-[← Torna all'Indice](./README.md) | [Prossimo: Centro Certificazioni →](./04-certifications.md)
+[← Torna all'Indice](./README.md)
