@@ -24,6 +24,22 @@ export type AgronomicPrimaryScope =
   | 'reservoir'
   | 'loop';
 
+export interface AgronomicScopeDescriptor {
+  primaryScope: AgronomicPrimaryScope;
+  gardenId: string;
+  gardenName?: string;
+  zoneId?: string;
+  zoneName?: string;
+  rowId?: string;
+  rowName?: string;
+  rowNumber?: string;
+  fieldRowId?: string;
+  treeId?: string;
+  plantId?: string;
+  plantName?: string;
+  scopeLabel?: string;
+}
+
 export type AgronomicLifecycle =
   | 'annual'
   | 'biennial'

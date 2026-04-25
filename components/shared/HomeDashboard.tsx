@@ -39,7 +39,7 @@ import type { SaplingBatch } from '@/types/sapling'
 
 
 import { ReadingForm } from '@/components/hydroponic/ReadingForm'
-import { getDailyGardenPlan } from '@/logic/director'
+import { directorService } from '@/services/directorService'
 import { DailyPlan } from '@/types'
 import { SeedlingBatch } from '@/services/seedlingService'
 import { getMasterSheetSync } from '@/services/plantMasterService'
@@ -425,7 +425,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     const timer = setTimeout(async () => {
       setLoadingPlan(true)
       try {
-        const plan = await getDailyGardenPlan(
+        const plan = await directorService.getLegacyDailyPlanBridge(
           activeGarden,
           tasks,
           new Date(),

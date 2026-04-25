@@ -11,7 +11,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden, GardenTask } from '@/types'
-import { getDailyGardenPlan } from '@/logic/director'
+import { directorService } from '@/services/directorService'
 import { predictOptimalHarvestDate, predictYield, predictDiseaseRisk, predictWaterRequirement } from './predictiveAnalyticsService'
 import { getMasterSheetSync } from './plantMasterService'
 import { getWeatherForecast } from './weatherService'
@@ -575,43 +575,18 @@ export class FieldRowPredictiveService {
    */
   private async getDirectorInsights(fieldRow: any, context: FieldRowAnalysisContext) {
     try {
-      // Genera piano giornaliero per ottenere insights
-      const dailyPlan = await getDailyGardenPlan(
-        context.garden,
-        context.tasks,
-        new Date(),
-        undefined,
-        undefined,
-        undefined,
-        this.storageProvider
-      )
-
-      // Estrai insights rilevanti per questo filare
-      const relevantLifecycleTasks = (dailyPlan.lifecycleTasks || []).filter(task => 
-        fieldRow.cultivar && task.plantName?.toLowerCase().includes(fieldRow.cultivar.toLowerCase())
-      )
-
-      const lifecyclePhase = relevantLifecycleTasks.length > 0 
-        ? relevantLifecycleTasks[0].phase 
-        : 'Fase non determinata'
-
-      const seasonalAdvice = (dailyPlan.baselinePrompts || [])
-        .slice(0, 3)
-        .map(prompt => prompt.title)
-
-      const lunarTiming = dailyPlan.lunarAdvice 
-        ? `${dailyPlan.lunarAdvice.phaseName}: ${dailyPlan.lunarAdvice.advice}`
-        : 'Informazioni lunari non disponibili'
-
-      const weatherAlerts = (dailyPlan.climateWarnings || [])
-        .slice(0, 2)
-        .map(warning => warning.message)
+      const insights = await directorService.getFieldRowDirectorInsights({
+        garden: context.garden,
+        tasks: context.tasks,
+        fieldRow,
+        storageProvider: this.storageProvider,
+      })
 
       return {
-        lifecyclePhase,
-        seasonalAdvice,
-        lunarTiming,
-        weatherAlerts
+        lifecyclePhase: insights.lifecyclePhase,
+        seasonalAdvice: insights.seasonalAdvice,
+        lunarTiming: insights.lunarTiming,
+        weatherAlerts: insights.weatherAlerts
       }
     } catch (error) {
       console.error('Error getting Director insights:', error)

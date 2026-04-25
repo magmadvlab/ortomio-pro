@@ -31,7 +31,7 @@ import {
   FileText
 } from 'lucide-react'
 import { Garden, GardenTask, DailyPlan } from '@/types'
-import { getDailyGardenPlan } from '@/logic/director'
+import { directorService } from '@/services/directorService'
 
 interface ProfessionalDashboardProps {
   garden: Garden
@@ -70,7 +70,7 @@ export default function ProfessionalDashboard({
     const loadDailyPlan = async () => {
       try {
         setLoading(true)
-        const plan = await getDailyGardenPlan(garden, tasks)
+        const plan = await directorService.getLegacyDailyPlanBridge(garden, tasks)
         setDailyPlan(plan)
       } catch (error) {
         console.error('Error loading daily plan:', error)

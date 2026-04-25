@@ -18,7 +18,7 @@ import { calculateMoonPhase, getMoonPhaseName } from '../logic/lunarCalendar';
 import { findAllSuccessionOpportunities, SuccessionSuggestion } from '../logic/successionEngine';
 import { hasUpcomingVacation, hasActiveVacation, getDaysUntilDeparture } from '../logic/vacationEngine';
 import VacationMode from './VacationMode';
-import { getDailyGardenPlan } from '../logic/director';
+import { directorService } from '@/services/directorService';
 import { DailyPlan } from '../types';
 import { useTier } from '../packages/core/hooks/useTier';
 import { suggestFertilizerProduct, FertilizerRecommendation } from '../logic/fertilizerEngine';
@@ -340,7 +340,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     }
 
     setLoadingPlan(true);
-    getDailyGardenPlan(activeGarden, tasks, new Date())
+    directorService.getLegacyDailyPlanBridge(activeGarden, tasks, new Date())
       .then(plan => {
         setDailyPlan(plan);
         setLoadingPlan(false);
@@ -1277,7 +1277,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             setIrrigationZones([]);
             setSourceTaskIdForWateringLog(undefined);
             if (activeGarden) {
-              const plan = await getDailyGardenPlan(activeGarden, tasks);
+              const plan = await directorService.getLegacyDailyPlanBridge(activeGarden, tasks);
               setDailyPlan(plan);
             }
           }}
@@ -1289,7 +1289,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             setSourceTaskIdForWateringLog(undefined);
             // Ricarica daily plan
             if (activeGarden) {
-              const plan = await getDailyGardenPlan(activeGarden, tasks);
+              const plan = await directorService.getLegacyDailyPlanBridge(activeGarden, tasks);
               setDailyPlan(plan);
             }
           }}

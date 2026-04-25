@@ -12,7 +12,7 @@
 
 import { Garden, GardenTask } from '@/types'
 import { GardenPlant, PlantOperation } from '@/types/individualPlant'
-import { generateUrgentAlerts } from '@/logic/director'
+import { directorService } from '@/services/directorService'
 import { sendNotification, NotificationData } from './notificationService'
 import { getWeatherForecast } from './weatherService'
 
@@ -564,7 +564,7 @@ export class ContinuousMonitoringService {
     const alerts: MonitoringAlert[] = []
     
     try {
-      const urgentAlerts = await generateUrgentAlerts(garden)
+      const urgentAlerts = await directorService.getUrgentWeatherAlerts(garden)
       
       urgentAlerts.forEach((alert, index) => {
         alerts.push({

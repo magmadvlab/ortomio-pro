@@ -6,6 +6,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { Bot, Send, Loader2, MessageCircle, X, Sparkles, Lightbulb, Minimize2, Maximize2 } from 'lucide-react'
 import { UI_LAYERS } from '@/components/shared/uiLayers'
 
@@ -17,7 +18,144 @@ interface ChatMessage {
   suggestions?: string[]
 }
 
+type GlobalChatRouteContext = {
+  type: 'director-context'
+  scope: {
+    primaryScope: 'site'
+    route: string
+    module: string
+  }
+  summary: string
+  routingHints: Array<{ label: string; route: string }>
+}
+
+type RouteModuleHint = {
+  match: string
+  module: string
+  label: string
+  routingHints: Array<{ label: string; route: string }>
+}
+
+type ChatErrorPayload = {
+  error?: string
+  message?: string
+}
+
+const chatRecoverySuggestions = [
+  'Riprova tra poco',
+  'Riformula la domanda',
+  'Apri il modulo più adatto',
+]
+
+const creditRecoverySuggestions = [
+  'Controlla i credits AI',
+  'Riformula la domanda',
+  'Usa una domanda più specifica',
+]
+
+const routeModuleHints: RouteModuleHint[] = [
+  {
+    match: '/app/planner',
+    module: 'planner',
+    label: 'Planner operativo',
+    routingHints: [
+      { label: 'Rivedi attività pianificate', route: '/app/planner' },
+      { label: 'Controlla stato salute', route: '/app/health' },
+    ],
+  },
+  {
+    match: '/app/health',
+    module: 'health',
+    label: 'Salute piante',
+    routingHints: [
+      { label: 'Apri salute piante', route: '/app/health' },
+      { label: 'Trasforma in attività', route: '/app/planner' },
+    ],
+  },
+  {
+    match: '/app/irrigation',
+    module: 'irrigation',
+    label: 'Irrigazione',
+    routingHints: [
+      { label: 'Apri irrigazione', route: '/app/irrigation' },
+      { label: 'Pianifica intervento', route: '/app/planner' },
+    ],
+  },
+  {
+    match: '/app/nutrition',
+    module: 'nutrition',
+    label: 'Nutrizione',
+    routingHints: [
+      { label: 'Apri nutrizione', route: '/app/nutrition' },
+      { label: 'Pianifica concimazione', route: '/app/planner' },
+    ],
+  },
+  {
+    match: '/app/mechanical-work',
+    module: 'mechanical-work',
+    label: 'Lavori meccanici',
+    routingHints: [
+      { label: 'Apri lavori meccanici', route: '/app/mechanical-work' },
+      { label: 'Pianifica lavorazione', route: '/app/planner' },
+    ],
+  },
+  {
+    match: '/app/harvest',
+    module: 'harvest',
+    label: 'Raccolta e maturazione',
+    routingHints: [
+      { label: 'Apri raccolta', route: '/app/harvest' },
+      { label: 'Pianifica raccolta', route: '/app/planner' },
+    ],
+  },
+  {
+    match: '/app/ai-predictions',
+    module: 'ai-predictions',
+    label: 'Previsioni AI',
+    routingHints: [
+      { label: 'Apri previsioni AI', route: '/app/ai-predictions' },
+      { label: 'Valuta attività', route: '/app/planner' },
+    ],
+  },
+  {
+    match: '/app/advice',
+    module: 'advice',
+    label: 'Consigli agronomici',
+    routingHints: [
+      { label: 'Apri consigli', route: '/app/advice' },
+      { label: 'Trasforma in attività', route: '/app/planner' },
+    ],
+  },
+]
+
+const defaultRouteModuleHint: Omit<RouteModuleHint, 'match'> = {
+  module: 'app',
+  label: 'Applicazione OrtoMio',
+  routingHints: [
+    { label: 'Apri Planner', route: '/app/planner' },
+    { label: 'Controlla salute piante', route: '/app/health' },
+    { label: 'Controlla irrigazione', route: '/app/irrigation' },
+  ],
+}
+
+const buildGlobalChatContext = (pathname?: string | null): GlobalChatRouteContext => {
+  const route = pathname || '/app'
+  const routeModule = routeModuleHints.find((hint) => route.startsWith(hint.match)) || defaultRouteModuleHint
+
+  return {
+    type: 'director-context',
+    scope: {
+      primaryScope: 'site',
+      route,
+      module: routeModule.module,
+    },
+    summary: `L'utente sta usando il modulo ${routeModule.label}. Usa questo dato solo per orientare la risposta e proporre passaggi espliciti, senza assumere accesso a dati non inviati.`,
+    routingHints: routeModule.routingHints,
+  }
+}
+
 export default function GlobalAIChat() {
+  const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -78,19 +216,20 @@ export default function GlobalAIChat() {
         },
         body: JSON.stringify({
           message: messageText,
+          context: buildGlobalChatContext(pathname),
         }),
       })
 
       if (!response.ok) {
-        const errorPayload = await response.json().catch(() => null)
+        const errorPayload = await response.json().catch(() => null) as ChatErrorPayload | null
         const aiMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
           type: 'ai',
-          content: buildChatErrorMessage(response.status, errorPayload?.error, messageText),
+          content: buildChatErrorMessage(response.status, errorPayload),
           timestamp: new Date(),
           suggestions: errorPayload?.error === 'insufficient_credits'
-            ? ['Controlla i credits AI', 'Riformula la domanda', 'Usa una domanda più specifica']
-            : buildFallbackResponse(messageText).suggestions,
+            ? creditRecoverySuggestions
+            : chatRecoverySuggestions,
         }
 
         setMessages(prev => [...prev, aiMessage])
@@ -113,13 +252,12 @@ export default function GlobalAIChat() {
 
       setMessages(prev => [...prev, aiMessage])
     } catch (error) {
-      const fallback = buildFallbackResponse(messageText)
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: `⚠️ La connessione al motore AI non è disponibile in questo momento.\n\n${fallback.content}`,
+        content: '⚠️ La connessione al motore AI non è disponibile in questo momento. Nessuna risposta AI è stata generata. Riprova tra poco.',
         timestamp: new Date(),
-        suggestions: fallback.suggestions
+        suggestions: chatRecoverySuggestions
       }
       setMessages(prev => [...prev, errorMessage])
     } finally {
@@ -312,8 +450,8 @@ Fai pure la tua domanda specifica!`,
     }
   }
 
-  const buildChatErrorMessage = (status: number, errorCode?: string, question?: string) => {
-    if (errorCode === 'insufficient_credits') {
+  const buildChatErrorMessage = (status: number, payload?: ChatErrorPayload | null) => {
+    if (payload?.error === 'insufficient_credits') {
       return '⚠️ Credits AI insufficienti per usare la chat globale. Ricarica i credits oppure riprova quando disponibili.'
     }
 
@@ -321,14 +459,15 @@ Fai pure la tua domanda specifica!`,
       return '⚠️ Questa chat AI richiede un accesso autorizzato con piano compatibile.'
     }
 
-    if (status >= 500) {
-      const fallback = question ? buildFallbackResponse(question) : null
-      return fallback
-        ? `⚠️ Il backend AI ha restituito un errore temporaneo.\n\n${fallback.content}`
-        : '⚠️ Il backend AI ha restituito un errore temporaneo. Riprova tra poco.'
+    if (payload?.error === 'message_required' || status === 400) {
+      return '⚠️ Inserisci una domanda valida prima di inviare la richiesta alla chat AI.'
     }
 
-    return '⚠️ La richiesta alla chat AI non è andata a buon fine. Riprova con una domanda più specifica.'
+    if (status >= 500) {
+      return payload?.message || '⚠️ Il motore AI ha restituito un errore temporaneo. Nessuna risposta AI è stata generata. Riprova tra poco.'
+    }
+
+    return payload?.message || '⚠️ La richiesta alla chat AI non è andata a buon fine. Nessuna risposta AI è stata generata.'
   }
 
   const appendCreditsHint = (reply?: string, creditsRemaining?: number) => {

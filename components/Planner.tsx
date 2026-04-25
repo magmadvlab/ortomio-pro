@@ -20,7 +20,7 @@ import { useTier } from '../packages/core/hooks/useTier';
 import { PlantSuggestionForWindow } from '../services/seasonalPlantSuggestions';
 import { GardenClassification } from '../services/seasonalSunWindows';
 import { PlantingWindow, adjustForPlantingMethod } from '../services/plantingWindowOptimizer';
-import { getDailyGardenPlan } from '../logic/director';
+import { directorService } from '@/services/directorService';
 import { DailyPlan } from '../types';
 import { PlantLifecycleTimeline, parseMonthsFromText as parseMonthsFromTextNew } from './planner/PlantLifecycleTimeline'
 import { CompanionPlants } from './planner/CompanionPlants'
@@ -365,7 +365,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
     }
 
     setLoadingDailyPlan(true);
-    getDailyGardenPlan(garden, tasks, new Date())
+    directorService.getLegacyDailyPlanBridge(garden, tasks, new Date())
       .then(plan => {
         setDailyPlan(plan);
         // Usa classificazione solare dal piano per filtrare suggerimenti
