@@ -1,333 +1,124 @@
-# 🚜 LAVORAZIONI MECCANICHE
+# Lavorazioni Meccaniche
 
 [← Torna all'Indice](./README.md)
 
 ---
 
-## 🎯 PANORAMICA
+## Panoramica
 
-Modulo per registrare e organizzare lavorazioni meccaniche con un flusso operativo concreto, ma senza promettere ancora un sistema telematico completo con GPS, fleet management e automazione piena.
+Modulo per registrare lavorazioni meccaniche eseguite o pianificate, con un registro operativo persistente e integrazione nei flussi task-aware più recenti.
 
 **Percorso**: Sidebar → "Lavorazioni"
 
 ---
 
-## 🎯 STATO MODULO
+## Stato modulo
 
-**Stato attuale**: **Operativo con elementi ibridi**
+**Stato attuale**: operativo come registro, non come piattaforma telematica.
 
-La parte oggi più affidabile è:
-- apertura del modulo dal planner nei flussi task-aware recenti
-- registrazione della lavorazione reale
-- collegamento del task sorgente nei flussi coperti
-- raccolta minima di evidenze visibile prima del submit
+La parte consolidata oggi è:
+- route dedicata `/app/mechanical-work`
+- API `/api/mechanical-work` con lettura e scrittura su `mechanical_work_register`
+- registrazione di tipo lavorazione, data, area, profondità, attrezzatura, meteo, operatore e note
+- riferimenti a giardino, zona, filari e aiuole quando disponibili
+- collegamento con task sorgente nei flussi planner-aware già coperti
+- presenza nello storico operazioni insieme a irrigazioni, fertilizzazioni, trattamenti e raccolte
 
-Non va invece ancora presentato come chiuso:
-- tracking GPS real-time di flotta
-- guidance system e auto-steer
-- telematica macchine unificata
-- pianificazione annuale completamente ottimizzata da AI
-
----
-
-## ✅ COSA È DISPONIBILE ORA
-
-- registrazione lavorazione meccanica
-- selezione area, aiuole e filari quando presenti
-- note, operatore, attrezzatura e contesto operativo
-- integrazione con storico operazioni nei flussi persistiti
+Non va presentato come già chiuso:
+- tracking GPS real-time delle macchine
+- telematica John Deere, Case IH, New Holland, Fendt, Claas o simili
+- auto-steer, guidance system e controllo automatico passate
+- fleet management multi-macchina
+- manutenzione predittiva o diagnosi remota
+- ottimizzazione AI completa della campagna meccanica
 
 ---
 
-## ⚠️ LIMITI ATTUALI
+## Cosa è disponibile ora
 
-- molte sezioni sotto descritte rappresentano una visione estesa del modulo, non lo stato già chiuso del prodotto
-- il valore operativo oggi è soprattutto nella registrazione e nel collegamento con task/orchestrazione, non nella telemetria avanzata
-- per i flussi legacy o manuali la coerenza con il planner è meno uniforme rispetto ai task agronomici recenti
+Il registro meccanico permette di salvare:
+- tipo lavorazione
+- data lavorazione
+- area lavorata
+- profondità
+- attrezzatura e attrezzo specifico
+- metadati lavorazione
+- condizioni meteo
+- operatore
+- note
+- zona, filari o aiuole quando il flusso li fornisce
 
----
+I tipi lavorazione includono operazioni di suolo, preparazione terreno, tecniche conservative, chioma e operazioni generali.
 
-## 📅 CALENDARIO LAVORAZIONI
-
-### **Pianificazione Stagionale**
-- **Programmazione Annuale**: Calendario completo operazioni per stagione
-- **Sequenze Operative**: Ordine ottimale lavorazioni per ogni coltura
-- **Finestre Temporali**: Periodi ideali basati su fenologia e meteo
-- **Condizioni Ottimali**: Raccomandazioni per umidità suolo e temperatura
-- **Flessibilità**: Adattamento automatico a condizioni variabili
-
-### **Lavorazioni Principali**
-- **Preparazione Terreno**: Aratura, erpicatura, fresatura, livellamento
-- **Semina/Trapianto**: Preparazione letto semina, semina, trapianto
-- **Coltivazione**: Sarchiatura, rincalzatura, diserbo meccanico
-- **Raccolta**: Operazioni raccolta meccanizzata per coltura
-- **Post-Raccolta**: Trinciatura residui, interramento cover crops
-
-### **Integrazione Meteo-Suolo**
-- **Condizioni Suolo**: Umidità, temperatura, portanza per lavorazioni
-- **Previsioni Meteo**: Finestre operative basate su forecast
-- **Allerta Automatiche**: Notifiche condizioni ideali/critiche
-- **Postponement**: Rinvio automatico per condizioni avverse
-- **Recovery Planning**: Ripianificazione dopo eventi meteorici
+Le attrezzature supportate coprono trattore, attrezzi trainati, piccoli mezzi, attrezzi elettrificati e manuale.
 
 ---
 
-## 🚜 GESTIONE PARCO MACCHINE
+## Registro persistente
 
-### **Inventario Completo**
-- **Trattori**: Potenza, ore lavoro, consumi, manutenzioni
-- **Attrezzature**: Aratri, erpici, seminatrici, irroratrici
-- **Macchine Raccolta**: Mietitrebbie, vendemmiatrici, raccoglitrici
-- **Mezzi Trasporto**: Rimorchi, autocarri, sollevatori
-- **Attrezzature Speciali**: GPS, sensori, sistemi VRT
+La fonte DB-backed è `mechanical_work_register`.
 
-### **Schede Tecniche**
-- **Specifiche Tecniche**: Potenza, larghezza lavoro, capacità
-- **Performance**: Velocità operative, consumi orari
-- **Compatibilità**: Abbinamenti trattore-attrezzatura ottimali
-- **Limitazioni**: Condizioni uso, pendenze massime
-- **Certificazioni**: Omologazioni, assicurazioni, revisioni
+La tabella nasce per il tracking operativo professionale e conserva i campi principali necessari a ricostruire una lavorazione. L'accesso è protetto da RLS per utente.
 
-### **Manutenzione Preventiva**
-- **Calendari Manutenzione**: Scadenze basate su ore/km
-- **Checklist**: Controlli periodici sistematici
-- **Ricambi**: Gestione scorte e ordini automatici
-- **Service**: Programmazione interventi officina
-- **Garanzie**: Tracking garanzie e coperture
-
-### **Costi Operativi**
-- **Costi Orari**: Ammortamento, carburante, manutenzione
-- **Costi per Ettaro**: Calcolo preciso per operazione
-- **Efficienza**: Rapporti costo/performance
-- **Benchmark**: Confronto con standard settoriali
-- **Ottimizzazione**: Suggerimenti riduzione costi
+La API `/api/mechanical-work`:
+- richiede tier PRO quando Supabase è disponibile
+- valida i tipi lavorazione supportati
+- valida i tipi attrezzatura supportati
+- inserisce record reali su `mechanical_work_register`
+- in locale senza Supabase simula la risposta per consentire lo sviluppo UI
 
 ---
 
-## 📍 TRACKING GPS E PRECISION
+## Relazione con planner e precision chain
 
-### **Monitoraggio e Precision**
-- **Posizione GPS**: Localizzazione precisa macchine
-- **Aree Lavorate**: Mapping automatico superfici
-- **Velocità Operative**: Monitoraggio velocità lavoro
-- **Consumi**: Tracking consumi carburante real-time
-- **Qualità Lavoro**: Valutazione uniformità operazioni
+Nei flussi più recenti una lavorazione può essere aperta da un task agronomico e mantenere il riferimento al task sorgente. Questo la rende utile come evidenza operativa dentro la catena:
 
-### **Mappe Operative**
-- **Coverage Maps**: Mappe copertura lavorazioni
-- **Overlap Detection**: Rilevamento sovrapposizioni
-- **Gap Analysis**: Identificazione aree non lavorate
-- **Quality Assessment**: Valutazione qualità spaziale
-- **Historical Tracking**: Storico lavorazioni per appezzamento
+`segnale / raccomandazione → task → lavorazione registrata → storico operazioni`
 
-### **Guidance Systems**
-- **Auto-Steer**: Guida automatica per precisione
-- **Parallel Tracking**: Passate parallele ottimali
-- **Headland Management**: Gestione capezzagne automatica
-- **Turn Compensation**: Compensazione svolte
-- **Variable Rate**: Applicazione a rateo variabile
+La catena non è ancora:
 
-### **Fleet Management**
-- **Multi-Machine**: Coordinamento flotte multiple
-- **Task Assignment**: Assegnazione task ottimale
-- **Progress Monitoring**: Monitoraggio avanzamento lavori
-- **Communication**: Comunicazione inter-macchine
-- **Optimization**: Ottimizzazione percorsi e tempi
+`prescription map → macchina con import VRT → esecuzione automatica telemetrica → outcome misurato`
+
+Per ora la lavorazione meccanica è quindi una chiusura operativa manuale o task-aware, non una prova telematica automatica.
 
 ---
 
-## ⚡ OTTIMIZZAZIONE OPERATIVA
+## Uso consigliato
 
-### **Pianificazione Intelligente**
-- **AI Scheduling**: Pianificazione ottimale basata su AI
-- **Resource Allocation**: Allocazione risorse efficiente
-- **Constraint Management**: Gestione vincoli operativi
-- **Priority Scheduling**: Prioritizzazione operazioni critiche
-- **Dynamic Replanning**: Ripianificazione dinamica
+Usa il modulo per:
+- registrare lavorazioni eseguite
+- indicare area, profondità e attrezzatura
+- collegare operazioni a zone, filari o aiuole
+- mantenere uno storico operativo consultabile
+- dare evidenza a task agronomici già pianificati
 
-### **Efficienza Energetica**
-- **Fuel Optimization**: Ottimizzazione consumi carburante
-- **Route Planning**: Pianificazione percorsi efficienti
-- **Load Management**: Gestione carichi ottimali
-- **Idle Reduction**: Riduzione tempi inattività
-- **Maintenance Impact**: Impatto manutenzione su efficienza
-
-### **Quality Control**
-- **Work Standards**: Standard qualità lavorazioni
-- **Performance Metrics**: Metriche performance operative
-- **Deviation Analysis**: Analisi scostamenti qualità
-- **Corrective Actions**: Azioni correttive automatiche
-- **Continuous Improvement**: Miglioramento continuo processi
+Non usarlo come:
+- sistema di fleet tracking
+- registro automatico da macchina
+- prova GPS di copertura
+- manutenzione macchine completa
+- integrazione diretta con console agricole o Operations Center
 
 ---
 
-## 📊 ANALYTICS E PERFORMANCE
+## Limiti attuali
 
-### **KPI Operativi**
-- **Produttività**: Ettari/ora per operazione e macchina
-- **Efficienza**: Rapporto tempo produttivo/totale
-- **Qualità**: Score qualità lavorazioni (0-100)
-- **Costi**: Costo per ettaro per operazione
-- **Utilizzo**: Percentuale utilizzo parco macchine
-
-### **Analisi Comparative**
-- **Machine Comparison**: Confronto performance macchine
-- **Operator Performance**: Performance operatori
-- **Seasonal Analysis**: Analisi performance stagionali
-- **Field Comparison**: Confronto performance per campo
-- **Historical Trends**: Trend storici performance
-
-### **Reporting Avanzato**
-- **Daily Reports**: Report giornalieri operazioni
-- **Weekly Summary**: Riassunti settimanali attività
-- **Monthly Analysis**: Analisi mensili performance
-- **Seasonal Review**: Review stagionali complete
-- **Annual Planning**: Pianificazione annuale basata su dati
-
-### **Cost Analysis**
-- **Operating Costs**: Costi operativi dettagliati
-- **Depreciation**: Ammortamenti e svalutazioni
-- **Maintenance Costs**: Costi manutenzione per macchina
-- **Fuel Consumption**: Analisi consumi carburante
-- **ROI Analysis**: Analisi ritorno investimenti
+- alcune funzioni helper in `mechanicalWorkService` sono ancora mock o sequenze predefinite
+- la route API è la parte persistente più affidabile per il registro
+- non sono verificate integrazioni con macchine reali o provider telematici
+- non c'è misurazione automatica di sovrapposizioni, gap, consumi o qualità spaziale
+- l'ottimizzazione economica e la manutenzione restano fuori dal perimetro chiuso
 
 ---
 
-## 🔗 INTEGRAZIONI TECNOLOGICHE
+## Backlog tracciato
 
-### **Precision Agriculture**
-- **VRT Systems**: Sistemi applicazione variabile
-- **Soil Sensors**: Integrazione sensori suolo
-- **Crop Sensors**: Sensori vigoria colturale
-- **Weather Stations**: Stazioni meteorologiche
-- **Satellite Data**: Dati satellitari per pianificazione
-
-### **Farm Management Systems**
-- **ERP Integration**: Integrazione sistemi gestionali
-- **Accounting**: Collegamento sistemi contabili
-- **Inventory**: Gestione magazzino ricambi
-- **HR Systems**: Sistemi gestione personale
-- **Quality Systems**: Sistemi gestione qualità
-
-### **Machinery Telematics**
-- **John Deere**: JDLink e Operations Center
-- **Case IH**: AFS Connect e Remote Display
-- **New Holland**: PLM Connect e IntelliView
-- **Fendt**: FendtONE e Connect
-- **Claas**: TELEMATICS e EASY
-
-### **Third-Party Services**
-- **Fuel Management**: Sistemi gestione carburante
-- **Insurance**: Integrazione assicurazioni macchine
-- **Financing**: Servizi finanziamento attrezzature
-- **Rental**: Piattaforme noleggio macchine
-- **Marketplace**: Marketplace compravendita usato
-
----
-
-## 🌱 SOSTENIBILITÀ OPERATIVA
-
-### **Riduzione Impatto Ambientale**
-- **Minimum Tillage**: Lavorazioni conservative
-- **Cover Crops**: Gestione colture copertura
-- **Soil Compaction**: Prevenzione compattamento
-- **Fuel Efficiency**: Efficienza energetica
-- **Emission Reduction**: Riduzione emissioni
-
-### **Soil Health**
-- **Soil Structure**: Preservazione struttura suolo
-- **Organic Matter**: Mantenimento sostanza organica
-- **Biodiversity**: Supporto biodiversità suolo
-- **Water Infiltration**: Miglioramento infiltrazione
-- **Carbon Sequestration**: Sequestro carbonio
-
-### **Precision Techniques**
-- **Variable Depth**: Profondità lavorazione variabile
-- **Strip Tillage**: Lavorazione a strisce
-- **Controlled Traffic**: Traffico controllato
-- **Timing Optimization**: Ottimizzazione timing
-- **Reduced Passes**: Riduzione passaggi
-
----
-
-## 🎛️ INTERFACCIA E CONTROLLO
-
-### **Dashboard Operativo**
-- **Live Status**: Stato real-time tutte le macchine
-- **Active Operations**: Operazioni in corso
-- **Alerts Panel**: Alert manutenzione e problemi
-- **Weather Widget**: Condizioni meteo attuali
-- **Quick Actions**: Azioni rapide emergenza
-
-### **Mobile Field App**
-- **Field Operations**: Controllo operazioni da campo
-- **GPS Tracking**: Tracking posizione e lavoro
-- **Photo Documentation**: Documentazione fotografica
-- **Issue Reporting**: Segnalazione problemi immediata
-- **Offline Mode**: Funzionalità base offline
-
-### **Planning Interface**
-- **Calendar View**: Vista calendario lavorazioni
-- **Gantt Charts**: Diagrammi Gantt per pianificazione
-- **Resource Allocation**: Allocazione risorse visuale
-- **Drag & Drop**: Ripianificazione drag & drop
-- **Scenario Planning**: Pianificazione scenari alternativi
-
----
-
-## 🆘 TROUBLESHOOTING
-
-### **Problemi Comuni**
-- **GPS Non Funziona**: Verifica segnale e calibrazione
-- **Tracking Impreciso**: Controlla configurazione sensori
-- **Consumi Anomali**: Verifica manutenzione e calibrazione
-- **Qualità Scadente**: Analizza velocità e condizioni
-
-### **Manutenzione Preventiva**
-- **Checklist Giornaliere**: Controlli pre-operativi
-- **Lubrificazione**: Programmi lubrificazione automatici
-- **Filtri**: Sostituzione filtri programmata
-- **Calibrazione**: Calibrazione periodica sistemi
-- **Storage**: Procedure rimessaggio stagionale
-
-### **Supporto Emergenze**
-- **Breakdown Service**: Servizio guasti 24/7
-- **Remote Diagnostics**: Diagnosi remota problemi
-- **Spare Parts**: Ricambi urgenti disponibili
-- **Mobile Service**: Servizio mobile in campo
-- **Rental Backup**: Macchine sostitutive disponibili
-
----
-
-## 🔮 ROADMAP SVILUPPO
-
-### **Q2 2026**
-- **Autonomous Operations**: Operazioni completamente autonome
-- **AI Optimization**: Ottimizzazione AI avanzata
-- **Swarm Intelligence**: Coordinamento flotte intelligente
-- **Predictive Maintenance**: Manutenzione predittiva AI
-
-### **Q3 2026**
-- **Robotic Systems**: Integrazione sistemi robotici
-- **5G Connectivity**: Connettività 5G per real-time
-- **Digital Twin**: Gemelli digitali macchine
-- **Quantum Optimization**: Ottimizzazione quantistica
-
----
-
-## 📞 SUPPORTO LAVORAZIONI
-
-### **Contatti Specializzati**
-- **Email**: machinery@ortomio.com
-- **Telefono**: +39 02 1234 5698
-- **WhatsApp**: +39 345 678 9029
-- **Video**: Consulenza meccanizzazione personalizzata
-
-### **Team Esperti**
-- **Mechanical Engineers**: Ingegneri meccanici agricoli
-- **Precision Agriculture**: Esperti agricoltura precisione
-- **Fleet Managers**: Gestori flotte professionali
-- **Maintenance Specialists**: Specialisti manutenzione
+Da trattare come lavoro futuro:
+- riconciliare helper/service mock con la fonte `mechanical_work_register`
+- aggiungere import/export tecnico se richiesto da macchine reali
+- collegare prescription maps a lavorazioni meccaniche con esito applicato
+- tracciare copertura, passate, overlap e gap solo quando esiste una fonte GPS/telematica reale
+- introdurre manutenzione e costi macchina come modulo dedicato, non come promessa implicita del registro
 
 ---
 

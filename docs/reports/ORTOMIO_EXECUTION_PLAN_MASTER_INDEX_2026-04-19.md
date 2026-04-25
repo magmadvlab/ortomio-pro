@@ -2267,7 +2267,7 @@ Rule:
    - each certification/compliance workflow has an explicit target state and the manual no longer overstates regulatory closure
 
 4. `T4 Precision Execution Chain`
-   Status: todo
+   Status: done
    Goal:
    - decide which precision-agriculture flows should become fully connected from analysis to field execution and measured outcome
    Source chapters:
@@ -2284,6 +2284,51 @@ Rule:
    - define the intended end-to-end chain for `remote sensing -> recommendation/map -> field execution -> outcome`
    - decide what remains assistive analysis versus what becomes execution-grade
    - isolate unsupported VRT/machinery promises from the real precision baseline
+   Progress:
+   - `T4-A precision execution maturity map` — Status: done
+     Decision:
+     - `NDVI`: real route/dashboard/provider-status surface. Current role is scouting, prioritization and decision support; provider-backed versus fallback/simulated source quality must stay visible.
+     - `Prescription maps`: real persisted module with map/export/application-support structures and tests, but field validation is still partial. Current role is draft/planning/export support and selected execution projections, not an unsupervised universal VRT chain.
+     - `Nutrition VRT`: backlog/future chain. Nutrition/treatment records are DB-backed, but VRT prescription-to-machine-to-outcome closure is not implemented.
+     - `Mechanical operations`: DB-backed operational register via `mechanical_work_register` and `/api/mechanical-work`; not GPS fleet tracking, telematics, auto-steer or machine-origin execution proof.
+     Target chain:
+     - current truthful chain: `signal or recommendation -> task/planner/manual validation -> operation record/export/application support -> historical review`
+     - future execution-grade chain: `provider-quality signal -> prescription map -> validated machine/import/export -> applied execution record -> measured field outcome`
+   - `T4-B mechanical operations truth alignment` — Status: done
+     Implementation:
+     - rewrote `docs/manual/17-mechanical-operations.md`
+     - synchronized `public/docs/manual/17-mechanical-operations.md`
+     Decision:
+     - mechanical operations are documented as a persisted operational register with task-aware linkage, not as a telematics/fleet-management platform
+     - machinery integrations, GPS coverage, overlap/gap analysis, predictive maintenance and console/provider integrations remain backlog
+     Closure result:
+     - `GAP-2026-04-23-AK` is closed for manual truth alignment
+   - `T4-C prescription maps execution-boundary alignment` — Status: done
+     Implementation:
+     - rewrote `docs/manual/06-prescription-maps.md`
+     - synchronized `public/docs/manual/06-prescription-maps.md`
+     Decision:
+     - prescription maps are documented as a real persisted module with maps, zones, exports, revisions and `variable_rate_applications` execution records
+     - export/import/application statuses are support signals, not proof of universal machine execution
+     - outcome and efficacy summaries are valid only when post-application records, quality results or measured feedback exist
+     Closure result:
+     - `GAP-2026-04-23-AB` is closed for documentation truth alignment while deeper field validation remains tracked as future implementation work
+   - `T4-D NDVI source-quality boundary` — Status: done
+     Evidence:
+     - `docs/manual/05-ndvi-satellite.md` and `public/docs/manual/05-ndvi-satellite.md` already describe NDVI as scouting/prioritization support with explicit provider/fallback limits
+     - `components/ndvi/SentinelHubStatus.tsx` exposes Sentinel Hub connected versus missing-credentials status
+     - `services/ndviSatelliteService.ts` and `/api/ndvi/sentinel` include simulated/fallback paths when provider data is unavailable
+     Decision:
+     - no code/doc rewrite was needed in this step; NDVI remains a real assistive signal, not a certified quantitative source for automatic prescriptions
+     Closure result:
+     - `GAP-2026-04-23-AA` is closed for current manual/UI source-quality disclosure
+   - `T4-E precision chain closure` — Status: done
+     Decision:
+     - T4 closes as a truth-alignment and target-state block, not as a claim that all future machine/provider integrations are implemented
+     - current execution-grade persistence is spread across operational records (`mechanical_work_register`, nutrition/treatment logs), prescription maps/zones/exports and `variable_rate_applications`
+     - future work remains explicit for validated machine import/export, automated telemetry, universal VRT execution, systematic outcome capture and stronger cross-module transaction linkage
+     Closure result:
+     - the precision chain is now documented as a real but mixed-maturity operational path with clear assistive versus execution-grade boundaries
    Closure rule:
    - the precision chain is documented and implemented according to a real execution path, not a mixture of analysis previews and aspirational automation
 
@@ -2753,28 +2798,34 @@ Meta-rule for this register:
 27. `GAP-2026-04-23-AA` NDVI surface is real but still mixes provider-backed data with fallback/simulated analysis paths
    Priority: medium
    Related block: `P5`
+   Status: closed under `T4-D`
    Evidence:
    - `/app/ndvi`, NDVI dashboards, config-status flows and satellite service are real
    - the NDVI service explicitly falls back to simulated data and some trend/stress logic is still hybrid rather than fully quantitative remote-sensing processing
    Risk:
    - the module can be described either as too weak to matter or as a fully quantitative satellite intelligence pipeline, while the real state is in between
    TODO:
-   - keep NDVI docs/provider status explicit about real vs fallback data
-   - improve visibility of source quality where needed in UI/manual
+   - done: keep NDVI docs/provider status explicit about real vs fallback data
+   - done: verify visibility of source quality in UI/manual
+   Closure note:
+   - source and public manuals describe NDVI as scouting/prioritization support with provider/fallback limits; `SentinelHubStatus` and config-status flows expose connected versus missing provider configuration; fallback/simulated paths remain documented as limits
    Closure rule:
    - NDVI documentation and UI consistently disclose when data is provider-backed versus fallback/simulated
 
 28. `GAP-2026-04-23-AB` Prescription maps are more implemented than a preview, but the field-validated end-to-end chain remains uneven
    Priority: high
    Related block: `P5`
+   Status: closed under `T4-C`
    Evidence:
    - dedicated route, dashboard, service layer, schema, persistence, export records and execution/outcome summaries exist
    - productive use still depends on mixed-maturity data sources, manual validation and incomplete closure of map -> field import -> applied outcome
    Risk:
    - the module is either underestimated as a mere beta mockup or overstated as a universally trusted VRT execution chain
    TODO:
-   - rewrite docs/UI around `real module with partial end-to-end closure`
-   - continue improving field import/applied/export/outcome linkage and machinery validation
+   - done: rewrite docs around `real module with partial end-to-end closure`
+   - future implementation: continue improving field import/applied/export/outcome linkage and machinery validation
+   Closure note:
+   - `docs/manual/06-prescription-maps.md` and `public/docs/manual/06-prescription-maps.md` now describe persisted maps/zones/exports/`variable_rate_applications`, field-operation statuses, execution/outcome summaries and the remaining limits around universal machine validation and measured field outcomes
    Closure rule:
    - prescription maps are documented according to their true operational maturity and the remaining field-validation gaps are either closed or explicitly surfaced
 
@@ -2899,13 +2950,16 @@ Meta-rule for this register:
 37. `GAP-2026-04-23-AK` Mechanical operations chapter extends a real register/execution module into telematics and fleet-management promises
    Priority: medium
    Related block: `P5`
+   Status: closed under `T4-B`
    Evidence:
    - real mechanical-work route, forms, service layer and task-aware execution flow exist
-   - `docs/manual/17-mechanical-operations.md` then adds GPS fleet tracking, guidance systems, auto-steer, telematics integrations and broad optimization layers not verified as current product capability
+   - original `docs/manual/17-mechanical-operations.md` added GPS fleet tracking, guidance systems, auto-steer, telematics integrations and broad optimization layers not verified as current product capability
    Risk:
    - users can mistake a real operational register module for a complete machinery telematics platform
    TODO:
-   - isolate current mechanical execution/recording capability from still-open fleet/telematics ambitions
+   - done: isolate current mechanical execution/recording capability from still-open fleet/telematics ambitions
+   Closure note:
+   - `docs/manual/17-mechanical-operations.md` and `public/docs/manual/17-mechanical-operations.md` now describe the DB-backed `mechanical_work_register`, task-aware operational closure and explicit limits around GPS, telematics, fleet management, predictive maintenance and machine-origin execution proof
    Closure rule:
    - mechanical documentation describes the real module truthfully and tracks precision/telematics ambitions separately
 
