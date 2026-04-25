@@ -2333,7 +2333,7 @@ Rule:
    - the precision chain is documented and implemented according to a real execution path, not a mixture of analysis previews and aspirational automation
 
 5. `T5 IoT and Smart Hub Consolidation`
-   Status: todo
+   Status: done
    Goal:
    - consolidate sensor ingestion, device registry, actuator control and automation into an explicit Smart Hub target state
    Source chapters:
@@ -2348,6 +2348,28 @@ Rule:
    - define the intended Smart Hub perimeter for production use
    - distinguish ingestion-ready capabilities from control/automation capabilities
    - decide whether irrigation automation becomes a first-class product target
+   Progress:
+   - `T5-A Smart Hub maturity map` — Status: done
+     Decision:
+     - `sensor readings`: DB-backed and production-usable as telemetry ingestion, with validation for sensor type, value ranges, data quality, calibration, battery and signal
+     - `smart_devices`: durable registry foundation for Sensor/Valve/Hub with provider, scope, telemetry state and command status fields; not yet complete provisioning for all real hardware
+     - `commands`: limited actuator command path for valve state; local no-Supabase mode is simulated, ThingsBoard sends attributes, Tuya direct dispatch is not implemented in the route
+     - `automation logs`: durable audit/analytics substrate for decisions, commands, telemetry and outcomes; not yet a stable unsupervised automation engine
+     - `irrigation`: mature operational register/calculation module with systems, zones, components and watering logs; automation hardware remains controlled/partial
+   - `T5-B Smart Hub manual truth alignment` — Status: done
+     Implementation:
+     - rewrote `docs/manual/14-smart-hub.md`
+     - synchronized `public/docs/manual/14-smart-hub.md`
+     Decision:
+     - Smart Hub is documented as telemetry persistence plus limited device/command/automation-log support, not universal IoT control
+   - `T5-C irrigation automation boundary` — Status: done
+     Implementation:
+     - rewrote `docs/manual/15-irrigation-system.md`
+     - synchronized `public/docs/manual/15-irrigation-system.md`
+     Decision:
+     - irrigation is documented as operational for configuration, flow calculation and watering logs; valve/device automation is explicit support work with no physical actuation guarantee without provider confirmation
+   Closure result:
+   - `GAP-2026-04-23-AH` is closed for current manual/master-plan alignment
    Closure rule:
    - Smart Hub and irrigation docs can state one explicit truth about telemetry, control and automation maturity
 
@@ -2906,6 +2928,7 @@ Meta-rule for this register:
 34. `GAP-2026-04-23-AH` Smart Hub has real telemetry foundations but still mixed registry, actuation and automation maturity
    Priority: medium
    Related block: `P5`
+   Status: closed under `T5`
    Evidence:
    - telemetry and sensor-reading routes exist under `app/api/iot/*` and `app/api/sensors/readings/route.ts`
    - `services/sensorDataService.ts` provides real typed sensor-reading persistence helpers
@@ -2913,7 +2936,9 @@ Meta-rule for this register:
    Risk:
    - the IoT domain can be misunderstood either as mostly absent or as a fully operational device-management and automation center
    TODO:
-   - separate the real ingestion/persistence layer from future device registry, actuator control and stable automation rules
+   - done: separate the real ingestion/persistence layer from future device registry, actuator control and stable automation rules
+   Closure note:
+   - `docs/manual/14-smart-hub.md`, `public/docs/manual/14-smart-hub.md`, `docs/manual/15-irrigation-system.md` and `public/docs/manual/15-irrigation-system.md` now describe telemetry ingestion, `smart_devices`, limited valve command dispatch, automation logs and irrigation register/calculation separately from open provider provisioning, Tuya dispatch, physical actuation guarantees and unsupervised automation
    Closure rule:
    - Smart Hub documentation and implementation explicitly distinguish telemetry reality from still-open actuation/automation work
 
