@@ -1964,8 +1964,8 @@ Rule:
        Closure result:
        - the operational ledger projections are no longer only database artifacts; cloud storage consumers have a typed read path
        Remaining future TODO:
-       - decide which UI/reporting surface should first consume these projections
-       - decide whether local storage should synthesize equivalent projections or remain source-table based for development/offline mode
+       - first UI consumer is completed by `T2-K` and `T2-N`
+       - local/offline projection synthesis is intentionally not implemented by `T2-O`; DB-backed projections are the canonical ledger mode
        Closure rule:
        - application code can read the unified ledger projections without directly hand-writing Supabase view queries
      - `T2-J Operational Ledger Service Aggregation`
@@ -2101,6 +2101,26 @@ Rule:
        - improve labels per operation family once production contains representative ledger rows for visual QA
        Closure rule:
        - the first consumer can render the normalized operational ledger event stream without duplicating durable records
+     - `T2-O Database-first Ledger Runtime Decision`
+       Status: done
+       Goal:
+       - close the open local/offline projection question without creating a second ledger truth
+       Decision:
+       - the operational ledger is database-backed and Supabase projections are the canonical runtime path
+       - local/offline mode does not synthesize equivalent operational ledger projections
+       - UI fallback may show already-available task data only as degraded mode when the ledger DB/view is unavailable or returns no events
+       - this fallback must not be described as a complete local operational ledger
+       Implementation:
+       - `components/garden/ActivityRegistry.tsx`
+       - displays an explicit degraded/fallback note when it is showing task rows instead of ledger events for a garden-scoped registry
+       Verification:
+       - `npm run type-check -- --noEmit`
+       Closure result:
+       - the product keeps one canonical operational ledger source and avoids divergent local projection semantics
+       Remaining future TODO:
+       - define separate resilience/offline-read requirements only if the product later commits to true offline operation
+       Closure rule:
+       - cloud/database-backed projections are the source of truth; fallback UI is availability handling, not a second ledger implementation
    Closure rule:
    - the product has an explicit cross-module record model and the manual can describe one truthful operational ledger rather than fragmented histories
 

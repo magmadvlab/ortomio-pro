@@ -98,6 +98,8 @@ export default function ActivityRegistry({
   const [selectedActivity, setSelectedActivity] = useState<ActivityRecord | null>(null)
   const [showDetails, setShowDetails] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'timeline' | 'stats'>('list')
+  const isLedgerPrimary = Boolean(ledgerSummary?.events?.length)
+  const isTaskFallbackMode = Boolean(gardenId && !ledgerLoading && !isLedgerPrimary)
 
   const buildLedgerActivityRecord = (event: OperationalLedgerUnifiedEvent): ActivityRecord => {
     const category = event.category || event.family
@@ -459,6 +461,14 @@ export default function ActivityRegistry({
               {ledgerLoading && <span className="text-xs text-gray-500">Caricamento...</span>}
               {ledgerError && <span className="text-xs text-red-600">Ledger non disponibile</span>}
             </div>
+
+            {isTaskFallbackMode && (
+              <p className={`mt-3 text-xs ${ledgerError ? 'text-red-600' : 'text-amber-700'}`}>
+                {ledgerError
+                  ? 'Vista degradata: il ledger DB non e raggiungibile, quindi la lista mostra solo i task gia disponibili.'
+                  : 'Nessun evento ledger per il periodo selezionato: la lista mostra i task reali disponibili come fallback, non una proiezione locale equivalente.'}
+              </p>
+            )}
 
             {!ledgerLoading && !ledgerError && (
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4 text-sm">
