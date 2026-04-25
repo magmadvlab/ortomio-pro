@@ -1,305 +1,108 @@
-# 🏆 CENTRO CERTIFICAZIONI UNIFICATO
+# CENTRO CERTIFICAZIONI
 
 [← Torna all'Indice](./README.md)
 
 ---
 
-## 🎯 PANORAMICA
+## STATO MODULO
 
-Sistema unificato per la gestione di tutte le certificazioni professionali agricole. Automazione completa dei processi di compliance, riduzione drastica dei costi di certificazione e mantenimento automatico degli standard richiesti.
+**Stato attuale**: **Operativo con elementi parziali**
 
-**Percorso**: Sidebar → **"Certificazioni"**
+Questo modulo esiste davvero nell'app e non va descritto come semplice slide di prodotto. Oggi espone una route dedicata e un dashboard che organizza piu percorsi di compliance agricola, ma non tutte le certificazioni hanno lo stesso livello di maturita.
 
----
-
-## ✅ CERTIFICAZIONI SUPPORTATE
-
-### **🌍 GlobalG.A.P. (Completo)**
-- **163 punti di controllo** automatizzati
-- **Moduli specializzati**: Crops Base, Fruit & Vegetables
-- **Audit automatici** e preparazione documentale
-- **Compliance tracking** in tempo reale
-
-### **🛡️ HACCP (Sistema 7 Principi)**
-- **Analisi pericoli** automatizzata
-- **Punti critici controllo** identificazione
-- **Limiti critici** monitoraggio continuo
-- **Azioni correttive** procedure automatiche
-- **Verifiche** e validazione sistema
-- **Registrazioni** documentazione completa
-
-### **🌱 Biologico UE (Reg. 2018/848)**
-- **Piano controllo** automatico
-- **Sostanze autorizzate** database aggiornato
-- **Separazione** prodotti bio/convenzionale
-- **Etichettatura** conformità automatica
-- **Controlli** preparazione audit
-
-### **🇮🇹 ICEA/CCPB (Biologico Italia)**
-- **Disciplinari** specifici italiani
-- **Controlli aggiuntivi** rispetto UE
-- **Certificazione** processo semplificato
-- **Rinnovi** automatici e promemoria
-
-### **🔄 In Sviluppo**
-- **BRC Food**: British Retail Consortium
-- **IFS Food**: International Featured Standards
-- **ISO 22000**: Sicurezza alimentare
-- **Rainforest Alliance**: Sostenibilità
+**Percorso dichiarato**: Sidebar -> **"Certificazioni"**
 
 ---
 
-## 💰 VANTAGGI ECONOMICI
+## COSA E DISPONIBILE OGGI
 
-### **Automazione Compliance**
-- **Riduzione 80%** tempi gestione certificazioni
-- **Eliminazione consulenze** esterne costose
-- **Audit automatici** vs controlli manuali
-- **Documentazione** generazione automatica
+- dashboard certificazioni con tab dedicate per `BIO`, `GlobalG.A.P.`, `SQNPI` e `GRASP`
+- form strutturato per certificazione biologica `EU 2018/848`
+- calcolo indicativo di conformita BIO basato sui dati inseriti
+- dashboard `GlobalG.A.P. IFA` con overview di readiness, requisiti e azioni
+- servizi dedicati per compliance `GlobalG.A.P.`, incluse strutture per `CB/FV`
+- export di audit package e generazione di template documentali per alcuni requisiti
+- base dati e servizi unificati per stato certificazioni, deadline, documenti e attivita
 
-### **Risparmi Diretti**
-- **Consulenze**: €3.000-5.000/anno risparmiate
-- **Audit preparation**: €1.500-2.500/anno
-- **Documentazione**: €1.000-1.500/anno
-- **Training personale**: €2.000-3.000/anno
-
-### **Benefici Indiretti**
-- **Accesso mercati premium**: +30-40% prezzi
-- **Riduzione rischi**: Meno non conformità
-- **Efficienza operativa**: Processi ottimizzati
-- **Brand value**: Reputazione migliorata
+Evidenze principali nel codice:
+- route [app/app/certifications/page.tsx](/Volumes/990P/ortomio-main/app/app/certifications/page.tsx:1)
+- dashboard [components/certifications/CertificationsDashboard.tsx](/Volumes/990P/ortomio-main/components/certifications/CertificationsDashboard.tsx:1)
+- form BIO [components/certifications/BioCertificationForm.tsx](/Volumes/990P/ortomio-main/components/certifications/BioCertificationForm.tsx:1)
+- dashboard GlobalG.A.P. [components/compliance/GlobalGapDashboard.tsx](/Volumes/990P/ortomio-main/components/compliance/GlobalGapDashboard.tsx:1)
+- servizi [services/globalGapComplianceService.ts](/Volumes/990P/ortomio-main/services/globalGapComplianceService.ts:1), [services/globalGapCbFvService.ts](/Volumes/990P/ortomio-main/services/globalGapCbFvService.ts:1), [services/unifiedCertificationsService.ts](/Volumes/990P/ortomio-main/services/unifiedCertificationsService.ts:1)
 
 ---
 
-## 🔧 FUNZIONALITÀ PRINCIPALI
+## COME LEGGERE LE SINGOLE AREE
 
-### **📋 Gestione Documentale**
-- **Generazione automatica** procedure e moduli
-- **Archiviazione digitale** documenti certificazione
-- **Controllo versioni** e aggiornamenti automatici
-- **Firma digitale** e validazione documenti
+### Certificazione Biologica
 
-### **⏰ Scadenze e Alert**
-- **Calendario certificazioni** con scadenze
-- **Notifiche automatiche** per rinnovi
-- **Promemoria** controlli periodici
-- **Dashboard** stato compliance tempo reale
+Da considerare **presente e usabile come supporto operativo** per raccogliere dati aziendali, pratiche, tracciabilita e controlli.
 
-### **📊 Audit e Controlli**
-- **Checklist automatiche** per ogni standard
-- **Self-assessment** guidati e validati
-- **Gap analysis** e piani miglioramento
-- **Preparazione audit** esterni automatica
+Il form BIO oggi consente di:
+- inserire dati azienda e certificazione
+- registrare superfici biologiche, in conversione e convenzionali
+- dichiarare pratiche e vincoli rilevanti
+- verificare un punteggio indicativo di conformita
 
-### **👥 Training Personale**
-- **Corsi online** per ogni certificazione
-- **Test competenze** e certificazioni interne
-- **Aggiornamenti normativi** automatici
-- **Materiale formativo** sempre aggiornato
+Limite importante:
+- il salvataggio passa da callback UI e non equivale da solo a una pratica certificativa completa gia chiusa verso un ente esterno
 
----
+### GlobalG.A.P.
 
-## 🎛️ CONFIGURAZIONE E SETUP
+Da considerare **la parte piu strutturata del modulo**.
 
-### **Setup Iniziale**
-1. **Seleziona certificazioni** desiderate
-2. **Inserisci dati azienda** e responsabili
-3. **Configura processi** produttivi
-4. **Carica documentazione** esistente
-5. **Attiva monitoraggio** automatico
+Nel codice esistono:
+- dashboard dedicata
+- overview di compliance e readiness
+- checklist e azioni correttive
+- servizi con copertura ampia per record `CB/FV`
+- export documentale e audit package
+- primitive per tracciabilita lotti, monitoraggi, analisi acqua, fertilizzazione, raccolta e rischi microbiologici
 
-### **Configurazione Avanzata**
-- **Personalizzazione procedure** per azienda specifica
-- **Integrazione sistemi** gestionali esistenti
-- **Workflow approval** per modifiche critiche
-- **Multi-site management** per aziende distribuite
+Limiti importanti:
+- alcune azioni in UI sono ancora simulate
+- la presenza di servizi e tabelle non significa che l'intero percorso sia gia validato su casi reali o pronto come sostituto di audit specialistico
+
+### SQNPI e GRASP
+
+Da considerare **anticipati / non ancora consolidati**.
+
+Nel dashboard sono presenti come tab informative, ma oggi non hanno lo stesso livello operativo di BIO e GlobalG.A.P.
 
 ---
 
-## 📊 DASHBOARD CERTIFICAZIONI
+## COSA NON VA PRESENTATO COME CHIUSO OGGI
 
-### **Stato Compliance**
-- **Semaforo generale**: Verde/Giallo/Rosso per ogni certificazione
-- **Percentuale completamento**: Progress bar per ogni standard
-- **Scadenze imminenti**: Alert per rinnovi e controlli
-- **Non conformità**: Lista problemi da risolvere
-
-### **KPI Principali**
-- **Compliance Score**: Punteggio generale 0-100
-- **Audit Readiness**: Preparazione controlli esterni
-- **Documentation Status**: Completezza documentale
-- **Training Progress**: Avanzamento formazione team
-
-### **Trend Analysis**
-- **Miglioramento continuo**: Trend performance nel tempo
-- **Benchmark**: Confronto con standard settoriali
-- **Costi certificazione**: Monitoraggio spese e risparmi
-- **ROI certificazioni**: Ritorno investimento per standard
+- certificazione automatica end-to-end verso organismi esterni
+- conformita normativa garantita dal software senza revisione professionale
+- integrazione diretta gia operativa con enti certificatori
+- workflow uniformemente maturo per tutte le certificazioni elencate
+- readiness GlobalG.A.P. da usare come unica fonte ufficiale di audit senza verifica umana
 
 ---
 
-## 🔍 GESTIONE SPECIFICA PER STANDARD
+## USO CONSIGLIATO OGGI
 
-### **GlobalG.A.P. Management**
-- **Moduli attivi**: CB (Crops Base), FV (Fruit & Vegetables)
-- **Risk assessment**: Valutazione rischi automatica
-- **GRASP**: Modulo responsabilità sociale
-- **Parallel production**: Gestione produzioni parallele
+Usa questo modulo per:
+- organizzare dati e documenti di compliance
+- preparare verifiche interne
+- raccogliere evidenze utili a BIO e GlobalG.A.P.
+- individuare gap documentali o operativi prima di audit e rinnovi
 
-### **HACCP System**
-- **Hazard Analysis**: Analisi pericoli per processo
-- **CCP Monitoring**: Monitoraggio punti critici
-- **Corrective Actions**: Azioni correttive automatiche
-- **Verification**: Sistema verifiche integrate
-
-### **Organic Compliance**
-- **Input materials**: Controllo sostanze autorizzate
-- **Contamination risk**: Valutazione rischi contaminazione
-- **Labeling**: Controllo etichettatura prodotti
-- **Inspection prep**: Preparazione controlli organismi
+Non usarlo come:
+- sostituto di consulente o organismo certificatore
+- prova che l'intera azienda sia gia conforme solo perche il dashboard mostra uno score
 
 ---
 
-## 📋 COMPONENTI OPERATIVI
+## COLLEGAMENTI UTILI
 
-### **Document Manager**
-- **Upload documenti**: Caricamento certificati e analisi
-- **Scadenze tracking**: Monitoraggio validità documenti
-- **Categorizzazione**: Organizzazione per standard e tipo
-- **Condivisione**: Accesso controllato per team
-
-### **Compliance Checklist**
-- **Checklist dinamiche**: Adattate a standard specifico
-- **Progress tracking**: Avanzamento completamento
-- **Evidence management**: Gestione prove conformità
-- **Audit trail**: Tracciabilità modifiche e approvazioni
-
-### **Deadline Manager**
-- **Calendario integrato**: Scadenze e promemoria
-- **Notifiche multiple**: Email, SMS, push notifications
-- **Escalation**: Alert crescenti per scadenze critiche
-- **Planning**: Pianificazione attività preparatorie
+- [📋 Registro Attività](./10-activity-registry.md): utile per ricostruire le operazioni
+- [🌱 Nutrizione e Trattamenti](./16-nutrition-treatments.md): rilevante per registri input e trattamenti
+- [🚜 Operazioni Meccaniche](./17-mechanical-operations.md): utile per evidenze operative e attrezzature
+- [📤 Sistema Export](./23-export-system.md): utile per estrazioni documentali, con prudenza
 
 ---
 
-## 🎓 FORMAZIONE E COMPETENZE
-
-### **Training Modules**
-- **Introduzione standard**: Panoramica requisiti
-- **Implementazione**: Guida pratica applicazione
-- **Audit preparation**: Preparazione controlli
-- **Continuous improvement**: Miglioramento continuo
-
-### **Certification Paths**
-- **Basic Compliance**: Livello base conformità
-- **Advanced Management**: Gestione avanzata sistemi
-- **Auditor Training**: Formazione auditor interni
-- **Specialist Certification**: Specializzazione per standard
-
-### **Knowledge Base**
-- **FAQ**: Domande frequenti per standard
-- **Best Practices**: Esempi implementazione successo
-- **Case Studies**: Casi studio aziendali
-- **Updates**: Aggiornamenti normativi e interpretativi
-
----
-
-## 🔗 INTEGRAZIONI
-
-### **Sistemi Gestionali**
-- **ERP Integration**: Connessione sistemi aziendali
-- **Quality Management**: Integrazione sistemi qualità
-- **Traceability**: Collegamenti tracciabilità prodotti
-- **Analytics**: Integrazione business intelligence
-
-### **Organismi Certificatori**
-- **ICEA**: Integrazione diretta per biologico
-- **CCPB**: Connessione automatica dati
-- **GlobalG.A.P.**: Sincronizzazione database
-- **Accredia**: Collegamenti organismi accreditati
-
-### **Fornitori e Partner**
-- **Supplier qualification**: Qualifica fornitori
-- **Audit sharing**: Condivisione audit comuni
-- **Group certification**: Certificazioni gruppo
-- **Supply chain**: Estensione certificazioni filiera
-
----
-
-## 📈 ROI E PERFORMANCE
-
-### **Calcolo ROI**
-- **Costi evitati**: Consulenze e servizi esterni
-- **Efficienza guadagnata**: Tempo risparmiato
-- **Premium pricing**: Maggiori ricavi prodotti certificati
-- **Risk reduction**: Riduzione costi non conformità
-
-### **Performance Metrics**
-- **Compliance rate**: Percentuale conformità
-- **Audit success**: Successo controlli esterni
-- **Time to certification**: Tempo ottenimento certificazioni
-- **Cost per certificate**: Costo per certificazione mantenuta
-
-### **Benchmark Industry**
-- **Sector comparison**: Confronto performance settoriali
-- **Best in class**: Identificazione eccellenze
-- **Gap analysis**: Analisi divari competitivi
-- **Improvement opportunities**: Opportunità miglioramento
-
----
-
-## 🆘 SUPPORTO E TROUBLESHOOTING
-
-### **Supporto Specializzato**
-- **Certification experts**: Esperti per ogni standard
-- **Technical support**: Supporto tecnico piattaforma
-- **Audit assistance**: Assistenza durante controlli
-- **Emergency support**: Supporto urgenze compliance
-
-### **Problemi Comuni**
-- **Documentazione incompleta**: Guida completamento
-- **Non conformità**: Procedure correzione
-- **Scadenze mancate**: Recovery procedures
-- **Audit failures**: Analisi cause e correzioni
-
-### **Escalation Procedures**
-- **Level 1**: Supporto automatico e FAQ
-- **Level 2**: Supporto tecnico specializzato
-- **Level 3**: Consulenza esperti certificazione
-- **Emergency**: Supporto critico 24/7
-
----
-
-## 🔮 ROADMAP SVILUPPO
-
-### **Q2 2026**
-- **BRC Food**: Implementazione completa
-- **IFS Food**: Moduli specializzati
-- **Mobile app**: Gestione mobile certificazioni
-- **AI compliance**: Intelligenza artificiale per compliance
-
-### **Q3 2026**
-- **Blockchain**: Certificazioni immutabili
-- **IoT integration**: Monitoraggio automatico parametri
-- **Predictive compliance**: Predizione non conformità
-- **Global expansion**: Standard internazionali
-
----
-
-## 📞 SUPPORTO CERTIFICAZIONI
-
-### **Contatti Specializzati**
-- **Email**: certifications@ortomio.com
-- **Telefono**: +39 02 1234 5681
-- **WhatsApp**: +39 345 678 9013
-- **Video**: Consulenza personalizzata
-
-### **Esperti per Standard**
-- **GlobalG.A.P.**: Dr. Marco Rossi
-- **HACCP**: Dr.ssa Laura Bianchi
-- **Biologico**: Dr. Giuseppe Verdi
-- **BRC/IFS**: Team specializzato
-
----
-
-[← Torna all'Indice](./README.md) | [Prossimo: NDVI Satellitare →](./05-ndvi-satellite.md)
+[← Torna all'Indice](./README.md)

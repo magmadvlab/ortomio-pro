@@ -6,9 +6,44 @@
 
 ## 🎯 PANORAMICA
 
-Sistema completo per gestione operazioni meccaniche con calendario lavorazioni, gestione parco macchine, tracking GPS e ottimizzazione costi. Pianificazione intelligente basata su condizioni meteo-suolo e integrazione con precision agriculture per massima efficienza operativa.
+Modulo per registrare e organizzare lavorazioni meccaniche con un flusso operativo concreto, ma senza promettere ancora un sistema telematico completo con GPS, fleet management e automazione piena.
 
 **Percorso**: Sidebar → "Lavorazioni"
+
+---
+
+## 🎯 STATO MODULO
+
+**Stato attuale**: **Operativo con elementi ibridi**
+
+La parte oggi più affidabile è:
+- apertura del modulo dal planner nei flussi task-aware recenti
+- registrazione della lavorazione reale
+- collegamento del task sorgente nei flussi coperti
+- raccolta minima di evidenze visibile prima del submit
+
+Non va invece ancora presentato come chiuso:
+- tracking GPS real-time di flotta
+- guidance system e auto-steer
+- telematica macchine unificata
+- pianificazione annuale completamente ottimizzata da AI
+
+---
+
+## ✅ COSA È DISPONIBILE ORA
+
+- registrazione lavorazione meccanica
+- selezione area, aiuole e filari quando presenti
+- note, operatore, attrezzatura e contesto operativo
+- integrazione con storico operazioni nei flussi persistiti
+
+---
+
+## ⚠️ LIMITI ATTUALI
+
+- molte sezioni sotto descritte rappresentano una visione estesa del modulo, non lo stato già chiuso del prodotto
+- il valore operativo oggi è soprattutto nella registrazione e nel collegamento con task/orchestrazione, non nella telemetria avanzata
+- per i flussi legacy o manuali la coerenza con il planner è meno uniforme rispetto ai task agronomici recenti
 
 ---
 
@@ -71,7 +106,7 @@ Sistema completo per gestione operazioni meccaniche con calendario lavorazioni, 
 
 ## 📍 TRACKING GPS E PRECISION
 
-### **Monitoraggio Real-time**
+### **Monitoraggio e Precision**
 - **Posizione GPS**: Localizzazione precisa macchine
 - **Aree Lavorate**: Mapping automatico superfici
 - **Velocità Operative**: Monitoraggio velocità lavoro

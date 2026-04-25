@@ -131,11 +131,11 @@ Use the table below as the running audit ledger.
 
 | File | Bucket | Status | Notes |
 | --- | --- | --- | --- |
-| `docs/manual/README.md` | manual | rewrite | already being realigned to verified product state |
+| `docs/manual/README.md` | manual | keep | updated after T2 closure to describe the DB-first operational ledger and April 25 manual scope |
 | `docs/manual/04-certifications.md` | manual | rewrite | corrected upward after code verification; still tied to open certification gaps |
 | `docs/reports/ORTOMIO_APPLICATION_CURRENT_STATE_2026-04-18.md` | report | keep | current truth source, should remain authoritative and be updated carefully |
 | `docs/reports/ORTOMIO_STAKEHOLDER_PRESENTATION_2026-04-18.md` | report | rewrite | useful, but must clearly separate verified state from future phase proposals |
-| `docs/manual/21-individual-plants.md` | manual | todo-source | domain verified as real but mixed; advanced per-plant promises should become explicit implementation TODOs before final manual cleanup |
+| `docs/manual/21-individual-plants.md` | manual | keep | T2-aligned on 2026-04-25: individual plant operations are described as specialized ledger signals; advanced QR/genealogy/breeding/ranking promises moved to limits/TODO |
 | `docs/manual/22-business-intelligence.md` | manual | provisional keep | acceptable current wording, pending deeper domain verification where needed |
 | `docs/manual/24-sustainability.md` | manual | todo-source | real environmental foundations exist, but the broader ESG/carbon/circular-economy promises should first be captured as explicit TODOs |
 | `docs/manual/18-orchard-management.md` | manual | todo-source | orchard is real and substantial, but the chapter contains advanced precision/analytics promises that should become tracked TODOs before final rewrite |
@@ -145,14 +145,14 @@ Use the table below as the running audit ledger.
 | `docs/manual/23-export-system.md` | manual | keep | current wording is restrained and substantially aligned: export exists through simple client-side flows, JSON helpers and selected API routes, but not as a universal enterprise export framework |
 | `docs/manual/01-ai-predictions.md` | manual | keep | current wording matches the verified state well: predictive capability is real and spread across multiple services/modules, but not a single validated universal AI engine |
 | `docs/manual/02-drone-operations.md` | manual | todo-source | drone capability is more real than pure anticipation, but missing persistence/hardware integration should first become explicit TODOs |
-| `docs/manual/03-traceability.md` | manual | todo-source | traceability/blockchain capability is real enough to justify a module, but the missing chain-of-custody/commercial layers should first become tracked TODOs |
+| `docs/manual/03-traceability.md` | manual | keep | T2-aligned on 2026-04-25: describes DB-backed operational traceability and explicitly excludes blockchain/QR/commercial immutability from current capability |
 | `docs/manual/04b-bio-certification-guide.md` | manual | todo-source | the guide is grounded in a real BIO form, but stronger audit-readiness/document-management promises should first become TODOs |
 | `docs/manual/05-ndvi-satellite.md` | manual | keep | current wording is appropriately restrained and matches a real but hybrid NDVI surface with dashboards, config checks, provider integration points and fallback/simulated modes |
 | `docs/manual/06-prescription-maps.md` | manual | todo-source | prescription maps are materially implemented, but the remaining field-validated end-to-end gaps should first become explicit TODOs |
 | `docs/manual/07-ai-overview.md` | manual | todo-source | chapter compresses many real but uneven AI domains into one coherent decision layer; missing cross-module AI closure should first become tracked TODOs |
 | `docs/manual/08-global-ai-chat.md` | manual | todo-source | global chat surface exists, but most universal/contextual/knowledge-base/support promises exceed the verified implementation and should first become explicit TODOs |
 | `docs/manual/09-planner-ai-chat.md` | manual | keep | current wording is already honest about the hybrid state: planner task/queue flows are real, while AI guidance remains mixed and not yet a unified planner brain |
-| `docs/manual/10-activity-registry.md` | manual | keep | current wording is appropriately hybrid: persisted activity/task records are real, while unified ledger closure is still explicitly described as incomplete |
+| `docs/manual/10-activity-registry.md` | manual | keep | T2-aligned on 2026-04-25: Activity Registry is the first DB-first operational ledger consumer with task-only fallback clearly marked as degraded mode |
 | `docs/manual/26-integration-api.md` | manual | todo-source | real API/integration surface exists, while the larger external ecosystem promises should first become tracked TODOs |
 | `docs/manual/28-economic-benefits.md` | manual | todo-source | partial economic tooling exists, but business-impact promises should first be separated into explicit TODOs or later removed if obsolete |
 | `docs/manual/30-use-cases.md` | manual | todo-source | chapter aggregates real modules plus intended capability; implied deployment-level promises should first be converted into TODOs |
@@ -161,7 +161,13 @@ Use the table below as the running audit ledger.
 | `docs/manual/34-director-orchestrator.md` | manual | todo-source | domain verified as real but distributed; missing orchestration consolidation should first be treated as implementation TODO, then rewritten |
 | `docs/manual/14-smart-hub.md` | manual | keep | chapter is already cautious and matches a real but beta IoT/sensor ingestion surface with registry/automation gaps still open |
 | `docs/manual/15-irrigation-system.md` | manual | keep | current wording is substantially aligned with a strong irrigation module that still stops short of full IoT actuator automation |
-| `docs/manual/35-automated-diary.md` | manual | todo-source | real diary and cron/predictive foundations exist, but the chapter describes a much more uniformly closed automatic growth-tracking system than the verified implementation supports |
+| `docs/manual/16-nutrition-treatments.md` | manual | todo-source | real operational core exists, but the chapter expands into scientific engines, compliance automation and VRT chains that should first become tracked TODOs |
+| `docs/manual/17-mechanical-operations.md` | manual | todo-source | real execution/registering module exists, but telematics, fleet/GPS and optimization promises should first become explicit TODOs |
+| `docs/manual/25-research-development.md` | manual | todo-source | this is not current product documentation; it is mostly a bundle of intended R&D capabilities that should first be captured as roadmap/TODO material |
+| `docs/manual/27-quick-start.md` | manual | keep | current quick-start is restrained and aligned with the most reliable operational flows in the product today |
+| `docs/manual/29-interface-navigation.md` | manual | keep | current navigation guide matches the real module topology and already distinguishes stable versus consolidating sections |
+| `docs/manual/32-roadmap.md` | manual | todo-source | chapter is a future-capability manifesto; promises should first become explicit master-plan TODOs before any decision on keeping or removing it from the manual |
+| `docs/manual/35-automated-diary.md` | manual | keep | T2-aligned on 2026-04-25: diary/weather is described as durable environmental observation with `daily_weather_log` runtime schema alignment and predictive/job claims moved to limits/TODO |
 
 ### Group: AI overview, global chat and planner chat
 
@@ -289,6 +295,117 @@ Reason:
 Action:
 - first convert the missing diary-automation closure into explicit TODOs
 - only later decide how much of the chapter remains in the final operational manual
+
+### Group: nutrition, mechanical, quick start, navigation, R&D and roadmap
+
+#### `docs/manual/16-nutrition-treatments.md`
+Classification: `todo-source`
+
+Reason:
+- there is a real and operational core in code:
+  - `app/app/nutrition/page.tsx`
+  - `components/nutrition/TreatmentPlanner.tsx`
+  - `components/nutrition/ProductManager.tsx`
+  - `components/nutrition/ProfessionalNutritionDashboard.tsx`
+  - treatment/treatment-registry services and advanced nutrition migrations
+  - task-aware launch and execution/evidence handling in recent flows
+- however the chapter extends far beyond the verified core:
+  - complete scientific nutrient engines
+  - broad fitopharmaceutical databases and residue frameworks
+  - fully closed compliance automation
+  - mature VRT nutritional chain
+  - deep analytics/economic/environmental closure
+
+Action:
+- treat the real operational module as verified
+- convert the wider scientific/compliance/VRT promises into tracked TODOs before deciding the final shape of the chapter
+
+#### `docs/manual/17-mechanical-operations.md`
+Classification: `todo-source`
+
+Reason:
+- there is a real operational module:
+  - `app/app/mechanical-work/page.tsx`
+  - `components/mechanicalWork/MechanicalWorkLogForm.tsx`
+  - `components/mechanicalWork/MechanicalWorkHistory.tsx`
+  - `services/mechanicalWorkService.ts`
+  - related register migration and task-aware execution flow
+- but the chapter extends into capabilities not verified as closed:
+  - GPS/telematics
+  - fleet management
+  - guidance and auto-steer
+  - broad machinery integrations
+  - advanced AI scheduling and performance analytics
+
+Action:
+- keep the existence of the mechanical execution module grounded in code
+- convert telematics/fleet/precision promises into explicit TODOs first
+
+#### `docs/manual/25-research-development.md`
+Classification: `todo-source`
+
+Reason:
+- the chapter does not describe a current in-app operational module verified in the codebase
+- instead it bundles:
+  - research programs
+  - institutional partnerships
+  - patents/publications
+  - labs and commercialization narratives
+  - speculative future platforms
+- there is no repository-grounded `R&D` product surface matching this chapter as current application functionality
+
+Action:
+- do not treat it as product documentation
+- first convert any still-relevant intended capabilities into tracked roadmap/TODO work
+- only later decide whether the chapter should be archived, removed or transformed into internal planning material
+
+#### `docs/manual/27-quick-start.md`
+Classification: `keep`
+
+Reason:
+- the chapter is operationally restrained
+- it points users to the most reliable present-day flows:
+  - active garden
+  - planner/task base
+  - advice as support
+  - health as hybrid
+  - operational technical logs
+  - cautious use of NDVI, prescription and Smart Hub
+- this matches the verified product state well
+
+Action:
+- keep as current operational guidance
+
+#### `docs/manual/29-interface-navigation.md`
+Classification: `keep`
+
+Reason:
+- the file maps real sections and uses cautious language for hybrid/beta areas
+- it correctly distinguishes:
+  - planner vs advice
+  - health as hybrid
+  - irrigation as real
+  - NDVI/prescription/Smart Hub as consolidating
+- this is consistent with the codebase and the broader audit
+
+Action:
+- keep as truthful navigation documentation
+
+#### `docs/manual/32-roadmap.md`
+Classification: `todo-source`
+
+Reason:
+- the chapter is almost entirely future-facing and not bounded to verified product capability
+- many entries are strategic/speculative rather than implementation-backed roadmap slices:
+  - autonomous swarms
+  - Web3/DeFi
+  - AGI agriculture
+  - metaverse/quantum/planetary transformation
+- under the current method, these promises should first become explicit TODO/roadmap decisions in the master plan before the manual decides whether to keep or remove this material
+
+Action:
+- treat the chapter as a future-capability source, not as current manual truth
+- later decide what is still relevant, what is obsolete, and what should leave the manual completely
 
 ## Findings From Early Screening
 These are not final judgments for ambiguous domains. They are early screening notes produced before the method reset and should now be treated as provisional unless backed by domain inspection.

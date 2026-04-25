@@ -6,9 +6,48 @@
 
 ## 🎯 PANORAMICA
 
-Sistema professionale per gestione nutrizione e protezione colture con piani nutrizionali personalizzati, database completo fitofarmaci, calcolo automatico dosi e compliance certificazioni. Ottimizzazione scientifica per massimizzare rese e qualità riducendo input e impatto ambientale.
+Modulo operativo per pianificare e registrare trattamenti e attività nutrizionali, con alcune parti già persistite e altre ancora in consolidamento.
 
 **Percorso**: Sidebar → "Nutrizione & Trattamenti"
+
+---
+
+## 🎯 STATO MODULO
+
+**Stato attuale**: **Operativo con elementi ibridi**
+
+La parte più solida oggi è:
+- area unica `Nutrizione & Trattamenti`
+- planner trattamenti persistito
+- prodotti, inventario e registrazione operativa
+- avvio task-aware dal planner
+- contratto minimo di evidenze visibile nei flussi task-aware più recenti
+
+Restano invece da non sovrastimare:
+- calcolo dosi come motore scientifico completo
+- database fitofarmaci completo e validato
+- compliance certificativa automatica end-to-end
+- VRT nutrizionale già chiuso in catena produttiva
+
+---
+
+## ✅ COSA È DISPONIBILE ORA
+
+- dashboard nutrizione
+- gestione prodotti
+- trattamento pianificato e completamento operativo
+- stato trattamento `planned / in_progress / completed`
+- registrazione di note, date, dosi e parte del contesto operativo
+- collegamento da task sorgente nei flussi planner-aware più recenti
+
+---
+
+## ⚠️ LIMITI ATTUALI
+
+- non tutto il caricamento dati storici e configurazioni è pienamente reale o rifinito
+- alcune parti avanzate restano descritte meglio del loro livello effettivo di chiusura
+- il modulo corretto da usare oggi è `Nutrizione & Trattamenti`, mentre alcune route legacy sono solo transitorie o congelate
+- la compliance e i controlli normativi non vanno ancora comunicati come automatizzati in modo completo
 
 ---
 
@@ -53,7 +92,7 @@ Sistema professionale per gestione nutrizione e protezione colture con piani nut
 - **Spettro Efficacia**: Target specifici per prodotto
 - **Resistenze**: Gestione resistenze e rotazioni
 
-### **Calcolo Dosi Automatico**
+### **Calcolo Dosi e Parametri**
 - **Superficie Precision**: Calcolo basato su GPS reale
 - **Concentrazioni**: Dosi per volume e superficie
 - **Bagnatura**: Volumi distribuzione ottimali
@@ -62,7 +101,7 @@ Sistema professionale per gestione nutrizione e protezione colture con piani nut
 
 ### **Tempi di Carenza**
 - **Database LMR**: Limiti massimi residui aggiornati
-- **Calcolo Automatico**: Tempi carenza per prodotto/coltura
+- **Calcolo guidato**: supporto a tempi e finestre operative quando il dato è disponibile
 - **Alert System**: Notifiche scadenze carenza
 - **Harvest Planning**: Pianificazione raccolti sicura
 - **Compliance**: Conformità normative residui

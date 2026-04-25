@@ -2,7 +2,21 @@
 
 ## Panoramica
 
-Il **Director Orchestrator** è il cervello predittivo di OrtomioAI che coordina tutti i sistemi dell'applicazione per fornire raccomandazioni intelligenti e proattive basate su dati storici, condizioni attuali e previsioni.
+Il **Director Orchestrator** è una superficie di sintesi e briefing che riusa segnali, storico e servizi decisionali presenti nell'app. Non va ancora descritto come un cervello unico completamente autonomo che coordina in modo uniforme tutti i sistemi del prodotto.
+
+## Stato Modulo
+
+**Stato attuale**: **Ibrido**
+
+La parte reale oggi è:
+- briefing e sintesi operative su parte dei segnali disponibili
+- riuso di storico, meteo e servizi decisionali in alcune superfici
+- collegamento concettuale con planner, salute, irrigazione e diario
+
+I limiti da dichiarare sono:
+- non tutti i moduli convergono ancora nello stesso orchestratore
+- IoT e NDVI entrano nel briefing solo quando i dati sono disponibili e affidabili
+- il director non sostituisce ancora un ledger unificato o una regia totalmente coerente su tutto il prodotto
 
 ## Caratteristiche Principali
 
@@ -21,8 +35,8 @@ Il sistema integra dati da:
 
 - **Diario Automatico**: Storico giornaliero di crescita e stress
 - **Dati Meteorologici**: Condizioni attuali e previsioni
-- **Sensori IoT**: Dati in tempo reale da dispositivi connessi
-- **Immagini Satellitari**: Analisi NDVI e salute delle colture
+- **Sensori IoT**: Dati disponibili quando collegati e persistiti in modo sufficiente
+- **Immagini Satellitari**: segnali NDVI o analoghi quando la pipeline dati è effettivamente disponibile
 - **Storico Utente**: Pattern e risultati delle stagioni precedenti
 
 ### 3. Motore di Raccomandazioni
@@ -116,25 +130,18 @@ Le raccomandazioni del Director sono integrate con:
 
 ### IoT e Sensori
 
-Quando disponibili, il Director integra:
+Quando disponibili, il Director può integrare:
 
 - Sensori umidità suolo
 - Stazioni meteo locali
 - Sensori ambientali (temperatura, umidità)
-- Dispositivi Tuya Smart Hub
+- dispositivi e telemetria Smart Hub nei limiti dello stato attuale del modulo
 
 ## Configurazione
 
 ### Attivazione Director
 
-Il Director è attivo di default per tutti gli utenti. Per configurarlo:
-
-1. Vai su **Impostazioni** → **Director**
-2. Configura:
-   - Orario briefing giornaliero
-   - Livello dettaglio raccomandazioni
-   - Tipi di notifiche
-   - Soglie alert
+Leggi questa sezione come descrizione del comportamento del modulo e non come garanzia che ogni opzione di configurazione dedicata sia già esposta e stabile in tutte le installazioni.
 
 ### Personalizzazione Raccomandazioni
 
@@ -164,7 +171,7 @@ Puoi personalizzare:
 
 Ogni raccomandazione ha un punteggio di confidenza:
 
-- **90-100%**: Basato su dati solidi e pattern consolidati
+- **90-100%**: Basato su contesto forte e segnali coerenti disponibili
 - **70-89%**: Buona probabilità, ma con alcune incertezze
 - **50-69%**: Suggerimento esplorativo, da valutare
 
