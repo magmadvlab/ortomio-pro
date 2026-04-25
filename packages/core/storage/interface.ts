@@ -17,6 +17,14 @@ import { IrrigationSystem, IrrigationZone, IrrigationComponent, WateringLog } fr
 import { HealthAlert } from '../../../types/healthAlert';
 import { PrescriptionExecutionRecord, PrescriptionMap, PrescriptionMapExportRecord } from '../../../types/prescriptionMaps';
 import type { PlantOperation } from '../../../types/individualPlant';
+import type { AgronomicDecisionLedgerEntry } from '../../../services/agronomicDecisionLedgerService';
+import type { AgronomicQueueOutcomeRecord } from '../../../services/agronomicQueueOutcomeService';
+import type {
+  AgronomicOperationOutcomeProjection,
+  AgronomicOperationSignalProjection,
+  AgronomicPrecisionExecutionProjection,
+  OperationalLedgerProjectionFilters,
+} from '../../../types/operationalLedger';
 
 export interface IStorageProvider {
   // Gardens
@@ -119,6 +127,18 @@ export interface IStorageProvider {
     id: string,
     updates: Partial<PrescriptionMapExportRecord>
   ): Promise<PrescriptionMapExportRecord>;
+  getAgronomicOperationOutcomeProjection?(
+    filters?: OperationalLedgerProjectionFilters
+  ): Promise<AgronomicOperationOutcomeProjection[]>;
+  getAgronomicOperationSignalProjection?(
+    filters?: OperationalLedgerProjectionFilters
+  ): Promise<AgronomicOperationSignalProjection[]>;
+  getAgronomicPrecisionExecutionProjection?(
+    filters?: OperationalLedgerProjectionFilters & {
+      prescriptionMapId?: string;
+      executionStatus?: string;
+    }
+  ): Promise<AgronomicPrecisionExecutionProjection[]>;
 
   // Seed Inventory
   getSeedPackets(gardenId?: string): Promise<SeedPacket[]>;
@@ -158,6 +178,12 @@ export interface IStorageProvider {
   // User Preferences / Small KV Storage (optional)
   getUserPreference?<T = any>(key: string): Promise<T | null>;
   setUserPreference?<T = any>(key: string, value: T): Promise<void>;
+
+  // Canonical operational ledger (cloud providers should persist these in normalized tables)
+  getAgronomicDecisionLedgerEntries?(gardenId: string): Promise<AgronomicDecisionLedgerEntry[]>;
+  upsertAgronomicDecisionLedgerEntry?(entry: AgronomicDecisionLedgerEntry): Promise<AgronomicDecisionLedgerEntry>;
+  getAgronomicQueueOutcomeRecords?(gardenId: string): Promise<AgronomicQueueOutcomeRecord[]>;
+  upsertAgronomicQueueOutcomeRecord?(record: AgronomicQueueOutcomeRecord): Promise<AgronomicQueueOutcomeRecord>;
 
   // Custom Plans (Pro Feature)
   createCustomPlan(plan: Omit<CustomPlan, 'id' | 'createdAt' | 'updatedAt'>): Promise<CustomPlan>;

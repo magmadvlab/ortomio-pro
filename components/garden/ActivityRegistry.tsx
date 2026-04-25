@@ -31,13 +31,16 @@ import {
   Sparkles
 } from 'lucide-react'
 import { GardenTask } from '@/types'
+import type { IStorageProvider } from '@/packages/core/storage/interface'
+import type { OperationalLedgerSummary, OperationalLedgerUnifiedEvent } from '@/services/operationalLedgerService'
+import { getOperationalLedgerSummary } from '@/services/operationalLedgerService'
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns'
 import { it } from 'date-fns/locale'
 
 interface ActivityRecord {
   id: string
   date: string
-  type: 'task' | 'observation' | 'harvest' | 'treatment' | 'photo' | 'note'
+  type: 'task' | 'observation' | 'harvest' | 'treatment' | 'photo' | 'note' | 'ledger'
   category: string
   title: string
   description: string
@@ -58,30 +61,80 @@ interface ActivityRecord {
   completed: boolean
   completedAt?: string
   linkedTaskId?: string
+  source?: string
+  resultClass?: string | null
+  hasMeasuredResult?: boolean
+  hasExecutionEvidence?: boolean
 }
 
 interface ActivityRegistryProps {
   tasks?: GardenTask[]
+  gardenId?: string
+  storageProvider?: Pick<
+    IStorageProvider,
+    | 'getAgronomicOperationOutcomeProjection'
+    | 'getAgronomicOperationSignalProjection'
+    | 'getAgronomicPrecisionExecutionProjection'
+  >
   onTaskUpdate?: (task: GardenTask) => void
   onExportData?: () => void
 }
 
 export default function ActivityRegistry({
   tasks = [],
+  gardenId,
+  storageProvider,
   onTaskUpdate,
   onExportData
 }: ActivityRegistryProps) {
   const [activities, setActivities] = useState<ActivityRecord[]>([])
   const [filteredActivities, setFilteredActivities] = useState<ActivityRecord[]>([])
+  const [ledgerSummary, setLedgerSummary] = useState<OperationalLedgerSummary | null>(null)
+  const [ledgerLoading, setLedgerLoading] = useState(false)
+  const [ledgerError, setLedgerError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<string>('all')
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'))
   const [selectedActivity, setSelectedActivity] = useState<ActivityRecord | null>(null)
   const [showDetails, setShowDetails] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'timeline' | 'stats'>('list')
+  const isLedgerPrimary = Boolean(ledgerSummary?.events?.length)
+  const isTaskFallbackMode = Boolean(gardenId && !ledgerLoading && !isLedgerPrimary)
 
-  // Converti tasks in activity records
+  const buildLedgerActivityRecord = (event: OperationalLedgerUnifiedEvent): ActivityRecord => {
+    const category = event.category || event.family
+    const kind = event.kind || event.source
+    const hasEvidence = event.hasExecutionEvidence || event.hasMeasuredResult
+
+    return {
+      id: event.id,
+      date: event.occurredAt || new Date(0).toISOString(),
+      type: event.family === 'outcome' ? 'task' : 'ledger',
+      category,
+      title: `${category} - ${kind}`,
+      description: [
+        event.source,
+        event.resultClass ? `esito: ${event.resultClass}` : null,
+        event.hasExecutionEvidence ? 'evidenza esecuzione' : null,
+        event.hasMeasuredResult ? 'risultato misurato' : null,
+      ].filter(Boolean).join(' · '),
+      completed: hasEvidence,
+      completedAt: event.occurredAt || undefined,
+      linkedTaskId: event.taskId || undefined,
+      source: event.source,
+      resultClass: event.resultClass,
+      hasMeasuredResult: event.hasMeasuredResult,
+      hasExecutionEvidence: event.hasExecutionEvidence,
+    }
+  }
+
+  // Converti ledger reale o, in fallback, tasks in activity records
   useEffect(() => {
+    if (ledgerSummary?.events?.length) {
+      setActivities(ledgerSummary.events.map(buildLedgerActivityRecord))
+      return
+    }
+
     if (!tasks || tasks.length === 0) {
       setActivities([])
       return
@@ -106,50 +159,60 @@ export default function ActivityRegistry({
       linkedTaskId: task.id
     }))
 
-    // Aggiungi attività simulate per demo
-    const simulatedActivities: ActivityRecord[] = [
-      {
-        id: 'obs-1',
-        date: format(new Date(), 'yyyy-MM-dd'),
-        type: 'observation',
-        category: 'Monitoraggio',
-        title: 'Controllo stato piante',
-        description: 'Controllo generale dello stato di salute delle piante',
-        plantName: 'Pomodori',
-        location: 'Aiuola A',
-        weather: {
-          temperature: 22,
-          humidity: 65,
-          conditions: 'Soleggiato'
-        },
-        photos: ['/api/placeholder/300/200'],
-        duration: 30,
-        operator: 'Utente',
-        notes: 'Piante in buona salute, crescita regolare',
-        completed: true,
-        completedAt: new Date().toISOString()
-      },
-      {
-        id: 'harvest-1',
-        date: format(new Date(), 'yyyy-MM-dd'),
-        type: 'harvest',
-        category: 'Raccolta',
-        title: 'Raccolta lattuga',
-        description: 'Prima raccolta di lattuga della stagione',
-        plantName: 'Lattuga',
-        location: 'Aiuola B',
-        quantity: 2.5,
-        unit: 'kg',
-        duration: 45,
-        operator: 'Utente',
-        notes: 'Qualità ottima, foglie croccanti',
-        completed: true,
-        completedAt: new Date().toISOString()
-      }
-    ]
+    setActivities(activityRecords)
+  }, [ledgerSummary, tasks])
 
-    setActivities([...activityRecords, ...simulatedActivities])
-  }, [tasks])
+  useEffect(() => {
+    let cancelled = false
+
+    const loadLedgerSummary = async () => {
+      if (!gardenId || !storageProvider) {
+        setLedgerSummary(null)
+        setLedgerError(null)
+        setLedgerLoading(false)
+        return
+      }
+
+      setLedgerLoading(true)
+      setLedgerError(null)
+
+      try {
+        const filters: { from?: string; to?: string; limit: number } = { limit: 500 }
+        if (selectedMonth) {
+          const [year, month] = selectedMonth.split('-')
+          const parsedYear = parseInt(year)
+          const parsedMonth = parseInt(month)
+          if (Number.isFinite(parsedYear) && Number.isFinite(parsedMonth)) {
+            const monthStart = startOfMonth(new Date(parsedYear, parsedMonth - 1))
+            const monthEnd = endOfMonth(new Date(parsedYear, parsedMonth - 1))
+            filters.from = monthStart.toISOString()
+            filters.to = monthEnd.toISOString()
+          }
+        }
+
+        const summary = await getOperationalLedgerSummary(storageProvider, gardenId, filters)
+
+        if (!cancelled) {
+          setLedgerSummary(summary)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setLedgerSummary(null)
+          setLedgerError(error instanceof Error ? error.message : 'Impossibile leggere il ledger operativo')
+        }
+      } finally {
+        if (!cancelled) {
+          setLedgerLoading(false)
+        }
+      }
+    }
+
+    loadLedgerSummary()
+
+    return () => {
+      cancelled = true
+    }
+  }, [gardenId, selectedMonth, storageProvider])
 
   // Filtra attività
   useEffect(() => {
@@ -210,7 +273,8 @@ export default function ActivityRegistry({
       'harvest': Package,
       'treatment': Bug,
       'photo': Camera,
-      'note': FileText
+      'note': FileText,
+      'ledger': BarChart3
     }
     const Icon = icons[type] || Activity
     return <Icon size={16} />
@@ -223,7 +287,8 @@ export default function ActivityRegistry({
       'harvest': 'bg-orange-100 text-orange-700',
       'treatment': 'bg-red-100 text-red-700',
       'photo': 'bg-purple-100 text-purple-700',
-      'note': 'bg-gray-100 text-gray-700'
+      'note': 'bg-gray-100 text-gray-700',
+      'ledger': 'bg-emerald-100 text-emerald-700'
     }
     return colors[type] || 'bg-gray-100 text-gray-700'
   }
@@ -271,6 +336,10 @@ export default function ActivityRegistry({
         Operatore: activity.operator || '',
         Note: activity.notes || ''
       }))
+
+      if (csvData.length === 0) {
+        return
+      }
       
       const csv = [
         Object.keys(csvData[0]).join(','),
@@ -376,6 +445,57 @@ export default function ActivityRegistry({
             <div>{stats.completedTasks} completate</div>
           </div>
         </div>
+
+        {(gardenId || ledgerSummary || ledgerLoading || ledgerError) && (
+          <div className="mt-6 border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                  <BarChart3 size={16} className="text-green-700" />
+                  Ledger operativo
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Proiezioni reali outcome, segnali specializzati ed esecuzioni precision per il mese selezionato
+                </p>
+              </div>
+              {ledgerLoading && <span className="text-xs text-gray-500">Caricamento...</span>}
+              {ledgerError && <span className="text-xs text-red-600">Ledger non disponibile</span>}
+            </div>
+
+            {isTaskFallbackMode && (
+              <p className={`mt-3 text-xs ${ledgerError ? 'text-red-600' : 'text-amber-700'}`}>
+                {ledgerError
+                  ? 'Vista degradata: il ledger DB non e raggiungibile, quindi la lista mostra solo i task gia disponibili.'
+                  : 'Nessun evento ledger per il periodo selezionato: la lista mostra i task reali disponibili come fallback, non una proiezione locale equivalente.'}
+              </p>
+            )}
+
+            {!ledgerLoading && !ledgerError && (
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4 text-sm">
+                <div>
+                  <div className="font-semibold text-gray-900">{ledgerSummary?.totalEvents || 0}</div>
+                  <div className="text-xs text-gray-500">eventi</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">{ledgerSummary?.outcomeEvents || 0}</div>
+                  <div className="text-xs text-gray-500">outcome</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">{ledgerSummary?.signalEvents || 0}</div>
+                  <div className="text-xs text-gray-500">segnali</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">{ledgerSummary?.precisionExecutionEvents || 0}</div>
+                  <div className="text-xs text-gray-500">precision</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">{ledgerSummary?.verifiedExecutionEvents || 0}</div>
+                  <div className="text-xs text-gray-500">evidenze</div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Statistiche */}
@@ -417,7 +537,7 @@ export default function ActivityRegistry({
               <div>
                 <p className="text-sm text-purple-600">Completamento</p>
                 <p className="text-2xl font-bold text-purple-700">
-                  {Math.round((stats.completedTasks / stats.totalActivities) * 100)}%
+                  {stats.totalActivities > 0 ? Math.round((stats.completedTasks / stats.totalActivities) * 100) : 0}%
                 </p>
               </div>
             </div>
@@ -464,6 +584,12 @@ export default function ActivityRegistry({
                               Completata
                             </span>
                           )}
+
+                          {activity.hasMeasuredResult && (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                              Misurata
+                            </span>
+                          )}
                         </div>
                         
                         <h4 className="font-semibold text-gray-900 mb-1">{activity.title}</h4>
@@ -495,6 +621,13 @@ export default function ActivityRegistry({
                             <span className="flex items-center gap-1">
                               <Clock size={12} />
                               {activity.duration} min
+                            </span>
+                          )}
+
+                          {activity.source && (
+                            <span className="flex items-center gap-1">
+                              <BarChart3 size={12} />
+                              {activity.source}
                             </span>
                           )}
                         </div>

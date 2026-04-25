@@ -8,7 +8,10 @@ import type {
 
 type AgronomicDecisionLedgerStorage = Pick<
   IStorageProvider,
-  'getUserPreference' | 'setUserPreference'
+  | 'getUserPreference'
+  | 'setUserPreference'
+  | 'getAgronomicDecisionLedgerEntries'
+  | 'upsertAgronomicDecisionLedgerEntry'
 >
 
 export interface AgronomicDecisionLedgerEntry {
@@ -52,20 +55,8 @@ const sortLedgerEntries = (entries: AgronomicDecisionLedgerEntry[]) =>
       new Date(left.updatedAt || left.createdAt).getTime()
   )
 
-const saveLedgerEntries = async (
-  storageProvider: AgronomicDecisionLedgerStorage,
-  gardenId: string,
-  entries: AgronomicDecisionLedgerEntry[]
-) => {
-  await storageProvider.setUserPreference?.(
-    getAgronomicDecisionLedgerPreferenceKey(gardenId),
-    sortLedgerEntries(entries)
-  )
-}
-
-export async function getAgronomicDecisionLedgerEntries(
-  storageProvider: AgronomicDecisionLedgerStorage | null | undefined,
-  gardenId: string,
+const applyLedgerFilters = (
+  entries: AgronomicDecisionLedgerEntry[],
   options?: {
     agronomicProfileId?: string
     focus?: AgronomicDecisionSnapshot['focus']
@@ -73,16 +64,7 @@ export async function getAgronomicDecisionLedgerEntries(
     status?: AgronomicDecisionLedgerEntry['status']
     limit?: number
   }
-): Promise<AgronomicDecisionLedgerEntry[]> {
-  if (!storageProvider?.getUserPreference) {
-    return []
-  }
-
-  const entries =
-    (await storageProvider.getUserPreference<AgronomicDecisionLedgerEntry[]>(
-      getAgronomicDecisionLedgerPreferenceKey(gardenId)
-    )) || []
-
+): AgronomicDecisionLedgerEntry[] => {
   const filtered = sortLedgerEntries(entries).filter((entry) => {
     if (options?.agronomicProfileId && entry.agronomicProfileId !== options.agronomicProfileId) {
       return false
@@ -100,6 +82,64 @@ export async function getAgronomicDecisionLedgerEntries(
   })
 
   return typeof options?.limit === 'number' ? filtered.slice(0, options.limit) : filtered
+}
+
+const saveLedgerEntries = async (
+  storageProvider: AgronomicDecisionLedgerStorage,
+  gardenId: string,
+  entries: AgronomicDecisionLedgerEntry[]
+) => {
+  if (storageProvider.upsertAgronomicDecisionLedgerEntry) {
+    await Promise.all(entries.map((entry) => storageProvider.upsertAgronomicDecisionLedgerEntry!(entry)))
+    return
+  }
+
+  await storageProvider.setUserPreference?.(
+    getAgronomicDecisionLedgerPreferenceKey(gardenId),
+    sortLedgerEntries(entries)
+  )
+}
+
+export async function getAgronomicDecisionLedgerEntries(
+  storageProvider: AgronomicDecisionLedgerStorage | null | undefined,
+  gardenId: string,
+  options?: {
+    agronomicProfileId?: string
+    focus?: AgronomicDecisionSnapshot['focus']
+    source?: AgronomicDecisionSnapshot['source']
+    status?: AgronomicDecisionLedgerEntry['status']
+    limit?: number
+  }
+): Promise<AgronomicDecisionLedgerEntry[]> {
+  if (storageProvider?.getAgronomicDecisionLedgerEntries) {
+    try {
+      const dbEntries = await storageProvider.getAgronomicDecisionLedgerEntries(gardenId)
+      if (dbEntries.length > 0) {
+        return applyLedgerFilters(dbEntries, options)
+      }
+    } catch (error) {
+      console.warn('Falling back to preference-backed agronomic decision ledger', error)
+    }
+  }
+
+  if (!storageProvider?.getUserPreference) {
+    return []
+  }
+
+  const entries =
+    (await storageProvider.getUserPreference<AgronomicDecisionLedgerEntry[]>(
+      getAgronomicDecisionLedgerPreferenceKey(gardenId)
+    )) || []
+
+  if (entries.length > 0 && storageProvider.upsertAgronomicDecisionLedgerEntry) {
+    try {
+      await Promise.all(entries.map((entry) => storageProvider.upsertAgronomicDecisionLedgerEntry!(entry)))
+    } catch (error) {
+      console.warn('Unable to migrate preference-backed agronomic decision ledger to DB', error)
+    }
+  }
+
+  return applyLedgerFilters(entries, options)
 }
 
 export async function getAgronomicDecisionLedgerSummary(

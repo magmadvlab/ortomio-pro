@@ -547,6 +547,7 @@ export class UnifiedOperationsService {
   private async createTreatmentOperation(request: UnifiedOperationRequest): Promise<string> {
     const treatment = await this.storageProvider.createTreatment({
       garden_id: request.gardenId,
+      task_id: request.sourceTaskId || null,
       bed_id: request.gardenRowId ? await this.getBedIdForRow(request.gardenRowId) : undefined,
       bed_row_id: request.gardenRowId,
       field_row_id: request.fieldRowId,
@@ -576,6 +577,7 @@ export class UnifiedOperationsService {
 
     const work = await this.storageProvider.createMechanicalWork({
       garden_id: request.gardenId,
+      task_id: request.sourceTaskId || null,
       bed_id: request.gardenRowId ? await this.getBedIdForRow(request.gardenRowId) : undefined,
       bed_row_id: request.gardenRowId,
       field_row_id: request.fieldRowId,

@@ -139,3 +139,77 @@ test('decision ledger records task creation and completion for vineyard irrigati
   assert.equal(summary.bySource.irrigation, 1)
   assert.equal(summary.byFocus.water, 1)
 })
+
+test('decision ledger prefers DB-backed records and migrates preference fallback when DB is empty', async () => {
+  const preferenceStore = new Map<string, unknown>()
+  const dbEntries: any[] = []
+  const storage = {
+    async getUserPreference<T>(key: string): Promise<T | null> {
+      return (preferenceStore.get(key) as T | undefined) || null
+    },
+    async setUserPreference<T>(key: string, value: T): Promise<void> {
+      preferenceStore.set(key, value)
+    },
+    async getAgronomicDecisionLedgerEntries() {
+      return dbEntries
+    },
+    async upsertAgronomicDecisionLedgerEntry(entry: any) {
+      const index = dbEntries.findIndex((existing) => existing.id === entry.id)
+      if (index >= 0) {
+        dbEntries[index] = entry
+      } else {
+        dbEntries.push(entry)
+      }
+      return entry
+    },
+  }
+
+  await storage.setUserPreference('agronomic_decision_ledger:garden-1', [
+    {
+      id: 'ledger-preference',
+      gardenId: 'garden-1',
+      queueItemId: 'queue-preference',
+      source: 'irrigation',
+      focus: 'water',
+      status: 'task_created',
+      agronomicProfileId: 'vineyard_quality',
+      createdAt: '2026-04-18T08:00:00.000Z',
+      updatedAt: '2026-04-18T08:00:00.000Z',
+      decisionSnapshot: {
+        source: 'irrigation',
+        focus: 'water',
+        capturedAt: '2026-04-18T08:00:00.000Z',
+      },
+    },
+  ])
+
+  const migrated = await getAgronomicDecisionLedgerEntries(storage, 'garden-1')
+
+  assert.equal(migrated.length, 1)
+  assert.equal(migrated[0]?.id, 'ledger-preference')
+  assert.equal(dbEntries.length, 1)
+
+  dbEntries.push({
+    id: 'ledger-db',
+    gardenId: 'garden-1',
+    queueItemId: 'queue-db',
+    source: 'health',
+    focus: 'health',
+    status: 'completed',
+    agronomicProfileId: 'vineyard_quality',
+    createdAt: '2026-04-19T08:00:00.000Z',
+    updatedAt: '2026-04-19T08:00:00.000Z',
+    decisionSnapshot: {
+      source: 'health',
+      focus: 'health',
+      capturedAt: '2026-04-19T08:00:00.000Z',
+    },
+  })
+
+  const dbBacked = await getAgronomicDecisionLedgerEntries(storage, 'garden-1', {
+    focus: 'health',
+  })
+
+  assert.equal(dbBacked.length, 1)
+  assert.equal(dbBacked[0]?.id, 'ledger-db')
+})

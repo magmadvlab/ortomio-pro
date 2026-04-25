@@ -5,6 +5,7 @@ import { BarChart3, TrendingUp, Target, Award, Leaf, Droplets, Sun, DollarSign, 
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden, GardenTask, HarvestLogData } from '@/types'
 import { useGarden } from '@/packages/core/hooks/useGarden'
+import ActivityRegistry from '@/components/garden/ActivityRegistry'
 import { getQualityOverview, type QualityOverview } from '@/services/qualityResultsService'
 import {
   buildAgronomicQualityLearningAdjustment,
@@ -528,6 +529,14 @@ export default function AnalyticsPage() {
               </div>
             </div>
           </div>
+
+          {activeGarden && (
+            <ActivityRegistry
+              tasks={activeGardenTasks}
+              gardenId={activeGarden.id}
+              storageProvider={storageProvider}
+            />
+          )}
         </div>
       )}
 
