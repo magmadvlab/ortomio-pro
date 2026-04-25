@@ -635,7 +635,7 @@ export default function AnalyticsPage() {
               <Leaf className="mx-auto mb-4 text-green-500" size={48} />
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Impatto Ambientale</h2>
               <p className="text-gray-600 mb-6">
-                Carbon footprint, risparmio idrico e sostenibilità delle pratiche
+                Indicatori orientativi da usare come supporto operativo, non come report ESG certificato
               </p>
               
               {/* Metriche Sostenibilità */}
@@ -645,8 +645,8 @@ export default function AnalyticsPage() {
                     <Sun className="text-green-600" size={24} />
                   </div>
                   <p className="text-2xl font-bold text-green-600">{stats.co2Offset}kg</p>
-                  <p className="text-sm text-gray-600 mb-2">CO₂ Compensata</p>
-                  <p className="text-xs text-green-700">Equivalente a 35km in auto</p>
+                  <p className="text-sm text-gray-600 mb-2">CO₂ stimata</p>
+                  <p className="text-xs text-green-700">Indicatore non auditato</p>
                 </div>
                 
                 <div className="bg-blue-50 rounded-lg p-6">
@@ -654,17 +654,17 @@ export default function AnalyticsPage() {
                     <Droplets className="text-blue-600" size={24} />
                   </div>
                   <p className="text-2xl font-bold text-blue-600">{stats.waterSaved}L</p>
-                  <p className="text-sm text-gray-600 mb-2">Acqua Risparmiata</p>
-                  <p className="text-xs text-blue-700">-25% vs agricoltura tradizionale</p>
+                  <p className="text-sm text-gray-600 mb-2">Acqua stimata</p>
+                  <p className="text-xs text-blue-700">Da validare con baseline aziendale</p>
                 </div>
                 
                 <div className="bg-purple-50 rounded-lg p-6">
                   <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <Shield className="text-purple-600" size={24} />
                   </div>
-                  <p className="text-2xl font-bold text-purple-600">100%</p>
-                  <p className="text-sm text-gray-600 mb-2">Biologico</p>
-                  <p className="text-xs text-purple-700">Zero pesticidi chimici</p>
+                  <p className="text-2xl font-bold text-purple-600">BIO</p>
+                  <p className="text-sm text-gray-600 mb-2">Readiness</p>
+                  <p className="text-xs text-purple-700">Solo se registrata nei moduli certificazioni</p>
                 </div>
               </div>
             </div>

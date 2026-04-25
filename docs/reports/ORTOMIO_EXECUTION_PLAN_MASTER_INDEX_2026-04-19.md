@@ -2574,6 +2574,44 @@ Rule:
    Closure rule:
    - drone surfaces describe the current scaffold honestly, while durable mission registry, evidence pipeline, hardware integration and safety workflow remain tracked implementation work
 
+10. `T10 Sustainability/ESG Boundary Consolidation`
+   Status: done
+   Goal:
+   - preserve sustainability as a product direction while separating real environmental evidence from unsupported carbon/ESG/circular-economy platform claims
+   Source chapters:
+   - `docs/manual/24-sustainability.md`
+   Current verified surface:
+   - `environmentalMonitoringService.ts` provides weather lineage, derived indicators, site binding and zone environmental ledger summaries
+   - irrigation, sensor, weather and diary/predictive services consume environmental context for operational decisions
+   - analytics includes a sustainability tab, but its CO2/water/organic values are lightweight static/summary indicators rather than audited accounting
+   - prescription/cost optimization services include environmental scores/impact indicators for local decision support
+   - `blockchainTraceabilityService.ts` contains carbon-footprint types and fixed/simulated calculations, not a verified carbon accounting system
+   Current limitations:
+   - no Scope 1/2/3 emissions ledger with auditable activity factors
+   - no verified sequestration model, carbon credits, offset workflow or third-party certification support
+   - no biodiversity census/index module
+   - no circular-economy program tracking, waste ledger, biogas/compost certification or industrial symbiosis workflow
+   - no formal ESG report generator or ISO/EMAS/Carbon Trust/Rainforest certification workflow
+   Implementation candidates promoted from legacy promises:
+   - `T10-IMPLEMENT-01 sustainability evidence ledger` — Architecture path: `convert-platform` / `evidence-ledger`; persist environmental observations, water/energy/input events, assumptions, source quality and audit lineage
+   - `T10-IMPLEMENT-02 water efficiency analytics` — Architecture path: `consolidate-first`; promote irrigation/water-quality and environmental ledger data into measured water-use indicators with baseline and confidence labels
+   - `T10-IMPLEMENT-03 carbon accounting module` — Architecture path: `convert-platform`; implement activity factors, Scope 1/2/3 categories, units, emission factors, uncertainty and source references before any carbon-footprint claims
+   - `T10-IMPLEMENT-04 biodiversity and habitat tracking` — Architecture path: `consolidate-first`; add field observations, habitat elements, monitoring dates and simple indicators before advanced indices
+   - `T10-IMPLEMENT-05 ESG/export reporting` — Architecture path: `defer until T10-IMPLEMENT-01/03`; generate reports only from an auditable evidence ledger and selected standards
+   Deferred strategic candidates:
+   - `T10-DEFER-01 environmental certifications and third-party audit workflows` — dependent on standards/legal review and partner validation
+   - `T10-DEFER-02 circular-economy and waste/byproduct marketplace workflows` — dependent on operational waste ledger, partner/integration program and commercial scope
+   Rejected claims:
+   - `T10-REJECT-01 presenting fixed/simulated carbon calculations as verified carbon footprint or carbon-neutral status`
+   - `T10-REJECT-02 presenting ESG/certification/credit workflows as current product without standards mapping and audit evidence`
+   Completed alignment:
+   - rewrote `docs/manual/24-sustainability.md`
+   - synchronized `public/docs/manual/24-sustainability.md`
+   Closure result:
+   - `GAP-2026-04-23-S` is closed for manual/master-plan alignment
+   Closure rule:
+   - sustainability documentation describes current environmental evidence support and tracks carbon/ESG/biodiversity/circular-economy as explicit implementation work
+
 ## Recommended Start Order
 To turn this map into execution without losing precision, start in this order:
 
@@ -2883,6 +2921,7 @@ Meta-rule for this register:
    - no in-app manual chapter contains named testimonial, award or customer-outcome material unless it is backed by verifiable source evidence available to the product team
 
 19. `GAP-2026-04-23-S` Sustainability chapter composes real environmental signals into a much broader ESG/carbon platform than the verified code supports
+   Status: closed under `T10`
    Priority: medium
    Related block: `P5`
    Evidence:
@@ -2891,8 +2930,10 @@ Meta-rule for this register:
    Risk:
    - a real but narrow environmental foundation is documented as a comprehensive sustainability suite, which creates both product overclaim and confusion about what data is actually durable and measurable
    TODO:
-   - map sustainability features into verified environmental monitoring, water/irrigation support, lightweight analytics indicators and unsupported broader ESG/carbon claims
-   - rewrite the chapter around the verified baseline only
+   - done: T10 maps verified environmental monitoring, irrigation/water context, lightweight analytics indicators and simulated carbon structures
+   - done: carbon accounting, ESG reporting, biodiversity tracking, certification workflows and circular-economy programs are tracked as `T10-IMPLEMENT-*` / `T10-DEFER-*`
+   Closure note:
+   - chapter 24 now describes environmental evidence support, not a complete ESG/carbon platform
    Closure rule:
    - the sustainability chapter reflects the actual environmental tooling and clearly excludes unsupported ESG/carbon/circular-economy claims
 
