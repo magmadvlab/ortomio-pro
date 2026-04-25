@@ -115,7 +115,7 @@ Rule:
 - obsolete or purely speculative promises should move toward explicit removal/archive, not silent persistence
 
 1. `T1 AI Surfaces Consolidation`
-   Status: todo
+   Status: done
    Goal:
    - unify what should be a real AI surface across global chat, planner assistance, director and overview layers
    Source chapters:
@@ -236,7 +236,7 @@ Rule:
        Main gap:
        - real monitoring context exists, but the surface is not a unified diagnostic AI engine
    - `T1-B Global Chat Hardening`
-     Status: in_progress
+     Status: done
      Scope:
      - stabilize the real global AI chat path now that UI -> backend wiring exists
      - define what current chat guarantees are actually supported
@@ -365,7 +365,7 @@ Rule:
        - code search confirms no global-chat write path beyond credits and transaction logging
      Implementation tracks now allowed by the boundary:
      - `T1-B5 Context Input Contract`
-       Status: in_progress
+       Status: done
        Goal:
        - define which module-level signals can be passed to global chat in a bounded and explicit way
        Candidate first contexts:
@@ -480,8 +480,11 @@ Rule:
          - module-specific safe routing hints
        Remaining TODO:
        - wire module-owned `health-context`, `task-context`, `irrigation-context`, `diary-environment-context` and `harvest-maturity-context` only where the source data is explicit and schema-mapped
+       Closure result:
+       - global chat now has a bounded input contract and a first route/module `director-context`
+       - richer module-owned contexts are future hardening and must not be documented as current global-chat grounding until implemented
      - `T1-B6 Decision Templates`
-       Status: todo
+       Status: done
        Goal:
        - define the first bounded agronomic decision templates the chat is allowed to support
        Candidate first templates:
@@ -551,8 +554,11 @@ Rule:
          - clarify whether the user should use planner, health, irrigation, nutrition, harvest or mechanical flow next
          Guardrail:
          - must follow the current manual/master truth contract, not legacy promises
+       Closure result:
+       - first bounded decision-support templates are defined as product governance
+       - these templates are not yet a separate runtime classifier; current runtime remains prompt-guarded assistive chat with bounded context
      - `T1-B7 Suggested Action Registry`
-       Status: todo
+       Status: done
        Goal:
        - define the set of allowed next-action suggestions the chat can emit
        Candidate first actions:
@@ -617,8 +623,11 @@ Rule:
          - boundary / explanation
        Guardrail:
        - no suggested action may imply that the chat has already executed a field operation, persisted a record, or commanded hardware unless a real guided routing hook exists for that action
+       Closure result:
+       - the allowed suggested-action vocabulary is defined
+       - current implementation exposes safe routing hints only; write-capable actions remain excluded until a governed execution contract exists
      - `T1-B8 Guided Routing Hooks`
-       Status: todo
+       Status: done
        Goal:
        - connect supported chat suggestions to existing module entrypoints in a controlled way
        Closure rule:
@@ -668,6 +677,9 @@ Rule:
        - `open module` actions may route immediately
        - `execute task-aware flow` actions may route only when task context is present and compatible
        - all other actions stay advisory until promoted into a verified hook class
+       Closure result:
+       - safe route targets and task-aware execution hook classes are defined
+       - global chat does not yet execute these hooks directly; it may suggest module routing and must stay advisory without compatible task context
    - `T1-C Planner AI Boundary`
      Status: done
      Scope:
@@ -1567,8 +1579,33 @@ Rule:
          - `rg -n "from ['\"](@/logic/director|\\.\\./logic/director|../logic/director)['\"]|getDailyGardenPlan\\(|generateUrgentAlerts\\(|checkWeatherUrgency\\(" components services app --glob '!*.backup'`
          Current allowed result:
          - only `services/directorService.ts` may match legacy Director imports/calls
-         Closure result:
-         - Director consolidation gate is now explicit and test-backed; future drift can be detected with a simple search
+       Closure result:
+       - Director consolidation gate is now explicit and test-backed; future drift can be detected with a simple search
+   - `T1-E AI Surface Closure Decision`
+     Status: done
+     Goal:
+     - close T1 without overstating future assistant capabilities
+     Closure decision:
+     - T1 is closed as an AI-surface consolidation, contract and governance block
+     - current product truth:
+       - global chat is real and backend-backed, but assistive
+       - planner chat remains assistive and does not own planner persistence
+       - planner queue/task flows are the execution-grade planning surface
+       - Director has a canonical facade and legacy imports are contained
+       - AI prediction/advice surfaces remain distributed and documented by maturity rather than flattened into one universal AI engine
+     Explicitly deferred beyond T1:
+     - durable cross-session chat memory
+     - autonomous write-capable global chat actions
+     - human support escalation from chat
+     - full source-grounded product reasoning across every module
+     - broad module-owned context packets beyond the first route/module context
+     Verification:
+     - `npm run type-check -- --noEmit`
+     - `npm run test:precision-hub`
+     - legacy Director import guard returns only `services/directorService.ts`
+     Closure result:
+     - AI capabilities shown in the manual now correspond to explicit named surfaces with clear ownership and maturity
+     - stronger assistant promises are tracked as future work or excluded from current product truth
 
 2. `T2 Operational Ledger Closure`
    Status: done
@@ -2726,22 +2763,21 @@ Meta-rule for this register:
    - the AI overview is backed by an explicit sub-domain maturity map and no longer implies a uniform AI engine where one does not exist
 
 32. `GAP-2026-04-23-AF` Global AI chat chapter promises a universal contextual assistant well beyond the verified implementation
-   Priority: high
+   Status: partially_closed_by_T1
+   Priority: medium
    Related block: `P5`
    Evidence:
-   - `components/ai/GlobalAIChat.tsx` exists, but currently uses local canned responses and simulated delay
+   - `components/ai/GlobalAIChat.tsx` exists and now calls the real backend route
    - `app/api/ai/chat/route.ts` provides a real Gemini-backed AI route with credits/tier checks
-   - the current gap is therefore partly architectural/UI: the globally mounted chat widget is not wired to the real AI route
-   - there is still no verified end-to-end evidence for universal page context, strong memory, support escalation, omnipresent actions or the large specialist knowledge base claimed in `docs/manual/08-global-ai-chat.md`
+   - T1 added bounded route/module context, prompt guardrails, explicit error/credit UX and context validation
+   - there is still no verified end-to-end evidence for strong durable memory, support escalation, write-capable omnipresent actions or a large specialist knowledge base
    Risk:
-   - users can infer a globally contextual assistant with production-grade grounding and operational control that the codebase does not currently close
-   - at the same time, the product can be underestimated as “fake chat only” even though a real backend AI path already exists
+   - users can infer a globally contextual assistant with production-grade memory, grounding and operational control that the codebase does not currently close
    TODO:
-   - wire the global chat UI to the real AI route or explicitly split demo chat from production AI entrypoints
-   - separate current chat surface from future capabilities such as durable memory, grounded contextual actions, support escalation and broad knowledge integration
-   - treat the missing capabilities as tracked implementation work before any manual rewrite
+   - keep current manual wording bounded to verified chat behaviour
+   - treat durable memory, grounded write actions, support escalation and broad specialist knowledge as future explicit work, not current capability
    Closure rule:
-   - the global chat chapter only describes verified chat behaviour, the UI path to real AI is explicit, and all stronger assistant capabilities are either implemented or explicitly tracked as open work
+   - the global chat chapter only describes verified chat behaviour, and all stronger assistant capabilities are either implemented or explicitly tracked as open work
 
 33. `GAP-2026-04-23-AG` Planner task loop is materially stronger than planner chat generation logic
    Priority: medium
