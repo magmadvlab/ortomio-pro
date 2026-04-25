@@ -2540,6 +2540,40 @@ Rule:
    Closure rule:
    - integration documentation distinguishes internal routes, provider credential configuration, export/import support and prototype connectors from any future public integration platform
 
+9. `T9 Drone Scaffold Boundary Consolidation`
+   Status: done
+   Goal:
+   - preserve the drone product direction while making the current boundary explicit: internal planning scaffold and simulated execution, not hardware-integrated drone operations
+   Source chapters:
+   - `docs/manual/02-drone-operations.md`
+   Current verified surface:
+   - `/api/drone/flight-plans`, `/api/drone/auto-plan` and `/api/drone/execute` exist
+   - `droneIntegrationService.ts` can create plans, generate waypoints, choose basic flight types and return simulated analysis
+   - Smart Hub now uses the internal drone API scaffold instead of local component-only mock flight data
+   Current limitations:
+   - flight plans are in-memory and not durable across runtime restart/deploy
+   - garden/task inputs in `droneIntegrationService` are mocked rather than loaded from the real storage/database layer
+   - execution is simulated and does not dispatch to DJI, Parrot, MAVLink, provider cloud or physical hardware
+   - analysis results use synthetic/randomized values rather than uploaded imagery/computer vision output
+   - no mission media storage, telemetry ledger, pilot authorization, no-fly-zone validation, safety checklist or compliance workflow is implemented
+   Implementation candidates promoted from legacy promises:
+   - `T9-IMPLEMENT-01 durable drone mission registry` — Architecture path: `consolidate-first` / `schema-consolidation`; persist flight plans, mission state, simulated/real results and links to garden/field context
+   - `T9-IMPLEMENT-02 drone evidence/media pipeline` — Architecture path: `convert-platform` / `evidence-ledger`; support upload/import of imagery, orthomosaic/NDVI outputs, processing state and traceable derived observations
+   - `T9-IMPLEMENT-03 provider/hardware integration boundary` — Architecture path: `convert-platform` / `integration-boundary`; define provider adapters, credentials, mission dispatch, telemetry ingestion and failure modes before claiming live drone control
+   - `T9-IMPLEMENT-04 drone safety and authorization workflow` — Architecture path: `convert-platform` / `workflow-orchestration`; add preflight checklist, weather/no-fly validation, pilot/legal responsibility and audit records
+   - `T9-IMPLEMENT-05 prescription-map handoff from drone evidence` — Architecture path: `consolidate-first`; connect verified drone-derived zones to NDVI/prescription workflows only after the evidence pipeline is real
+   Rejected claims:
+   - `T9-REJECT-01 presenting DJI/flotta/telemetria/video live as current product`
+   - `T9-REJECT-02 presenting synthetic analysis as AI computer vision accuracy or measured agronomic outcome`
+   Completed alignment:
+   - synchronized `public/docs/manual/02-drone-operations.md` with the already bounded source chapter
+   - updated Smart Hub drone copy to label the module as beta/scaffold/simulated
+   - wired Smart Hub drone actions to the existing internal `/api/drone/*` scaffold instead of maintaining a separate local mock
+   Closure result:
+   - `GAP-2026-04-23-Z` is closed for manual/UI/master-plan alignment
+   Closure rule:
+   - drone surfaces describe the current scaffold honestly, while durable mission registry, evidence pipeline, hardware integration and safety workflow remain tracked implementation work
+
 ## Recommended Start Order
 To turn this map into execution without losing precision, start in this order:
 
@@ -2962,6 +2996,7 @@ Meta-rule for this register:
    - AI predictions are documented and exposed according to their actual service/UI maturity
 
 26. `GAP-2026-04-23-Z` Drone domain includes real planning/execution scaffolding but remains simulated and non-persisted
+   Status: closed under `T9`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2970,8 +3005,11 @@ Meta-rule for this register:
    Risk:
    - the drone module can be understated as pure concept or overstated as real hardware-integrated operations, while it is actually a prototype-like operational scaffold
    TODO:
-   - decide whether to deepen persistence/hardware integration or document the current prototype boundary explicitly
-   - rewrite drone docs and, if needed, UI copy around this real-but-simulated state
+   - done: T9 classifies the current state as an internal scaffold with simulated execution and non-durable in-memory plan state
+   - done: Smart Hub now uses the internal `/api/drone/*` scaffold and labels execution as simulation rather than physical flight
+   - done: durable registry, evidence/media pipeline, provider integration, safety workflow and prescription handoff are tracked as `T9-IMPLEMENT-*`
+   Closure note:
+   - public manual chapter 02 is synchronized with the bounded source chapter
    Closure rule:
    - drone documentation and product copy clearly describe the current scaffold/prototype status or the implementation is promoted to durable integrated workflows
 
