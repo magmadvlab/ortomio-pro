@@ -42,6 +42,31 @@ Operational rule:
   - `reject`: document why it should not be built
 - for future blocks after T6, the expected output is not only cleaner documentation; it is a prioritized implementation backlog that moves Ortomio toward the original product vision where that vision is technically and commercially valid
 
+## Architecture Boundary Contract
+Product advancement must also respect the current architecture boundary.
+
+Context:
+- OrtoMio started as a smaller application and grew through repeated product expansions
+- some domains are now mature enough to keep extending in the current stack
+- other domains show fragmentation across UI state, local storage, Supabase tables, API routes, services, simulated workflows and documentation promises
+- before implementing large promises, the team must decide whether to extend, consolidate or convert the architecture
+
+Operational rule:
+- every promoted implementation candidate must declare one of these architecture paths:
+  - `extend-current`: the current stack and module boundary are adequate; implement by wiring or deepening existing services/routes/schema
+  - `consolidate-first`: the product direction is valid, but the current implementation is fragmented and needs service/schema/API consolidation before feature work
+  - `convert-platform`: the promise requires a stronger architectural change, such as a dedicated domain service, event/evidence ledger, integration gateway, background workflow layer or different persistence boundary
+  - `reject-architecture`: the promise is not worth implementing because it would distort the product or create disproportionate technical/operational risk
+- manual alignment must therefore capture both truth and architecture readiness
+- if a feature is valuable but blocked by architecture, it should stay in the master plan as a conversion/consolidation TODO, not vanish from the product vision
+
+Decision checklist for every future gap:
+- identify the real current implementation surface: UI, services, API routes, schema, background jobs, external dependencies and persistence
+- identify the promised product outcome
+- classify missing work as `feature-completion`, `service-consolidation`, `schema-consolidation`, `integration-boundary`, `workflow-orchestration`, `evidence-ledger`, `runtime-scaling` or `out-of-scope`
+- choose `extend-current`, `consolidate-first`, `convert-platform` or `reject-architecture`
+- update this master plan before changing the manual
+
 ## Current Execution Priority Map
 1. `P1 Agronomic Context Refinement`
    Status: done
@@ -2448,16 +2473,16 @@ Rule:
    - roadmap promises
    - testimonial/success-story content
    Implementation candidates promoted from legacy promises:
-   - `T7-IMPLEMENT-01 R&D trial and experiment registry` — build a durable project/trial layer for hypotheses, protocols, measurements, outcomes and links to sensor, diary, treatment and harvest evidence
-   - `T7-IMPLEMENT-02 economic analytics and ROI evidence module` — add baseline/cost/revenue/benefit tracking with confidence labels instead of guaranteed ROI claims
-   - `T7-IMPLEMENT-03 use-case templates and deployment playbooks` — turn illustrative scenarios into guided setup/checklist workflows tied to verified modules
-   - `T7-IMPLEMENT-04 roadmap governance and maturity publishing` — expose feature maturity from this master plan as a controlled product/planning view
-   - `T7-IMPLEMENT-05 customer evidence workflow` — support consented customer stories only when source evidence, metrics, dates and approval state are stored
+   - `T7-IMPLEMENT-01 R&D trial and experiment registry` — Architecture path: `convert-platform` / `evidence-ledger`; build a durable project/trial layer for hypotheses, protocols, measurements, outcomes and links to sensor, diary, treatment and harvest evidence
+   - `T7-IMPLEMENT-02 economic analytics and ROI evidence module` — Architecture path: `consolidate-first` / `schema-consolidation`; add baseline/cost/revenue/benefit tracking with confidence labels instead of guaranteed ROI claims
+   - `T7-IMPLEMENT-03 use-case templates and deployment playbooks` — Architecture path: `extend-current` first, then `workflow-orchestration`; turn illustrative scenarios into guided setup/checklist workflows tied to verified modules
+   - `T7-IMPLEMENT-04 roadmap governance and maturity publishing` — Architecture path: `extend-current`; expose feature maturity from this master plan as a controlled product/planning view
+   - `T7-IMPLEMENT-05 customer evidence workflow` — Architecture path: `consolidate-first` / `evidence-ledger`; support consented customer stories only when source evidence, metrics, dates and approval state are stored
    Deferred strategic candidates:
-   - `T7-DEFER-01 partner and integration program` — formal university, provider, ERP, machinery and marketplace partnerships require commercial/legal confirmation and dedicated integration work
-   - `T7-DEFER-02 advanced robotics/autonomous operations` — dependent on hardware integration, safety controls, durable telemetry and field validation
-   - `T7-DEFER-03 ESG/carbon platform expansion` — dependent on closed environmental evidence models, external standards and auditable reporting workflows
-   - `T7-DEFER-04 enterprise BI and data warehouse layer` — dependent on API/integration consolidation and customer-scale reporting requirements
+   - `T7-DEFER-01 partner and integration program` — Architecture path: `convert-platform` / `integration-boundary`; formal university, provider, ERP, machinery and marketplace partnerships require commercial/legal confirmation and dedicated integration work
+   - `T7-DEFER-02 advanced robotics/autonomous operations` — Architecture path: `convert-platform`; dependent on hardware integration, safety controls, durable telemetry and field validation
+   - `T7-DEFER-03 ESG/carbon platform expansion` — Architecture path: `consolidate-first`; dependent on closed environmental evidence models, external standards and auditable reporting workflows
+   - `T7-DEFER-04 enterprise BI and data warehouse layer` — Architecture path: `convert-platform` / `runtime-scaling`; dependent on API/integration consolidation and customer-scale reporting requirements
    Rejected claims:
    - `T7-REJECT-01 fabricated or unverifiable success stories, named testimonials, awards and media proof`
    - `T7-REJECT-02 guaranteed ROI, fixed payback windows and unsupported percentage outcome tables`
