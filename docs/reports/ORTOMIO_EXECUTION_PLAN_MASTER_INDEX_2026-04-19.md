@@ -2612,6 +2612,39 @@ Rule:
    Closure rule:
    - sustainability documentation describes current environmental evidence support and tracks carbon/ESG/biodiversity/circular-economy as explicit implementation work
 
+11. `T11 Automated Diary Boundary Consolidation`
+   Status: done
+   Goal:
+   - distinguish the real DB-backed daily weather/environment diary pipeline from broader automatic agronomic diary promises and in-memory operational diary surfaces
+   Source chapters:
+   - `docs/manual/35-automated-diary.md`
+   Current verified surface:
+   - `vercel.json` schedules `/api/cron/daily-diary` daily at 23:00
+   - `/api/cron/daily-diary` calls `dailyDiaryService.recordDailyEntries()` with production cron-secret protection
+   - `dailyDiaryService.ts` records `daily_weather_log`, calculates ETo/GDD/chill/stress indicators where data exists, updates `cultivation_daily_tracking`, generates selected `diary_events` and persists zone environmental ledger entries into weather raw data
+   - production/runtime schema has been aligned for `daily_weather_log`, `daily_diary_entries`, `diary_events`, `cultivation_daily_tracking`, GDD parameters and event correlations
+   - `AutomatedDiaryViewer` reads daily diary/weather/tracking/event data through `dailyDiaryService`
+   Current limitations:
+   - daily coverage depends on cron execution, Supabase availability, user/garden coordinates and API/fallback quality
+   - active-cultivation tracking depends on `cultivations` rows and GDD parameter coverage
+   - `operationalDiaryService.ts` remains an in-memory operational diary/analytics layer and is not the same durable daily diary pipeline
+   - broad claims about mature year-over-year analytics, complete automatic event generation, community data, local station/IoT priority and guaranteed nightly completeness are not fully closed
+   Implementation candidates promoted from legacy promises:
+   - `T11-IMPLEMENT-01 diary pipeline observability` — Architecture path: `extend-current`; persist cron runs, processed users, failures, coverage gaps and retry state
+   - `T11-IMPLEMENT-02 durable operational diary convergence` — Architecture path: `consolidate-first` / `evidence-ledger`; move in-memory operational diary entries/analytics into durable tables or clearly separate them from the automated diary
+   - `T11-IMPLEMENT-03 diary event provenance and confidence` — Architecture path: `consolidate-first`; mark automatic/manual/fallback events with source, confidence, input coverage and resolving record
+   - `T11-IMPLEMENT-04 multi-season agronomic analytics` — Architecture path: `defer until coverage`; enable year-over-year GDD/stress/yield comparison only after sufficient persisted history and outcome linkage
+   - `T11-IMPLEMENT-05 local station and IoT diary ingestion` — Architecture path: `convert-platform` / `integration-boundary`; integrate station/sensor priority only through stable device/provider ingestion and quality flags
+   Rejected claims:
+   - `T11-REJECT-01 presenting the diary as guaranteed complete nightly pipeline without coverage/observability evidence`
+   - `T11-REJECT-02 presenting in-memory operational diary analytics as durable historical evidence`
+   Completed alignment:
+   - synchronized `public/docs/manual/35-automated-diary.md` with the bounded source chapter
+   Closure result:
+   - `GAP-2026-04-23-AI` is closed for manual/master-plan alignment
+   Closure rule:
+   - diary documentation distinguishes DB-backed daily environmental observations from still-open operational diary convergence, pipeline observability and multi-season analytics work
+
 ## Recommended Start Order
 To turn this map into execution without losing precision, start in this order:
 
@@ -3180,6 +3213,7 @@ Meta-rule for this register:
    - Smart Hub documentation and implementation explicitly distinguish telemetry reality from still-open actuation/automation work
 
 35. `GAP-2026-04-23-AI` Automated diary chapter implies a more uniformly closed daily tracking system than the current implementation guarantees
+   Status: closed under `T11`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -3188,8 +3222,10 @@ Meta-rule for this register:
    Risk:
    - users can infer a fully reliable automatic agronomic diary platform where the current system is real but still uneven in closure, presentation and operational guarantees
    TODO:
-   - map which diary capabilities are already durable and operational versus predictive/assistive or still partial
-   - convert the missing automatic-diary closure into tracked work before any final rewrite of the chapter
+   - done: T11 maps the DB-backed daily weather/environment diary pipeline separately from in-memory operational diary surfaces and broader predictive promises
+   - done: pipeline observability, durable operational diary convergence, event provenance, multi-season analytics and local station/IoT ingestion are tracked as `T11-IMPLEMENT-*`
+   Closure note:
+   - public manual chapter 35 is synchronized with the bounded source chapter
    Closure rule:
    - the diary chapter reflects only verified daily-tracking behaviour and all stronger automation claims are either implemented or explicitly tracked as open work
 
