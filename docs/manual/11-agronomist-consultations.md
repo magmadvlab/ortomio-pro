@@ -1,67 +1,74 @@
-# 👨‍🌾 CONSULTAZIONI AGRONOMO
+# Consultazioni Agronomo
 
 [← Torna all'Indice](./README.md)
 
 ---
 
-## 🎯 STATO MODULO
+## Stato Modulo
 
-**Stato attuale**: **Documentazione anticipata / non consolidato**
+**Stato attuale**: parzialmente persistito, non marketplace.
 
-Questo capitolo descrive un modello di servizio plausibile, ma oggi non va interpretato come marketplace completo di agronomi con booking, pagamenti e integrazione automatica delle prescrizioni già chiuso nel prodotto.
+Esistono tipi, componenti UI e metodi nello storage provider per gestire agronomi, consultazioni e advice. Il service dedicato `agronomistService.ts` però contiene ancora helper leggeri/stub per diverse letture, quindi il dominio non va presentato come piattaforma consulenziale completa.
 
 **Percorso dichiarato**: Sidebar → Salute → Tab "Agronomi"
 
 ---
 
-## ✅ COSA È RAGIONEVOLE CONSIDERARE DISPONIBILE
+## Cosa è disponibile oggi
 
-- supporto concettuale all'idea di affiancare expertise umana ai moduli AI e ai registri tecnici
-- alcuni flussi dell'app che possono essere utili a preparare una consulenza: storico operazioni, alert, planner, note, raccolte, task
-- documentazione utile per posizionare questa area come evoluzione possibile del prodotto
-
----
-
-## ⚠️ COSA NON VA PRESENTATO COME CHIUSO OGGI
-
-- database nazionale completo di agronomi verificati
-- prenotazione online con disponibilità real-time
-- pagamenti, fatture, abbonamenti e SLA di consulenza
-- prescrizioni aggiunte automaticamente ai workflow con chiusura affidabile end-to-end
-- metriche di ROI o risultati consulenziali già dimostrati nella piattaforma
+- tipi per agronomi, consultazioni e advice
+- componenti per ricerca/contatto/consultation form/lista
+- persistenza tramite `SupabaseStorageProvider` su tabelle `agronomists`, `agronomist_consultations` e `agronomist_advice`
+- collegamento opzionale di consultazioni a giardino e task
+- advice collegabile a task, categoria, priorità, data/stagione e stato applicato
 
 ---
 
-## 🧭 USO CORRETTO OGGI
+## Cosa non è chiuso
 
-Questo capitolo è utile se vuoi:
-- immaginare come un agronomo potrebbe usare OrtoMio come base dati operativa
-- capire quali moduli sono più utili per preparare materiale di confronto tecnico
-- inquadrare una possibile futura integrazione tra consulenza umana e prodotto
-
-Non è utile oggi come:
-- manuale operativo di una rete consulenziale già funzionante in piattaforma
-- prova che il sistema gestisca booking, rating, pagamenti e follow-up in modo reale
+- marketplace di agronomi verificati
+- booking con disponibilità real-time
+- pagamenti, fatture, abbonamenti e SLA
+- prescrizioni applicate automaticamente a workflow e registri operativi
+- rating, ranking, matching professionale o copertura nazionale garantita
+- metriche ROI dei risultati consulenziali
 
 ---
 
-## 🔗 DATI E MODULI PIÙ UTILI PER UNA CONSULENZA REALE
+## Uso corretto oggi
 
-- [🤖 Planner AI](./09-planner-ai-chat.md): per task, priorità e passaggio all'esecuzione
-- [📋 Registro Attività](./10-activity-registry.md): per ricostruire lo storico
-- [💧 Sistema Irrigazione](./15-irrigation-system.md): per dati irrigui reali e log
-- [🌱 Nutrizione e Trattamenti](./16-nutrition-treatments.md): per trattamenti e note operative
-- [🏠 Smart Hub](./14-smart-hub.md): solo come supporto parziale, non come fonte IoT sempre stabile
+Usa questa area per:
+- registrare contatti o riferimenti agronomici dove il provider lo supporta
+- salvare consultazioni e consigli tecnici
+- collegare advice a task quando il flusso lo consente
+- preparare materiale operativo usando registri, storico e allegati
+
+Non usarla come:
+- marketplace professionale completo
+- sistema contrattuale di consulenza
+- garanzia che una prescrizione sia stata eseguita o abbia prodotto outcome
+- sostituto di responsabilità professionale esterna
 
 ---
 
-## 🚧 ROADMAP REALISTICA
+## Moduli utili per una consulenza reale
 
-Per rendere il modulo credibile servirebbe almeno:
-- una superficie prodotto reale per richiesta e gestione consulenze
-- persistenza chiara di report, prescrizioni e follow-up
-- collegamento robusto tra prescrizione esterna, task e outcome
-- validazione privacy, documentale e contrattuale del servizio
+- [Planner AI](./09-planner-ai-chat.md): per task, priorità e passaggio all'esecuzione
+- [Registro Attività](./10-activity-registry.md): per ricostruire lo storico
+- [Sistema Irrigazione](./15-irrigation-system.md): per dati irrigui reali e log
+- [Nutrizione e Trattamenti](./16-nutrition-treatments.md): per trattamenti e note operative
+- [Smart Hub](./14-smart-hub.md): solo come supporto parziale, non come fonte IoT sempre stabile
+
+---
+
+## Backlog tracciato
+
+Per rendere il modulo un prodotto consulenziale completo servirebbe:
+- consolidare `agronomistService.ts` sulla stessa persistenza del provider
+- UX completa per richieste, report, prescrizioni e follow-up
+- workflow esplicito advice → task → operazione → outcome
+- gestione privacy/documenti/allegati più robusta
+- eventuale marketplace/booking/pagamenti come dominio separato
 
 ---
 

@@ -2374,7 +2374,7 @@ Rule:
    - Smart Hub and irrigation docs can state one explicit truth about telemetry, control and automation maturity
 
 6. `T6 Specialized Verticals Completion`
-   Status: todo
+   Status: done
    Goal:
    - decide which vertical domains should be deepened into durable, coherent product slices versus remain hybrid/specialized overlays
    Source chapters:
@@ -2393,6 +2393,29 @@ Rule:
    - define which verticals are strategic product pillars versus opportunistic extensions
    - identify the minimum durable backend/persistence expectations for each one
    - separate local assistive tools from team-shared operational records
+   Progress:
+   - `T6-A vertical maturity map` — Status: done
+     Decision:
+     - `Frutteto`: durable product vertical. DB-backed configurations, trees, pruning/harvest surfaces and operational analytics are real; robotics, computer vision, post-harvest commerce and complete precision-orchard automation remain backlog.
+     - `Oliveto`: hybrid orchard-backed vertical. It reuses frutteto foundations and has olive-specific schema for maturity/fly monitoring, but current specialist widgets are not uniformly wired to durable olive tables.
+     - `Vigneto`: durable product vertical for configurations, vines and bud-load/Ravaz support; winery, ERP, market intelligence, denomination and bottle traceability are outside current scope.
+     - `Piante individuali`: specialized signal/history layer already aligned under T2, not a full QR/genealogy/breeding platform.
+     - `Agronomo`: partially persisted consultation/advice domain through storage provider tables; not marketplace, booking, payment or prescription-automation platform.
+     - `Business Intelligence`: hybrid analytics/reporting surface built on real operational modules, not enterprise BI/data warehouse.
+   - `T6-B orchard/olive/vineyard manual truth alignment` — Status: done
+     Implementation:
+     - rewrote `docs/manual/18-orchard-management.md`
+     - rewrote `docs/manual/19-olive-management.md`
+     - rewrote `docs/manual/20-vineyard-management.md`
+     - synchronized public copies for chapters 18, 19 and 20
+   - `T6-C agronomist/individual-plants/BI alignment` — Status: done
+     Implementation:
+     - rewrote `docs/manual/11-agronomist-consultations.md` around the storage-provider-backed but non-marketplace reality
+     - synchronized public copies for chapters 11, 21 and 22
+     Decision:
+     - manual copies now describe verticals according to actual backend maturity, and strategic/commercial claims are left for T7 if they remain in roadmap-style chapters
+   Closure result:
+   - `GAP-2026-04-23-T`, `GAP-2026-04-23-U`, `GAP-2026-04-23-V` and `GAP-2026-04-23-W` are closed for manual/master-plan alignment
    Closure rule:
    - each vertical has a declared target maturity and the manual reflects only the chosen supported depth
 
@@ -2719,20 +2742,24 @@ Meta-rule for this register:
 20. `GAP-2026-04-23-T` Orchard chapter overstates the most advanced precision-orchard and analytics layers relative to a real but uneven implementation
    Priority: medium
    Related block: `P5`
+   Status: closed under `T6-B`
    Evidence:
    - `/app/orchard`, `orchardService`, orchard dashboard/wizard/tree/pruning/harvest managers and Supabase-backed orchard structures are real
-   - the current chapter extends that real base into robotics, complete advanced analytics, computer-vision automation and broader commercial/post-harvest workflows that are not established as uniformly connected modules
+   - original chapter extended that real base into robotics, complete advanced analytics, computer-vision automation and broader commercial/post-harvest workflows that are not established as uniformly connected modules
    Risk:
    - a substantial orchard module is documented as if every advanced precision-orchard promise were already closed and production-ready
    TODO:
-   - map orchard features into verified operational core vs unsupported advanced precision claims
-   - rewrite the chapter around the verified core only
+   - done: map orchard features into verified operational core vs unsupported advanced precision claims
+   - done: rewrite the chapter around the verified core only
+   Closure note:
+   - `docs/manual/18-orchard-management.md` and `public/docs/manual/18-orchard-management.md` now describe the DB-backed frutteto core and exclude robotics, computer vision, post-harvest commerce and ROI promises from current capability
    Closure rule:
    - orchard docs describe the real operational stack and clearly exclude unsupported advanced precision/commercial claims
 
 21. `GAP-2026-04-23-U` Olive vertical is real but partly assembled from orchard foundations plus local specialist widgets
    Priority: high
    Related block: `P5`
+   Status: closed under `T6-B`
    Evidence:
    - `/app/olives` exists and is operational
    - olive contexts are resolved from garden/orchard data and the page reuses orchard operational managers
@@ -2740,28 +2767,34 @@ Meta-rule for this register:
    Risk:
    - the product can be documented as a fully mature olive-specialist stack when part of the specialist layer is still assistive/local and built on shared orchard infrastructure
    TODO:
-   - map which olive features are durable/shared vs local assistive
-   - decide whether to deepen olive-specific persistence or document the current hybrid state explicitly
+   - done: map which olive features are durable/shared vs local assistive
+   - done: document the current hybrid state explicitly
+   Closure note:
+   - `docs/manual/19-olive-management.md` and `public/docs/manual/19-olive-management.md` now distinguish orchard-backed operations, olive-specific schemas and current local/sample-style specialist widgets
    Closure rule:
    - olive documentation clearly separates orchard-backed operations from local/demo-style specialist tooling, or the tooling is promoted to durable persisted workflows
 
 22. `GAP-2026-04-23-V` Vineyard chapter extends a real vertical into winery/market-intelligence coverage beyond the verified product surface
    Priority: medium
    Related block: `P5`
+   Status: closed under `T6-B`
    Evidence:
    - `/app/vineyard`, `vineyardService`, `vineyardBudLoadService`, vineyard dashboards/wizard and vine management are real and materially implemented
    - the current chapter still describes deeper cantina integration, market analysis and broad end-to-end viticulture intelligence not established as uniformly connected modules
    Risk:
    - a real vineyard vertical is oversold as a full vineyard-to-winery intelligence suite
    TODO:
-   - map verified vineyard operations vs unsupported winery/market-intelligence claims
-   - rewrite the chapter around the verified vineyard baseline only
+   - done: map verified vineyard operations vs unsupported winery/market-intelligence claims
+   - done: rewrite the chapter around the verified vineyard baseline only
+   Closure note:
+   - `docs/manual/20-vineyard-management.md` and `public/docs/manual/20-vineyard-management.md` now describe the DB-backed vineyard/vine/Ravaz support and exclude winery, ERP, market intelligence, denomination and bottle-traceability claims from current capability
    Closure rule:
    - vineyard docs reflect the actual operational and persistence layer without unsupported winery/market overclaim
 
 23. `GAP-2026-04-23-W` Agronomist domain has real UI/data structures but not a consolidated consultation-service backend
    Priority: medium
    Related block: `P5`
+   Status: closed under `T6-C`
    Evidence:
    - agronomist types and UI components exist for contacts, consultation capture and listing
    - `services/agronomistService.ts` remains largely stubbed for reads and applied-advice workflows
@@ -2769,8 +2802,10 @@ Meta-rule for this register:
    Risk:
    - a partially implemented agronomist surface can oscillate between being dismissed as fake or overstated as a complete consultation module
    TODO:
-   - map which agronomist flows are truly storage-backed vs scaffold/UI-only
-   - decide whether to keep the module intentionally lightweight or deepen the backend/service layer
+   - done: map which agronomist flows are truly storage-backed vs scaffold/UI-only
+   - done: document the module as partially persisted and non-marketplace
+   Closure note:
+   - `docs/manual/11-agronomist-consultations.md` and `public/docs/manual/11-agronomist-consultations.md` now describe storage-provider-backed agronomists/consultations/advice while keeping marketplace, booking, payments and prescription automation out of current scope
    Closure rule:
    - agronomist documentation and implementation clearly agree on what is currently operational and what is not
 
