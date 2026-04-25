@@ -2217,11 +2217,11 @@ Rule:
    - `T3-A Certification maturity map` — Status: done
      Decision:
      - `BIO`: durable readiness-assessment loop backed by `bio_certifications` and `bio_certifications_with_readiness`, not full certification authority workflow
-     - `GlobalG.A.P.`: partial durable compliance workspace; risk plans, self-assessments, health/safety managers, recall procedures and GGN codes are DB-backed, while recall test/export transaction paths still need schema/action hardening
+     - `GlobalG.A.P.`: durable compliance workspace for the service-backed schema; UI actions remain either persisted records or explicitly labelled template support
      - `SQNPI` and `GRASP`: informational tabs/backlog, not operational certification workflows
      Evidence:
      - production schema contains `bio_certifications`, `bio_certification_documents`, `bio_certification_inspections`, `bio_certifications_with_readiness`, `globalgap_risk_management_plans`, `globalgap_self_assessments`, `globalgap_health_safety_managers`, `globalgap_recall_procedures`, `globalgap_ggn_codes`, `certifications`, `organic_certifications`, `certification_documents`, `supplier_certifications`, `compliance_records`
-     - production schema does not yet expose every GlobalG.A.P. service table used by the richer dashboard paths, including recall-test and transaction-document paths
+     - `20260425150000_consolidate_globalgap_operational_schema.sql` added the missing GlobalG.A.P. operational tables and generation functions referenced by the services
    - `T3-B BIO persistence and retrieval` — Status: done
      Implementation:
      - added `services/bioCertificationService.ts`
@@ -2230,11 +2230,13 @@ Rule:
      Decision:
      - BIO is now consolidated as persisted readiness support. It remains explicitly not an official certification closure or audit substitute.
    Remaining:
-   - `T3-C GlobalG.A.P. action realism` — Status: in_progress
+   - `T3-C GlobalG.A.P. action realism` — Status: done
      Implementation:
      - `components/compliance/GlobalGapDashboard.tsx` now labels missing-requirement document creation as template support and avoids saying dashboard readiness is official certification
-     Remaining:
-     - align the richer GlobalG.A.P. service paths with production schema or explicitly disable/guard unsupported paths
+     - `supabase/migrations/20260425150000_consolidate_globalgap_operational_schema.sql` aligns production schema with the richer service paths for recall tests, transaction documents, CB/FV records and lot/GGN generation helpers
+     Production:
+     - migration applied to production on 2026-04-25
+     - post-apply verification confirmed 16 additional `globalgap_*` tables, checklist compatibility columns and functions `generate_ggn_code` / `generate_lot_code`
    - `T3-D treatment/compliance/quaderno-campagna boundary`
    - `T3-E manual truth alignment for BIO/compliance/nutrition claims`
    Closure rule:
@@ -2399,15 +2401,17 @@ Meta-rule for this register:
    - BIO records are persisted/reloaded end-to-end and the UI/manual describe the remaining limitation
 
 3. `GAP-2026-04-23-C` GlobalG.A.P. UI mixes real compliance structures with simulated completion actions
-   Priority: medium
+   Status: closed_by_T3
+   Priority: low
    Related block: `P2` / `P3`
    Evidence:
    - `GlobalGapDashboard` loads real overview services, but some action completion and document generation paths are simulated in UI
-   - production schema currently confirms the core GlobalG.A.P. compliance tables but not every richer service path used by recall-test and transaction-document flows
+   - production schema now confirms the core and richer GlobalG.A.P. service tables after `20260425150000_consolidate_globalgap_operational_schema.sql`
+   - UI template actions are labelled as template support rather than durable completion
    Risk:
    - the dashboard can look more operationally closed than the underlying workflow really is
    TODO:
-   - separate simulated actions from real persisted actions, or wire the remaining UI paths to durable backend behaviour
+   - keep future UI actions either wired to these persisted tables or explicitly labelled as template/non-persisted support
    Closure rule:
    - every visible action in the GlobalG.A.P. dashboard is either fully wired or explicitly marked as template/simulated support
 

@@ -22,6 +22,7 @@ Questo modulo esiste davvero nell'app e non va descritto come semplice slide di 
 - calcolo indicativo di conformita/readiness BIO basato sui dati inseriti e sulla vista `bio_certifications_with_readiness`
 - dashboard `GlobalG.A.P. IFA` con overview di readiness, requisiti e azioni
 - servizi dedicati per compliance `GlobalG.A.P.`, incluse strutture per `CB/FV`
+- tabelle operative GlobalG.A.P. per recall test, documenti transazionali, record `CB/FV`, checklist compatibile e funzioni di generazione `GGN`/lotto
 - export di audit package e generazione di template documentali per alcuni requisiti
 - base dati e servizi unificati per stato certificazioni, deadline, documenti e attivita
 
@@ -64,8 +65,7 @@ Nel codice esistono:
 - primitive per tracciabilita lotti, monitoraggi, analisi acqua, fertilizzazione, raccolta e rischi microbiologici
 
 Limiti importanti:
-- alcune azioni in UI sono ancora simulate
-- non tutte le tabelle previste dai percorsi piu ricchi del servizio risultano oggi presenti nello schema di produzione
+- alcune azioni in UI sono template o supporto istruttorio, non completamento ufficiale
 - la presenza di servizi e tabelle non significa che l'intero percorso sia gia validato su casi reali o pronto come sostituto di audit specialistico
 
 ### SQNPI e GRASP
