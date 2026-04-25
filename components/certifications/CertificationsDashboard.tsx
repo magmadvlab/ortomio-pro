@@ -3,10 +3,11 @@
  * Dashboard principale per gestione certificazioni
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
-import { Shield, Leaf, Award, FileText, TrendingUp, Calendar, CheckCircle, AlertTriangle } from 'lucide-react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { Shield, Leaf, Award, FileText, TrendingUp, CheckCircle, AlertTriangle } from 'lucide-react';
 import GlobalGapDashboard from '../compliance/GlobalGapDashboard';
-import BioCertificationForm from './BioCertificationForm';
+import BioCertificationForm, { BioCertificationData } from './BioCertificationForm';
+import { bioCertificationService, BioCertificationRecord } from '../../services/bioCertificationService';
 
 interface CertificationsDashboardProps {
   gardenId: string;
@@ -16,6 +17,59 @@ type CertificationType = 'overview' | 'bio' | 'globalgap' | 'sqnpi' | 'grasp';
 
 const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ gardenId }) => {
   const [activeTab, setActiveTab] = useState<CertificationType>('overview');
+  const [bioCertification, setBioCertification] = useState<BioCertificationRecord | null>(null);
+  const [bioLoading, setBioLoading] = useState(false);
+  const [bioSaving, setBioSaving] = useState(false);
+  const [bioError, setBioError] = useState<string | null>(null);
+  const [bioMessage, setBioMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!gardenId) return;
+
+    let cancelled = false;
+
+    const loadBioCertification = async () => {
+      setBioLoading(true);
+      setBioError(null);
+
+      try {
+        const existing = await bioCertificationService.getLatestByGarden(gardenId);
+        if (!cancelled) {
+          setBioCertification(existing);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setBioError(error instanceof Error ? error.message : 'Impossibile caricare la certificazione BIO');
+        }
+      } finally {
+        if (!cancelled) {
+          setBioLoading(false);
+        }
+      }
+    };
+
+    loadBioCertification();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [gardenId]);
+
+  const handleBioSave = useCallback(async (data: BioCertificationData) => {
+    setBioSaving(true);
+    setBioError(null);
+    setBioMessage(null);
+
+    try {
+      const saved = await bioCertificationService.upsertForGarden(gardenId, data, bioCertification?.id);
+      setBioCertification(saved);
+      setBioMessage(`Certificazione BIO salvata nel database. Readiness: ${saved.readinessStatus || 'non calcolata'}.`);
+    } catch (error) {
+      setBioError(error instanceof Error ? error.message : 'Impossibile salvare la certificazione BIO');
+    } finally {
+      setBioSaving(false);
+    }
+  }, [bioCertification?.id, gardenId]);
 
   const certifications = useMemo(() => [
     {
@@ -24,8 +78,8 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
       description: 'EU 2018/848 - Produzione biologica',
       icon: Leaf,
       color: 'green',
-      progress: 0,
-      status: 'not_started',
+      progress: bioCertification?.complianceScore || 0,
+      status: bioCertification ? (bioCertification.status === 'approved' ? 'completed' : 'in_progress') : 'not_started',
       benefits: ['Accesso mercato BIO', 'Miglior posizionamento commerciale dei lotti conformi', 'Sostenibilità ambientale']
     },
     {
@@ -58,7 +112,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
       status: 'not_started',
       benefits: ['Responsabilità sociale', 'Diritti lavoratori', 'Etica aziendale']
     }
-  ], []);
+  ], [bioCertification]);
 
   const getStatusColor = useCallback((status: string) => {
     switch (status) {
@@ -275,13 +329,20 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
 
           {/* BIO Tab */}
           {activeTab === 'bio' && (
-            <BioCertificationForm
-              gardenId={gardenId}
-              onSave={(data) => {
-                console.log('BIO certification data:', data);
-                alert('Dati certificazione BIO salvati con successo!');
-              }}
-            />
+            bioLoading ? (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-sm text-gray-600">
+                Caricamento certificazione BIO...
+              </div>
+            ) : (
+              <BioCertificationForm
+                gardenId={gardenId}
+                initialData={bioCertification}
+                isSaving={bioSaving}
+                saveError={bioError}
+                saveMessage={bioMessage}
+                onSave={handleBioSave}
+              />
+            )
           )}
 
           {/* GlobalGAP Tab */}

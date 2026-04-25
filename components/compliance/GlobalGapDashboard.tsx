@@ -86,7 +86,7 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
     try {
       setCreatingDocument(requirementId)
       
-      // Simulate document creation
+      // Template-only support: this creates a local draft document, not a persisted compliance record.
       await new Promise(resolve => setTimeout(resolve, 2000))
       
       // Create and download a template document
@@ -195,10 +195,10 @@ Personalizza questo documento secondo le tue esigenze specifiche.`
     try {
       setCompletingAction(actionId)
       
-      // Simulate action completion
+      // UI-only acknowledgement until the corresponding requirement action is wired to a durable record.
       await new Promise(resolve => setTimeout(resolve, 1500))
       
-      console.log('Action completed:', actionId)
+      console.info('GlobalG.A.P. template action acknowledged:', actionId)
       
       // Refresh compliance overview
       await loadComplianceOverview()
@@ -440,11 +440,11 @@ Personalizza questo documento secondo le tue esigenze specifiche.`
                 </h3>
                 <p className="text-sm mb-3">
                   {overview.certification_readiness === 'ready' && 
-                    'Il tuo orto è pronto per la certificazione GlobalG.A.P.! Tutti i requisiti maggiori sono soddisfatti.'}
+                    'La readiness interna indica che i requisiti maggiori tracciati risultano coperti. Verifica sempre con audit professionale prima di trattarlo come certificazione.'}
                   {overview.certification_readiness === 'partially_ready' && 
-                    'Il tuo orto è quasi pronto per la certificazione. Completa i gap rimanenti per essere completamente conforme.'}
+                    'La readiness interna e parziale. Completa i gap rimanenti e verifica la documentazione con un referente qualificato.'}
                   {overview.certification_readiness === 'not_ready' && 
-                    'Il tuo orto richiede ancora lavoro per raggiungere la conformità GlobalG.A.P. Segui le azioni consigliate.'}
+                    'La readiness interna richiede ancora lavoro. Le azioni consigliate distinguono template e record realmente persistiti.'}
                 </p>
                 <div className="text-xs opacity-75">
                   Ultima valutazione: {new Date().toLocaleDateString('it-IT')}
@@ -532,7 +532,7 @@ Personalizza questo documento secondo le tue esigenze specifiche.`
                             Creando...
                           </>
                         ) : (
-                          requirement.action
+                          `Template: ${requirement.action}`
                         )}
                       </button>
                     )}
@@ -555,7 +555,7 @@ Personalizza questo documento secondo le tue esigenze specifiche.`
                     Complimenti! Nessuna azione richiesta
                   </h4>
                   <p className="text-gray-600">
-                    Tutti i requisiti maggiori GlobalG.A.P. sono soddisfatti.
+                    Non risultano gap sui requisiti tracciati dal dashboard. La verifica ufficiale resta esterna.
                   </p>
                 </div>
               ) : (
@@ -602,7 +602,7 @@ Personalizza questo documento secondo le tue esigenze specifiche.`
                               Completando...
                             </>
                           ) : (
-                            'Inizia'
+                            'Apri template'
                           )}
                         </button>
                       </div>

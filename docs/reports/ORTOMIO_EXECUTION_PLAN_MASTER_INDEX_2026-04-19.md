@@ -2198,7 +2198,7 @@ Rule:
    - the product has an explicit cross-module record model and the manual can describe one truthful operational ledger rather than fragmented histories
 
 3. `T3 Compliance and Certifications Closure`
-   Status: todo
+   Status: in_progress
    Goal:
    - decide which compliance and certification workflows are meant to become truly durable operational product features
    Source chapters:
@@ -2212,8 +2212,31 @@ Rule:
    - certification-readiness versus full certification operations
    First TODO candidates:
    - define per-certification maturity and intended target state
-   - decide if BIO becomes a persisted loop or stays assisted assessment
    - separate simulated compliance actions from durable ones
+   Progress:
+   - `T3-A Certification maturity map` — Status: done
+     Decision:
+     - `BIO`: durable readiness-assessment loop backed by `bio_certifications` and `bio_certifications_with_readiness`, not full certification authority workflow
+     - `GlobalG.A.P.`: partial durable compliance workspace; risk plans, self-assessments, health/safety managers, recall procedures and GGN codes are DB-backed, while recall test/export transaction paths still need schema/action hardening
+     - `SQNPI` and `GRASP`: informational tabs/backlog, not operational certification workflows
+     Evidence:
+     - production schema contains `bio_certifications`, `bio_certification_documents`, `bio_certification_inspections`, `bio_certifications_with_readiness`, `globalgap_risk_management_plans`, `globalgap_self_assessments`, `globalgap_health_safety_managers`, `globalgap_recall_procedures`, `globalgap_ggn_codes`, `certifications`, `organic_certifications`, `certification_documents`, `supplier_certifications`, `compliance_records`
+     - production schema does not yet expose every GlobalG.A.P. service table used by the richer dashboard paths, including recall-test and transaction-document paths
+   - `T3-B BIO persistence and retrieval` — Status: done
+     Implementation:
+     - added `services/bioCertificationService.ts`
+     - `components/certifications/CertificationsDashboard.tsx` now loads the latest BIO record from Supabase and saves the form to `bio_certifications`
+     - `components/certifications/BioCertificationForm.tsx` now accepts initial DB state and exposes save status/error state instead of only logging and alerting
+     Decision:
+     - BIO is now consolidated as persisted readiness support. It remains explicitly not an official certification closure or audit substitute.
+   Remaining:
+   - `T3-C GlobalG.A.P. action realism` — Status: in_progress
+     Implementation:
+     - `components/compliance/GlobalGapDashboard.tsx` now labels missing-requirement document creation as template support and avoids saying dashboard readiness is official certification
+     Remaining:
+     - align the richer GlobalG.A.P. service paths with production schema or explicitly disable/guard unsupported paths
+   - `T3-D treatment/compliance/quaderno-campagna boundary`
+   - `T3-E manual truth alignment for BIO/compliance/nutrition claims`
    Closure rule:
    - each certification/compliance workflow has an explicit target state and the manual no longer overstates regulatory closure
 
@@ -2347,10 +2370,12 @@ Meta-rule for this register:
 - only after that tracking step can the chapter be treated as `rewrite` or `delete-candidate`
 
 1. `GAP-2026-04-23-A` Certifications maturity is not homogeneous across tabs
-   Priority: high
+   Status: partially_closed_by_T3
+   Priority: medium
    Related block: `P3`
    Evidence:
    - the route and dashboard are real, but `BIO` and `GlobalG.A.P.` are materially more implemented than `SQNPI` and `GRASP`
+   - T3-A now records the target state: BIO persisted readiness, GlobalG.A.P. partial durable compliance workspace, SQNPI/GRASP informational tabs
    Risk:
    - the product can be described too optimistically as one uniform certifications suite, or too pessimistically as pure concept
    TODO:
@@ -2359,22 +2384,26 @@ Meta-rule for this register:
    - each certification surface is labelled and documented according to its real implementation status
 
 2. `GAP-2026-04-23-B` BIO workflow is visible in UI but not yet a full persisted certification loop
-   Priority: high
+   Status: closed_by_T3
+   Priority: low
    Related block: `P2` / `P3`
    Evidence:
-   - `BioCertificationForm` provides structured capture and scoring, but current save flow is callback-driven and not yet clearly closed as a durable certification record pipeline
+   - `BioCertificationForm` provides structured capture and scoring
+   - `CertificationsDashboard` now loads/saves the latest BIO record through `bioCertificationService`
+   - production schema contains `bio_certifications` and `bio_certifications_with_readiness`
    Risk:
-   - operators may infer that the BIO process is stored and audit-ready end-to-end when it is not yet guaranteed
+   - operators may still infer that persisted readiness equals official certification closure if the manual/UI overstate the status
    TODO:
-   - decide whether to implement durable persistence and retrieval for BIO certification records or explicitly mark the current flow as assisted assessment
+   - keep manual wording bounded to persisted readiness support; full certification authority workflow remains outside current scope
    Closure rule:
-   - either BIO records are persisted/reloaded end-to-end, or the UI/manual consistently describe the current limitation
+   - BIO records are persisted/reloaded end-to-end and the UI/manual describe the remaining limitation
 
 3. `GAP-2026-04-23-C` GlobalG.A.P. UI mixes real compliance structures with simulated completion actions
    Priority: medium
    Related block: `P2` / `P3`
    Evidence:
    - `GlobalGapDashboard` loads real overview services, but some action completion and document generation paths are simulated in UI
+   - production schema currently confirms the core GlobalG.A.P. compliance tables but not every richer service path used by recall-test and transaction-document flows
    Risk:
    - the dashboard can look more operationally closed than the underlying workflow really is
    TODO:
@@ -2736,11 +2765,13 @@ Meta-rule for this register:
    - traceability docs describe only the real operational/prototype surface and exclude unsupported chain-of-custody/commercial overclaim
 
 30. `GAP-2026-04-23-AD` BIO certification guide is grounded in a real form but still implies stronger audit-readiness than the product currently guarantees
+   Status: partially_closed_by_T3
    Priority: medium
    Related block: `P5`
    Evidence:
    - BIO form, checklist and document surfaces exist
-   - document handling and certification closure are still mixed in maturity and not all support is durably end-to-end
+   - BIO record persistence and readiness reload are now DB-backed
+   - document handling and certification authority closure are still mixed in maturity and not all support is durably end-to-end
    Risk:
    - operators may read the guide as a full certification operations manual rather than an assisted readiness tool
    TODO:

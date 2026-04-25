@@ -118,32 +118,25 @@ Restano invece da non sovrastimare:
 ## 📊 COMPLIANCE E SICUREZZA
 
 ### **Quaderno di Campagna Digitale**
-- **Registrazione Automatica**: Trattamenti registrati automaticamente
-- **Dati Completi**: Prodotto, dose, data, operatore, condizioni
-- **Firma Digitale**: Validazione operatori autorizzati
-- **Backup Cloud**: Sicurezza e ridondanza dati
-- **Export Ufficiale**: Formati per controlli ufficiali
+- **Registrazione operativa**: i trattamenti completati possono alimentare lo storico applicativo quando il flusso e persistito
+- **Dati principali**: prodotto, dose, data, note e contesto operativo disponibile
+- **Evidenze interne**: utile per ricostruzione e controllo gestionale
+- **Export**: da trattare come supporto istruttorio, non come formato ufficiale garantito
 
 ### **Limiti Residui (LMR)**
-- **Database Globale**: LMR EU, USA, Giappone, altri mercati
-- **Verifica Automatica**: Controllo conformità automatico
-- **Risk Assessment**: Valutazione rischi residui
-- **Market Access**: Verifica accesso mercati export
-- **Certification**: Supporto certificazioni residui
+- **Dato normativo**: non esiste oggi una verifica LMR globale validata end-to-end
+- **Supporto operativo**: eventuali tempi e finestre vanno usati come promemoria, non come garanzia di conformita
+- **Verifica esterna**: residui, mercati export e certificazioni richiedono fonte normativa/professionale aggiornata
 
 ### **DPI e Sicurezza**
-- **Safety Database**: Database sicurezza prodotti
-- **PPE Requirements**: Dispositivi protezione richiesti
-- **Handling Procedures**: Procedure manipolazione sicura
-- **Emergency Protocols**: Protocolli emergenza
-- **Training Materials**: Materiali formazione sicurezza
+- **Dati prodotto**: se presenti, servono da supporto alla registrazione
+- **DPI e procedure**: devono essere verificati su etichetta, scheda sicurezza e normativa applicabile
+- **Formazione**: non e oggi un ciclo formativo certificato
 
 ### **Certificazioni Integrate**
-- **Biologico**: Prodotti ammessi agricoltura biologica
-- **GlobalG.A.P.**: Conformità standard GlobalG.A.P.
-- **Residue Free**: Programmi residue-free
-- **Sustainable**: Certificazioni sostenibilità
-- **Integrated**: Produzione integrata regionale
+- **Biologico**: il collegamento con BIO e oggi readiness/persistenza interna, non certificazione automatica
+- **GlobalG.A.P.**: esistono strutture compliance dedicate, ma non tutta la catena e chiusa
+- **Residue Free / Sustainable / Produzione integrata**: da considerare backlog o verifica esterna, non workflow completo del modulo trattamenti
 
 ---
 

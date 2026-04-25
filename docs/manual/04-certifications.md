@@ -18,7 +18,8 @@ Questo modulo esiste davvero nell'app e non va descritto come semplice slide di 
 
 - dashboard certificazioni con tab dedicate per `BIO`, `GlobalG.A.P.`, `SQNPI` e `GRASP`
 - form strutturato per certificazione biologica `EU 2018/848`
-- calcolo indicativo di conformita BIO basato sui dati inseriti
+- salvataggio e ricaricamento del record BIO piu recente tramite database Supabase
+- calcolo indicativo di conformita/readiness BIO basato sui dati inseriti e sulla vista `bio_certifications_with_readiness`
 - dashboard `GlobalG.A.P. IFA` con overview di readiness, requisiti e azioni
 - servizi dedicati per compliance `GlobalG.A.P.`, incluse strutture per `CB/FV`
 - export di audit package e generazione di template documentali per alcuni requisiti
@@ -28,6 +29,7 @@ Evidenze principali nel codice:
 - route [app/app/certifications/page.tsx](/Volumes/990P/ortomio-main/app/app/certifications/page.tsx:1)
 - dashboard [components/certifications/CertificationsDashboard.tsx](/Volumes/990P/ortomio-main/components/certifications/CertificationsDashboard.tsx:1)
 - form BIO [components/certifications/BioCertificationForm.tsx](/Volumes/990P/ortomio-main/components/certifications/BioCertificationForm.tsx:1)
+- servizio BIO [services/bioCertificationService.ts](/Volumes/990P/ortomio-main/services/bioCertificationService.ts:1)
 - dashboard GlobalG.A.P. [components/compliance/GlobalGapDashboard.tsx](/Volumes/990P/ortomio-main/components/compliance/GlobalGapDashboard.tsx:1)
 - servizi [services/globalGapComplianceService.ts](/Volumes/990P/ortomio-main/services/globalGapComplianceService.ts:1), [services/globalGapCbFvService.ts](/Volumes/990P/ortomio-main/services/globalGapCbFvService.ts:1), [services/unifiedCertificationsService.ts](/Volumes/990P/ortomio-main/services/unifiedCertificationsService.ts:1)
 
@@ -44,9 +46,10 @@ Il form BIO oggi consente di:
 - registrare superfici biologiche, in conversione e convenzionali
 - dichiarare pratiche e vincoli rilevanti
 - verificare un punteggio indicativo di conformita
+- salvare il record nel database e ricaricare l'ultima versione per l'orto
 
 Limite importante:
-- il salvataggio passa da callback UI e non equivale da solo a una pratica certificativa completa gia chiusa verso un ente esterno
+- il salvataggio DB consolida la readiness interna, ma non equivale a pratica certificativa completa gia chiusa verso un ente esterno
 
 ### GlobalG.A.P.
 
@@ -62,6 +65,7 @@ Nel codice esistono:
 
 Limiti importanti:
 - alcune azioni in UI sono ancora simulate
+- non tutte le tabelle previste dai percorsi piu ricchi del servizio risultano oggi presenti nello schema di produzione
 - la presenza di servizi e tabelle non significa che l'intero percorso sia gia validato su casi reali o pronto come sostituto di audit specialistico
 
 ### SQNPI e GRASP
