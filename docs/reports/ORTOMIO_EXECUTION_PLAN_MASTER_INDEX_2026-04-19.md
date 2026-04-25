@@ -2121,6 +2121,27 @@ Rule:
        - define separate resilience/offline-read requirements only if the product later commits to true offline operation
        Closure rule:
        - cloud/database-backed projections are the source of truth; fallback UI is availability handling, not a second ledger implementation
+     - `T2-P Daily Weather Log Runtime Schema Drift`
+       Status: done
+       Goal:
+       - close the production schema drift that made diary/weather reads fail against `daily_weather_log` even though the operational code expected the richer automated diary schema
+       Runtime finding:
+       - browser/Supabase requests ordered by `log_date` returned HTTP 400
+       - production already had `log_date`, so the failure source was not ordering itself
+       - the compact Supabase-created table was missing runtime columns used by weather, diary and environmental monitoring services, including `temp_min`, `temp_max`, `temp_avg`, `humidity_avg`, `weather_conditions`, `data_source` and `raw_data`
+       Decision:
+       - patch the existing `daily_weather_log` table additively
+       - do not create a duplicate weather or diary table
+       - backfill compatibility columns from existing `temperature_min`, `temperature_max`, `weather_code` and `notes` where possible
+       - keep garden ownership/RLS semantics intact and add `user_id` only as an indexed compatibility/read column
+       Implementation:
+       - migration `supabase/migrations/20260425103000_patch_daily_weather_log_runtime_columns.sql`
+       Verification:
+       - rollback validation against production schema succeeded on 2026-04-25
+       - production migration applied on 2026-04-25
+       - `npm run type-check -- --noEmit`
+       Closure result:
+       - the automated diary/weather observation layer now matches the DB-first runtime contract without duplicating durable weather history
    Closure rule:
    - the product has an explicit cross-module record model and the manual can describe one truthful operational ledger rather than fragmented histories
 
