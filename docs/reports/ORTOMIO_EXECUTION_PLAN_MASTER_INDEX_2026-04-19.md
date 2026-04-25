@@ -1877,7 +1877,7 @@ Rule:
          - `harvest_logs`: 0
        Remaining future TODO:
        - decide whether `individual_plant_operations`, `smart_device_automation_logs`, prescription execution records and quality results should enter this same projection or companion projections
-       - decide whether older operation rows should be backfilled from `SOURCE_TASK` markers into `task_id` if/when legacy rows exist
+       - older operation rows with `SOURCE_TASK` markers are backfilled into `task_id` by `T2-M`; keep the note parser only as defensive compatibility
        Closure rule:
        - the product can query queue decisions and non-queue real operation histories through one outcome-first projection without duplicating durable operational tables
      - `T2-G Specialized Operation Signal Projection`
@@ -2054,6 +2054,33 @@ Rule:
        - remove preference fallback only if/when local/offline behavior has an explicit equivalent durable implementation
        Closure rule:
        - source-service reads and writes are DB-first where the provider supports the T2 ledger tables
+     - `T2-M Legacy Source Task Backfill`
+       Status: done
+       Goal:
+       - remove the main concrete T2-F caveat where older operation rows could remain linked to source tasks only through `SOURCE_TASK::...` note markers
+       Decision:
+       - keep `SOURCE_TASK` parsing in projections as a compatibility fallback
+       - add an explicit DB backfill that writes valid marker task ids into the real `task_id` columns where available
+       - validate every marker against `garden_tasks` and matching `garden_id` before updating
+       Implementation:
+       - migration `supabase/migrations/20260425100000_backfill_operation_task_ids_from_source_task_markers.sql`
+       - covers:
+         - `watering_logs`
+         - `fertilizer_application_logs`
+         - `treatment_register`
+         - `mechanical_work_register`
+         - `harvest_logs`
+       Verification:
+       - rollback validation against production schema succeeded on 2026-04-25
+       - production migration applied on 2026-04-25
+       - production updated 0 rows because the covered operation tables currently have no valid legacy `SOURCE_TASK` markers requiring backfill
+       - `npm run type-check -- --noEmit`
+       Closure result:
+       - legacy operation rows can become queryable by `task_id` without creating duplicate ledger records
+       Remaining future TODO:
+       - if future source tables adopt different marker formats, add table-specific backfills rather than weakening the UUID validation
+       Closure rule:
+       - historical operation/task linkage is explicit when the legacy marker points to a real task in the same garden
    Closure rule:
    - the product has an explicit cross-module record model and the manual can describe one truthful operational ledger rather than fragmented histories
 
