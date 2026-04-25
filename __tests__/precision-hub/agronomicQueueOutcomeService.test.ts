@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import {
   attachAgronomicQueueOperatorEvidence,
+  getAgronomicQueueOutcomeRecords,
   recordAgronomicQueueTaskOutcome,
   syncAgronomicQueueOutcomeEvidence,
 } from '@/services/agronomicQueueOutcomeService'
@@ -133,4 +134,106 @@ test('attachAgronomicQueueOperatorEvidence stores source-side execution payload 
 
   assert.equal(updated?.operatorEvidence?.operation, 'watering')
   assert.equal(updated?.operatorEvidence?.metrics.totalLiters, 20)
+})
+
+test('queue outcomes prefer DB-backed records and migrate preference fallback when DB is empty', async () => {
+  const preferenceStore = new Map<string, unknown>()
+  const dbRecords: any[] = []
+  const storage = {
+    async getUserPreference<T>(key: string): Promise<T | null> {
+      return (preferenceStore.get(key) as T | undefined) || null
+    },
+    async setUserPreference<T>(key: string, value: T): Promise<void> {
+      preferenceStore.set(key, value)
+    },
+    async getAgronomicQueueOutcomeRecords() {
+      return dbRecords
+    },
+    async upsertAgronomicQueueOutcomeRecord(record: any) {
+      const index = dbRecords.findIndex((existing) => existing.id === record.id)
+      if (index >= 0) {
+        dbRecords[index] = record
+      } else {
+        dbRecords.push(record)
+      }
+      return record
+    },
+  }
+
+  await storage.setUserPreference('agronomic_queue_outcomes:garden-1', [
+    {
+      id: 'aq_outcome:preference',
+      gardenId: 'garden-1',
+      taskId: 'task-preference',
+      queueItemId: 'queue-preference',
+      completedAt: '2026-04-18T08:00:00.000Z',
+      taskType: 'Irrigation',
+      plantName: 'Sangiovese',
+      success: true,
+    },
+  ])
+
+  const migrated = await getAgronomicQueueOutcomeRecords(storage, 'garden-1')
+
+  assert.equal(migrated.length, 1)
+  assert.equal(migrated[0]?.id, 'aq_outcome:preference')
+  assert.equal(dbRecords.length, 1)
+
+  dbRecords.push({
+    id: 'aq_outcome:db',
+    gardenId: 'garden-1',
+    taskId: 'task-db',
+    queueItemId: 'queue-db',
+    completedAt: '2026-04-19T08:00:00.000Z',
+    taskType: 'Treatment',
+    plantName: 'Sangiovese',
+    success: true,
+  })
+
+  const dbBacked = await getAgronomicQueueOutcomeRecords(storage, 'garden-1')
+
+  assert.equal(dbBacked.length, 2)
+  assert.equal(dbBacked[0]?.id, 'aq_outcome:db')
+})
+
+test('recordAgronomicQueueTaskOutcome writes directly to DB-backed outcome storage', async () => {
+  const dbRecords: any[] = []
+  const decisionEntries: any[] = []
+  const storage = {
+    async getUserPreference() {
+      return []
+    },
+    async setUserPreference() {
+      throw new Error('preference storage should not be used for DB-backed outcome writes')
+    },
+    async getAgronomicQueueOutcomeRecords() {
+      return dbRecords
+    },
+    async upsertAgronomicQueueOutcomeRecord(record: any) {
+      dbRecords.push(record)
+      return record
+    },
+    async getAgronomicDecisionLedgerEntries() {
+      return decisionEntries
+    },
+    async upsertAgronomicDecisionLedgerEntry(entry: any) {
+      decisionEntries.push(entry)
+      return entry
+    },
+  }
+
+  await recordAgronomicQueueTaskOutcome(storage as any, {
+    id: 'task-db',
+    gardenId: 'garden-1',
+    plantName: 'Sangiovese',
+    taskType: 'Irrigation',
+    date: '2026-04-20',
+    completed: true,
+    completedAt: '2026-04-20T08:00:00.000Z',
+    suggestedBy: 'agronomic_queue:irrigation:zone-1',
+    notes: 'AQ_META::{"queueItemId":"irrigation:zone-1","source":"irrigation","focus":"water","priorityScore":80,"priorityConfidence":0.85,"urgencyLabel":"immediate","missingSignals":[]}',
+  })
+
+  assert.equal(dbRecords.length, 1)
+  assert.equal(dbRecords[0]?.taskId, 'task-db')
 })

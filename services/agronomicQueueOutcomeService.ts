@@ -340,10 +340,33 @@ const mechanicalTaskTypes = new Set<GardenTask['taskType']>([
   'TreePruning',
 ])
 
+const sortOutcomeRecords = (records: AgronomicQueueOutcomeRecord[]) =>
+  [...records].sort(
+    (left, right) =>
+      new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime()
+  )
+
 export async function getAgronomicQueueOutcomeRecords(
-  storageProvider: Pick<IStorageProvider, 'getUserPreference'> | null | undefined,
+  storageProvider:
+    | Pick<
+        IStorageProvider,
+        'getUserPreference' | 'getAgronomicQueueOutcomeRecords' | 'upsertAgronomicQueueOutcomeRecord'
+      >
+    | null
+    | undefined,
   gardenId: string
 ): Promise<AgronomicQueueOutcomeRecord[]> {
+  if (storageProvider?.getAgronomicQueueOutcomeRecords) {
+    try {
+      const dbRecords = await storageProvider.getAgronomicQueueOutcomeRecords(gardenId)
+      if (dbRecords.length > 0) {
+        return sortOutcomeRecords(dbRecords)
+      }
+    } catch (error) {
+      console.warn('Falling back to preference-backed agronomic queue outcomes', error)
+    }
+  }
+
   if (!storageProvider?.getUserPreference) {
     return []
   }
@@ -353,15 +376,30 @@ export async function getAgronomicQueueOutcomeRecords(
       getOutcomePreferenceKey(gardenId)
     )) || []
 
-  return [...records].sort(
-    (left, right) =>
-      new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime()
-  )
+  if (records.length > 0 && storageProvider.upsertAgronomicQueueOutcomeRecord) {
+    try {
+      await Promise.all(
+        records.map((record) => storageProvider.upsertAgronomicQueueOutcomeRecord!(record))
+      )
+    } catch (error) {
+      console.warn('Unable to migrate preference-backed agronomic queue outcomes to DB', error)
+    }
+  }
+
+  return sortOutcomeRecords(records)
 }
 
 export async function recordAgronomicQueueTaskOutcome(
   storageProvider:
-    | Pick<IStorageProvider, 'getUserPreference' | 'setUserPreference'>
+    | Pick<
+        IStorageProvider,
+        | 'getUserPreference'
+        | 'setUserPreference'
+        | 'getAgronomicQueueOutcomeRecords'
+        | 'upsertAgronomicQueueOutcomeRecord'
+        | 'getAgronomicDecisionLedgerEntries'
+        | 'upsertAgronomicDecisionLedgerEntry'
+      >
     | null
     | undefined,
   task: GardenTask,
@@ -407,10 +445,14 @@ export async function recordAgronomicQueueTaskOutcome(
     metadata,
   }
 
-  await storageProvider.setUserPreference(getOutcomePreferenceKey(task.gardenId), [
-    nextRecord,
-    ...existingRecords,
-  ])
+  if (storageProvider.upsertAgronomicQueueOutcomeRecord) {
+    await storageProvider.upsertAgronomicQueueOutcomeRecord(nextRecord)
+  } else {
+    await storageProvider.setUserPreference(getOutcomePreferenceKey(task.gardenId), [
+      nextRecord,
+      ...existingRecords,
+    ])
+  }
 
   await markAgronomicDecisionCompleted(storageProvider, task.gardenId, {
     queueItemId,
@@ -428,7 +470,10 @@ export async function recordAgronomicQueueTaskOutcome(
 
 export async function attachAgronomicQueueOperatorEvidence(
   storageProvider:
-    | Pick<IStorageProvider, 'getUserPreference' | 'setUserPreference'>
+    | Pick<
+        IStorageProvider,
+        'getUserPreference' | 'setUserPreference' | 'getAgronomicQueueOutcomeRecords' | 'upsertAgronomicQueueOutcomeRecord'
+      >
     | null
     | undefined,
   options: {
@@ -461,7 +506,11 @@ export async function attachAgronomicQueueOperatorEvidence(
     record.id === targetRecord.id ? updatedRecord : record
   )
 
-  await storageProvider.setUserPreference(getOutcomePreferenceKey(options.gardenId), nextRecords)
+  if (storageProvider.upsertAgronomicQueueOutcomeRecord) {
+    await storageProvider.upsertAgronomicQueueOutcomeRecord(updatedRecord)
+  } else {
+    await storageProvider.setUserPreference(getOutcomePreferenceKey(options.gardenId), nextRecords)
+  }
   return updatedRecord
 }
 
@@ -623,6 +672,8 @@ export async function syncAgronomicQueueOutcomeEvidence(
         IStorageProvider,
         | 'getUserPreference'
         | 'setUserPreference'
+        | 'getAgronomicQueueOutcomeRecords'
+        | 'upsertAgronomicQueueOutcomeRecord'
         | 'getTasks'
         | 'getWateringLogs'
         | 'getFertilizerApplicationLogs'
@@ -700,7 +751,13 @@ export async function syncAgronomicQueueOutcomeEvidence(
     }
   })
 
-  await storageProvider.setUserPreference(getOutcomePreferenceKey(gardenId), updatedRecords)
+  if (storageProvider.upsertAgronomicQueueOutcomeRecord) {
+    await Promise.all(
+      updatedRecords.map((record) => storageProvider.upsertAgronomicQueueOutcomeRecord!(record))
+    )
+  } else {
+    await storageProvider.setUserPreference(getOutcomePreferenceKey(gardenId), updatedRecords)
+  }
   return updatedRecords
 }
 
@@ -710,6 +767,8 @@ export async function getAgronomicQueueOutcomeSummary(
         IStorageProvider,
         | 'getUserPreference'
         | 'setUserPreference'
+        | 'getAgronomicQueueOutcomeRecords'
+        | 'upsertAgronomicQueueOutcomeRecord'
         | 'getTasks'
         | 'getWateringLogs'
         | 'getFertilizerApplicationLogs'

@@ -2026,6 +2026,34 @@ Rule:
        - decide whether the activity list itself should later be expanded from task-only rows to normalized operational ledger events
        Closure rule:
        - no simulated activity appears in the truthful registry path; ledger totals come from T2 projections only
+     - `T2-L DB-backed Source Services Closure`
+       Status: done
+       Goal:
+       - ensure the source services feeding the operational ledger use the new durable DB tables when available instead of staying preference-first after DB migration work
+       Decision:
+       - prefer provider-backed DB reads/writes for decision ledger entries and agronomic queue outcomes
+       - keep preference-backed storage as fallback for local/offline/legacy contexts
+       - opportunistically migrate preference-backed records into DB-backed upsert methods when the provider exposes them and DB rows are not yet present
+       - do not create another ledger abstraction; source services remain the write path and projections remain the read path
+       Implementation:
+       - `services/agronomicDecisionLedgerService.ts`
+       - `services/agronomicQueueOutcomeService.ts`
+       - DB-backed optional provider methods already exposed through the storage contract:
+         - `getAgronomicDecisionLedgerEntries`
+         - `upsertAgronomicDecisionLedgerEntry`
+         - `getAgronomicQueueOutcomeRecords`
+         - `upsertAgronomicQueueOutcomeRecord`
+       Verification:
+       - `__tests__/precision-hub/agronomicDecisionLedgerService.test.ts`
+       - `__tests__/precision-hub/agronomicQueueOutcomeService.test.ts`
+       - `npm run type-check -- --noEmit`
+       - `npm run test:precision-hub`
+       Closure result:
+       - the decision ledger and agronomic queue outcome services now align with the durable DB-backed T2 substrate while preserving legacy fallback behavior
+       Remaining future TODO:
+       - remove preference fallback only if/when local/offline behavior has an explicit equivalent durable implementation
+       Closure rule:
+       - source-service reads and writes are DB-first where the provider supports the T2 ledger tables
    Closure rule:
    - the product has an explicit cross-module record model and the manual can describe one truthful operational ledger rather than fragmented histories
 
