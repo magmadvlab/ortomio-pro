@@ -2023,7 +2023,7 @@ Rule:
        Closure result:
        - the Activity Registry no longer presents demo events as real activity history and displays a real operational ledger summary on the active analytics page
        Remaining future TODO:
-       - decide whether the activity list itself should later be expanded from task-only rows to normalized operational ledger events
+       - activity list expansion to normalized ledger events is completed by `T2-N`
        Closure rule:
        - no simulated activity appears in the truthful registry path; ledger totals come from T2 projections only
      - `T2-L DB-backed Source Services Closure`
@@ -2081,6 +2081,26 @@ Rule:
        - if future source tables adopt different marker formats, add table-specific backfills rather than weakening the UUID validation
        Closure rule:
        - historical operation/task linkage is explicit when the legacy marker points to a real task in the same garden
+     - `T2-N Activity Registry Ledger Event Stream`
+       Status: done
+       Goal:
+       - make the first UI consumer display the normalized ledger stream itself, not only a task list plus ledger summary counters
+       Decision:
+       - when `getOperationalLedgerSummary` returns events, Activity Registry uses those normalized events as its primary activity timeline
+       - when no ledger events are available, it falls back to real task props
+       - do not synthesize demo rows and do not create a new activity table
+       Implementation:
+       - `components/garden/ActivityRegistry.tsx`
+       - maps `OperationalLedgerUnifiedEvent` rows into visible activity records
+       - shows source family/table, execution evidence and measured-result badges where available
+       Verification:
+       - `npm run type-check -- --noEmit`
+       Closure result:
+       - the registry can now act as a real event-stream consumer of T2 projections while preserving task-only behavior for empty/local contexts
+       Remaining future TODO:
+       - improve labels per operation family once production contains representative ledger rows for visual QA
+       Closure rule:
+       - the first consumer can render the normalized operational ledger event stream without duplicating durable records
    Closure rule:
    - the product has an explicit cross-module record model and the manual can describe one truthful operational ledger rather than fragmented histories
 

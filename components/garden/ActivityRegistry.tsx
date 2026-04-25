@@ -32,7 +32,7 @@ import {
 } from 'lucide-react'
 import { GardenTask } from '@/types'
 import type { IStorageProvider } from '@/packages/core/storage/interface'
-import type { OperationalLedgerSummary } from '@/services/operationalLedgerService'
+import type { OperationalLedgerSummary, OperationalLedgerUnifiedEvent } from '@/services/operationalLedgerService'
 import { getOperationalLedgerSummary } from '@/services/operationalLedgerService'
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -40,7 +40,7 @@ import { it } from 'date-fns/locale'
 interface ActivityRecord {
   id: string
   date: string
-  type: 'task' | 'observation' | 'harvest' | 'treatment' | 'photo' | 'note'
+  type: 'task' | 'observation' | 'harvest' | 'treatment' | 'photo' | 'note' | 'ledger'
   category: string
   title: string
   description: string
@@ -61,6 +61,10 @@ interface ActivityRecord {
   completed: boolean
   completedAt?: string
   linkedTaskId?: string
+  source?: string
+  resultClass?: string | null
+  hasMeasuredResult?: boolean
+  hasExecutionEvidence?: boolean
 }
 
 interface ActivityRegistryProps {
@@ -95,8 +99,40 @@ export default function ActivityRegistry({
   const [showDetails, setShowDetails] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'timeline' | 'stats'>('list')
 
-  // Converti tasks in activity records
+  const buildLedgerActivityRecord = (event: OperationalLedgerUnifiedEvent): ActivityRecord => {
+    const category = event.category || event.family
+    const kind = event.kind || event.source
+    const hasEvidence = event.hasExecutionEvidence || event.hasMeasuredResult
+
+    return {
+      id: event.id,
+      date: event.occurredAt || new Date(0).toISOString(),
+      type: event.family === 'outcome' ? 'task' : 'ledger',
+      category,
+      title: `${category} - ${kind}`,
+      description: [
+        event.source,
+        event.resultClass ? `esito: ${event.resultClass}` : null,
+        event.hasExecutionEvidence ? 'evidenza esecuzione' : null,
+        event.hasMeasuredResult ? 'risultato misurato' : null,
+      ].filter(Boolean).join(' · '),
+      completed: hasEvidence,
+      completedAt: event.occurredAt || undefined,
+      linkedTaskId: event.taskId || undefined,
+      source: event.source,
+      resultClass: event.resultClass,
+      hasMeasuredResult: event.hasMeasuredResult,
+      hasExecutionEvidence: event.hasExecutionEvidence,
+    }
+  }
+
+  // Converti ledger reale o, in fallback, tasks in activity records
   useEffect(() => {
+    if (ledgerSummary?.events?.length) {
+      setActivities(ledgerSummary.events.map(buildLedgerActivityRecord))
+      return
+    }
+
     if (!tasks || tasks.length === 0) {
       setActivities([])
       return
@@ -122,7 +158,7 @@ export default function ActivityRegistry({
     }))
 
     setActivities(activityRecords)
-  }, [tasks])
+  }, [ledgerSummary, tasks])
 
   useEffect(() => {
     let cancelled = false
@@ -235,7 +271,8 @@ export default function ActivityRegistry({
       'harvest': Package,
       'treatment': Bug,
       'photo': Camera,
-      'note': FileText
+      'note': FileText,
+      'ledger': BarChart3
     }
     const Icon = icons[type] || Activity
     return <Icon size={16} />
@@ -248,7 +285,8 @@ export default function ActivityRegistry({
       'harvest': 'bg-orange-100 text-orange-700',
       'treatment': 'bg-red-100 text-red-700',
       'photo': 'bg-purple-100 text-purple-700',
-      'note': 'bg-gray-100 text-gray-700'
+      'note': 'bg-gray-100 text-gray-700',
+      'ledger': 'bg-emerald-100 text-emerald-700'
     }
     return colors[type] || 'bg-gray-100 text-gray-700'
   }
@@ -536,6 +574,12 @@ export default function ActivityRegistry({
                               Completata
                             </span>
                           )}
+
+                          {activity.hasMeasuredResult && (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                              Misurata
+                            </span>
+                          )}
                         </div>
                         
                         <h4 className="font-semibold text-gray-900 mb-1">{activity.title}</h4>
@@ -567,6 +611,13 @@ export default function ActivityRegistry({
                             <span className="flex items-center gap-1">
                               <Clock size={12} />
                               {activity.duration} min
+                            </span>
+                          )}
+
+                          {activity.source && (
+                            <span className="flex items-center gap-1">
+                              <BarChart3 size={12} />
+                              {activity.source}
                             </span>
                           )}
                         </div>
