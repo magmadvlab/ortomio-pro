@@ -2500,6 +2500,46 @@ Rule:
    Closure rule:
    - the manual contains no strategic or commercial promise layer that is not explicitly backed by either current code or an approved master-plan TODO
 
+8. `T8 Integration/API Boundary Consolidation`
+   Status: done
+   Goal:
+   - separate current internal/API-adjacent capabilities from unsupported external ecosystem promises, and identify the architecture boundary needed before public integrations can be promised
+   Source chapters:
+   - `docs/manual/26-integration-api.md`
+   Current verified surface:
+   - internal Next.js API routes exist for product modules such as AI, NDVI, IoT telemetry, sensors, export, treatments, mechanical work, drones, blockchain-style traceability and cron jobs
+   - `api_configurations` / `/api/api-configurations` support user/provider configuration for AI and weather providers, but the schema/service boundary is inconsistent with older migration fields and uses weak base64-style storage in some paths
+   - `api_keys` supports user API keys for AI, Sentinel Hub, WeatherAPI and custom endpoints
+   - export/import exists for selected garden backup and prescription-map/GIS formats
+   - IoT telemetry and command routes exist, but device provisioning, provider dispatch and physical actuation remain bounded under T5
+   - machinery compatibility/export support exists for prescription maps, but not as a live machinery/cloud integration
+   Unsupported current claims:
+   - public `/api/v1` product API, public developer portal, official SDKs and sandbox
+   - real-time outbound webhooks/event bus/message queues
+   - native ERP, CRM, marketplace, banking, insurance, Zapier, Power Automate or cloud-platform connectors
+   - official ISOBUS/ADAPT/AgGateway integration layer beyond export-format support
+   - multi-tenant cooperative integration platform, API gateway, message bus or data warehouse as current product
+   Implementation candidates promoted from legacy promises:
+   - `T8-IMPLEMENT-01 API credentials security consolidation` — Architecture path: `consolidate-first` / `schema-consolidation`; unify `api_configurations` and `api_keys` or clearly separate their roles, replace weak reversible/base64 handling with server-side secret management, and prevent decrypted secrets from being returned to client code
+   - `T8-IMPLEMENT-02 public API contract and gateway` — Architecture path: `convert-platform` / `integration-boundary`; design authenticated, versioned external API endpoints only after internal module contracts are stable
+   - `T8-IMPLEMENT-03 outbound webhook/event delivery system` — Architecture path: `convert-platform` / `workflow-orchestration`; add event definitions, subscriptions, signing, retry, delivery logs and rate limits
+   - `T8-IMPLEMENT-04 integration connector registry` — Architecture path: `convert-platform` / `integration-boundary`; model provider connectors, credentials, sync state, scopes, error handling and per-provider maturity
+   - `T8-IMPLEMENT-05 developer documentation and SDK generation` — Architecture path: `defer until T8-IMPLEMENT-02`; generate docs/SDKs only from a real public API contract
+   Deferred strategic candidates:
+   - `T8-DEFER-01 ERP/CRM/marketplace connectors` — dependent on public API/gateway, connector registry, customer demand and partner contracts
+   - `T8-DEFER-02 banking/insurance/financing integrations` — dependent on legal/compliance review, provider agreements and secure credential/payment boundaries
+   - `T8-DEFER-03 standards-grade machinery/cloud integrations` — dependent on stable prescription export, hardware/provider validation and field safety controls
+   Rejected claims:
+   - `T8-REJECT-01 presenting named third-party integrations as certified/native without implemented connector and partner validation`
+   - `T8-REJECT-02 presenting SDK examples, developer portal, sandbox or webhook delivery as current product without shipped contracts`
+   Completed alignment:
+   - rewrote `docs/manual/26-integration-api.md`
+   - synchronized `public/docs/manual/26-integration-api.md`
+   Closure result:
+   - `GAP-2026-04-23-G` and `GAP-2026-04-23-O` are closed for manual/master-plan alignment
+   Closure rule:
+   - integration documentation distinguishes internal routes, provider credential configuration, export/import support and prototype connectors from any future public integration platform
+
 ## Recommended Start Order
 To turn this map into execution without losing precision, start in this order:
 
@@ -2630,6 +2670,7 @@ Meta-rule for this register:
    - all high-risk promise-heavy chapters are either rewritten or explicitly moved out of the operational manual
 
 7. `GAP-2026-04-23-G` Integration/API chapter describes an ecosystem much wider than the verified code surface
+   Status: closed under `T8`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2637,7 +2678,10 @@ Meta-rule for this register:
    Risk:
    - users and stakeholders can infer a public integration layer and partner ecosystem that the current repository does not substantiate
    TODO:
-   - replace this chapter with a narrow description of real APIs/integrations
+   - done: chapter 26 now describes internal API-adjacent surfaces, credential configuration, export/import and bounded IoT/machinery support
+   - done: public API, webhooks, SDKs, ERP/marketplace/banking/insurance and integration gateway promises were converted into `T8-IMPLEMENT-*` / `T8-DEFER-*`
+   Closure note:
+   - the security/schema consolidation around `api_configurations` and `api_keys` is tracked as `T8-IMPLEMENT-01`
    Closure rule:
    - the manual no longer claims unsupported external integration breadth
 
@@ -2738,6 +2782,7 @@ Meta-rule for this register:
    - director/orchestration responsibilities are explicitly mapped and the manual describes the current architecture truthfully
 
 15. `GAP-2026-04-23-O` API/integration domain exists, but as an internal route/provider layer rather than a mature external partner ecosystem
+   Status: closed under `T8`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2746,11 +2791,10 @@ Meta-rule for this register:
    Risk:
    - real API work is obscured by an inflated narrative, making the product seem either overbuilt or untrustworthy
    TODO:
-   - map the actual integration surface into:
-     - internal application APIs
-     - external provider adapters
-     - webhook/machine ingestion points
-     - not-yet-implemented external/public integrations
+   - done: T8 maps internal application APIs, external provider configuration, IoT/sensor ingestion, file/export support and unsupported public integrations
+   - done: public API, webhooks, connector registry and SDK generation are tracked as implementation candidates with architecture paths
+   Closure note:
+   - chapter 26 now separates current internal/API-adjacent capability from future external integration platform work
    Closure rule:
    - the integration chapter reflects the real API surface and clearly separates internal endpoints from future external integrations
 
