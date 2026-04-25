@@ -1,342 +1,160 @@
-# 🌱 NUTRIZIONE E TRATTAMENTI
+# Nutrizione e Trattamenti
 
 [← Torna all'Indice](./README.md)
 
 ---
 
-## 🎯 PANORAMICA
+## Panoramica
 
-Modulo operativo per pianificare e registrare trattamenti e attività nutrizionali, con alcune parti già persistite e altre ancora in consolidamento.
+Modulo operativo per pianificare, eseguire e consultare attività nutrizionali e trattamenti, con persistenza reale su più registri e alcune parti ancora di supporto o legacy.
 
 **Percorso**: Sidebar → "Nutrizione & Trattamenti"
 
 ---
 
-## 🎯 STATO MODULO
+## Stato modulo
 
-**Stato attuale**: **Operativo con elementi ibridi**
+**Stato attuale**: operativo con confini espliciti.
 
-La parte più solida oggi è:
-- area unica `Nutrizione & Trattamenti`
-- planner trattamenti persistito
-- prodotti, inventario e registrazione operativa
-- avvio task-aware dal planner
-- contratto minimo di evidenze visibile nei flussi task-aware più recenti
+La parte consolidata oggi è:
+- gestione di prodotti fertilizzanti e prodotti trattamento su tabelle dedicate
+- planner trattamenti persistito su `nutrition_treatments`
+- schedule nutrizionali persistite su `nutrition_schedules`
+- inventario prodotti e movimenti scorta
+- registro professionale trattamenti fitosanitari su `treatment_register`
+- export operativo dei trattamenti registrati
+- analytics e dashboard basati sui record disponibili
 
-Restano invece da non sovrastimare:
-- calcolo dosi come motore scientifico completo
-- database fitofarmaci completo e validato
-- compliance certificativa automatica end-to-end
-- VRT nutrizionale già chiuso in catena produttiva
-
----
-
-## ✅ COSA È DISPONIBILE ORA
-
-- dashboard nutrizione
-- gestione prodotti
-- trattamento pianificato e completamento operativo
-- stato trattamento `planned / in_progress / completed`
-- registrazione di note, date, dosi e parte del contesto operativo
-- collegamento da task sorgente nei flussi planner-aware più recenti
+Restano da non comunicare come chiusi:
+- motore scientifico completo per dosi, fabbisogni e asportazioni
+- database fitofarmaci ufficiale, completo e automaticamente aggiornato
+- verifica LMR/residui end-to-end
+- compliance certificativa automatica
+- quaderno di campagna ufficiale garantito in formato normativo
+- VRT nutrizionale con catena campo-macchina-esito completamente chiusa
 
 ---
 
-## ⚠️ LIMITI ATTUALI
+## Cosa è disponibile ora
 
-- non tutto il caricamento dati storici e configurazioni è pienamente reale o rifinito
-- alcune parti avanzate restano descritte meglio del loro livello effettivo di chiusura
-- il modulo corretto da usare oggi è `Nutrizione & Trattamenti`, mentre alcune route legacy sono solo transitorie o congelate
-- la compliance e i controlli normativi non vanno ancora comunicati come automatizzati in modo completo
-
----
-
-## 🧪 PIANI NUTRIZIONALI AVANZATI
-
-### **Analisi Suolo Intelligente**
-- **Interpretazione Automatica**: Analisi chimiche elaborate da AI
-- **Correlazioni Avanzate**: pH, sostanza organica, CEC, nutrienti
-- **Mappe Fertilità**: Visualizzazione spaziale caratteristiche suolo
-- **Trend Temporali**: Evoluzione fertilità nel tempo
-- **Raccomandazioni**: Correzioni specifiche per ogni parametro
-
-### **Fabbisogni Colturali Dinamici**
-- **Database Varietale**: 500+ varietà con esigenze specifiche
-- **Fasi Fenologiche**: Nutrienti per ogni stadio sviluppo
-- **Asportazioni**: Calcolo asportazioni basato su rese target
-- **Efficienza**: Coefficienti utilizzazione per nutriente
-- **Interazioni**: Sinergie e antagonismi tra elementi
-
-### **Fertilizzazione Variabile (VRT)**
-- **Prescription Maps**: Mappe applicazione differenziata
-- **Zone Management**: Gestione zone omogenee fertilità
-- **Optimization**: Ottimizzazione dosi per zona
-- **Cost Efficiency**: Minimizzazione costi per massima efficacia
-- **Environmental**: Riduzione impatto ambientale
-
-### **Bilanci Nutrizionali**
-- **Input Tracking**: Monitoraggio apporti nutritivi
-- **Output Calculation**: Calcolo asportazioni reali
-- **Balance Sheet**: Bilancio per ogni nutriente
-- **Efficiency Ratios**: Rapporti efficienza utilizzo
-- **Sustainability**: Indicatori sostenibilità nutrizionale
+- dashboard nutrizione e trattamenti
+- gestione prodotti e inventario
+- creazione, aggiornamento, completamento e cancellazione di trattamenti pianificati
+- stati trattamento `planned / in_progress / completed / cancelled / postponed`
+- registrazione di dose, metodo, data pianificata, data effettiva, operatore, attrezzatura, condizioni e note quando il flusso li raccoglie
+- aggiornamento scorte quando un trattamento viene completato dal planner
+- registro professionale trattamenti via API, con coltura, prodotto, principio attivo, dose, area trattata, metodo, motivazione, meteo, operatore e note
+- campi BIO/convenzionale/integrato sul registro professionale, con supporto a compatibilità biologica
+- export CSV/PDF come supporto gestionale
 
 ---
 
-## 🛡️ GESTIONE TRATTAMENTI FITOSANITARI
+## Registri persistenti
 
-### **Database Fitofarmaci Completo**
-- **Catalogo Aggiornato**: 2000+ prodotti autorizzati
-- **Principi Attivi**: Database completo sostanze attive
-- **Modalità Azione**: Meccanismi azione per categoria
-- **Spettro Efficacia**: Target specifici per prodotto
-- **Resistenze**: Gestione resistenze e rotazioni
+### Planner nutrizione e trattamenti
 
-### **Calcolo Dosi e Parametri**
-- **Superficie Precision**: Calcolo basato su GPS reale
-- **Concentrazioni**: Dosi per volume e superficie
-- **Bagnatura**: Volumi distribuzione ottimali
-- **Adiuvanti**: Raccomandazioni coadiuvanti
-- **Miscibilità**: Compatibilità prodotti in miscela
+Il workspace principale usa `advancedNutritionService` e salva su:
+- `fertilizer_products`
+- `treatment_products`
+- `nutrition_treatments`
+- `nutrition_schedules`
+- `product_inventory`
+- `stock_movements`
+- `treatment_history`
+- `compliance_records`
 
-### **Tempi di Carenza**
-- **Database LMR**: Limiti massimi residui aggiornati
-- **Calcolo guidato**: supporto a tempi e finestre operative quando il dato è disponibile
-- **Alert System**: Notifiche scadenze carenza
-- **Harvest Planning**: Pianificazione raccolti sicura
-- **Compliance**: Conformità normative residui
+Questo blocco è il registro operativo del modulo `Nutrizione & Trattamenti`. Serve per pianificare, completare, analizzare e collegare uso prodotti e scorte.
 
-### **Rotazione Principi Attivi**
-- **Resistance Management**: Prevenzione resistenze
-- **FRAC/HRAC Codes**: Classificazione meccanismi azione
-- **Rotation Schemes**: Schemi rotazione ottimali
-- **Efficacy Maintenance**: Mantenimento efficacia
-- **Sustainability**: Sostenibilità strategie difesa
+### Registro trattamenti professionale
 
----
+La route `/api/treatments` usa `treatment_register`. Questo registro è separato dal planner avanzato e rappresenta il registro professionale fitosanitario più vicino al quaderno campagna operativo.
 
-## 📊 COMPLIANCE E SICUREZZA
+Campi principali:
+- coltura
+- data trattamento
+- prodotto
+- principio attivo
+- dose e unità
+- area trattata
+- metodo
+- motivo
+- condizioni meteo
+- operatore
+- note
+- riferimenti a giardino, zona, filari o aiuole quando disponibili
 
-### **Quaderno di Campagna Digitale**
-- **Registrazione operativa**: i trattamenti completati possono alimentare lo storico applicativo quando il flusso e persistito
-- **Dati principali**: prodotto, dose, data, note e contesto operativo disponibile
-- **Evidenze interne**: utile per ricostruzione e controllo gestionale
-- **Export**: da trattare come supporto istruttorio, non come formato ufficiale garantito
+### Componenti legacy
 
-### **Limiti Residui (LMR)**
-- **Dato normativo**: non esiste oggi una verifica LMR globale validata end-to-end
-- **Supporto operativo**: eventuali tempi e finestre vanno usati come promemoria, non come garanzia di conformita
-- **Verifica esterna**: residui, mercati export e certificazioni richiedono fonte normativa/professionale aggiornata
-
-### **DPI e Sicurezza**
-- **Dati prodotto**: se presenti, servono da supporto alla registrazione
-- **DPI e procedure**: devono essere verificati su etichetta, scheda sicurezza e normativa applicabile
-- **Formazione**: non e oggi un ciclo formativo certificato
-
-### **Certificazioni Integrate**
-- **Biologico**: il collegamento con BIO e oggi readiness/persistenza interna, non certificazione automatica
-- **GlobalG.A.P.**: esistono strutture compliance dedicate, ma non tutta la catena e chiusa
-- **Residue Free / Sustainable / Produzione integrata**: da considerare backlog o verifica esterna, non workflow completo del modulo trattamenti
+Alcuni componenti phyto usano ancora `services/treatmentRegistryService.ts`, che salva in `localStorage`. Questi flussi sono supporto browser/legacy e non sono la fonte autorevole del quaderno campagna.
 
 ---
 
-## 🔬 TECNOLOGIE AVANZATE
+## Compliance e sicurezza
 
-### **Precision Application**
-- **Variable Rate**: Applicazione a rateo variabile
-- **GPS Guidance**: Guida GPS per precisione
-- **Boom Control**: Controllo sezioni automatico
-- **Drift Reduction**: Riduzione deriva applicazioni
-- **Coverage Maps**: Mappe copertura applicazioni
+### Quaderno di campagna
 
-### **Sensor Integration**
-- **Crop Sensors**: Sensori vigoria colturale
-- **Weather Stations**: Condizioni applicazione ottimali
-- **Soil Sensors**: Sensori nutrienti suolo
-- **Plant Tissue**: Analisi tessuti vegetali
-- **Pest Monitoring**: Monitoraggio parassiti automatico
+Ortomio può raccogliere record operativi utili alla ricostruzione dei trattamenti e all'esportazione di supporto.
 
-### **AI e Machine Learning**
-- **Disease Prediction**: Predizione malattie AI
-- **Nutrient Optimization**: Ottimizzazione nutrienti ML
-- **Application Timing**: Timing ottimale applicazioni
-- **Resistance Modeling**: Modelli sviluppo resistenze
-- **Yield Prediction**: Predizione rese basata nutrizione
+Non va però presentato come quaderno di campagna ufficiale completo: formato, validità normativa, firma, controlli obbligatori e conservazione legale devono essere verificati fuori dal prodotto o implementati come lavoro dedicato.
 
----
+### BIO e certificazioni
 
-## 🎛️ WORKFLOW OPERATIVO
+Il registro professionale include campi `treatment_type`, `organic_approved`, `certification_compliance`, `registration_number` e `pre_harvest_interval_days`.
 
-### **Pianificazione Stagionale**
-1. **Soil Analysis**: Analisi suolo pre-stagionale
-2. **Crop Planning**: Pianificazione colturale
-3. **Nutrition Program**: Programma nutrizionale completo
-4. **Protection Strategy**: Strategia difesa integrata
-5. **Budget Planning**: Pianificazione budget input
+La migrazione BIO/tradizionale aggiunge un controllo di compatibilità con certificazioni biologiche attive. Questo è un supporto interno: non sostituisce etichetta prodotto, autorizzazioni, disciplinari, organismo di controllo o consulenza professionale.
 
-### **Gestione In-Season**
-1. **Monitoring**: Monitoraggio continuo colture
-2. **Scouting**: Rilevamenti campo sistematici
-3. **Decision Support**: Supporto decisionale AI
-4. **Application**: Applicazioni precise e tempestive
-5. **Documentation**: Documentazione automatica
+### GlobalG.A.P. e compliance records
 
-### **Controllo Post-Applicazione**
-1. **Efficacy Assessment**: Valutazione efficacia
-2. **Residue Testing**: Controlli residui
-3. **Environmental Impact**: Valutazione impatto ambientale
-4. **Cost Analysis**: Analisi costi-benefici
-5. **Lessons Learned**: Apprendimenti per miglioramento
+`compliance_records` e le strutture GlobalG.A.P. sono workspace di readiness e supporto documentale. Possono aiutare a organizzare evidenze, ma non certificano automaticamente l'azienda.
+
+### Residui, LMR e DPI
+
+Il sistema può registrare tempi di carenza e dati prodotto quando disponibili. Non esiste oggi una verifica globale e validata di:
+- LMR per coltura, prodotto e mercato
+- residui effettivi
+- DPI obbligatori
+- formazione operatori
+- limiti per export o disciplinari specifici
+
+Questi controlli richiedono fonti normative/professionali aggiornate.
 
 ---
 
-## 📈 ANALYTICS E PERFORMANCE
+## Analytics disponibili
 
-### **Efficacia Trattamenti**
-- **Success Rate**: Tasso successo per patogeno
-- **Timing Analysis**: Analisi timing applicazioni
-- **Dose Response**: Curve dose-risposta
-- **Resistance Monitoring**: Monitoraggio resistenze
-- **Cost Effectiveness**: Efficacia costo per trattamento
+Le analytics attuali usano i trattamenti completati e i dati già presenti nel database per calcolare:
+- numero trattamenti nel periodo
+- costo totale e costo medio
+- efficacia media quando valorizzata
+- ripartizione per tipologia
+- percentuale trattamenti marcati come conformi BIO
+- suggerimenti operativi basati sui record disponibili
+- alert scorte basse
 
-### **Nutrient Use Efficiency**
-- **NUE Calculation**: Calcolo efficienza uso nutrienti
-- **Recovery Rates**: Tassi recupero per elemento
-- **Loss Assessment**: Valutazione perdite
-- **Optimization**: Ottimizzazione programmi nutrizionali
-- **Sustainability**: Indicatori sostenibilità
-
-### **Economic Analysis**
-- **Input Costs**: Costi input per ettaro
-- **Yield Response**: Risposta rese a nutrizione
-- **Quality Premium**: Premium qualità da nutrizione
-- **ROI Analysis**: Analisi ritorno investimento
-- **Profitability**: Margini lordi per strategia
+Questi indicatori sono gestionali. Non sono audit scientifici, prove di efficacia registrativa o validazioni normative.
 
 ---
 
-## 🌍 SOSTENIBILITÀ E AMBIENTE
+## Limiti attuali
 
-### **Integrated Pest Management**
-- **IPM Strategies**: Strategie difesa integrata
-- **Biological Control**: Controllo biologico
-- **Cultural Practices**: Pratiche agronomiche preventive
-- **Monitoring Systems**: Sistemi monitoraggio parassiti
-- **Threshold Management**: Gestione soglie intervento
-
-### **Nutrient Stewardship**
-- **4R Principles**: Right source, rate, time, place
-- **Loss Minimization**: Minimizzazione perdite
-- **Efficiency Maximization**: Massimizzazione efficienza
-- **Environmental Protection**: Protezione ambiente
-- **Circular Economy**: Economia circolare nutrienti
-
-### **Carbon Footprint**
-- **Fertilizer Emissions**: Emissioni da fertilizzanti
-- **Transport**: Impatto trasporti
-- **Manufacturing**: Emissioni produzione
-- **Application**: Emissioni applicazione
-- **Sequestration**: Sequestro carbonio suolo
+- il planner e il registro professionale sono due superfici persistenti distinte
+- alcuni flussi legacy restano localStorage
+- non tutte le viste storiche sono rifinite o collegate allo stesso registro
+- il calcolo dosi resta assistivo
+- le informazioni su prodotti e principi attivi dipendono dai dati inseriti o disponibili nel sistema
+- export e report sono supporto operativo, non modulistica ufficiale garantita
 
 ---
 
-## 🔗 INTEGRAZIONI AVANZATE
+## Backlog tracciato
 
-### **Laboratory Services**
-- **Soil Testing**: Laboratori analisi suolo
-- **Plant Tissue**: Analisi tessuti vegetali
-- **Water Quality**: Qualità acqua irrigazione
-- **Residue Analysis**: Analisi residui
-- **Microbiology**: Analisi microbiologiche
-
-### **Weather Services**
-- **Application Windows**: Finestre applicazione ottimali
-- **Disease Models**: Modelli malattie weather-driven
-- **Spray Conditions**: Condizioni ideali trattamenti
-- **Drift Risk**: Rischio deriva basato su meteo
-- **Forecasting**: Previsioni per pianificazione
-
-### **Equipment Integration**
-- **Sprayers**: Integrazione irroratrici
-- **Spreaders**: Spandiconcime a rateo variabile
-- **Drones**: Applicazioni aeree precise
-- **Fertigation**: Sistemi fertirrigazione
-- **Injection**: Sistemi iniezione suolo
-
----
-
-## 💡 BEST PRACTICES
-
-### **Nutrizione Ottimale**
-- **Soil First**: Priorità salute suolo
-- **Balanced Nutrition**: Nutrizione bilanciata
-- **Timing Critical**: Timing critico applicazioni
-- **Efficiency Focus**: Focus su efficienza
-- **Sustainability**: Sostenibilità long-term
-
-### **Protezione Efficace**
-- **Prevention**: Prevenzione prima di cura
-- **Monitoring**: Monitoraggio sistematico
-- **Threshold**: Rispetto soglie intervento
-- **Rotation**: Rotazione principi attivi
-- **Integration**: Integrazione strategie
-
-### **Compliance Management**
-- **Documentation**: Documentazione accurata
-- **Training**: Formazione continua personale
-- **Updates**: Aggiornamenti normativi
-- **Audits**: Preparazione audit
-- **Certification**: Mantenimento certificazioni
-
----
-
-## 🆘 TROUBLESHOOTING
-
-### **Problemi Nutrizionali**
-- **Deficiency Diagnosis**: Diagnosi carenze
-- **Toxicity Symptoms**: Sintomi tossicità
-- **Interaction Issues**: Problemi interazioni
-- **pH Problems**: Problemi pH suolo
-- **Organic Matter**: Gestione sostanza organica
-
-### **Efficacia Trattamenti**
-- **Resistance Issues**: Problemi resistenze
-- **Application Problems**: Problemi applicazione
-- **Timing Errors**: Errori timing
-- **Dose Miscalculation**: Errori calcolo dosi
-- **Weather Interference**: Interferenze meteo
-
----
-
-## 🔮 ROADMAP SVILUPPO
-
-### **Q2 2026**
-- **AI Nutrition**: Nutrizione AI personalizzata
-- **Precision Spraying**: Irrorazione precision plant-level
-- **Biological Integration**: Integrazione controllo biologico
-- **Sustainability 2.0**: Sostenibilità avanzata
-
-### **Q3 2026**
-- **Autonomous Application**: Applicazioni autonome
-- **Real-time Optimization**: Ottimizzazione tempo reale
-- **Predictive Nutrition**: Nutrizione predittiva
-- **Circular Systems**: Sistemi economia circolare
-
----
-
-## 📞 SUPPORTO NUTRIZIONE
-
-### **Contatti Specializzati**
-- **Email**: nutrition@ortomio.com
-- **Telefono**: +39 02 1234 5695
-- **WhatsApp**: +39 345 678 9026
-- **Video**: Consulenza agronomica specializzata
-
-### **Team Esperti**
-- **Nutritionists**: Nutrizionisti vegetali
-- **Plant Pathologists**: Fitopatologi
-- **Entomologists**: Entomologi
-- **Regulatory Experts**: Esperti normative
+Da trattare come sviluppo futuro, non come funzionalità già chiusa:
+- unificazione o riconciliazione tra `treatment_register` e `nutrition_treatments`
+- formato ufficiale quaderno campagna con regole di validazione dedicate
+- fonti normative aggiornate per prodotti autorizzati, etichette, LMR e DPI
+- workflow completo per residui, campioni e analisi laboratorio
+- VRT nutrizionale end-to-end con prescription map, macchina, esecuzione e verifica outcome
+- integrazioni attrezzature, sensori, laboratori e servizi meteo avanzati
 
 ---
 

@@ -2237,8 +2237,32 @@ Rule:
      Production:
      - migration applied to production on 2026-04-25
      - post-apply verification confirmed 16 additional `globalgap_*` tables, checklist compatibility columns and functions `generate_ggn_code` / `generate_lot_code`
-   - `T3-D treatment/compliance/quaderno-campagna boundary`
-   - `T3-E manual truth alignment for BIO/compliance/nutrition claims`
+   - `T3-D treatment/compliance/quaderno-campagna boundary` — Status: done
+     Decision:
+     - `treatment_register` is the durable professional phytosanitary register exposed through `/api/treatments` and export routes. It supports operative entries with crop, date, product, active ingredient, dose, treated area, method, reason, weather, operator, notes and location references.
+     - `nutrition_treatments`, `fertilizer_products`, `treatment_products`, `nutrition_schedules`, inventory and stock movement tables are the durable planning/execution core for the `Nutrizione & Trattamenti` workspace.
+     - `compliance_records` and the organic-compliance helper are internal support/readiness structures. They are not a complete regulatory validation engine and do not close LMR, official residue, DPI/training or certification obligations.
+     - legacy phyto components using `services/treatmentRegistryService.ts` remain localStorage/browser support and must not be documented as the authoritative quaderno di campagna.
+     - exports are operational support artifacts, not guaranteed official formats.
+     Evidence:
+     - `supabase/migrations/20260105040000_add_pro_mode_nutrition_tables.sql` creates the DB-backed professional treatment and fertilizer logs
+     - `supabase/migrations/20260112000000_add_treatment_type_bio_traditional.sql` adds BIO/conventional/integrated compatibility fields and a trigger against active organic certifications
+     - `supabase/migrations/20260117020000_create_advanced_nutrition_system.sql` creates the durable nutrition/treatment planning, product, inventory, history and compliance-support tables
+     - `/api/treatments` persists to `treatment_register`; `advancedNutritionService` persists planner/workspace records to `nutrition_treatments`
+     Closure result:
+     - the quaderno-campagna claim is bounded to persisted operational records and support exports; complete legal/compliance automation remains future work
+   - `T3-E manual truth alignment for BIO/compliance/nutrition claims` — Status: done
+     Implementation:
+     - rewrote `docs/manual/16-nutrition-treatments.md` around the verified persistent treatment/nutrition registers and their explicit limits
+     - synchronized `public/docs/manual/16-nutrition-treatments.md`
+     - synchronized public certification manual copies with the already-correct source chapters:
+       - `public/docs/manual/04-certifications.md`
+       - `public/docs/manual/04b-bio-certification-guide.md`
+     Decision:
+     - manuals describe BIO as persisted readiness support, GlobalG.A.P. as a durable compliance workspace, treatment records as operational registers, and nutrition analytics as management indicators
+     - complete certification automation, official quaderno-campagna closure, LMR/residue validation, DPI/training validation and VRT end-to-end remain backlog/future work
+     Closure result:
+     - T3 source/public manual claims are aligned with the implemented maturity map and do not market unimplemented regulatory closure as current behavior
    Closure rule:
    - each certification/compliance workflow has an explicit target state and the manual no longer overstates regulatory closure
 
@@ -2859,13 +2883,16 @@ Meta-rule for this register:
 36. `GAP-2026-04-23-AJ` Nutrition and treatments chapter mixes a real operational core with much broader scientific/compliance promises
    Priority: high
    Related block: `P5`
+   Status: closed under `T3-D` / `T3-E`
    Evidence:
    - real nutrition/treatments routes, dashboards, planners, products and execution flows exist
-   - `docs/manual/16-nutrition-treatments.md` then expands into full scientific nutrient engines, complete fitopharmaceutical/compliance systems, residue frameworks and mature VRT nutritional chains not verified as closed product behaviour
+   - original `docs/manual/16-nutrition-treatments.md` expanded into full scientific nutrient engines, complete fitopharmaceutical/compliance systems, residue frameworks and mature VRT nutritional chains not verified as closed product behaviour
    Risk:
    - a useful real module is documented as if it were already a fully scientific, normative and precision-application platform
    TODO:
-   - separate the verified operational nutrition/treatments core from still-open scientific/compliance/VRT ambitions
+   - done: separate the verified operational nutrition/treatments core from still-open scientific/compliance/VRT ambitions
+   Closure note:
+   - `docs/manual/16-nutrition-treatments.md` and `public/docs/manual/16-nutrition-treatments.md` now describe DB-backed planner/registry capability, localStorage legacy limits, support-only exports, and backlog for official quaderno, LMR/residue/DPI validation and VRT end-to-end closure
    Closure rule:
    - nutrition/treatments documentation clearly distinguishes current operational capability from tracked future extensions
 
