@@ -2432,9 +2432,9 @@ Rule:
    - each vertical has a declared target maturity and the manual reflects only the chosen supported depth
 
 7. `T7 Strategic Promise Triage`
-   Status: todo
+   Status: done
    Goal:
-   - remove or archive non-product narrative promises from the manual unless they are promoted into explicit strategic work
+   - classify strategic promises into `implement`, `defer` or `reject`, then align the manual without losing valid product ambition
    Source chapters:
    - `docs/manual/25-research-development.md`
    - `docs/manual/28-economic-benefits.md`
@@ -2447,10 +2447,31 @@ Rule:
    - scenario material
    - roadmap promises
    - testimonial/success-story content
-   First TODO candidates:
-   - mark which chapters are to be archived/removed outright
-   - keep only future capabilities that still deserve explicit product consideration
-   - remove named customer/testimonial material from the operational manual perimeter
+   Implementation candidates promoted from legacy promises:
+   - `T7-IMPLEMENT-01 R&D trial and experiment registry` — build a durable project/trial layer for hypotheses, protocols, measurements, outcomes and links to sensor, diary, treatment and harvest evidence
+   - `T7-IMPLEMENT-02 economic analytics and ROI evidence module` — add baseline/cost/revenue/benefit tracking with confidence labels instead of guaranteed ROI claims
+   - `T7-IMPLEMENT-03 use-case templates and deployment playbooks` — turn illustrative scenarios into guided setup/checklist workflows tied to verified modules
+   - `T7-IMPLEMENT-04 roadmap governance and maturity publishing` — expose feature maturity from this master plan as a controlled product/planning view
+   - `T7-IMPLEMENT-05 customer evidence workflow` — support consented customer stories only when source evidence, metrics, dates and approval state are stored
+   Deferred strategic candidates:
+   - `T7-DEFER-01 partner and integration program` — formal university, provider, ERP, machinery and marketplace partnerships require commercial/legal confirmation and dedicated integration work
+   - `T7-DEFER-02 advanced robotics/autonomous operations` — dependent on hardware integration, safety controls, durable telemetry and field validation
+   - `T7-DEFER-03 ESG/carbon platform expansion` — dependent on closed environmental evidence models, external standards and auditable reporting workflows
+   - `T7-DEFER-04 enterprise BI and data warehouse layer` — dependent on API/integration consolidation and customer-scale reporting requirements
+   Rejected claims:
+   - `T7-REJECT-01 fabricated or unverifiable success stories, named testimonials, awards and media proof`
+   - `T7-REJECT-02 guaranteed ROI, fixed payback windows and unsupported percentage outcome tables`
+   - `T7-REJECT-03 unverifiable partnerships, publications, patents, labs and commercialization achievements`
+   - `T7-REJECT-04 AGI, quantum, metaverse, space agriculture, planetary transformation and similar speculative claims as operational roadmap`
+   Completed alignment:
+   - rewrote `docs/manual/25-research-development.md`
+   - rewrote `docs/manual/28-economic-benefits.md`
+   - rewrote `docs/manual/30-use-cases.md`
+   - rewrote `docs/manual/31-success-stories.md`
+   - rewrote `docs/manual/32-roadmap.md`
+   - synchronized public copies for chapters 25, 28, 30, 31 and 32
+   Closure result:
+   - `GAP-2026-04-23-E`, `GAP-2026-04-23-F`, `GAP-2026-04-23-H`, `GAP-2026-04-23-I`, `GAP-2026-04-23-P`, `GAP-2026-04-23-Q`, `GAP-2026-04-23-R` and `GAP-2026-04-23-AL` are closed for the strategic-promise chapters
    Closure rule:
    - the manual contains no strategic or commercial promise layer that is not explicitly backed by either current code or an approved master-plan TODO
 
@@ -2554,6 +2575,7 @@ Meta-rule for this register:
    - all remaining manual chapters are reviewed against code and any mismatch is either fixed or logged here as an open item
 
 5. `GAP-2026-04-23-E` Legacy manual still contains promise-driven chapters not grounded in verified code
+   Status: closed for strategic chapters under `T7`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2561,11 +2583,14 @@ Meta-rule for this register:
    Risk:
    - the manual keeps reintroducing ambiguity because some chapters are inherited from older promise documents rather than from implementation evidence
    TODO:
-   - audit the remaining manual chapters against code and classify each chapter as `done`, `in progress`, or `todo`
+   - done for T7 strategic chapters: chapters 25, 28, 30, 31 and 32 now classify unimplemented promises as implement/defer/reject in the master plan before manual alignment
+   Closure note:
+   - the remaining non-T7 legacy gaps stay tracked under their own entries; T7 closes the strategic promise subset
    Closure rule:
    - no manual chapter remains in an unclassified promise state
 
 6. `GAP-2026-04-23-F` Success-story and ROI style chapters are especially likely to overstate current product reality
+   Status: closed under `T7`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2573,7 +2598,9 @@ Meta-rule for this register:
    Risk:
    - these chapters can silently undo the truthfulness work done elsewhere in the manual
    TODO:
-   - audit these chapters first and either downgrade them to clearly aspirational material or rewrite them to verified current-state language
+   - done: ROI, use-case, success-story, R&D and roadmap chapters were rewritten around evidence policy and tracked backlog
+   Closure note:
+   - success-story and ROI outcome claims are no longer presented as verified product facts in chapters 28 and 31
    Closure rule:
    - all high-risk promise-heavy chapters are either rewritten or explicitly moved out of the operational manual
 
@@ -2590,6 +2617,7 @@ Meta-rule for this register:
    - the manual no longer claims unsupported external integration breadth
 
 8. `GAP-2026-04-23-H` ROI and business-benefit claims are documented as measured outcomes without verifiable grounding
+   Status: closed under `T7`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2597,11 +2625,14 @@ Meta-rule for this register:
    Risk:
    - product documentation becomes commercially unreliable and undermines the credibility of the verified technical manual
    TODO:
-   - remove or rewrite these chapters so that hypothetical value framing is clearly separated from verified product state
+   - done: `docs/manual/28-economic-benefits.md` and `docs/manual/31-success-stories.md` now reject guaranteed ROI/testimonial claims and promote a future evidence-backed economic analytics/customer evidence workflow
+   Closure note:
+   - ROI is now treated as future measured evidence, not a guaranteed outcome
    Closure rule:
    - no operational manual chapter contains fabricated or unverified ROI/testimonial material
 
 9. `GAP-2026-04-23-I` Scenario chapters blur illustrative examples with claimed real deployments
+   Status: closed under `T7`
    Priority: medium
    Related block: `P5`
    Evidence:
@@ -2609,7 +2640,9 @@ Meta-rule for this register:
    Risk:
    - scenario material can be misread as proof of implementation completeness or customer validation
    TODO:
-   - rewrite scenario chapters as clearly illustrative workflows tied to verified modules only
+   - done: `docs/manual/30-use-cases.md` now presents scenarios as illustrative templates tied to verified modules, with missing guided playbooks tracked as implementation work
+   Closure note:
+   - scenario material is no longer framed as customer proof or deployment evidence
    Closure rule:
    - scenario docs are explicitly labeled as examples, not proof points
 
@@ -2697,6 +2730,7 @@ Meta-rule for this register:
    - the integration chapter reflects the real API surface and clearly separates internal endpoints from future external integrations
 
 16. `GAP-2026-04-23-P` Use-case chapter aggregates real modules with very different maturity levels and presents them as proven deployments
+   Status: closed under `T7`
    Priority: medium
    Related block: `P5`
    Evidence:
@@ -2705,11 +2739,14 @@ Meta-rule for this register:
    Risk:
    - mixed-maturity modules are perceived as end-to-end production deployments rather than illustrative combinations of currently available building blocks
    TODO:
-   - rewrite the chapter as scenario-based examples tied to verified modules and label mixed-maturity areas explicitly
+   - done: chapter 30 is now a scenario-template guide and the missing productized playbook layer is tracked as `T7-IMPLEMENT-03`
+   Closure note:
+   - examples are explicitly illustrative and contain no implied real-customer outcome claims
    Closure rule:
    - each scenario is grounded in verified modules and contains no implied real-customer outcome claims
 
 17. `GAP-2026-04-23-Q` Economic domain exists in limited form, but the manual describes it as a validated business-impact system
+   Status: closed under `T7`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2718,12 +2755,15 @@ Meta-rule for this register:
    Risk:
    - a partially implemented economic layer is perceived as a validated commercial outcome engine
    TODO:
-   - map the actual economic features into verified coverage vs unsupported claims
-   - rewrite the chapter as narrow economic visibility/cost tracking, or remove it from the in-app manual
+   - done: actual economic support is documented as visibility/evidence support, while a durable economic analytics module is tracked as `T7-IMPLEMENT-02`
+   - done: guaranteed savings and fixed ROI claims were rejected
+   Closure note:
+   - the economic chapter now separates current operational evidence from future ROI measurement work
    Closure rule:
    - the economic chapter, if retained, reflects only the currently supported economic calculations and clearly states their limits
 
 18. `GAP-2026-04-23-R` Success-stories chapter contains factual-looking customer/testimonial material that is not verifiable from the repository
+   Status: closed under `T7`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2732,8 +2772,10 @@ Meta-rule for this register:
    Risk:
    - the operational manual includes narrative material that reads as factual proof, but is not supported by implementation evidence and is therefore more misleading than a normal roadmap-style promise
    TODO:
-   - remove `31-success-stories` from the in-app manual
-   - if any content is worth preserving, reintroduce it only as anonymous illustrative scenarios tied to verified modules and explicitly not as customer proof
+   - done: chapter 31 now contains a success-story publication policy, not named/verbatim customer proof
+   - done: future customer evidence is tracked as `T7-IMPLEMENT-05`
+   Closure note:
+   - no T7 manual chapter contains named testimonial, award or customer-outcome material as current fact
    Closure rule:
    - no in-app manual chapter contains named testimonial, award or customer-outcome material unless it is backed by verifiable source evidence available to the product team
 
@@ -3036,6 +3078,7 @@ Meta-rule for this register:
    - mechanical documentation describes the real module truthfully and tracks precision/telematics ambitions separately
 
 38. `GAP-2026-04-23-AL` R&D and roadmap chapters are future-capability/backlog material currently living inside the manual
+   Status: closed under `T7`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -3043,8 +3086,10 @@ Meta-rule for this register:
    Risk:
    - the manual continues to mix operational product truth with strategic aspiration and speculative backlog
    TODO:
-   - convert still-relevant future capability claims from these chapters into explicit tracked roadmap/TODO items
-   - later decide what should be archived, removed from the manual or retained only as internal planning material
+   - done: relevant R&D, economic, scenario, roadmap and customer-evidence promises were converted into explicit `T7-IMPLEMENT-*` or `T7-DEFER-*` items
+   - done: speculative or unverifiable claims were rejected under `T7-REJECT-*`
+   Closure note:
+   - chapters 25 and 32 now point to controlled backlog/maturity governance instead of presenting unverifiable labs, partnerships, patents or speculative technologies as product truth
    Closure rule:
    - no future-facing capability chapter remains in the user manual unless it is explicitly justified as tracked roadmap material and clearly separated from current product truth
 
