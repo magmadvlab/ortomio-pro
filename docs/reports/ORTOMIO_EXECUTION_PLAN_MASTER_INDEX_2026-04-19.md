@@ -30,6 +30,18 @@ Hard constraints:
 - if a capability appears in legacy documentation but is not closed in code, it must first be converted into an explicit tracked item here
 - once all active `todo` items related to product capability are either completed or removed as obsolete, the manual becomes an operational derivative of the real system rather than a promise layer
 
+## Product Advancement Contract
+Manual truth alignment is not a product retreat.
+
+Operational rule:
+- when legacy documentation promises a valuable capability that is not implemented yet, the default action is to preserve the ambition as an explicit implementation candidate in this master plan
+- the manual may stop presenting the capability as current behaviour, but the capability must not disappear from product planning unless it is intentionally rejected as obsolete, unsafe, legally risky or strategically out of scope
+- each softened/removed manual promise should be classified as one of:
+  - `implement`: promote into a concrete product epic/task
+  - `defer`: keep as a future roadmap item with dependencies
+  - `reject`: document why it should not be built
+- for future blocks after T6, the expected output is not only cleaner documentation; it is a prioritized implementation backlog that moves Ortomio toward the original product vision where that vision is technically and commercially valid
+
 ## Current Execution Priority Map
 1. `P1 Agronomic Context Refinement`
    Status: done
