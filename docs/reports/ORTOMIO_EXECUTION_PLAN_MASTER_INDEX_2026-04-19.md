@@ -2645,6 +2645,48 @@ Rule:
    Closure rule:
    - diary documentation distinguishes DB-backed daily environmental observations from still-open operational diary convergence, pipeline observability and multi-season analytics work
 
+12. `T12 AI Prediction/Overview Boundary Consolidation`
+   Status: done
+   Goal:
+   - keep AI as a strategic product direction while separating real assistive/predictive surfaces from unsupported claims of one unified autonomous AI engine
+   Source chapters:
+   - `docs/manual/01-ai-predictions.md`
+   - `docs/manual/07-ai-overview.md`
+   Current verified surface:
+   - `Global AI Chat` is a real Gemini-backed bounded chat surface from T1, with tier/credit checks and limited context
+   - predictive services exist across `aiPredictiveEngine.ts`, `predictiveAnalyticsService.ts`, `diaryPredictiveEngine.ts`, `fieldRowPredictiveService.ts`, agronomic priority services and prescription intelligence services
+   - `/api/ai/predictions` exists; POST can run the predictive engine with supplied data, while GET currently builds predictions from demo/mock weather/soil/plant inputs
+   - `AIPredictionsDashboard` currently uses local empty mock data and is not yet DB-grounded against the route or a prediction ledger
+   - Director, planner, diary, NDVI, drone, irrigation, nutrition and prescription surfaces each have their own maturity boundaries rather than one shared AI runtime contract
+   Current limitations:
+   - no single canonical AI/prediction engine with uniform input, confidence, provenance and output contracts
+   - no universal accuracy claim is supported across crops, sites, stages and modules
+   - prediction surfaces range from DB-backed/contextual services to rules, heuristics, fallback paths, mock/demo routes and staged UI
+   - no central prediction ledger stores input snapshot, model/service identity, confidence, recommendation, user decision and field outcome
+   - no validation harness currently reports measured accuracy by crop/site/stage
+   Implementation candidates promoted from legacy promises:
+   - `T12-IMPLEMENT-01 AI prediction maturity map in product/UI` — Architecture path: `extend-current`; expose the same maturity map used in docs where users encounter mixed predictive surfaces
+   - `T12-IMPLEMENT-02 DB-grounded AI predictions route/dashboard` — Architecture path: `consolidate-first` / `service-consolidation`; replace demo GET data and local dashboard mock with persisted garden/crop/weather/activity context
+   - `T12-IMPLEMENT-03 prediction evidence ledger` — Architecture path: `convert-platform` / `evidence-ledger`; persist input snapshot, source quality, service/model, confidence, recommendation, user action and measured outcome
+   - `T12-IMPLEMENT-04 predictive service contract convergence` — Architecture path: `consolidate-first`; standardize confidence, fallback flags, source quality, actionability and caveat fields across predictive services
+   - `T12-IMPLEMENT-05 validation harness and accuracy reporting` — Architecture path: `defer until T12-IMPLEMENT-03`; publish accuracy only after enough linked predictions/outcomes exist
+   - `T12-IMPLEMENT-06 AI overview generated from master-plan maturity` — Architecture path: `extend-current`; prevent future manual drift by deriving overview labels from the source-of-truth maturity map
+   Rejected claims:
+   - `T12-REJECT-01 presenting 94.5% or any universal AI accuracy claim without validation evidence`
+   - `T12-REJECT-02 presenting proprietary deep-learning/continuous-learning platform claims as current product without implementation and outcome tracking`
+   - `T12-REJECT-03 presenting drone computer vision, autonomous orchestration or report certification as closed AI capabilities`
+   Completed alignment:
+   - rewrote `docs/manual/07-ai-overview.md` as an AI sub-domain maturity map
+   - synchronized `public/docs/manual/01-ai-predictions.md` with the bounded source chapter
+   - added `public/docs/manual/07-ai-overview.md` so the public manual can serve the same bounded overview
+   - indexed AI overview and predictions in both source/public manual README files
+   - updated the Predizioni AI dashboard subtitle/disclosure to show the surface is in consolidation rather than a fully validated AI engine
+   Closure result:
+   - `GAP-2026-04-23-Y` is closed for manual/UI/master-plan alignment
+   - `GAP-2026-04-23-AE` is closed for manual/master-plan alignment
+   Closure rule:
+   - AI documentation and product copy describe a distributed assistive/predictive layer with explicit maturity boundaries, while DB-grounded predictions, evidence ledger and validation remain tracked implementation work
+
 ## Recommended Start Order
 To turn this map into execution without losing precision, start in this order:
 
@@ -3055,6 +3097,7 @@ Meta-rule for this register:
    - export documentation and product copy reference only the verified export families and formats actually supported
 
 25. `GAP-2026-04-23-Y` AI predictions are real but still distributed across multiple engines, dashboards and maturity levels
+   Status: closed under `T12`
    Priority: medium
    Related block: `P5`
    Evidence:
@@ -3064,8 +3107,10 @@ Meta-rule for this register:
    Risk:
    - the product can be documented either as a single unified AI engine or dismissed as mostly mock, while the real state is a distributed hybrid predictive layer
    TODO:
-   - map predictive surfaces into mature operational services vs staged dashboards
-   - converge or document the current multi-engine architecture explicitly
+   - done: T12 maps predictive surfaces into DB-backed/contextual services, heuristic engines, demo/mock paths and staged UI
+   - future implementation: converge predictive route/dashboard, evidence ledger, service contract and validation harness through `T12-IMPLEMENT-*`
+   Closure note:
+   - public/source manuals now avoid universal accuracy and proprietary ML claims; the dashboard shows a consolidation disclosure
    Closure rule:
    - AI predictions are documented and exposed according to their actual service/UI maturity
 
@@ -3151,6 +3196,7 @@ Meta-rule for this register:
    - BIO guide clearly distinguishes assisted readiness support from full certification closure
 
 31. `GAP-2026-04-23-AE` AI overview chapter compresses uneven AI domains into one coherent decision layer
+   Status: closed under `T12`
    Priority: medium
    Related block: `P5`
    Evidence:
@@ -3159,8 +3205,10 @@ Meta-rule for this register:
    Risk:
    - the product can appear more uniformly AI-orchestrated than the current implementation actually is
    TODO:
-   - map current AI surfaces into explicit sub-domains with maturity labels instead of one flattened AI layer
-   - decide later whether to converge those surfaces architecturally or document them as intentionally distributed
+   - done: `docs/manual/07-ai-overview.md` and `public/docs/manual/07-ai-overview.md` now map AI sub-domains by maturity
+   - future implementation: decide convergence through `T12-IMPLEMENT-02/03/04`, not through manual overclaim
+   Closure note:
+   - the overview now frames AI as distributed assistive/predictive support rather than one autonomous decision layer
    Closure rule:
    - the AI overview is backed by an explicit sub-domain maturity map and no longer implies a uniform AI engine where one does not exist
 

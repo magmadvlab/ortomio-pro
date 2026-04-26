@@ -107,7 +107,7 @@ export default function AIPredictionsDashboard() {
                   AI Predictions
                 </h1>
                 <p className="text-sm text-gray-600">
-                  Predizioni intelligenti per {activeGarden.name}
+                  Superficie predittiva in consolidamento per {activeGarden.name}
                 </p>
               </div>
             </div>
@@ -128,6 +128,10 @@ export default function AIPredictionsDashboard() {
                 Aggiorna
               </button>
             </div>
+          </div>
+
+          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+            Le predizioni aggregano servizi con maturità diverse. I risultati vanno verificati con il contesto operativo e non sostituiscono una validazione agronomica.
           </div>
 
           {/* Tabs */}

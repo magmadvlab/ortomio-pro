@@ -34,6 +34,11 @@ OrtoMio oggi combina moduli già utilizzabili in produzione con moduli ancora in
 
 ## 📚 CAPITOLI PRINCIPALI
 
+### **AI e supporto decisionale**
+- [AI OrtoMio](./07-ai-overview.md)
+- [Predizioni AI](./01-ai-predictions.md)
+- [🤖 Planner AI](./09-planner-ai-chat.md)
+
 ### **Precision e Smart Farming**
 - [🛰️ NDVI Satellitare](./05-ndvi-satellite.md)
 - [🗺️ Prescription Maps](./06-prescription-maps.md)
@@ -41,7 +46,6 @@ OrtoMio oggi combina moduli già utilizzabili in produzione con moduli ancora in
 - [💧 Sistema Irrigazione](./15-irrigation-system.md)
 
 ### **Pianificazione e storico**
-- [🤖 Planner AI](./09-planner-ai-chat.md)
 - [📋 Registro Attività](./10-activity-registry.md)
 - [🔧 Guida Rapida](./27-quick-start.md)
 - [📱 Interfaccia e Navigazione](./29-interface-navigation.md)
