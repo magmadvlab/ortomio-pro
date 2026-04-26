@@ -1,6 +1,6 @@
 /**
  * Traceability Widget - Integrato nel workflow operativo
- * Tracciabilità blockchain semplificata e user-friendly
+ * Vista dimostrativa di tracciabilità operativa.
  */
 
 'use client'
@@ -186,7 +186,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
 
     // Notifica il parent component
     onRecordActivity({
-      type: 'blockchain_record',
+      type: 'traceability_demo_record',
       productId,
       record: newRecord
     })
@@ -304,10 +304,10 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
             <Shield className="h-6 w-6 text-green-600" />
             <div>
               <h3 className="font-semibold text-green-900">
-                🔗 Tracciabilità Automatica
+                Tracciabilità operativa
               </h3>
               <p className="text-sm text-green-800">
-                Ogni operazione viene registrata automaticamente per la trasparenza totale
+                Vista di supporto basata su dati dimostrativi e segnali operativi disponibili; non è una blockchain commerciale verificata.
               </p>
             </div>
           </div>
@@ -319,7 +319,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
                 onChange={(e) => setAutoTracking(e.target.checked)}
                 className="rounded border-green-300 text-green-600 focus:ring-green-500"
               />
-              Auto-tracking
+              Demo tracking
             </label>
           </div>
         </div>
@@ -526,7 +526,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
 
       {/* Vantaggi Tracciabilità */}
       <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-4">
-        <h4 className="font-semibold text-blue-900 mb-3">💰 Vantaggi della Tracciabilità</h4>
+        <h4 className="font-semibold text-blue-900 mb-3">Indicatori di tracciabilità</h4>
         <div className="grid md:grid-cols-2 gap-4 text-sm">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -537,7 +537,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
             </div>
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-green-500" />
-              <span className="text-blue-800">Fiducia consumatori aumentata</span>
+              <span className="text-blue-800">Supporto a lettura qualità e origine</span>
             </div>
           </div>
           <div className="space-y-2">
@@ -547,7 +547,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
             </div>
             <div className="flex items-center gap-2">
               <Link className="h-4 w-4 text-blue-500" />
-              <span className="text-blue-800">Certificazioni automatiche</span>
+              <span className="text-blue-800">Certificazioni mostrate come metadati, non rilasci automatici</span>
             </div>
           </div>
         </div>
@@ -705,7 +705,7 @@ export default function TraceabilityWidget({ garden, tasks, onRecordActivity }: 
 
               <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
                 <p className="text-sm text-green-800">
-                  <strong>🌐 URL Consumatori:</strong><br />
+                  <strong>URL consumatori dimostrativo:</strong><br />
                   <code className="text-xs">trace.ortomio.com/{selectedProduct.id}</code>
                 </p>
               </div>

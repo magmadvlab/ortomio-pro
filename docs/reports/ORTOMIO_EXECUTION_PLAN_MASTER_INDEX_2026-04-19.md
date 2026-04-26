@@ -2687,6 +2687,43 @@ Rule:
    Closure rule:
    - AI documentation and product copy describe a distributed assistive/predictive layer with explicit maturity boundaries, while DB-grounded predictions, evidence ledger and validation remain tracked implementation work
 
+13. `T13 Traceability/Blockchain Boundary Consolidation`
+   Status: done
+   Goal:
+   - preserve commercial traceability, QR and cryptographic verification as product directions while separating them from the DB-backed operational ledger that is actually implemented today
+   Source chapters:
+   - `docs/manual/03-traceability.md`
+   Current verified surface:
+   - T2 established the real traceability baseline through DB-backed operational records and projections such as `agronomic_operation_outcome_projection`, `agronomic_operation_signal_projection` and `agronomic_precision_execution_projection`
+   - `services/blockchainTraceabilityService.ts` exists, but uses in-memory maps, generated hashes/block numbers, simulated smart contracts/NFT minting and non-persisted QR/consumer app state
+   - `/api/blockchain/*` routes call that in-memory/simulated service and are not a durable blockchain integration or commercial chain-of-custody API
+   - `TraceabilityWidget` is a local/demonstrative product trace view with hard-coded example products and local QR generation, not a DB-backed commercial traceability workspace
+   - GlobalG.A.P. lot traceability is a separate compliance subdomain and does not by itself close public consumer QR, NFT or immutable blockchain proof workflows
+   Current limitations:
+   - no durable product-lot registry binds harvests, batches, transformations, sale units and consumer-facing pages end-to-end
+   - no cryptographic anchoring to a real blockchain/provider or verifiable timestamping service
+   - no persisted QR scan analytics, consumer app publication flow or public product-page governance
+   - no certification authority integration, automatic commercial badges, NFT marketplace workflow or legal chain-of-custody closure
+   - simulated carbon, sustainability and quality indicators must not be treated as verified consumer/compliance evidence
+   Implementation candidates promoted from legacy promises:
+   - `T13-IMPLEMENT-01 product lot registry` — Architecture path: `consolidate-first` / `schema-consolidation`; bind crop/plant/harvest/batch/sale units to operational records with stable identifiers
+   - `T13-IMPLEMENT-02 public QR traceability pages` — Architecture path: `consolidate-first`; publish selected ledger-backed events with privacy filters, QR issuance, scan logging and revocation
+   - `T13-IMPLEMENT-03 cryptographic evidence anchoring` — Architecture path: `convert-platform` / `evidence-ledger`; add hash chains, timestamping/anchoring provider, verification API and immutable audit rules only after product lots are durable
+   - `T13-IMPLEMENT-04 consumer/commercial traceability workflow` — Architecture path: `convert-platform`; support labels, packaging units, public claims approval, scan analytics, feedback and commerce integrations
+   - `T13-IMPLEMENT-05 certification/compliance evidence linkage` — Architecture path: `consolidate-first`; connect BIO/GlobalG.A.P./HACCP evidence to lot records without implying authority-issued certification
+   - `T13-IMPLEMENT-06 retire or persist simulated blockchain service` — Architecture path: `consolidate-first`; either move `blockchainTraceabilityService` to durable tables/provider adapters or keep it explicitly demo/internal
+   Rejected claims:
+   - `T13-REJECT-01 presenting generated hashes and in-memory maps as real immutable blockchain storage`
+   - `T13-REJECT-02 presenting QR, NFT, premium pricing, consumer app, marketplace or certification badges as current commercial product`
+   - `T13-REJECT-03 presenting carbon-neutral or sustainability claims from simulated calculations as verified product evidence`
+   Completed alignment:
+   - synchronized `public/docs/manual/03-traceability.md` with the bounded source chapter
+   - updated `TraceabilityWidget` copy and emitted activity type to label the current surface as operational/demo support rather than blockchain/commercial traceability
+   Closure result:
+   - `GAP-2026-04-23-AC` is closed for manual/UI/master-plan alignment
+   Closure rule:
+   - traceability docs and UI distinguish the real DB-backed operational ledger from future product-lot, QR, cryptographic anchoring and consumer/commercial traceability work
+
 ## Recommended Start Order
 To turn this map into execution without losing precision, start in this order:
 
@@ -3167,6 +3204,7 @@ Meta-rule for this register:
    - prescription maps are documented according to their true operational maturity and the remaining field-validation gaps are either closed or explicitly surfaced
 
 29. `GAP-2026-04-23-AC` Traceability domain is real but documented as a much broader immutable commercial/compliance platform
+   Status: closed under `T13`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -3175,8 +3213,11 @@ Meta-rule for this register:
    Risk:
    - a real but bounded traceability/prototype layer is mistaken for a fully operational chain-of-custody and consumer commerce platform
    TODO:
-   - map verified traceability features vs unsupported commercial/compliance claims
-   - rewrite the chapter around the actual traceability scaffold only
+   - done: T13 maps DB-backed operational ledger, simulated blockchain service/routes and demo traceability UI separately
+   - done: public manual 03 now matches the bounded source chapter
+   - future implementation: product lot registry, public QR pages, cryptographic anchoring, consumer/commercial workflow and certification evidence linkage remain tracked under `T13-IMPLEMENT-*`
+   Closure note:
+   - generated hashes, in-memory blockchain records, NFT/QR and commercial claims are no longer presented as current verified product capability
    Closure rule:
    - traceability docs describe only the real operational/prototype surface and exclude unsupported chain-of-custody/commercial overclaim
 
