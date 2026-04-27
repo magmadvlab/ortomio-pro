@@ -2799,6 +2799,41 @@ Rule:
    Closure rule:
    - global AI chat documentation describes the verified assistive route/UI behavior and tracks memory/actions/escalation as explicit implementation work
 
+16. `T16 Documentation Drift Control Loop`
+   Status: done
+   Goal:
+   - prevent late discovery of manual/code drift by enforcing mandatory capture and closure gates during every implementation/manual session
+   Source chapters:
+   - `docs/manual/*` (cross-cutting governance)
+   Current verified surface:
+   - this master plan already defines documentation truth contracts and an open gap register
+   - recent closures (`T8..T15`) prove the workflow works when gaps are captured and resolved in the same execution cycle
+   Current limitations:
+   - drift prevention was mostly policy-level and depended on operator discipline
+   - no explicit minimum closure checklist was attached to each future boundary-consolidation step
+   Drift control loop (mandatory):
+   - `Trigger`: every time a chapter, major UI surface, or capability claim is reviewed
+   - `Capture`: if mismatch exists, create/update a `GAP-*` item before any wording softening
+   - `Classify`: map missing capability to architecture path (`extend-current`, `consolidate-first`, `convert-platform`, `reject-architecture`)
+   - `Promote`: convert valuable promises into explicit `T*-IMPLEMENT-*`/`T*-DEFER-*` items
+   - `Align`: synchronize source/public manual chapters with bounded claims
+   - `Verify`: run at least `git diff --check` and required module checks (type-check/tests where code changed)
+   - `Close`: mark gap `closed under T*` only when source/public/manual/master-plan are coherent
+   Implementation candidates promoted from governance gap:
+   - `T16-IMPLEMENT-01 gap template normalization` — Architecture path: `extend-current`; keep a stable mandatory structure for every gap entry (evidence, risk, todo, closure note, closure rule)
+   - `T16-IMPLEMENT-02 closure checklist enforcement` — Architecture path: `consolidate-first`; require explicit verification notes for doc-only vs code-touch closures
+   - `T16-IMPLEMENT-03 drift telemetry` — Architecture path: `convert-platform`; optional future metrics on gap discovery time, closure lead time and reopened gaps
+   Rejected anti-patterns:
+   - `T16-REJECT-01 softening manual claims without creating/updating the corresponding tracked TODO`
+   - `T16-REJECT-02 closing a gap while source/public chapters remain misaligned`
+   Completed alignment:
+   - defined a concrete mandatory drift-control loop and closure checklist in the master plan
+   - upgraded `GAP-2026-04-23-D` from generic warning to enforceable governance closure
+   Closure result:
+   - `GAP-2026-04-23-D` is closed for governance/process alignment
+   Closure rule:
+   - future documentation/code mismatches are captured, classified, promoted and verified in the same cycle; no unresolved drift remains only in chat history
+
 ## Recommended Start Order
 To turn this map into execution without losing precision, start in this order:
 
@@ -2887,6 +2922,7 @@ Meta-rule for this register:
    - every visible action in the GlobalG.A.P. dashboard is either fully wired or explicitly marked as template/simulated support
 
 4. `GAP-2026-04-23-D` Documentation drift was discovered too late and without mandatory capture
+   Status: closed under `T16`
    Priority: high
    Related block: `P3`
    Evidence:
@@ -2894,7 +2930,10 @@ Meta-rule for this register:
    Risk:
    - unresolved product mismatches remain invisible and continue to compound
    TODO:
-   - keep this register active and add new mismatches as they are found during the manual sweep
+   - done: drift-control loop is now explicit in `T16` with mandatory trigger/capture/classify/promote/align/verify/close steps
+   - ongoing: keep register active and add new mismatches during future sweeps
+   Closure note:
+   - drift handling is now an enforceable process gate, not only a warning
    Closure rule:
    - all remaining manual chapters are reviewed against code and any mismatch is either fixed or logged here as an open item
 
