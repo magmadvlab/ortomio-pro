@@ -3265,7 +3265,7 @@ Meta-rule for this register:
    - traceability docs describe only the real operational/prototype surface and exclude unsupported chain-of-custody/commercial overclaim
 
 30. `GAP-2026-04-23-AD` BIO certification guide is grounded in a real form but still implies stronger audit-readiness than the product currently guarantees
-   Status: partially_closed_by_T3
+   Status: closed under `T3-E`
    Priority: medium
    Related block: `P5`
    Evidence:
@@ -3275,7 +3275,10 @@ Meta-rule for this register:
    Risk:
    - operators may read the guide as a full certification operations manual rather than an assisted readiness tool
    TODO:
-   - rewrite the guide around actual score/form support and current certification-readiness boundaries
+   - done: source/public chapter `04b-bio-certification-guide.md` now describes BIO as persisted readiness support and excludes claims of official certification closure
+   - future implementation: keep certification authority submission, official document protocol/signature and audit-valid closure in explicit backlog (`T3`/compliance implementation candidates), not in current manual claims
+   Closure note:
+   - BIO guide now distinguishes internal readiness scoring from external certification authority workflow and audit outcome
    Closure rule:
    - BIO guide clearly distinguishes assisted readiness support from full certification closure
 
