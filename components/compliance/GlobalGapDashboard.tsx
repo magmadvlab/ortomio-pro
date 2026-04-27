@@ -521,20 +521,25 @@ Personalizza questo documento secondo le tue esigenze specifiche.`
                       </p>
                     </div>
                     {requirement.status === 'missing' && (
-                      <button 
-                        onClick={() => handleCreateDocument(requirement.id, requirement.action)}
-                        disabled={creatingDocument === requirement.id}
-                        className="ml-4 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                      >
-                        {creatingDocument === requirement.id ? (
-                          <>
-                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                            Creando...
-                          </>
-                        ) : (
-                          `Template: ${requirement.action}`
-                        )}
-                      </button>
+                      <div className="ml-4 flex flex-col items-end gap-2">
+                        <span className="text-[11px] px-2 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+                          Template non persistente
+                        </span>
+                        <button
+                          onClick={() => handleCreateDocument(requirement.id, requirement.action)}
+                          disabled={creatingDocument === requirement.id}
+                          className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {creatingDocument === requirement.id ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                              Creando...
+                            </>
+                          ) : (
+                            `Template: ${requirement.action}`
+                          )}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -602,9 +607,12 @@ Personalizza questo documento secondo le tue esigenze specifiche.`
                               Completando...
                             </>
                           ) : (
-                            'Apri template'
+                            'Apri template (UI)'
                           )}
                         </button>
+                      </div>
+                      <div className="mt-2 text-xs opacity-80">
+                        Azione template: conferma UI senza scrittura diretta su record di completamento requisito.
                       </div>
                     </div>
                   ))}

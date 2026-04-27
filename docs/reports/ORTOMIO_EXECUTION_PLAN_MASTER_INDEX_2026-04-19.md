@@ -2910,7 +2910,7 @@ Meta-rule for this register:
    - BIO records are persisted/reloaded end-to-end and the UI/manual describe the remaining limitation
 
 3. `GAP-2026-04-23-C` GlobalG.A.P. UI mixes real compliance structures with simulated completion actions
-   Status: closed_by_T3
+   Status: closed under `T3-C`
    Priority: low
    Related block: `P2` / `P3`
    Evidence:
@@ -2920,7 +2920,11 @@ Meta-rule for this register:
    Risk:
    - the dashboard can look more operationally closed than the underlying workflow really is
    TODO:
-   - keep future UI actions either wired to these persisted tables or explicitly labelled as template/non-persisted support
+   - done: missing-requirement document actions are labeled as template support
+   - done: action cards and template buttons now disclose non-persisted/template behavior directly in UI copy
+   - future implementation: wire per-requirement completion actions to durable records before removing template disclaimers
+   Closure note:
+   - simulated/template affordances remain visible and cannot be mistaken for official completion writes
    Closure rule:
    - every visible action in the GlobalG.A.P. dashboard is either fully wired or explicitly marked as template/simulated support
 
