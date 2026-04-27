@@ -2763,6 +2763,42 @@ Rule:
    Closure rule:
    - export documentation and product copy reference only verified export families and their real maturity, while unification/scheduling/public API work remains explicit backlog
 
+15. `T15 Global AI Chat Boundary Consolidation`
+   Status: done
+   Goal:
+   - keep global AI chat as a real assistive surface while removing unsupported claims of universal memory, autonomous actions and enterprise-grade support capabilities
+   Source chapters:
+   - `docs/manual/08-global-ai-chat.md`
+   Current verified surface:
+   - `GlobalAIChat.tsx` is a real widget wired to `POST /api/ai/chat`
+   - `app/api/ai/chat/route.ts` is Gemini-backed, checks tier (`PLUS`/`PRO`) and credits, and returns bounded responses
+   - route context is explicitly sanitized/validated (`director-context` and bounded context types) before prompt use
+   - backend prompt rules explicitly forbid pretending to have executed tasks, commands or data writes
+   - UI exposes explicit error and insufficient-credit messages without pretending successful AI execution
+   Current limitations:
+   - no durable cross-session memory ledger for global chat
+   - no generic write-capable action execution contract from chat into operational modules
+   - no built-in support escalation/human handoff workflow
+   - no verified product-level scientific/legal knowledge base contract that justifies broad "50k articles / real-time laws" style claims
+   - no implemented command set for legacy marketing strings such as `/escalate` or chat-history export
+   Implementation candidates promoted from legacy promises:
+   - `T15-IMPLEMENT-01 durable chat memory strategy` — Architecture path: `consolidate-first` / `evidence-ledger`; persist bounded conversation context and retention policy
+   - `T15-IMPLEMENT-02 suggested-action execution registry` — Architecture path: `consolidate-first`; structured proposals with explicit user confirmation and durable outcome linkage
+   - `T15-IMPLEMENT-03 support escalation contract` — Architecture path: `convert-platform`; handoff to human support/ticketing with audit trail
+   - `T15-IMPLEMENT-04 knowledge-source provenance contract` — Architecture path: `consolidate-first`; source citations, freshness tags and policy constraints for high-stakes guidance
+   - `T15-IMPLEMENT-05 cross-surface AI orchestration` — Architecture path: `convert-platform`; unify chat/planner/director task linkage and execution accountability
+   Rejected claims:
+   - `T15-REJECT-01 presenting global chat as a universal contextual assistant with complete enterprise memory and autonomous control`
+   - `T15-REJECT-02 presenting unimplemented commands/escalation/export as available chat features`
+   - `T15-REJECT-03 presenting broad scientific/legal/commercial knowledge coverage as verified product capability`
+   Completed alignment:
+   - rewrote `docs/manual/08-global-ai-chat.md` with bounded real behavior and explicit limits
+   - synchronized `public/docs/manual/08-global-ai-chat.md` with the bounded source chapter
+   Closure result:
+   - `GAP-2026-04-23-AF` is closed for manual/master-plan alignment
+   Closure rule:
+   - global AI chat documentation describes the verified assistive route/UI behavior and tracks memory/actions/escalation as explicit implementation work
+
 ## Recommended Start Order
 To turn this map into execution without losing precision, start in this order:
 
@@ -3300,7 +3336,7 @@ Meta-rule for this register:
    - the AI overview is backed by an explicit sub-domain maturity map and no longer implies a uniform AI engine where one does not exist
 
 32. `GAP-2026-04-23-AF` Global AI chat chapter promises a universal contextual assistant well beyond the verified implementation
-   Status: partially_closed_by_T1
+   Status: closed under `T15`
    Priority: medium
    Related block: `P5`
    Evidence:
@@ -3311,8 +3347,10 @@ Meta-rule for this register:
    Risk:
    - users can infer a globally contextual assistant with production-grade memory, grounding and operational control that the codebase does not currently close
    TODO:
-   - keep current manual wording bounded to verified chat behaviour
-   - treat durable memory, grounded write actions, support escalation and broad specialist knowledge as future explicit work, not current capability
+   - done: chapter `08-global-ai-chat.md` (source/public) now reflects verified route/widget behavior and bounded context
+   - future implementation: durable memory, write-capable actions, escalation and knowledge provenance are tracked under `T15-IMPLEMENT-*`
+   Closure note:
+   - legacy claims (universal memory, broad enterprise support features, unimplemented command set) are removed from current manual scope
    Closure rule:
    - the global chat chapter only describes verified chat behaviour, and all stronger assistant capabilities are either implemented or explicitly tracked as open work
 
