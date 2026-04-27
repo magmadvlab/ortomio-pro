@@ -2878,7 +2878,7 @@ Meta-rule for this register:
 - only after that tracking step can the chapter be treated as `rewrite` or `delete-candidate`
 
 1. `GAP-2026-04-23-A` Certifications maturity is not homogeneous across tabs
-   Status: partially_closed_by_T3
+   Status: closed under `T3-E`
    Priority: medium
    Related block: `P3`
    Evidence:
@@ -2887,7 +2887,10 @@ Meta-rule for this register:
    Risk:
    - the product can be described too optimistically as one uniform certifications suite, or too pessimistically as pure concept
    TODO:
-   - make the per-certification maturity explicit in docs and, if needed, in UI copy
+   - done: source/public certification chapters explicitly distinguish BIO and GlobalG.A.P. from SQNPI/GRASP informational state
+   - done: certification dashboard cards now expose per-certification maturity labels, and SQNPI/GRASP tabs are explicitly marked as informational/backlog
+   Closure note:
+   - heterogeneous maturity remains intentional and visible, instead of being interpreted as one uniformly operational suite
    Closure rule:
    - each certification surface is labelled and documented according to its real implementation status
 

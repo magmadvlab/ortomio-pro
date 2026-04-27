@@ -76,6 +76,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
       id: 'bio',
       name: 'Certificazione Biologica',
       description: 'EU 2018/848 - Produzione biologica',
+      maturityLabel: 'Readiness DB-backed',
       icon: Leaf,
       color: 'green',
       progress: bioCertification?.complianceScore || 0,
@@ -86,6 +87,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
       id: 'globalgap',
       name: 'GlobalG.A.P. IFA',
       description: 'Standard internazionale GAP',
+      maturityLabel: 'Workspace compliance parziale',
       icon: Shield,
       color: 'blue',
       progress: 45,
@@ -96,6 +98,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
       id: 'sqnpi',
       name: 'SQNPI',
       description: 'Sistema Qualità Nazionale Produzione Integrata',
+      maturityLabel: 'Tab informativa / backlog',
       icon: Award,
       color: 'purple',
       progress: 0,
@@ -106,6 +109,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
       id: 'grasp',
       name: 'GRASP',
       description: 'Risk Assessment on Social Practice',
+      maturityLabel: 'Tab informativa / backlog',
       icon: FileText,
       color: 'orange',
       progress: 0,
@@ -288,6 +292,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
                         <div>
                           <h3 className="font-semibold text-gray-900">{cert.name}</h3>
                           <p className="text-sm text-gray-600">{cert.description}</p>
+                          <p className="text-xs text-gray-500 mt-1">Maturità: {cert.maturityLabel}</p>
                         </div>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(cert.status)}`}>
@@ -355,10 +360,10 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
             <div className="text-center py-12">
               <Award className="mx-auto h-16 w-16 text-purple-400 mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                SQNPI - In Sviluppo
+                SQNPI - Tab informativa
               </h3>
               <p className="text-gray-600 mb-4">
-                Il modulo per la certificazione SQNPI sarà disponibile a breve
+                Questa sezione oggi è informativa: il workflow SQNPI operativo è in backlog.
               </p>
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 max-w-2xl mx-auto text-left">
                 <h4 className="font-semibold text-purple-900 mb-2">Cos'è SQNPI?</h4>
@@ -381,10 +386,10 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
             <div className="text-center py-12">
               <FileText className="mx-auto h-16 w-16 text-orange-400 mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                GRASP - In Sviluppo
+                GRASP - Tab informativa
               </h3>
               <p className="text-gray-600 mb-4">
-                Il modulo per la certificazione GRASP sarà disponibile a breve
+                Questa sezione oggi è informativa: il workflow GRASP operativo è in backlog.
               </p>
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 max-w-2xl mx-auto text-left">
                 <h4 className="font-semibold text-orange-900 mb-2">Cos'è GRASP?</h4>
