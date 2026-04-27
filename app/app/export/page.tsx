@@ -182,7 +182,7 @@ export default function ExportPage() {
             Export Dati
           </h1>
           <p className="text-gray-600 mt-1">
-            Esporta i tuoi dati in formato CSV o PDF per backup e analisi
+            Esporta i tuoi dati in CSV o in report stampabile per backup e analisi
           </p>
         </div>
       </header>
@@ -286,8 +286,8 @@ export default function ExportPage() {
                   }`}
                 >
                   <FileText className="mx-auto mb-2" size={24} />
-                  <div className="font-medium">PDF</div>
-                  <div className="text-sm text-gray-600">Per stampa e archiviazione</div>
+                  <div className="font-medium">Report stampabile</div>
+                  <div className="text-sm text-gray-600">Apre un report HTML per stampa/salvataggio PDF</div>
                 </button>
               </div>
             </div>
@@ -341,9 +341,9 @@ export default function ExportPage() {
               <h4 className="font-medium text-blue-900 mb-1">Informazioni Export</h4>
               <ul className="text-sm text-blue-800 space-y-1">
                 <li>• I file CSV possono essere aperti con Excel, Google Sheets o altri fogli di calcolo</li>
-                <li>• I file PDF sono ottimizzati per la stampa e l'archiviazione</li>
-                <li>• Tutti i dati esportati includono timestamp e informazioni complete</li>
-                <li>• L'export è compatibile con sistemi di backup e analisi esterni</li>
+                <li>• Il formato report usa una pagina HTML stampabile o salvabile come PDF dal browser</li>
+                <li>• L'export di questa pagina è una superficie operativa rapida, non un framework enterprise unificato</li>
+                <li>• Verifica sempre manualmente il contenuto prima di condividerlo esternamente</li>
               </ul>
             </div>
           </div>

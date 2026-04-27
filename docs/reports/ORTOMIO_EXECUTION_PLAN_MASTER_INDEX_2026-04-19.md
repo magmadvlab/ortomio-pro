@@ -2724,6 +2724,45 @@ Rule:
    Closure rule:
    - traceability docs and UI distinguish the real DB-backed operational ledger from future product-lot, QR, cryptographic anchoring and consumer/commercial traceability work
 
+14. `T14 Export Surface Boundary Consolidation`
+   Status: done
+   Goal:
+   - preserve export as a product capability while separating real current export families from unsupported claims of one unified enterprise export framework
+   Source chapters:
+   - `docs/manual/23-export-system.md`
+   Current verified surface:
+   - `/app/export` provides client-side operational export for `tasks`, `gardens`, `analytics` in CSV and report-print flow
+   - client-side "PDF" in `/app/export` is currently an HTML report opened in a new window and printed/saved by browser workflow
+   - `/api/export/csv` and `/api/export/pdf` exist, are tier-guarded (`PRO`) and currently cover `analytics` and `treatments`
+   - API export routes use real Supabase tables when available (`professional_analytics`, `treatment_register`) and fallback mock datasets in bypass mode
+   - `/api/export/pdf` currently returns text content (`.txt`) and not a rendered binary PDF document
+   - specialist export for prescription maps is materially more advanced through `MapExportModal`, `geoExportService`, GIS/ISOBUS-oriented formats and persisted export records
+   Current limitations:
+   - no single unified export contract across client export, professional API export and specialist module export
+   - no cross-module scheduler/retry/delivery pipeline for recurring exports
+   - no product-wide format matrix with verified support guarantees
+   - no general-purpose public export API with stable versioned contract
+   - compliance/stakeholder reporting remains partial and domain-specific
+   Implementation candidates promoted from legacy promises:
+   - `T14-IMPLEMENT-01 export surface inventory registry` — Architecture path: `extend-current`; maintain one canonical list of export families, owners, inputs, outputs, maturity and evidence
+   - `T14-IMPLEMENT-02 unified export contract and metadata` — Architecture path: `consolidate-first`; standardize minimum metadata (source, generated_at, filters, fallback flag, schema version) across export surfaces
+   - `T14-IMPLEMENT-03 true PDF generation pipeline` — Architecture path: `consolidate-first`; replace text/html-print approximations with deterministic PDF generation for declared report families
+   - `T14-IMPLEMENT-04 fallback transparency and quality flags` — Architecture path: `consolidate-first`; expose mock/bypass provenance in API responses and exported files
+   - `T14-IMPLEMENT-05 scheduled and durable export jobs` — Architecture path: `convert-platform`; introduce queue/scheduler/retry/audit for recurring delivery workflows
+   - `T14-IMPLEMENT-06 public export API boundary` — Architecture path: `convert-platform`; define authenticated versioned external export interface only after unified contracts are stable
+   Rejected claims:
+   - `T14-REJECT-01 presenting the current product as a complete enterprise export platform with universal formats and automation`
+   - `T14-REJECT-02 presenting /api/export/pdf as a production-grade PDF rendering system`
+   - `T14-REJECT-03 presenting all export routes as uniformly DB-grounded without fallback/mock modes`
+   Completed alignment:
+   - rewrote `docs/manual/23-export-system.md` around verified export families and boundaries
+   - synchronized `public/docs/manual/23-export-system.md` with bounded source chapter
+   - updated `/app/export` UI copy to label the report-print flow explicitly instead of implying a full PDF engine
+   Closure result:
+   - `GAP-2026-04-23-X` is closed for manual/UI/master-plan alignment
+   Closure rule:
+   - export documentation and product copy reference only verified export families and their real maturity, while unification/scheduling/public API work remains explicit backlog
+
 ## Recommended Start Order
 To turn this map into execution without losing precision, start in this order:
 
@@ -3120,6 +3159,7 @@ Meta-rule for this register:
    - agronomist documentation and implementation clearly agree on what is currently operational and what is not
 
 24. `GAP-2026-04-23-X` Export surface is real but fragmented across simple client-side flows, helper services and selected API endpoints
+   Status: closed under `T14`
    Priority: medium
    Related block: `P5`
    Evidence:
@@ -3128,8 +3168,11 @@ Meta-rule for this register:
    Risk:
    - future docs or UI could again collapse these scattered capabilities into an overclaimed universal export system
    TODO:
-   - inventory actual export families and supported formats
-   - distinguish client-side convenience export, backup/portability export and specialist module export
+   - done: T14 maps three verified families (client operational export, professional API export, prescription specialist export)
+   - done: source/public chapter 23 now describes actual route/service behavior, including report-print and fallback limits
+   - future implementation: unified contract/metadata, deterministic PDF pipeline, scheduled jobs and public API boundary tracked under `T14-IMPLEMENT-*`
+   Closure note:
+   - export capability is no longer represented as one complete framework; specialist and generic surfaces are clearly separated by maturity
    Closure rule:
    - export documentation and product copy reference only the verified export families and formats actually supported
 

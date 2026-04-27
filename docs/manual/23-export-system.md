@@ -1,67 +1,85 @@
-# 📤 SISTEMA EXPORT
+# Sistema Export
 
 [← Torna all'Indice](./README.md)
 
 ---
 
-## 🎯 STATO MODULO
+## Stato modulo
 
-**Stato attuale**: **Ibrido**
+**Stato attuale**: **ibrido e frammentato**
 
-L'export in OrtoMio esiste, soprattutto in alcuni flussi specialistici e documentali, ma questo capitolo non deve più promettere un framework universale di esportazione con scheduler, API complete, batch processing e formati enterprise tutti già disponibili.
-
-**Percorso dichiarato**: Sidebar → "Export"
+In OrtoMio l'export esiste in piu superfici reali, ma non e ancora un framework unificato con catalogo formati enterprise, scheduler, API pubblica completa e pipeline unica di governance.
 
 ---
 
-## ✅ COSA È RAGIONEVOLE CONSIDERARE DISPONIBILE
+## Famiglie export verificate
 
-- export o generazione file in alcune aree specialistiche
-- documenti e output collegati a report, mappe o strumenti interni
-- possibilità di estrarre dati e risultati in formati pratici in alcuni flussi reali
-- supporto a output operativi nel contesto prescription/export dove previsto dal codice
+### 1) Export operativo client-side (`/app/export`)
 
----
+- pagina export con tre dataset: `tasks`, `gardens`, `analytics`
+- formato `CSV`: download diretto lato browser
+- formato `PDF`: non e un PDF engine dedicato; e un report HTML stampabile/salvabile come PDF dal browser
+- dati letti dallo storage applicativo locale/utente corrente
 
-## ⚠️ COSA NON VA PRESENTATO COME CHIUSO OGGI
+Uso corretto: estrazioni rapide, backup pratico, confronto manuale.
 
-- matrice completa di formati supportati come da lista enterprise precedente
-- scheduler robusto per export ricorrenti
-- piattaforma API/export general purpose già chiusa e documentata end-to-end
-- pipeline stabile per compliance, stakeholder reporting e sync multi-sistema
-- analytics completi sul comportamento export
+### 2) Export API professionale (`/api/export/*`)
 
----
+- endpoint esposti: `GET /api/export/csv`, `GET /api/export/pdf`
+- accesso protetto da tier `PRO`
+- tipologie attive: `analytics`, `treatments`
+- sorgenti principali: `professional_analytics`, `treatment_register`
+- in assenza configurazione Supabase server-side, gli endpoint usano dataset mock di fallback
+- route `pdf` oggi restituisce testo/report (`.txt`) e non un PDF binario impaginato
 
-## 🧭 USO CORRETTO OGGI
+Uso corretto: estrazioni professionali mirate (analytics e trattamenti), con verifica del contenuto in base a ambiente reale vs fallback.
 
-Usa l'export quando:
-- un modulo specifico produce un file o un output chiaramente previsto
-- devi portare fuori dati di una superficie reale già implementata
-- hai validato manualmente il contenuto del file rispetto allo scopo
+### 3) Export specialistico precision (`Prescription Maps`)
 
-Non usarlo oggi come:
-- garanzia di interoperabilità totale con sistemi esterni
-- sostituto di un data exchange enterprise già consolidato
-- prova che tutti i formati elencati in passato siano davvero operativi
+- modulo export tecnico in `MapExportModal` + `geoExportService`
+- formati previsti dal servizio: `shapefile`, `kml/kmz`, `isoxml`, `geojson`, `csv`
+- gestione metadati export, coordinate system, compatibilita machinery
+- tracciamento export in record dedicati (`PrescriptionMapExportRecord` / mapping DB)
+- presenza di test dedicati (`geoExportService.test.ts`)
 
----
-
-## 🔗 AREE PIÙ VICINE ALL'EXPORT REALE
-
-- [🗺️ Prescription Maps](./06-prescription-maps.md): area beta ma con architettura di export più concreta
-- [📋 Registro Attività](./10-activity-registry.md): utile come base dati per estrazioni manuali o mirate
-- report e documenti generati in flussi specifici del prodotto
+Uso corretto: supporto tecnico per mappe prescrizione e scambio con tool GIS/macchine, con validazione operativa ancora necessaria in campo.
 
 ---
 
-## 🚧 ROADMAP
+## Limiti attuali da mantenere espliciti
 
-Per rendere questa sezione pienamente difendibile servirebbe:
-- inventario reale dei formati effettivamente supportati
-- distinzione chiara tra export operativi, documentali e tecnici
-- validazione dei percorsi di download, persistenza e riuso esterno
-- documentazione API/export coerente con endpoint realmente esposti
+- nessuna matrice unica e garantita di tutti i formati export a livello prodotto intero
+- nessun scheduler robusto per export ricorrenti cross-modulo
+- nessuna API pubblica general-purpose documentata end-to-end
+- copertura parziale per compliance/reporting ufficiale multi-standard
+- percorsi eterogenei: parte client-side, parte API, parte specialistica di modulo
+
+---
+
+## Cosa non va promesso come chiuso
+
+- piattaforma export unificata enterprise gia pronta
+- integrazione universale con qualsiasi ERP/BI/GIS senza validazione per dominio
+- PDF professionale strutturato per ogni endpoint `/api/export/pdf`
+- governance completa su versioning, delivery, audit e retry cross-modulo
+
+---
+
+## Uso consigliato oggi
+
+1. Per export rapido utente: usare `/app/export` e validare manualmente il file.
+2. Per dataset professionali (analytics/trattamenti): usare `/api/export/*` in ambiente con dati reali e tier corretto.
+3. Per mappe prescrizione/GIS: usare l'export specialistico del modulo Prescription Maps.
+4. Per output compliance ufficiali: trattarli come supporto operativo, non come automazione normativa completa.
+
+---
+
+## Roadmap realistica
+
+- inventario unico delle famiglie export e formati realmente supportati
+- convergenza contratti dati/minimum metadata tra client export, API export e export specialistici
+- distinzione esplicita tra fallback/mock e dati produttivi in ogni route export
+- roadmap per reporting compliance e delivery affidabile solo dopo evidence-ledger coerente
 
 ---
 
