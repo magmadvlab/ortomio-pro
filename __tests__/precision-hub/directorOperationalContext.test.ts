@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import { directorService } from '@/services/directorService'
 import type { AISuggestion } from '@/types/aiFeedback'
+import type { Garden } from '@/types'
 
 const baseSuggestion: AISuggestion = {
   id: 'suggestion-1',
@@ -74,5 +75,62 @@ test('director suggestionToAction carries operational context into economic comp
   assert.ok(
     (protectedAction.decisionExplanation?.signals.requiredP0Signals.length || 0) >=
       (openFieldAction.decisionExplanation?.signals.coveredP0Signals.length || 0)
+  )
+})
+
+test('director suggestionToAction enriches actions with garden wizard site context', () => {
+  const mountainOpenFieldGarden: Garden = {
+    id: 'garden-1',
+    name: 'Campo montano',
+    sizeSqMeters: 1200,
+    createdAt: '2026-04-01T08:00:00.000Z',
+    gardenType: 'OpenField',
+    soilType: 'Clay',
+    soilPh: 6.2,
+    altitudeMeters: 980,
+    sunExposure: 'PartSun',
+    dailySunHours: 5.5,
+    aspectDirection: 'East',
+    windProtection: 'Low',
+    obstacles: [
+      {
+        azimuth: 135,
+        height: 8,
+        distance: 14,
+        widthDegrees: 28,
+        type: 'Tree',
+      },
+    ],
+  }
+
+  const action = (directorService as any).suggestionToAction(
+    {
+      ...baseSuggestion,
+      id: 'suggestion-mountain-field',
+      metadata: {
+        ...baseSuggestion.metadata,
+        gardenType: undefined,
+      },
+    },
+    mountainOpenFieldGarden
+  )
+
+  assert.equal(action.operationalContextTags?.includes('open_field'), true)
+  assert.equal(action.operationalContextTags?.includes('high_altitude_site'), true)
+  assert.equal(action.refinedContext?.subSystemContext?.systemType, 'open_field')
+  assert.equal(action.refinedContext?.siteOperationalProfile?.altitudeMeters, 980)
+  assert.equal(action.refinedContext?.siteOperationalProfile?.soilType, 'Clay')
+  assert.equal(action.refinedContext?.siteOperationalProfile?.soilPh, 6.2)
+  assert.equal(action.refinedContext?.siteOperationalProfile?.dailySunHours, 5.5)
+  assert.equal(action.refinedContext?.siteOperationalProfile?.shadowObstaclesCount, 1)
+  assert.ok(
+    action.decisionExplanation?.contextRationale?.some((entry: string) =>
+      entry.includes('Altitudine sito: 980 m.')
+    )
+  )
+  assert.ok(
+    action.decisionExplanation?.contextRationale?.some((entry: string) =>
+      entry.includes('Ombre considerate: 1 ostacoli.')
+    )
   )
 })

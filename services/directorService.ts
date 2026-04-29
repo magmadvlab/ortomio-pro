@@ -262,11 +262,14 @@ class DirectorService {
       ])
       
       // 2. Ottieni suggerimenti AI attivi
-      const suggestions = await collaborativeAIService.getActiveSuggestions(userId, gardenId)
+      const [suggestions, gardenForContext] = await Promise.all([
+        collaborativeAIService.getActiveSuggestions(userId, gardenId),
+        this.getStorageProvider().getGarden(gardenId).catch(() => null),
+      ])
       
       // 3. Converti in azioni e prioritizza con contratto agronomico condiviso
       const actions = suggestions
-        .map((suggestion) => this.suggestionToAction(suggestion))
+        .map((suggestion) => this.suggestionToAction(suggestion, gardenForContext))
         .sort((left, right) => right.priorityScore - left.priorityScore)
       const transversalQueue = await this.buildTransversalQueue(userId, gardenId, actions)
       
@@ -572,7 +575,7 @@ class DirectorService {
   /**
    * Converti suggerimento AI in azione prioritizzata
    */
-  private suggestionToAction(suggestion: AISuggestion): PrioritizedAction {
+  private suggestionToAction(suggestion: AISuggestion, garden?: Garden | null): PrioritizedAction {
     // Calcola score basato su priorità, confidenza e copertura agronomica
     const priorityScores = { CRITICAL: 100, HIGH: 75, MEDIUM: 50, LOW: 25 }
     const baseScore = priorityScores[suggestion.action_priority] || 50
@@ -597,6 +600,15 @@ class DirectorService {
         suggestion.metadata?.plantName,
         suggestion.metadata?.cropName,
         suggestion.metadata?.gardenType,
+        garden?.name,
+        garden?.primaryCrop?.canonicalPlantName,
+        garden?.primaryCrop?.label,
+        garden?.primaryCrop?.cropType,
+        garden?.gardenType,
+        garden?.soilType,
+        garden?.sunExposure,
+        garden?.aspectDirection,
+        garden?.windProtection,
       ],
       cultivarId: suggestion.metadata?.cultivarId || suggestion.metadata?.varietyId,
       cultivarLabel:
@@ -608,16 +620,21 @@ class DirectorService {
         suggestion.metadata?.cropName ||
         suggestion.context,
       productionIntent: suggestion.metadata?.varietyType,
-      gardenType: suggestion.metadata?.gardenType,
+      gardenType: suggestion.metadata?.gardenType || garden?.gardenType,
       cultivationSystem: suggestion.metadata?.cultivationSystem,
       irrigationMode: suggestion.metadata?.irrigationMode,
       trainingSystem: suggestion.metadata?.trainingSystem,
       rootstock: suggestion.metadata?.rootstock,
-      altitudeMeters: suggestion.metadata?.altitudeMeters,
+      altitudeMeters: suggestion.metadata?.altitudeMeters ?? garden?.altitudeMeters,
       slopePercentage: suggestion.metadata?.slopePercentage,
-      sunExposure: suggestion.metadata?.sunExposure,
-      soilType: suggestion.metadata?.soilType,
+      dailySunHours: garden?.dailySunHours,
+      sunExposure: suggestion.metadata?.sunExposure || garden?.sunExposure,
+      aspectDirection: garden?.aspectDirection,
+      windProtection: garden?.windProtection,
+      soilType: suggestion.metadata?.soilType || garden?.soilType,
+      soilPh: garden?.soilPh,
       terroir: suggestion.metadata?.terroir,
+      shadowObstaclesCount: Array.isArray(garden?.obstacles) ? garden.obstacles.length : undefined,
     })
     const operationalContextTags = refinedContextResult.operationalContextTags
     const economicSummary = buildAgronomicEconomicPrioritySummary({
@@ -1136,12 +1153,15 @@ class DirectorService {
    * Ottieni azioni urgenti (CRITICAL + HIGH)
    */
   async getUrgentActions(userId: string, gardenId?: string): Promise<PrioritizedAction[]> {
-    const suggestions = await collaborativeAIService.getActiveSuggestions(userId, gardenId)
+    const [suggestions, gardenForContext] = await Promise.all([
+      collaborativeAIService.getActiveSuggestions(userId, gardenId),
+      gardenId ? this.getStorageProvider().getGarden(gardenId).catch(() => null) : Promise.resolve(null),
+    ])
     const prioritized = await this.prioritizeSuggestions(suggestions)
     
     return prioritized
       .filter(s => s.action_priority === 'CRITICAL' || s.action_priority === 'HIGH')
-      .map(s => this.suggestionToAction(s))
+      .map(s => this.suggestionToAction(s, gardenForContext))
       .slice(0, 10)
   }
   
@@ -1149,10 +1169,13 @@ class DirectorService {
    * Ottieni tutte le azioni prioritizzate
    */
   async getAllPrioritizedActions(userId: string, gardenId?: string): Promise<PrioritizedAction[]> {
-    const suggestions = await collaborativeAIService.getActiveSuggestions(userId, gardenId)
+    const [suggestions, gardenForContext] = await Promise.all([
+      collaborativeAIService.getActiveSuggestions(userId, gardenId),
+      gardenId ? this.getStorageProvider().getGarden(gardenId).catch(() => null) : Promise.resolve(null),
+    ])
     const prioritized = await this.prioritizeSuggestions(suggestions)
     
-    return prioritized.map(s => this.suggestionToAction(s))
+    return prioritized.map(s => this.suggestionToAction(s, gardenForContext))
   }
 }
 

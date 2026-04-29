@@ -46,6 +46,8 @@ Le decisioni possono dipendere da:
 
 Con gli ultimi riallineamenti P1, il contesto raffinato viene propagato in modo piu uniforme nel loop decisionale. Director, prescription, irrigation queue, phenology queue e health queue possono conservare nei metadata decisionali informazioni come cultivar/specie, intento produttivo, sottosistema colturale e profilo operativo del sito, senza forzare valori non espliciti.
 
+Il director usa anche il profilo garden-level raccolto dal wizard quando trasforma i suggerimenti in azioni prioritarie. Per i garden in campo aperto questo include, dove disponibili, tipo di terreno, pH, altitudine, esposizione solare, ore di sole stimate, orientamento, protezione dal vento e ostacoli che generano ombre. Questi dati entrano nel refined context e nelle spiegazioni decisionali, cosi un campo a livello del mare e uno a 1000 metri non vengono descritti come equivalenti.
+
 La chat AI integrata resta assistiva: puo spiegare, suggerire priorita e indicare moduli da aprire, ma non registra task o operazioni al posto dell'utente.
 
 ### 3.3 Spiegazione della decisione

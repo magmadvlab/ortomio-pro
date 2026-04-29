@@ -158,6 +158,19 @@ export function buildAgronomicDecisionExplanation(
     refinedContext?.siteOperationalProfile?.soilType
       ? `Suolo: ${refinedContext.siteOperationalProfile.soilType}.`
       : null,
+    typeof refinedContext?.siteOperationalProfile?.altitudeMeters === 'number'
+      ? `Altitudine sito: ${refinedContext.siteOperationalProfile.altitudeMeters} m.`
+      : null,
+    typeof refinedContext?.siteOperationalProfile?.soilPh === 'number'
+      ? `pH suolo: ${refinedContext.siteOperationalProfile.soilPh}.`
+      : null,
+    typeof refinedContext?.siteOperationalProfile?.dailySunHours === 'number'
+      ? `Sole diretto stimato: ${refinedContext.siteOperationalProfile.dailySunHours} h/giorno.`
+      : null,
+    typeof refinedContext?.siteOperationalProfile?.shadowObstaclesCount === 'number' &&
+    refinedContext.siteOperationalProfile.shadowObstaclesCount > 0
+      ? `Ombre considerate: ${refinedContext.siteOperationalProfile.shadowObstaclesCount} ostacoli.`
+      : null,
   ])
 
   return {

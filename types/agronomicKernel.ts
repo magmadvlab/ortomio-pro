@@ -231,9 +231,14 @@ export interface SubSystemContext {
 export interface SiteOperationalProfile {
   altitudeMeters?: number;
   slopePercentage?: number;
+  dailySunHours?: number;
   sunExposure?: string;
+  aspectDirection?: string;
+  windProtection?: string;
   soilType?: string;
+  soilPh?: number;
   terroir?: string;
+  shadowObstaclesCount?: number;
   exposureClass?: AgronomicSiteExposureClass;
   slopeClass?: AgronomicSiteSlopeClass;
   siteTags?: AgronomicOperationalContextTag[];

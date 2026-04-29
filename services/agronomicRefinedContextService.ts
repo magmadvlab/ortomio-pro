@@ -37,9 +37,14 @@ export interface BuildAgronomicRefinedContextInput {
   rootstock?: string | null
   altitudeMeters?: number | null
   slopePercentage?: number | null
+  dailySunHours?: number | null
   sunExposure?: string | null
+  aspectDirection?: string | null
+  windProtection?: string | null
   soilType?: string | null
+  soilPh?: number | null
   terroir?: string | null
+  shadowObstaclesCount?: number | null
   siteTags?: Array<string | null | undefined> | null
 }
 
@@ -175,6 +180,7 @@ const normalizeSystemType = (
 
   switch (normalizedValue) {
     case 'open_field':
+    case 'openfield':
     case 'open field':
     case 'campo aperto':
       return 'open_field'
@@ -415,7 +421,19 @@ export const resolveSubSystemContext = (
 export const resolveSiteOperationalProfile = (
   input: Pick<
     BuildAgronomicRefinedContextInput,
-    'operationalContextTags' | 'textValues' | 'altitudeMeters' | 'slopePercentage' | 'sunExposure' | 'soilType' | 'terroir' | 'siteTags'
+    | 'operationalContextTags'
+    | 'textValues'
+    | 'altitudeMeters'
+    | 'slopePercentage'
+    | 'dailySunHours'
+    | 'sunExposure'
+    | 'aspectDirection'
+    | 'windProtection'
+    | 'soilType'
+    | 'soilPh'
+    | 'terroir'
+    | 'shadowObstaclesCount'
+    | 'siteTags'
   >
 ): SiteOperationalProfile | undefined => {
   const operationalContextTags = mergeOperationalContextTags(
@@ -435,9 +453,14 @@ export const resolveSiteOperationalProfile = (
   const siteOperationalProfile: SiteOperationalProfile = {
     altitudeMeters: toFiniteNumber(input.altitudeMeters),
     slopePercentage: toFiniteNumber(input.slopePercentage),
+    dailySunHours: toFiniteNumber(input.dailySunHours),
     sunExposure: normalizeToken(input.sunExposure),
+    aspectDirection: normalizeToken(input.aspectDirection),
+    windProtection: normalizeToken(input.windProtection),
     soilType: normalizeToken(input.soilType),
+    soilPh: toFiniteNumber(input.soilPh),
     terroir: normalizeToken(input.terroir),
+    shadowObstaclesCount: toFiniteNumber(input.shadowObstaclesCount),
     exposureClass: resolveSiteExposureClass({
       sunExposure: input.sunExposure,
       operationalContextTags,
@@ -568,9 +591,14 @@ export const buildAgronomicRefinedContext = (
     textValues: input.textValues,
     altitudeMeters: input.altitudeMeters,
     slopePercentage: input.slopePercentage,
+    dailySunHours: input.dailySunHours,
     sunExposure: input.sunExposure,
+    aspectDirection: input.aspectDirection,
+    windProtection: input.windProtection,
     soilType: input.soilType,
+    soilPh: input.soilPh,
     terroir: input.terroir,
+    shadowObstaclesCount: input.shadowObstaclesCount,
     siteTags: input.siteTags,
   })
   if (siteOperationalProfile) {
