@@ -47,3 +47,21 @@ export const mergeTaskExecutionQuickPayloadNotes = (
 
   return parts.length > 0 ? parts.join(' • ') : undefined
 }
+
+export const parseTaskExecutionQuickPayloadNotes = (notes?: string | null): {
+  outcome: TaskExecutionQuickOutcome
+  followUpRequired: boolean
+} => {
+  const normalizedNotes = notes?.toLowerCase() || ''
+
+  return {
+    outcome: normalizedNotes.includes('esito critical')
+      ? 'critical'
+      : normalizedNotes.includes('esito attention')
+        ? 'attention'
+        : normalizedNotes.includes('esito good')
+          ? 'good'
+          : null,
+    followUpRequired: normalizedNotes.includes('follow-up richiesto'),
+  }
+}

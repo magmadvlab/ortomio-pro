@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import {
   buildTaskExecutionQuickFeedbackTokens,
   mergeTaskExecutionQuickPayloadNotes,
+  parseTaskExecutionQuickPayloadNotes,
 } from '@/services/taskExecutionQuickPayloadService'
 
 test('buildTaskExecutionQuickFeedbackTokens captures selected quick outcome and follow-up', () => {
@@ -28,4 +29,14 @@ test('mergeTaskExecutionQuickPayloadNotes appends quick feedback without duplica
 
 test('mergeTaskExecutionQuickPayloadNotes returns undefined when no notes or quick feedback exist', () => {
   assert.equal(mergeTaskExecutionQuickPayloadNotes('', {}), undefined)
+})
+
+test('parseTaskExecutionQuickPayloadNotes extracts structured quick feedback from saved notes', () => {
+  assert.deepEqual(
+    parseTaskExecutionQuickPayloadNotes('osservazione campo • esito critical • follow-up richiesto'),
+    {
+      outcome: 'critical',
+      followUpRequired: true,
+    }
+  )
 })
