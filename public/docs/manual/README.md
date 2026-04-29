@@ -87,6 +87,7 @@ In questa revisione il manuale è stato riallineato in particolare su:
 - **Smart Hub / IoT**: distinzione tra letture persistite e controllo dispositivi ancora incompleto
 - **T2 Operational Ledger**: manuale allineato a proiezioni DB-first, Activity Registry consumer, diario/meteo e segnali piante individuali
 - **P1 Agronomic Context Refinement**: manuale riallineato al refined context già propagato nei principali percorsi decisionali
+- **Spiegazioni decisionali**: quando disponibili, includono anche orientamento del sito e protezione dal vento oltre a pH, sole, ombre, quota e pendenza
 
 ---
 

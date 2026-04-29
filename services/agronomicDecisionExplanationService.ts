@@ -167,6 +167,12 @@ export function buildAgronomicDecisionExplanation(
     typeof refinedContext?.siteOperationalProfile?.dailySunHours === 'number'
       ? `Sole diretto stimato: ${refinedContext.siteOperationalProfile.dailySunHours} h/giorno.`
       : null,
+    refinedContext?.siteOperationalProfile?.aspectDirection
+      ? `Orientamento sito: ${refinedContext.siteOperationalProfile.aspectDirection}.`
+      : null,
+    refinedContext?.siteOperationalProfile?.windProtection
+      ? `Protezione vento: ${refinedContext.siteOperationalProfile.windProtection}.`
+      : null,
     typeof refinedContext?.siteOperationalProfile?.shadowObstaclesCount === 'number' &&
     refinedContext.siteOperationalProfile.shadowObstaclesCount > 0
       ? `Ombre considerate: ${refinedContext.siteOperationalProfile.shadowObstaclesCount} ostacoli.`

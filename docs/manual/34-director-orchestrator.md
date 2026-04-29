@@ -139,7 +139,7 @@ Quando il dato esiste, il Director può allegare alle azioni prioritarie:
 - cultivar o specie
 - intento produttivo
 - sistema colturale o sottosistema operativo
-- profilo sito con suolo, pH, quota, pendenza, sole, ombre, esposizione e vento
+- profilo sito con suolo, pH, quota, pendenza, sole, ombre, orientamento, esposizione e protezione vento
 
 Questi segnali non vengono usati come tassonomia rigida. Servono a rendere più difendibili priorità, spiegazioni e confronto economico tra alternative.
 

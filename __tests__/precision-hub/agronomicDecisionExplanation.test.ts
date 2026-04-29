@@ -82,6 +82,49 @@ test('buildAgronomicDecisionExplanation humanizes production intent in context r
   )
 })
 
+test('buildAgronomicDecisionExplanation exposes site orientation and wind protection', () => {
+  const resolvedProfile = resolveAgronomicPriorityProfileSync({
+    fallbackProfileId: 'vineyard_quality',
+  })
+
+  assert.ok(resolvedProfile)
+
+  const priorityResult = scoreAgronomicPriority({
+    baseScore: 61,
+    confidence: 0.72,
+    resolvedProfile,
+    focus: 'water',
+    availableSignals: ['weather_current', 'soil_moisture_30cm'],
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 8.2,
+        aspectDirection: 'South',
+        windProtection: 'Low',
+        shadowObstaclesCount: 0,
+      },
+    },
+  })
+
+  const explanation = buildAgronomicDecisionExplanation({
+    source: 'prescription',
+    focus: 'water',
+    priorityResult,
+    resolvedProfile,
+    availableSignals: ['weather_current', 'soil_moisture_30cm'],
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 8.2,
+        aspectDirection: 'South',
+        windProtection: 'Low',
+        shadowObstaclesCount: 0,
+      },
+    },
+  })
+
+  assert.ok(explanation.contextRationale?.includes('Orientamento sito: South.'))
+  assert.ok(explanation.contextRationale?.includes('Protezione vento: Low.'))
+})
+
 test('buildAgronomicActionQueue preserves decision explanation in irrigation metadata', () => {
   const decisionExplanation: AgronomicDecisionExplanation = {
     source: 'irrigation',
