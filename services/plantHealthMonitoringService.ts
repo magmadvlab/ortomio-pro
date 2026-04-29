@@ -43,6 +43,7 @@ import type {
   AgronomicHealthPriority,
   AgronomicRefinedContext,
   AgronomicSignalKey,
+  SiteOperationalProfile,
   ResolvedAgronomicCropProfile,
 } from '@/types/agronomicKernel'
 
@@ -392,6 +393,24 @@ const DEFAULT_MONITORING_RULES: MonitoringRule[] = [
     samplePlants: [{ code: 'ORC-01', name: 'Melo' }],
   },
 ]
+
+const normalizeSiteText = (value?: string | null) =>
+  value
+    ?.toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+
+const isColdAspect = (aspectDirection?: string | null) =>
+  ['north', 'nord', 'northeast', 'nord est'].includes(normalizeSiteText(aspectDirection) || '')
+
+const getHealthSitePressureScore = (siteContext?: SiteOperationalProfile | null) =>
+  siteContext
+    ? (siteContext.exposureClass === 'sheltered' ? 1 : 0) +
+      (typeof siteContext.dailySunHours === 'number' && siteContext.dailySunHours <= 4 ? 1 : 0) +
+      (typeof siteContext.shadowObstaclesCount === 'number' && siteContext.shadowObstaclesCount >= 2 ? 1 : 0) +
+      (isColdAspect(siteContext.aspectDirection) ? 1 : 0) +
+      (typeof siteContext.soilPh === 'number' && (siteContext.soilPh < 5.8 || siteContext.soilPh > 7.8) ? 1 : 0)
+    : 0
 
 type WeatherRiskProfile = {
   plantLabel: string
@@ -1078,6 +1097,9 @@ export class PlantHealthMonitoringService {
         : siteContext?.exposureClass === 'exposed'
           ? 'sito esposto'
           : null,
+      isColdAspect(siteContext?.aspectDirection)
+        ? `esposizione ${siteContext?.aspectDirection}`
+        : null,
       typeof siteContext?.shadowObstaclesCount === 'number' && siteContext.shadowObstaclesCount > 0
         ? `${siteContext.shadowObstaclesCount} ostacoli d ombra`
         : null,
@@ -1118,12 +1140,7 @@ export class PlantHealthMonitoringService {
           : 7
 
     const siteContext = environmentalContext?.refinedContext?.siteOperationalProfile
-    const siteOffset =
-      (siteContext?.exposureClass === 'sheltered' ? 1 : 0) +
-      (typeof siteContext?.dailySunHours === 'number' && siteContext.dailySunHours <= 4 ? 1 : 0) +
-      (typeof siteContext?.shadowObstaclesCount === 'number' && siteContext.shadowObstaclesCount >= 2 ? 1 : 0) +
-      (['north', 'nord', 'northeast', 'nord est'].includes((siteContext?.aspectDirection || '').toLowerCase()) ? 1 : 0) +
-      (typeof siteContext?.soilPh === 'number' && (siteContext.soilPh < 5.8 || siteContext.soilPh > 7.8) ? 1 : 0)
+    const siteOffset = getHealthSitePressureScore(siteContext)
 
     return Math.max(
       1,
@@ -1521,7 +1538,7 @@ export class PlantHealthMonitoringService {
       if (typeof siteContext.shadowObstaclesCount === 'number' && siteContext.shadowObstaclesCount >= 2) {
         adjustedConfidence += 0.02
       }
-      if (['north', 'nord', 'northeast', 'nord est'].includes((siteContext.aspectDirection || '').toLowerCase())) {
+      if (isColdAspect(siteContext.aspectDirection)) {
         adjustedConfidence += 0.01
       }
       if (
@@ -1657,11 +1674,7 @@ export class PlantHealthMonitoringService {
     const urgencyScore = Math.max(0, 14 - Math.min(alert.urgencyDays, 14)) * 2
     const siteContext = environmentalContext.refinedContext?.siteOperationalProfile
     const siteBoost =
-      (siteContext?.exposureClass === 'sheltered' ? 2 : 0) +
-      (typeof siteContext?.dailySunHours === 'number' && siteContext.dailySunHours <= 4 ? 1 : 0) +
-      (typeof siteContext?.shadowObstaclesCount === 'number' && siteContext.shadowObstaclesCount >= 2 ? 1 : 0) +
-      (['north', 'nord', 'northeast', 'nord est'].includes((siteContext?.aspectDirection || '').toLowerCase()) ? 1 : 0) +
-      (typeof siteContext?.soilPh === 'number' && (siteContext.soilPh < 5.8 || siteContext.soilPh > 7.8) ? 1 : 0)
+      (siteContext?.exposureClass === 'sheltered' ? 1 : 0) + getHealthSitePressureScore(siteContext)
     const baseScore = severityScore + typePriorityScore + urgencyScore + siteBoost
     const priorityResult = scoreAgronomicPriority({
       baseScore,

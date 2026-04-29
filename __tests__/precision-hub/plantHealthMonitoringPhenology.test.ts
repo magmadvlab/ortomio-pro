@@ -178,12 +178,13 @@ test('generateDescription includes site context when shaded conditions are avail
       siteOperationalProfile: {
         dailySunHours: 3.5,
         exposureClass: 'sheltered',
+        aspectDirection: 'North',
         shadowObstaclesCount: 2,
       },
     },
   })
 
-  assert.match(description, /Contesto sito: 3.5 h sole, sito riparato, 2 ostacoli d ombra\./)
+  assert.match(description, /Contesto sito: 3.5 h sole, sito riparato, esposizione North, 2 ostacoli d ombra\./)
 })
 
 test('scoreHealthAlert increases priority on shaded sheltered sites', () => {
@@ -252,7 +253,7 @@ test('scoreHealthAlert increases priority on shaded sheltered sites', () => {
   assert.ok(shelteredScore > openScore)
 })
 
-test('calculateUrgency and confidence react to sheltered low-sun contexts', () => {
+test('calculateUrgency reacts to sheltered low-sun contexts', () => {
   const service = new PlantHealthMonitoringService()
 
   const baseContext = {
