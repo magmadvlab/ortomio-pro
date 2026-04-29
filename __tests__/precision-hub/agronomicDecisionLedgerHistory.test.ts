@@ -59,6 +59,7 @@ test('decision ledger history filters vineyard entries and exposes execution out
           environmentalSummary: null,
           agronomicRationale: ['Deficit idrico persistente su vigneto.'],
           economicRationale: [],
+          contextRationale: ['Orientamento sito: South.', 'Protezione vento: Low.'],
           warnings: [],
         },
         economicSummary: null,
@@ -148,4 +149,6 @@ test('decision ledger history filters vineyard entries and exposes execution out
   assert.equal(history[0]?.evidenceStatus, 'outcome_measured')
   assert.equal(history[0]?.agronomicOutcome.status, 'positive')
   assert.match(history[0]?.agronomicRationale[0] || '', /Deficit idrico persistente/i)
+  assert.equal(history[0]?.contextRationale.includes('Orientamento sito: South.'), true)
+  assert.equal(history[0]?.contextRationale.includes('Protezione vento: Low.'), true)
 })

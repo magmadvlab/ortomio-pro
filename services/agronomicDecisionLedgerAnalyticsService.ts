@@ -77,6 +77,7 @@ export interface AgronomicDecisionLedgerHistoryItem {
   agronomicOutcome: AgronomicMeasuredOutcome
   agronomicRationale: string[]
   economicRationale: string[]
+  contextRationale: string[]
 }
 
 const roundMetric = (value: number, digits: number = 2) =>
@@ -305,6 +306,7 @@ export async function getAgronomicDecisionLedgerHistory(
         agronomicOutcome,
         agronomicRationale: entry.decisionSnapshot.decisionExplanation?.agronomicRationale || [],
         economicRationale: entry.decisionSnapshot.decisionExplanation?.economicRationale || [],
+        contextRationale: entry.decisionSnapshot.decisionExplanation?.contextRationale || [],
       }
     })
 
