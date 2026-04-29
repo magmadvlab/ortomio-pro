@@ -1117,9 +1117,16 @@ export class PlantHealthMonitoringService {
           ? 3
           : 7
 
+    const siteContext = environmentalContext?.refinedContext?.siteOperationalProfile
+    const siteOffset =
+      (siteContext?.exposureClass === 'sheltered' ? 1 : 0) +
+      (typeof siteContext?.dailySunHours === 'number' && siteContext.dailySunHours <= 4 ? 1 : 0) +
+      (typeof siteContext?.shadowObstaclesCount === 'number' && siteContext.shadowObstaclesCount >= 2 ? 1 : 0) +
+      (typeof siteContext?.soilPh === 'number' && (siteContext.soilPh < 5.8 || siteContext.soilPh > 7.8) ? 1 : 0)
+
     return Math.max(
       1,
-      baseUrgency + (environmentalContext?.adaptiveLearning.urgencyDaysOffset || 0)
+      baseUrgency + (environmentalContext?.adaptiveLearning.urgencyDaysOffset || 0) + siteOffset
     )
   }
 
@@ -1502,6 +1509,25 @@ export class PlantHealthMonitoringService {
       adjustedConfidence -= 0.02
     }
 
+    const siteContext = environmentalContext.refinedContext?.siteOperationalProfile
+    if (siteContext) {
+      if (siteContext.exposureClass === 'sheltered') {
+        adjustedConfidence += 0.02
+      }
+      if (typeof siteContext.dailySunHours === 'number' && siteContext.dailySunHours <= 4) {
+        adjustedConfidence += 0.02
+      }
+      if (typeof siteContext.shadowObstaclesCount === 'number' && siteContext.shadowObstaclesCount >= 2) {
+        adjustedConfidence += 0.02
+      }
+      if (
+        typeof siteContext.soilPh === 'number' &&
+        (siteContext.soilPh < 5.8 || siteContext.soilPh > 7.8)
+      ) {
+        adjustedConfidence += 0.01
+      }
+    }
+
     const p0Signals = agronomicProfile.health.recommendedSignals.filter(
       (signal) => signal.priority === 'P0'
     )
@@ -1625,7 +1651,13 @@ export class PlantHealthMonitoringService {
 
     const typePriorityScore = this.getAlertTypeAgronomicWeight(alert.type, environmentalContext)
     const urgencyScore = Math.max(0, 14 - Math.min(alert.urgencyDays, 14)) * 2
-    const baseScore = severityScore + typePriorityScore + urgencyScore
+    const siteContext = environmentalContext.refinedContext?.siteOperationalProfile
+    const siteBoost =
+      (siteContext?.exposureClass === 'sheltered' ? 2 : 0) +
+      (typeof siteContext?.dailySunHours === 'number' && siteContext.dailySunHours <= 4 ? 1 : 0) +
+      (typeof siteContext?.shadowObstaclesCount === 'number' && siteContext.shadowObstaclesCount >= 2 ? 1 : 0) +
+      (typeof siteContext?.soilPh === 'number' && (siteContext.soilPh < 5.8 || siteContext.soilPh > 7.8) ? 1 : 0)
+    const baseScore = severityScore + typePriorityScore + urgencyScore + siteBoost
     const priorityResult = scoreAgronomicPriority({
       baseScore,
       confidence: alert.confidence,

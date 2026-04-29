@@ -48,7 +48,16 @@ Con gli ultimi riallineamenti P1, il contesto raffinato viene propagato in modo 
 
 Il director usa anche il profilo garden-level raccolto dal wizard quando trasforma i suggerimenti in azioni prioritarie. Per i garden in campo aperto questo include, dove disponibili, tipo di terreno, pH, altitudine, esposizione solare, ore di sole stimate, orientamento, protezione dal vento e ostacoli che generano ombre. Questi dati entrano nel refined context, nelle spiegazioni decisionali e, in forma prudente, nel priority scoring: terreno sabbioso, sole pieno, esposizione e bassa protezione dal vento possono aumentare la pressione idrica; ombra e poche ore di sole possono aumentare la pressione sanitaria; pH acido o alcalino puo aumentare la priorita nutrizionale; quota elevata e pendenza possono aumentare la pressione di monitoraggio qualita. Le regole restano conservative e non forzano inferenze quando il dato non e disponibile.
 
-Lo stesso profilo sito viene ora riusato anche nei report di efficienza irrigua e negli alert di monitoraggio salute quando il dato e disponibile. Questo significa che due zone con efficienza simile non vengono trattate come equivalenti se una e molto esposta e sabbiosa, e che gli alert sanitari possono distinguere meglio un contesto ombreggiato e riparato da uno piu aperto e ventilato.
+Lo stesso profilo sito viene ora riusato anche nei report di efficienza irrigua, nelle priorita di prescription e negli alert di monitoraggio salute quando il dato e disponibile. Questo significa che due zone con efficienza simile non vengono trattate come equivalenti se una e molto esposta e sabbiosa, e che gli alert sanitari possono distinguere meglio un contesto ombreggiato e riparato da uno piu aperto e ventilato.
+
+In particolare, il motore oggi distingue in modo prudente:
+
+- suolo sabbioso, sole pieno, esposizione e protezione dal vento bassa come segnali di pressione idrica piu alta
+- ombra, poche ore di sole, sito riparato e suolo argilloso come segnali di pressione sanitaria piu alta
+- pH acido o alcalino come segnale di pressione nutrizionale
+- quota elevata, pendenza e insolazione ridotta come segnali di pressione qualita
+
+Questi fattori non vengono trattati come tassonomie rigide. Sono usati solo quando supportano una decisione o una spiegazione piu difendibile.
 
 La chat AI integrata resta assistiva: puo spiegare, suggerire priorita e indicare moduli da aprire, ma non registra task o operazioni al posto dell'utente.
 
@@ -82,6 +91,7 @@ Con gli ultimi aggiornamenti:
 - vengono riutilizzati meglio log persistiti e forecast snapshot
 - il contesto ambientale e piu stabile
 - il precision hub puo basarsi su segnali piu coerenti
+- il profilo sito garden-level puo entrare anche nei monitoraggi salute e nelle priorita di alert quando il dato e disponibile
 
 ### 3.6 Domini funzionali gia credibili
 
@@ -94,7 +104,7 @@ Le aree oggi piu mature o piu credibili includono:
 - monitoraggio e task guidati dal contesto
 - memoria decisionale
 - contesto raffinato riusabile nella coda agronomica e negli snapshot dei task
-- report irrigui e alert salute che iniziano a riflettere anche il profilo sito del garden
+- report irrigui, prescription agronomiche e alert salute che riflettono anche il profilo sito del garden
 
 ### 3.7 Execution mobile e raccolta evidence
 
@@ -117,6 +127,7 @@ Con gli ultimi riallineamenti del loop esecutivo:
 - lo scope operativo salvato e piu leggibile nei riepiloghi di nutrition e harvest
 - i riepiloghi operativi possono mostrare anche elementi del profilo sito, come esposizione e pendenza, quando presenti nel refined context
 - i riepiloghi dei task da coda agronomica possono mostrare anche quota, pH, ore di sole e presenza di ombre quando questi dati arrivano dal wizard del garden
+- il fast path rimane deliberatamente leggero: non sostituisce i dettagli avanzati quando servono, ma riduce attrito e duplicazione nei campi essenziali
 
 La tranche corrente di P2 e quindi vicina alla chiusura sul fast path. Il lavoro residuo utile non e piu l'aggiunta di nuova UI esecutiva, ma la misurazione degli attriti residui e l'eventuale introduzione di scouting breve o offline solo dove i percorsi critici lo giustificano davvero.
 
@@ -151,6 +162,7 @@ Per evitare aspettative errate, e utile esplicitare questi limiti attuali:
 - l'esperienza mobile di campo sui task principali e oggi credibile e molto piu stretta del passato, ma scouting strutturato e offline/delayed sync restano da consolidare
 - alcune funzioni AI richiedono accesso autorizzato e credits disponibili
 - il refined context e gia presente nel loop decisionale principale, ma il suo peso comportamentale andra ancora aumentato in modo selettivo dove produce differenze agronomiche reali
+- prescription e health path usano gia il profilo sito in modo piu incisivo, ma non tutte le superfici decisionali hanno ancora la stessa profondita di trattamento
 
 ## 7. Sintesi finale
 

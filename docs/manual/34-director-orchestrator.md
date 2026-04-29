@@ -12,6 +12,8 @@ La parte reale oggi è:
 - briefing e sintesi operative su parte dei segnali disponibili
 - riuso di storico, meteo e servizi decisionali in alcune superfici
 - collegamento concettuale con planner, salute, irrigazione e diario
+- propagazione del refined context nelle azioni prioritarie quando sono disponibili cultivar, specie, intento produttivo, sottosistema e profilo sito
+- uso prudente del profilo garden-level del wizard in scoring, spiegazioni e riepiloghi economici
 
 I limiti da dichiarare sono:
 - non tutti i moduli convergono ancora nello stesso orchestratore
@@ -38,6 +40,7 @@ Il sistema integra dati da:
 - **Sensori IoT**: Dati disponibili quando collegati e persistiti in modo sufficiente
 - **Immagini Satellitari**: segnali NDVI o analoghi quando la pipeline dati è effettivamente disponibile
 - **Storico Utente**: Pattern e risultati delle stagioni precedenti
+- **Profilo Sito**: suolo, pH, quota, sole, ombra, esposizione e protezione dal vento quando raccolti dal wizard o da metadata affidabili
 
 ### 3. Motore di Raccomandazioni
 
@@ -47,6 +50,7 @@ Il Director utilizza algoritmi avanzati per:
 - **Rilevare Stress**: Identifica stress idrico, termico o nutrizionale prima che sia visibile
 - **Ottimizzare Trattamenti**: Suggerisce timing ottimale per irrigazione e nutrizione
 - **Prevenire Malattie**: Alert su condizioni favorevoli a patogeni
+- **Pesare il profilo sito**: aumenta o riduce la priorità in modo conservativo quando sole, ombra, suolo, pH, quota o esposizione cambiano il rischio agronomico
 
 ## Come Funziona
 
@@ -127,6 +131,17 @@ Le raccomandazioni del Director sono integrate con:
 - **Irrigation AI**: Ottimizzazione irrigazione
 - **Nutrition AI**: Piano nutrizionale dinamico
 - **Health Monitor**: Alert salute piante
+
+### Refined Context
+
+Quando il dato esiste, il Director può allegare alle azioni prioritarie:
+
+- cultivar o specie
+- intento produttivo
+- sistema colturale o sottosistema operativo
+- profilo sito con suolo, pH, quota, pendenza, sole, ombre, esposizione e vento
+
+Questi segnali non vengono usati come tassonomia rigida. Servono a rendere più difendibili priorità, spiegazioni e confronto economico tra alternative.
 
 ### IoT e Sensori
 

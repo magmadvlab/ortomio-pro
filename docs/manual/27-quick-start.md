@@ -28,7 +28,7 @@ Questa guida rapida è stata riallineata al prodotto reale di marzo 2026. Ti por
 ### **4. Usa Health per i controlli**
 - apri `/app/health`
 - se compare un alert utile, crea il task di monitoraggio o intervento
-- considera la pagina salute come supporto operativo, non ancora come motore diagnostico definitivo
+- considera la pagina salute come supporto operativo: gli alert possono già riflettere meteo, storico, fenologia e profilo sito quando disponibili, ma non sostituiscono una diagnosi agronomica definitiva
 
 ### **5. Registra irrigazioni e operazioni**
 - usa i moduli tecnici dedicati per tenere uno storico più solido
@@ -36,7 +36,7 @@ Questa guida rapida è stata riallineata al prodotto reale di marzo 2026. Ti por
 
 ### **6. Verifica NDVI e Prescription solo come supporto**
 - NDVI: supporto visivo e scouting
-- Prescription Maps: beta per analisi e bozze, non ancora catena produttiva finale
+- Prescription Maps: beta per la catena produttiva finale, ma già utile per zone, export, revisioni, riepiloghi e priorità più sensibili a suolo, pH, esposizione e storico ambientale
 
 ### **7. Tratta Smart Hub come beta**
 - utile per verifiche integrazione e telemetria

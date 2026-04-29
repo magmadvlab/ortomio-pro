@@ -244,9 +244,67 @@ test('scoreHealthAlert increases priority on shaded sheltered sites', () => {
         dailySunHours: 3.5,
         exposureClass: 'sheltered',
         shadowObstaclesCount: 2,
+        soilPh: 8.1,
       },
     },
   })
 
   assert.ok(shelteredScore > openScore)
+})
+
+test('calculateUrgency and confidence react to sheltered low-sun contexts', () => {
+  const service = new PlantHealthMonitoringService()
+
+  const baseContext = {
+    cropContext: vineyardContext,
+    weatherData: null,
+    microclimate: null,
+    environmentalHistorySummary: null,
+    phenology: null,
+    devices: [],
+    agronomicProfile: null,
+    dominantPlantNames: ['Sangiovese'],
+    measuredFeedbackPressure: 0,
+    measuredFeedbackNotes: [],
+    adaptiveLearning: {
+      pressureBoost: 0,
+      urgencyDaysOffset: 0,
+      confidenceBoost: 0,
+      fungalHumidityThreshold: 80,
+      fungalRainThreshold: 1,
+      leafWetnessThreshold: 50,
+      heatStressTemperatureThreshold: 32,
+      hotDaysTriggerCount: 2,
+      notes: [],
+    },
+  }
+
+  const openContext = {
+    ...baseContext,
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 8.5,
+        exposureClass: 'exposed',
+        shadowObstaclesCount: 0,
+        soilPh: 6.7,
+      },
+    },
+  }
+
+  const shelteredContext = {
+    ...baseContext,
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 3.2,
+        exposureClass: 'sheltered',
+        shadowObstaclesCount: 3,
+        soilPh: 8.0,
+      },
+    },
+  }
+
+  const openUrgency = (service as any).calculateUrgency(weatherRule, openContext)
+  const shelteredUrgency = (service as any).calculateUrgency(weatherRule, shelteredContext)
+
+  assert.ok(shelteredUrgency > openUrgency)
 })

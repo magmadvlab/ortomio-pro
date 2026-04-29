@@ -508,3 +508,158 @@ test('harvest prescription keeps vineyard production intent instead of forcing f
     'wine'
   )
 })
+
+test('nutrition prescription ranks sandy sites above clay sites when the remaining inputs are equal', () => {
+  const efficacySummary: PrescriptionExecutionEfficacySummary = {
+    totalZones: 2,
+    scoredZones: 2,
+    averageEfficacyScore: 42,
+    averageMicroclimateScore: 44,
+    averageSoilResponseScore: 40,
+    highZones: 0,
+    mediumZones: 1,
+    lowZones: 1,
+    unknownZones: 0,
+    cropContextScores: [{ key: 'orchard', label: 'orchard', averageScore: 42, zones: 2 }],
+    seasonScores: [{ key: 'Primavera', label: 'Primavera', averageScore: 42, zones: 2 }],
+    zoneScores: [
+      {
+        zoneId: 'zone-sandy',
+        zoneName: 'Zona Sabbiosa',
+        efficacyScore: 42,
+        efficacyStatus: 'medium',
+        varianceStatus: 'aligned',
+        outcomeStatus: 'mixed',
+        microclimateStatus: 'watch',
+        microclimateScore: 44,
+        soilResponseStatus: 'watch',
+        soilResponseScore: 40,
+        fungalPressure: 'medium',
+        waterStress: 'medium',
+        heatStress: 'medium',
+        cropContextId: 'orchard',
+        seasonLabel: 'Primavera',
+      },
+      {
+        zoneId: 'zone-clay',
+        zoneName: 'Zona Argillosa',
+        efficacyScore: 42,
+        efficacyStatus: 'medium',
+        varianceStatus: 'aligned',
+        outcomeStatus: 'mixed',
+        microclimateStatus: 'watch',
+        microclimateScore: 44,
+        soilResponseStatus: 'watch',
+        soilResponseScore: 40,
+        fungalPressure: 'medium',
+        waterStress: 'medium',
+        heatStress: 'medium',
+        cropContextId: 'orchard',
+        seasonLabel: 'Primavera',
+      },
+    ],
+  }
+
+  const varianceSummary: PrescriptionExecutionVarianceSummary = {
+    totalZones: 2,
+    alignedZones: 2,
+    partialZones: 0,
+    offTargetZones: 0,
+    missedZones: 0,
+    pendingZones: 0,
+    averageAdherenceScore: 100,
+    zoneVariances: [
+      {
+        zoneId: 'zone-sandy',
+        zoneName: 'Zona Sabbiosa',
+        latestStatus: 'completed',
+        varianceStatus: 'aligned',
+        plannedRate: 100,
+        actualRate: 100,
+        plannedAreaSqm: 5000,
+        areaAppliedSqm: 5000,
+        rateDeviationPercent: 0,
+        areaCoveragePercent: 100,
+        adherenceScore: 100,
+      },
+      {
+        zoneId: 'zone-clay',
+        zoneName: 'Zona Argillosa',
+        latestStatus: 'completed',
+        varianceStatus: 'aligned',
+        plannedRate: 100,
+        actualRate: 100,
+        plannedAreaSqm: 5000,
+        areaAppliedSqm: 5000,
+        rateDeviationPercent: 0,
+        areaCoveragePercent: 100,
+        adherenceScore: 100,
+      },
+    ],
+  }
+
+  const outcomeSummary: PrescriptionExecutionOutcomeSummary = {
+    totalZones: 2,
+    zonesWithOutcome: 2,
+    positiveZones: 0,
+    mixedZones: 2,
+    negativeZones: 0,
+    noDataZones: 0,
+    averageOutcomeScore: 44,
+    zoneOutcomes: [
+      {
+        zoneId: 'zone-sandy',
+        zoneName: 'Zona Sabbiosa',
+        latestStatus: 'completed',
+        outcomeStatus: 'mixed',
+        outcomeScore: 44,
+      },
+      {
+        zoneId: 'zone-clay',
+        zoneName: 'Zona Argillosa',
+        latestStatus: 'completed',
+        outcomeStatus: 'mixed',
+        outcomeScore: 44,
+      },
+    ],
+  }
+
+  const map: PrescriptionMap = {
+    ...prescriptionMap,
+    id: 'map-nutrition',
+    gardenName: 'Orto Frutteto',
+    name: 'Concimazione comparativa',
+    mapType: 'fertilizer',
+    zones: [
+      {
+        ...prescriptionMap.zones[0],
+        id: 'zone-sandy',
+        zoneName: 'Zona Sabbiosa',
+        sourceData: { soilType: 'Sandy loam' },
+      },
+      {
+        ...prescriptionMap.zones[1],
+        id: 'zone-clay',
+        zoneName: 'Zona Argillosa',
+        sourceData: { soilType: 'Clay' },
+      },
+    ],
+    totalZones: 2,
+    zonesCount: 2,
+  }
+
+  const summary = buildPrescriptionAgronomicIntelligenceSummary(
+    map,
+    efficacySummary,
+    varianceSummary,
+    outcomeSummary
+  )
+
+  const sandyPriority = summary.operationalPriorities.find((item) => item.zoneId === 'zone-sandy')
+  const clayPriority = summary.operationalPriorities.find((item) => item.zoneId === 'zone-clay')
+
+  assert.ok(sandyPriority)
+  assert.ok(clayPriority)
+  assert.ok((sandyPriority?.priorityScore || 0) > (clayPriority?.priorityScore || 0))
+  assert.match(sandyPriority?.rationale || '', /Profilo sito:/)
+})

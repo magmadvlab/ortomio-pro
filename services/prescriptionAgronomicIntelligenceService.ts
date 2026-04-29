@@ -132,6 +132,143 @@ const hasPersistentEnvironmentalHumidity = (
   (environmentalSummary?.surplusWaterBalanceDays || 0) >= 2 ||
   (environmentalSummary?.lowDryingPowerDays || 0) >= 2
 
+const normalizeText = (value?: string | null) =>
+  value
+    ?.toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+
+const isSandySoil = (soilType?: string | null) => {
+  const normalized = normalizeText(soilType)
+  return Boolean(
+    normalized && ['sand', 'sandy', 'sabbioso', 'sabbia'].some((token) => normalized.includes(token))
+  )
+}
+
+const isClaySoil = (soilType?: string | null) => {
+  const normalized = normalizeText(soilType)
+  return Boolean(
+    normalized &&
+      ['clay', 'heavy clay', 'argilla', 'argilloso'].some((token) => normalized.includes(token))
+  )
+}
+
+const resolveSitePressureSignals = (
+  focus: AgronomicPriorityFocus,
+  refinedContext?: AgronomicRefinedContext | null,
+  environmentalSummary?: ZoneEnvironmentalHistorySummary | null
+) => {
+  const site = refinedContext?.siteOperationalProfile
+  if (!site) {
+    return { priorityBoost: 0, rationale: [] as string[] }
+  }
+
+  const rationale: string[] = []
+  let priorityBoost = 0
+  const dailySunHours = site.dailySunHours
+  const shadowObstaclesCount = site.shadowObstaclesCount || 0
+  const soilPh = site.soilPh
+  const windProtection = normalizeText(site.windProtection)
+  const exposedToWind = Boolean(
+    windProtection && ['low', 'bassa', 'scarsa', 'none', 'no'].includes(windProtection)
+  )
+
+  if (focus === 'water') {
+    if (isSandySoil(site.soilType)) {
+      priorityBoost += 5
+      rationale.push('suolo sciolto')
+    }
+    if (site.exposureClass === 'exposed') {
+      priorityBoost += 3
+      rationale.push('sito esposto')
+    }
+    if (exposedToWind) {
+      priorityBoost += 2
+      rationale.push('protezione vento bassa')
+    }
+    if (typeof dailySunHours === 'number' && dailySunHours >= 8) {
+      priorityBoost += 3
+      rationale.push('sole pieno')
+    }
+    if (shadowObstaclesCount >= 2) {
+      priorityBoost -= 1
+      rationale.push('ombreggiamento diffuso')
+    }
+    if (
+      environmentalSummary &&
+      (environmentalSummary.highSoilWaterStressDays || 0) >= 2
+    ) {
+      priorityBoost += 2
+      rationale.push('stress idrico persistente')
+    }
+  }
+
+  if (focus === 'health') {
+    if (site.exposureClass === 'sheltered') {
+      priorityBoost += 3
+      rationale.push('sito riparato')
+    }
+    if (typeof dailySunHours === 'number' && dailySunHours <= 4) {
+      priorityBoost += 3
+      rationale.push('poche ore di sole')
+    }
+    if (shadowObstaclesCount >= 2) {
+      priorityBoost += 2
+      rationale.push('ostacoli d ombra')
+    }
+    if (isClaySoil(site.soilType)) {
+      priorityBoost += 1
+      rationale.push('suolo argilloso')
+    }
+    if (
+      environmentalSummary &&
+      (environmentalSummary.highDiseasePressureDays || 0) >= 2
+    ) {
+      priorityBoost += 2
+      rationale.push('pressione sanitaria persistente')
+    }
+  }
+
+  if (focus === 'nutrition') {
+    if (typeof soilPh === 'number' && (soilPh < 5.8 || soilPh > 7.8)) {
+      priorityBoost += 6
+      rationale.push('pH fuori finestra')
+    } else if (typeof soilPh === 'number' && (soilPh < 6.2 || soilPh > 7.3)) {
+      priorityBoost += 3
+      rationale.push('pH borderline')
+    }
+    if (isSandySoil(site.soilType)) {
+      priorityBoost += 2
+      rationale.push('suolo sciolto')
+    }
+    if (isClaySoil(site.soilType)) {
+      priorityBoost += 1
+      rationale.push('suolo argilloso')
+    }
+  }
+
+  if (focus === 'quality') {
+    if ((site.altitudeMeters || 0) >= 700) {
+      priorityBoost += 3
+      rationale.push('quota elevata')
+    }
+    if (site.slopeClass === 'steep') {
+      priorityBoost += 1
+      rationale.push('pendenza elevata')
+    }
+    if (typeof dailySunHours === 'number' && dailySunHours <= 4) {
+      priorityBoost += 2
+      rationale.push('insolazione ridotta')
+    }
+    if (typeof soilPh === 'number' && (soilPh < 5.8 || soilPh > 7.8)) {
+      priorityBoost += 2
+      rationale.push('pH fuori finestra')
+    }
+  }
+
+  return { priorityBoost, rationale }
+}
+
 const getPriorityFocusFromMapType = (mapType: PrescriptionMap['mapType']): AgronomicPriorityFocus => {
   switch (mapType) {
     case 'irrigation':
@@ -355,6 +492,11 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       gardenType: prescriptionMap.gardenName,
       soilType: zoneDefinition?.sourceData.soilType,
     })
+    const sitePressureSignals = resolveSitePressureSignals(
+      priorityFocus,
+      refinedContextResult.refinedContext,
+      environmentalSummary
+    )
     const operationalContextTags = mergeOperationalContextTags(
       baseOperationalContextTags,
       refinedContextResult.operationalContextTags,
@@ -393,10 +535,14 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       economicSummary,
       refinedContext: refinedContextResult.refinedContext,
     })
-    const priorityScore = priorityResult.score
+    const priorityScore = Math.min(100, priorityResult.score + sitePressureSignals.priorityBoost)
+    const adjustedPriorityResult = {
+      ...priorityResult,
+      score: priorityScore,
+    }
 
     const urgency: PrescriptionAgronomicPriority['urgency'] =
-      priorityResult.economicSummary?.actionComparison?.recommendedUrgencyLabel ||
+      adjustedPriorityResult.economicSummary?.actionComparison?.recommendedUrgencyLabel ||
       (priorityScore >= 75 || (outcome?.outcomeStatus === 'negative' && variance?.varianceStatus === 'off_target')
         ? 'immediate'
         : priorityScore >= 45
@@ -419,6 +565,9 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       recommendedAction = `Intervieni subito su ${zone.zoneName}: correggi dose/copertura ed elimina il fattore operativo o microclimatico dominante prima del prossimo passaggio.`
     } else if (urgency === 'next_cycle') {
       recommendedAction = `Pianifica un aggiustamento nel prossimo ciclo su ${zone.zoneName}, con target piu aderente e controllo post-intervento.`
+    }
+    if (sitePressureSignals.rationale.length > 0) {
+      recommendedAction += ` Il profilo sito suggerisce: ${sitePressureSignals.rationale.join(', ')}.`
     }
     if (persistentHumidity) {
       recommendedAction += ' Usa una finestra piu asciutta e stabile prima di replicare la prescrizione.'
@@ -460,7 +609,7 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
     const decisionExplanation = buildAgronomicDecisionExplanation({
       source: 'prescription',
       focus: priorityFocus,
-      priorityResult,
+      priorityResult: adjustedPriorityResult,
       urgencyLabel: urgency,
       resolvedProfile: resolvedAgronomicProfile,
       availableSignals,
@@ -488,7 +637,7 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       refinedContext: refinedContextResult.refinedContext,
       environmentalSummary,
       decisionExplanation,
-      rationale: `${rationale}${profileSuffix}${coverageSuffix}${measuredFeedbackSuffix}${adaptiveQualitySuffix}${environmentalSuffix}`,
+      rationale: `${rationale}${profileSuffix}${coverageSuffix}${measuredFeedbackSuffix}${adaptiveQualitySuffix}${environmentalSuffix}${sitePressureSignals.rationale.length > 0 ? ` Profilo sito: ${sitePressureSignals.rationale.join(', ')}.` : ''}`,
     })
 
     if (
