@@ -126,7 +126,7 @@ Con gli ultimi riallineamenti del loop esecutivo:
 - il contesto di lancio del task viene sfruttato meglio nei flussi harvest e mechanical
 - lo scope operativo salvato e piu leggibile nei riepiloghi di nutrition e harvest
 - i riepiloghi operativi possono mostrare anche elementi del profilo sito, come esposizione e pendenza, quando presenti nel refined context
-- i riepiloghi dei task da coda agronomica possono mostrare anche quota, pH, ore di sole e presenza di ombre quando questi dati arrivano dal wizard del garden
+- i riepiloghi dei task da coda agronomica possono mostrare anche quota, pH, ore di sole, orientamento, protezione vento e presenza di ombre quando questi dati arrivano dal wizard del garden
 - le spiegazioni decisionali possono riportare anche orientamento del sito e protezione dal vento, cosi il peso del profilo sito resta auditabile quando influenza priorita o confronto economico
 - il fast path rimane deliberatamente leggero: non sostituisce i dettagli avanzati quando servono, ma riduce attrito e duplicazione nei campi essenziali
 

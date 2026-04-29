@@ -135,6 +135,8 @@ test('buildAgronomicQueueTaskOperationalSummary classifies readiness and context
         altitudeMeters: 740,
         soilPh: 7.4,
         dailySunHours: 6.2,
+        aspectDirection: 'South',
+        windProtection: 'Low',
         shadowObstaclesCount: 2,
         exposureClass: 'exposed',
         slopeClass: 'steep',
@@ -177,6 +179,8 @@ test('buildAgronomicQueueTaskOperationalSummary classifies readiness and context
   assert.equal(summary?.contextLabels.includes('Quota 740 m'), true)
   assert.equal(summary?.contextLabels.includes('pH 7.4'), true)
   assert.equal(summary?.contextLabels.includes('Sole 6.2 h'), true)
+  assert.equal(summary?.contextLabels.includes('Orientamento South'), true)
+  assert.equal(summary?.contextLabels.includes('Vento Low'), true)
   assert.equal(summary?.contextLabels.includes('Ombre 2'), true)
   assert.equal(summary?.mobileActionLabel, 'Esegui guidato')
   assert.equal(summary?.mobileEvidencePrompt, 'Registra prodotto e dose + area trattata')

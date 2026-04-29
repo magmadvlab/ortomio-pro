@@ -324,6 +324,12 @@ const formatSiteMetricLabels = (
     typeof siteProfile.dailySunHours === 'number'
       ? `Sole ${siteProfile.dailySunHours.toFixed(1)} h`
       : null,
+    siteProfile.aspectDirection
+      ? `Orientamento ${siteProfile.aspectDirection}`
+      : null,
+    siteProfile.windProtection
+      ? `Vento ${siteProfile.windProtection}`
+      : null,
     typeof siteProfile.shadowObstaclesCount === 'number' && siteProfile.shadowObstaclesCount > 0
       ? `Ombre ${siteProfile.shadowObstaclesCount}`
       : null,
@@ -357,7 +363,7 @@ const buildOperationalContextLabels = (
     ...formatSiteMetricLabels(refinedContext),
   ].filter((value): value is string => Boolean(value))
 
-  return Array.from(new Set(rawLabels)).slice(0, 12)
+  return Array.from(new Set(rawLabels)).slice(0, 14)
 }
 
 const formatConfidenceLabel = (confidence: number): string =>
