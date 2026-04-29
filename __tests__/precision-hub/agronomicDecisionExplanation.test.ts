@@ -173,6 +173,12 @@ test('buildAgronomicActionQueue builds decision explanation for health alerts wi
   assert.equal(explanation?.profileResolution?.profileId, 'field_brassicas')
   assert.equal(explanation?.source, 'health')
   assert.equal(explanation?.focus, 'health')
+  assert.equal(explanation?.refinedContext?.cultivarContext?.speciesLabel, 'Broccoli')
+  assert.equal(
+    (queue[0]?.metadata?.refinedContext as AgronomicDecisionExplanation['refinedContext'])
+      ?.cultivarContext?.speciesLabel,
+    'Broccoli'
+  )
   assert.ok((queue[0]?.missingSignals.length || 0) >= 0)
 })
 

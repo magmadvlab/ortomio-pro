@@ -42,6 +42,9 @@ Le decisioni possono dipendere da:
 - dati meteo
 - regole agronomiche del dominio
 - storico operativo disponibile
+- contesto raffinato di coltura, sottosistema e profilo sito quando disponibile
+
+Con gli ultimi riallineamenti P1, il contesto raffinato viene propagato in modo piu uniforme nel loop decisionale. Director, prescription, irrigation queue, phenology queue e health queue possono conservare nei metadata decisionali informazioni come cultivar/specie, intento produttivo, sottosistema colturale e profilo operativo del sito, senza forzare valori non espliciti.
 
 La chat AI integrata resta assistiva: puo spiegare, suggerire priorita e indicare moduli da aprire, ma non registra task o operazioni al posto dell'utente.
 
@@ -54,6 +57,7 @@ Dove previsto, l'utente puo leggere piu chiaramente:
 - perche il sistema propone un'azione
 - quali segnali hanno inciso
 - quale contesto ha portato a quella priorita
+- se il suggerimento dipende da cultivar, intento produttivo, sottosistema o profilo sito
 
 ### 3.4 Ledger delle decisioni
 
@@ -85,6 +89,7 @@ Le aree oggi piu mature o piu credibili includono:
 - diary e log operativi
 - monitoraggio e task guidati dal contesto
 - memoria decisionale
+- contesto raffinato riusabile nella coda agronomica e negli snapshot dei task
 
 ### 3.7 Execution mobile e raccolta evidence
 
@@ -115,7 +120,7 @@ Gli utenti devono sapere che alcune aree sono ancora in maturazione:
 - scouting strutturato con esperienza rapida offline
 - integrazioni industriali con sensori e macchine
 - reporting avanzato per compliance e stakeholder esterni
-- raffinamento profondo del contesto su cultivar, sub-system e terroir operativo
+- uso ancora piu profondo del contesto raffinato dentro scoring e action comparison su tutti i domini
 - delayed sync o offline robusto nei percorsi critici di campo
 
 ## 5. Come usare OrtoMio correttamente oggi
@@ -138,7 +143,7 @@ Per evitare aspettative errate, e utile esplicitare questi limiti attuali:
 - non tutte le integrazioni esterne sono gia disponibili o consolidate
 - l'esperienza mobile di campo sui task principali e oggi credibile e molto piu stretta del passato, ma scouting strutturato e offline/delayed sync restano da consolidare
 - alcune funzioni AI richiedono accesso autorizzato e credits disponibili
-- parte del vantaggio competitivo futuro dipende dal refinement del contesto agronomico
+- il refined context e gia presente nel loop decisionale principale, ma il suo peso comportamentale andra ancora aumentato in modo selettivo dove produce differenze agronomiche reali
 
 ## 7. Sintesi finale
 

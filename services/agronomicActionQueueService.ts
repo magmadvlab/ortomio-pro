@@ -16,6 +16,7 @@ import {
   type AgronomicMeasuredFeedbackRecord,
   type AgronomicMeasuredFeedbackSummary,
 } from '@/services/agronomicMeasuredFeedbackService'
+import { buildAgronomicRefinedContext } from '@/services/agronomicRefinedContextService'
 import type { ZoneEnvironmentalHistorySummary } from '@/services/environmentalMonitoringService'
 import type { AgronomicRefinedContext, AgronomicSignalKey } from '@/types/agronomicKernel'
 import type { HealthAlert } from '@/services/plantHealthMonitoringService'
@@ -167,6 +168,11 @@ const toHealthQueueItems = (
     const resolvedAgronomicProfile = resolveAgronomicPriorityProfileSync({
       hints: [alert.plantName, ...alert.triggers],
     })
+    const refinedContextResult = buildAgronomicRefinedContext({
+      cropProfile: resolvedAgronomicProfile?.profile,
+      textValues: [alert.plantName, ...alert.triggers],
+      speciesLabel: alert.plantName,
+    })
     const availableSignals = inferHealthAlertSignals(alert)
     const economicSummary = buildHealthEconomicSummary(alert)
     const measuredFeedbackSummary = summarizeFeedbackForQueueItem(
@@ -194,7 +200,12 @@ const toHealthQueueItems = (
       resolvedProfile: resolvedAgronomicProfile,
       availableSignals,
       isCriticalStage: alert.severity === 'critical' || alert.type === 'harvest_timing',
+      refinedContext: refinedContextResult.refinedContext,
     })
+    const refinedContext = resolveQueueRefinedContext(
+      refinedContextResult.refinedContext,
+      decisionExplanation
+    )
 
     return {
       id: `health:${alert.id}`,
@@ -212,6 +223,7 @@ const toHealthQueueItems = (
         severity: alert.severity,
         type: alert.type,
         triggers: alert.triggers,
+        refinedContext,
         decisionExplanation,
         measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
         economicSummary: priorityResult.economicSummary,
