@@ -62,6 +62,22 @@ export interface TreatmentPlannerLaunchRequest {
   sourceTaskId?: string
 }
 
+const buildTreatmentScopeLabel = (treatment: Partial<NutritionTreatment>): string | null => {
+  if (treatment.fieldRowId) {
+    return `Filare ${treatment.fieldRowId}`
+  }
+
+  if (treatment.sectionId) {
+    return `Sezione ${treatment.sectionId}`
+  }
+
+  if (treatment.zoneId) {
+    return `Zona ${treatment.zoneId}`
+  }
+
+  return null
+}
+
 export default function TreatmentPlanner({
   garden,
   launchRequest,
@@ -490,10 +506,10 @@ function TreatmentCard({
                 {treatment.dosage} {treatment.dosageUnit}
               </span>
               
-              {treatment.zoneId && (
+              {buildTreatmentScopeLabel(treatment) && (
                 <span className="flex items-center gap-1">
                   <MapPin size={12} />
-                  Zona specifica
+                  {buildTreatmentScopeLabel(treatment)}
                 </span>
               )}
               
