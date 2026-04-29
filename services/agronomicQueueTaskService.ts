@@ -306,6 +306,30 @@ const humanizeSiteSlopeClass = (value?: string | null): string | null => {
   }
 }
 
+const formatSiteMetricLabels = (
+  refinedContext: AgronomicRefinedContext
+): string[] => {
+  const siteProfile = refinedContext.siteOperationalProfile
+  if (!siteProfile) {
+    return []
+  }
+
+  return [
+    typeof siteProfile.altitudeMeters === 'number'
+      ? `Quota ${Math.round(siteProfile.altitudeMeters)} m`
+      : null,
+    typeof siteProfile.soilPh === 'number'
+      ? `pH ${siteProfile.soilPh.toFixed(1)}`
+      : null,
+    typeof siteProfile.dailySunHours === 'number'
+      ? `Sole ${siteProfile.dailySunHours.toFixed(1)} h`
+      : null,
+    typeof siteProfile.shadowObstaclesCount === 'number' && siteProfile.shadowObstaclesCount > 0
+      ? `Ombre ${siteProfile.shadowObstaclesCount}`
+      : null,
+  ].filter((value): value is string => Boolean(value))
+}
+
 const buildOperationalContextLabels = (
   refinedContext?: AgronomicRefinedContext | null
 ): string[] => {
@@ -330,9 +354,10 @@ const buildOperationalContextLabels = (
       : null,
     humanizeSiteExposureClass(refinedContext.siteOperationalProfile?.exposureClass),
     humanizeSiteSlopeClass(refinedContext.siteOperationalProfile?.slopeClass),
+    ...formatSiteMetricLabels(refinedContext),
   ].filter((value): value is string => Boolean(value))
 
-  return Array.from(new Set(rawLabels)).slice(0, 8)
+  return Array.from(new Set(rawLabels)).slice(0, 12)
 }
 
 const formatConfidenceLabel = (confidence: number): string =>
