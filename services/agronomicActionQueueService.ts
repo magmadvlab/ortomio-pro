@@ -17,7 +17,7 @@ import {
   type AgronomicMeasuredFeedbackSummary,
 } from '@/services/agronomicMeasuredFeedbackService'
 import type { ZoneEnvironmentalHistorySummary } from '@/services/environmentalMonitoringService'
-import type { AgronomicSignalKey } from '@/types/agronomicKernel'
+import type { AgronomicRefinedContext, AgronomicSignalKey } from '@/types/agronomicKernel'
 import type { HealthAlert } from '@/services/plantHealthMonitoringService'
 import type { EfficiencyReport } from '@/types/irrigation'
 import type {
@@ -104,6 +104,12 @@ const appendActionComparisonDescription = (
 const getActionComparison = (
   economicSummary?: AgronomicEconomicPrioritySummary | null
 ): AgronomicActionComparisonSummary | null => economicSummary?.actionComparison || null
+
+const resolveQueueRefinedContext = (
+  refinedContext?: AgronomicRefinedContext | null,
+  decisionExplanation?: { refinedContext?: AgronomicRefinedContext | null } | null
+): AgronomicRefinedContext | null =>
+  refinedContext || decisionExplanation?.refinedContext || null
 
 const summarizeFeedbackForQueueItem = (
   records: AgronomicMeasuredFeedbackRecord[] | undefined,
@@ -252,6 +258,10 @@ const toIrrigationQueueItems = (
       environmentalSummary,
       economicSummary,
     })
+    const refinedContext = resolveQueueRefinedContext(
+      report.refinedContext,
+      report.decisionExplanation
+    )
 
     return {
       id: `irrigation:${report.zoneId}:${report.period}`,
@@ -270,6 +280,7 @@ const toIrrigationQueueItems = (
         uniformityCoefficient: report.uniformityCoefficient,
         waterUseEfficiency: report.waterUseEfficiency,
         period: report.period,
+        refinedContext,
         decisionExplanation: report.decisionExplanation,
         measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
         economicSummary: priorityResult.economicSummary,

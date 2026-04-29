@@ -104,6 +104,16 @@ test('buildAgronomicActionQueue preserves decision explanation in irrigation met
     agronomicRationale: ['Test rationale'],
     economicRationale: [],
     warnings: [],
+    refinedContext: {
+      cultivarContext: {
+        cultivarLabel: 'Sangiovese',
+        productionIntent: 'wine',
+      },
+      subSystemContext: {
+        systemType: 'vineyard',
+        irrigationMode: 'pressurized_irrigation',
+      },
+    },
   }
 
   const irrigationReport: EfficiencyReport = {
@@ -129,6 +139,11 @@ test('buildAgronomicActionQueue preserves decision explanation in irrigation met
     (queue[0]?.metadata?.decisionExplanation as AgronomicDecisionExplanation | undefined)?.signals
       .coveredP0Signals,
     ['weather_current']
+  )
+  assert.equal(
+    (queue[0]?.metadata?.refinedContext as AgronomicDecisionExplanation['refinedContext'])
+      ?.subSystemContext?.systemType,
+    'vineyard'
   )
 })
 
