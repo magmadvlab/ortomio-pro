@@ -43,6 +43,13 @@ test('loadTaskExecutionBannerDetails exposes visible notes and operational summa
         systemType: 'vineyard',
         irrigationMode: 'pressurized_irrigation',
       },
+      siteOperationalProfile: {
+        altitudeMeters: 420,
+        dailySunHours: 7.8,
+        aspectDirection: 'South',
+        windProtection: 'Low',
+        exposureClass: 'exposed',
+      },
     },
     contextRationale: ['Profilo di vigneto orientato alla qualita.'],
   }
@@ -78,6 +85,8 @@ test('loadTaskExecutionBannerDetails exposes visible notes and operational summa
   assert.equal(result?.operationalSummary?.readiness, 'ready')
   assert.equal(result?.operationalSummary?.urgencyLabel, 'Urgente oggi')
   assert.equal(result?.operationalSummary?.contextLabels.includes('Cultivar Sangiovese'), true)
+  assert.equal(result?.operationalSummary?.contextLabels.includes('Orientamento South'), true)
+  assert.equal(result?.operationalSummary?.contextLabels.includes('Vento Low'), true)
   assert.deepEqual(result?.mobileSummaryChips, [
     'Esegui ora',
     'Focus acqua',
