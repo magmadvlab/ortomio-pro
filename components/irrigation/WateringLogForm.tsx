@@ -16,6 +16,7 @@ import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvid
 import TaskExecutionFormContextSummary from '@/components/shared/TaskExecutionFormContextSummary'
 import TaskExecutionQuickFeedback from '@/components/shared/TaskExecutionQuickFeedback'
 import TaskExecutionQuickNotes from '@/components/shared/TaskExecutionQuickNotes'
+import { mergeTaskExecutionQuickPayloadNotes } from '@/services/taskExecutionQuickPayloadService'
 
 type WateringZone = IrrigationZone & {
   bedIds?: string[]
@@ -228,6 +229,10 @@ export function WateringLogForm({
       const gardenId = zone.gardenId
 
       const wateredAt = `${formData.date}T${formData.time}:00`
+      const executionNotes = mergeTaskExecutionQuickPayloadNotes(formData.notes, {
+        outcome: quickOutcome,
+        followUpRequired: quickFollowUpRequired,
+      })
 
       // If no rows selected (zone not linked to beds), fallback to single log.
       if (!selectedZone?.bedIds?.length || selectedRowIds.length === 0) {
@@ -244,7 +249,7 @@ export function WateringLogForm({
           soilMoistureBefore: formData.soilMoistureBefore,
           soilMoistureAfter: formData.soilMoistureAfter,
           airTemperatureC: formData.airTemperatureC,
-          notes: formData.notes || undefined,
+          notes: executionNotes,
           completed: true
         })
       } else {
@@ -265,7 +270,7 @@ export function WateringLogForm({
             soilMoistureBefore: formData.soilMoistureBefore,
             soilMoistureAfter: formData.soilMoistureAfter,
             airTemperatureC: formData.airTemperatureC,
-            notes: formData.notes || undefined,
+            notes: executionNotes,
             completed: true
           }
         })

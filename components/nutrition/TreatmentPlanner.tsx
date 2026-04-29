@@ -44,6 +44,7 @@ import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvid
 import TaskExecutionFormContextSummary from '@/components/shared/TaskExecutionFormContextSummary'
 import TaskExecutionQuickFeedback from '@/components/shared/TaskExecutionQuickFeedback'
 import TaskExecutionQuickNotes from '@/components/shared/TaskExecutionQuickNotes'
+import { mergeTaskExecutionQuickPayloadNotes } from '@/services/taskExecutionQuickPayloadService'
 
 interface TreatmentPlannerProps {
   garden: Garden
@@ -796,7 +797,10 @@ function TreatmentModal({
           laborCost: formData.laborCost,
           equipmentCost: formData.equipmentCost,
           totalCost: formData.totalCost,
-          notes: formData.notes,
+          notes: mergeTaskExecutionQuickPayloadNotes(formData.notes, {
+            outcome: quickOutcome,
+            followUpRequired: quickFollowUpRequired,
+          }),
           status: formData.status
         }
 

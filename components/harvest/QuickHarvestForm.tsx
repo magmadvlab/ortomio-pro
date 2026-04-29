@@ -9,6 +9,7 @@ import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvid
 import TaskExecutionFormContextSummary from '@/components/shared/TaskExecutionFormContextSummary'
 import TaskExecutionQuickFeedback from '@/components/shared/TaskExecutionQuickFeedback'
 import TaskExecutionQuickNotes from '@/components/shared/TaskExecutionQuickNotes'
+import { mergeTaskExecutionQuickPayloadNotes } from '@/services/taskExecutionQuickPayloadService'
 
 interface QuickHarvestFormProps {
   task: GardenTask
@@ -141,6 +142,11 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
       'poor': 2
     }[quality] ?? 3) as HarvestLogData['rating']
 
+    const executionNotes = mergeTaskExecutionQuickPayloadNotes(notes, {
+      outcome: quickOutcome,
+      followUpRequired: quickFollowUpRequired,
+    })
+
     const harvestData: Omit<HarvestLogData, 'id' | 'gardenId'> = {
       plantName: task.plantName,
       quantity,
@@ -149,7 +155,7 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
       date: new Date().toISOString().split('T')[0],
       brix: harvestBrix,
       marketValue: harvestMarketValue,
-      notes: notes.trim() || undefined,
+      notes: executionNotes,
       photo: photo || undefined,
       taskId: task.id
     }

@@ -17,6 +17,7 @@ import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvid
 import TaskExecutionFormContextSummary from '@/components/shared/TaskExecutionFormContextSummary'
 import TaskExecutionQuickFeedback from '@/components/shared/TaskExecutionQuickFeedback'
 import TaskExecutionQuickNotes from '@/components/shared/TaskExecutionQuickNotes'
+import { mergeTaskExecutionQuickPayloadNotes } from '@/services/taskExecutionQuickPayloadService'
 
 type WateringZone = IrrigationZone & {
   bedIds?: string[]
@@ -333,6 +334,10 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, sourceTas
     setLoading(true)
     try {
       const wateredAt = `${formData.date}T${formData.time}:00`
+      const executionNotes = mergeTaskExecutionQuickPayloadNotes(formData.notes, {
+        outcome: quickOutcome,
+        followUpRequired: quickFollowUpRequired,
+      })
 
       if (formData.irrigationType === 'field') {
         // Irrigazione diretta field rows
@@ -354,7 +359,7 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, sourceTas
             soilMoistureBefore: formData.soilMoistureBefore,
             soilMoistureAfter: formData.soilMoistureAfter,
             airTemperatureC: formData.airTemperatureC,
-            notes: formData.notes || undefined,
+            notes: executionNotes,
             completed: true,
             // Salva parametri sistema per riferimento futuro
             systemType: formData.useManualCalculation ? formData.manualSystemType : undefined,
@@ -400,7 +405,7 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, sourceTas
             soilMoistureBefore: formData.soilMoistureBefore,
             soilMoistureAfter: formData.soilMoistureAfter,
             airTemperatureC: formData.airTemperatureC,
-            notes: formData.notes || undefined,
+            notes: executionNotes,
             completed: true
           })
         } else {
@@ -421,7 +426,7 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, sourceTas
               soilMoistureBefore: formData.soilMoistureBefore,
               soilMoistureAfter: formData.soilMoistureAfter,
               airTemperatureC: formData.airTemperatureC,
-              notes: formData.notes || undefined,
+              notes: executionNotes,
               completed: true
             }
           })

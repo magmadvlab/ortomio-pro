@@ -10,6 +10,7 @@ import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvid
 import TaskExecutionFormContextSummary from '@/components/shared/TaskExecutionFormContextSummary'
 import TaskExecutionQuickFeedback from '@/components/shared/TaskExecutionQuickFeedback'
 import TaskExecutionQuickNotes from '@/components/shared/TaskExecutionQuickNotes'
+import { mergeTaskExecutionQuickPayloadNotes } from '@/services/taskExecutionQuickPayloadService'
 
 interface MechanicalWorkLogFormProps {
   garden: Garden
@@ -122,7 +123,13 @@ export function MechanicalWorkLogForm({
 
     setLoading(true)
     try {
-      await onSubmit(formData as MechanicalWorkLog)
+      await onSubmit({
+        ...formData,
+        notes: mergeTaskExecutionQuickPayloadNotes(formData.notes, {
+          outcome: quickOutcome,
+          followUpRequired: quickFollowUpRequired,
+        }),
+      } as MechanicalWorkLog)
     } catch (error) {
       console.error('Error submitting mechanical work log:', error)
       alert('Errore nel salvare la lavorazione')
