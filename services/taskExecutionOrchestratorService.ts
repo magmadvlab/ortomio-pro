@@ -26,6 +26,13 @@ export interface HarvestTaskExecutionBootstrapState {
   launchRequest: HarvestLaunchRequest
 }
 
+export interface HarvestTrackedCropMatchCandidate {
+  taskId: string
+  plantName: string
+  zoneId?: string
+  rowId?: string
+}
+
 export interface MechanicalTaskExecutionBootstrapState {
   activeTab: 'operations'
   showExecutionForm: true
@@ -127,6 +134,56 @@ export const buildHarvestExecutionBootstrapState = (
       ...buildHarvestLaunchRequest(context),
     },
   }
+}
+
+const normalizeLaunchPlantName = (plantName?: string): string => {
+  return (plantName || '').trim().toLowerCase()
+}
+
+export const matchHarvestTrackedCropFromLaunchContext = (
+  launchContext: Pick<HarvestLaunchRequest, 'sourceTaskId' | 'plantName' | 'zoneId' | 'rowId'>,
+  availableCrops: HarvestTrackedCropMatchCandidate[]
+): HarvestTrackedCropMatchCandidate | null => {
+  if (!availableCrops.length) {
+    return null
+  }
+
+  const directTaskMatch = availableCrops.find((crop) => crop.taskId === launchContext.sourceTaskId)
+  if (directTaskMatch) {
+    return directTaskMatch
+  }
+
+  const normalizedPlantName = normalizeLaunchPlantName(launchContext.plantName)
+  if (!normalizedPlantName) {
+    return null
+  }
+
+  const samePlantCandidates = availableCrops.filter(
+    (crop) => normalizeLaunchPlantName(crop.plantName) === normalizedPlantName
+  )
+  if (!samePlantCandidates.length) {
+    return null
+  }
+
+  const rowScopedMatch = launchContext.rowId
+    ? samePlantCandidates.find((crop) => crop.rowId === launchContext.rowId)
+    : null
+  if (rowScopedMatch) {
+    return rowScopedMatch
+  }
+
+  const zoneScopedCandidates = launchContext.zoneId
+    ? samePlantCandidates.filter((crop) => crop.zoneId === launchContext.zoneId)
+    : []
+  if (zoneScopedCandidates.length === 1) {
+    return zoneScopedCandidates[0]
+  }
+
+  if (samePlantCandidates.length === 1) {
+    return samePlantCandidates[0]
+  }
+
+  return null
 }
 
 export const buildWateringExecutionLaunchState = (
