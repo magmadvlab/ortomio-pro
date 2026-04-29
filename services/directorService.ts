@@ -598,6 +598,7 @@ class DirectorService {
         suggestion.metadata?.cropName,
         suggestion.metadata?.gardenType,
       ],
+      cultivarId: suggestion.metadata?.cultivarId || suggestion.metadata?.varietyId,
       cultivarLabel:
         suggestion.metadata?.cultivar ||
         suggestion.metadata?.variety ||

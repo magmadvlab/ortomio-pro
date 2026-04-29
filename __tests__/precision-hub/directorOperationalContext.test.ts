@@ -35,6 +35,8 @@ test('director suggestionToAction carries operational context into economic comp
     ...baseSuggestion,
     metadata: {
       ...baseSuggestion.metadata,
+      cultivarId: 'broccoli_calabrese',
+      cropVariety: 'Broccolo Calabrese',
       gardenType: 'Greenhouse',
     },
   })
@@ -51,6 +53,8 @@ test('director suggestionToAction carries operational context into economic comp
   assert.equal(openFieldAction.operationalContextTags?.includes('open_field'), true)
   assert.equal(protectedAction.refinedContext?.subSystemContext?.systemType, 'protected_culture')
   assert.equal(openFieldAction.refinedContext?.subSystemContext?.systemType, 'open_field')
+  assert.equal(protectedAction.refinedContext?.cultivarContext?.cultivarId, 'broccoli_calabrese')
+  assert.equal(protectedAction.refinedContext?.cultivarContext?.cultivarLabel, 'Broccolo Calabrese')
   assert.ok(
     (protectedAction.economicSummary?.actionComparison?.dominanceMargin || 0) >
       (openFieldAction.economicSummary?.actionComparison?.dominanceMargin || 0)

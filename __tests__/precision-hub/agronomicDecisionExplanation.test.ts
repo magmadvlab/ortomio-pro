@@ -46,6 +46,42 @@ test('buildAgronomicDecisionExplanation captures profile resolution and signal c
   assert.match(explanation.warnings.join(' '), /Segnali P0 mancanti/i)
 })
 
+test('buildAgronomicDecisionExplanation humanizes production intent in context rationale', () => {
+  const resolvedProfile = resolveAgronomicPriorityProfileSync({
+    fallbackProfileId: 'vineyard_quality',
+  })
+
+  assert.ok(resolvedProfile)
+
+  const priorityResult = scoreAgronomicPriority({
+    baseScore: 58,
+    confidence: 0.66,
+    resolvedProfile,
+    focus: 'quality',
+    availableSignals: ['quality_result'],
+    isCriticalStage: true,
+  })
+
+  const explanation = buildAgronomicDecisionExplanation({
+    source: 'phenology',
+    focus: 'quality',
+    priorityResult,
+    resolvedProfile,
+    availableSignals: ['quality_result'],
+    isCriticalStage: true,
+    refinedContext: {
+      cultivarContext: {
+        cultivarLabel: 'Italia',
+        productionIntent: 'table_grape',
+      },
+    },
+  })
+
+  assert.ok(
+    explanation.contextRationale?.includes('Intento produttivo: uva da tavola.')
+  )
+})
+
 test('buildAgronomicActionQueue preserves decision explanation in irrigation metadata', () => {
   const decisionExplanation: AgronomicDecisionExplanation = {
     source: 'irrigation',

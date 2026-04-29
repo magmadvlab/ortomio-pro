@@ -337,10 +337,20 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
         efficacySummary.cropContextScores[0]?.label,
         efficacySummary.cropContextScores[0]?.key,
       ],
+      cultivarId: efficacySummary.cropContextScores[0]?.key,
+      cultivarLabel: efficacySummary.cropContextScores[0]?.label,
       speciesLabel: efficacySummary.cropContextScores[0]?.label || prescriptionMap.gardenName,
       productionIntent:
         prescriptionMap.mapType === 'harvest'
-          ? 'fresh_market'
+          ? baseOperationalContextTags.includes('wine_grape') || baseOperationalContextTags.includes('vineyard')
+            ? 'wine'
+            : baseOperationalContextTags.includes('table_grape')
+              ? 'table_grape'
+              : baseOperationalContextTags.includes('oil_cultivar') || baseOperationalContextTags.includes('olive_grove')
+                ? 'oil'
+                : baseOperationalContextTags.includes('table_olive')
+                  ? 'table_olive'
+                  : 'fresh_market'
           : undefined,
       gardenType: prescriptionMap.gardenName,
       soilType: zoneDefinition?.sourceData.soilType,

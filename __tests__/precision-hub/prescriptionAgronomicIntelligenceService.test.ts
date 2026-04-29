@@ -259,6 +259,14 @@ test('buildPrescriptionAgronomicIntelligenceSummary returns high-signal recommen
   assert.equal(summary.recommendations.some((item) => item.id === 'environment:zone-weak'), true)
   assert.equal(summary.operationalPriorities[1]?.operationalContextTags?.includes('vineyard'), true)
   assert.equal(
+    summary.operationalPriorities[0]?.refinedContext?.cultivarContext?.cultivarId,
+    'vineyard'
+  )
+  assert.equal(
+    summary.operationalPriorities[0]?.refinedContext?.cultivarContext?.cultivarLabel,
+    'vineyard'
+  )
+  assert.equal(
     summary.operationalPriorities[0]?.refinedContext?.siteOperationalProfile?.soilType,
     'Clay'
   )
@@ -403,5 +411,100 @@ test('prescription flow propagates protected vs open-field context into queue ec
       ?.dominanceMargin) || 0) >
       (((openFieldQueue[0]?.metadata?.actionComparison as { dominanceMargin?: number } | undefined)
         ?.dominanceMargin) || 0)
+  )
+})
+
+test('harvest prescription keeps vineyard production intent instead of forcing fresh market', () => {
+  const harvestMap: PrescriptionMap = {
+    ...prescriptionMap,
+    id: 'map-harvest',
+    gardenName: 'Vigneto Collina',
+    name: 'Mappa raccolta Sangiovese DOC',
+    mapType: 'harvest',
+  }
+
+  const efficacySummary: PrescriptionExecutionEfficacySummary = {
+    totalZones: 1,
+    scoredZones: 1,
+    averageEfficacyScore: 62,
+    averageMicroclimateScore: 60,
+    averageSoilResponseScore: 58,
+    highZones: 0,
+    mediumZones: 1,
+    lowZones: 0,
+    unknownZones: 0,
+    cropContextScores: [{ key: 'sangiovese', label: 'Sangiovese', averageScore: 62, zones: 1 }],
+    seasonScores: [{ key: 'Autunno', label: 'Autunno', averageScore: 62, zones: 1 }],
+    zoneScores: [
+      {
+        zoneId: 'zone-good',
+        zoneName: 'Zona Buona',
+        efficacyScore: 62,
+        efficacyStatus: 'medium',
+        varianceStatus: 'aligned',
+        outcomeStatus: 'positive',
+        microclimateStatus: 'stable',
+        microclimateScore: 60,
+        soilResponseStatus: 'responsive',
+        soilResponseScore: 58,
+        fungalPressure: 'low',
+        waterStress: 'low',
+        heatStress: 'none',
+        cropContextId: 'sangiovese',
+        seasonLabel: 'Autunno',
+      },
+    ],
+  }
+
+  const varianceSummary: PrescriptionExecutionVarianceSummary = {
+    totalZones: 1,
+    alignedZones: 1,
+    partialZones: 0,
+    offTargetZones: 0,
+    missedZones: 0,
+    pendingZones: 0,
+    averageAdherenceScore: 88,
+    zoneVariances: [
+      {
+        zoneId: 'zone-good',
+        zoneName: 'Zona Buona',
+        latestStatus: 'completed',
+        varianceStatus: 'aligned',
+        plannedRate: 100,
+        actualRate: 98,
+        adherenceScore: 88,
+      },
+    ],
+  }
+
+  const outcomeSummary: PrescriptionExecutionOutcomeSummary = {
+    totalZones: 1,
+    positiveZones: 1,
+    mixedZones: 0,
+    negativeZones: 0,
+    pendingZones: 0,
+    averageQualityScore: 4.1,
+    averageBrix: 22.5,
+    zoneOutcomes: [
+      {
+        zoneId: 'zone-good',
+        zoneName: 'Zona Buona',
+        outcomeStatus: 'positive',
+        latestQualityScore: 4.1,
+        latestBrix: 22.5,
+      },
+    ],
+  }
+
+  const summary = buildPrescriptionAgronomicIntelligenceSummary(
+    harvestMap,
+    efficacySummary,
+    varianceSummary,
+    outcomeSummary
+  )
+
+  assert.equal(
+    summary.operationalPriorities[0]?.refinedContext?.cultivarContext?.productionIntent,
+    'wine'
   )
 })

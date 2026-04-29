@@ -359,8 +359,11 @@ export const normalizeCultivarContext = (
     input.cropVariety,
     input.variety,
   ])[0]
+  const normalizedCultivarId =
+    normalizeKey(input.cultivarId)?.replace(/\s+/g, '_') ||
+    normalizeKey(cultivarLabel)?.replace(/\s+/g, '_')
   const cultivarContext: CultivarContext = {
-    cultivarId: normalizeKey(input.cultivarId)?.replace(/\s+/g, '_'),
+    cultivarId: normalizedCultivarId,
     cultivarLabel,
     speciesLabel: normalizeToken(input.speciesLabel),
     productionIntent: normalizeProductionIntent(

@@ -15,7 +15,7 @@ test('normalizeCultivarContext unifies varietal fields and infers production int
   })
 
   assert.deepEqual(cultivarContext, {
-    cultivarId: undefined,
+    cultivarId: 'coratina',
     cultivarLabel: 'Coratina',
     speciesLabel: 'Olive',
     productionIntent: 'oil',
@@ -47,6 +47,15 @@ test('normalizeCultivarContext resolves legacy variety types against species con
       productionIntent: 'Raisin',
     })?.productionIntent,
     'table_grape'
+  )
+})
+
+test('normalizeCultivarContext derives a stable cultivar id from label when explicit id is missing', () => {
+  assert.equal(
+    normalizeCultivarContext({
+      cultivarLabel: 'Nocellara del Belice',
+    })?.cultivarId,
+    'nocellara_del_belice'
   )
 })
 

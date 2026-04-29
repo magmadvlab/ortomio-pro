@@ -74,6 +74,25 @@ const dedupeStrings = (values: Array<string | null | undefined>) =>
     )
   )
 
+const humanizeProductionIntent = (value?: string | null): string | null => {
+  switch (value) {
+    case 'wine':
+      return 'vino'
+    case 'table_grape':
+      return 'uva da tavola'
+    case 'oil':
+      return 'olio'
+    case 'table_olive':
+      return 'oliva da mensa'
+    case 'fresh_market':
+      return 'mercato fresco'
+    case 'processing':
+      return 'trasformazione'
+    default:
+      return value ? value.replace(/_/g, ' ') : null
+  }
+}
+
 export const resolveAgronomicDecisionUrgencyLabel = (
   score: number
 ): AgronomicDecisionUrgencyLabel => {
@@ -122,7 +141,7 @@ export function buildAgronomicDecisionExplanation(
       ? `Cultivar considerata: ${refinedContext.cultivarContext.cultivarLabel}.`
       : null,
     refinedContext?.cultivarContext?.productionIntent
-      ? `Intento produttivo: ${refinedContext.cultivarContext.productionIntent}.`
+      ? `Intento produttivo: ${humanizeProductionIntent(refinedContext.cultivarContext.productionIntent)}.`
       : null,
     refinedContext?.subSystemContext?.systemType
       ? `Sottosistema: ${refinedContext.subSystemContext.systemType}.`
