@@ -116,9 +116,11 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
 
   // Ottieni zona (placeholder - da migliorare con dati reali)
   const getZone = () => {
-    if (task.bedId) return `Zona ${task.bedId.slice(0, 1).toUpperCase()}`
-    if (task.zoneId) return `Zona ${task.zoneId.slice(0, 1).toUpperCase()}`
-    return 'Zona C'
+    if (typeof task.rowNumber === 'number') return `Fila ${task.rowNumber}`
+    if (task.rowId) return `Riga ${task.rowId}`
+    if (task.bedId) return `Aiuola ${task.bedId}`
+    if (task.zoneId) return `Zona ${task.zoneId}`
+    return 'Posizione non specificata'
   }
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
