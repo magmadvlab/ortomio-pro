@@ -663,3 +663,153 @@ test('nutrition prescription ranks sandy sites above clay sites when the remaini
   assert.ok((sandyPriority?.priorityScore || 0) > (clayPriority?.priorityScore || 0))
   assert.match(sandyPriority?.rationale || '', /Profilo sito:/)
 })
+
+test('prescription sourceData site profile changes water, nutrition and quality ranking defensibly', () => {
+  const efficacySummary: PrescriptionExecutionEfficacySummary = {
+    totalZones: 2,
+    scoredZones: 2,
+    averageEfficacyScore: 50,
+    averageMicroclimateScore: 50,
+    averageSoilResponseScore: 50,
+    highZones: 0,
+    mediumZones: 2,
+    lowZones: 0,
+    unknownZones: 0,
+    cropContextScores: [{ key: 'vineyard', label: 'vineyard', averageScore: 50, zones: 2 }],
+    seasonScores: [{ key: 'Estate', label: 'Estate', averageScore: 50, zones: 2 }],
+    zoneScores: [
+      {
+        zoneId: 'zone-a',
+        zoneName: 'Zona A',
+        efficacyScore: 50,
+        efficacyStatus: 'medium',
+        varianceStatus: 'aligned',
+        outcomeStatus: 'mixed',
+        microclimateStatus: 'watch',
+        microclimateScore: 50,
+        soilResponseStatus: 'watch',
+        soilResponseScore: 50,
+        fungalPressure: 'medium',
+        waterStress: 'medium',
+        heatStress: 'medium',
+        cropContextId: 'vineyard',
+        seasonLabel: 'Estate',
+      },
+      {
+        zoneId: 'zone-b',
+        zoneName: 'Zona B',
+        efficacyScore: 50,
+        efficacyStatus: 'medium',
+        varianceStatus: 'aligned',
+        outcomeStatus: 'mixed',
+        microclimateStatus: 'watch',
+        microclimateScore: 50,
+        soilResponseStatus: 'watch',
+        soilResponseScore: 50,
+        fungalPressure: 'medium',
+        waterStress: 'medium',
+        heatStress: 'medium',
+        cropContextId: 'vineyard',
+        seasonLabel: 'Estate',
+      },
+    ],
+  }
+
+  const varianceSummary: PrescriptionExecutionVarianceSummary = {
+    totalZones: 2,
+    alignedZones: 2,
+    partialZones: 0,
+    offTargetZones: 0,
+    missedZones: 0,
+    pendingZones: 0,
+    averageAdherenceScore: 100,
+    zoneVariances: [
+      { zoneId: 'zone-a', zoneName: 'Zona A', latestStatus: 'completed', varianceStatus: 'aligned', adherenceScore: 100 },
+      { zoneId: 'zone-b', zoneName: 'Zona B', latestStatus: 'completed', varianceStatus: 'aligned', adherenceScore: 100 },
+    ],
+  }
+
+  const outcomeSummary: PrescriptionExecutionOutcomeSummary = {
+    totalZones: 2,
+    zonesWithOutcome: 2,
+    positiveZones: 0,
+    mixedZones: 2,
+    negativeZones: 0,
+    noDataZones: 0,
+    averageOutcomeScore: 50,
+    zoneOutcomes: [
+      { zoneId: 'zone-a', zoneName: 'Zona A', latestStatus: 'completed', outcomeStatus: 'mixed', outcomeScore: 50 },
+      { zoneId: 'zone-b', zoneName: 'Zona B', latestStatus: 'completed', outcomeStatus: 'mixed', outcomeScore: 50 },
+    ],
+  }
+
+  const buildMap = (
+    mapType: PrescriptionMap['mapType'],
+    zoneASourceData: PrescriptionMap['zones'][number]['sourceData'],
+    zoneBSourceData: PrescriptionMap['zones'][number]['sourceData']
+  ): PrescriptionMap => ({
+    ...prescriptionMap,
+    id: `map-${mapType}`,
+    name: `Mappa ${mapType}`,
+    mapType,
+    zones: [
+      { ...prescriptionMap.zones[0], id: 'zone-a', zoneName: 'Zona A', sourceData: zoneASourceData },
+      { ...prescriptionMap.zones[1], id: 'zone-b', zoneName: 'Zona B', sourceData: zoneBSourceData },
+    ],
+    totalZones: 2,
+    zonesCount: 2,
+  })
+
+  const irrigationSummary = buildPrescriptionAgronomicIntelligenceSummary(
+    buildMap(
+      'irrigation',
+      {
+        soilType: 'Sandy loam',
+        dailySunHours: 8.5,
+        aspectDirection: 'South',
+        windProtection: 'Low',
+        shadowObstaclesCount: 0,
+      },
+      {
+        soilType: 'Clay',
+        dailySunHours: 3.5,
+        aspectDirection: 'North',
+        windProtection: 'High',
+        shadowObstaclesCount: 3,
+      }
+    ),
+    efficacySummary,
+    varianceSummary,
+    outcomeSummary
+  )
+  const irrigationA = irrigationSummary.operationalPriorities.find((item) => item.zoneId === 'zone-a')
+  const irrigationB = irrigationSummary.operationalPriorities.find((item) => item.zoneId === 'zone-b')
+  assert.ok((irrigationA?.priorityScore || 0) > (irrigationB?.priorityScore || 0))
+  assert.match(irrigationA?.rationale || '', /sole pieno|esposizione calda/)
+
+  const nutritionSummary = buildPrescriptionAgronomicIntelligenceSummary(
+    buildMap('fertilizer', { soilType: 'Loam', soilPh: 5.4 }, { soilType: 'Loam', soilPh: 6.8 }),
+    efficacySummary,
+    varianceSummary,
+    outcomeSummary
+  )
+  const acidicPriority = nutritionSummary.operationalPriorities.find((item) => item.zoneId === 'zone-a')
+  const neutralPriority = nutritionSummary.operationalPriorities.find((item) => item.zoneId === 'zone-b')
+  assert.ok((acidicPriority?.priorityScore || 0) > (neutralPriority?.priorityScore || 0))
+  assert.match(acidicPriority?.rationale || '', /pH fuori finestra/)
+
+  const harvestSummary = buildPrescriptionAgronomicIntelligenceSummary(
+    buildMap(
+      'harvest',
+      { soilType: 'Loam', altitudeMeters: 850, slopePercentage: 18, dailySunHours: 4, soilPh: 8.1 },
+      { soilType: 'Loam', altitudeMeters: 40, slopePercentage: 2, dailySunHours: 7, soilPh: 6.8 }
+    ),
+    efficacySummary,
+    varianceSummary,
+    outcomeSummary
+  )
+  const highAltitudePriority = harvestSummary.operationalPriorities.find((item) => item.zoneId === 'zone-a')
+  const seaLevelPriority = harvestSummary.operationalPriorities.find((item) => item.zoneId === 'zone-b')
+  assert.ok((highAltitudePriority?.priorityScore || 0) > (seaLevelPriority?.priorityScore || 0))
+  assert.match(highAltitudePriority?.rationale || '', /quota elevata/)
+})

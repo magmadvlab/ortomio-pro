@@ -48,12 +48,12 @@ Con gli ultimi riallineamenti P1, il contesto raffinato viene propagato in modo 
 
 Il director usa anche il profilo garden-level raccolto dal wizard quando trasforma i suggerimenti in azioni prioritarie. Per i garden in campo aperto questo include, dove disponibili, tipo di terreno, pH, altitudine, esposizione solare, ore di sole stimate, orientamento, protezione dal vento e ostacoli che generano ombre. Questi dati entrano nel refined context, nelle spiegazioni decisionali e, in forma prudente, nel priority scoring: terreno sabbioso, sole pieno, esposizione e bassa protezione dal vento possono aumentare la pressione idrica; ombra e poche ore di sole possono aumentare la pressione sanitaria; pH acido o alcalino puo aumentare la priorita nutrizionale; quota elevata e pendenza possono aumentare la pressione di monitoraggio qualita. Le regole restano conservative e non forzano inferenze quando il dato non e disponibile.
 
-Lo stesso profilo sito viene ora riusato anche nei report di efficienza irrigua, nelle priorita di prescription e negli alert di monitoraggio salute quando il dato e disponibile. Questo significa che due zone con efficienza simile non vengono trattate come equivalenti se una e molto esposta e sabbiosa, e che gli alert sanitari possono distinguere meglio un contesto ombreggiato e riparato da uno piu aperto e ventilato.
+Lo stesso profilo sito viene ora riusato anche nei report di efficienza irrigua, nelle priorita di prescription e negli alert di monitoraggio salute quando il dato e disponibile. Questo significa che due zone con efficienza simile non vengono trattate come equivalenti se una e molto esposta e sabbiosa, e che gli alert sanitari possono distinguere meglio un contesto ombreggiato, riparato o esposto a nord da uno piu aperto e ventilato. Le zone delle prescription maps possono ora portare anche pH, ore di sole, esposizione, protezione dal vento, ombre, quota e pendenza nel source data, non solo il tipo di suolo.
 
 In particolare, il motore oggi distingue in modo prudente:
 
-- suolo sabbioso, sole pieno, esposizione e protezione dal vento bassa come segnali di pressione idrica piu alta
-- ombra, poche ore di sole, sito riparato e suolo argilloso come segnali di pressione sanitaria piu alta
+- suolo sabbioso, sole pieno, esposizione calda e protezione dal vento bassa come segnali di pressione idrica piu alta
+- ombra, poche ore di sole, sito riparato, esposizione fredda e suolo argilloso come segnali di pressione sanitaria piu alta
 - pH acido o alcalino come segnale di pressione nutrizionale
 - quota elevata, pendenza e insolazione ridotta come segnali di pressione qualita
 

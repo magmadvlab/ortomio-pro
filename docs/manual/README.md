@@ -28,11 +28,11 @@ OrtoMio oggi combina moduli già utilizzabili in produzione con moduli ancora in
 
 ### **Ibridi**
 - **Planner AI / Advice**: alcune azioni creano task reali, ma non tutto il motore AI è ancora persistito end-to-end
-- **Health / Salute**: alcuni alert e azioni creano task reali; il profilo sito garden-level può incidere su urgenza, confidence e priorità quando il dato è disponibile
+- **Health / Salute**: alcuni alert e azioni creano task reali; il profilo sito garden-level può incidere su urgenza, confidence e priorità quando il dato è disponibile, includendo anche esposizioni fredde/ombreggiate come segnale prudente di pressione sanitaria
 - **NDVI**: dashboard e workflow di supporto presenti, ma il dato quantitativo non è ancora sempre affidabile come misura satellitare certificata
 
 ### **Beta**
-- **Prescription Maps**: interfaccia, persistenza, zone, export, revisioni e riepiloghi esistono; la catena macchina-outcome resta beta, ma le priorità agronomiche possono già riflettere profilo sito, suolo, pH e storico ambientale
+- **Prescription Maps**: interfaccia, persistenza, zone, export, revisioni e riepiloghi esistono; la catena macchina-outcome resta beta, ma le priorità agronomiche possono già riflettere profilo sito di zona, suolo, pH, sole, esposizione, vento, quota, pendenza e storico ambientale quando disponibili
 - **Smart Hub / IoT attivo**: ingestione dati sensori presente; registry dispositivi, controllo attuatori e automazioni restano beta
 
 ---
@@ -80,10 +80,10 @@ In questa revisione il manuale è stato riallineato in particolare su:
 - **Planner e Advice**: differenza tra task reali e suggerimenti ancora guidati
 - **Loop planner -> esecuzione**: disponibilita di summary operativo sui task agronomici piu evoluti e contratto minimo di evidenze anche nei moduli esecutivi principali
 - **Health**: alert meteo/monitoraggi con task reali, ma motore non ancora totalmente consolidato
-- **Health e sito**: ombra, poche ore di sole, sito riparato e pH fuori finestra possono influire in modo prudente su urgenza, confidence e ranking degli alert
+- **Health e sito**: ombra, poche ore di sole, sito riparato, esposizione fredda e pH fuori finestra possono influire in modo prudente su urgenza, confidence e ranking degli alert
 - **Irrigazione**: compatibilità schema legacy/advanced e calcoli filari più precisi
 - **NDVI**: uso corretto come supporto decisionale, non ancora come misura satellitare sempre certificabile
-- **Prescription Maps**: stato beta reale sulla catena campo-macchina-outcome, con priorità più sensibili a suolo, pH, esposizione e storico ambientale quando disponibili
+- **Prescription Maps**: stato beta reale sulla catena campo-macchina-outcome, con priorità più sensibili a source data di zona come suolo, pH, ore di sole, esposizione, vento, quota, pendenza e storico ambientale quando disponibili
 - **Smart Hub / IoT**: distinzione tra letture persistite e controllo dispositivi ancora incompleto
 - **T2 Operational Ledger**: manuale allineato a proiezioni DB-first, Activity Registry consumer, diario/meteo e segnali piante individuali
 - **P1 Agronomic Context Refinement**: manuale riallineato al refined context già propagato nei principali percorsi decisionali

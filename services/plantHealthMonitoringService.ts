@@ -1122,6 +1122,7 @@ export class PlantHealthMonitoringService {
       (siteContext?.exposureClass === 'sheltered' ? 1 : 0) +
       (typeof siteContext?.dailySunHours === 'number' && siteContext.dailySunHours <= 4 ? 1 : 0) +
       (typeof siteContext?.shadowObstaclesCount === 'number' && siteContext.shadowObstaclesCount >= 2 ? 1 : 0) +
+      (['north', 'nord', 'northeast', 'nord est'].includes((siteContext?.aspectDirection || '').toLowerCase()) ? 1 : 0) +
       (typeof siteContext?.soilPh === 'number' && (siteContext.soilPh < 5.8 || siteContext.soilPh > 7.8) ? 1 : 0)
 
     return Math.max(
@@ -1520,6 +1521,9 @@ export class PlantHealthMonitoringService {
       if (typeof siteContext.shadowObstaclesCount === 'number' && siteContext.shadowObstaclesCount >= 2) {
         adjustedConfidence += 0.02
       }
+      if (['north', 'nord', 'northeast', 'nord est'].includes((siteContext.aspectDirection || '').toLowerCase())) {
+        adjustedConfidence += 0.01
+      }
       if (
         typeof siteContext.soilPh === 'number' &&
         (siteContext.soilPh < 5.8 || siteContext.soilPh > 7.8)
@@ -1656,6 +1660,7 @@ export class PlantHealthMonitoringService {
       (siteContext?.exposureClass === 'sheltered' ? 2 : 0) +
       (typeof siteContext?.dailySunHours === 'number' && siteContext.dailySunHours <= 4 ? 1 : 0) +
       (typeof siteContext?.shadowObstaclesCount === 'number' && siteContext.shadowObstaclesCount >= 2 ? 1 : 0) +
+      (['north', 'nord', 'northeast', 'nord est'].includes((siteContext?.aspectDirection || '').toLowerCase()) ? 1 : 0) +
       (typeof siteContext?.soilPh === 'number' && (siteContext.soilPh < 5.8 || siteContext.soilPh > 7.8) ? 1 : 0)
     const baseScore = severityScore + typePriorityScore + urgencyScore + siteBoost
     const priorityResult = scoreAgronomicPriority({

@@ -26,7 +26,8 @@ La parte consolidata oggi è:
 - revisioni/versioni mappa
 - riepiloghi di esecuzione, aderenza, outcome ed efficacia quando i dati esistono
 - priorità agronomiche con refined context quando il dato è disponibile
-- uso prudente di suolo, pH, profilo sito e storico ambientale nelle spiegazioni e nel ranking operativo
+- uso prudente di suolo, pH, profilo sito di zona e storico ambientale nelle spiegazioni e nel ranking operativo
+- source data di zona estesi per pH, ore di sole, esposizione, protezione vento, ombre, quota e pendenza quando disponibili
 
 Non va presentato come già chiuso:
 - import automatico garantito su tutte le console agricole
@@ -49,7 +50,7 @@ Il modulo può gestire:
 - stato export `generated / downloaded / field_imported / field_applied`
 - record di applicazione con dose pianificata, dose reale, area applicata, macchina, operatore, accuratezza, note, meteo e costi
 - confronto tra zone con efficacia simile ma profili sito diversi
-- motivazioni operative che possono includere suolo sabbioso o argilloso, pH fuori finestra, esposizione, quota, ombra e storico di stress ambientale
+- motivazioni operative che possono includere suolo sabbioso o argilloso, pH fuori finestra, esposizione calda o fredda, vento, quota, pendenza, ombra e storico di stress ambientale
 
 ---
 
@@ -110,7 +111,7 @@ Usa Prescription Maps per:
 - esportare mappe dove il formato è compatibile
 - registrare o consultare applicazioni a rateo variabile quando disponibili
 - confrontare prescrizione, esecuzione e outcome se i dati sono presenti
-- distinguere zone apparentemente simili quando suolo, pH, esposizione o storico ambientale cambiano la priorità agronomica
+- distinguere zone apparentemente simili quando suolo, pH, sole, esposizione, vento, quota, pendenza o storico ambientale cambiano la priorità agronomica
 
 Non usarlo come:
 - automazione finale senza supervisione

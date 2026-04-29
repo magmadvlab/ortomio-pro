@@ -153,6 +153,16 @@ const isClaySoil = (soilType?: string | null) => {
   )
 }
 
+const isSunExposedAspect = (aspectDirection?: string | null) => {
+  const normalized = normalizeText(aspectDirection)
+  return Boolean(normalized && ['south', 'sud', 'southwest', 'sud ovest', 'ovest', 'west'].includes(normalized))
+}
+
+const isShadedAspect = (aspectDirection?: string | null) => {
+  const normalized = normalizeText(aspectDirection)
+  return Boolean(normalized && ['north', 'nord', 'northeast', 'nord est'].includes(normalized))
+}
+
 const resolveSitePressureSignals = (
   focus: AgronomicPriorityFocus,
   refinedContext?: AgronomicRefinedContext | null,
@@ -190,6 +200,10 @@ const resolveSitePressureSignals = (
       priorityBoost += 3
       rationale.push('sole pieno')
     }
+    if (isSunExposedAspect(site.aspectDirection)) {
+      priorityBoost += 1
+      rationale.push('esposizione calda')
+    }
     if (shadowObstaclesCount >= 2) {
       priorityBoost -= 1
       rationale.push('ombreggiamento diffuso')
@@ -215,6 +229,10 @@ const resolveSitePressureSignals = (
     if (shadowObstaclesCount >= 2) {
       priorityBoost += 2
       rationale.push('ostacoli d ombra')
+    }
+    if (isShadedAspect(site.aspectDirection)) {
+      priorityBoost += 1
+      rationale.push('esposizione fredda')
     }
     if (isClaySoil(site.soilType)) {
       priorityBoost += 1
@@ -259,6 +277,9 @@ const resolveSitePressureSignals = (
     if (typeof dailySunHours === 'number' && dailySunHours <= 4) {
       priorityBoost += 2
       rationale.push('insolazione ridotta')
+    } else if (isSunExposedAspect(site.aspectDirection)) {
+      priorityBoost += 1
+      rationale.push('esposizione calda')
     }
     if (typeof soilPh === 'number' && (soilPh < 5.8 || soilPh > 7.8)) {
       priorityBoost += 2
@@ -491,6 +512,14 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
           : undefined,
       gardenType: prescriptionMap.gardenName,
       soilType: zoneDefinition?.sourceData.soilType,
+      soilPh: zoneDefinition?.sourceData.soilPh,
+      dailySunHours: zoneDefinition?.sourceData.dailySunHours,
+      sunExposure: zoneDefinition?.sourceData.sunExposure,
+      aspectDirection: zoneDefinition?.sourceData.aspectDirection,
+      windProtection: zoneDefinition?.sourceData.windProtection,
+      shadowObstaclesCount: zoneDefinition?.sourceData.shadowObstaclesCount,
+      altitudeMeters: zoneDefinition?.sourceData.altitudeMeters,
+      slopePercentage: zoneDefinition?.sourceData.slopePercentage,
     })
     const sitePressureSignals = resolveSitePressureSignals(
       priorityFocus,
