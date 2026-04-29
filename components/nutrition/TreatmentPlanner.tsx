@@ -41,6 +41,9 @@ import { finalizeTaskExecutionPostAction } from '@/services/taskExecutionPostAct
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns'
 import { it } from 'date-fns/locale'
 import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvidenceContract'
+import TaskExecutionFormContextSummary from '@/components/shared/TaskExecutionFormContextSummary'
+import TaskExecutionQuickFeedback from '@/components/shared/TaskExecutionQuickFeedback'
+import TaskExecutionQuickNotes from '@/components/shared/TaskExecutionQuickNotes'
 
 interface TreatmentPlannerProps {
   garden: Garden
@@ -677,6 +680,8 @@ function TreatmentModal({
   const { storageProvider } = useStorage()
   const [formData, setFormData] = useState<any>({})
   const [saving, setSaving] = useState(false)
+  const [quickOutcome, setQuickOutcome] = useState<'good' | 'attention' | 'critical' | null>(null)
+  const [quickFollowUpRequired, setQuickFollowUpRequired] = useState(false)
 
   const treatmentProducts = products.filter((product): product is TreatmentProduct => 'treatmentType' in product)
   const fertilizerProducts = products.filter((product): product is FertilizerProduct => 'fertilizerType' in product)
@@ -687,6 +692,8 @@ function TreatmentModal({
     if (item) {
       if (viewMode === 'treatments') {
         setFormData(item)
+        setQuickFollowUpRequired(Boolean((item as NutritionTreatment).followUpRequired))
+        setQuickOutcome(null)
       } else {
         const schedule = item as NutritionSchedule
         const primaryTreatment = schedule.treatments[0]
@@ -718,6 +725,8 @@ function TreatmentModal({
           calibrationCheck: false,
           ...initialData
         })
+        setQuickOutcome(null)
+        setQuickFollowUpRequired(Boolean((initialData as Partial<NutritionTreatment> | null)?.followUpRequired))
       } else {
         setFormData({
           gardenId: garden.id,
@@ -877,7 +886,100 @@ function TreatmentModal({
         <div className="p-6">
           {viewMode === 'treatments' ? (
             <div className="space-y-4">
+              <TaskExecutionFormContextSummary sourceTaskId={formData.sourceTaskId} storageProvider={storageProvider} />
               <TaskExecutionEvidenceContract sourceTaskId={formData.sourceTaskId} storageProvider={storageProvider} />
+              <TaskExecutionQuickFeedback
+                outcome={quickOutcome}
+                followUpRequired={quickFollowUpRequired}
+                onOutcomeChange={(value) => {
+                  setQuickOutcome(value)
+                  setFormData((prev: any) => ({
+                    ...prev,
+                    effectiveness:
+                      value === 'good'
+                        ? 8
+                        : value === 'attention'
+                          ? 5
+                          : value === 'critical'
+                            ? 3
+                            : prev.effectiveness,
+                  }))
+                }}
+                onFollowUpRequiredChange={(value) => {
+                  setQuickFollowUpRequired(value)
+                  setFormData((prev: any) => ({ ...prev, followUpRequired: value }))
+                }}
+              />
+              <TaskExecutionQuickNotes
+                sourceTaskId={formData.sourceTaskId}
+                storageProvider={storageProvider}
+                notes={formData.notes || ''}
+                extraTokens={[
+                  quickOutcome ? `esito ${quickOutcome}` : '',
+                  quickFollowUpRequired ? 'follow-up richiesto' : '',
+                ].filter(Boolean)}
+                onChange={(notes) => setFormData((prev: any) => ({ ...prev, notes }))}
+              />
+
+              <div className="rounded-lg border border-blue-200 bg-blue-50/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">Quick execution fields</p>
+                <p className="mt-1 text-xs text-blue-900">
+                  Aggiorna i segnali minimi che alimentano davvero feedback ed evidence del trattamento.
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Efficacia percepita</label>
+                    <select
+                      value={formData.effectiveness ?? ''}
+                      onChange={(e) =>
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          effectiveness: e.target.value === '' ? undefined : Number(e.target.value),
+                        }))
+                      }
+                      disabled={isReadOnly}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    >
+                      <option value="">Non indicata</option>
+                      <option value="8">Buona</option>
+                      <option value="5">Da monitorare</option>
+                      <option value="3">Critica</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Risposta coltura</label>
+                    <select
+                      value={formData.plantResponse || ''}
+                      onChange={(e) => setFormData((prev: any) => ({ ...prev, plantResponse: e.target.value || undefined }))}
+                      disabled={isReadOnly}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    >
+                      <option value="">Non indicata</option>
+                      <option value="stabile">Stabile</option>
+                      <option value="in miglioramento">In miglioramento</option>
+                      <option value="segnali di stress">Segnali di stress</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Copertura reale</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={formData.actualCoverage ?? ''}
+                      onChange={(e) =>
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          actualCoverage: e.target.value === '' ? undefined : Number(e.target.value),
+                        }))
+                      }
+                      disabled={isReadOnly}
+                      placeholder="es. 0.8"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    />
+                  </div>
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -1021,7 +1123,7 @@ function TreatmentModal({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <label className="flex items-center gap-2 text-sm text-gray-700">
                   <input
                     type="checkbox"
@@ -1042,28 +1144,6 @@ function TreatmentModal({
                   />
                   Calibrazione verificata
                 </label>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(formData.followUpRequired)}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, followUpRequired: e.target.checked }))}
-                    disabled={isReadOnly}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  Serve follow-up
-                </label>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Note operative</label>
-                <textarea
-                  rows={4}
-                  value={formData.notes || ''}
-                  onChange={(e) => setFormData((prev: any) => ({ ...prev, notes: e.target.value }))}
-                  disabled={isReadOnly}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
-                  placeholder="Indicazioni applicative, miscela, osservazioni..."
-                />
               </div>
             </div>
           ) : (

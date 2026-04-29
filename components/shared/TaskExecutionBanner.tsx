@@ -82,6 +82,7 @@ export default function TaskExecutionBanner({
   }, [context.sourceTaskId, storageProvider])
 
   const operationalSummary = details?.operationalSummary
+  const mobileSummaryChips = details?.mobileSummaryChips || []
 
   const getReadinessClasses = (readiness: 'ready' | 'partial' | 'blocked') => {
     switch (readiness) {
@@ -153,6 +154,19 @@ export default function TaskExecutionBanner({
               </div>
             )}
 
+            {mobileSummaryChips.length > 0 && (
+              <div className="flex flex-wrap gap-2 sm:hidden">
+                {mobileSummaryChips.map((label) => (
+                  <span
+                    key={`${context.sourceTaskId}:mobile:${label}`}
+                    className="inline-flex items-center rounded-full border border-white/70 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-gray-700"
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            )}
+
             {operationalSummary?.primaryRationale && (
               <p className="text-xs text-gray-700">{operationalSummary.primaryRationale}</p>
             )}
@@ -165,7 +179,7 @@ export default function TaskExecutionBanner({
               <p className="text-xs text-gray-600">{details.visibleNotes}</p>
             )}
 
-            <TaskExecutionEvidenceContract operationalSummary={operationalSummary} className="sm:hidden" />
+            <TaskExecutionEvidenceContract operationalSummary={operationalSummary} className="sm:hidden" compact />
           </div>
         </div>
 

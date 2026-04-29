@@ -11,6 +11,7 @@ interface TaskExecutionEvidenceContractProps {
   storageProvider?: Pick<IStorageProvider, 'getTask'> | null
   operationalSummary?: AgronomicQueueTaskOperationalSummary | null
   className?: string
+  compact?: boolean
 }
 
 export default function TaskExecutionEvidenceContract({
@@ -18,6 +19,7 @@ export default function TaskExecutionEvidenceContract({
   storageProvider,
   operationalSummary: providedOperationalSummary,
   className = '',
+  compact = false,
 }: TaskExecutionEvidenceContractProps) {
   const [loadedOperationalSummary, setLoadedOperationalSummary] =
     useState<AgronomicQueueTaskOperationalSummary | null>(providedOperationalSummary || null)
@@ -62,7 +64,14 @@ export default function TaskExecutionEvidenceContract({
           <p className="text-xs font-semibold text-gray-900">
             {operationalSummary.mobileActionLabel} • {operationalSummary.mobileEvidencePrompt}
           </p>
-          <p className="mt-1 text-xs text-gray-600">{operationalSummary.evidenceLabels.join(' · ')}</p>
+          <p className="mt-1 text-xs text-gray-600">
+            {compact ? operationalSummary.evidenceLabels.slice(0, 2).join(' · ') : operationalSummary.evidenceLabels.join(' · ')}
+          </p>
+          {!compact && (
+            <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-emerald-700">
+              Contratto minimo di evidence
+            </p>
+          )}
         </div>
       </div>
     </div>

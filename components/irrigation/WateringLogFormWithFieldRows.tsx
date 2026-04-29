@@ -13,6 +13,10 @@ import { useStorage } from '@/packages/core/hooks/useStorage'
 import { X, Calculator, Info } from 'lucide-react'
 import { irrigationCalculatorService, ManualIrrigationSystem } from '@/services/irrigationCalculatorService'
 import { executeWateringLogThroughUnifiedService } from '@/services/operationExecutionBridgeService'
+import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvidenceContract'
+import TaskExecutionFormContextSummary from '@/components/shared/TaskExecutionFormContextSummary'
+import TaskExecutionQuickFeedback from '@/components/shared/TaskExecutionQuickFeedback'
+import TaskExecutionQuickNotes from '@/components/shared/TaskExecutionQuickNotes'
 
 type WateringZone = IrrigationZone & {
   bedIds?: string[]
@@ -32,6 +36,8 @@ interface WateringLogFormProps {
 
 export function WateringLogFormWithFieldRows({ zones, preselectedZone, sourceTaskId, fieldRows = [], onSubmit, onSubmitBatch, onExecuted, onCancel }: WateringLogFormProps) {
   const { storageProvider } = useStorage()
+  const [quickOutcome, setQuickOutcome] = useState<'good' | 'attention' | 'critical' | null>(null)
+  const [quickFollowUpRequired, setQuickFollowUpRequired] = useState(false)
   const toNumber = (value: unknown): number | undefined => {
     if (typeof value === 'number') {
       return Number.isFinite(value) ? value : undefined
@@ -450,6 +456,81 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, sourceTas
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <TaskExecutionFormContextSummary sourceTaskId={sourceTaskId} storageProvider={storageProvider} />
+          <TaskExecutionEvidenceContract sourceTaskId={sourceTaskId} storageProvider={storageProvider} />
+          <TaskExecutionQuickFeedback
+            outcome={quickOutcome}
+            followUpRequired={quickFollowUpRequired}
+            onOutcomeChange={setQuickOutcome}
+            onFollowUpRequiredChange={setQuickFollowUpRequired}
+          />
+          <TaskExecutionQuickNotes
+            sourceTaskId={sourceTaskId}
+            storageProvider={storageProvider}
+            notes={formData.notes}
+            extraTokens={[
+              quickOutcome ? `esito ${quickOutcome}` : '',
+              quickFollowUpRequired ? 'follow-up richiesto' : '',
+            ].filter(Boolean)}
+            onChange={(notes) => setFormData((prev) => ({ ...prev, notes }))}
+          />
+
+          <div className="rounded-lg border border-blue-200 bg-blue-50/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">Quick execution fields</p>
+            <p className="mt-1 text-xs text-blue-900">
+              Registra subito i segnali minimi che rendono leggibile la risposta irrigua.
+            </p>
+            <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Condizione meteo</label>
+                <Select
+                  value={formData.weatherCondition}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData((prev) => ({ ...prev, weatherCondition: e.target.value }))}
+                >
+                  <option value="">Non indicata</option>
+                  <option value="sereno">Sereno</option>
+                  <option value="coperto">Coperto</option>
+                  <option value="ventoso">Ventoso</option>
+                  <option value="caldo">Caldo</option>
+                </Select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Umidità prima</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={formData.soilMoistureBefore ?? ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      soilMoistureBefore: e.target.value === '' ? undefined : Number(e.target.value),
+                    }))
+                  }
+                  placeholder="%"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Umidità dopo</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={formData.soilMoistureAfter ?? ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      soilMoistureAfter: e.target.value === '' ? undefined : Number(e.target.value),
+                    }))
+                  }
+                  placeholder="%"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Tipo Irrigazione */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1035,20 +1116,6 @@ export function WateringLogFormWithFieldRows({ zones, preselectedZone, sourceTas
               <option value="Automatic">Automatico</option>
               <option value="Timer">Timer</option>
             </Select>
-          </div>
-
-          {/* Note */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Note
-            </label>
-            <textarea
-              className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows={3}
-              placeholder="Eventuali osservazioni..."
-              value={formData.notes}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-            />
           </div>
 
           {/* Actions */}

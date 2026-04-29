@@ -5,6 +5,10 @@ import { GardenTask, HarvestLogData, Garden } from '@/types'
 import { X, Camera, Minus, Plus } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
 import { useStorage } from '@/packages/core/hooks/useStorage'
+import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvidenceContract'
+import TaskExecutionFormContextSummary from '@/components/shared/TaskExecutionFormContextSummary'
+import TaskExecutionQuickFeedback from '@/components/shared/TaskExecutionQuickFeedback'
+import TaskExecutionQuickNotes from '@/components/shared/TaskExecutionQuickNotes'
 
 interface QuickHarvestFormProps {
   task: GardenTask
@@ -20,6 +24,10 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
   const [quality, setQuality] = useState<'excellent' | 'good' | 'fair' | 'poor'>('good')
   const [photo, setPhoto] = useState<string | null>(null)
   const [notes, setNotes] = useState<string>('')
+  const [quickOutcome, setQuickOutcome] = useState<'good' | 'attention' | 'critical' | null>('good')
+  const [quickFollowUpRequired, setQuickFollowUpRequired] = useState(false)
+  const [harvestBrix, setHarvestBrix] = useState<number | undefined>(undefined)
+  const [harvestMarketValue, setHarvestMarketValue] = useState<number | undefined>(undefined)
   
   // Hydroponic fields
   const [channelNumber, setChannelNumber] = useState<number>(1)
@@ -139,6 +147,8 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
       unit,
       rating: qualityRating,
       date: new Date().toISOString().split('T')[0],
+      brix: harvestBrix,
+      marketValue: harvestMarketValue,
       notes: notes.trim() || undefined,
       photo: photo || undefined,
       taskId: task.id
@@ -243,6 +253,58 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
 
         {/* Content */}
         <form onSubmit={handleSubmit} className="p-6">
+          <TaskExecutionFormContextSummary sourceTaskId={task.id} storageProvider={storageProvider} className="mb-4" />
+          <TaskExecutionEvidenceContract sourceTaskId={task.id} storageProvider={storageProvider} className="mb-6" />
+          <TaskExecutionQuickFeedback
+            outcome={quickOutcome}
+            followUpRequired={quickFollowUpRequired}
+            onOutcomeChange={setQuickOutcome}
+            onFollowUpRequiredChange={setQuickFollowUpRequired}
+          />
+          <TaskExecutionQuickNotes
+            sourceTaskId={task.id}
+            storageProvider={storageProvider}
+            notes={notes}
+            extraTokens={[
+              quickOutcome ? `esito ${quickOutcome}` : '',
+              quickFollowUpRequired ? 'follow-up richiesto' : '',
+            ].filter(Boolean)}
+            onChange={setNotes}
+          />
+
+          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Quick execution fields</p>
+            <p className="mt-1 text-xs text-amber-900">
+              Registra i segnali minimi che rendono più utile il raccolto come evidence di qualità.
+            </p>
+            <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Brix</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={harvestBrix ?? ''}
+                  onChange={(e) => setHarvestBrix(e.target.value === '' ? undefined : Number(e.target.value))}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:border-amber-500"
+                  placeholder="°Bx"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Valore stimato</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={harvestMarketValue ?? ''}
+                  onChange={(e) => setHarvestMarketValue(e.target.value === '' ? undefined : Number(e.target.value))}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:border-amber-500"
+                  placeholder="€"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Success Banner */}
           <div className="bg-green-50 border border-green-100 rounded-2xl p-5 text-center mb-6">
             <div className="text-5xl mb-3">🎉</div>
@@ -686,20 +748,6 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
                 />
               </label>
             )}
-          </div>
-
-          {/* Note Opzionale */}
-          <div className="mb-5">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Note (opzionale)
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 resize-none"
-              placeholder="Es: Foglie molto croccanti, raccolto anticipato per il freddo..."
-            />
           </div>
 
           {/* Submit Button */}

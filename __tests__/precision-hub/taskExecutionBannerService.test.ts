@@ -78,6 +78,12 @@ test('loadTaskExecutionBannerDetails exposes visible notes and operational summa
   assert.equal(result?.operationalSummary?.readiness, 'ready')
   assert.equal(result?.operationalSummary?.urgencyLabel, 'Urgente oggi')
   assert.equal(result?.operationalSummary?.contextLabels.includes('Cultivar Sangiovese'), true)
+  assert.deepEqual(result?.mobileSummaryChips, [
+    'Esegui ora',
+    'Focus acqua',
+    'Urgente oggi',
+    'Registra ora esecuzione + litri o durata',
+  ])
   assert.match(result?.operationalSummary?.primaryRationale || '', /Deficit idrico persistente/i)
   assert.match(result?.visibleNotes || '', /turno irriguo/i)
 })

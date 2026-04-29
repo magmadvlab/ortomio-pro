@@ -3401,18 +3401,22 @@ Meta-rule for this register:
    - the global chat chapter only describes verified chat behaviour, and all stronger assistant capabilities are either implemented or explicitly tracked as open work
 
 33. `GAP-2026-04-23-AG` Planner task loop is materially stronger than planner chat generation logic
+   Status: closed under `T1-C` follow-through (2026-04-27)
    Priority: medium
    Related block: `P2` / `P5`
    Evidence:
    - planner task persistence, agronomic queue, execution launches and evidence-contract exposure are real and connected
-   - `PlannerAIChat.tsx` and `PlannerAIChatFixed.tsx` still rely on local canned response logic rather than a durable, task-aware planning engine
+   - `PlannerAIChat.tsx` and `PlannerAIChatFixed.tsx` now call `/api/ai/chat` with bounded planner task-context packets (assistive-only, no hidden write path)
    Risk:
    - the planner can be discussed either too optimistically as a unified AI planner or too pessimistically as mostly mock, while the real state is split between solid task orchestration and lighter chat guidance
    TODO:
+   - done: planner chat moved from local canned responses to real backend AI route with explicit assistive boundary
    - keep documenting the planner as hybrid
-   - later decide whether planner chat should be wired into the same real task/orchestration substrate or remain a lightweight assistive layer
+   - future implementation: if promoted beyond assistive chat, planner chat must pass `PG-02..PG-06` (verified action registry, routing hooks, user confirmation, auditability, source-of-truth protection)
+   Closure note:
+   - planner chat is now real backend-assisted guidance, while durable planner truth remains in task/queue/orchestration and downstream execution records
    Closure rule:
-   - planner documentation and architecture clearly distinguish real task/execution orchestration from assistive chat guidance
+   - planner documentation and architecture clearly distinguish real task/execution orchestration from assistive chat guidance, and chat is not local mock logic
 
 34. `GAP-2026-04-23-AH` Smart Hub has real telemetry foundations but still mixed registry, actuation and automation maturity
    Priority: medium
