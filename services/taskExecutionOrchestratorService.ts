@@ -149,6 +149,8 @@ export const buildMechanicalExecutionInitialData = (
 ): Partial<MechanicalWorkLog> => {
   return {
     gardenId,
+    zoneId: context.zoneId,
+    rowIds: context.rowId ? [context.rowId] : undefined,
     workType: context.taskType as MechanicalWorkLog['workType'],
     workDate: getTaskExecutionDate(context),
     notes: buildTaskExecutionNotes(context),

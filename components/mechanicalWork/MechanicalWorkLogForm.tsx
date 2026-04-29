@@ -43,6 +43,22 @@ export function MechanicalWorkLogForm({
   const [selectedBeds, setSelectedBeds] = useState<string[]>(initialData?.bedIds || [])
   const [selectedRows, setSelectedRows] = useState<string[]>(initialData?.rowIds || [])
 
+  useEffect(() => {
+    if (!initialData) {
+      return
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      ...initialData,
+      gardenId: initialData.gardenId || prev.gardenId || garden.id,
+      workDate: initialData.workDate || prev.workDate || new Date().toISOString().split('T')[0],
+      completed: initialData.completed ?? prev.completed ?? true,
+    }))
+    setSelectedBeds(initialData.bedIds || [])
+    setSelectedRows(initialData.rowIds || [])
+  }, [garden.id, initialData])
+
   // Carica aiuole e file dal giardino
   useEffect(() => {
     loadGardenStructure()
