@@ -134,6 +134,7 @@ test('attachAgronomicQueueOperatorEvidence stores source-side execution payload 
 
   assert.equal(updated?.operatorEvidence?.operation, 'watering')
   assert.equal(updated?.operatorEvidence?.metrics.totalLiters, 20)
+  assert.equal(updated?.operatorEvidence?.followUpRequired, undefined)
 })
 
 test('queue outcomes prefer DB-backed records and migrate preference fallback when DB is empty', async () => {
