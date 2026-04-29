@@ -9,7 +9,9 @@ import type {
   AgronomicActionScenarioTuning,
   AgronomicCropProfile,
   AgronomicOperationalContextTag,
+  AgronomicRefinedContext,
 } from '@/types/agronomicKernel'
+import { deriveOperationalContextTagsFromRefinedContext } from '@/services/agronomicRefinedContextService'
 
 export type AgronomicEconomicFocus = 'water' | 'nutrition' | 'health' | 'quality'
 
@@ -31,6 +33,7 @@ export interface AgronomicEconomicPriorityInput {
   agronomicProfileId?: string | null
   cropNameHint?: string | null
   operationalContextTags?: AgronomicOperationalContextTag[] | null
+  refinedContext?: AgronomicRefinedContext | null
   isCriticalStage?: boolean
   interventionCost?: number | null
   costOfDelay?: number | null
@@ -109,6 +112,13 @@ interface AgronomicObservationActionAdjustment {
   rationale: string[]
 }
 
+interface AgronomicRefinedEconomicAdjustment {
+  interventionCostMultiplier: number
+  delayCostMultiplier: number
+  protectedValueMultiplier: number
+  rationale: string[]
+}
+
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value))
 
@@ -132,6 +142,121 @@ const normalizeText = (value?: string | null) =>
     ?.toLowerCase()
     .trim()
     .replace(/\s+/g, ' ')
+
+const isSandySoil = (soilType?: string | null) => {
+  const normalized = normalizeText(soilType)
+  return Boolean(
+    normalized && ['sand', 'sandy', 'sabbioso', 'sabbia'].some((token) => normalized.includes(token))
+  )
+}
+
+const isClaySoil = (soilType?: string | null) => {
+  const normalized = normalizeText(soilType)
+  return Boolean(
+    normalized &&
+      ['clay', 'heavy clay', 'argilla', 'argilloso'].some((token) => normalized.includes(token))
+  )
+}
+
+const resolveRefinedEconomicAdjustment = (
+  input: Pick<AgronomicEconomicPriorityInput, 'focus' | 'refinedContext'>
+): AgronomicRefinedEconomicAdjustment => {
+  const site = input.refinedContext?.siteOperationalProfile
+  if (!site) {
+    return {
+      interventionCostMultiplier: 1,
+      delayCostMultiplier: 1,
+      protectedValueMultiplier: 1,
+      rationale: [],
+    }
+  }
+
+  let interventionCostMultiplier = 1
+  let delayCostMultiplier = 1
+  let protectedValueMultiplier = 1
+  const rationale: string[] = []
+
+  const dailySunHours = site.dailySunHours
+  const shadowObstaclesCount = site.shadowObstaclesCount || 0
+  const soilPh = site.soilPh
+  const windProtection = normalizeText(site.windProtection)
+  const exposedToWind = Boolean(
+    windProtection && ['low', 'bassa', 'scarsa', 'none', 'no'].includes(windProtection)
+  )
+
+  if (input.focus === 'water') {
+    if (isSandySoil(site.soilType)) {
+      delayCostMultiplier *= 1.08
+      protectedValueMultiplier *= 1.06
+      rationale.push('Suolo sciolto: il costo del ritardo irriguo cresce piu rapidamente.')
+    }
+    if (site.exposureClass === 'exposed' || exposedToWind) {
+      delayCostMultiplier *= 1.06
+      protectedValueMultiplier *= 1.04
+      rationale.push('Sito esposto: evaporazione e stress aumentano il valore della tempestivita.')
+    }
+    if (typeof dailySunHours === 'number' && dailySunHours >= 8) {
+      delayCostMultiplier *= 1.05
+    } else if (typeof dailySunHours === 'number' && dailySunHours <= 3.5) {
+      protectedValueMultiplier *= 0.97
+    }
+    if (shadowObstaclesCount >= 2) {
+      delayCostMultiplier *= 0.96
+    }
+  }
+
+  if (input.focus === 'health') {
+    if (site.exposureClass === 'sheltered' || shadowObstaclesCount >= 2) {
+      delayCostMultiplier *= 1.08
+      protectedValueMultiplier *= 1.06
+      rationale.push('Sito ombreggiato o poco arieggiato: il ritardo sanitario pesa di piu.')
+    }
+    if (typeof dailySunHours === 'number' && dailySunHours <= 4) {
+      delayCostMultiplier *= 1.04
+    }
+    if (isClaySoil(site.soilType)) {
+      protectedValueMultiplier *= 1.03
+    }
+  }
+
+  if (input.focus === 'nutrition') {
+    if (typeof soilPh === 'number' && (soilPh < 5.8 || soilPh > 7.8)) {
+      delayCostMultiplier *= 1.08
+      protectedValueMultiplier *= 1.05
+      rationale.push('pH fuori finestra: aumenta il costo di rinviare la correzione nutrizionale.')
+    } else if (typeof soilPh === 'number' && (soilPh < 6.2 || soilPh > 7.3)) {
+      delayCostMultiplier *= 1.04
+    }
+    if (isSandySoil(site.soilType)) {
+      protectedValueMultiplier *= 1.03
+    }
+  }
+
+  if (input.focus === 'quality') {
+    if ((site.altitudeMeters || 0) >= 700) {
+      delayCostMultiplier *= 1.06
+      protectedValueMultiplier *= 1.07
+      rationale.push('Quota elevata: la finestra qualita e piu selettiva e difende piu valore.')
+    }
+    if (site.slopeClass === 'steep') {
+      interventionCostMultiplier *= 1.03
+      protectedValueMultiplier *= 1.04
+    }
+    if (typeof dailySunHours === 'number' && dailySunHours <= 4) {
+      delayCostMultiplier *= 1.05
+    }
+    if (typeof soilPh === 'number' && (soilPh < 5.8 || soilPh > 7.8)) {
+      protectedValueMultiplier *= 1.03
+    }
+  }
+
+  return {
+    interventionCostMultiplier: roundMetric(interventionCostMultiplier, 3),
+    delayCostMultiplier: roundMetric(delayCostMultiplier, 3),
+    protectedValueMultiplier: roundMetric(protectedValueMultiplier, 3),
+    rationale,
+  }
+}
 
 const humanizeAgronomicActionAlternative = (action: AgronomicActionAlternative): string => {
   switch (action) {
@@ -420,7 +545,12 @@ const getNumericMetric = (record: AgronomicMeasuredFeedbackRecord, keys: string[
 const resolveAgronomicCropEconomicModel = (
   input: Pick<
     AgronomicEconomicPriorityInput,
-    'agronomicProfileId' | 'cropNameHint' | 'focus' | 'isCriticalStage' | 'operationalContextTags'
+    | 'agronomicProfileId'
+    | 'cropNameHint'
+    | 'focus'
+    | 'isCriticalStage'
+    | 'operationalContextTags'
+    | 'refinedContext'
   >
 ): AgronomicCropEconomicModel => {
   const profile =
@@ -448,9 +578,13 @@ const resolveAgronomicCropEconomicModel = (
   let protectedValueMultiplier = 1
   const rationale: string[] = []
   const tags = new Set(profile.tags)
-  const operationalContextTags = deriveOperationalContextTags(profile, input.operationalContextTags)
+  const operationalContextTags = deriveOperationalContextTags(profile, [
+    ...(input.operationalContextTags || []),
+    ...deriveOperationalContextTagsFromRefinedContext(input.refinedContext),
+  ])
   const operationalContextTagSet = new Set(operationalContextTags)
   const focusModifier = profile.economicModifiers?.[input.focus]
+  const refinedEconomicAdjustment = resolveRefinedEconomicAdjustment(input)
 
   if (profile.lifecycle === 'perennial') {
     interventionCostMultiplier *= 1.08
@@ -623,6 +757,11 @@ const resolveAgronomicCropEconomicModel = (
   if (focusModifier?.rationale?.length) {
     rationale.push(...focusModifier.rationale)
   }
+
+  interventionCostMultiplier *= refinedEconomicAdjustment.interventionCostMultiplier
+  delayCostMultiplier *= refinedEconomicAdjustment.delayCostMultiplier
+  protectedValueMultiplier *= refinedEconomicAdjustment.protectedValueMultiplier
+  rationale.push(...refinedEconomicAdjustment.rationale)
 
   const actionComparisonTuning = (profile.actionComparisonContextOverrides?.[input.focus] || []).reduce(
     (resolvedTuning, override) =>

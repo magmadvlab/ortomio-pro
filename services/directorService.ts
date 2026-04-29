@@ -644,6 +644,7 @@ class DirectorService {
       priorityConfidence: suggestion.confidence_score || suggestion.prediction_data?.confidence || 0.5,
       agronomicProfileId: resolvedAgronomicProfile?.profile.id,
       operationalContextTags,
+      refinedContext: refinedContextResult.refinedContext,
       cropNameHint:
         suggestion.metadata?.plantName ||
         suggestion.metadata?.cropName ||
@@ -657,6 +658,7 @@ class DirectorService {
       focus: agronomicFocus,
       availableSignals: this.getAvailableSignalsFromSuggestion(suggestion),
       economicSummary,
+      refinedContext: refinedContextResult.refinedContext,
     })
     const decisionExplanation = buildAgronomicDecisionExplanation({
       source: 'director',

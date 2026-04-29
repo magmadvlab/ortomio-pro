@@ -38,8 +38,10 @@ import {
   type GardenEnvironmentalHistorySummary,
 } from '@/services/environmentalMonitoringService'
 import { scoreAgronomicPriority } from '@/services/agronomicPriorityService'
+import { buildAgronomicRefinedContext } from '@/services/agronomicRefinedContextService'
 import type {
   AgronomicHealthPriority,
+  AgronomicRefinedContext,
   AgronomicSignalKey,
   ResolvedAgronomicCropProfile,
 } from '@/types/agronomicKernel'
@@ -413,6 +415,7 @@ type HealthEnvironmentalContext = {
   measuredFeedbackPressure: number
   measuredFeedbackNotes: string[]
   adaptiveLearning: AgronomicHealthLearningAdjustment
+  refinedContext?: AgronomicRefinedContext | null
 }
 
 export interface PlantHealthAnalysisOptions {
@@ -479,6 +482,20 @@ export class PlantHealthMonitoringService {
       measuredFeedbackPressure: measuredFeedbackContext.pressure,
       measuredFeedbackNotes: measuredFeedbackContext.notes,
       adaptiveLearning,
+      refinedContext: buildAgronomicRefinedContext({
+        cropProfile: agronomicProfile?.profile,
+        textValues: [garden.name, ...dominantPlantNames],
+        speciesLabel: dominantPlantNames[0],
+        gardenType: garden.gardenType,
+        altitudeMeters: garden.altitudeMeters,
+        dailySunHours: garden.dailySunHours,
+        sunExposure: garden.sunExposure,
+        aspectDirection: garden.aspectDirection,
+        windProtection: garden.windProtection,
+        soilType: garden.soilType,
+        soilPh: garden.soilPh,
+        shadowObstaclesCount: Array.isArray(garden.obstacles) ? garden.obstacles.length : undefined,
+      }).refinedContext,
     }
 
     for (const rule of this.rules.filter(
@@ -1051,20 +1068,38 @@ export class PlantHealthMonitoringService {
       adaptiveLearningNotes.length > 0
         ? ` Memoria sito-specifica: ${adaptiveLearningNotes.join(' ')}.`
         : ''
+    const siteContext = environmentalContext.refinedContext?.siteOperationalProfile
+    const siteContextClauses = [
+      typeof siteContext?.dailySunHours === 'number'
+        ? `${siteContext.dailySunHours} h sole`
+        : null,
+      siteContext?.exposureClass === 'sheltered'
+        ? 'sito riparato'
+        : siteContext?.exposureClass === 'exposed'
+          ? 'sito esposto'
+          : null,
+      typeof siteContext?.shadowObstaclesCount === 'number' && siteContext.shadowObstaclesCount > 0
+        ? `${siteContext.shadowObstaclesCount} ostacoli d ombra`
+        : null,
+    ].filter((value): value is string => Boolean(value))
+    const siteContextSuffix =
+      siteContextClauses.length > 0
+        ? ` Contesto sito: ${siteContextClauses.join(', ')}.`
+        : ''
 
     if (context.id === 'vineyard') {
-      return `${rule.description} rilevate su ${plantName}. Concentrati sui filari piu umidi o chiusi.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}`
+      return `${rule.description} rilevate su ${plantName}. Concentrati sui filari piu umidi o chiusi.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}${siteContextSuffix}`
     }
 
     if (context.id === 'olive') {
-      return `${rule.description} rilevato su ${plantName}. Verifica chioma, olive e uniformita dell impianto.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}`
+      return `${rule.description} rilevato su ${plantName}. Verifica chioma, olive e uniformita dell impianto.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}${siteContextSuffix}`
     }
 
     if (context.id === 'orchard') {
-      return `${rule.description} rilevata su ${plantName}. Controlla insieme foglie, chioma e frutti.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}`
+      return `${rule.description} rilevata su ${plantName}. Controlla insieme foglie, chioma e frutti.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}${siteContextSuffix}`
     }
 
-    return `${rule.description} rilevata per ${plantName}.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}`
+    return `${rule.description} rilevata per ${plantName}.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}${siteContextSuffix}`
   }
 
   private shouldConsultAgronomist(rule: MonitoringRule): boolean {
@@ -1605,6 +1640,7 @@ export class PlantHealthMonitoringService {
               environmentalContext.phenology.stageKey
             )
         ),
+      refinedContext: environmentalContext.refinedContext,
     })
     const phenologyScore =
       environmentalContext.phenology &&

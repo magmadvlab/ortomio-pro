@@ -46,7 +46,9 @@ Le decisioni possono dipendere da:
 
 Con gli ultimi riallineamenti P1, il contesto raffinato viene propagato in modo piu uniforme nel loop decisionale. Director, prescription, irrigation queue, phenology queue e health queue possono conservare nei metadata decisionali informazioni come cultivar/specie, intento produttivo, sottosistema colturale e profilo operativo del sito, senza forzare valori non espliciti.
 
-Il director usa anche il profilo garden-level raccolto dal wizard quando trasforma i suggerimenti in azioni prioritarie. Per i garden in campo aperto questo include, dove disponibili, tipo di terreno, pH, altitudine, esposizione solare, ore di sole stimate, orientamento, protezione dal vento e ostacoli che generano ombre. Questi dati entrano nel refined context e nelle spiegazioni decisionali, cosi un campo a livello del mare e uno a 1000 metri non vengono descritti come equivalenti.
+Il director usa anche il profilo garden-level raccolto dal wizard quando trasforma i suggerimenti in azioni prioritarie. Per i garden in campo aperto questo include, dove disponibili, tipo di terreno, pH, altitudine, esposizione solare, ore di sole stimate, orientamento, protezione dal vento e ostacoli che generano ombre. Questi dati entrano nel refined context, nelle spiegazioni decisionali e, in forma prudente, nel priority scoring: terreno sabbioso, sole pieno, esposizione e bassa protezione dal vento possono aumentare la pressione idrica; ombra e poche ore di sole possono aumentare la pressione sanitaria; pH acido o alcalino puo aumentare la priorita nutrizionale; quota elevata e pendenza possono aumentare la pressione di monitoraggio qualita. Le regole restano conservative e non forzano inferenze quando il dato non e disponibile.
+
+Lo stesso profilo sito viene ora riusato anche nei report di efficienza irrigua e negli alert di monitoraggio salute quando il dato e disponibile. Questo significa che due zone con efficienza simile non vengono trattate come equivalenti se una e molto esposta e sabbiosa, e che gli alert sanitari possono distinguere meglio un contesto ombreggiato e riparato da uno piu aperto e ventilato.
 
 La chat AI integrata resta assistiva: puo spiegare, suggerire priorita e indicare moduli da aprire, ma non registra task o operazioni al posto dell'utente.
 
@@ -92,6 +94,7 @@ Le aree oggi piu mature o piu credibili includono:
 - monitoraggio e task guidati dal contesto
 - memoria decisionale
 - contesto raffinato riusabile nella coda agronomica e negli snapshot dei task
+- report irrigui e alert salute che iniziano a riflettere anche il profilo sito del garden
 
 ### 3.7 Execution mobile e raccolta evidence
 
@@ -124,7 +127,7 @@ Gli utenti devono sapere che alcune aree sono ancora in maturazione:
 - scouting strutturato con esperienza rapida offline
 - integrazioni industriali con sensori e macchine
 - reporting avanzato per compliance e stakeholder esterni
-- uso ancora piu profondo del contesto raffinato dentro scoring e action comparison su tutti i domini
+- uso ancora piu profondo del contesto raffinato dentro scoring e action comparison su tutti i domini, oltre ai primi aggiustamenti gia attivi su acqua, nutrizione, salute e qualita
 - delayed sync o offline robusto nei percorsi critici di campo
 
 ## 5. Come usare OrtoMio correttamente oggi

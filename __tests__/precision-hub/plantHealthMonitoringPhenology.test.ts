@@ -151,3 +151,102 @@ test('analyzeWeatherConditions escalates risk when persisted environmental histo
   assert.match(fungalAlert?.description || '', /Storico ambientale/)
   assert.ok(fungalAlert?.triggers.includes('environmental_history'))
 })
+
+test('generateDescription includes site context when shaded conditions are available', () => {
+  const service = new PlantHealthMonitoringService()
+  const description = (service as any).generateDescription(weatherRule, 'Sangiovese', {
+    cropContext: vineyardContext,
+    weatherData: null,
+    microclimate: null,
+    phenology: null,
+    devices: [],
+    agronomicProfile: null,
+    measuredFeedbackNotes: [],
+    environmentalHistorySummary: null,
+    adaptiveLearning: {
+      pressureBoost: 0,
+      urgencyDaysOffset: 0,
+      confidenceBoost: 0,
+      fungalHumidityThreshold: 80,
+      fungalRainThreshold: 1,
+      leafWetnessThreshold: 50,
+      heatStressTemperatureThreshold: 32,
+      hotDaysTriggerCount: 2,
+      notes: [],
+    },
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 3.5,
+        exposureClass: 'sheltered',
+        shadowObstaclesCount: 2,
+      },
+    },
+  })
+
+  assert.match(description, /Contesto sito: 3.5 h sole, sito riparato, 2 ostacoli d ombra\./)
+})
+
+test('scoreHealthAlert increases priority on shaded sheltered sites', () => {
+  const service = new PlantHealthMonitoringService()
+  const alert = {
+    id: 'health-1',
+    type: 'disease_risk',
+    severity: 'medium',
+    plantName: 'Sangiovese',
+    description: 'Pressione fungina in aumento',
+    detectedAt: '2026-04-02T08:00:00.000Z',
+    suggestedActions: [],
+    photoRequired: true,
+    agronomistConsultation: false,
+    urgencyDays: 4,
+    confidence: 0.78,
+    triggers: ['humidity'],
+  } as const
+  const baseContext = {
+    cropContext: vineyardContext,
+    weatherData: null,
+    microclimate: null,
+    environmentalHistorySummary: null,
+    phenology: null,
+    devices: [],
+    agronomicProfile: null,
+    dominantPlantNames: ['Sangiovese'],
+    measuredFeedbackPressure: 0,
+    measuredFeedbackNotes: [],
+    adaptiveLearning: {
+      pressureBoost: 0,
+      urgencyDaysOffset: 0,
+      confidenceBoost: 0,
+      fungalHumidityThreshold: 80,
+      fungalRainThreshold: 1,
+      leafWetnessThreshold: 50,
+      heatStressTemperatureThreshold: 32,
+      hotDaysTriggerCount: 2,
+      notes: [],
+    },
+  }
+
+  const openScore = (service as any).scoreHealthAlert(alert, {
+    ...baseContext,
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 8,
+        exposureClass: 'exposed',
+        shadowObstaclesCount: 0,
+      },
+    },
+  })
+
+  const shelteredScore = (service as any).scoreHealthAlert(alert, {
+    ...baseContext,
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 3.5,
+        exposureClass: 'sheltered',
+        shadowObstaclesCount: 2,
+      },
+    },
+  })
+
+  assert.ok(shelteredScore > openScore)
+})

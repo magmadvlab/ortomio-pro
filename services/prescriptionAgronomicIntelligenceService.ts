@@ -376,6 +376,7 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       agronomicProfileId: resolvedAgronomicProfile?.profile.id,
       cropNameHint: efficacySummary.cropContextScores[0]?.label || prescriptionMap.gardenName,
       operationalContextTags,
+      refinedContext: refinedContextResult.refinedContext,
       efficacyScore: zone.efficacyScore,
       qualityScoreGap,
       benchmarkGap: brixGap > 0 ? brixGap * 3 : qualityScoreGap,
@@ -390,6 +391,7 @@ export function buildPrescriptionAgronomicIntelligenceSummary(
       measuredFeedbackSummary,
       environmentalSummary,
       economicSummary,
+      refinedContext: refinedContextResult.refinedContext,
     })
     const priorityScore = priorityResult.score
 

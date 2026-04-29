@@ -134,3 +134,51 @@ test('director suggestionToAction enriches actions with garden wizard site conte
     )
   )
 })
+
+test('director suggestionToAction lets wizard site context influence irrigation priority', () => {
+  const irrigationSuggestion: AISuggestion = {
+    ...baseSuggestion,
+    id: 'suggestion-irrigation',
+    suggestion_type: 'IRRIGATION',
+    title: 'Verificare turni irrigui',
+    description: 'La zona richiede una verifica dei turni irrigui.',
+    suggested_action: 'Controllare umidita e uniformita prima del prossimo turno.',
+    action_priority: 'HIGH',
+  }
+  const shadedGarden: Garden = {
+    id: 'garden-shaded',
+    name: 'Orto ombreggiato',
+    sizeSqMeters: 900,
+    createdAt: '2026-04-01T08:00:00.000Z',
+    gardenType: 'OpenField',
+    soilType: 'Clay',
+    soilPh: 6.8,
+    altitudeMeters: 60,
+    sunExposure: 'Shade',
+    dailySunHours: 3,
+    aspectDirection: 'North',
+    windProtection: 'High',
+    obstacles: [
+      { azimuth: 90, height: 6, distance: 8, widthDegrees: 25, type: 'Wall' },
+      { azimuth: 180, height: 7, distance: 10, widthDegrees: 30, type: 'Tree' },
+    ],
+  }
+  const exposedGarden: Garden = {
+    ...shadedGarden,
+    id: 'garden-exposed',
+    name: 'Campo sabbioso esposto',
+    soilType: 'Sandy',
+    sunExposure: 'Full',
+    dailySunHours: 8.5,
+    aspectDirection: 'South',
+    windProtection: 'Low',
+    obstacles: [],
+  }
+
+  const shadedAction = (directorService as any).suggestionToAction(irrigationSuggestion, shadedGarden)
+  const exposedAction = (directorService as any).suggestionToAction(irrigationSuggestion, exposedGarden)
+
+  assert.ok(exposedAction.priorityScore > shadedAction.priorityScore)
+  assert.equal(exposedAction.refinedContext?.siteOperationalProfile?.soilType, 'Sandy')
+  assert.equal(shadedAction.refinedContext?.siteOperationalProfile?.shadowObstaclesCount, 2)
+})
