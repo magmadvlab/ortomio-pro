@@ -22,6 +22,34 @@ test('normalizeCultivarContext unifies varietal fields and infers production int
   })
 })
 
+test('normalizeCultivarContext resolves legacy variety types against species context', () => {
+  assert.equal(
+    normalizeCultivarContext({
+      speciesLabel: 'Vite',
+      productionIntent: 'Table',
+      textValues: ['vigneto da tavola'],
+    })?.productionIntent,
+    'table_grape'
+  )
+
+  assert.equal(
+    normalizeCultivarContext({
+      speciesLabel: 'Olive',
+      productionIntent: 'Table',
+      textValues: ['oliveto da mensa'],
+    })?.productionIntent,
+    'table_olive'
+  )
+
+  assert.equal(
+    normalizeCultivarContext({
+      speciesLabel: 'Vite',
+      productionIntent: 'Raisin',
+    })?.productionIntent,
+    'table_grape'
+  )
+})
+
 test('buildAgronomicRefinedContext derives subsystem and site profile from metadata', () => {
   const result = buildAgronomicRefinedContext({
     cultivarLabel: 'Sangiovese',
@@ -48,6 +76,7 @@ test('buildAgronomicRefinedContext derives subsystem and site profile from metad
   assert.equal(result.refinedContext.siteOperationalProfile?.exposureClass, 'exposed')
   assert.equal(result.refinedContext.siteOperationalProfile?.slopeClass, 'steep')
   assert.equal(result.refinedContext.siteOperationalProfile?.soilType, 'Loamy')
+  assert.equal(result.refinedContext.siteOperationalProfile?.terroir, 'coastal hillside')
   assert.equal(result.operationalContextTags.includes('protected_culture'), true)
   assert.equal(result.operationalContextTags.includes('pressurized_irrigation'), true)
   assert.equal(result.operationalContextTags.includes('wine_grape'), true)

@@ -85,18 +85,43 @@ const normalizeProductionIntent = (
   textValues: Array<string | null | undefined> = []
 ): AgronomicProductionIntent | undefined => {
   const normalizedValue = normalizeKey(value)
+  const haystack = textValues
+    .map((entry) => normalizeKey(entry))
+    .filter((entry): entry is string => Boolean(entry))
+    .join(' ')
+  const referencesVine =
+    haystack.includes('vite') ||
+    haystack.includes('uva') ||
+    haystack.includes('grape') ||
+    haystack.includes('vineyard') ||
+    haystack.includes('vigneto')
+  const referencesOlive =
+    haystack.includes('olivo') ||
+    haystack.includes('oliva') ||
+    haystack.includes('olive') ||
+    haystack.includes('oliveto')
 
   switch (normalizedValue) {
     case 'wine':
+    case 'wine type':
     case 'wine_grape':
+    case 'wine grape':
+    case 'vino':
       return 'wine'
+    case 'table':
     case 'table_grape':
     case 'table grape':
+      return referencesOlive ? 'table_olive' : 'table_grape'
+    case 'raisin':
       return 'table_grape'
     case 'oil':
+    case 'oil type':
     case 'oil_cultivar':
     case 'olive oil':
       return 'oil'
+    case 'dual-purpose':
+    case 'dual purpose':
+      return referencesOlive ? 'oil' : undefined
     case 'table_olive':
     case 'table olive':
       return 'table_olive'
@@ -121,11 +146,6 @@ const normalizeProductionIntent = (
   if (operationalContextTags.includes('table_olive')) {
     return 'table_olive'
   }
-
-  const haystack = textValues
-    .map((value) => normalizeKey(value))
-    .filter((value): value is string => Boolean(value))
-    .join(' ')
 
   if (haystack.includes('vinificazione') || haystack.includes('uva da vino')) {
     return 'wine'
@@ -414,6 +434,7 @@ export const resolveSiteOperationalProfile = (
     slopePercentage: toFiniteNumber(input.slopePercentage),
     sunExposure: normalizeToken(input.sunExposure),
     soilType: normalizeToken(input.soilType),
+    terroir: normalizeToken(input.terroir),
     exposureClass: resolveSiteExposureClass({
       sunExposure: input.sunExposure,
       operationalContextTags,
