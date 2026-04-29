@@ -38,6 +38,7 @@ export interface AgronomicPhenologyQueueCandidate {
   cropNameHint?: string
   availableSignals?: AgronomicSignalKey[]
   isDecisionCriticalStage?: boolean
+  refinedContext?: AgronomicRefinedContext | null
 }
 
 export interface AgronomicActionQueueItem {
@@ -475,7 +476,12 @@ const toPhenologyQueueItems = (
       resolvedProfile: resolvedAgronomicProfile,
       availableSignals: candidate.availableSignals || [],
       isCriticalStage: candidate.isDecisionCriticalStage,
+      refinedContext: candidate.refinedContext,
     })
+    const refinedContext = resolveQueueRefinedContext(
+      candidate.refinedContext,
+      decisionExplanation
+    )
 
     return {
       id: `phenology:${candidate.id}`,
@@ -498,6 +504,7 @@ const toPhenologyQueueItems = (
         stageKey: candidate.stageKey,
         stageLabel: candidate.stageLabel,
         source: candidate.source,
+        refinedContext,
         decisionExplanation,
         measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
         economicSummary: priorityResult.economicSummary,

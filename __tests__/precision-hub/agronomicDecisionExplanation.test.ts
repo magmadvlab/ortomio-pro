@@ -191,6 +191,15 @@ test('buildAgronomicActionQueue builds decision explanation for phenology candid
         cropNameHint: 'wine grape',
         availableSignals: ['phenology_observation', 'quality_result'],
         isDecisionCriticalStage: true,
+        refinedContext: {
+          cultivarContext: {
+            cultivarLabel: 'Sangiovese',
+            productionIntent: 'wine',
+          },
+          subSystemContext: {
+            systemType: 'vineyard',
+          },
+        },
       },
     ],
   })
@@ -201,4 +210,10 @@ test('buildAgronomicActionQueue builds decision explanation for phenology candid
   assert.equal(explanation?.profileResolution?.profileId, 'vineyard_quality')
   assert.equal(explanation?.source, 'phenology')
   assert.equal(explanation?.isCriticalStage, true)
+  assert.equal(explanation?.refinedContext?.cultivarContext?.productionIntent, 'wine')
+  assert.equal(
+    (queue[0]?.metadata?.refinedContext as AgronomicDecisionExplanation['refinedContext'])
+      ?.subSystemContext?.systemType,
+    'vineyard'
+  )
 })

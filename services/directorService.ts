@@ -926,6 +926,36 @@ class DirectorService {
       normalizedStageKey.includes('fruit') ||
       normalizedStageKey.includes('harvest') ||
       normalizedStageKey.includes('grain')
+    const resolvedAgronomicProfile = resolveAgronomicPriorityProfileSync({
+      hints: [
+        dominantCropName,
+        phenology.scopeLabel,
+        garden.primaryCrop?.canonicalPlantName,
+        garden.primaryCrop?.label,
+        garden.primaryCrop?.cropType,
+        garden.gardenType,
+      ],
+      fallbackProfileId: phenology.profileId,
+    })
+    const refinedContextResult = buildAgronomicRefinedContext({
+      cropProfile: resolvedAgronomicProfile?.profile,
+      textValues: [
+        dominantCropName,
+        phenology.scopeLabel,
+        garden.primaryCrop?.canonicalPlantName,
+        garden.primaryCrop?.label,
+        garden.primaryCrop?.cropType,
+        garden.gardenType,
+      ],
+      speciesLabel:
+        dominantCropName ||
+        garden.primaryCrop?.canonicalPlantName ||
+        garden.primaryCrop?.label,
+      gardenType: garden.gardenType,
+      altitudeMeters: garden.altitudeMeters,
+      sunExposure: garden.sunExposure,
+      soilType: garden.soilType,
+    })
 
     return {
       id: `${garden.id}:${phenology.stageKey}`,
@@ -944,6 +974,7 @@ class DirectorService {
           ? (['phenology_observation'] satisfies AgronomicSignalKey[])
           : [],
       isDecisionCriticalStage,
+      refinedContext: refinedContextResult.refinedContext,
     }
   }
 
