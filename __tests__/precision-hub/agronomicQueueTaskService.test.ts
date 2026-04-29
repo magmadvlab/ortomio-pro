@@ -132,6 +132,8 @@ test('buildAgronomicQueueTaskOperationalSummary classifies readiness and context
       siteOperationalProfile: {
         terroir: 'collina_calcarea',
         soilType: 'franco_argilloso',
+        exposureClass: 'exposed',
+        slopeClass: 'steep',
       },
     },
     contextRationale: ['Terroir collinare con disponibilita idrica limitata.'],
@@ -166,6 +168,8 @@ test('buildAgronomicQueueTaskOperationalSummary classifies readiness and context
   assert.match(summary?.confidenceLabel || '', /58%/)
   assert.equal(summary?.contextLabels.includes('Cultivar Coratina'), true)
   assert.equal(summary?.contextLabels.includes('Target Olio'), true)
+  assert.equal(summary?.contextLabels.includes('Sito esposto'), true)
+  assert.equal(summary?.contextLabels.includes('Pendenza forte'), true)
   assert.equal(summary?.mobileActionLabel, 'Esegui guidato')
   assert.equal(summary?.mobileEvidencePrompt, 'Registra prodotto e dose + area trattata')
   assert.deepEqual(summary?.evidenceLabels, ['prodotto e dose', 'area trattata', 'note risposta coltura'])

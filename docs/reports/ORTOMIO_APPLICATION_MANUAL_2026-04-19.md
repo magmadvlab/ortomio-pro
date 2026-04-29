@@ -110,6 +110,7 @@ Con gli ultimi riallineamenti del loop esecutivo:
 - quick feedback e follow-up vengono riportati in modo coerente nel payload operativo, nelle evidence e nei feedback misurati
 - il contesto di lancio del task viene sfruttato meglio nei flussi harvest e mechanical
 - lo scope operativo salvato e piu leggibile nei riepiloghi di nutrition e harvest
+- i riepiloghi operativi possono mostrare anche elementi del profilo sito, come esposizione e pendenza, quando presenti nel refined context
 
 La tranche corrente di P2 e quindi vicina alla chiusura sul fast path. Il lavoro residuo utile non e piu l'aggiunta di nuova UI esecutiva, ma la misurazione degli attriti residui e l'eventuale introduzione di scouting breve o offline solo dove i percorsi critici lo giustificano davvero.
 

@@ -280,6 +280,32 @@ const humanizeIrrigationMode = (value?: string | null): string | null => {
   }
 }
 
+const humanizeSiteExposureClass = (value?: string | null): string | null => {
+  switch (value) {
+    case 'exposed':
+      return 'Sito esposto'
+    case 'sheltered':
+      return 'Sito riparato'
+    case 'balanced':
+      return 'Esposizione bilanciata'
+    default:
+      return null
+  }
+}
+
+const humanizeSiteSlopeClass = (value?: string | null): string | null => {
+  switch (value) {
+    case 'steep':
+      return 'Pendenza forte'
+    case 'rolling':
+      return 'Pendenza moderata'
+    case 'flat':
+      return 'Pianeggiante'
+    default:
+      return null
+  }
+}
+
 const buildOperationalContextLabels = (
   refinedContext?: AgronomicRefinedContext | null
 ): string[] => {
@@ -302,9 +328,11 @@ const buildOperationalContextLabels = (
     refinedContext.siteOperationalProfile?.soilType
       ? `Suolo ${refinedContext.siteOperationalProfile.soilType}`
       : null,
+    humanizeSiteExposureClass(refinedContext.siteOperationalProfile?.exposureClass),
+    humanizeSiteSlopeClass(refinedContext.siteOperationalProfile?.slopeClass),
   ].filter((value): value is string => Boolean(value))
 
-  return Array.from(new Set(rawLabels)).slice(0, 3)
+  return Array.from(new Set(rawLabels)).slice(0, 8)
 }
 
 const formatConfidenceLabel = (confidence: number): string =>
