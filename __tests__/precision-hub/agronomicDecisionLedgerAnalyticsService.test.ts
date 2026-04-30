@@ -48,6 +48,7 @@ const decisionExplanation: AgronomicDecisionExplanation = {
   environmentalSummary: null,
   agronomicRationale: ['Test rationale'],
   economicRationale: [],
+  contextRationale: ['Orientamento sito: South.', 'Protezione vento: Low.'],
   warnings: [],
 }
 
@@ -189,6 +190,7 @@ test('decision ledger analytics summarize completion and evidence rates', async 
   assert.equal(summary.urgentAgronomicPositiveOutcomes, 1)
   assert.equal(summary.urgentAgronomicNegativeOutcomes, 0)
   assert.equal(summary.completionRate, 1)
+  assert.equal(summary.contextExplainedRate, 1)
   assert.equal(summary.verifiedExecutionRate, 1)
   assert.equal(summary.highConfidenceExecutionRate, 1)
   assert.equal(summary.measuredOutcomeRate, 1)

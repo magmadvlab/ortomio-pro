@@ -129,6 +129,7 @@ Con gli ultimi riallineamenti del loop esecutivo:
 - i riepiloghi dei task da coda agronomica possono mostrare anche quota, pH, ore di sole, orientamento, protezione vento e presenza di ombre quando questi dati arrivano dal wizard del garden
 - le spiegazioni decisionali possono riportare anche orientamento del sito e protezione dal vento, cosi il peso del profilo sito resta auditabile quando influenza priorita o confronto economico
 - lo storico decisionale e i ledger analytics possono ora mantenere anche il context rationale, cosi orientamento e protezione vento restano leggibili anche a posteriori nel flusso di audit
+- i ledger analytics possono anche misurare quanta parte delle decisioni ha una spiegazione di contesto esplicita, utile per verificare la qualita auditabile del refined context nel tempo
 - il fast path rimane deliberatamente leggero: non sostituisce i dettagli avanzati quando servono, ma riduce attrito e duplicazione nei campi essenziali
 
 La tranche corrente di P2 e quindi vicina alla chiusura sul fast path. Il lavoro residuo utile non e piu l'aggiunta di nuova UI esecutiva, ma la misurazione degli attriti residui e l'eventuale introduzione di scouting breve o offline solo dove i percorsi critici lo giustificano davvero.

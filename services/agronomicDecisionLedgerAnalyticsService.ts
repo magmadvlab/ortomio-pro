@@ -43,6 +43,7 @@ export interface AgronomicDecisionLedgerAnalyticsSummary {
   urgentAgronomicNegativeOutcomes: number
   completionRate: number
   explainedRate: number
+  contextExplainedRate: number
   verifiedExecutionRate: number
   highConfidenceExecutionRate: number
   measuredOutcomeRate: number
@@ -328,6 +329,9 @@ export async function getAgronomicDecisionLedgerAnalyticsSummary(
   const entriesWithExplanation = entries.filter((entry) =>
     Boolean(entry.decisionSnapshot.decisionExplanation)
   )
+  const entriesWithContextExplanation = entries.filter((entry) =>
+    (entry.decisionSnapshot.decisionExplanation?.contextRationale?.length || 0) > 0
+  )
   const verifiedEntries = completedEntries.filter((entry) =>
     Boolean(resolveMatchingOutcome(entry, outcomeMaps)?.executionEvidence)
   )
@@ -414,6 +418,8 @@ export async function getAgronomicDecisionLedgerAnalyticsSummary(
     urgentAgronomicNegativeOutcomes: urgentNegativeAgronomicOutcomes.length,
     completionRate: entries.length > 0 ? roundMetric(completedEntries.length / entries.length, 2) : 0,
     explainedRate: entries.length > 0 ? roundMetric(entriesWithExplanation.length / entries.length, 2) : 0,
+    contextExplainedRate:
+      entries.length > 0 ? roundMetric(entriesWithContextExplanation.length / entries.length, 2) : 0,
     verifiedExecutionRate:
       completedEntries.length > 0
         ? roundMetric(verifiedEntries.length / completedEntries.length, 2)
