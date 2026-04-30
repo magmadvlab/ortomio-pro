@@ -889,8 +889,7 @@ export default function PlantHealthPage() {
       }
 
       const mockDiagnoses = getDiagnosisTemplates(healthContext, weather || undefined, microclimate)
-
-      const selectedDiagnosis = mockDiagnoses[Math.floor(Math.random() * mockDiagnoses.length)]
+      const selectedDiagnosis = mockDiagnoses[0]
       
       const result: DiagnosisResult = {
         confidence: selectedDiagnosis.confidence,

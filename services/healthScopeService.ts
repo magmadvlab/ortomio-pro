@@ -76,10 +76,11 @@ export async function getHealthScopeInsights(
       zoneTaskMap.set(task.zoneId, zoneTasks)
     }
 
-    if (task.rowId) {
-      const rowTasks = rowTaskMap.get(task.rowId) || []
+    const fieldRowId = (task as GardenTask & { fieldRowId?: string }).fieldRowId || (task as GardenTask & { rowId?: string }).rowId
+    if (fieldRowId) {
+      const rowTasks = rowTaskMap.get(fieldRowId) || []
       rowTasks.push(task)
-      rowTaskMap.set(task.rowId, rowTasks)
+      rowTaskMap.set(fieldRowId, rowTasks)
     }
   })
 
