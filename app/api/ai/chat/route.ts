@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyTier, getSupabaseClient } from '@/lib/auth.server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getCreditCost } from '@/lib/credits'
+import { buildAIAssistantGroundingContext } from '@/services/aiGroundingService'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
@@ -146,6 +147,11 @@ export async function POST(request: NextRequest) {
       )
     }
     const boundedContext = parseChatContext(context)
+    const grounding = buildAIAssistantGroundingContext({
+      scope: 'global-chat',
+      summary: boundedContext?.summary,
+      extraSignals: boundedContext?.missingSignals,
+    })
     
     // Check credits (cost: 1 credit)
     const cost = getCreditCost('chat')
@@ -196,6 +202,7 @@ export async function POST(request: NextRequest) {
       creditsUsed: cost,
       creditsRemaining: remaining,
       contextAccepted: Boolean(boundedContext),
+      grounding,
     })
   } catch (error: any) {
     console.error('Chat error:', error)
@@ -205,6 +212,5 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
 
 

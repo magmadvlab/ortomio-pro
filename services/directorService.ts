@@ -37,6 +37,7 @@ import {
 import {
   buildAgronomicRefinedContext,
 } from '@/services/agronomicRefinedContextService'
+import { resolveGardenContext } from '@/services/gardenContextResolverService'
 import type { EfficiencyReport } from '@/types/irrigation'
 import type {
   AgronomicRefinedContext,
@@ -264,7 +265,7 @@ class DirectorService {
       // 2. Ottieni suggerimenti AI attivi
       const [suggestions, gardenForContext] = await Promise.all([
         collaborativeAIService.getActiveSuggestions(userId, gardenId),
-        this.getStorageProvider().getGarden(gardenId).catch(() => null),
+        resolveGardenContext(this.getStorageProvider(), gardenId).then((resolved) => resolved?.garden || null),
       ])
       
       // 3. Converti in azioni e prioritizza con contratto agronomico condiviso
@@ -415,13 +416,13 @@ class DirectorService {
     gardenId: string
   ): Promise<DirectorHealthSupportContext> {
     const storageProvider = this.getStorageProvider()
-    const [garden, tasks, briefing] = await Promise.all([
-      storageProvider.getGarden(gardenId),
+    const [resolvedGardenContext, tasks, briefing] = await Promise.all([
+      resolveGardenContext(storageProvider, gardenId),
       storageProvider.getTasks(gardenId).catch(() => []),
       this.getDailyBriefing(userId, gardenId),
     ])
-    const insights = garden
-      ? await getHealthScopeInsights(garden, tasks, storageProvider).catch(() => [])
+    const insights = resolvedGardenContext?.garden
+      ? await getHealthScopeInsights(resolvedGardenContext.garden, tasks, storageProvider).catch(() => [])
       : []
 
     return {

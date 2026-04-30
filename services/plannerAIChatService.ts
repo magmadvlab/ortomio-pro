@@ -1,3 +1,5 @@
+import { buildAIAssistantGroundingContext } from '@/services/aiGroundingService'
+
 type PlannerChatErrorPayload = {
   error?: string
   message?: string
@@ -11,6 +13,13 @@ interface PlannerAIContextInput {
 interface PlannerAIResponse {
   content: string
   suggestions: string[]
+  grounding?: {
+    scope: string
+    source: string
+    confidence: number
+    contextSummary: string
+    missingSignals: string[]
+  }
 }
 
 const plannerRecoverySuggestions = [
@@ -29,6 +38,15 @@ const creditRecoverySuggestions = [
 
 const buildPlannerChatContext = ({ garden, tasks }: PlannerAIContextInput) => {
   const openTasks = (tasks || []).filter((task) => !task?.completed)
+  const grounding = buildAIAssistantGroundingContext({
+    scope: 'planner-chat',
+    garden,
+    extraSignals: [
+      'eventuali vincoli meteo e sensori real-time',
+      'conferma utente per scritture operative',
+    ],
+    summary: `Planner assistivo con ${openTasks.length} task aperti su ${(tasks || []).length} totali.`,
+  })
   return {
     type: 'task-context' as const,
     scope: {
@@ -38,6 +56,7 @@ const buildPlannerChatContext = ({ garden, tasks }: PlannerAIContextInput) => {
       totalTasks: (tasks || []).length,
       openTasks: openTasks.length,
     },
+    gardenContext: garden || null,
     summary: `Planner assistivo con ${openTasks.length} task aperti su ${(tasks || []).length} totali.`,
     signals: {
       taskTitles: openTasks
@@ -45,14 +64,12 @@ const buildPlannerChatContext = ({ garden, tasks }: PlannerAIContextInput) => {
         .map((task) => task?.title)
         .filter(Boolean),
     },
-    missingSignals: [
-      'eventuali vincoli meteo e sensori real-time',
-      'conferma utente per scritture operative',
-    ],
+    missingSignals: grounding.missingSignals,
     routingHints: [
       { label: 'Apri Planner', route: '/planner' },
       { label: 'Apri Task', route: '/tasks' },
     ],
+    grounding,
   }
 }
 
@@ -115,5 +132,6 @@ export async function requestPlannerAIResponse(
   return {
     content: appendCreditsHint(payload?.reply, payload?.creditsRemaining),
     suggestions: plannerRecoverySuggestions,
+    grounding: payload?.grounding,
   }
 }

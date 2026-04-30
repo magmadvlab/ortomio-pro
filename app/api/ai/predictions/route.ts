@@ -4,11 +4,14 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { aiPredictiveEngine } from '@/services/aiPredictiveEngine'
+import { buildAIGroundingContext } from '@/services/aiGroundingService'
+import { resolveGardenContext } from '@/services/gardenContextResolverService'
+import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { gardenId, weatherData, soilData, plantHealthData, tasks } = body
+    const { gardenId, garden, weatherData, soilData, plantHealthData, tasks } = body
 
     if (!gardenId) {
       return NextResponse.json(
@@ -16,6 +19,40 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    const storageProvider = getDefaultStorageProvider()
+    const resolvedContext = await resolveGardenContext(storageProvider, gardenId).catch(() => null)
+    const groundingGarden = resolvedContext?.garden || garden || null
+
+    const grounding = groundingGarden
+      ? buildAIGroundingContext({
+          id: groundingGarden.id || gardenId,
+          name: groundingGarden.name,
+          gardenType: groundingGarden.gardenType,
+          primaryCrop: groundingGarden.primaryCrop,
+          indoorConfig: groundingGarden.indoorConfig,
+          hydroponicConfig: groundingGarden.hydroponicConfig,
+          aquaponicConfig: groundingGarden.aquaponicConfig,
+          aeroponicConfig: groundingGarden.aeroponicConfig,
+          greenhouseConfig: groundingGarden.greenhouseConfig,
+          hasIndoor: groundingGarden.hasIndoor,
+          hasGreenhouse: groundingGarden.hasGreenhouse,
+        })
+      : resolvedContext
+        ? buildAIGroundingContext({
+            id: resolvedContext.garden.id || gardenId,
+            name: resolvedContext.garden.name,
+            gardenType: resolvedContext.garden.gardenType,
+            primaryCrop: resolvedContext.garden.primaryCrop,
+            indoorConfig: resolvedContext.garden.indoorConfig,
+            hydroponicConfig: resolvedContext.garden.hydroponicConfig,
+            aquaponicConfig: resolvedContext.garden.aquaponicConfig,
+            aeroponicConfig: resolvedContext.garden.aeroponicConfig,
+            greenhouseConfig: resolvedContext.garden.greenhouseConfig,
+            hasIndoor: resolvedContext.garden.hasIndoor,
+            hasGreenhouse: resolvedContext.garden.hasGreenhouse,
+          })
+        : null
 
     // Generate AI predictions
     const [
@@ -34,7 +71,8 @@ export async function POST(request: NextRequest) {
         diseasePredicitions,
         yieldPredictions,
         resourceOptimizations,
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toISOString(),
+        grounding,
       }
     })
 
@@ -110,7 +148,8 @@ export async function GET(request: NextRequest) {
         diseasePredicitions,
         yieldPredictions,
         resourceOptimizations,
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toISOString(),
+        grounding: null,
       }
     })
 
