@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import { directorService } from '@/services/directorService'
 import type { AISuggestion } from '@/types/aiFeedback'
+import type { Garden } from '@/types'
 
 const baseSuggestion: AISuggestion = {
   id: 'suggestion-1',
@@ -35,6 +36,8 @@ test('director suggestionToAction carries operational context into economic comp
     ...baseSuggestion,
     metadata: {
       ...baseSuggestion.metadata,
+      cultivarId: 'broccoli_calabrese',
+      cropVariety: 'Broccolo Calabrese',
       gardenType: 'Greenhouse',
     },
   })
@@ -51,6 +54,8 @@ test('director suggestionToAction carries operational context into economic comp
   assert.equal(openFieldAction.operationalContextTags?.includes('open_field'), true)
   assert.equal(protectedAction.refinedContext?.subSystemContext?.systemType, 'protected_culture')
   assert.equal(openFieldAction.refinedContext?.subSystemContext?.systemType, 'open_field')
+  assert.equal(protectedAction.refinedContext?.cultivarContext?.cultivarId, 'broccoli_calabrese')
+  assert.equal(protectedAction.refinedContext?.cultivarContext?.cultivarLabel, 'Broccolo Calabrese')
   assert.ok(
     (protectedAction.economicSummary?.actionComparison?.dominanceMargin || 0) >
       (openFieldAction.economicSummary?.actionComparison?.dominanceMargin || 0)
@@ -70,5 +75,130 @@ test('director suggestionToAction carries operational context into economic comp
   assert.ok(
     (protectedAction.decisionExplanation?.signals.requiredP0Signals.length || 0) >=
       (openFieldAction.decisionExplanation?.signals.coveredP0Signals.length || 0)
+  )
+})
+
+test('director suggestionToAction enriches actions with garden wizard site context', () => {
+  const mountainOpenFieldGarden: Garden = {
+    id: 'garden-1',
+    name: 'Campo montano',
+    sizeSqMeters: 1200,
+    createdAt: '2026-04-01T08:00:00.000Z',
+    gardenType: 'OpenField',
+    soilType: 'Clay',
+    soilPh: 6.2,
+    altitudeMeters: 980,
+    sunExposure: 'PartSun',
+    dailySunHours: 5.5,
+    aspectDirection: 'East',
+    windProtection: 'Low',
+    obstacles: [
+      {
+        azimuth: 135,
+        height: 8,
+        distance: 14,
+        widthDegrees: 28,
+        type: 'Tree',
+      },
+    ],
+  }
+
+  const action = (directorService as any).suggestionToAction(
+    {
+      ...baseSuggestion,
+      id: 'suggestion-mountain-field',
+      metadata: {
+        ...baseSuggestion.metadata,
+        gardenType: undefined,
+      },
+    },
+    mountainOpenFieldGarden
+  )
+
+  assert.equal(action.operationalContextTags?.includes('open_field'), true)
+  assert.equal(action.operationalContextTags?.includes('high_altitude_site'), true)
+  assert.equal(action.refinedContext?.subSystemContext?.systemType, 'open_field')
+  assert.equal(action.refinedContext?.siteOperationalProfile?.altitudeMeters, 980)
+  assert.equal(action.refinedContext?.siteOperationalProfile?.soilType, 'Clay')
+  assert.equal(action.refinedContext?.siteOperationalProfile?.soilPh, 6.2)
+  assert.equal(action.refinedContext?.siteOperationalProfile?.dailySunHours, 5.5)
+  assert.equal(action.refinedContext?.siteOperationalProfile?.shadowObstaclesCount, 1)
+  assert.ok(
+    action.decisionExplanation?.contextRationale?.some((entry: string) =>
+      entry.includes('Altitudine sito: 980 m.')
+    )
+  )
+  assert.ok(
+    action.decisionExplanation?.contextRationale?.some((entry: string) =>
+      entry.includes('Ombre considerate: 1 ostacoli.')
+    )
+  )
+})
+
+test('director suggestionToAction lets wizard site context influence irrigation priority', () => {
+  const irrigationSuggestion: AISuggestion = {
+    ...baseSuggestion,
+    id: 'suggestion-irrigation',
+    suggestion_type: 'IRRIGATION',
+    title: 'Verificare turni irrigui',
+    description: 'La zona richiede una verifica dei turni irrigui.',
+    suggested_action: 'Controllare umidita e uniformita prima del prossimo turno.',
+    action_priority: 'HIGH',
+  }
+  const shadedGarden: Garden = {
+    id: 'garden-shaded',
+    name: 'Orto ombreggiato',
+    sizeSqMeters: 900,
+    createdAt: '2026-04-01T08:00:00.000Z',
+    gardenType: 'OpenField',
+    soilType: 'Clay',
+    soilPh: 6.8,
+    altitudeMeters: 60,
+    sunExposure: 'Shade',
+    dailySunHours: 3,
+    aspectDirection: 'North',
+    windProtection: 'High',
+    obstacles: [
+      { azimuth: 90, height: 6, distance: 8, widthDegrees: 25, type: 'Wall' },
+      { azimuth: 180, height: 7, distance: 10, widthDegrees: 30, type: 'Tree' },
+    ],
+  }
+  const exposedGarden: Garden = {
+    ...shadedGarden,
+    id: 'garden-exposed',
+    name: 'Campo sabbioso esposto',
+    soilType: 'Sandy',
+    sunExposure: 'Full',
+    dailySunHours: 8.5,
+    aspectDirection: 'South',
+    windProtection: 'Low',
+    obstacles: [],
+  }
+
+  const shadedAction = (directorService as any).suggestionToAction(irrigationSuggestion, shadedGarden)
+  const exposedAction = (directorService as any).suggestionToAction(irrigationSuggestion, exposedGarden)
+
+  assert.ok(exposedAction.priorityScore > shadedAction.priorityScore)
+  assert.equal(exposedAction.refinedContext?.siteOperationalProfile?.soilType, 'Sandy')
+  assert.equal(shadedAction.refinedContext?.siteOperationalProfile?.shadowObstaclesCount, 2)
+  assert.ok(
+    exposedAction.decisionExplanation?.contextRationale?.some((entry: string) =>
+      entry.includes('Orientamento sito: South.')
+    )
+  )
+  assert.ok(
+    exposedAction.decisionExplanation?.contextRationale?.some((entry: string) =>
+      entry.includes('Protezione vento: Low.')
+    )
+  )
+  assert.ok(
+    shadedAction.decisionExplanation?.contextRationale?.some((entry: string) =>
+      entry.includes('Orientamento sito: North.')
+    )
+  )
+  assert.ok(
+    shadedAction.decisionExplanation?.contextRationale?.some((entry: string) =>
+      entry.includes('Protezione vento: High.')
+    )
   )
 })

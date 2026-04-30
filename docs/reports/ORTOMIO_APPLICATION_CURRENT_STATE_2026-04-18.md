@@ -1,4 +1,4 @@
-# ORTOMIO: STATO REALE DELL'APPLICAZIONE, SCOPO E CAPACITA VERIFICATE DAL CODICE (2026-04-18)
+# ORTOMIO: STATO REALE DELL'APPLICAZIONE, SCOPO E CAPACITA VERIFICATE DAL CODICE (2026-04-23)
 
 ## Scopo del documento
 Questo documento serve come riferimento operativo aggiornato su cosa OrtoMio sia oggi, a cosa serva e cosa sia realmente in grado di fare.
@@ -99,6 +99,7 @@ Capacita verificate:
 - task-aware launch verso moduli di esecuzione
 - task agronomici con snapshot decisionale e metadati contestuali persistiti nelle note tecniche
 - summary operativo nel planner per task agronomici: prontezza esecuzione, urgenza, confidence e segnali mancanti
+- per i task agronomici lanciati verso irrigazione, nutrizione, raccolta e lavorazioni: header esecutivi e form mostrano ora un contratto minimo di evidenze coerente con il planner mobile
 
 Evidenze principali:
 - route `app/app/planner/page.tsx`
@@ -114,6 +115,7 @@ Ruolo nel sistema:
 - il planner e oggi una delle superfici centrali dell'app
 - collega pianificazione, esecuzione e feedback
 - per i task agronomici di nuova generazione, l'operatore vede gia prima del lancio parte del contesto decisionale che ha prodotto il task
+- nel loop mobile piu recente, l'operatore vede anche dentro i moduli di esecuzione il minimo set di evidenze attese prima del salvataggio
 
 ### 3. Piante individuali, banca semi, vivaio e semenzaio
 Stato: `operativa`
@@ -195,6 +197,7 @@ Capacita verificate:
 - suggerimenti AI irrigui
 - collegamento con orchestrazione task
 - measured feedback post-esecuzione
+- contratto minimo di esecuzione visibile nel form quando l'irrigazione e aperta da task agronomico
 
 Evidenze principali:
 - route `app/app/irrigation/page.tsx`
@@ -225,6 +228,7 @@ Capacita verificate:
 - analytics
 - inventario
 - task-aware bootstrap dal planner/orchestratore
+- contratto minimo di esecuzione visibile nel modal di trattamento quando il flusso parte da task agronomico
 
 Evidenze principali:
 - route `app/app/nutrition/page.tsx`
@@ -245,6 +249,27 @@ Parti parziali:
 Conclusione:
 - la sezione corretta oggi e Nutrizione & Trattamenti
 - non va presentata come modulo completamente rifinito in tutte le sue parti avanzate
+
+### 7-bis. Raccolta e lavorazioni meccaniche
+Stato: `operativa` con elementi `parziali`
+
+Capacita verificate:
+- launch task-aware dal planner verso raccolta e lavorazioni
+- banner di esecuzione con contesto task sorgente
+- contratto minimo di evidenze visibile nei modal/form principali prima del submit
+- post-action che puo riallacciare l'esecuzione al task sorgente nei flussi agronomici coperti
+
+Evidenze principali:
+- route `app/app/harvest/page.tsx`
+- route `app/app/mechanical-work/page.tsx`
+- componenti `components/harvest/HarvestRegistrationModal.tsx`
+- componenti `components/mechanicalWork/MechanicalWorkLogForm.tsx`
+- servizi `services/taskExecutionBannerService.ts`
+- servizi `services/taskExecutionPostActionService.ts`
+
+Parti parziali:
+- non tutti i task legacy passano ancora dallo stesso contratto task-aware
+- la coerenza del loop end-to-end va considerata piu forte sui task agronomici di nuova generazione che sui flussi storici manuali
 
 ### 8. Salute colture e monitoraggio rischio
 Stato: `operativa`

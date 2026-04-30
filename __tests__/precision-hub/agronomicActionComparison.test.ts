@@ -263,3 +263,90 @@ test('operational irrigation context changes broadacre legume water economics', 
       (rainfedImmediate?.estimatedNetImpact || 0)
   )
 })
+
+test('refined site context changes irrigation action comparison even without explicit site tags', () => {
+  const shadedSite = buildAgronomicEconomicPrioritySummary({
+    source: 'irrigation',
+    focus: 'water',
+    priorityScore: 48,
+    priorityConfidence: 0.58,
+    agronomicProfileId: 'field_brassicas',
+    averageEfficiency: 76,
+    waterUseEfficiency: 75,
+    refinedContext: {
+      siteOperationalProfile: {
+        soilType: 'Clay',
+        dailySunHours: 3.2,
+        exposureClass: 'sheltered',
+        windProtection: 'High',
+        shadowObstaclesCount: 2,
+      },
+    },
+  })
+
+  const exposedSandySite = buildAgronomicEconomicPrioritySummary({
+    source: 'irrigation',
+    focus: 'water',
+    priorityScore: 48,
+    priorityConfidence: 0.58,
+    agronomicProfileId: 'field_brassicas',
+    averageEfficiency: 76,
+    waterUseEfficiency: 75,
+    refinedContext: {
+      siteOperationalProfile: {
+        soilType: 'Sandy',
+        dailySunHours: 8.4,
+        exposureClass: 'exposed',
+        windProtection: 'Low',
+        shadowObstaclesCount: 0,
+      },
+    },
+  })
+
+  assert.ok(
+    (exposedSandySite.estimatedCostOfDelay || 0) > (shadedSite.estimatedCostOfDelay || 0)
+  )
+  assert.ok(
+    (exposedSandySite.actionComparison?.dominanceMargin || 0) >
+      (shadedSite.actionComparison?.dominanceMargin || 0)
+  )
+})
+
+test('refined site context raises quality economics on mountain orchards without relying on tags', () => {
+  const lowlandSite = buildAgronomicEconomicPrioritySummary({
+    source: 'phenology',
+    focus: 'quality',
+    priorityScore: 58,
+    priorityConfidence: 0.66,
+    agronomicProfileId: 'orchard_generic',
+    isCriticalStage: true,
+    qualityScoreGap: 5,
+    refinedContext: {
+      siteOperationalProfile: {
+        altitudeMeters: 90,
+        slopeClass: 'flat',
+        dailySunHours: 7,
+      },
+    },
+  })
+
+  const mountainSite = buildAgronomicEconomicPrioritySummary({
+    source: 'phenology',
+    focus: 'quality',
+    priorityScore: 58,
+    priorityConfidence: 0.66,
+    agronomicProfileId: 'orchard_generic',
+    isCriticalStage: true,
+    qualityScoreGap: 5,
+    refinedContext: {
+      siteOperationalProfile: {
+        altitudeMeters: 920,
+        slopeClass: 'steep',
+        dailySunHours: 7,
+      },
+    },
+  })
+
+  assert.ok((mountainSite.estimatedValueProtected || 0) > (lowlandSite.estimatedValueProtected || 0))
+  assert.ok((mountainSite.actionComparison?.dominanceMargin || 0) > (lowlandSite.actionComparison?.dominanceMargin || 0))
+})

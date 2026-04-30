@@ -151,3 +151,233 @@ test('analyzeWeatherConditions escalates risk when persisted environmental histo
   assert.match(fungalAlert?.description || '', /Storico ambientale/)
   assert.ok(fungalAlert?.triggers.includes('environmental_history'))
 })
+
+test('generateDescription includes site context when shaded conditions are available', () => {
+  const service = new PlantHealthMonitoringService()
+  const description = (service as any).generateDescription(weatherRule, 'Sangiovese', {
+    cropContext: vineyardContext,
+    weatherData: null,
+    microclimate: null,
+    phenology: null,
+    devices: [],
+    agronomicProfile: null,
+    measuredFeedbackNotes: [],
+    environmentalHistorySummary: null,
+    adaptiveLearning: {
+      pressureBoost: 0,
+      urgencyDaysOffset: 0,
+      confidenceBoost: 0,
+      fungalHumidityThreshold: 80,
+      fungalRainThreshold: 1,
+      leafWetnessThreshold: 50,
+      heatStressTemperatureThreshold: 32,
+      hotDaysTriggerCount: 2,
+      notes: [],
+    },
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 3.5,
+        exposureClass: 'sheltered',
+        aspectDirection: 'North',
+        shadowObstaclesCount: 2,
+      },
+    },
+  })
+
+  assert.match(description, /Contesto sito: 3.5 h sole, sito riparato, esposizione North, 2 ostacoli d ombra\./)
+})
+
+test('scoreHealthAlert increases priority on shaded sheltered sites', () => {
+  const service = new PlantHealthMonitoringService()
+  const alert = {
+    id: 'health-1',
+    type: 'disease_risk',
+    severity: 'medium',
+    plantName: 'Sangiovese',
+    description: 'Pressione fungina in aumento',
+    detectedAt: '2026-04-02T08:00:00.000Z',
+    suggestedActions: [],
+    photoRequired: true,
+    agronomistConsultation: false,
+    urgencyDays: 4,
+    confidence: 0.78,
+    triggers: ['humidity'],
+  } as const
+  const baseContext = {
+    cropContext: vineyardContext,
+    weatherData: null,
+    microclimate: null,
+    environmentalHistorySummary: null,
+    phenology: null,
+    devices: [],
+    agronomicProfile: null,
+    dominantPlantNames: ['Sangiovese'],
+    measuredFeedbackPressure: 0,
+    measuredFeedbackNotes: [],
+    adaptiveLearning: {
+      pressureBoost: 0,
+      urgencyDaysOffset: 0,
+      confidenceBoost: 0,
+      fungalHumidityThreshold: 80,
+      fungalRainThreshold: 1,
+      leafWetnessThreshold: 50,
+      heatStressTemperatureThreshold: 32,
+      hotDaysTriggerCount: 2,
+      notes: [],
+    },
+  }
+
+  const openScore = (service as any).scoreHealthAlert(alert, {
+    ...baseContext,
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 8,
+        exposureClass: 'exposed',
+        shadowObstaclesCount: 0,
+      },
+    },
+  })
+
+  const shelteredScore = (service as any).scoreHealthAlert(alert, {
+    ...baseContext,
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 3.5,
+        exposureClass: 'sheltered',
+        shadowObstaclesCount: 2,
+        soilPh: 8.1,
+      },
+    },
+  })
+
+  assert.ok(shelteredScore > openScore)
+})
+
+test('calculateUrgency reacts to sheltered low-sun contexts', () => {
+  const service = new PlantHealthMonitoringService()
+
+  const baseContext = {
+    cropContext: vineyardContext,
+    weatherData: null,
+    microclimate: null,
+    environmentalHistorySummary: null,
+    phenology: null,
+    devices: [],
+    agronomicProfile: null,
+    dominantPlantNames: ['Sangiovese'],
+    measuredFeedbackPressure: 0,
+    measuredFeedbackNotes: [],
+    adaptiveLearning: {
+      pressureBoost: 0,
+      urgencyDaysOffset: 0,
+      confidenceBoost: 0,
+      fungalHumidityThreshold: 80,
+      fungalRainThreshold: 1,
+      leafWetnessThreshold: 50,
+      heatStressTemperatureThreshold: 32,
+      hotDaysTriggerCount: 2,
+      notes: [],
+    },
+  }
+
+  const openContext = {
+    ...baseContext,
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 8.5,
+        exposureClass: 'exposed',
+        shadowObstaclesCount: 0,
+        soilPh: 6.7,
+      },
+    },
+  }
+
+  const shelteredContext = {
+    ...baseContext,
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 3.2,
+        exposureClass: 'sheltered',
+        shadowObstaclesCount: 3,
+        soilPh: 8.0,
+      },
+    },
+  }
+
+  const openUrgency = (service as any).calculateUrgency(weatherRule, openContext)
+  const shelteredUrgency = (service as any).calculateUrgency(weatherRule, shelteredContext)
+
+  assert.ok(shelteredUrgency > openUrgency)
+})
+
+test('health alert ordering reacts to north sheltered contexts more than south exposed ones', () => {
+  const service = new PlantHealthMonitoringService()
+  const alert = {
+    id: 'health-ctx-order',
+    type: 'disease_risk',
+    severity: 'medium',
+    plantName: 'Sangiovese',
+    description: 'Pressione fungina in aumento',
+    detectedAt: '2026-04-02T08:00:00.000Z',
+    suggestedActions: [],
+    photoRequired: true,
+    agronomistConsultation: false,
+    urgencyDays: 4,
+    confidence: 0.78,
+    triggers: ['humidity'],
+  } as const
+
+  const baseContext = {
+    cropContext: vineyardContext,
+    weatherData: null,
+    microclimate: null,
+    environmentalHistorySummary: null,
+    phenology: null,
+    devices: [],
+    agronomicProfile: null,
+    dominantPlantNames: ['Sangiovese'],
+    measuredFeedbackPressure: 0,
+    measuredFeedbackNotes: [],
+    adaptiveLearning: {
+      pressureBoost: 0,
+      urgencyDaysOffset: 0,
+      confidenceBoost: 0,
+      fungalHumidityThreshold: 80,
+      fungalRainThreshold: 1,
+      leafWetnessThreshold: 50,
+      heatStressTemperatureThreshold: 32,
+      hotDaysTriggerCount: 2,
+      notes: [],
+    },
+  }
+
+  const southExposedScore = (service as any).scoreHealthAlert(alert, {
+    ...baseContext,
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 8.4,
+        exposureClass: 'exposed',
+        aspectDirection: 'South',
+        windProtection: 'Low',
+        shadowObstaclesCount: 0,
+        soilPh: 6.7,
+      },
+    },
+  })
+
+  const northShelteredScore = (service as any).scoreHealthAlert(alert, {
+    ...baseContext,
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 3.1,
+        exposureClass: 'sheltered',
+        aspectDirection: 'North',
+        windProtection: 'High',
+        shadowObstaclesCount: 3,
+        soilPh: 8.0,
+      },
+    },
+  })
+
+  assert.ok(northShelteredScore > southExposedScore)
+})

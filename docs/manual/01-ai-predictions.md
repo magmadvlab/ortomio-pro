@@ -4,248 +4,105 @@
 
 ---
 
-## 🎯 PANORAMICA
+## 🎯 STATO MODULO
 
-Sistema di intelligenza artificiale con **94.5% di accuratezza** per predizioni agricole avanzate. L'AI analizza dati meteorologici, storici, sensori IoT e immagini satellitari per fornire raccomandazioni precise e tempestive.
+**Stato attuale**: **Ibrido**
+
+Questa area raccoglie servizi predittivi e suggerimenti avanzati realmente presenti nel codice, ma non va interpretata come un motore AI unico già validato scientificamente con accuratezza dimostrata su ogni coltura e scenario.
 
 **Percorso**: Sidebar → **"Predizioni AI"**
 
 ---
 
-## 🔬 PREDIZIONI MALATTIE
+## ✅ COSA È DISPONIBILE ORA
 
-### **Anticipo Diagnostico**
-- **7-14 giorni di anticipo** su malattie e parassiti
-- **Confidence score** da 0-100% per ogni predizione
-- **Probabilità dettagliate** per ogni patogeno
-- **Sintomi da monitorare** con descrizioni visive
-
-### **Patogeni Rilevabili**
-- **Funghi**: Peronospora, oidio, botrite, alternaria
-- **Batteri**: Erwinia, Pseudomonas, Xanthomonas
-- **Virus**: Mosaico, accartocciamento, nanismo
-- **Parassiti**: Afidi, tripidi, acari, lepidotteri
-
-### **Fattori Analizzati**
-- **Meteo**: Temperatura, umidità, pioggia, vento
-- **Microclima**: Condizioni specifiche appezzamento
-- **Fenologia**: Fase di sviluppo della coltura
-- **Storico**: Precedenti attacchi e trattamenti
-- **Varietà**: Suscettibilità specifica cultivar
-
-### **Raccomandazioni Preventive**
-- **Trattamenti specifici** per ogni patogeno
-- **Timing ottimale** per interventi
-- **Dosaggi personalizzati** per superficie
-- **Principi attivi** più efficaci
-- **Misure agronomiche** preventive
+- modelli e servizi che stimano rischio, priorità e finestre operative in più moduli dell'app
+- uso di meteo, storico operazioni, contesto colturale e in alcuni casi fenologia o feedback misurato
+- confidence score e spiegazioni sintetiche in diversi servizi decisionali
+- stime di resa o finestre raccolta in alcune aree specialistiche, soprattutto filari e verticali woody
+- integrazione con planner, salute colture, irrigazione e director su parte dei flussi
 
 ---
 
-## 📈 STIME DI RESA
+## ⚠️ LIMITI ATTUALI
 
-### **Predizioni Accurate**
-- **ML avanzato** con algoritmi proprietari
-- **Range di confidenza** per ogni stima
-- **Finestra raccolta ottimale** per massima qualità
-- **Punteggio qualità** previsto (0-100)
-
-### **Fattori Predittivi**
-- **Condizioni crescita**: Temperatura, luce, acqua
-- **Stress abiotici**: Siccità, eccessi idrici, temperature
-- **Gestione colturale**: Fertilizzazione, potature, diradamenti
-- **Densità impianto**: Piante per ettaro e competizione
-- **Varietà**: Potenziale produttivo specifico
-
-### **Ottimizzazione Rese**
-- **Raccomandazioni personalizzate** per ogni appezzamento
-- **Interventi correttivi** in tempo reale
-- **Bilanciamento qualità-quantità** ottimale
-- **Pianificazione raccolta** per massimo valore
-
-### **Analisi Comparative**
-- **Benchmark settoriali** per zona geografica
-- **Trend pluriennali** aziendali
-- **Performance varietali** comparative
-- **Margini miglioramento** identificati
+- non esiste oggi una prova generale di accuratezza tipo `94.5%` valida per tutto il modulo
+- non tutte le predizioni derivano dallo stesso motore o dallo stesso dataset storico
+- alcune stime restano euristiche o guidate da regole ingegnerizzate, non da modelli ML chiusi end-to-end
+- la presenza di IoT, NDVI o fonti esterne migliora il contesto quando disponibile, ma non è garantita in ogni installazione
+- i risultati vanno letti come supporto decisionale, non come verità automatica già certificata
 
 ---
 
-## 💧 OTTIMIZZAZIONE RISORSE
+## 🧭 COME USARLO CORRETTAMENTE
 
-### **Risparmio Automatico**
-- **Acqua**: Riduzione 20-30% consumi idrici
-- **Fertilizzanti**: Ottimizzazione apporti nutritivi
-- **Energia**: Efficienza sistemi irrigui
-- **Manodopera**: Automazione operazioni
+Usa questa sezione per:
+- individuare aree o colture che meritano attenzione prioritaria
+- confrontare scenari `intervenire ora / prossimo ciclo / monitorare`
+- leggere warning e confidence prima di aprire i moduli operativi
+- rafforzare il lavoro di planner, irrigazione, nutrizione e salute con un livello in più di contesto
 
-### **Calcoli Precisi**
-- **Costi operativi** dettagliati per ettaro
-- **Percentuali risparmio** per ogni risorsa
-- **ROI interventi** di ottimizzazione
-- **Payback period** investimenti
-
-### **Raccomandazioni Intelligenti**
-- **Uso ottimale risorse** per ogni fase
-- **Timing applicazioni** per massima efficacia
-- **Dosaggi variabili** per zona
-- **Monitoraggio continuo** efficienza
-
-### **Sostenibilità**
-- **Carbon footprint** ridotto
-- **Impatto ambientale** minimizzato
-- **Certificazioni sostenibilità** supportate
-- **Economia circolare** principi applicati
+Non usarla oggi come:
+- sistema unico di previsione scientificamente validato per tutte le colture
+- prova definitiva per audit o documentazione certificativa
+- sostituto del controllo agronomico umano nei casi ad alta criticità
 
 ---
 
-## 🎛️ CONFIGURAZIONE E USO
+## 🔬 DOVE IL MODULO È PIÙ UTILE OGGI
 
-### **Setup Iniziale**
-1. **Configura colture** e varietà coltivate
-2. **Inserisci dati azienda** (superficie, ubicazione)
-3. **Connetti sensori IoT** se disponibili
-4. **Carica storico** trattamenti e rese
-5. **Attiva notifiche** per alert critici
+### **Rischio e priorità**
+- supporto a decisioni su acqua, nutrizione, salute e qualità
+- confronto economico tra azione immediata, rinvio o monitoraggio
+- contesto coltura-specifico nei profili agronomici più maturi
 
-### **Uso Quotidiano**
-1. **Accedi a "Predizioni AI"** dalla sidebar
-2. **Scegli tab desiderata** (Malattie/Resa/Risorse)
-3. **Clicca "Aggiorna"** per nuove predizioni
-4. **Analizza raccomandazioni** e confidence score
-5. **Implementa suggerimenti** per ottimizzazione
+### **Finestre operative**
+- suggerimenti su quando intervenire o raccogliere
+- supporto a task agronomici che poi possono essere lanciati nei moduli esecutivi
 
-### **Interpretazione Risultati**
-- **Verde (80-100%)**: Predizione molto affidabile
-- **Giallo (60-79%)**: Predizione moderatamente affidabile
-- **Rosso (<60%)**: Predizione da verificare
-
-### **Alert e Notifiche**
-- **Push notifications** per rischi critici
-- **Email alerts** per raccomandazioni urgenti
-- **SMS** per emergenze (opzionale)
-- **Dashboard alerts** sempre visibili
+### **Stress e monitoraggio**
+- uso di meteo e segnali ambientali per alzare o abbassare priorità
+- segnali microclimatici e storico ambientale in alcune aree precision-hub
 
 ---
 
-## 📊 ANALYTICS E REPORTING
+## 📌 INTERPRETAZIONE DELLA CONFIDENCE
 
-### **Dashboard Predittivo**
-- **Mappa rischi** per appezzamento
-- **Timeline predizioni** settimanali/mensili
-- **Grafici trend** storici e previsionali
-- **KPI performance** AI vs realtà
+La confidence nell'app va letta così:
+- **Alta**: il sistema dispone di più segnali coerenti e contesto sufficiente
+- **Media**: il suggerimento è utile ma non pienamente coperto da dati forti
+- **Bassa**: il sistema sta proponendo una direzione da verificare sul campo
 
-### **Report Personalizzati**
-- **Report settimanali** automatici
-- **Analisi stagionali** complete
-- **Benchmark performance** vs obiettivi
-- **Export dati** per analisi esterne
-
-### **Validazione Predizioni**
-- **Tracking accuratezza** predizioni vs realtà
-- **Feedback loop** per miglioramento continuo
-- **Calibrazione modelli** per zona specifica
-- **Learning automatico** da risultati
+La confidence non è una certificazione statistica universale del modello. È un indicatore operativo di affidabilità relativa nel contesto disponibile.
 
 ---
 
-## 🔬 TECNOLOGIA SOTTOSTANTE
+## 🔗 INTEGRAZIONE CON IL RESTO DELL'APP
 
-### **Machine Learning**
-- **Deep Learning** per riconoscimento pattern
-- **Ensemble methods** per robustezza predizioni
-- **Transfer learning** da dataset globali
-- **Continuous learning** da feedback utenti
-
-### **Data Sources**
-- **Satelliti**: Sentinel-2, Landsat, Planet
-- **Meteo**: Stazioni locali e modelli numerici
-- **IoT**: Sensori aziendali in tempo reale
-- **Storico**: Database pluriennali performance
-
-### **Algoritmi Proprietari**
-- **Modelli fenologici** avanzati
-- **Reti neurali** per pattern recognition
-- **Algoritmi genetici** per ottimizzazione
-- **Fuzzy logic** per gestione incertezza
+- **Planner AI**: alcuni suggerimenti diventano task persistiti o task agronomici contestualizzati
+- **Registro Attività**: parte delle decisioni si collega poi ai registri reali di esecuzione
+- **Irrigazione / Nutrizione / Raccolta / Lavorazioni**: nei task agronomici recenti il passaggio all'esecuzione è più chiaro e mostra anche il contratto minimo di evidenze
+- **Director**: riusa parte dei segnali e delle sintesi operative, ma non equivale a un sistema autonomo perfettamente chiuso
 
 ---
 
-## 💡 BEST PRACTICES
+## 🧪 USO CONSIGLIATO
 
-### **Massimizza Accuratezza**
-- **Aggiorna dati** regolarmente
-- **Fornisci feedback** su predizioni
-- **Mantieni sensori** calibrati
-- **Documenta interventi** effettuati
-
-### **Ottimizza Risultati**
-- **Segui raccomandazioni** tempestivamente
-- **Monitora trend** nel tempo
-- **Confronta performance** con benchmark
-- **Adatta strategie** basandoti su risultati
-
-### **Integrazione Workflow**
-- **Pianifica interventi** basandoti su predizioni
-- **Coordina con team** per implementazione
-- **Documenta risultati** per miglioramento
-- **Condividi successi** con community
+1. Parti dal planner o dal modulo che segnala la criticità.
+2. Leggi la priorità e la confidence, non solo il testo del suggerimento.
+3. Verifica se il task può essere eseguito subito o con dati parziali.
+4. Se apri un modulo esecutivo task-aware, registra anche le evidenze minime richieste.
+5. Confronta il suggerimento con l'esito reale e con i registri operativi.
 
 ---
 
-## 🆘 TROUBLESHOOTING
+## 🚧 ROADMAP REALISTICA
 
-### **Predizioni Non Accurate**
-- Verifica calibrazione sensori
-- Aggiorna dati colturali
-- Controlla connessione internet
-- Contatta supporto per calibrazione
-
-### **Dati Mancanti**
-- Completa profilo azienda
-- Connetti fonti dati esterne
-- Carica storico manualmente
-- Attiva sincronizzazione automatica
-
-### **Alert Non Ricevuti**
-- Verifica impostazioni notifiche
-- Controlla filtri spam email
-- Aggiorna app mobile
-- Testa connessione push notifications
+- maggiore uniformità tra i vari motori predittivi
+- più dati reali e meno fallback in NDVI, IoT e dataset esterni
+- miglior collegamento tra predizione, esecuzione, outcome e storico consolidato
+- validazioni più forti per coltura, fase e sito
 
 ---
 
-## 🔗 INTEGRAZIONI
-
-### **Sistemi Compatibili**
-- **Stazioni meteo**: Davis, Campbell Scientific
-- **Sensori IoT**: LoRaWAN, Sigfox, NB-IoT
-- **Droni**: DJI, Parrot, senseFly
-- **Satelliti**: Sentinel Hub, Planet API
-
-### **Export Dati**
-- **CSV**: Per analisi Excel/R/Python
-- **JSON**: Per integrazioni API
-- **PDF**: Report formattati
-- **Shapefile**: Dati geospaziali
-
----
-
-## 📞 SUPPORTO SPECIALIZZATO
-
-### **Supporto AI**
-- **Email**: ai-support@ortomio.com
-- **Chat**: Specialisti AI disponibili
-- **Telefono**: +39 02 1234 5679
-- **Video**: Consulenza personalizzata
-
-### **Formazione**
-- **Webinar**: Uso avanzato AI
-- **Workshop**: Training in azienda
-- **Certificazione**: AI Specialist Program
-- **Community**: Forum esperti AI
-
----
-
-[← Torna all'Indice](./README.md) | [Prossimo: Operazioni Drone →](./02-drone-operations.md)
+[← Torna all'Indice](./README.md)

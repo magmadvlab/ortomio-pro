@@ -25,6 +25,7 @@ import CropRotationPlanner from '@/components/advice/CropRotationPlanner'
 import BiologicalControlDashboard from '@/components/advice/BiologicalControlDashboard'
 import { useGarden } from '@/packages/core/hooks/useGarden'
 import { useStorage } from '@/packages/core/hooks/useStorage'
+import { resolveGardenContext } from '@/services/gardenContextResolverService'
 import type { GardenTask } from '@/types'
 
 interface AIAdvice {
@@ -74,136 +75,107 @@ export default function AdvicePage() {
 
   useEffect(() => {
     loadAIAdvice()
-  }, [])
+  }, [activeGarden?.id])
 
   const loadAIAdvice = async () => {
     try {
       setLoading(true)
-      // Simula il caricamento dei consigli AI
-      const mockAdvice: AIAdvice[] = [
+      const resolvedContext = activeGarden?.id
+        ? await resolveGardenContext(storageProvider, activeGarden.id).catch(() => null)
+        : null
+      const garden = resolvedContext?.garden || activeGarden
+      const cropLabel = garden?.primaryCrop?.label || garden?.name || 'coltura attiva'
+      const isControlled = Boolean(
+        resolvedContext?.structure.indoorSpace ||
+        resolvedContext?.structure.greenhouseSpace ||
+        resolvedContext?.systems.indoorConfig ||
+        resolvedContext?.systems.hydroponicConfig ||
+        resolvedContext?.systems.aquaponicConfig ||
+        resolvedContext?.systems.aeroponicConfig ||
+        resolvedContext?.systems.greenhouseConfig ||
+        garden?.hasIndoor ||
+        garden?.hasGreenhouse
+      )
+      const openTasks = activeGarden?.id ? await storageProvider.getTasks(activeGarden.id) : []
+      const pendingTasks = openTasks.filter((task: any) => !task.completed)
+      const taskCount = pendingTasks.length
+
+      const groundedAdvice: AIAdvice[] = [
         {
-          id: 'advice-1',
+          id: 'advice-rotation',
           type: 'rotation',
-          title: 'Rotazione Colture Ottimale',
-          description: 'È il momento ideale per pianificare la rotazione delle colture per la prossima stagione. Le leguminose miglioreranno la fertilità del suolo.',
+          title: isControlled ? 'Rotazione/Turnazione del sistema' : 'Rotazione Colture',
+          description: isControlled
+            ? `Il sistema risulta controllato: mantieni turnazione e pulizia del ciclo per ${cropLabel}, con attenzione ai carichi residui e alle finestre di riposo.`
+            : `Usa lo storico attività per pianificare una rotazione coerente attorno a ${cropLabel} e ridurre accumulo di patogeni.`,
           priority: 'high',
-          confidence: 0.92,
-          zone: 'Zona A',
-          timing: 'Prossimi 15 giorni',
-          actions: [
-            {
-              type: 'scheduled',
-              title: 'Pianifica rotazione',
-              description: 'Definisci il piano di rotazione per le prossime 3 stagioni',
-              estimatedTime: '2 ore',
-              difficulty: 'medium',
-              materials: ['Mappa orto', 'Calendario colturale']
-            }
-          ],
-          benefits: [
-            'Miglioramento fertilità suolo',
-            'Riduzione malattie',
-            'Aumento produttività 15-20%'
-          ],
+          confidence: isControlled ? 0.81 : 0.76,
+          timing: 'Prossimi 10 giorni',
+          actions: [{
+            type: 'scheduled',
+            title: 'Rivedi il ciclo',
+            description: isControlled
+              ? 'Controlla sequenza di coltivazione, pulizia e ripartenza del sistema'
+              : 'Definisci successioni colturali per i prossimi cicli',
+            estimatedTime: '45 minuti',
+            difficulty: 'medium',
+          }],
+          benefits: ['Riduce deriva del ciclo', 'Migliora continuità operativa'],
           createdAt: new Date().toISOString(),
-          validUntil: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+          validUntil: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
           weatherDependent: false,
-          seasonalRelevance: 0.9
-        },
-        {
-          id: 'advice-2',
-          type: 'biological_control',
-          title: 'Controllo Biologico Afidi',
-          description: 'Rilevata presenza di afidi su pomodori. Consigliato rilascio di coccinelle per controllo naturale.',
-          priority: 'critical',
-          confidence: 0.87,
-          plantName: 'Pomodori San Marzano',
-          zone: 'Zona B',
-          timing: 'Immediato',
-          actions: [
-            {
-              type: 'immediate',
-              title: 'Rilascio coccinelle',
-              description: 'Introduci 500 coccinelle adulte nella zona infestata',
-              estimatedTime: '30 minuti',
-              difficulty: 'easy',
-              cost: 25,
-              materials: ['Coccinelle (500 unità)', 'Contenitore rilascio']
-            }
-          ],
-          benefits: [
-            'Controllo naturale al 95%',
-            'Nessun residuo chimico',
-            'Protezione a lungo termine'
-          ],
-          risks: [
-            'Efficacia ridotta con temperature < 15°C'
-          ],
-          createdAt: new Date().toISOString(),
-          validUntil: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-          weatherDependent: true,
           seasonalRelevance: 0.8
         },
         {
-          id: 'advice-3',
-          type: 'irrigation',
-          title: 'Ottimizzazione Irrigazione',
-          description: 'Le previsioni meteo indicano piogge nei prossimi giorni. Riduci l\'irrigazione del 40% per evitare ristagni.',
-          priority: 'medium',
-          confidence: 0.94,
-          timing: 'Prossimi 3 giorni',
-          actions: [
-            {
-              type: 'immediate',
-              title: 'Regola timer irrigazione',
-              description: 'Riduci i cicli di irrigazione automatica',
-              estimatedTime: '15 minuti',
-              difficulty: 'easy'
-            }
-          ],
-          benefits: [
-            'Risparmio idrico 40%',
-            'Prevenzione marciumi radicali',
-            'Riduzione costi'
-          ],
+          id: 'advice-biological',
+          type: 'biological_control',
+          title: 'Verifica controllo biologico',
+          description: taskCount > 0
+            ? `Hai ${taskCount} task aperti: verifica se qualcuno riguarda trattamenti, monitoraggi o ispezioni su ${cropLabel}.`
+            : `Nessun task aperto rilevante: programma un controllo biologico di base su ${cropLabel}.`,
+          priority: taskCount > 2 ? 'high' : 'medium',
+          confidence: 0.74,
+          plantName: cropLabel,
+          timing: 'Immediato',
+          actions: [{
+            type: 'monitoring',
+            title: 'Apri ispezione',
+            description: 'Controlla foglie, fusti e segni di pressione biotica',
+            estimatedTime: '20 minuti',
+            difficulty: 'easy',
+          }],
+          benefits: ['Intercetta problemi presto', 'Riduce interventi reattivi'],
           createdAt: new Date().toISOString(),
           validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          weatherDependent: true,
+          weatherDependent: false,
           seasonalRelevance: 0.7
         },
         {
-          id: 'advice-4',
-          type: 'harvest_timing',
-          title: 'Timing Raccolta Ottimale',
-          description: 'I pomodori nella zona C raggiungeranno la maturità ottimale tra 5-7 giorni. Prepara i contenitori per la raccolta.',
-          priority: 'high',
-          confidence: 0.89,
-          plantName: 'Pomodori Cuore di Bue',
-          zone: 'Zona C',
-          timing: '5-7 giorni',
-          actions: [
-            {
-              type: 'preparation',
-              title: 'Prepara raccolta',
-              description: 'Organizza contenitori e strumenti per la raccolta',
-              estimatedTime: '1 ora',
-              difficulty: 'easy',
-              materials: ['Cassette', 'Forbici', 'Bilancia']
-            }
-          ],
-          benefits: [
-            'Massima qualità organolettica',
-            'Migliore conservazione',
-            'Valore commerciale ottimale'
-          ],
+          id: 'advice-irrigation',
+          type: 'irrigation',
+          title: isControlled ? 'Bilanciamento idrico del sistema' : 'Ottimizzazione Irrigazione',
+          description: isControlled
+            ? 'In ambiente controllato conta di più la stabilità: verifica portate, drenaggi e ritorni prima di aumentare i cicli.'
+            : 'Ricalibra l\'irrigazione sul contesto reale del giardino e sui task aperti per evitare sovra/interventi.',
+          priority: 'medium',
+          confidence: isControlled ? 0.79 : 0.72,
+          timing: 'Prossimi 3 giorni',
+          actions: [{
+            type: 'preparation',
+            title: 'Controlla parametri',
+            description: 'Verifica timer, portate e uniformità di distribuzione',
+            estimatedTime: '20 minuti',
+            difficulty: 'easy'
+          }],
+          benefits: ['Meno sprechi', 'Maggiore stabilità'],
           createdAt: new Date().toISOString(),
-          validUntil: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+          validUntil: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
           weatherDependent: false,
-          seasonalRelevance: 0.95
+          seasonalRelevance: 0.65
         }
       ]
-      
-      setAdvice(mockAdvice)
+
+      setAdvice(groundedAdvice)
     } catch (error) {
       console.error('Error loading AI advice:', error)
     } finally {

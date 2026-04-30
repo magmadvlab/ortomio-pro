@@ -3,15 +3,19 @@
  * Form strutturato per certificazione biologica EU 2018/848
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
-import { Leaf, CheckCircle, AlertTriangle, FileText, Calendar, Users } from 'lucide-react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { Leaf, CheckCircle, AlertTriangle, FileText, Calendar } from 'lucide-react';
 
 interface BioCertificationFormProps {
   gardenId: string;
-  onSave?: (data: BioCertificationData) => void;
+  initialData?: Partial<BioCertificationData> | null;
+  isSaving?: boolean;
+  saveError?: string | null;
+  saveMessage?: string | null;
+  onSave?: (data: BioCertificationData) => Promise<void> | void;
 }
 
-interface BioCertificationData {
+export interface BioCertificationData {
   // Dati azienda
   companyName: string;
   vatNumber: string;
@@ -46,17 +50,7 @@ interface BioCertificationData {
   correctiveActions: string;
 }
 
-// Utility function for debouncing
-function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
-  let timeout: NodeJS.Timeout;
-  return ((...args: any[]) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(null, args), wait);
-  }) as T;
-}
-
-const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, onSave }) => {
-  const [formData, setFormData] = useState<BioCertificationData>({
+const defaultBioCertificationData: BioCertificationData = {
     companyName: '',
     vatNumber: '',
     address: '',
@@ -80,9 +74,28 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
     nextInspectionDate: '',
     nonConformities: '',
     correctiveActions: ''
+  };
+
+const BioCertificationForm: React.FC<BioCertificationFormProps> = ({
+  initialData,
+  isSaving = false,
+  saveError,
+  saveMessage,
+  onSave
+}) => {
+  const [formData, setFormData] = useState<BioCertificationData>({
+    ...defaultBioCertificationData,
+    ...initialData
   });
 
   const [activeSection, setActiveSection] = useState<'company' | 'production' | 'practices' | 'traceability' | 'controls'>('company');
+
+  useEffect(() => {
+    setFormData({
+      ...defaultBioCertificationData,
+      ...initialData
+    });
+  }, [initialData]);
 
   // Ottimizza il calcolo di compliance con useMemo
   const complianceScore = useMemo(() => {
@@ -124,28 +137,14 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
     return Math.round((score / total) * 100);
   }, [formData]);
 
-  // Debounced save function
-  const debouncedSave = useCallback(
-    debounce((data: BioCertificationData) => {
-      if (onSave) {
-        onSave(data);
-      }
-    }, 500),
-    [onSave]
-  );
-
   const handleInputChange = useCallback((field: keyof BioCertificationData, value: any) => {
-    setFormData(prev => {
-      const newData = { ...prev, [field]: value };
-      debouncedSave(newData);
-      return newData;
-    });
-  }, [debouncedSave]);
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (onSave) {
-      onSave(formData);
+      await onSave(formData);
     }
   }, [formData, onSave]);
 
@@ -180,6 +179,15 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
             </p>
           </div>
         </div>
+        {(saveMessage || saveError) && (
+          <div className={`mt-4 rounded-lg border px-4 py-3 text-sm ${
+            saveError
+              ? 'border-red-200 bg-red-50 text-red-700'
+              : 'border-green-200 bg-green-50 text-green-700'
+          }`}>
+            {saveError || saveMessage}
+          </div>
+        )}
       </div>
 
       {/* Progress Bar */}
@@ -257,7 +265,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
               <input
                 type="text"
                 value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                onChange={(e) => handleInputChange('address', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               />
             </div>
@@ -269,7 +277,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                 </label>
                 <select
                   value={formData.certificationBody}
-                  onChange={(e) => setFormData({ ...formData, certificationBody: e.target.value })}
+                  onChange={(e) => handleInputChange('certificationBody', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                   required
                 >
@@ -291,7 +299,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                 <input
                   type="text"
                   value={formData.certificationNumber}
-                  onChange={(e) => setFormData({ ...formData, certificationNumber: e.target.value })}
+                  onChange={(e) => handleInputChange('certificationNumber', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               </div>
@@ -305,7 +313,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                 <input
                   type="date"
                   value={formData.certificationDate}
-                  onChange={(e) => setFormData({ ...formData, certificationDate: e.target.value })}
+                  onChange={(e) => handleInputChange('certificationDate', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               </div>
@@ -317,7 +325,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                 <input
                   type="date"
                   value={formData.expiryDate}
-                  onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                  onChange={(e) => handleInputChange('expiryDate', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               </div>
@@ -339,7 +347,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                   type="number"
                   step="0.01"
                   value={formData.totalArea}
-                  onChange={(e) => setFormData({ ...formData, totalArea: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => handleInputChange('totalArea', parseFloat(e.target.value) || 0)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                   required
                 />
@@ -353,7 +361,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                   type="number"
                   step="0.01"
                   value={formData.organicArea}
-                  onChange={(e) => setFormData({ ...formData, organicArea: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => handleInputChange('organicArea', parseFloat(e.target.value) || 0)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               </div>
@@ -368,7 +376,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                   type="number"
                   step="0.01"
                   value={formData.conversionArea}
-                  onChange={(e) => setFormData({ ...formData, conversionArea: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => handleInputChange('conversionArea', parseFloat(e.target.value) || 0)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               </div>
@@ -381,7 +389,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                   type="number"
                   step="0.01"
                   value={formData.conventionalArea}
-                  onChange={(e) => setFormData({ ...formData, conventionalArea: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => handleInputChange('conventionalArea', parseFloat(e.target.value) || 0)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               </div>
@@ -394,7 +402,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                   <input
                     type="checkbox"
                     checked={formData.hasBufferZones}
-                    onChange={(e) => setFormData({ ...formData, hasBufferZones: e.target.checked })}
+                    onChange={(e) => handleInputChange('hasBufferZones', e.target.checked)}
                     className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
                   />
                   <span className="text-sm text-blue-900">
@@ -411,7 +419,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                       type="number"
                       step="0.5"
                       value={formData.bufferZoneWidth}
-                      onChange={(e) => setFormData({ ...formData, bufferZoneWidth: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => handleInputChange('bufferZoneWidth', parseFloat(e.target.value) || 0)}
                       className="w-full px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     />
                     <p className="text-xs text-blue-700 mt-1">
@@ -437,7 +445,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                     <input
                       type="checkbox"
                       checked={formData.usesChemicalFertilizers}
-                      onChange={(e) => setFormData({ ...formData, usesChemicalFertilizers: e.target.checked })}
+                      onChange={(e) => handleInputChange('usesChemicalFertilizers', e.target.checked)}
                       className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
                     />
                     <span className="text-sm text-red-900">
@@ -449,7 +457,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                     <input
                       type="checkbox"
                       checked={formData.usesSyntheticPesticides}
-                      onChange={(e) => setFormData({ ...formData, usesSyntheticPesticides: e.target.checked })}
+                      onChange={(e) => handleInputChange('usesSyntheticPesticides', e.target.checked)}
                       className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
                     />
                     <span className="text-sm text-red-900">
@@ -461,7 +469,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                     <input
                       type="checkbox"
                       checked={formData.usesGMO}
-                      onChange={(e) => setFormData({ ...formData, usesGMO: e.target.checked })}
+                      onChange={(e) => handleInputChange('usesGMO', e.target.checked)}
                       className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
                     />
                     <span className="text-sm text-red-900">
@@ -516,7 +524,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                     <input
                       type="checkbox"
                       checked={formData.hasTraceabilitySystem}
-                      onChange={(e) => setFormData({ ...formData, hasTraceabilitySystem: e.target.checked })}
+                      onChange={(e) => handleInputChange('hasTraceabilitySystem', e.target.checked)}
                       className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
                     />
                     <span className="text-sm text-blue-900">
@@ -528,7 +536,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                     <input
                       type="checkbox"
                       checked={formData.separatesOrganicConventional}
-                      onChange={(e) => setFormData({ ...formData, separatesOrganicConventional: e.target.checked })}
+                      onChange={(e) => handleInputChange('separatesOrganicConventional', e.target.checked)}
                       className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
                     />
                     <span className="text-sm text-blue-900">
@@ -540,7 +548,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                     <input
                       type="checkbox"
                       checked={formData.keepsProductionRecords}
-                      onChange={(e) => setFormData({ ...formData, keepsProductionRecords: e.target.checked })}
+                      onChange={(e) => handleInputChange('keepsProductionRecords', e.target.checked)}
                       className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
                     />
                     <span className="text-sm text-blue-900">
@@ -592,7 +600,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                 <input
                   type="date"
                   value={formData.lastInspectionDate}
-                  onChange={(e) => setFormData({ ...formData, lastInspectionDate: e.target.value })}
+                  onChange={(e) => handleInputChange('lastInspectionDate', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               </div>
@@ -604,7 +612,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
                 <input
                   type="date"
                   value={formData.nextInspectionDate}
-                  onChange={(e) => setFormData({ ...formData, nextInspectionDate: e.target.value })}
+                  onChange={(e) => handleInputChange('nextInspectionDate', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               </div>
@@ -616,7 +624,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
               </label>
               <textarea
                 value={formData.nonConformities}
-                onChange={(e) => setFormData({ ...formData, nonConformities: e.target.value })}
+                onChange={(e) => handleInputChange('nonConformities', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 rows={3}
                 placeholder="Descrivi eventuali non conformità rilevate durante le ispezioni..."
@@ -629,7 +637,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
               </label>
               <textarea
                 value={formData.correctiveActions}
-                onChange={(e) => setFormData({ ...formData, correctiveActions: e.target.value })}
+                onChange={(e) => handleInputChange('correctiveActions', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 rows={3}
                 placeholder="Descrivi le azioni correttive implementate..."
@@ -683,9 +691,10 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({ gardenId, o
           ) : (
             <button
               type="submit"
+              disabled={isSaving}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
-              Salva Certificazione
+              {isSaving ? 'Salvataggio...' : 'Salva Certificazione'}
             </button>
           )}
         </div>

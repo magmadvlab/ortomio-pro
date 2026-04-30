@@ -3,10 +3,11 @@
  * Dashboard principale per gestione certificazioni
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
-import { Shield, Leaf, Award, FileText, TrendingUp, Calendar, CheckCircle, AlertTriangle } from 'lucide-react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { Shield, Leaf, Award, FileText, TrendingUp, CheckCircle, AlertTriangle } from 'lucide-react';
 import GlobalGapDashboard from '../compliance/GlobalGapDashboard';
-import BioCertificationForm from './BioCertificationForm';
+import BioCertificationForm, { BioCertificationData } from './BioCertificationForm';
+import { bioCertificationService, BioCertificationRecord } from '../../services/bioCertificationService';
 
 interface CertificationsDashboardProps {
   gardenId: string;
@@ -16,22 +17,77 @@ type CertificationType = 'overview' | 'bio' | 'globalgap' | 'sqnpi' | 'grasp';
 
 const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ gardenId }) => {
   const [activeTab, setActiveTab] = useState<CertificationType>('overview');
+  const [bioCertification, setBioCertification] = useState<BioCertificationRecord | null>(null);
+  const [bioLoading, setBioLoading] = useState(false);
+  const [bioSaving, setBioSaving] = useState(false);
+  const [bioError, setBioError] = useState<string | null>(null);
+  const [bioMessage, setBioMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!gardenId) return;
+
+    let cancelled = false;
+
+    const loadBioCertification = async () => {
+      setBioLoading(true);
+      setBioError(null);
+
+      try {
+        const existing = await bioCertificationService.getLatestByGarden(gardenId);
+        if (!cancelled) {
+          setBioCertification(existing);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setBioError(error instanceof Error ? error.message : 'Impossibile caricare la certificazione BIO');
+        }
+      } finally {
+        if (!cancelled) {
+          setBioLoading(false);
+        }
+      }
+    };
+
+    loadBioCertification();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [gardenId]);
+
+  const handleBioSave = useCallback(async (data: BioCertificationData) => {
+    setBioSaving(true);
+    setBioError(null);
+    setBioMessage(null);
+
+    try {
+      const saved = await bioCertificationService.upsertForGarden(gardenId, data, bioCertification?.id);
+      setBioCertification(saved);
+      setBioMessage(`Certificazione BIO salvata nel database. Readiness: ${saved.readinessStatus || 'non calcolata'}.`);
+    } catch (error) {
+      setBioError(error instanceof Error ? error.message : 'Impossibile salvare la certificazione BIO');
+    } finally {
+      setBioSaving(false);
+    }
+  }, [bioCertification?.id, gardenId]);
 
   const certifications = useMemo(() => [
     {
       id: 'bio',
       name: 'Certificazione Biologica',
       description: 'EU 2018/848 - Produzione biologica',
+      maturityLabel: 'Readiness DB-backed',
       icon: Leaf,
       color: 'green',
-      progress: 0,
-      status: 'not_started',
+      progress: bioCertification?.complianceScore || 0,
+      status: bioCertification ? (bioCertification.status === 'approved' ? 'completed' : 'in_progress') : 'not_started',
       benefits: ['Accesso mercato BIO', 'Miglior posizionamento commerciale dei lotti conformi', 'Sostenibilità ambientale']
     },
     {
       id: 'globalgap',
       name: 'GlobalG.A.P. IFA',
       description: 'Standard internazionale GAP',
+      maturityLabel: 'Workspace compliance parziale',
       icon: Shield,
       color: 'blue',
       progress: 45,
@@ -42,6 +98,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
       id: 'sqnpi',
       name: 'SQNPI',
       description: 'Sistema Qualità Nazionale Produzione Integrata',
+      maturityLabel: 'Tab informativa / backlog',
       icon: Award,
       color: 'purple',
       progress: 0,
@@ -52,13 +109,14 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
       id: 'grasp',
       name: 'GRASP',
       description: 'Risk Assessment on Social Practice',
+      maturityLabel: 'Tab informativa / backlog',
       icon: FileText,
       color: 'orange',
       progress: 0,
       status: 'not_started',
       benefits: ['Responsabilità sociale', 'Diritti lavoratori', 'Etica aziendale']
     }
-  ], []);
+  ], [bioCertification]);
 
   const getStatusColor = useCallback((status: string) => {
     switch (status) {
@@ -234,6 +292,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
                         <div>
                           <h3 className="font-semibold text-gray-900">{cert.name}</h3>
                           <p className="text-sm text-gray-600">{cert.description}</p>
+                          <p className="text-xs text-gray-500 mt-1">Maturità: {cert.maturityLabel}</p>
                         </div>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(cert.status)}`}>
@@ -275,13 +334,20 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
 
           {/* BIO Tab */}
           {activeTab === 'bio' && (
-            <BioCertificationForm
-              gardenId={gardenId}
-              onSave={(data) => {
-                console.log('BIO certification data:', data);
-                alert('Dati certificazione BIO salvati con successo!');
-              }}
-            />
+            bioLoading ? (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-sm text-gray-600">
+                Caricamento certificazione BIO...
+              </div>
+            ) : (
+              <BioCertificationForm
+                gardenId={gardenId}
+                initialData={bioCertification}
+                isSaving={bioSaving}
+                saveError={bioError}
+                saveMessage={bioMessage}
+                onSave={handleBioSave}
+              />
+            )
           )}
 
           {/* GlobalGAP Tab */}
@@ -294,10 +360,10 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
             <div className="text-center py-12">
               <Award className="mx-auto h-16 w-16 text-purple-400 mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                SQNPI - In Sviluppo
+                SQNPI - Tab informativa
               </h3>
               <p className="text-gray-600 mb-4">
-                Il modulo per la certificazione SQNPI sarà disponibile a breve
+                Questa sezione oggi è informativa: il workflow SQNPI operativo è in backlog.
               </p>
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 max-w-2xl mx-auto text-left">
                 <h4 className="font-semibold text-purple-900 mb-2">Cos'è SQNPI?</h4>
@@ -320,10 +386,10 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
             <div className="text-center py-12">
               <FileText className="mx-auto h-16 w-16 text-orange-400 mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                GRASP - In Sviluppo
+                GRASP - Tab informativa
               </h3>
               <p className="text-gray-600 mb-4">
-                Il modulo per la certificazione GRASP sarà disponibile a breve
+                Questa sezione oggi è informativa: il workflow GRASP operativo è in backlog.
               </p>
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 max-w-2xl mx-auto text-left">
                 <h4 className="font-semibold text-orange-900 mb-2">Cos'è GRASP?</h4>

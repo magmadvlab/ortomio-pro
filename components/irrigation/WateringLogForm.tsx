@@ -13,6 +13,10 @@ import { useStorage } from '@/packages/core/hooks/useStorage'
 import { X } from 'lucide-react'
 import { executeWateringLogThroughUnifiedService } from '@/services/operationExecutionBridgeService'
 import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvidenceContract'
+import TaskExecutionFormContextSummary from '@/components/shared/TaskExecutionFormContextSummary'
+import TaskExecutionQuickFeedback from '@/components/shared/TaskExecutionQuickFeedback'
+import TaskExecutionQuickNotes from '@/components/shared/TaskExecutionQuickNotes'
+import { mergeTaskExecutionQuickPayloadNotes } from '@/services/taskExecutionQuickPayloadService'
 
 type WateringZone = IrrigationZone & {
   bedIds?: string[]
@@ -47,6 +51,9 @@ export function WateringLogForm({
   onCancel
 }: WateringLogFormProps) {
   const { storageProvider } = useStorage()
+  const [showAdvancedDetails, setShowAdvancedDetails] = useState(false)
+  const [quickOutcome, setQuickOutcome] = useState<'good' | 'attention' | 'critical' | null>(null)
+  const [quickFollowUpRequired, setQuickFollowUpRequired] = useState(false)
   const toNumber = (value: unknown): number | undefined => {
     if (typeof value === 'number') {
       return Number.isFinite(value) ? value : undefined
@@ -138,6 +145,9 @@ export function WateringLogForm({
       try {
         const rows = await storageProvider.getGardenRows(formData.bedId)
         setRowOptions(rows || [])
+        if ((rows || []).length === 1) {
+          setSelectedRowIds([rows[0].id])
+        }
       } catch {
         setRowOptions([])
       }
@@ -219,6 +229,10 @@ export function WateringLogForm({
       const gardenId = zone.gardenId
 
       const wateredAt = `${formData.date}T${formData.time}:00`
+      const executionNotes = mergeTaskExecutionQuickPayloadNotes(formData.notes, {
+        outcome: quickOutcome,
+        followUpRequired: quickFollowUpRequired,
+      })
 
       // If no rows selected (zone not linked to beds), fallback to single log.
       if (!selectedZone?.bedIds?.length || selectedRowIds.length === 0) {
@@ -235,7 +249,7 @@ export function WateringLogForm({
           soilMoistureBefore: formData.soilMoistureBefore,
           soilMoistureAfter: formData.soilMoistureAfter,
           airTemperatureC: formData.airTemperatureC,
-          notes: formData.notes || undefined,
+          notes: executionNotes,
           completed: true
         })
       } else {
@@ -256,7 +270,7 @@ export function WateringLogForm({
             soilMoistureBefore: formData.soilMoistureBefore,
             soilMoistureAfter: formData.soilMoistureAfter,
             airTemperatureC: formData.airTemperatureC,
-            notes: formData.notes || undefined,
+            notes: executionNotes,
             completed: true
           }
         })
@@ -290,7 +304,80 @@ export function WateringLogForm({
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <TaskExecutionFormContextSummary sourceTaskId={sourceTaskId} storageProvider={storageProvider} />
             <TaskExecutionEvidenceContract sourceTaskId={sourceTaskId} storageProvider={storageProvider} />
+            <TaskExecutionQuickFeedback
+              outcome={quickOutcome}
+              followUpRequired={quickFollowUpRequired}
+              onOutcomeChange={setQuickOutcome}
+              onFollowUpRequiredChange={setQuickFollowUpRequired}
+            />
+            <TaskExecutionQuickNotes
+              sourceTaskId={sourceTaskId}
+              storageProvider={storageProvider}
+              notes={formData.notes}
+              extraTokens={[
+                quickOutcome ? `esito ${quickOutcome}` : '',
+                quickFollowUpRequired ? 'follow-up richiesto' : '',
+              ].filter(Boolean)}
+              onChange={(notes) => setFormData((prev) => ({ ...prev, notes }))}
+            />
+
+            <div className="rounded-lg border border-blue-200 bg-blue-50/70 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">Quick execution fields</p>
+              <p className="mt-1 text-xs text-blue-900">
+                Registra subito i segnali minimi che rendono leggibile la risposta irrigua.
+              </p>
+              <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Condizione meteo</label>
+                  <Select
+                    value={formData.weatherCondition}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData((prev) => ({ ...prev, weatherCondition: e.target.value }))}
+                  >
+                    <option value="">Non indicata</option>
+                    <option value="sereno">Sereno</option>
+                    <option value="coperto">Coperto</option>
+                    <option value="ventoso">Ventoso</option>
+                    <option value="caldo">Caldo</option>
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Umidità prima</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={formData.soilMoistureBefore ?? ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        soilMoistureBefore: e.target.value === '' ? undefined : Number(e.target.value),
+                      }))
+                    }
+                    placeholder="%"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Umidità dopo</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={formData.soilMoistureAfter ?? ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        soilMoistureAfter: e.target.value === '' ? undefined : Number(e.target.value),
+                      }))
+                    }
+                    placeholder="%"
+                  />
+                </div>
+              </div>
+            </div>
 
             {/* Zona */}
             <div>
@@ -485,82 +572,39 @@ export function WateringLogForm({
               </Select>
             </div>
 
-            {/* Condizioni Meteo (opzionale) */}
             <div className="border-t pt-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Condizioni (opzionale)</h3>
+              <button
+                type="button"
+                onClick={() => setShowAdvancedDetails((prev) => !prev)}
+                className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-left"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Dettagli avanzati</p>
+                  <p className="text-xs text-gray-600">
+                    Mostra solo i campi extra non coperti dal fast path.
+                  </p>
+                </div>
+                <span className="text-xs font-semibold text-blue-700">
+                  {showAdvancedDetails ? 'Nascondi' : 'Mostra'}
+                </span>
+              </button>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Meteo
-                  </label>
-                  <Select
-                    value={formData.weatherCondition}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, weatherCondition: e.target.value }))}
-                  >
-                    <option value="">Non specificato</option>
-                    <option value="Sunny">Soleggiato</option>
-                    <option value="Cloudy">Nuvoloso</option>
-                    <option value="Rainy">Piovoso</option>
-                    <option value="Windy">Ventoso</option>
-                  </Select>
+              {showAdvancedDetails ? (
+                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Temperatura °C
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      placeholder="es. 25.5"
+                      value={formData.airTemperatureC || ''}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, airTemperatureC: parseFloat(e.target.value) || undefined }))}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Temperatura °C
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    placeholder="es. 25.5"
-                    value={formData.airTemperatureC || ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, airTemperatureC: parseFloat(e.target.value) || undefined }))}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Umidità suolo prima (%)
-                  </label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    placeholder="es. 30"
-                    value={formData.soilMoistureBefore || ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, soilMoistureBefore: parseInt(e.target.value) || undefined }))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Umidità suolo dopo (%)
-                  </label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    placeholder="es. 80"
-                    value={formData.soilMoistureAfter || ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, soilMoistureAfter: parseInt(e.target.value) || undefined }))}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Note */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Note
-              </label>
-              <textarea
-                className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={3}
-                placeholder="Eventuali osservazioni..."
-                value={formData.notes}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              />
+              ) : null}
             </div>
 
             {/* Actions */}

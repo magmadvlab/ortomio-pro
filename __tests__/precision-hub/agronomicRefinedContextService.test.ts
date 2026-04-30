@@ -15,11 +15,48 @@ test('normalizeCultivarContext unifies varietal fields and infers production int
   })
 
   assert.deepEqual(cultivarContext, {
-    cultivarId: undefined,
+    cultivarId: 'coratina',
     cultivarLabel: 'Coratina',
     speciesLabel: 'Olive',
     productionIntent: 'oil',
   })
+})
+
+test('normalizeCultivarContext resolves legacy variety types against species context', () => {
+  assert.equal(
+    normalizeCultivarContext({
+      speciesLabel: 'Vite',
+      productionIntent: 'Table',
+      textValues: ['vigneto da tavola'],
+    })?.productionIntent,
+    'table_grape'
+  )
+
+  assert.equal(
+    normalizeCultivarContext({
+      speciesLabel: 'Olive',
+      productionIntent: 'Table',
+      textValues: ['oliveto da mensa'],
+    })?.productionIntent,
+    'table_olive'
+  )
+
+  assert.equal(
+    normalizeCultivarContext({
+      speciesLabel: 'Vite',
+      productionIntent: 'Raisin',
+    })?.productionIntent,
+    'table_grape'
+  )
+})
+
+test('normalizeCultivarContext derives a stable cultivar id from label when explicit id is missing', () => {
+  assert.equal(
+    normalizeCultivarContext({
+      cultivarLabel: 'Nocellara del Belice',
+    })?.cultivarId,
+    'nocellara_del_belice'
+  )
 })
 
 test('buildAgronomicRefinedContext derives subsystem and site profile from metadata', () => {
@@ -33,9 +70,14 @@ test('buildAgronomicRefinedContext derives subsystem and site profile from metad
     rootstock: '1103P',
     altitudeMeters: 720,
     slopePercentage: 14,
+    dailySunHours: 6.5,
     sunExposure: 'Full',
+    aspectDirection: 'South',
+    windProtection: 'Low',
     soilType: 'Loamy',
+    soilPh: 6.8,
     terroir: 'coastal hillside',
+    shadowObstaclesCount: 2,
     textValues: ['docg block with protected greenhouse support'],
   })
 
@@ -47,7 +89,13 @@ test('buildAgronomicRefinedContext derives subsystem and site profile from metad
   assert.equal(result.refinedContext.subSystemContext?.rootstock, '1103P')
   assert.equal(result.refinedContext.siteOperationalProfile?.exposureClass, 'exposed')
   assert.equal(result.refinedContext.siteOperationalProfile?.slopeClass, 'steep')
+  assert.equal(result.refinedContext.siteOperationalProfile?.dailySunHours, 6.5)
+  assert.equal(result.refinedContext.siteOperationalProfile?.aspectDirection, 'South')
+  assert.equal(result.refinedContext.siteOperationalProfile?.windProtection, 'Low')
   assert.equal(result.refinedContext.siteOperationalProfile?.soilType, 'Loamy')
+  assert.equal(result.refinedContext.siteOperationalProfile?.soilPh, 6.8)
+  assert.equal(result.refinedContext.siteOperationalProfile?.terroir, 'coastal hillside')
+  assert.equal(result.refinedContext.siteOperationalProfile?.shadowObstaclesCount, 2)
   assert.equal(result.operationalContextTags.includes('protected_culture'), true)
   assert.equal(result.operationalContextTags.includes('pressurized_irrigation'), true)
   assert.equal(result.operationalContextTags.includes('wine_grape'), true)

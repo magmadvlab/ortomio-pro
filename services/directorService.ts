@@ -37,11 +37,13 @@ import {
 import {
   buildAgronomicRefinedContext,
 } from '@/services/agronomicRefinedContextService'
+import { resolveGardenContext } from '@/services/gardenContextResolverService'
 import type { EfficiencyReport } from '@/types/irrigation'
 import type {
   AgronomicRefinedContext,
   AgronomicOperationalContextTag,
   AgronomicSignalKey,
+  AgronomicScopeDescriptor,
 } from '@/types/agronomicKernel'
 import type { Garden, GardenTask, SmartDevice } from '@/types'
 import { getCurrentPhenologyState } from '@/services/phenologyService'
@@ -54,6 +56,22 @@ import {
   getPersistedZoneEnvironmentalHistorySummary,
   type GardenEnvironmentalHistorySummary,
 } from '@/services/environmentalMonitoringService'
+import {
+  getAgronomicDecisionLedgerEntries,
+  getAgronomicDecisionLedgerSummary,
+  type AgronomicDecisionLedgerEntry,
+  type AgronomicDecisionLedgerSummary,
+} from '@/services/agronomicDecisionLedgerService'
+import {
+  getHealthScopeInsights,
+  type HealthScopeInsight,
+} from '@/services/healthScopeService'
+import {
+  buildTaskExecutionUrl,
+  type TaskExecutionContext,
+} from '@/services/taskExecutionLaunchService'
+import { generateUrgentAlerts, getDailyGardenPlan } from '@/logic/director'
+import type { UrgentAlert } from '@/types'
 
 // ============================================================================
 // TYPES
@@ -133,6 +151,72 @@ export interface DailyBriefing {
   }
 }
 
+export type DirectorScopeDescriptor = AgronomicScopeDescriptor
+
+export interface DirectorPlannerQueueContext {
+  gardenId: string
+  date: Date
+  queue: AgronomicActionQueueItem[]
+  criticalActions: PrioritizedAction[]
+  recommendations: string[]
+  environmentalSummary?: DailyBriefing['environmentalSummary']
+  stats: DailyBriefing['stats']
+}
+
+export interface DirectorChatContext {
+  scope: DirectorScopeDescriptor
+  currentPriorities: Array<{
+    id: string
+    title: string
+    focus: AgronomicPriorityFocus
+    urgencyLabel: AgronomicActionQueueItem['urgencyLabel']
+    priorityScore: number
+    scopeLabel?: string
+  }>
+  criticalActions: Array<Pick<PrioritizedAction, 'id' | 'title' | 'type' | 'priorityScore' | 'reasoning'>>
+  missingSignals: AgronomicSignalKey[]
+  routingHints: Array<{
+    queueItemId: string
+    suggestedAction: string
+    route?: string
+  }>
+  decisionExplanations: Array<{
+    queueItemId: string
+    explanation: AgronomicDecisionExplanation
+  }>
+}
+
+export interface DirectorHealthSupportContext {
+  gardenId: string
+  insights: HealthScopeInsight[]
+  queueItems: AgronomicActionQueueItem[]
+}
+
+export interface DirectorExecutionLaunchContext {
+  gardenId: string
+  tasks: Array<{
+    taskId: string
+    taskType: string
+    plantName: string
+    url: string
+    context: TaskExecutionContext
+  }>
+}
+
+export interface DirectorDecisionMemoryContext {
+  gardenId: string
+  summary: AgronomicDecisionLedgerSummary
+  entries: AgronomicDecisionLedgerEntry[]
+}
+
+export interface DirectorFieldRowInsights {
+  scope: DirectorScopeDescriptor
+  lifecyclePhase: string
+  seasonalAdvice: string[]
+  lunarTiming: string
+  weatherAlerts: string[]
+}
+
 // ============================================================================
 // DIRECTOR SERVICE
 // ============================================================================
@@ -179,11 +263,14 @@ class DirectorService {
       ])
       
       // 2. Ottieni suggerimenti AI attivi
-      const suggestions = await collaborativeAIService.getActiveSuggestions(userId, gardenId)
+      const [suggestions, gardenForContext] = await Promise.all([
+        collaborativeAIService.getActiveSuggestions(userId, gardenId),
+        resolveGardenContext(this.getStorageProvider(), gardenId).then((resolved) => resolved?.garden || null),
+      ])
       
       // 3. Converti in azioni e prioritizza con contratto agronomico condiviso
       const actions = suggestions
-        .map((suggestion) => this.suggestionToAction(suggestion))
+        .map((suggestion) => this.suggestionToAction(suggestion, gardenForContext))
         .sort((left, right) => right.priorityScore - left.priorityScore)
       const transversalQueue = await this.buildTransversalQueue(userId, gardenId, actions)
       
@@ -263,6 +350,205 @@ class DirectorService {
       throw error
     }
   }
+
+  async getPlannerQueueContext(
+    userId: string,
+    gardenId: string
+  ): Promise<DirectorPlannerQueueContext> {
+    const briefing = await this.getDailyBriefing(userId, gardenId)
+
+    return {
+      gardenId,
+      date: briefing.date,
+      queue: briefing.transversalQueue,
+      criticalActions: briefing.criticalActions,
+      recommendations: briefing.recommendations,
+      environmentalSummary: briefing.environmentalSummary,
+      stats: briefing.stats,
+    }
+  }
+
+  async getChatContext(userId: string, gardenId: string): Promise<DirectorChatContext> {
+    const briefing = await this.getDailyBriefing(userId, gardenId)
+    const missingSignals = Array.from(
+      new Set(briefing.transversalQueue.flatMap((item) => item.missingSignals || []))
+    )
+
+    return {
+      scope: {
+        primaryScope: 'site',
+        gardenId,
+        gardenName: briefing.gardenName,
+      },
+      currentPriorities: briefing.transversalQueue.slice(0, 5).map((item) => ({
+        id: item.id,
+        title: item.title,
+        focus: item.focus,
+        urgencyLabel: item.urgencyLabel,
+        priorityScore: item.priorityScore,
+        scopeLabel: item.scopeLabel,
+      })),
+      criticalActions: briefing.criticalActions.slice(0, 5).map((action) => ({
+        id: action.id,
+        title: action.title,
+        type: action.type,
+        priorityScore: action.priorityScore,
+        reasoning: action.reasoning,
+      })),
+      missingSignals,
+      routingHints: briefing.transversalQueue.slice(0, 5).map((item) => ({
+        queueItemId: item.id,
+        suggestedAction: item.urgencyLabel === 'immediate' ? 'review-now' : 'review-in-planner',
+        route: '/app/planner',
+      })),
+      decisionExplanations: briefing.transversalQueue
+        .filter((item) => item.metadata?.decisionExplanation)
+        .slice(0, 5)
+        .map((item) => ({
+          queueItemId: item.id,
+          explanation: item.metadata!.decisionExplanation as AgronomicDecisionExplanation,
+        })),
+    }
+  }
+
+  async getHealthSupportContext(
+    userId: string,
+    gardenId: string
+  ): Promise<DirectorHealthSupportContext> {
+    const storageProvider = this.getStorageProvider()
+    const [resolvedGardenContext, tasks, briefing] = await Promise.all([
+      resolveGardenContext(storageProvider, gardenId),
+      storageProvider.getTasks(gardenId).catch(() => []),
+      this.getDailyBriefing(userId, gardenId),
+    ])
+    const insights = resolvedGardenContext?.garden
+      ? await getHealthScopeInsights(resolvedGardenContext.garden, tasks, storageProvider).catch(() => [])
+      : []
+
+    return {
+      gardenId,
+      insights,
+      queueItems: briefing.transversalQueue.filter(
+        (item) => item.source === 'health' || item.focus === 'health'
+      ),
+    }
+  }
+
+  async getExecutionLaunchContext(gardenId: string): Promise<DirectorExecutionLaunchContext> {
+    const storageProvider = this.getStorageProvider()
+    const tasks = await storageProvider.getTasks(gardenId).catch(() => [])
+
+    return {
+      gardenId,
+      tasks: tasks.filter((task) => !task.completed).reduce<DirectorExecutionLaunchContext['tasks']>(
+        (launchTasks, task) => {
+          const url = buildTaskExecutionUrl(task)
+          if (!url) {
+            return launchTasks
+          }
+
+          const route = url.startsWith('/app/nutrition')
+            ? 'nutrition'
+            : url.startsWith('/app/irrigation')
+              ? 'irrigation'
+              : url.startsWith('/app/harvest')
+                ? 'harvest'
+                : 'mechanical-work'
+
+          launchTasks.push({
+            taskId: task.id,
+            taskType: String(task.taskType),
+            plantName: task.plantName,
+            url,
+            context: {
+              route,
+              sourceTaskId: task.id,
+              taskType: task.taskType,
+              plantName: task.plantName,
+              zoneId: task.zoneId,
+              rowId: task.rowId,
+              rowNumber: typeof task.rowNumber === 'number' ? String(task.rowNumber) : undefined,
+              date: task.nextDueDate || task.date,
+            },
+          })
+
+          return launchTasks
+        },
+        []
+      ),
+    }
+  }
+
+  async getDecisionMemoryContext(gardenId: string): Promise<DirectorDecisionMemoryContext> {
+    const storageProvider = this.getStorageProvider()
+    const [summary, entries] = await Promise.all([
+      getAgronomicDecisionLedgerSummary(storageProvider, gardenId),
+      getAgronomicDecisionLedgerEntries(storageProvider, gardenId, { limit: 10 }),
+    ])
+
+    return {
+      gardenId,
+      summary,
+      entries,
+    }
+  }
+
+  async getLegacyDailyPlanBridge(
+    ...args: Parameters<typeof getDailyGardenPlan>
+  ): ReturnType<typeof getDailyGardenPlan> {
+    return getDailyGardenPlan(...args)
+  }
+
+  async getUrgentWeatherAlerts(garden: Garden, currentDate: Date = new Date()): Promise<UrgentAlert[]> {
+    return generateUrgentAlerts(garden, currentDate)
+  }
+
+  async getFieldRowDirectorInsights(input: {
+    garden: Garden
+    tasks: GardenTask[]
+    fieldRow: {
+      id: string
+      name?: string
+      zoneId?: string
+      cultivar?: string
+    }
+    currentDate?: Date
+    storageProvider?: unknown
+  }): Promise<DirectorFieldRowInsights> {
+    const dailyPlan = await this.getLegacyDailyPlanBridge(
+      input.garden,
+      input.tasks,
+      input.currentDate || new Date(),
+      undefined,
+      undefined,
+      undefined,
+      input.storageProvider
+    )
+    const cultivar = input.fieldRow.cultivar?.toLowerCase()
+    const relevantLifecycleTasks = (dailyPlan.lifecycleTasks || []).filter((task) =>
+      cultivar ? task.plantName?.toLowerCase().includes(cultivar) : false
+    )
+
+    return {
+      scope: {
+        primaryScope: 'row',
+        gardenId: input.garden.id,
+        gardenName: input.garden.name,
+        zoneId: input.fieldRow.zoneId,
+        rowId: input.fieldRow.id,
+        fieldRowId: input.fieldRow.id,
+        rowName: input.fieldRow.name,
+        plantName: input.fieldRow.cultivar,
+      },
+      lifecyclePhase:
+        relevantLifecycleTasks.length > 0 ? relevantLifecycleTasks[0].phase : 'Fase non determinata',
+      seasonalAdvice: (dailyPlan.baselinePrompts || []).slice(0, 3).map((prompt) => prompt.title),
+      lunarTiming: dailyPlan.lunarAdvice
+        ? `${dailyPlan.lunarAdvice.phaseName}: ${dailyPlan.lunarAdvice.advice}`
+        : 'Informazioni lunari non disponibili',
+      weatherAlerts: (dailyPlan.climateWarnings || []).slice(0, 2).map((warning) => warning.message),
+    }
+  }
   
   // --------------------------------------------------------------------------
   // PRIORITIZATION
@@ -290,7 +576,7 @@ class DirectorService {
   /**
    * Converti suggerimento AI in azione prioritizzata
    */
-  private suggestionToAction(suggestion: AISuggestion): PrioritizedAction {
+  private suggestionToAction(suggestion: AISuggestion, garden?: Garden | null): PrioritizedAction {
     // Calcola score basato su priorità, confidenza e copertura agronomica
     const priorityScores = { CRITICAL: 100, HIGH: 75, MEDIUM: 50, LOW: 25 }
     const baseScore = priorityScores[suggestion.action_priority] || 50
@@ -315,7 +601,17 @@ class DirectorService {
         suggestion.metadata?.plantName,
         suggestion.metadata?.cropName,
         suggestion.metadata?.gardenType,
+        garden?.name,
+        garden?.primaryCrop?.canonicalPlantName,
+        garden?.primaryCrop?.label,
+        garden?.primaryCrop?.cropType,
+        garden?.gardenType,
+        garden?.soilType,
+        garden?.sunExposure,
+        garden?.aspectDirection,
+        garden?.windProtection,
       ],
+      cultivarId: suggestion.metadata?.cultivarId || suggestion.metadata?.varietyId,
       cultivarLabel:
         suggestion.metadata?.cultivar ||
         suggestion.metadata?.variety ||
@@ -325,16 +621,21 @@ class DirectorService {
         suggestion.metadata?.cropName ||
         suggestion.context,
       productionIntent: suggestion.metadata?.varietyType,
-      gardenType: suggestion.metadata?.gardenType,
+      gardenType: suggestion.metadata?.gardenType || garden?.gardenType,
       cultivationSystem: suggestion.metadata?.cultivationSystem,
       irrigationMode: suggestion.metadata?.irrigationMode,
       trainingSystem: suggestion.metadata?.trainingSystem,
       rootstock: suggestion.metadata?.rootstock,
-      altitudeMeters: suggestion.metadata?.altitudeMeters,
+      altitudeMeters: suggestion.metadata?.altitudeMeters ?? garden?.altitudeMeters,
       slopePercentage: suggestion.metadata?.slopePercentage,
-      sunExposure: suggestion.metadata?.sunExposure,
-      soilType: suggestion.metadata?.soilType,
+      dailySunHours: garden?.dailySunHours,
+      sunExposure: suggestion.metadata?.sunExposure || garden?.sunExposure,
+      aspectDirection: garden?.aspectDirection,
+      windProtection: garden?.windProtection,
+      soilType: suggestion.metadata?.soilType || garden?.soilType,
+      soilPh: garden?.soilPh,
       terroir: suggestion.metadata?.terroir,
+      shadowObstaclesCount: Array.isArray(garden?.obstacles) ? garden.obstacles.length : undefined,
     })
     const operationalContextTags = refinedContextResult.operationalContextTags
     const economicSummary = buildAgronomicEconomicPrioritySummary({
@@ -344,6 +645,7 @@ class DirectorService {
       priorityConfidence: suggestion.confidence_score || suggestion.prediction_data?.confidence || 0.5,
       agronomicProfileId: resolvedAgronomicProfile?.profile.id,
       operationalContextTags,
+      refinedContext: refinedContextResult.refinedContext,
       cropNameHint:
         suggestion.metadata?.plantName ||
         suggestion.metadata?.cropName ||
@@ -357,6 +659,7 @@ class DirectorService {
       focus: agronomicFocus,
       availableSignals: this.getAvailableSignalsFromSuggestion(suggestion),
       economicSummary,
+      refinedContext: refinedContextResult.refinedContext,
     })
     const decisionExplanation = buildAgronomicDecisionExplanation({
       source: 'director',
@@ -643,6 +946,36 @@ class DirectorService {
       normalizedStageKey.includes('fruit') ||
       normalizedStageKey.includes('harvest') ||
       normalizedStageKey.includes('grain')
+    const resolvedAgronomicProfile = resolveAgronomicPriorityProfileSync({
+      hints: [
+        dominantCropName,
+        phenology.scopeLabel,
+        garden.primaryCrop?.canonicalPlantName,
+        garden.primaryCrop?.label,
+        garden.primaryCrop?.cropType,
+        garden.gardenType,
+      ],
+      fallbackProfileId: phenology.profileId,
+    })
+    const refinedContextResult = buildAgronomicRefinedContext({
+      cropProfile: resolvedAgronomicProfile?.profile,
+      textValues: [
+        dominantCropName,
+        phenology.scopeLabel,
+        garden.primaryCrop?.canonicalPlantName,
+        garden.primaryCrop?.label,
+        garden.primaryCrop?.cropType,
+        garden.gardenType,
+      ],
+      speciesLabel:
+        dominantCropName ||
+        garden.primaryCrop?.canonicalPlantName ||
+        garden.primaryCrop?.label,
+      gardenType: garden.gardenType,
+      altitudeMeters: garden.altitudeMeters,
+      sunExposure: garden.sunExposure,
+      soilType: garden.soilType,
+    })
 
     return {
       id: `${garden.id}:${phenology.stageKey}`,
@@ -661,6 +994,7 @@ class DirectorService {
           ? (['phenology_observation'] satisfies AgronomicSignalKey[])
           : [],
       isDecisionCriticalStage,
+      refinedContext: refinedContextResult.refinedContext,
     }
   }
 
@@ -822,12 +1156,15 @@ class DirectorService {
    * Ottieni azioni urgenti (CRITICAL + HIGH)
    */
   async getUrgentActions(userId: string, gardenId?: string): Promise<PrioritizedAction[]> {
-    const suggestions = await collaborativeAIService.getActiveSuggestions(userId, gardenId)
+    const [suggestions, gardenForContext] = await Promise.all([
+      collaborativeAIService.getActiveSuggestions(userId, gardenId),
+      gardenId ? this.getStorageProvider().getGarden(gardenId).catch(() => null) : Promise.resolve(null),
+    ])
     const prioritized = await this.prioritizeSuggestions(suggestions)
     
     return prioritized
       .filter(s => s.action_priority === 'CRITICAL' || s.action_priority === 'HIGH')
-      .map(s => this.suggestionToAction(s))
+      .map(s => this.suggestionToAction(s, gardenForContext))
       .slice(0, 10)
   }
   
@@ -835,10 +1172,13 @@ class DirectorService {
    * Ottieni tutte le azioni prioritizzate
    */
   async getAllPrioritizedActions(userId: string, gardenId?: string): Promise<PrioritizedAction[]> {
-    const suggestions = await collaborativeAIService.getActiveSuggestions(userId, gardenId)
+    const [suggestions, gardenForContext] = await Promise.all([
+      collaborativeAIService.getActiveSuggestions(userId, gardenId),
+      gardenId ? this.getStorageProvider().getGarden(gardenId).catch(() => null) : Promise.resolve(null),
+    ])
     const prioritized = await this.prioritizeSuggestions(suggestions)
     
-    return prioritized.map(s => this.suggestionToAction(s))
+    return prioritized.map(s => this.suggestionToAction(s, gardenForContext))
   }
 }
 

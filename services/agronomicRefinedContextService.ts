@@ -37,9 +37,14 @@ export interface BuildAgronomicRefinedContextInput {
   rootstock?: string | null
   altitudeMeters?: number | null
   slopePercentage?: number | null
+  dailySunHours?: number | null
   sunExposure?: string | null
+  aspectDirection?: string | null
+  windProtection?: string | null
   soilType?: string | null
+  soilPh?: number | null
   terroir?: string | null
+  shadowObstaclesCount?: number | null
   siteTags?: Array<string | null | undefined> | null
 }
 
@@ -85,18 +90,43 @@ const normalizeProductionIntent = (
   textValues: Array<string | null | undefined> = []
 ): AgronomicProductionIntent | undefined => {
   const normalizedValue = normalizeKey(value)
+  const haystack = textValues
+    .map((entry) => normalizeKey(entry))
+    .filter((entry): entry is string => Boolean(entry))
+    .join(' ')
+  const referencesVine =
+    haystack.includes('vite') ||
+    haystack.includes('uva') ||
+    haystack.includes('grape') ||
+    haystack.includes('vineyard') ||
+    haystack.includes('vigneto')
+  const referencesOlive =
+    haystack.includes('olivo') ||
+    haystack.includes('oliva') ||
+    haystack.includes('olive') ||
+    haystack.includes('oliveto')
 
   switch (normalizedValue) {
     case 'wine':
+    case 'wine type':
     case 'wine_grape':
+    case 'wine grape':
+    case 'vino':
       return 'wine'
+    case 'table':
     case 'table_grape':
     case 'table grape':
+      return referencesOlive ? 'table_olive' : 'table_grape'
+    case 'raisin':
       return 'table_grape'
     case 'oil':
+    case 'oil type':
     case 'oil_cultivar':
     case 'olive oil':
       return 'oil'
+    case 'dual-purpose':
+    case 'dual purpose':
+      return referencesOlive ? 'oil' : undefined
     case 'table_olive':
     case 'table olive':
       return 'table_olive'
@@ -121,11 +151,6 @@ const normalizeProductionIntent = (
   if (operationalContextTags.includes('table_olive')) {
     return 'table_olive'
   }
-
-  const haystack = textValues
-    .map((value) => normalizeKey(value))
-    .filter((value): value is string => Boolean(value))
-    .join(' ')
 
   if (haystack.includes('vinificazione') || haystack.includes('uva da vino')) {
     return 'wine'
@@ -155,6 +180,7 @@ const normalizeSystemType = (
 
   switch (normalizedValue) {
     case 'open_field':
+    case 'openfield':
     case 'open field':
     case 'campo aperto':
       return 'open_field'
@@ -339,8 +365,11 @@ export const normalizeCultivarContext = (
     input.cropVariety,
     input.variety,
   ])[0]
+  const normalizedCultivarId =
+    normalizeKey(input.cultivarId)?.replace(/\s+/g, '_') ||
+    normalizeKey(cultivarLabel)?.replace(/\s+/g, '_')
   const cultivarContext: CultivarContext = {
-    cultivarId: normalizeKey(input.cultivarId)?.replace(/\s+/g, '_'),
+    cultivarId: normalizedCultivarId,
     cultivarLabel,
     speciesLabel: normalizeToken(input.speciesLabel),
     productionIntent: normalizeProductionIntent(
@@ -392,7 +421,19 @@ export const resolveSubSystemContext = (
 export const resolveSiteOperationalProfile = (
   input: Pick<
     BuildAgronomicRefinedContextInput,
-    'operationalContextTags' | 'textValues' | 'altitudeMeters' | 'slopePercentage' | 'sunExposure' | 'soilType' | 'terroir' | 'siteTags'
+    | 'operationalContextTags'
+    | 'textValues'
+    | 'altitudeMeters'
+    | 'slopePercentage'
+    | 'dailySunHours'
+    | 'sunExposure'
+    | 'aspectDirection'
+    | 'windProtection'
+    | 'soilType'
+    | 'soilPh'
+    | 'terroir'
+    | 'shadowObstaclesCount'
+    | 'siteTags'
   >
 ): SiteOperationalProfile | undefined => {
   const operationalContextTags = mergeOperationalContextTags(
@@ -412,8 +453,14 @@ export const resolveSiteOperationalProfile = (
   const siteOperationalProfile: SiteOperationalProfile = {
     altitudeMeters: toFiniteNumber(input.altitudeMeters),
     slopePercentage: toFiniteNumber(input.slopePercentage),
+    dailySunHours: toFiniteNumber(input.dailySunHours),
     sunExposure: normalizeToken(input.sunExposure),
+    aspectDirection: normalizeToken(input.aspectDirection),
+    windProtection: normalizeToken(input.windProtection),
     soilType: normalizeToken(input.soilType),
+    soilPh: toFiniteNumber(input.soilPh),
+    terroir: normalizeToken(input.terroir),
+    shadowObstaclesCount: toFiniteNumber(input.shadowObstaclesCount),
     exposureClass: resolveSiteExposureClass({
       sunExposure: input.sunExposure,
       operationalContextTags,
@@ -544,9 +591,14 @@ export const buildAgronomicRefinedContext = (
     textValues: input.textValues,
     altitudeMeters: input.altitudeMeters,
     slopePercentage: input.slopePercentage,
+    dailySunHours: input.dailySunHours,
     sunExposure: input.sunExposure,
+    aspectDirection: input.aspectDirection,
+    windProtection: input.windProtection,
     soilType: input.soilType,
+    soilPh: input.soilPh,
     terroir: input.terroir,
+    shadowObstaclesCount: input.shadowObstaclesCount,
     siteTags: input.siteTags,
   })
   if (siteOperationalProfile) {

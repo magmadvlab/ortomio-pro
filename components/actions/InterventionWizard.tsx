@@ -487,10 +487,10 @@ export default function InterventionWizard({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={onClose} ariaLabelledBy="intervention-wizard-title">
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center">
+          <DialogTitle id="intervention-wizard-title" className="flex items-center">
             <MapPin className="w-5 h-5 mr-2" />
             Crea {actionLabels[actionType]}
           </DialogTitle>

@@ -116,6 +116,14 @@ export interface PrescriptionZone {
     plantCount?: number;
     avgPlantHealth?: number;
     soilType?: string;
+    soilPh?: number;
+    dailySunHours?: number;
+    sunExposure?: string;
+    aspectDirection?: string;
+    windProtection?: string;
+    shadowObstaclesCount?: number;
+    altitudeMeters?: number;
+    slopePercentage?: number;
     irrigationHistory?: number;
     yieldHistory?: number;
   };

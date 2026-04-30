@@ -132,6 +132,14 @@ test('buildAgronomicQueueTaskOperationalSummary classifies readiness and context
       siteOperationalProfile: {
         terroir: 'collina_calcarea',
         soilType: 'franco_argilloso',
+        altitudeMeters: 740,
+        soilPh: 7.4,
+        dailySunHours: 6.2,
+        aspectDirection: 'South',
+        windProtection: 'Low',
+        shadowObstaclesCount: 2,
+        exposureClass: 'exposed',
+        slopeClass: 'steep',
       },
     },
     contextRationale: ['Terroir collinare con disponibilita idrica limitata.'],
@@ -166,6 +174,14 @@ test('buildAgronomicQueueTaskOperationalSummary classifies readiness and context
   assert.match(summary?.confidenceLabel || '', /58%/)
   assert.equal(summary?.contextLabels.includes('Cultivar Coratina'), true)
   assert.equal(summary?.contextLabels.includes('Target Olio'), true)
+  assert.equal(summary?.contextLabels.includes('Sito esposto'), true)
+  assert.equal(summary?.contextLabels.includes('Pendenza forte'), true)
+  assert.equal(summary?.contextLabels.includes('Quota 740 m'), true)
+  assert.equal(summary?.contextLabels.includes('pH 7.4'), true)
+  assert.equal(summary?.contextLabels.includes('Sole 6.2 h'), true)
+  assert.equal(summary?.contextLabels.includes('Orientamento South'), true)
+  assert.equal(summary?.contextLabels.includes('Vento Low'), true)
+  assert.equal(summary?.contextLabels.includes('Ombre 2'), true)
   assert.equal(summary?.mobileActionLabel, 'Esegui guidato')
   assert.equal(summary?.mobileEvidencePrompt, 'Registra prodotto e dose + area trattata')
   assert.deepEqual(summary?.evidenceLabels, ['prodotto e dose', 'area trattata', 'note risposta coltura'])

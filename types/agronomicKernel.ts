@@ -24,6 +24,22 @@ export type AgronomicPrimaryScope =
   | 'reservoir'
   | 'loop';
 
+export interface AgronomicScopeDescriptor {
+  primaryScope: AgronomicPrimaryScope;
+  gardenId: string;
+  gardenName?: string;
+  zoneId?: string;
+  zoneName?: string;
+  rowId?: string;
+  rowName?: string;
+  rowNumber?: string;
+  fieldRowId?: string;
+  treeId?: string;
+  plantId?: string;
+  plantName?: string;
+  scopeLabel?: string;
+}
+
 export type AgronomicLifecycle =
   | 'annual'
   | 'biennial'
@@ -215,9 +231,14 @@ export interface SubSystemContext {
 export interface SiteOperationalProfile {
   altitudeMeters?: number;
   slopePercentage?: number;
+  dailySunHours?: number;
   sunExposure?: string;
+  aspectDirection?: string;
+  windProtection?: string;
   soilType?: string;
+  soilPh?: number;
   terroir?: string;
+  shadowObstaclesCount?: number;
   exposureClass?: AgronomicSiteExposureClass;
   slopeClass?: AgronomicSiteSlopeClass;
   siteTags?: AgronomicOperationalContextTag[];

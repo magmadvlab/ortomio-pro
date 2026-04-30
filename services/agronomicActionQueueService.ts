@@ -16,8 +16,9 @@ import {
   type AgronomicMeasuredFeedbackRecord,
   type AgronomicMeasuredFeedbackSummary,
 } from '@/services/agronomicMeasuredFeedbackService'
+import { buildAgronomicRefinedContext } from '@/services/agronomicRefinedContextService'
 import type { ZoneEnvironmentalHistorySummary } from '@/services/environmentalMonitoringService'
-import type { AgronomicSignalKey } from '@/types/agronomicKernel'
+import type { AgronomicRefinedContext, AgronomicSignalKey } from '@/types/agronomicKernel'
 import type { HealthAlert } from '@/services/plantHealthMonitoringService'
 import type { EfficiencyReport } from '@/types/irrigation'
 import type {
@@ -38,6 +39,7 @@ export interface AgronomicPhenologyQueueCandidate {
   cropNameHint?: string
   availableSignals?: AgronomicSignalKey[]
   isDecisionCriticalStage?: boolean
+  refinedContext?: AgronomicRefinedContext | null
 }
 
 export interface AgronomicActionQueueItem {
@@ -105,6 +107,12 @@ const getActionComparison = (
   economicSummary?: AgronomicEconomicPrioritySummary | null
 ): AgronomicActionComparisonSummary | null => economicSummary?.actionComparison || null
 
+const resolveQueueRefinedContext = (
+  refinedContext?: AgronomicRefinedContext | null,
+  decisionExplanation?: { refinedContext?: AgronomicRefinedContext | null } | null
+): AgronomicRefinedContext | null =>
+  refinedContext || decisionExplanation?.refinedContext || null
+
 const summarizeFeedbackForQueueItem = (
   records: AgronomicMeasuredFeedbackRecord[] | undefined,
   focus: AgronomicPriorityFocus,
@@ -160,6 +168,11 @@ const toHealthQueueItems = (
     const resolvedAgronomicProfile = resolveAgronomicPriorityProfileSync({
       hints: [alert.plantName, ...alert.triggers],
     })
+    const refinedContextResult = buildAgronomicRefinedContext({
+      cropProfile: resolvedAgronomicProfile?.profile,
+      textValues: [alert.plantName, ...alert.triggers],
+      speciesLabel: alert.plantName,
+    })
     const availableSignals = inferHealthAlertSignals(alert)
     const economicSummary = buildHealthEconomicSummary(alert)
     const measuredFeedbackSummary = summarizeFeedbackForQueueItem(
@@ -176,6 +189,7 @@ const toHealthQueueItems = (
       isCriticalStage: false,
       measuredFeedbackSummary,
       economicSummary,
+      refinedContext: refinedContextResult.refinedContext,
     })
     const decisionExplanation = buildAgronomicDecisionExplanation({
       source: 'health',
@@ -187,7 +201,12 @@ const toHealthQueueItems = (
       resolvedProfile: resolvedAgronomicProfile,
       availableSignals,
       isCriticalStage: alert.severity === 'critical' || alert.type === 'harvest_timing',
+      refinedContext: refinedContextResult.refinedContext,
     })
+    const refinedContext = resolveQueueRefinedContext(
+      refinedContextResult.refinedContext,
+      decisionExplanation
+    )
 
     return {
       id: `health:${alert.id}`,
@@ -205,6 +224,7 @@ const toHealthQueueItems = (
         severity: alert.severity,
         type: alert.type,
         triggers: alert.triggers,
+        refinedContext,
         decisionExplanation,
         measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
         economicSummary: priorityResult.economicSummary,
@@ -238,6 +258,7 @@ const toIrrigationQueueItems = (
       agronomicProfileId: report.agronomicProfileId,
       cropNameHint: report.zoneName,
       operationalContextTags: report.operationalContextTags,
+      refinedContext: report.refinedContext || report.decisionExplanation?.refinedContext,
       averageEfficiency: report.averageEfficiency,
       uniformityCoefficient: report.uniformityCoefficient,
       waterUseEfficiency: report.waterUseEfficiency,
@@ -251,7 +272,12 @@ const toIrrigationQueueItems = (
       measuredFeedbackSummary,
       environmentalSummary,
       economicSummary,
+      refinedContext: report.refinedContext || report.decisionExplanation?.refinedContext,
     })
+    const refinedContext = resolveQueueRefinedContext(
+      report.refinedContext,
+      report.decisionExplanation
+    )
 
     return {
       id: `irrigation:${report.zoneId}:${report.period}`,
@@ -270,6 +296,7 @@ const toIrrigationQueueItems = (
         uniformityCoefficient: report.uniformityCoefficient,
         waterUseEfficiency: report.waterUseEfficiency,
         period: report.period,
+        refinedContext,
         decisionExplanation: report.decisionExplanation,
         measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
         economicSummary: priorityResult.economicSummary,
@@ -312,6 +339,7 @@ const toPrescriptionQueueItems = (
       agronomicProfileId: priority.agronomicProfileId,
       cropNameHint: summary.benchmarkCropLabel,
       operationalContextTags: priority.operationalContextTags,
+      refinedContext: priority.refinedContext,
       efficacyScore: priority.efficacyScore,
       observationSummary,
       environmentalSummary,
@@ -323,6 +351,7 @@ const toPrescriptionQueueItems = (
       measuredFeedbackSummary,
       environmentalSummary,
       economicSummary,
+      refinedContext: priority.refinedContext,
     })
 
     return {
@@ -376,6 +405,7 @@ const toDirectorQueueItems = (
         priorityConfidence: action.priorityConfidence ?? action.confidence ?? 0.55,
         agronomicProfileId: action.agronomicProfileId,
         operationalContextTags: action.operationalContextTags,
+        refinedContext: action.refinedContext,
         cropNameHint: action.title,
         interventionCost: action.cost,
         observationSummary,
@@ -386,6 +416,7 @@ const toDirectorQueueItems = (
       focus,
       measuredFeedbackSummary,
       economicSummary,
+      refinedContext: action.refinedContext,
     })
 
     return {
@@ -439,6 +470,7 @@ const toPhenologyQueueItems = (
       urgencyLabel: candidate.isDecisionCriticalStage ? 'immediate' : 'next_cycle',
       agronomicProfileId: candidate.profileId,
       cropNameHint: candidate.cropNameHint || candidate.scopeLabel,
+      refinedContext: candidate.refinedContext,
       isCriticalStage: candidate.isDecisionCriticalStage,
       interventionCost: candidate.source === 'observation' ? 8 : 12,
       qualityScoreGap: candidate.isDecisionCriticalStage ? 10 : 4,
@@ -453,6 +485,7 @@ const toPhenologyQueueItems = (
       isCriticalStage: candidate.isDecisionCriticalStage,
       measuredFeedbackSummary,
       economicSummary,
+      refinedContext: candidate.refinedContext,
     })
     const decisionExplanation = buildAgronomicDecisionExplanation({
       source: 'phenology',
@@ -464,7 +497,12 @@ const toPhenologyQueueItems = (
       resolvedProfile: resolvedAgronomicProfile,
       availableSignals: candidate.availableSignals || [],
       isCriticalStage: candidate.isDecisionCriticalStage,
+      refinedContext: candidate.refinedContext,
     })
+    const refinedContext = resolveQueueRefinedContext(
+      candidate.refinedContext,
+      decisionExplanation
+    )
 
     return {
       id: `phenology:${candidate.id}`,
@@ -487,6 +525,7 @@ const toPhenologyQueueItems = (
         stageKey: candidate.stageKey,
         stageLabel: candidate.stageLabel,
         source: candidate.source,
+        refinedContext,
         decisionExplanation,
         measuredFeedbackRationale: priorityResult.measuredFeedbackSummary?.rationale,
         economicSummary: priorityResult.economicSummary,

@@ -1,5 +1,6 @@
 import type {
   AgronomicOperationalContextTag,
+  AgronomicRefinedContext,
   AgronomicSignalKey,
 } from './agronomicKernel'
 import type { AgronomicDecisionExplanation } from '@/services/agronomicDecisionExplanationService'
@@ -595,6 +596,7 @@ export interface EfficiencyReport {
   priorityScore?: number
   priorityConfidence?: number
   missingSignals?: AgronomicSignalKey[]
+  refinedContext?: AgronomicRefinedContext | null
   decisionExplanation?: AgronomicDecisionExplanation
 }
 

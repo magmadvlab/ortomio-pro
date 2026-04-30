@@ -12,6 +12,7 @@ export interface TaskExecutionBannerDetails {
   sourceTask: GardenTask
   visibleNotes?: string
   operationalSummary: AgronomicQueueTaskOperationalSummary | null
+  mobileSummaryChips: string[]
 }
 
 export async function loadTaskExecutionBannerDetails(
@@ -34,8 +35,23 @@ export async function loadTaskExecutionBannerDetails(
       sourceTask,
       visibleNotes: visibleNotes || undefined,
       operationalSummary: buildAgronomicQueueTaskOperationalSummary(sourceTask),
+      mobileSummaryChips: buildTaskExecutionMobileSummaryChips(sourceTask),
     }
   } catch {
     return null
   }
+}
+
+function buildTaskExecutionMobileSummaryChips(task: GardenTask): string[] {
+  const operationalSummary = buildAgronomicQueueTaskOperationalSummary(task)
+  if (!operationalSummary) {
+    return []
+  }
+
+  return [
+    operationalSummary.mobileActionLabel,
+    operationalSummary.focusLabel,
+    operationalSummary.urgencyLabel,
+    operationalSummary.mobileEvidencePrompt,
+  ].filter((value, index, items) => Boolean(value) && items.indexOf(value) === index)
 }

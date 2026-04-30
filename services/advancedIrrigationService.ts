@@ -39,6 +39,7 @@ import {
   inferOperationalContextTagsFromSite,
   mergeOperationalContextTags,
 } from '@/services/agronomicOperationalContextService'
+import { buildAgronomicRefinedContext } from '@/services/agronomicRefinedContextService'
 import {
   resolveAgronomicPriorityProfileSync,
   scoreAgronomicPriority,
@@ -907,7 +908,7 @@ class AdvancedIrrigationService {
       // Get zone info
       const { data: zone, error: zoneError } = await supabase
         .from('irrigation_zones')
-        .select('name, description, garden_id, slope_percentage, sun_exposure')
+        .select('name, description, garden_id, slope_percentage, sun_exposure, soil_type, ph_level')
         .eq('id', zoneId)
         .single()
 
@@ -988,6 +989,11 @@ class AdvancedIrrigationService {
       }
 
       const systems = await this.getIrrigationSystems(zoneId).catch(() => [])
+      const { data: gardenProfile } = await supabase
+        .from('gardens')
+        .select('garden_type, soil_type, soil_ph, daily_sun_hours, sun_exposure, aspect_direction, wind_protection')
+        .eq('id', zone.garden_id)
+        .maybeSingle()
       const operationalContextTags = mergeOperationalContextTags(
         inferOperationalContextTagsFromIrrigationSystems(systems),
         inferOperationalContextTagsFromSite({
@@ -1017,6 +1023,19 @@ class AdvancedIrrigationService {
           : resolveAgronomicPriorityProfileSync({
               hints: [zone.name, zone.description],
             })) || null
+      const refinedContextResult = buildAgronomicRefinedContext({
+        cropProfile: resolvedAgronomicProfile?.profile,
+        operationalContextTags,
+        textValues: [zone.name, zone.description, gardenProfile?.garden_type, gardenProfile?.soil_type],
+        gardenType: gardenProfile?.garden_type,
+        slopePercentage: zone.slope_percentage,
+        sunExposure: zone.sun_exposure || gardenProfile?.sun_exposure,
+        soilType: zone.soil_type || gardenProfile?.soil_type,
+        soilPh: zone.ph_level ?? gardenProfile?.soil_ph,
+        dailySunHours: gardenProfile?.daily_sun_hours,
+        aspectDirection: gardenProfile?.aspect_direction,
+        windProtection: gardenProfile?.wind_protection,
+      })
       const availableSignals = this.getAvailableWaterSignalsFromEfficiencyLogs(irrigationLogs)
       const priorityResult = scoreAgronomicPriority({
         baseScore: this.calculateIrrigationRecommendationPriorityBaseScore(
@@ -1028,6 +1047,7 @@ class AdvancedIrrigationService {
         resolvedProfile: resolvedAgronomicProfile,
         focus: 'water',
         availableSignals,
+        refinedContext: refinedContextResult.refinedContext,
       })
       const decisionExplanation = buildAgronomicDecisionExplanation({
         source: 'irrigation',
@@ -1036,6 +1056,7 @@ class AdvancedIrrigationService {
         urgencyLabel: resolveAgronomicDecisionUrgencyLabel(priorityResult.score),
         resolvedProfile: resolvedAgronomicProfile,
         availableSignals,
+        refinedContext: refinedContextResult.refinedContext,
       })
 
       return {
@@ -1047,10 +1068,11 @@ class AdvancedIrrigationService {
         waterUseEfficiency,
         recommendations,
         agronomicProfileId: resolvedAgronomicProfile?.profile.id,
-        operationalContextTags,
+        operationalContextTags: refinedContextResult.operationalContextTags,
         priorityScore: priorityResult.score,
         priorityConfidence: priorityResult.confidence,
         missingSignals: priorityResult.signalCoverage.missingP0Signals,
+        refinedContext: refinedContextResult.refinedContext,
         decisionExplanation,
       }
     } catch (error) {

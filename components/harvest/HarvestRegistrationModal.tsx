@@ -6,6 +6,7 @@ import type { GardenTask, HarvestLogData } from '@/types';
 import { addPassiveEventListener } from '@/utils/passiveEventListeners';
 import { useStorage } from '@/packages/core/hooks/useStorage';
 import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvidenceContract';
+import { matchHarvestTrackedCropFromLaunchContext } from '@/services/taskExecutionOrchestratorService';
 
 interface Harvest {
   id: string;
@@ -186,7 +187,7 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
       return;
     }
 
-    const trackedCrop = availableCrops.find((crop) => crop.taskId === launchContext.sourceTaskId);
+    const trackedCrop = matchHarvestTrackedCropFromLaunchContext(launchContext, availableCrops);
     if (trackedCrop) {
       setIsManualEntry(false);
       setSelectedTaskId(trackedCrop.taskId);

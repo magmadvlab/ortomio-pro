@@ -3,6 +3,7 @@ import type { WateringLog } from '@/types/microzoneTracking'
 import type { NutritionTreatment } from '@/types/nutrition'
 import type { MechanicalWorkLog } from '@/services/mechanicalWorkService'
 import type { AgronomicQueueOperatorEvidence } from '@/services/agronomicQueueOutcomeService'
+import { parseTaskExecutionQuickPayloadNotes } from '@/services/taskExecutionQuickPayloadService'
 
 const average = (values: Array<number | undefined>): number | null => {
   const validValues = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
@@ -40,6 +41,7 @@ export function buildWateringOperatorEvidence(
   )
   const zoneCount = new Set(logs.map((log) => log.zoneId).filter(Boolean)).size
   const rowCount = new Set(logs.map((log) => log.bedRowId).filter(Boolean)).size
+  const quickPayload = parseTaskExecutionQuickPayloadNotes(firstLog.notes)
 
   return {
     operation: 'watering',
@@ -49,6 +51,7 @@ export function buildWateringOperatorEvidence(
         ? `Irrigazione registrata su ${logs.length} scope con ${totalLiters} L complessivi.`
         : `Irrigazione registrata con ${totalLiters} L applicati.`,
     notes: firstLog.notes,
+    followUpRequired: quickPayload.followUpRequired,
     metrics: {
       logsCount: logs.length,
       totalLiters,
@@ -57,6 +60,7 @@ export function buildWateringOperatorEvidence(
       averageSoilMoistureAfter: average(logs.map((log) => log.soilMoistureAfter)),
       averageAirTemperatureC: average(logs.map((log) => log.airTemperatureC)),
       method: firstLog.method || null,
+      quickOutcome: quickPayload.outcome,
       zoneCount: zoneCount || null,
       rowCount: rowCount || null,
     },
@@ -129,18 +133,21 @@ export function buildHarvestOperatorEvidence(
   if (!harvest.date) {
     return null
   }
+  const quickPayload = parseTaskExecutionQuickPayloadNotes(harvest.notes)
 
   return {
     operation: 'harvest',
     recordedAt: harvest.date,
     summary: `Raccolto ${harvest.plantName}: ${harvest.quantity} ${harvest.unit}.`,
     notes: harvest.notes,
+    followUpRequired: quickPayload.followUpRequired,
     metrics: {
       quantity: harvest.quantity,
       unit: harvest.unit,
       qualityRating: harvest.rating ?? null,
       brix: harvest.brix ?? null,
       marketValue: harvest.marketValue ?? null,
+      quickOutcome: quickPayload.outcome,
     },
   }
 }
@@ -162,6 +169,7 @@ export function buildMechanicalOperatorEvidence(
   if (!log.workDate) {
     return null
   }
+  const quickPayload = parseTaskExecutionQuickPayloadNotes(log.notes)
 
   return {
     operation: 'mechanical_work',
@@ -169,6 +177,7 @@ export function buildMechanicalOperatorEvidence(
     summary: `Lavorazione ${log.workType} registrata come eseguita.`,
     notes: log.notes,
     operatorName: log.operatorName || undefined,
+    followUpRequired: quickPayload.followUpRequired,
     metrics: {
       workType: log.workType,
       durationMinutes: log.durationMinutes ?? null,
@@ -176,6 +185,7 @@ export function buildMechanicalOperatorEvidence(
       depthCm: log.depthCm ?? null,
       equipmentType: log.equipmentType ?? null,
       cost: log.cost ?? null,
+      quickOutcome: quickPayload.outcome,
     },
   }
 }

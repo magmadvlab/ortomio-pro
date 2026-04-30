@@ -161,6 +161,31 @@ const getNumericMetric = (record: AgronomicMeasuredFeedbackRecord, key: string):
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
+const getQuickOutcomeSignal = (
+  record: AgronomicMeasuredFeedbackRecord
+): 'positive' | 'mixed' | 'negative' | 'unknown' => {
+  const followUpRequired = record.metrics.followUpRequired === true
+  const quickOutcome = record.metrics.quickOutcome
+
+  if (followUpRequired) {
+    return 'negative'
+  }
+
+  if (quickOutcome === 'critical') {
+    return 'negative'
+  }
+
+  if (quickOutcome === 'attention') {
+    return 'mixed'
+  }
+
+  if (quickOutcome === 'good') {
+    return 'positive'
+  }
+
+  return 'unknown'
+}
+
 const resolveAgronomicOutcomeFromMeasuredFeedback = (
   task: GardenTask,
   records: AgronomicMeasuredFeedbackRecord[],
@@ -208,14 +233,17 @@ const resolveAgronomicOutcomeFromMeasuredFeedback = (
 
   if (feedbackFocus === 'water') {
     const moistureDelta = getNumericMetric(latestRecord, 'averageSoilMoistureDelta')
+    const quickSignal = getQuickOutcomeSignal(latestRecord)
     status =
       moistureDelta === null
-        ? 'unknown'
+        ? quickSignal
         : moistureDelta <= 0
           ? 'negative'
           : moistureDelta >= 4
             ? 'positive'
-            : 'mixed'
+            : quickSignal === 'unknown'
+              ? 'mixed'
+              : quickSignal
   } else if (feedbackFocus === 'nutrition') {
     const effectivenessScore = getNumericMetric(latestRecord, 'effectivenessScore')
     const followUpRequired = latestRecord.metrics.followUpRequired === true
@@ -232,16 +260,25 @@ const resolveAgronomicOutcomeFromMeasuredFeedback = (
   } else if (feedbackFocus === 'quality') {
     const qualityRating = getNumericMetric(latestRecord, 'qualityRating')
     const brix = getNumericMetric(latestRecord, 'brix')
+    const quickSignal = getQuickOutcomeSignal(latestRecord)
     status =
       qualityRating === null && brix === null
-        ? 'unknown'
+        ? quickSignal
         : qualityRating !== null && qualityRating < 3
           ? 'negative'
           : (qualityRating !== null && qualityRating >= 4) || (brix !== null && brix >= 12)
             ? 'positive'
-            : 'mixed'
+            : quickSignal === 'unknown'
+              ? 'mixed'
+              : quickSignal
   } else {
-    status = latestRecord.summary ? 'mixed' : 'unknown'
+    const quickSignal = getQuickOutcomeSignal(latestRecord)
+    status =
+      quickSignal !== 'unknown'
+        ? quickSignal
+        : latestRecord.summary
+          ? 'mixed'
+          : 'unknown'
   }
 
   return {

@@ -30,6 +30,43 @@ Hard constraints:
 - if a capability appears in legacy documentation but is not closed in code, it must first be converted into an explicit tracked item here
 - once all active `todo` items related to product capability are either completed or removed as obsolete, the manual becomes an operational derivative of the real system rather than a promise layer
 
+## Product Advancement Contract
+Manual truth alignment is not a product retreat.
+
+Operational rule:
+- when legacy documentation promises a valuable capability that is not implemented yet, the default action is to preserve the ambition as an explicit implementation candidate in this master plan
+- the manual may stop presenting the capability as current behaviour, but the capability must not disappear from product planning unless it is intentionally rejected as obsolete, unsafe, legally risky or strategically out of scope
+- each softened/removed manual promise should be classified as one of:
+  - `implement`: promote into a concrete product epic/task
+  - `defer`: keep as a future roadmap item with dependencies
+  - `reject`: document why it should not be built
+- for future blocks after T6, the expected output is not only cleaner documentation; it is a prioritized implementation backlog that moves Ortomio toward the original product vision where that vision is technically and commercially valid
+
+## Architecture Boundary Contract
+Product advancement must also respect the current architecture boundary.
+
+Context:
+- OrtoMio started as a smaller application and grew through repeated product expansions
+- some domains are now mature enough to keep extending in the current stack
+- other domains show fragmentation across UI state, local storage, Supabase tables, API routes, services, simulated workflows and documentation promises
+- before implementing large promises, the team must decide whether to extend, consolidate or convert the architecture
+
+Operational rule:
+- every promoted implementation candidate must declare one of these architecture paths:
+  - `extend-current`: the current stack and module boundary are adequate; implement by wiring or deepening existing services/routes/schema
+  - `consolidate-first`: the product direction is valid, but the current implementation is fragmented and needs service/schema/API consolidation before feature work
+  - `convert-platform`: the promise requires a stronger architectural change, such as a dedicated domain service, event/evidence ledger, integration gateway, background workflow layer or different persistence boundary
+  - `reject-architecture`: the promise is not worth implementing because it would distort the product or create disproportionate technical/operational risk
+- manual alignment must therefore capture both truth and architecture readiness
+- if a feature is valuable but blocked by architecture, it should stay in the master plan as a conversion/consolidation TODO, not vanish from the product vision
+
+Decision checklist for every future gap:
+- identify the real current implementation surface: UI, services, API routes, schema, background jobs, external dependencies and persistence
+- identify the promised product outcome
+- classify missing work as `feature-completion`, `service-consolidation`, `schema-consolidation`, `integration-boundary`, `workflow-orchestration`, `evidence-ledger`, `runtime-scaling` or `out-of-scope`
+- choose `extend-current`, `consolidate-first`, `convert-platform` or `reject-architecture`
+- update this master plan before changing the manual
+
 ## Current Execution Priority Map
 1. `P1 Agronomic Context Refinement`
    Status: done
@@ -115,7 +152,7 @@ Rule:
 - obsolete or purely speculative promises should move toward explicit removal/archive, not silent persistence
 
 1. `T1 AI Surfaces Consolidation`
-   Status: todo
+   Status: done
    Goal:
    - unify what should be a real AI surface across global chat, planner assistance, director and overview layers
    Source chapters:
@@ -236,7 +273,7 @@ Rule:
        Main gap:
        - real monitoring context exists, but the surface is not a unified diagnostic AI engine
    - `T1-B Global Chat Hardening`
-     Status: in_progress
+     Status: done
      Scope:
      - stabilize the real global AI chat path now that UI -> backend wiring exists
      - define what current chat guarantees are actually supported
@@ -365,7 +402,7 @@ Rule:
        - code search confirms no global-chat write path beyond credits and transaction logging
      Implementation tracks now allowed by the boundary:
      - `T1-B5 Context Input Contract`
-       Status: in_progress
+       Status: done
        Goal:
        - define which module-level signals can be passed to global chat in a bounded and explicit way
        Candidate first contexts:
@@ -480,8 +517,11 @@ Rule:
          - module-specific safe routing hints
        Remaining TODO:
        - wire module-owned `health-context`, `task-context`, `irrigation-context`, `diary-environment-context` and `harvest-maturity-context` only where the source data is explicit and schema-mapped
+       Closure result:
+       - global chat now has a bounded input contract and a first route/module `director-context`
+       - richer module-owned contexts are future hardening and must not be documented as current global-chat grounding until implemented
      - `T1-B6 Decision Templates`
-       Status: todo
+       Status: done
        Goal:
        - define the first bounded agronomic decision templates the chat is allowed to support
        Candidate first templates:
@@ -551,8 +591,11 @@ Rule:
          - clarify whether the user should use planner, health, irrigation, nutrition, harvest or mechanical flow next
          Guardrail:
          - must follow the current manual/master truth contract, not legacy promises
+       Closure result:
+       - first bounded decision-support templates are defined as product governance
+       - these templates are not yet a separate runtime classifier; current runtime remains prompt-guarded assistive chat with bounded context
      - `T1-B7 Suggested Action Registry`
-       Status: todo
+       Status: done
        Goal:
        - define the set of allowed next-action suggestions the chat can emit
        Candidate first actions:
@@ -617,8 +660,11 @@ Rule:
          - boundary / explanation
        Guardrail:
        - no suggested action may imply that the chat has already executed a field operation, persisted a record, or commanded hardware unless a real guided routing hook exists for that action
+       Closure result:
+       - the allowed suggested-action vocabulary is defined
+       - current implementation exposes safe routing hints only; write-capable actions remain excluded until a governed execution contract exists
      - `T1-B8 Guided Routing Hooks`
-       Status: todo
+       Status: done
        Goal:
        - connect supported chat suggestions to existing module entrypoints in a controlled way
        Closure rule:
@@ -668,6 +714,9 @@ Rule:
        - `open module` actions may route immediately
        - `execute task-aware flow` actions may route only when task context is present and compatible
        - all other actions stay advisory until promoted into a verified hook class
+       Closure result:
+       - safe route targets and task-aware execution hook classes are defined
+       - global chat does not yet execute these hooks directly; it may suggest module routing and must stay advisory without compatible task context
    - `T1-C Planner AI Boundary`
      Status: done
      Scope:
@@ -1567,11 +1616,36 @@ Rule:
          - `rg -n "from ['\"](@/logic/director|\\.\\./logic/director|../logic/director)['\"]|getDailyGardenPlan\\(|generateUrgentAlerts\\(|checkWeatherUrgency\\(" components services app --glob '!*.backup'`
          Current allowed result:
          - only `services/directorService.ts` may match legacy Director imports/calls
-         Closure result:
-         - Director consolidation gate is now explicit and test-backed; future drift can be detected with a simple search
+       Closure result:
+       - Director consolidation gate is now explicit and test-backed; future drift can be detected with a simple search
+   - `T1-E AI Surface Closure Decision`
+     Status: done
+     Goal:
+     - close T1 without overstating future assistant capabilities
+     Closure decision:
+     - T1 is closed as an AI-surface consolidation, contract and governance block
+     - current product truth:
+       - global chat is real and backend-backed, but assistive
+       - planner chat remains assistive and does not own planner persistence
+       - planner queue/task flows are the execution-grade planning surface
+       - Director has a canonical facade and legacy imports are contained
+       - AI prediction/advice surfaces remain distributed and documented by maturity rather than flattened into one universal AI engine
+     Explicitly deferred beyond T1:
+     - durable cross-session chat memory
+     - autonomous write-capable global chat actions
+     - human support escalation from chat
+     - full source-grounded product reasoning across every module
+     - broad module-owned context packets beyond the first route/module context
+     Verification:
+     - `npm run type-check -- --noEmit`
+     - `npm run test:precision-hub`
+     - legacy Director import guard returns only `services/directorService.ts`
+     Closure result:
+     - AI capabilities shown in the manual now correspond to explicit named surfaces with clear ownership and maturity
+     - stronger assistant promises are tracked as future work or excluded from current product truth
 
 2. `T2 Operational Ledger Closure`
-   Status: in_progress
+   Status: done
    Goal:
    - close the operational chain `plan -> operation -> observation -> result` across the modules already carrying real field execution value
    Source chapters:
@@ -2121,11 +2195,47 @@ Rule:
        - define separate resilience/offline-read requirements only if the product later commits to true offline operation
        Closure rule:
        - cloud/database-backed projections are the source of truth; fallback UI is availability handling, not a second ledger implementation
+     - `T2-P Daily Weather Log Runtime Schema Drift`
+       Status: done
+       Goal:
+       - close the production schema drift that made diary/weather reads fail against `daily_weather_log` even though the operational code expected the richer automated diary schema
+       Runtime finding:
+       - browser/Supabase requests ordered by `log_date` returned HTTP 400
+       - production already had `log_date`, so the failure source was not ordering itself
+       - the compact Supabase-created table was missing runtime columns used by weather, diary and environmental monitoring services, including `temp_min`, `temp_max`, `temp_avg`, `humidity_avg`, `weather_conditions`, `data_source` and `raw_data`
+       Decision:
+       - patch the existing `daily_weather_log` table additively
+       - do not create a duplicate weather or diary table
+       - backfill compatibility columns from existing `temperature_min`, `temperature_max`, `weather_code` and `notes` where possible
+       - keep garden ownership/RLS semantics intact and add `user_id` only as an indexed compatibility/read column
+       Implementation:
+       - migration `supabase/migrations/20260425103000_patch_daily_weather_log_runtime_columns.sql`
+       Verification:
+       - rollback validation against production schema succeeded on 2026-04-25
+       - production migration applied on 2026-04-25
+       - `npm run type-check -- --noEmit`
+       Closure result:
+       - the automated diary/weather observation layer now matches the DB-first runtime contract without duplicating durable weather history
+     - `T2-Q Manual Truth Alignment`
+       Status: done
+       Goal:
+       - align the T2 source manual chapters with the implemented DB-first operational ledger instead of describing future/marketing capabilities as current product behavior
+       Decision:
+       - keep the manual derived from code, production migrations and this master plan
+       - describe unimplemented capabilities as limits or TODOs, not as active features
+       - preserve the DB-first runtime rule from `T2-O`
+       Implementation:
+       - updated `docs/manual/10-activity-registry.md`
+       - updated `docs/manual/35-automated-diary.md`
+       - updated `docs/manual/03-traceability.md`
+       - updated `docs/manual/21-individual-plants.md`
+       Closure result:
+       - T2 source chapters now describe the real ledger projections, service consumer, diary/weather schema, signal projection and known limits without promising blockchain, QR, full offline ledger or complete per-plant analytics
    Closure rule:
    - the product has an explicit cross-module record model and the manual can describe one truthful operational ledger rather than fragmented histories
 
 3. `T3 Compliance and Certifications Closure`
-   Status: todo
+   Status: in_progress
    Goal:
    - decide which compliance and certification workflows are meant to become truly durable operational product features
    Source chapters:
@@ -2139,13 +2249,62 @@ Rule:
    - certification-readiness versus full certification operations
    First TODO candidates:
    - define per-certification maturity and intended target state
-   - decide if BIO becomes a persisted loop or stays assisted assessment
    - separate simulated compliance actions from durable ones
+   Progress:
+   - `T3-A Certification maturity map` — Status: done
+     Decision:
+     - `BIO`: durable readiness-assessment loop backed by `bio_certifications` and `bio_certifications_with_readiness`, not full certification authority workflow
+     - `GlobalG.A.P.`: durable compliance workspace for the service-backed schema; UI actions remain either persisted records or explicitly labelled template support
+     - `SQNPI` and `GRASP`: informational tabs/backlog, not operational certification workflows
+     Evidence:
+     - production schema contains `bio_certifications`, `bio_certification_documents`, `bio_certification_inspections`, `bio_certifications_with_readiness`, `globalgap_risk_management_plans`, `globalgap_self_assessments`, `globalgap_health_safety_managers`, `globalgap_recall_procedures`, `globalgap_ggn_codes`, `certifications`, `organic_certifications`, `certification_documents`, `supplier_certifications`, `compliance_records`
+     - `20260425150000_consolidate_globalgap_operational_schema.sql` added the missing GlobalG.A.P. operational tables and generation functions referenced by the services
+   - `T3-B BIO persistence and retrieval` — Status: done
+     Implementation:
+     - added `services/bioCertificationService.ts`
+     - `components/certifications/CertificationsDashboard.tsx` now loads the latest BIO record from Supabase and saves the form to `bio_certifications`
+     - `components/certifications/BioCertificationForm.tsx` now accepts initial DB state and exposes save status/error state instead of only logging and alerting
+     Decision:
+     - BIO is now consolidated as persisted readiness support. It remains explicitly not an official certification closure or audit substitute.
+   Remaining:
+   - `T3-C GlobalG.A.P. action realism` — Status: done
+     Implementation:
+     - `components/compliance/GlobalGapDashboard.tsx` now labels missing-requirement document creation as template support and avoids saying dashboard readiness is official certification
+     - `supabase/migrations/20260425150000_consolidate_globalgap_operational_schema.sql` aligns production schema with the richer service paths for recall tests, transaction documents, CB/FV records and lot/GGN generation helpers
+     Production:
+     - migration applied to production on 2026-04-25
+     - post-apply verification confirmed 16 additional `globalgap_*` tables, checklist compatibility columns and functions `generate_ggn_code` / `generate_lot_code`
+   - `T3-D treatment/compliance/quaderno-campagna boundary` — Status: done
+     Decision:
+     - `treatment_register` is the durable professional phytosanitary register exposed through `/api/treatments` and export routes. It supports operative entries with crop, date, product, active ingredient, dose, treated area, method, reason, weather, operator, notes and location references.
+     - `nutrition_treatments`, `fertilizer_products`, `treatment_products`, `nutrition_schedules`, inventory and stock movement tables are the durable planning/execution core for the `Nutrizione & Trattamenti` workspace.
+     - `compliance_records` and the organic-compliance helper are internal support/readiness structures. They are not a complete regulatory validation engine and do not close LMR, official residue, DPI/training or certification obligations.
+     - legacy phyto components using `services/treatmentRegistryService.ts` remain localStorage/browser support and must not be documented as the authoritative quaderno di campagna.
+     - exports are operational support artifacts, not guaranteed official formats.
+     Evidence:
+     - `supabase/migrations/20260105040000_add_pro_mode_nutrition_tables.sql` creates the DB-backed professional treatment and fertilizer logs
+     - `supabase/migrations/20260112000000_add_treatment_type_bio_traditional.sql` adds BIO/conventional/integrated compatibility fields and a trigger against active organic certifications
+     - `supabase/migrations/20260117020000_create_advanced_nutrition_system.sql` creates the durable nutrition/treatment planning, product, inventory, history and compliance-support tables
+     - `/api/treatments` persists to `treatment_register`; `advancedNutritionService` persists planner/workspace records to `nutrition_treatments`
+     Closure result:
+     - the quaderno-campagna claim is bounded to persisted operational records and support exports; complete legal/compliance automation remains future work
+   - `T3-E manual truth alignment for BIO/compliance/nutrition claims` — Status: done
+     Implementation:
+     - rewrote `docs/manual/16-nutrition-treatments.md` around the verified persistent treatment/nutrition registers and their explicit limits
+     - synchronized `public/docs/manual/16-nutrition-treatments.md`
+     - synchronized public certification manual copies with the already-correct source chapters:
+       - `public/docs/manual/04-certifications.md`
+       - `public/docs/manual/04b-bio-certification-guide.md`
+     Decision:
+     - manuals describe BIO as persisted readiness support, GlobalG.A.P. as a durable compliance workspace, treatment records as operational registers, and nutrition analytics as management indicators
+     - complete certification automation, official quaderno-campagna closure, LMR/residue validation, DPI/training validation and VRT end-to-end remain backlog/future work
+     Closure result:
+     - T3 source/public manual claims are aligned with the implemented maturity map and do not market unimplemented regulatory closure as current behavior
    Closure rule:
    - each certification/compliance workflow has an explicit target state and the manual no longer overstates regulatory closure
 
 4. `T4 Precision Execution Chain`
-   Status: todo
+   Status: done
    Goal:
    - decide which precision-agriculture flows should become fully connected from analysis to field execution and measured outcome
    Source chapters:
@@ -2162,11 +2321,56 @@ Rule:
    - define the intended end-to-end chain for `remote sensing -> recommendation/map -> field execution -> outcome`
    - decide what remains assistive analysis versus what becomes execution-grade
    - isolate unsupported VRT/machinery promises from the real precision baseline
+   Progress:
+   - `T4-A precision execution maturity map` — Status: done
+     Decision:
+     - `NDVI`: real route/dashboard/provider-status surface. Current role is scouting, prioritization and decision support; provider-backed versus fallback/simulated source quality must stay visible.
+     - `Prescription maps`: real persisted module with map/export/application-support structures and tests, but field validation is still partial. Current role is draft/planning/export support and selected execution projections, not an unsupervised universal VRT chain.
+     - `Nutrition VRT`: backlog/future chain. Nutrition/treatment records are DB-backed, but VRT prescription-to-machine-to-outcome closure is not implemented.
+     - `Mechanical operations`: DB-backed operational register via `mechanical_work_register` and `/api/mechanical-work`; not GPS fleet tracking, telematics, auto-steer or machine-origin execution proof.
+     Target chain:
+     - current truthful chain: `signal or recommendation -> task/planner/manual validation -> operation record/export/application support -> historical review`
+     - future execution-grade chain: `provider-quality signal -> prescription map -> validated machine/import/export -> applied execution record -> measured field outcome`
+   - `T4-B mechanical operations truth alignment` — Status: done
+     Implementation:
+     - rewrote `docs/manual/17-mechanical-operations.md`
+     - synchronized `public/docs/manual/17-mechanical-operations.md`
+     Decision:
+     - mechanical operations are documented as a persisted operational register with task-aware linkage, not as a telematics/fleet-management platform
+     - machinery integrations, GPS coverage, overlap/gap analysis, predictive maintenance and console/provider integrations remain backlog
+     Closure result:
+     - `GAP-2026-04-23-AK` is closed for manual truth alignment
+   - `T4-C prescription maps execution-boundary alignment` — Status: done
+     Implementation:
+     - rewrote `docs/manual/06-prescription-maps.md`
+     - synchronized `public/docs/manual/06-prescription-maps.md`
+     Decision:
+     - prescription maps are documented as a real persisted module with maps, zones, exports, revisions and `variable_rate_applications` execution records
+     - export/import/application statuses are support signals, not proof of universal machine execution
+     - outcome and efficacy summaries are valid only when post-application records, quality results or measured feedback exist
+     Closure result:
+     - `GAP-2026-04-23-AB` is closed for documentation truth alignment while deeper field validation remains tracked as future implementation work
+   - `T4-D NDVI source-quality boundary` — Status: done
+     Evidence:
+     - `docs/manual/05-ndvi-satellite.md` and `public/docs/manual/05-ndvi-satellite.md` already describe NDVI as scouting/prioritization support with explicit provider/fallback limits
+     - `components/ndvi/SentinelHubStatus.tsx` exposes Sentinel Hub connected versus missing-credentials status
+     - `services/ndviSatelliteService.ts` and `/api/ndvi/sentinel` include simulated/fallback paths when provider data is unavailable
+     Decision:
+     - no code/doc rewrite was needed in this step; NDVI remains a real assistive signal, not a certified quantitative source for automatic prescriptions
+     Closure result:
+     - `GAP-2026-04-23-AA` is closed for current manual/UI source-quality disclosure
+   - `T4-E precision chain closure` — Status: done
+     Decision:
+     - T4 closes as a truth-alignment and target-state block, not as a claim that all future machine/provider integrations are implemented
+     - current execution-grade persistence is spread across operational records (`mechanical_work_register`, nutrition/treatment logs), prescription maps/zones/exports and `variable_rate_applications`
+     - future work remains explicit for validated machine import/export, automated telemetry, universal VRT execution, systematic outcome capture and stronger cross-module transaction linkage
+     Closure result:
+     - the precision chain is now documented as a real but mixed-maturity operational path with clear assistive versus execution-grade boundaries
    Closure rule:
    - the precision chain is documented and implemented according to a real execution path, not a mixture of analysis previews and aspirational automation
 
 5. `T5 IoT and Smart Hub Consolidation`
-   Status: todo
+   Status: done
    Goal:
    - consolidate sensor ingestion, device registry, actuator control and automation into an explicit Smart Hub target state
    Source chapters:
@@ -2181,11 +2385,33 @@ Rule:
    - define the intended Smart Hub perimeter for production use
    - distinguish ingestion-ready capabilities from control/automation capabilities
    - decide whether irrigation automation becomes a first-class product target
+   Progress:
+   - `T5-A Smart Hub maturity map` — Status: done
+     Decision:
+     - `sensor readings`: DB-backed and production-usable as telemetry ingestion, with validation for sensor type, value ranges, data quality, calibration, battery and signal
+     - `smart_devices`: durable registry foundation for Sensor/Valve/Hub with provider, scope, telemetry state and command status fields; not yet complete provisioning for all real hardware
+     - `commands`: limited actuator command path for valve state; local no-Supabase mode is simulated, ThingsBoard sends attributes, Tuya direct dispatch is not implemented in the route
+     - `automation logs`: durable audit/analytics substrate for decisions, commands, telemetry and outcomes; not yet a stable unsupervised automation engine
+     - `irrigation`: mature operational register/calculation module with systems, zones, components and watering logs; automation hardware remains controlled/partial
+   - `T5-B Smart Hub manual truth alignment` — Status: done
+     Implementation:
+     - rewrote `docs/manual/14-smart-hub.md`
+     - synchronized `public/docs/manual/14-smart-hub.md`
+     Decision:
+     - Smart Hub is documented as telemetry persistence plus limited device/command/automation-log support, not universal IoT control
+   - `T5-C irrigation automation boundary` — Status: done
+     Implementation:
+     - rewrote `docs/manual/15-irrigation-system.md`
+     - synchronized `public/docs/manual/15-irrigation-system.md`
+     Decision:
+     - irrigation is documented as operational for configuration, flow calculation and watering logs; valve/device automation is explicit support work with no physical actuation guarantee without provider confirmation
+   Closure result:
+   - `GAP-2026-04-23-AH` is closed for current manual/master-plan alignment
    Closure rule:
    - Smart Hub and irrigation docs can state one explicit truth about telemetry, control and automation maturity
 
 6. `T6 Specialized Verticals Completion`
-   Status: todo
+   Status: done
    Goal:
    - decide which vertical domains should be deepened into durable, coherent product slices versus remain hybrid/specialized overlays
    Source chapters:
@@ -2204,13 +2430,36 @@ Rule:
    - define which verticals are strategic product pillars versus opportunistic extensions
    - identify the minimum durable backend/persistence expectations for each one
    - separate local assistive tools from team-shared operational records
+   Progress:
+   - `T6-A vertical maturity map` — Status: done
+     Decision:
+     - `Frutteto`: durable product vertical. DB-backed configurations, trees, pruning/harvest surfaces and operational analytics are real; robotics, computer vision, post-harvest commerce and complete precision-orchard automation remain backlog.
+     - `Oliveto`: hybrid orchard-backed vertical. It reuses frutteto foundations and has olive-specific schema for maturity/fly monitoring, but current specialist widgets are not uniformly wired to durable olive tables.
+     - `Vigneto`: durable product vertical for configurations, vines and bud-load/Ravaz support; winery, ERP, market intelligence, denomination and bottle traceability are outside current scope.
+     - `Piante individuali`: specialized signal/history layer already aligned under T2, not a full QR/genealogy/breeding platform.
+     - `Agronomo`: partially persisted consultation/advice domain through storage provider tables; not marketplace, booking, payment or prescription-automation platform.
+     - `Business Intelligence`: hybrid analytics/reporting surface built on real operational modules, not enterprise BI/data warehouse.
+   - `T6-B orchard/olive/vineyard manual truth alignment` — Status: done
+     Implementation:
+     - rewrote `docs/manual/18-orchard-management.md`
+     - rewrote `docs/manual/19-olive-management.md`
+     - rewrote `docs/manual/20-vineyard-management.md`
+     - synchronized public copies for chapters 18, 19 and 20
+   - `T6-C agronomist/individual-plants/BI alignment` — Status: done
+     Implementation:
+     - rewrote `docs/manual/11-agronomist-consultations.md` around the storage-provider-backed but non-marketplace reality
+     - synchronized public copies for chapters 11, 21 and 22
+     Decision:
+     - manual copies now describe verticals according to actual backend maturity, and strategic/commercial claims are left for T7 if they remain in roadmap-style chapters
+   Closure result:
+   - `GAP-2026-04-23-T`, `GAP-2026-04-23-U`, `GAP-2026-04-23-V` and `GAP-2026-04-23-W` are closed for manual/master-plan alignment
    Closure rule:
    - each vertical has a declared target maturity and the manual reflects only the chosen supported depth
 
 7. `T7 Strategic Promise Triage`
-   Status: todo
+   Status: done
    Goal:
-   - remove or archive non-product narrative promises from the manual unless they are promoted into explicit strategic work
+   - classify strategic promises into `implement`, `defer` or `reject`, then align the manual without losing valid product ambition
    Source chapters:
    - `docs/manual/25-research-development.md`
    - `docs/manual/28-economic-benefits.md`
@@ -2223,12 +2472,367 @@ Rule:
    - scenario material
    - roadmap promises
    - testimonial/success-story content
-   First TODO candidates:
-   - mark which chapters are to be archived/removed outright
-   - keep only future capabilities that still deserve explicit product consideration
-   - remove named customer/testimonial material from the operational manual perimeter
+   Implementation candidates promoted from legacy promises:
+   - `T7-IMPLEMENT-01 R&D trial and experiment registry` — Architecture path: `convert-platform` / `evidence-ledger`; build a durable project/trial layer for hypotheses, protocols, measurements, outcomes and links to sensor, diary, treatment and harvest evidence
+   - `T7-IMPLEMENT-02 economic analytics and ROI evidence module` — Architecture path: `consolidate-first` / `schema-consolidation`; add baseline/cost/revenue/benefit tracking with confidence labels instead of guaranteed ROI claims
+   - `T7-IMPLEMENT-03 use-case templates and deployment playbooks` — Architecture path: `extend-current` first, then `workflow-orchestration`; turn illustrative scenarios into guided setup/checklist workflows tied to verified modules
+   - `T7-IMPLEMENT-04 roadmap governance and maturity publishing` — Architecture path: `extend-current`; expose feature maturity from this master plan as a controlled product/planning view
+   - `T7-IMPLEMENT-05 customer evidence workflow` — Architecture path: `consolidate-first` / `evidence-ledger`; support consented customer stories only when source evidence, metrics, dates and approval state are stored
+   Deferred strategic candidates:
+   - `T7-DEFER-01 partner and integration program` — Architecture path: `convert-platform` / `integration-boundary`; formal university, provider, ERP, machinery and marketplace partnerships require commercial/legal confirmation and dedicated integration work
+   - `T7-DEFER-02 advanced robotics/autonomous operations` — Architecture path: `convert-platform`; dependent on hardware integration, safety controls, durable telemetry and field validation
+   - `T7-DEFER-03 ESG/carbon platform expansion` — Architecture path: `consolidate-first`; dependent on closed environmental evidence models, external standards and auditable reporting workflows
+   - `T7-DEFER-04 enterprise BI and data warehouse layer` — Architecture path: `convert-platform` / `runtime-scaling`; dependent on API/integration consolidation and customer-scale reporting requirements
+   Rejected claims:
+   - `T7-REJECT-01 fabricated or unverifiable success stories, named testimonials, awards and media proof`
+   - `T7-REJECT-02 guaranteed ROI, fixed payback windows and unsupported percentage outcome tables`
+   - `T7-REJECT-03 unverifiable partnerships, publications, patents, labs and commercialization achievements`
+   - `T7-REJECT-04 AGI, quantum, metaverse, space agriculture, planetary transformation and similar speculative claims as operational roadmap`
+   Completed alignment:
+   - rewrote `docs/manual/25-research-development.md`
+   - rewrote `docs/manual/28-economic-benefits.md`
+   - rewrote `docs/manual/30-use-cases.md`
+   - rewrote `docs/manual/31-success-stories.md`
+   - rewrote `docs/manual/32-roadmap.md`
+   - synchronized public copies for chapters 25, 28, 30, 31 and 32
+   Closure result:
+   - `GAP-2026-04-23-E`, `GAP-2026-04-23-F`, `GAP-2026-04-23-H`, `GAP-2026-04-23-I`, `GAP-2026-04-23-P`, `GAP-2026-04-23-Q`, `GAP-2026-04-23-R` and `GAP-2026-04-23-AL` are closed for the strategic-promise chapters
    Closure rule:
    - the manual contains no strategic or commercial promise layer that is not explicitly backed by either current code or an approved master-plan TODO
+
+8. `T8 Integration/API Boundary Consolidation`
+   Status: done
+   Goal:
+   - separate current internal/API-adjacent capabilities from unsupported external ecosystem promises, and identify the architecture boundary needed before public integrations can be promised
+   Source chapters:
+   - `docs/manual/26-integration-api.md`
+   Current verified surface:
+   - internal Next.js API routes exist for product modules such as AI, NDVI, IoT telemetry, sensors, export, treatments, mechanical work, drones, blockchain-style traceability and cron jobs
+   - `api_configurations` / `/api/api-configurations` support user/provider configuration for AI and weather providers, but the schema/service boundary is inconsistent with older migration fields and uses weak base64-style storage in some paths
+   - `api_keys` supports user API keys for AI, Sentinel Hub, WeatherAPI and custom endpoints
+   - export/import exists for selected garden backup and prescription-map/GIS formats
+   - IoT telemetry and command routes exist, but device provisioning, provider dispatch and physical actuation remain bounded under T5
+   - machinery compatibility/export support exists for prescription maps, but not as a live machinery/cloud integration
+   Unsupported current claims:
+   - public `/api/v1` product API, public developer portal, official SDKs and sandbox
+   - real-time outbound webhooks/event bus/message queues
+   - native ERP, CRM, marketplace, banking, insurance, Zapier, Power Automate or cloud-platform connectors
+   - official ISOBUS/ADAPT/AgGateway integration layer beyond export-format support
+   - multi-tenant cooperative integration platform, API gateway, message bus or data warehouse as current product
+   Implementation candidates promoted from legacy promises:
+   - `T8-IMPLEMENT-01 API credentials security consolidation` — Architecture path: `consolidate-first` / `schema-consolidation`; unify `api_configurations` and `api_keys` or clearly separate their roles, replace weak reversible/base64 handling with server-side secret management, and prevent decrypted secrets from being returned to client code
+   - `T8-IMPLEMENT-02 public API contract and gateway` — Architecture path: `convert-platform` / `integration-boundary`; design authenticated, versioned external API endpoints only after internal module contracts are stable
+   - `T8-IMPLEMENT-03 outbound webhook/event delivery system` — Architecture path: `convert-platform` / `workflow-orchestration`; add event definitions, subscriptions, signing, retry, delivery logs and rate limits
+   - `T8-IMPLEMENT-04 integration connector registry` — Architecture path: `convert-platform` / `integration-boundary`; model provider connectors, credentials, sync state, scopes, error handling and per-provider maturity
+   - `T8-IMPLEMENT-05 developer documentation and SDK generation` — Architecture path: `defer until T8-IMPLEMENT-02`; generate docs/SDKs only from a real public API contract
+   Deferred strategic candidates:
+   - `T8-DEFER-01 ERP/CRM/marketplace connectors` — dependent on public API/gateway, connector registry, customer demand and partner contracts
+   - `T8-DEFER-02 banking/insurance/financing integrations` — dependent on legal/compliance review, provider agreements and secure credential/payment boundaries
+   - `T8-DEFER-03 standards-grade machinery/cloud integrations` — dependent on stable prescription export, hardware/provider validation and field safety controls
+   Rejected claims:
+   - `T8-REJECT-01 presenting named third-party integrations as certified/native without implemented connector and partner validation`
+   - `T8-REJECT-02 presenting SDK examples, developer portal, sandbox or webhook delivery as current product without shipped contracts`
+   Completed alignment:
+   - rewrote `docs/manual/26-integration-api.md`
+   - synchronized `public/docs/manual/26-integration-api.md`
+   Closure result:
+   - `GAP-2026-04-23-G` and `GAP-2026-04-23-O` are closed for manual/master-plan alignment
+   Closure rule:
+   - integration documentation distinguishes internal routes, provider credential configuration, export/import support and prototype connectors from any future public integration platform
+
+9. `T9 Drone Scaffold Boundary Consolidation`
+   Status: done
+   Goal:
+   - preserve the drone product direction while making the current boundary explicit: internal planning scaffold and simulated execution, not hardware-integrated drone operations
+   Source chapters:
+   - `docs/manual/02-drone-operations.md`
+   Current verified surface:
+   - `/api/drone/flight-plans`, `/api/drone/auto-plan` and `/api/drone/execute` exist
+   - `droneIntegrationService.ts` can create plans, generate waypoints, choose basic flight types and return simulated analysis
+   - Smart Hub now uses the internal drone API scaffold instead of local component-only mock flight data
+   Current limitations:
+   - flight plans are in-memory and not durable across runtime restart/deploy
+   - garden/task inputs in `droneIntegrationService` are mocked rather than loaded from the real storage/database layer
+   - execution is simulated and does not dispatch to DJI, Parrot, MAVLink, provider cloud or physical hardware
+   - analysis results use synthetic/randomized values rather than uploaded imagery/computer vision output
+   - no mission media storage, telemetry ledger, pilot authorization, no-fly-zone validation, safety checklist or compliance workflow is implemented
+   Implementation candidates promoted from legacy promises:
+   - `T9-IMPLEMENT-01 durable drone mission registry` — Architecture path: `consolidate-first` / `schema-consolidation`; persist flight plans, mission state, simulated/real results and links to garden/field context
+   - `T9-IMPLEMENT-02 drone evidence/media pipeline` — Architecture path: `convert-platform` / `evidence-ledger`; support upload/import of imagery, orthomosaic/NDVI outputs, processing state and traceable derived observations
+   - `T9-IMPLEMENT-03 provider/hardware integration boundary` — Architecture path: `convert-platform` / `integration-boundary`; define provider adapters, credentials, mission dispatch, telemetry ingestion and failure modes before claiming live drone control
+   - `T9-IMPLEMENT-04 drone safety and authorization workflow` — Architecture path: `convert-platform` / `workflow-orchestration`; add preflight checklist, weather/no-fly validation, pilot/legal responsibility and audit records
+   - `T9-IMPLEMENT-05 prescription-map handoff from drone evidence` — Architecture path: `consolidate-first`; connect verified drone-derived zones to NDVI/prescription workflows only after the evidence pipeline is real
+   Rejected claims:
+   - `T9-REJECT-01 presenting DJI/flotta/telemetria/video live as current product`
+   - `T9-REJECT-02 presenting synthetic analysis as AI computer vision accuracy or measured agronomic outcome`
+   Completed alignment:
+   - synchronized `public/docs/manual/02-drone-operations.md` with the already bounded source chapter
+   - updated Smart Hub drone copy to label the module as beta/scaffold/simulated
+   - wired Smart Hub drone actions to the existing internal `/api/drone/*` scaffold instead of maintaining a separate local mock
+   Closure result:
+   - `GAP-2026-04-23-Z` is closed for manual/UI/master-plan alignment
+   Closure rule:
+   - drone surfaces describe the current scaffold honestly, while durable mission registry, evidence pipeline, hardware integration and safety workflow remain tracked implementation work
+
+10. `T10 Sustainability/ESG Boundary Consolidation`
+   Status: done
+   Goal:
+   - preserve sustainability as a product direction while separating real environmental evidence from unsupported carbon/ESG/circular-economy platform claims
+   Source chapters:
+   - `docs/manual/24-sustainability.md`
+   Current verified surface:
+   - `environmentalMonitoringService.ts` provides weather lineage, derived indicators, site binding and zone environmental ledger summaries
+   - irrigation, sensor, weather and diary/predictive services consume environmental context for operational decisions
+   - analytics includes a sustainability tab, but its CO2/water/organic values are lightweight static/summary indicators rather than audited accounting
+   - prescription/cost optimization services include environmental scores/impact indicators for local decision support
+   - `blockchainTraceabilityService.ts` contains carbon-footprint types and fixed/simulated calculations, not a verified carbon accounting system
+   Current limitations:
+   - no Scope 1/2/3 emissions ledger with auditable activity factors
+   - no verified sequestration model, carbon credits, offset workflow or third-party certification support
+   - no biodiversity census/index module
+   - no circular-economy program tracking, waste ledger, biogas/compost certification or industrial symbiosis workflow
+   - no formal ESG report generator or ISO/EMAS/Carbon Trust/Rainforest certification workflow
+   Implementation candidates promoted from legacy promises:
+   - `T10-IMPLEMENT-01 sustainability evidence ledger` — Architecture path: `convert-platform` / `evidence-ledger`; persist environmental observations, water/energy/input events, assumptions, source quality and audit lineage
+   - `T10-IMPLEMENT-02 water efficiency analytics` — Architecture path: `consolidate-first`; promote irrigation/water-quality and environmental ledger data into measured water-use indicators with baseline and confidence labels
+   - `T10-IMPLEMENT-03 carbon accounting module` — Architecture path: `convert-platform`; implement activity factors, Scope 1/2/3 categories, units, emission factors, uncertainty and source references before any carbon-footprint claims
+   - `T10-IMPLEMENT-04 biodiversity and habitat tracking` — Architecture path: `consolidate-first`; add field observations, habitat elements, monitoring dates and simple indicators before advanced indices
+   - `T10-IMPLEMENT-05 ESG/export reporting` — Architecture path: `defer until T10-IMPLEMENT-01/03`; generate reports only from an auditable evidence ledger and selected standards
+   Deferred strategic candidates:
+   - `T10-DEFER-01 environmental certifications and third-party audit workflows` — dependent on standards/legal review and partner validation
+   - `T10-DEFER-02 circular-economy and waste/byproduct marketplace workflows` — dependent on operational waste ledger, partner/integration program and commercial scope
+   Rejected claims:
+   - `T10-REJECT-01 presenting fixed/simulated carbon calculations as verified carbon footprint or carbon-neutral status`
+   - `T10-REJECT-02 presenting ESG/certification/credit workflows as current product without standards mapping and audit evidence`
+   Completed alignment:
+   - rewrote `docs/manual/24-sustainability.md`
+   - synchronized `public/docs/manual/24-sustainability.md`
+   Closure result:
+   - `GAP-2026-04-23-S` is closed for manual/master-plan alignment
+   Closure rule:
+   - sustainability documentation describes current environmental evidence support and tracks carbon/ESG/biodiversity/circular-economy as explicit implementation work
+
+11. `T11 Automated Diary Boundary Consolidation`
+   Status: done
+   Goal:
+   - distinguish the real DB-backed daily weather/environment diary pipeline from broader automatic agronomic diary promises and in-memory operational diary surfaces
+   Source chapters:
+   - `docs/manual/35-automated-diary.md`
+   Current verified surface:
+   - `vercel.json` schedules `/api/cron/daily-diary` daily at 23:00
+   - `/api/cron/daily-diary` calls `dailyDiaryService.recordDailyEntries()` with production cron-secret protection
+   - `dailyDiaryService.ts` records `daily_weather_log`, calculates ETo/GDD/chill/stress indicators where data exists, updates `cultivation_daily_tracking`, generates selected `diary_events` and persists zone environmental ledger entries into weather raw data
+   - production/runtime schema has been aligned for `daily_weather_log`, `daily_diary_entries`, `diary_events`, `cultivation_daily_tracking`, GDD parameters and event correlations
+   - `AutomatedDiaryViewer` reads daily diary/weather/tracking/event data through `dailyDiaryService`
+   Current limitations:
+   - daily coverage depends on cron execution, Supabase availability, user/garden coordinates and API/fallback quality
+   - active-cultivation tracking depends on `cultivations` rows and GDD parameter coverage
+   - `operationalDiaryService.ts` remains an in-memory operational diary/analytics layer and is not the same durable daily diary pipeline
+   - broad claims about mature year-over-year analytics, complete automatic event generation, community data, local station/IoT priority and guaranteed nightly completeness are not fully closed
+   Implementation candidates promoted from legacy promises:
+   - `T11-IMPLEMENT-01 diary pipeline observability` — Architecture path: `extend-current`; persist cron runs, processed users, failures, coverage gaps and retry state
+   - `T11-IMPLEMENT-02 durable operational diary convergence` — Architecture path: `consolidate-first` / `evidence-ledger`; move in-memory operational diary entries/analytics into durable tables or clearly separate them from the automated diary
+   - `T11-IMPLEMENT-03 diary event provenance and confidence` — Architecture path: `consolidate-first`; mark automatic/manual/fallback events with source, confidence, input coverage and resolving record
+   - `T11-IMPLEMENT-04 multi-season agronomic analytics` — Architecture path: `defer until coverage`; enable year-over-year GDD/stress/yield comparison only after sufficient persisted history and outcome linkage
+   - `T11-IMPLEMENT-05 local station and IoT diary ingestion` — Architecture path: `convert-platform` / `integration-boundary`; integrate station/sensor priority only through stable device/provider ingestion and quality flags
+   Rejected claims:
+   - `T11-REJECT-01 presenting the diary as guaranteed complete nightly pipeline without coverage/observability evidence`
+   - `T11-REJECT-02 presenting in-memory operational diary analytics as durable historical evidence`
+   Completed alignment:
+   - synchronized `public/docs/manual/35-automated-diary.md` with the bounded source chapter
+   Closure result:
+   - `GAP-2026-04-23-AI` is closed for manual/master-plan alignment
+   Closure rule:
+   - diary documentation distinguishes DB-backed daily environmental observations from still-open operational diary convergence, pipeline observability and multi-season analytics work
+
+12. `T12 AI Prediction/Overview Boundary Consolidation`
+   Status: done
+   Goal:
+   - keep AI as a strategic product direction while separating real assistive/predictive surfaces from unsupported claims of one unified autonomous AI engine
+   Source chapters:
+   - `docs/manual/01-ai-predictions.md`
+   - `docs/manual/07-ai-overview.md`
+   Current verified surface:
+   - `Global AI Chat` is a real Gemini-backed bounded chat surface from T1, with tier/credit checks and limited context
+   - predictive services exist across `aiPredictiveEngine.ts`, `predictiveAnalyticsService.ts`, `diaryPredictiveEngine.ts`, `fieldRowPredictiveService.ts`, agronomic priority services and prescription intelligence services
+   - `/api/ai/predictions` exists; POST can run the predictive engine with supplied data, while GET currently builds predictions from demo/mock weather/soil/plant inputs
+   - `AIPredictionsDashboard` currently uses local empty mock data and is not yet DB-grounded against the route or a prediction ledger
+   - Director, planner, diary, NDVI, drone, irrigation, nutrition and prescription surfaces each have their own maturity boundaries rather than one shared AI runtime contract
+   Current limitations:
+   - no single canonical AI/prediction engine with uniform input, confidence, provenance and output contracts
+   - no universal accuracy claim is supported across crops, sites, stages and modules
+   - prediction surfaces range from DB-backed/contextual services to rules, heuristics, fallback paths, mock/demo routes and staged UI
+   - no central prediction ledger stores input snapshot, model/service identity, confidence, recommendation, user decision and field outcome
+   - no validation harness currently reports measured accuracy by crop/site/stage
+   Implementation candidates promoted from legacy promises:
+   - `T12-IMPLEMENT-01 AI prediction maturity map in product/UI` — Architecture path: `extend-current`; expose the same maturity map used in docs where users encounter mixed predictive surfaces
+   - `T12-IMPLEMENT-02 DB-grounded AI predictions route/dashboard` — Architecture path: `consolidate-first` / `service-consolidation`; replace demo GET data and local dashboard mock with persisted garden/crop/weather/activity context
+   - `T12-IMPLEMENT-03 prediction evidence ledger` — Architecture path: `convert-platform` / `evidence-ledger`; persist input snapshot, source quality, service/model, confidence, recommendation, user action and measured outcome
+   - `T12-IMPLEMENT-04 predictive service contract convergence` — Architecture path: `consolidate-first`; standardize confidence, fallback flags, source quality, actionability and caveat fields across predictive services
+   - `T12-IMPLEMENT-05 validation harness and accuracy reporting` — Architecture path: `defer until T12-IMPLEMENT-03`; publish accuracy only after enough linked predictions/outcomes exist
+   - `T12-IMPLEMENT-06 AI overview generated from master-plan maturity` — Architecture path: `extend-current`; prevent future manual drift by deriving overview labels from the source-of-truth maturity map
+   Rejected claims:
+   - `T12-REJECT-01 presenting 94.5% or any universal AI accuracy claim without validation evidence`
+   - `T12-REJECT-02 presenting proprietary deep-learning/continuous-learning platform claims as current product without implementation and outcome tracking`
+   - `T12-REJECT-03 presenting drone computer vision, autonomous orchestration or report certification as closed AI capabilities`
+   Completed alignment:
+   - rewrote `docs/manual/07-ai-overview.md` as an AI sub-domain maturity map
+   - synchronized `public/docs/manual/01-ai-predictions.md` with the bounded source chapter
+   - added `public/docs/manual/07-ai-overview.md` so the public manual can serve the same bounded overview
+   - indexed AI overview and predictions in both source/public manual README files
+   - updated the Predizioni AI dashboard subtitle/disclosure to show the surface is in consolidation rather than a fully validated AI engine
+   Closure result:
+   - `GAP-2026-04-23-Y` is closed for manual/UI/master-plan alignment
+   - `GAP-2026-04-23-AE` is closed for manual/master-plan alignment
+   Closure rule:
+   - AI documentation and product copy describe a distributed assistive/predictive layer with explicit maturity boundaries, while DB-grounded predictions, evidence ledger and validation remain tracked implementation work
+
+13. `T13 Traceability/Blockchain Boundary Consolidation`
+   Status: done
+   Goal:
+   - preserve commercial traceability, QR and cryptographic verification as product directions while separating them from the DB-backed operational ledger that is actually implemented today
+   Source chapters:
+   - `docs/manual/03-traceability.md`
+   Current verified surface:
+   - T2 established the real traceability baseline through DB-backed operational records and projections such as `agronomic_operation_outcome_projection`, `agronomic_operation_signal_projection` and `agronomic_precision_execution_projection`
+   - `services/blockchainTraceabilityService.ts` exists, but uses in-memory maps, generated hashes/block numbers, simulated smart contracts/NFT minting and non-persisted QR/consumer app state
+   - `/api/blockchain/*` routes call that in-memory/simulated service and are not a durable blockchain integration or commercial chain-of-custody API
+   - `TraceabilityWidget` is a local/demonstrative product trace view with hard-coded example products and local QR generation, not a DB-backed commercial traceability workspace
+   - GlobalG.A.P. lot traceability is a separate compliance subdomain and does not by itself close public consumer QR, NFT or immutable blockchain proof workflows
+   Current limitations:
+   - no durable product-lot registry binds harvests, batches, transformations, sale units and consumer-facing pages end-to-end
+   - no cryptographic anchoring to a real blockchain/provider or verifiable timestamping service
+   - no persisted QR scan analytics, consumer app publication flow or public product-page governance
+   - no certification authority integration, automatic commercial badges, NFT marketplace workflow or legal chain-of-custody closure
+   - simulated carbon, sustainability and quality indicators must not be treated as verified consumer/compliance evidence
+   Implementation candidates promoted from legacy promises:
+   - `T13-IMPLEMENT-01 product lot registry` — Architecture path: `consolidate-first` / `schema-consolidation`; bind crop/plant/harvest/batch/sale units to operational records with stable identifiers
+   - `T13-IMPLEMENT-02 public QR traceability pages` — Architecture path: `consolidate-first`; publish selected ledger-backed events with privacy filters, QR issuance, scan logging and revocation
+   - `T13-IMPLEMENT-03 cryptographic evidence anchoring` — Architecture path: `convert-platform` / `evidence-ledger`; add hash chains, timestamping/anchoring provider, verification API and immutable audit rules only after product lots are durable
+   - `T13-IMPLEMENT-04 consumer/commercial traceability workflow` — Architecture path: `convert-platform`; support labels, packaging units, public claims approval, scan analytics, feedback and commerce integrations
+   - `T13-IMPLEMENT-05 certification/compliance evidence linkage` — Architecture path: `consolidate-first`; connect BIO/GlobalG.A.P./HACCP evidence to lot records without implying authority-issued certification
+   - `T13-IMPLEMENT-06 retire or persist simulated blockchain service` — Architecture path: `consolidate-first`; either move `blockchainTraceabilityService` to durable tables/provider adapters or keep it explicitly demo/internal
+   Rejected claims:
+   - `T13-REJECT-01 presenting generated hashes and in-memory maps as real immutable blockchain storage`
+   - `T13-REJECT-02 presenting QR, NFT, premium pricing, consumer app, marketplace or certification badges as current commercial product`
+   - `T13-REJECT-03 presenting carbon-neutral or sustainability claims from simulated calculations as verified product evidence`
+   Completed alignment:
+   - synchronized `public/docs/manual/03-traceability.md` with the bounded source chapter
+   - updated `TraceabilityWidget` copy and emitted activity type to label the current surface as operational/demo support rather than blockchain/commercial traceability
+   Closure result:
+   - `GAP-2026-04-23-AC` is closed for manual/UI/master-plan alignment
+   Closure rule:
+   - traceability docs and UI distinguish the real DB-backed operational ledger from future product-lot, QR, cryptographic anchoring and consumer/commercial traceability work
+
+14. `T14 Export Surface Boundary Consolidation`
+   Status: done
+   Goal:
+   - preserve export as a product capability while separating real current export families from unsupported claims of one unified enterprise export framework
+   Source chapters:
+   - `docs/manual/23-export-system.md`
+   Current verified surface:
+   - `/app/export` provides client-side operational export for `tasks`, `gardens`, `analytics` in CSV and report-print flow
+   - client-side "PDF" in `/app/export` is currently an HTML report opened in a new window and printed/saved by browser workflow
+   - `/api/export/csv` and `/api/export/pdf` exist, are tier-guarded (`PRO`) and currently cover `analytics` and `treatments`
+   - API export routes use real Supabase tables when available (`professional_analytics`, `treatment_register`) and fallback mock datasets in bypass mode
+   - `/api/export/pdf` currently returns text content (`.txt`) and not a rendered binary PDF document
+   - specialist export for prescription maps is materially more advanced through `MapExportModal`, `geoExportService`, GIS/ISOBUS-oriented formats and persisted export records
+   Current limitations:
+   - no single unified export contract across client export, professional API export and specialist module export
+   - no cross-module scheduler/retry/delivery pipeline for recurring exports
+   - no product-wide format matrix with verified support guarantees
+   - no general-purpose public export API with stable versioned contract
+   - compliance/stakeholder reporting remains partial and domain-specific
+   Implementation candidates promoted from legacy promises:
+   - `T14-IMPLEMENT-01 export surface inventory registry` — Architecture path: `extend-current`; maintain one canonical list of export families, owners, inputs, outputs, maturity and evidence
+   - `T14-IMPLEMENT-02 unified export contract and metadata` — Architecture path: `consolidate-first`; standardize minimum metadata (source, generated_at, filters, fallback flag, schema version) across export surfaces
+   - `T14-IMPLEMENT-03 true PDF generation pipeline` — Architecture path: `consolidate-first`; replace text/html-print approximations with deterministic PDF generation for declared report families
+   - `T14-IMPLEMENT-04 fallback transparency and quality flags` — Architecture path: `consolidate-first`; expose mock/bypass provenance in API responses and exported files
+   - `T14-IMPLEMENT-05 scheduled and durable export jobs` — Architecture path: `convert-platform`; introduce queue/scheduler/retry/audit for recurring delivery workflows
+   - `T14-IMPLEMENT-06 public export API boundary` — Architecture path: `convert-platform`; define authenticated versioned external export interface only after unified contracts are stable
+   Rejected claims:
+   - `T14-REJECT-01 presenting the current product as a complete enterprise export platform with universal formats and automation`
+   - `T14-REJECT-02 presenting /api/export/pdf as a production-grade PDF rendering system`
+   - `T14-REJECT-03 presenting all export routes as uniformly DB-grounded without fallback/mock modes`
+   Completed alignment:
+   - rewrote `docs/manual/23-export-system.md` around verified export families and boundaries
+   - synchronized `public/docs/manual/23-export-system.md` with bounded source chapter
+   - updated `/app/export` UI copy to label the report-print flow explicitly instead of implying a full PDF engine
+   Closure result:
+   - `GAP-2026-04-23-X` is closed for manual/UI/master-plan alignment
+   Closure rule:
+   - export documentation and product copy reference only verified export families and their real maturity, while unification/scheduling/public API work remains explicit backlog
+
+15. `T15 Global AI Chat Boundary Consolidation`
+   Status: done
+   Goal:
+   - keep global AI chat as a real assistive surface while removing unsupported claims of universal memory, autonomous actions and enterprise-grade support capabilities
+   Source chapters:
+   - `docs/manual/08-global-ai-chat.md`
+   Current verified surface:
+   - `GlobalAIChat.tsx` is a real widget wired to `POST /api/ai/chat`
+   - `app/api/ai/chat/route.ts` is Gemini-backed, checks tier (`PLUS`/`PRO`) and credits, and returns bounded responses
+   - route context is explicitly sanitized/validated (`director-context` and bounded context types) before prompt use
+   - backend prompt rules explicitly forbid pretending to have executed tasks, commands or data writes
+   - UI exposes explicit error and insufficient-credit messages without pretending successful AI execution
+   Current limitations:
+   - no durable cross-session memory ledger for global chat
+   - no generic write-capable action execution contract from chat into operational modules
+   - no built-in support escalation/human handoff workflow
+   - no verified product-level scientific/legal knowledge base contract that justifies broad "50k articles / real-time laws" style claims
+   - no implemented command set for legacy marketing strings such as `/escalate` or chat-history export
+   Implementation candidates promoted from legacy promises:
+   - `T15-IMPLEMENT-01 durable chat memory strategy` — Architecture path: `consolidate-first` / `evidence-ledger`; persist bounded conversation context and retention policy
+   - `T15-IMPLEMENT-02 suggested-action execution registry` — Architecture path: `consolidate-first`; structured proposals with explicit user confirmation and durable outcome linkage
+   - `T15-IMPLEMENT-03 support escalation contract` — Architecture path: `convert-platform`; handoff to human support/ticketing with audit trail
+   - `T15-IMPLEMENT-04 knowledge-source provenance contract` — Architecture path: `consolidate-first`; source citations, freshness tags and policy constraints for high-stakes guidance
+   - `T15-IMPLEMENT-05 cross-surface AI orchestration` — Architecture path: `convert-platform`; unify chat/planner/director task linkage and execution accountability
+   Rejected claims:
+   - `T15-REJECT-01 presenting global chat as a universal contextual assistant with complete enterprise memory and autonomous control`
+   - `T15-REJECT-02 presenting unimplemented commands/escalation/export as available chat features`
+   - `T15-REJECT-03 presenting broad scientific/legal/commercial knowledge coverage as verified product capability`
+   Completed alignment:
+   - rewrote `docs/manual/08-global-ai-chat.md` with bounded real behavior and explicit limits
+   - synchronized `public/docs/manual/08-global-ai-chat.md` with the bounded source chapter
+   Closure result:
+   - `GAP-2026-04-23-AF` is closed for manual/master-plan alignment
+   Closure rule:
+   - global AI chat documentation describes the verified assistive route/UI behavior and tracks memory/actions/escalation as explicit implementation work
+
+16. `T16 Documentation Drift Control Loop`
+   Status: done
+   Goal:
+   - prevent late discovery of manual/code drift by enforcing mandatory capture and closure gates during every implementation/manual session
+   Source chapters:
+   - `docs/manual/*` (cross-cutting governance)
+   Current verified surface:
+   - this master plan already defines documentation truth contracts and an open gap register
+   - recent closures (`T8..T15`) prove the workflow works when gaps are captured and resolved in the same execution cycle
+   Current limitations:
+   - drift prevention was mostly policy-level and depended on operator discipline
+   - no explicit minimum closure checklist was attached to each future boundary-consolidation step
+   Drift control loop (mandatory):
+   - `Trigger`: every time a chapter, major UI surface, or capability claim is reviewed
+   - `Capture`: if mismatch exists, create/update a `GAP-*` item before any wording softening
+   - `Classify`: map missing capability to architecture path (`extend-current`, `consolidate-first`, `convert-platform`, `reject-architecture`)
+   - `Promote`: convert valuable promises into explicit `T*-IMPLEMENT-*`/`T*-DEFER-*` items
+   - `Align`: synchronize source/public manual chapters with bounded claims
+   - `Verify`: run at least `git diff --check` and required module checks (type-check/tests where code changed)
+   - `Close`: mark gap `closed under T*` only when source/public/manual/master-plan are coherent
+   Implementation candidates promoted from governance gap:
+   - `T16-IMPLEMENT-01 gap template normalization` — Architecture path: `extend-current`; keep a stable mandatory structure for every gap entry (evidence, risk, todo, closure note, closure rule)
+   - `T16-IMPLEMENT-02 closure checklist enforcement` — Architecture path: `consolidate-first`; require explicit verification notes for doc-only vs code-touch closures
+   - `T16-IMPLEMENT-03 drift telemetry` — Architecture path: `convert-platform`; optional future metrics on gap discovery time, closure lead time and reopened gaps
+   Rejected anti-patterns:
+   - `T16-REJECT-01 softening manual claims without creating/updating the corresponding tracked TODO`
+   - `T16-REJECT-02 closing a gap while source/public chapters remain misaligned`
+   Completed alignment:
+   - defined a concrete mandatory drift-control loop and closure checklist in the master plan
+   - upgraded `GAP-2026-04-23-D` from generic warning to enforceable governance closure
+   Closure result:
+   - `GAP-2026-04-23-D` is closed for governance/process alignment
+   Closure rule:
+   - future documentation/code mismatches are captured, classified, promoted and verified in the same cycle; no unresolved drift remains only in chat history
 
 ## Recommended Start Order
 To turn this map into execution without losing precision, start in this order:
@@ -2274,42 +2878,58 @@ Meta-rule for this register:
 - only after that tracking step can the chapter be treated as `rewrite` or `delete-candidate`
 
 1. `GAP-2026-04-23-A` Certifications maturity is not homogeneous across tabs
-   Priority: high
+   Status: closed under `T3-E`
+   Priority: medium
    Related block: `P3`
    Evidence:
    - the route and dashboard are real, but `BIO` and `GlobalG.A.P.` are materially more implemented than `SQNPI` and `GRASP`
+   - T3-A now records the target state: BIO persisted readiness, GlobalG.A.P. partial durable compliance workspace, SQNPI/GRASP informational tabs
    Risk:
    - the product can be described too optimistically as one uniform certifications suite, or too pessimistically as pure concept
    TODO:
-   - make the per-certification maturity explicit in docs and, if needed, in UI copy
+   - done: source/public certification chapters explicitly distinguish BIO and GlobalG.A.P. from SQNPI/GRASP informational state
+   - done: certification dashboard cards now expose per-certification maturity labels, and SQNPI/GRASP tabs are explicitly marked as informational/backlog
+   Closure note:
+   - heterogeneous maturity remains intentional and visible, instead of being interpreted as one uniformly operational suite
    Closure rule:
    - each certification surface is labelled and documented according to its real implementation status
 
 2. `GAP-2026-04-23-B` BIO workflow is visible in UI but not yet a full persisted certification loop
-   Priority: high
+   Status: closed_by_T3
+   Priority: low
    Related block: `P2` / `P3`
    Evidence:
-   - `BioCertificationForm` provides structured capture and scoring, but current save flow is callback-driven and not yet clearly closed as a durable certification record pipeline
+   - `BioCertificationForm` provides structured capture and scoring
+   - `CertificationsDashboard` now loads/saves the latest BIO record through `bioCertificationService`
+   - production schema contains `bio_certifications` and `bio_certifications_with_readiness`
    Risk:
-   - operators may infer that the BIO process is stored and audit-ready end-to-end when it is not yet guaranteed
+   - operators may still infer that persisted readiness equals official certification closure if the manual/UI overstate the status
    TODO:
-   - decide whether to implement durable persistence and retrieval for BIO certification records or explicitly mark the current flow as assisted assessment
+   - keep manual wording bounded to persisted readiness support; full certification authority workflow remains outside current scope
    Closure rule:
-   - either BIO records are persisted/reloaded end-to-end, or the UI/manual consistently describe the current limitation
+   - BIO records are persisted/reloaded end-to-end and the UI/manual describe the remaining limitation
 
 3. `GAP-2026-04-23-C` GlobalG.A.P. UI mixes real compliance structures with simulated completion actions
-   Priority: medium
+   Status: closed under `T3-C`
+   Priority: low
    Related block: `P2` / `P3`
    Evidence:
    - `GlobalGapDashboard` loads real overview services, but some action completion and document generation paths are simulated in UI
+   - production schema now confirms the core and richer GlobalG.A.P. service tables after `20260425150000_consolidate_globalgap_operational_schema.sql`
+   - UI template actions are labelled as template support rather than durable completion
    Risk:
    - the dashboard can look more operationally closed than the underlying workflow really is
    TODO:
-   - separate simulated actions from real persisted actions, or wire the remaining UI paths to durable backend behaviour
+   - done: missing-requirement document actions are labeled as template support
+   - done: action cards and template buttons now disclose non-persisted/template behavior directly in UI copy
+   - future implementation: wire per-requirement completion actions to durable records before removing template disclaimers
+   Closure note:
+   - simulated/template affordances remain visible and cannot be mistaken for official completion writes
    Closure rule:
    - every visible action in the GlobalG.A.P. dashboard is either fully wired or explicitly marked as template/simulated support
 
 4. `GAP-2026-04-23-D` Documentation drift was discovered too late and without mandatory capture
+   Status: closed under `T16`
    Priority: high
    Related block: `P3`
    Evidence:
@@ -2317,11 +2937,15 @@ Meta-rule for this register:
    Risk:
    - unresolved product mismatches remain invisible and continue to compound
    TODO:
-   - keep this register active and add new mismatches as they are found during the manual sweep
+   - done: drift-control loop is now explicit in `T16` with mandatory trigger/capture/classify/promote/align/verify/close steps
+   - ongoing: keep register active and add new mismatches during future sweeps
+   Closure note:
+   - drift handling is now an enforceable process gate, not only a warning
    Closure rule:
    - all remaining manual chapters are reviewed against code and any mismatch is either fixed or logged here as an open item
 
 5. `GAP-2026-04-23-E` Legacy manual still contains promise-driven chapters not grounded in verified code
+   Status: closed for strategic chapters under `T7`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2329,11 +2953,14 @@ Meta-rule for this register:
    Risk:
    - the manual keeps reintroducing ambiguity because some chapters are inherited from older promise documents rather than from implementation evidence
    TODO:
-   - audit the remaining manual chapters against code and classify each chapter as `done`, `in progress`, or `todo`
+   - done for T7 strategic chapters: chapters 25, 28, 30, 31 and 32 now classify unimplemented promises as implement/defer/reject in the master plan before manual alignment
+   Closure note:
+   - the remaining non-T7 legacy gaps stay tracked under their own entries; T7 closes the strategic promise subset
    Closure rule:
    - no manual chapter remains in an unclassified promise state
 
 6. `GAP-2026-04-23-F` Success-story and ROI style chapters are especially likely to overstate current product reality
+   Status: closed under `T7`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2341,11 +2968,14 @@ Meta-rule for this register:
    Risk:
    - these chapters can silently undo the truthfulness work done elsewhere in the manual
    TODO:
-   - audit these chapters first and either downgrade them to clearly aspirational material or rewrite them to verified current-state language
+   - done: ROI, use-case, success-story, R&D and roadmap chapters were rewritten around evidence policy and tracked backlog
+   Closure note:
+   - success-story and ROI outcome claims are no longer presented as verified product facts in chapters 28 and 31
    Closure rule:
    - all high-risk promise-heavy chapters are either rewritten or explicitly moved out of the operational manual
 
 7. `GAP-2026-04-23-G` Integration/API chapter describes an ecosystem much wider than the verified code surface
+   Status: closed under `T8`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2353,11 +2983,15 @@ Meta-rule for this register:
    Risk:
    - users and stakeholders can infer a public integration layer and partner ecosystem that the current repository does not substantiate
    TODO:
-   - replace this chapter with a narrow description of real APIs/integrations
+   - done: chapter 26 now describes internal API-adjacent surfaces, credential configuration, export/import and bounded IoT/machinery support
+   - done: public API, webhooks, SDKs, ERP/marketplace/banking/insurance and integration gateway promises were converted into `T8-IMPLEMENT-*` / `T8-DEFER-*`
+   Closure note:
+   - the security/schema consolidation around `api_configurations` and `api_keys` is tracked as `T8-IMPLEMENT-01`
    Closure rule:
    - the manual no longer claims unsupported external integration breadth
 
 8. `GAP-2026-04-23-H` ROI and business-benefit claims are documented as measured outcomes without verifiable grounding
+   Status: closed under `T7`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2365,11 +2999,14 @@ Meta-rule for this register:
    Risk:
    - product documentation becomes commercially unreliable and undermines the credibility of the verified technical manual
    TODO:
-   - remove or rewrite these chapters so that hypothetical value framing is clearly separated from verified product state
+   - done: `docs/manual/28-economic-benefits.md` and `docs/manual/31-success-stories.md` now reject guaranteed ROI/testimonial claims and promote a future evidence-backed economic analytics/customer evidence workflow
+   Closure note:
+   - ROI is now treated as future measured evidence, not a guaranteed outcome
    Closure rule:
    - no operational manual chapter contains fabricated or unverified ROI/testimonial material
 
 9. `GAP-2026-04-23-I` Scenario chapters blur illustrative examples with claimed real deployments
+   Status: closed under `T7`
    Priority: medium
    Related block: `P5`
    Evidence:
@@ -2377,7 +3014,9 @@ Meta-rule for this register:
    Risk:
    - scenario material can be misread as proof of implementation completeness or customer validation
    TODO:
-   - rewrite scenario chapters as clearly illustrative workflows tied to verified modules only
+   - done: `docs/manual/30-use-cases.md` now presents scenarios as illustrative templates tied to verified modules, with missing guided playbooks tracked as implementation work
+   Closure note:
+   - scenario material is no longer framed as customer proof or deployment evidence
    Closure rule:
    - scenario docs are explicitly labeled as examples, not proof points
 
@@ -2448,6 +3087,7 @@ Meta-rule for this register:
    - director/orchestration responsibilities are explicitly mapped and the manual describes the current architecture truthfully
 
 15. `GAP-2026-04-23-O` API/integration domain exists, but as an internal route/provider layer rather than a mature external partner ecosystem
+   Status: closed under `T8`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2456,15 +3096,15 @@ Meta-rule for this register:
    Risk:
    - real API work is obscured by an inflated narrative, making the product seem either overbuilt or untrustworthy
    TODO:
-   - map the actual integration surface into:
-     - internal application APIs
-     - external provider adapters
-     - webhook/machine ingestion points
-     - not-yet-implemented external/public integrations
+   - done: T8 maps internal application APIs, external provider configuration, IoT/sensor ingestion, file/export support and unsupported public integrations
+   - done: public API, webhooks, connector registry and SDK generation are tracked as implementation candidates with architecture paths
+   Closure note:
+   - chapter 26 now separates current internal/API-adjacent capability from future external integration platform work
    Closure rule:
    - the integration chapter reflects the real API surface and clearly separates internal endpoints from future external integrations
 
 16. `GAP-2026-04-23-P` Use-case chapter aggregates real modules with very different maturity levels and presents them as proven deployments
+   Status: closed under `T7`
    Priority: medium
    Related block: `P5`
    Evidence:
@@ -2473,11 +3113,14 @@ Meta-rule for this register:
    Risk:
    - mixed-maturity modules are perceived as end-to-end production deployments rather than illustrative combinations of currently available building blocks
    TODO:
-   - rewrite the chapter as scenario-based examples tied to verified modules and label mixed-maturity areas explicitly
+   - done: chapter 30 is now a scenario-template guide and the missing productized playbook layer is tracked as `T7-IMPLEMENT-03`
+   Closure note:
+   - examples are explicitly illustrative and contain no implied real-customer outcome claims
    Closure rule:
    - each scenario is grounded in verified modules and contains no implied real-customer outcome claims
 
 17. `GAP-2026-04-23-Q` Economic domain exists in limited form, but the manual describes it as a validated business-impact system
+   Status: closed under `T7`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2486,12 +3129,15 @@ Meta-rule for this register:
    Risk:
    - a partially implemented economic layer is perceived as a validated commercial outcome engine
    TODO:
-   - map the actual economic features into verified coverage vs unsupported claims
-   - rewrite the chapter as narrow economic visibility/cost tracking, or remove it from the in-app manual
+   - done: actual economic support is documented as visibility/evidence support, while a durable economic analytics module is tracked as `T7-IMPLEMENT-02`
+   - done: guaranteed savings and fixed ROI claims were rejected
+   Closure note:
+   - the economic chapter now separates current operational evidence from future ROI measurement work
    Closure rule:
    - the economic chapter, if retained, reflects only the currently supported economic calculations and clearly states their limits
 
 18. `GAP-2026-04-23-R` Success-stories chapter contains factual-looking customer/testimonial material that is not verifiable from the repository
+   Status: closed under `T7`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2500,12 +3146,15 @@ Meta-rule for this register:
    Risk:
    - the operational manual includes narrative material that reads as factual proof, but is not supported by implementation evidence and is therefore more misleading than a normal roadmap-style promise
    TODO:
-   - remove `31-success-stories` from the in-app manual
-   - if any content is worth preserving, reintroduce it only as anonymous illustrative scenarios tied to verified modules and explicitly not as customer proof
+   - done: chapter 31 now contains a success-story publication policy, not named/verbatim customer proof
+   - done: future customer evidence is tracked as `T7-IMPLEMENT-05`
+   Closure note:
+   - no T7 manual chapter contains named testimonial, award or customer-outcome material as current fact
    Closure rule:
    - no in-app manual chapter contains named testimonial, award or customer-outcome material unless it is backed by verifiable source evidence available to the product team
 
 19. `GAP-2026-04-23-S` Sustainability chapter composes real environmental signals into a much broader ESG/carbon platform than the verified code supports
+   Status: closed under `T10`
    Priority: medium
    Related block: `P5`
    Evidence:
@@ -2514,28 +3163,34 @@ Meta-rule for this register:
    Risk:
    - a real but narrow environmental foundation is documented as a comprehensive sustainability suite, which creates both product overclaim and confusion about what data is actually durable and measurable
    TODO:
-   - map sustainability features into verified environmental monitoring, water/irrigation support, lightweight analytics indicators and unsupported broader ESG/carbon claims
-   - rewrite the chapter around the verified baseline only
+   - done: T10 maps verified environmental monitoring, irrigation/water context, lightweight analytics indicators and simulated carbon structures
+   - done: carbon accounting, ESG reporting, biodiversity tracking, certification workflows and circular-economy programs are tracked as `T10-IMPLEMENT-*` / `T10-DEFER-*`
+   Closure note:
+   - chapter 24 now describes environmental evidence support, not a complete ESG/carbon platform
    Closure rule:
    - the sustainability chapter reflects the actual environmental tooling and clearly excludes unsupported ESG/carbon/circular-economy claims
 
 20. `GAP-2026-04-23-T` Orchard chapter overstates the most advanced precision-orchard and analytics layers relative to a real but uneven implementation
    Priority: medium
    Related block: `P5`
+   Status: closed under `T6-B`
    Evidence:
    - `/app/orchard`, `orchardService`, orchard dashboard/wizard/tree/pruning/harvest managers and Supabase-backed orchard structures are real
-   - the current chapter extends that real base into robotics, complete advanced analytics, computer-vision automation and broader commercial/post-harvest workflows that are not established as uniformly connected modules
+   - original chapter extended that real base into robotics, complete advanced analytics, computer-vision automation and broader commercial/post-harvest workflows that are not established as uniformly connected modules
    Risk:
    - a substantial orchard module is documented as if every advanced precision-orchard promise were already closed and production-ready
    TODO:
-   - map orchard features into verified operational core vs unsupported advanced precision claims
-   - rewrite the chapter around the verified core only
+   - done: map orchard features into verified operational core vs unsupported advanced precision claims
+   - done: rewrite the chapter around the verified core only
+   Closure note:
+   - `docs/manual/18-orchard-management.md` and `public/docs/manual/18-orchard-management.md` now describe the DB-backed frutteto core and exclude robotics, computer vision, post-harvest commerce and ROI promises from current capability
    Closure rule:
    - orchard docs describe the real operational stack and clearly exclude unsupported advanced precision/commercial claims
 
 21. `GAP-2026-04-23-U` Olive vertical is real but partly assembled from orchard foundations plus local specialist widgets
    Priority: high
    Related block: `P5`
+   Status: closed under `T6-B`
    Evidence:
    - `/app/olives` exists and is operational
    - olive contexts are resolved from garden/orchard data and the page reuses orchard operational managers
@@ -2543,28 +3198,34 @@ Meta-rule for this register:
    Risk:
    - the product can be documented as a fully mature olive-specialist stack when part of the specialist layer is still assistive/local and built on shared orchard infrastructure
    TODO:
-   - map which olive features are durable/shared vs local assistive
-   - decide whether to deepen olive-specific persistence or document the current hybrid state explicitly
+   - done: map which olive features are durable/shared vs local assistive
+   - done: document the current hybrid state explicitly
+   Closure note:
+   - `docs/manual/19-olive-management.md` and `public/docs/manual/19-olive-management.md` now distinguish orchard-backed operations, olive-specific schemas and current local/sample-style specialist widgets
    Closure rule:
    - olive documentation clearly separates orchard-backed operations from local/demo-style specialist tooling, or the tooling is promoted to durable persisted workflows
 
 22. `GAP-2026-04-23-V` Vineyard chapter extends a real vertical into winery/market-intelligence coverage beyond the verified product surface
    Priority: medium
    Related block: `P5`
+   Status: closed under `T6-B`
    Evidence:
    - `/app/vineyard`, `vineyardService`, `vineyardBudLoadService`, vineyard dashboards/wizard and vine management are real and materially implemented
    - the current chapter still describes deeper cantina integration, market analysis and broad end-to-end viticulture intelligence not established as uniformly connected modules
    Risk:
    - a real vineyard vertical is oversold as a full vineyard-to-winery intelligence suite
    TODO:
-   - map verified vineyard operations vs unsupported winery/market-intelligence claims
-   - rewrite the chapter around the verified vineyard baseline only
+   - done: map verified vineyard operations vs unsupported winery/market-intelligence claims
+   - done: rewrite the chapter around the verified vineyard baseline only
+   Closure note:
+   - `docs/manual/20-vineyard-management.md` and `public/docs/manual/20-vineyard-management.md` now describe the DB-backed vineyard/vine/Ravaz support and exclude winery, ERP, market intelligence, denomination and bottle-traceability claims from current capability
    Closure rule:
    - vineyard docs reflect the actual operational and persistence layer without unsupported winery/market overclaim
 
 23. `GAP-2026-04-23-W` Agronomist domain has real UI/data structures but not a consolidated consultation-service backend
    Priority: medium
    Related block: `P5`
+   Status: closed under `T6-C`
    Evidence:
    - agronomist types and UI components exist for contacts, consultation capture and listing
    - `services/agronomistService.ts` remains largely stubbed for reads and applied-advice workflows
@@ -2572,12 +3233,15 @@ Meta-rule for this register:
    Risk:
    - a partially implemented agronomist surface can oscillate between being dismissed as fake or overstated as a complete consultation module
    TODO:
-   - map which agronomist flows are truly storage-backed vs scaffold/UI-only
-   - decide whether to keep the module intentionally lightweight or deepen the backend/service layer
+   - done: map which agronomist flows are truly storage-backed vs scaffold/UI-only
+   - done: document the module as partially persisted and non-marketplace
+   Closure note:
+   - `docs/manual/11-agronomist-consultations.md` and `public/docs/manual/11-agronomist-consultations.md` now describe storage-provider-backed agronomists/consultations/advice while keeping marketplace, booking, payments and prescription automation out of current scope
    Closure rule:
    - agronomist documentation and implementation clearly agree on what is currently operational and what is not
 
 24. `GAP-2026-04-23-X` Export surface is real but fragmented across simple client-side flows, helper services and selected API endpoints
+   Status: closed under `T14`
    Priority: medium
    Related block: `P5`
    Evidence:
@@ -2586,12 +3250,16 @@ Meta-rule for this register:
    Risk:
    - future docs or UI could again collapse these scattered capabilities into an overclaimed universal export system
    TODO:
-   - inventory actual export families and supported formats
-   - distinguish client-side convenience export, backup/portability export and specialist module export
+   - done: T14 maps three verified families (client operational export, professional API export, prescription specialist export)
+   - done: source/public chapter 23 now describes actual route/service behavior, including report-print and fallback limits
+   - future implementation: unified contract/metadata, deterministic PDF pipeline, scheduled jobs and public API boundary tracked under `T14-IMPLEMENT-*`
+   Closure note:
+   - export capability is no longer represented as one complete framework; specialist and generic surfaces are clearly separated by maturity
    Closure rule:
    - export documentation and product copy reference only the verified export families and formats actually supported
 
 25. `GAP-2026-04-23-Y` AI predictions are real but still distributed across multiple engines, dashboards and maturity levels
+   Status: closed under `T12`
    Priority: medium
    Related block: `P5`
    Evidence:
@@ -2601,12 +3269,15 @@ Meta-rule for this register:
    Risk:
    - the product can be documented either as a single unified AI engine or dismissed as mostly mock, while the real state is a distributed hybrid predictive layer
    TODO:
-   - map predictive surfaces into mature operational services vs staged dashboards
-   - converge or document the current multi-engine architecture explicitly
+   - done: T12 maps predictive surfaces into DB-backed/contextual services, heuristic engines, demo/mock paths and staged UI
+   - future implementation: converge predictive route/dashboard, evidence ledger, service contract and validation harness through `T12-IMPLEMENT-*`
+   Closure note:
+   - public/source manuals now avoid universal accuracy and proprietary ML claims; the dashboard shows a consolidation disclosure
    Closure rule:
    - AI predictions are documented and exposed according to their actual service/UI maturity
 
 26. `GAP-2026-04-23-Z` Drone domain includes real planning/execution scaffolding but remains simulated and non-persisted
+   Status: closed under `T9`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2615,40 +3286,50 @@ Meta-rule for this register:
    Risk:
    - the drone module can be understated as pure concept or overstated as real hardware-integrated operations, while it is actually a prototype-like operational scaffold
    TODO:
-   - decide whether to deepen persistence/hardware integration or document the current prototype boundary explicitly
-   - rewrite drone docs and, if needed, UI copy around this real-but-simulated state
+   - done: T9 classifies the current state as an internal scaffold with simulated execution and non-durable in-memory plan state
+   - done: Smart Hub now uses the internal `/api/drone/*` scaffold and labels execution as simulation rather than physical flight
+   - done: durable registry, evidence/media pipeline, provider integration, safety workflow and prescription handoff are tracked as `T9-IMPLEMENT-*`
+   Closure note:
+   - public manual chapter 02 is synchronized with the bounded source chapter
    Closure rule:
    - drone documentation and product copy clearly describe the current scaffold/prototype status or the implementation is promoted to durable integrated workflows
 
 27. `GAP-2026-04-23-AA` NDVI surface is real but still mixes provider-backed data with fallback/simulated analysis paths
    Priority: medium
    Related block: `P5`
+   Status: closed under `T4-D`
    Evidence:
    - `/app/ndvi`, NDVI dashboards, config-status flows and satellite service are real
    - the NDVI service explicitly falls back to simulated data and some trend/stress logic is still hybrid rather than fully quantitative remote-sensing processing
    Risk:
    - the module can be described either as too weak to matter or as a fully quantitative satellite intelligence pipeline, while the real state is in between
    TODO:
-   - keep NDVI docs/provider status explicit about real vs fallback data
-   - improve visibility of source quality where needed in UI/manual
+   - done: keep NDVI docs/provider status explicit about real vs fallback data
+   - done: verify visibility of source quality in UI/manual
+   Closure note:
+   - source and public manuals describe NDVI as scouting/prioritization support with provider/fallback limits; `SentinelHubStatus` and config-status flows expose connected versus missing provider configuration; fallback/simulated paths remain documented as limits
    Closure rule:
    - NDVI documentation and UI consistently disclose when data is provider-backed versus fallback/simulated
 
 28. `GAP-2026-04-23-AB` Prescription maps are more implemented than a preview, but the field-validated end-to-end chain remains uneven
    Priority: high
    Related block: `P5`
+   Status: closed under `T4-C`
    Evidence:
    - dedicated route, dashboard, service layer, schema, persistence, export records and execution/outcome summaries exist
    - productive use still depends on mixed-maturity data sources, manual validation and incomplete closure of map -> field import -> applied outcome
    Risk:
    - the module is either underestimated as a mere beta mockup or overstated as a universally trusted VRT execution chain
    TODO:
-   - rewrite docs/UI around `real module with partial end-to-end closure`
-   - continue improving field import/applied/export/outcome linkage and machinery validation
+   - done: rewrite docs around `real module with partial end-to-end closure`
+   - future implementation: continue improving field import/applied/export/outcome linkage and machinery validation
+   Closure note:
+   - `docs/manual/06-prescription-maps.md` and `public/docs/manual/06-prescription-maps.md` now describe persisted maps/zones/exports/`variable_rate_applications`, field-operation statuses, execution/outcome summaries and the remaining limits around universal machine validation and measured field outcomes
    Closure rule:
    - prescription maps are documented according to their true operational maturity and the remaining field-validation gaps are either closed or explicitly surfaced
 
 29. `GAP-2026-04-23-AC` Traceability domain is real but documented as a much broader immutable commercial/compliance platform
+   Status: closed under `T13`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2657,25 +3338,34 @@ Meta-rule for this register:
    Risk:
    - a real but bounded traceability/prototype layer is mistaken for a fully operational chain-of-custody and consumer commerce platform
    TODO:
-   - map verified traceability features vs unsupported commercial/compliance claims
-   - rewrite the chapter around the actual traceability scaffold only
+   - done: T13 maps DB-backed operational ledger, simulated blockchain service/routes and demo traceability UI separately
+   - done: public manual 03 now matches the bounded source chapter
+   - future implementation: product lot registry, public QR pages, cryptographic anchoring, consumer/commercial workflow and certification evidence linkage remain tracked under `T13-IMPLEMENT-*`
+   Closure note:
+   - generated hashes, in-memory blockchain records, NFT/QR and commercial claims are no longer presented as current verified product capability
    Closure rule:
    - traceability docs describe only the real operational/prototype surface and exclude unsupported chain-of-custody/commercial overclaim
 
 30. `GAP-2026-04-23-AD` BIO certification guide is grounded in a real form but still implies stronger audit-readiness than the product currently guarantees
+   Status: closed under `T3-E`
    Priority: medium
    Related block: `P5`
    Evidence:
    - BIO form, checklist and document surfaces exist
-   - document handling and certification closure are still mixed in maturity and not all support is durably end-to-end
+   - BIO record persistence and readiness reload are now DB-backed
+   - document handling and certification authority closure are still mixed in maturity and not all support is durably end-to-end
    Risk:
    - operators may read the guide as a full certification operations manual rather than an assisted readiness tool
    TODO:
-   - rewrite the guide around actual score/form support and current certification-readiness boundaries
+   - done: source/public chapter `04b-bio-certification-guide.md` now describes BIO as persisted readiness support and excludes claims of official certification closure
+   - future implementation: keep certification authority submission, official document protocol/signature and audit-valid closure in explicit backlog (`T3`/compliance implementation candidates), not in current manual claims
+   Closure note:
+   - BIO guide now distinguishes internal readiness scoring from external certification authority workflow and audit outcome
    Closure rule:
    - BIO guide clearly distinguishes assisted readiness support from full certification closure
 
 31. `GAP-2026-04-23-AE` AI overview chapter compresses uneven AI domains into one coherent decision layer
+   Status: closed under `T12`
    Priority: medium
    Related block: `P5`
    Evidence:
@@ -2684,46 +3374,54 @@ Meta-rule for this register:
    Risk:
    - the product can appear more uniformly AI-orchestrated than the current implementation actually is
    TODO:
-   - map current AI surfaces into explicit sub-domains with maturity labels instead of one flattened AI layer
-   - decide later whether to converge those surfaces architecturally or document them as intentionally distributed
+   - done: `docs/manual/07-ai-overview.md` and `public/docs/manual/07-ai-overview.md` now map AI sub-domains by maturity
+   - future implementation: decide convergence through `T12-IMPLEMENT-02/03/04`, not through manual overclaim
+   Closure note:
+   - the overview now frames AI as distributed assistive/predictive support rather than one autonomous decision layer
    Closure rule:
    - the AI overview is backed by an explicit sub-domain maturity map and no longer implies a uniform AI engine where one does not exist
 
 32. `GAP-2026-04-23-AF` Global AI chat chapter promises a universal contextual assistant well beyond the verified implementation
-   Priority: high
+   Status: closed under `T15`
+   Priority: medium
    Related block: `P5`
    Evidence:
-   - `components/ai/GlobalAIChat.tsx` exists, but currently uses local canned responses and simulated delay
+   - `components/ai/GlobalAIChat.tsx` exists and now calls the real backend route
    - `app/api/ai/chat/route.ts` provides a real Gemini-backed AI route with credits/tier checks
-   - the current gap is therefore partly architectural/UI: the globally mounted chat widget is not wired to the real AI route
-   - there is still no verified end-to-end evidence for universal page context, strong memory, support escalation, omnipresent actions or the large specialist knowledge base claimed in `docs/manual/08-global-ai-chat.md`
+   - T1 added bounded route/module context, prompt guardrails, explicit error/credit UX and context validation
+   - there is still no verified end-to-end evidence for strong durable memory, support escalation, write-capable omnipresent actions or a large specialist knowledge base
    Risk:
-   - users can infer a globally contextual assistant with production-grade grounding and operational control that the codebase does not currently close
-   - at the same time, the product can be underestimated as “fake chat only” even though a real backend AI path already exists
+   - users can infer a globally contextual assistant with production-grade memory, grounding and operational control that the codebase does not currently close
    TODO:
-   - wire the global chat UI to the real AI route or explicitly split demo chat from production AI entrypoints
-   - separate current chat surface from future capabilities such as durable memory, grounded contextual actions, support escalation and broad knowledge integration
-   - treat the missing capabilities as tracked implementation work before any manual rewrite
+   - done: chapter `08-global-ai-chat.md` (source/public) now reflects verified route/widget behavior and bounded context
+   - future implementation: durable memory, write-capable actions, escalation and knowledge provenance are tracked under `T15-IMPLEMENT-*`
+   Closure note:
+   - legacy claims (universal memory, broad enterprise support features, unimplemented command set) are removed from current manual scope
    Closure rule:
-   - the global chat chapter only describes verified chat behaviour, the UI path to real AI is explicit, and all stronger assistant capabilities are either implemented or explicitly tracked as open work
+   - the global chat chapter only describes verified chat behaviour, and all stronger assistant capabilities are either implemented or explicitly tracked as open work
 
 33. `GAP-2026-04-23-AG` Planner task loop is materially stronger than planner chat generation logic
+   Status: closed under `T1-C` follow-through (2026-04-27)
    Priority: medium
    Related block: `P2` / `P5`
    Evidence:
    - planner task persistence, agronomic queue, execution launches and evidence-contract exposure are real and connected
-   - `PlannerAIChat.tsx` and `PlannerAIChatFixed.tsx` still rely on local canned response logic rather than a durable, task-aware planning engine
+   - `PlannerAIChat.tsx` and `PlannerAIChatFixed.tsx` now call `/api/ai/chat` with bounded planner task-context packets (assistive-only, no hidden write path)
    Risk:
    - the planner can be discussed either too optimistically as a unified AI planner or too pessimistically as mostly mock, while the real state is split between solid task orchestration and lighter chat guidance
    TODO:
+   - done: planner chat moved from local canned responses to real backend AI route with explicit assistive boundary
    - keep documenting the planner as hybrid
-   - later decide whether planner chat should be wired into the same real task/orchestration substrate or remain a lightweight assistive layer
+   - future implementation: if promoted beyond assistive chat, planner chat must pass `PG-02..PG-06` (verified action registry, routing hooks, user confirmation, auditability, source-of-truth protection)
+   Closure note:
+   - planner chat is now real backend-assisted guidance, while durable planner truth remains in task/queue/orchestration and downstream execution records
    Closure rule:
-   - planner documentation and architecture clearly distinguish real task/execution orchestration from assistive chat guidance
+   - planner documentation and architecture clearly distinguish real task/execution orchestration from assistive chat guidance, and chat is not local mock logic
 
 34. `GAP-2026-04-23-AH` Smart Hub has real telemetry foundations but still mixed registry, actuation and automation maturity
    Priority: medium
    Related block: `P5`
+   Status: closed under `T5`
    Evidence:
    - telemetry and sensor-reading routes exist under `app/api/iot/*` and `app/api/sensors/readings/route.ts`
    - `services/sensorDataService.ts` provides real typed sensor-reading persistence helpers
@@ -2731,11 +3429,14 @@ Meta-rule for this register:
    Risk:
    - the IoT domain can be misunderstood either as mostly absent or as a fully operational device-management and automation center
    TODO:
-   - separate the real ingestion/persistence layer from future device registry, actuator control and stable automation rules
+   - done: separate the real ingestion/persistence layer from future device registry, actuator control and stable automation rules
+   Closure note:
+   - `docs/manual/14-smart-hub.md`, `public/docs/manual/14-smart-hub.md`, `docs/manual/15-irrigation-system.md` and `public/docs/manual/15-irrigation-system.md` now describe telemetry ingestion, `smart_devices`, limited valve command dispatch, automation logs and irrigation register/calculation separately from open provider provisioning, Tuya dispatch, physical actuation guarantees and unsupervised automation
    Closure rule:
    - Smart Hub documentation and implementation explicitly distinguish telemetry reality from still-open actuation/automation work
 
 35. `GAP-2026-04-23-AI` Automated diary chapter implies a more uniformly closed daily tracking system than the current implementation guarantees
+   Status: closed under `T11`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2744,38 +3445,47 @@ Meta-rule for this register:
    Risk:
    - users can infer a fully reliable automatic agronomic diary platform where the current system is real but still uneven in closure, presentation and operational guarantees
    TODO:
-   - map which diary capabilities are already durable and operational versus predictive/assistive or still partial
-   - convert the missing automatic-diary closure into tracked work before any final rewrite of the chapter
+   - done: T11 maps the DB-backed daily weather/environment diary pipeline separately from in-memory operational diary surfaces and broader predictive promises
+   - done: pipeline observability, durable operational diary convergence, event provenance, multi-season analytics and local station/IoT ingestion are tracked as `T11-IMPLEMENT-*`
+   Closure note:
+   - public manual chapter 35 is synchronized with the bounded source chapter
    Closure rule:
    - the diary chapter reflects only verified daily-tracking behaviour and all stronger automation claims are either implemented or explicitly tracked as open work
 
 36. `GAP-2026-04-23-AJ` Nutrition and treatments chapter mixes a real operational core with much broader scientific/compliance promises
    Priority: high
    Related block: `P5`
+   Status: closed under `T3-D` / `T3-E`
    Evidence:
    - real nutrition/treatments routes, dashboards, planners, products and execution flows exist
-   - `docs/manual/16-nutrition-treatments.md` then expands into full scientific nutrient engines, complete fitopharmaceutical/compliance systems, residue frameworks and mature VRT nutritional chains not verified as closed product behaviour
+   - original `docs/manual/16-nutrition-treatments.md` expanded into full scientific nutrient engines, complete fitopharmaceutical/compliance systems, residue frameworks and mature VRT nutritional chains not verified as closed product behaviour
    Risk:
    - a useful real module is documented as if it were already a fully scientific, normative and precision-application platform
    TODO:
-   - separate the verified operational nutrition/treatments core from still-open scientific/compliance/VRT ambitions
+   - done: separate the verified operational nutrition/treatments core from still-open scientific/compliance/VRT ambitions
+   Closure note:
+   - `docs/manual/16-nutrition-treatments.md` and `public/docs/manual/16-nutrition-treatments.md` now describe DB-backed planner/registry capability, localStorage legacy limits, support-only exports, and backlog for official quaderno, LMR/residue/DPI validation and VRT end-to-end closure
    Closure rule:
    - nutrition/treatments documentation clearly distinguishes current operational capability from tracked future extensions
 
 37. `GAP-2026-04-23-AK` Mechanical operations chapter extends a real register/execution module into telematics and fleet-management promises
    Priority: medium
    Related block: `P5`
+   Status: closed under `T4-B`
    Evidence:
    - real mechanical-work route, forms, service layer and task-aware execution flow exist
-   - `docs/manual/17-mechanical-operations.md` then adds GPS fleet tracking, guidance systems, auto-steer, telematics integrations and broad optimization layers not verified as current product capability
+   - original `docs/manual/17-mechanical-operations.md` added GPS fleet tracking, guidance systems, auto-steer, telematics integrations and broad optimization layers not verified as current product capability
    Risk:
    - users can mistake a real operational register module for a complete machinery telematics platform
    TODO:
-   - isolate current mechanical execution/recording capability from still-open fleet/telematics ambitions
+   - done: isolate current mechanical execution/recording capability from still-open fleet/telematics ambitions
+   Closure note:
+   - `docs/manual/17-mechanical-operations.md` and `public/docs/manual/17-mechanical-operations.md` now describe the DB-backed `mechanical_work_register`, task-aware operational closure and explicit limits around GPS, telematics, fleet management, predictive maintenance and machine-origin execution proof
    Closure rule:
    - mechanical documentation describes the real module truthfully and tracks precision/telematics ambitions separately
 
 38. `GAP-2026-04-23-AL` R&D and roadmap chapters are future-capability/backlog material currently living inside the manual
+   Status: closed under `T7`
    Priority: high
    Related block: `P5`
    Evidence:
@@ -2783,8 +3493,10 @@ Meta-rule for this register:
    Risk:
    - the manual continues to mix operational product truth with strategic aspiration and speculative backlog
    TODO:
-   - convert still-relevant future capability claims from these chapters into explicit tracked roadmap/TODO items
-   - later decide what should be archived, removed from the manual or retained only as internal planning material
+   - done: relevant R&D, economic, scenario, roadmap and customer-evidence promises were converted into explicit `T7-IMPLEMENT-*` or `T7-DEFER-*` items
+   - done: speculative or unverifiable claims were rejected under `T7-REJECT-*`
+   Closure note:
+   - chapters 25 and 32 now point to controlled backlog/maturity governance instead of presenting unverifiable labs, partnerships, patents or speculative technologies as product truth
    Closure rule:
    - no future-facing capability chapter remains in the user manual unless it is explicitly justified as tracked roadmap material and clearly separated from current product truth
 

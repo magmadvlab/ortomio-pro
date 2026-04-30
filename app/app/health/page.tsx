@@ -33,7 +33,9 @@ import {
   getHealthScopeInsights,
   type HealthScopeInsight,
 } from '@/services/healthScopeService'
+import { resolveGardenContext } from '@/services/gardenContextResolverService'
 import { weatherService } from '@/services/weatherService'
+import { ContextAwareAIService } from '@/services/contextAwareAIService'
 import MobileResponsiveButtonGroup from '@/components/shared/MobileResponsiveButtonGroup'
 import WeatherWidget from '@/components/weather/WeatherWidget'
 import { useGarden } from '@/packages/core/hooks/useGarden'
@@ -93,6 +95,7 @@ interface DiagnosisResult {
     plant: boolean
     weather: boolean
   }
+  aiNarrative?: string
 }
 
 type TaskFeedback = {
@@ -104,6 +107,64 @@ type ContextFocusCard = {
   title: string
   value: string
   note: string
+}
+
+const buildGardenHealthContext = (
+  garden: Garden | null | undefined,
+  context: HealthCropContext,
+  weather: { temp: number; rainMm: number; condition: string } | null,
+  microclimate: HealthMicroclimateSnapshot | null
+) => {
+  if (!garden) return null
+
+  return {
+    garden: {
+      id: garden.id,
+      name: garden.name,
+      gardenType: garden.gardenType || null,
+      primaryCrop: garden.primaryCrop?.label || null,
+      primaryCropId: garden.primaryCrop?.archetypeId || null,
+      sizeSqMeters: garden.sizeSqMeters || null,
+      location: garden.location || null,
+      altitudeMeters: garden.altitudeMeters ?? null,
+      soilType: garden.soilType || null,
+      soilPh: garden.soilPh ?? null,
+      sunExposure: garden.sunExposure || null,
+      aspectDirection: garden.aspectDirection || null,
+      windProtection: garden.windProtection || null,
+      hasIndoor: garden.hasIndoor ?? false,
+      hasGreenhouse: garden.hasGreenhouse ?? false,
+      isRaisedBed: garden.isRaisedBed ?? false,
+      slopePercentage: (garden as any).slopePercentage ?? null,
+      slopeClass: (garden as any).slopeClass ?? null,
+      obstacles: Array.isArray(garden.obstacles) ? garden.obstacles.slice(0, 6) : [],
+      structureConfig: garden.structureConfig || null,
+      openFieldSpace: (garden as any).openFieldSpace || null,
+      greenhouseSpace: (garden as any).greenhouseSpace || null,
+      indoorSpace: (garden as any).indoorSpace || null,
+      hydroponicConfig: garden.hydroponicConfig || null,
+      aquaponicConfig: garden.aquaponicConfig || null,
+      aeroponicConfig: garden.aeroponicConfig || null,
+      greenhouseConfig: garden.greenhouseConfig || null,
+    },
+    context: {
+      id: context.id,
+      title: context.title,
+      areaLabel: context.areaLabel,
+      entityPlural: context.entityPlural,
+      subtitle: context.subtitle,
+    },
+    weather,
+    microclimate: microclimate
+      ? {
+          fungalPressure: microclimate.fungalPressure,
+          waterStress: microclimate.waterStress,
+          heatStress: microclimate.heatStress,
+          supportSignals: microclimate.supportingSignals,
+          hasRecentData: microclimate.hasRecentData,
+        }
+      : null,
+  }
 }
 
 const getGardenContextBadges = (garden: Garden | null | undefined, context: HealthCropContext): string[] => {
@@ -276,25 +337,36 @@ const getContextFocusCards = (
   ]
 }
 
-const getDiagnosisTemplates = (context: HealthCropContext) => {
+const getDiagnosisTemplates = (context: HealthCropContext, weather?: { temp?: number; rainMm?: number; condition?: string }, microclimate?: HealthMicroclimateSnapshot | null) => {
+  const humidPressure =
+    microclimate?.fungalPressure === 'high' || (weather?.rainMm ?? 0) > 3
+  const heatPressure =
+    microclimate?.heatStress === 'high' || (weather?.temp ?? 0) >= 30
+  const waterPressure =
+    microclimate?.waterStress === 'high'
+
   if (context.id === 'vineyard') {
     return [
       {
-        diagnosis: 'Peronospora della vite',
-        confidence: 0.87,
-        category: 'Fungal' as const,
-        severity: 'high' as const,
-        symptoms: ['Macchie oleose su foglie', 'Muffa bianca pagina inferiore', 'Ingiallimento fogliare'],
-        treatments: ['Rame ossicloruro', 'Bicarbonato di potassio', 'Gestione parete fogliare'],
-        urgency: 3,
+        diagnosis: humidPressure ? 'Peronospora della vite' : 'Stress fogliare del vigneto',
+        confidence: humidPressure ? 0.82 : 0.68,
+        category: humidPressure ? 'Fungal' as const : 'Environmental' as const,
+        severity: humidPressure ? 'high' as const : 'medium' as const,
+        symptoms: humidPressure
+          ? ['Macchie oleose su foglie', 'Muffa bianca pagina inferiore', 'Ingiallimento fogliare']
+          : ['Vigoria disomogenea', 'Foglie stressate', 'Crescita non uniforme'],
+        treatments: humidPressure
+          ? ['Rame ossicloruro', 'Gestione parete fogliare', 'Monitoraggio post-pioggia']
+          : ['Rilievo vigneto', 'Arieggiamento filare', 'Verifica irrigazione'],
+        urgency: humidPressure ? 3 : 5,
       },
       {
         diagnosis: 'Oidio della vite',
-        confidence: 0.78,
+        confidence: 0.72,
         category: 'Fungal' as const,
         severity: 'medium' as const,
         symptoms: ['Patina bianca su foglie', 'Acini opachi', 'Deformazione fogliare'],
-        treatments: ['Zolfo bagnabile', 'Bicarbonato di sodio', 'Arieggiamento filare'],
+        treatments: ['Zolfo bagnabile', 'Arieggiamento filare', 'Monitoraggio mirato'],
         urgency: 4,
       },
     ]
@@ -303,22 +375,26 @@ const getDiagnosisTemplates = (context: HealthCropContext) => {
   if (context.id === 'olive') {
     return [
       {
-        diagnosis: 'Mosca olearia',
-        confidence: 0.84,
-        category: 'Pest' as const,
-        severity: 'high' as const,
-        symptoms: ['Punture sulle olive', 'Cascola anomala', 'Gallerie nei frutti'],
-        treatments: ['Controllo trappole', 'Esche proteiche', 'Strategia di difesa mirata'],
-        urgency: 3,
+        diagnosis: waterPressure ? 'Occhio di pavone' : 'Stress idrico oliveto',
+        confidence: waterPressure ? 0.78 : 0.66,
+        category: waterPressure ? 'Fungal' as const : 'Environmental' as const,
+        severity: waterPressure ? 'medium' as const : 'low' as const,
+        symptoms: waterPressure
+          ? ['Macchie circolari sulle foglie', 'Defogliazione interna', 'Chioma umida']
+          : ['Margini fogliari tesi', 'Foglie meno turgide', 'Crescita rallentata'],
+        treatments: waterPressure
+          ? ['Rame', 'Potatura di arieggiamento', 'Monitoraggio post-pioggia']
+          : ['Rilievo umidità suolo', 'Ricalibrazione irrigazione', 'Pacciamatura'],
+        urgency: waterPressure ? 5 : 6,
       },
       {
-        diagnosis: 'Occhio di pavone',
-        confidence: 0.71,
-        category: 'Fungal' as const,
+        diagnosis: 'Mosca olearia',
+        confidence: 0.74,
+        category: 'Pest' as const,
         severity: 'medium' as const,
-        symptoms: ['Macchie circolari sulle foglie', 'Defogliazione interna', 'Chioma umida'],
-        treatments: ['Rame', 'Potatura di arieggiamento', 'Monitoraggio post-pioggia'],
-        urgency: 5,
+        symptoms: ['Punture sulle olive', 'Cascola anomala', 'Gallerie nei frutti'],
+        treatments: ['Controllo trappole', 'Esche proteiche', 'Strategia di difesa mirata'],
+        urgency: 4,
       },
     ]
   }
@@ -326,39 +402,51 @@ const getDiagnosisTemplates = (context: HealthCropContext) => {
   if (context.id === 'orchard') {
     return [
       {
-        diagnosis: 'Ticchiolatura',
-        confidence: 0.79,
-        category: 'Fungal' as const,
-        severity: 'medium' as const,
-        symptoms: ['Macchie scure su foglie', 'Lesioni superficiali sui frutti', 'Umidita persistente'],
-        treatments: ['Copertura preventiva', 'Rimozione residui colpiti', 'Controllo chioma'],
-        urgency: 4,
+        diagnosis: humidPressure ? 'Ticchiolatura' : 'Stress fisiologico frutteto',
+        confidence: humidPressure ? 0.76 : 0.64,
+        category: humidPressure ? 'Fungal' as const : 'Environmental' as const,
+        severity: humidPressure ? 'medium' as const : 'low' as const,
+        symptoms: humidPressure
+          ? ['Macchie scure su foglie', 'Lesioni superficiali sui frutti', 'Umidita persistente']
+          : ['Calibro disomogeneo', 'Vigoria variabile', 'Resa non omogenea'],
+        treatments: humidPressure
+          ? ['Copertura preventiva', 'Rimozione residui colpiti', 'Controllo chioma']
+          : ['Bilanciamento nutrizionale', 'Rilievo per parcella', 'Controllo irrigazione'],
+        urgency: humidPressure ? 4 : 6,
       },
       {
-        diagnosis: 'Carenza di potassio',
-        confidence: 0.64,
-        category: 'Deficiency' as const,
-        severity: 'low' as const,
-        symptoms: ['Margini fogliari necrotici', 'Frutti piccoli', 'Crescita rallentata'],
-        treatments: ['Concimazione correttiva', 'Analisi fogliare', 'Bilanciamento nutrizionale'],
-        urgency: 7,
+        diagnosis: heatPressure ? 'Carenza di potassio' : 'Stress termico',
+        confidence: heatPressure ? 0.62 : 0.67,
+        category: heatPressure ? 'Deficiency' as const : 'Environmental' as const,
+        severity: heatPressure ? 'low' as const : 'medium' as const,
+        symptoms: heatPressure
+          ? ['Margini fogliari necrotici', 'Frutti piccoli', 'Crescita rallentata']
+          : ['Foglie afflosciate', 'Frutti esposti', 'Stress da calore'],
+        treatments: heatPressure
+          ? ['Concimazione correttiva', 'Analisi fogliare', 'Bilanciamento nutrizionale']
+          : ['Ombreggiamento temporaneo', 'Irrigazione mirata', 'Verifica esposizione'],
+        urgency: heatPressure ? 7 : 5,
       },
     ]
   }
 
   return [
     {
-      diagnosis: 'Peronospora',
-      confidence: 0.81,
-      category: 'Fungal' as const,
-      severity: 'high' as const,
-      symptoms: ['Macchie fogliari', 'Muffa pagina inferiore', 'Ingiallimento diffuso'],
-      treatments: ['Rame ossicloruro', 'Bicarbonato di potassio', 'Riduzione umidita fogliare'],
-      urgency: 3,
+      diagnosis: humidPressure ? 'Peronospora' : 'Stress fogliare generico',
+      confidence: humidPressure ? 0.77 : 0.63,
+      category: humidPressure ? 'Fungal' as const : 'Environmental' as const,
+      severity: humidPressure ? 'high' as const : 'low' as const,
+      symptoms: humidPressure
+        ? ['Macchie fogliari', 'Muffa pagina inferiore', 'Ingiallimento diffuso']
+        : ['Ingiallimento lieve', 'Foglie meno turgide', 'Crescita irregolare'],
+      treatments: humidPressure
+        ? ['Rame ossicloruro', 'Bicarbonato di potassio', 'Riduzione umidita fogliare']
+        : ['Controllo irrigazione', 'Ispezione fogliare', 'Rilievo microclima'],
+      urgency: humidPressure ? 3 : 6,
     },
     {
       diagnosis: 'Carenza di azoto',
-      confidence: 0.65,
+      confidence: 0.64,
       category: 'Deficiency' as const,
       severity: 'low' as const,
       symptoms: ['Ingiallimento foglie basali', 'Crescita rallentata', 'Foglie piccole'],
@@ -763,9 +851,44 @@ export default function PlantHealthPage() {
 
     try {
       setIsAnalyzing(true)
-      
-      // Simula analisi AI avanzata con risultati più realistici
-      const mockDiagnoses = getDiagnosisTemplates(healthContext)
+      const resolvedGardenContext = await resolveGardenContext(storageProvider, activeGarden?.id || '')
+      const gardenHealthContext = buildGardenHealthContext(
+        resolvedGardenContext?.garden || activeGarden,
+        healthContext,
+        weather,
+        microclimate
+      )
+      const aiPrompt = [
+        'CONTESTO AGRONOMICO STRUTTURATO:',
+        resolvedGardenContext ? JSON.stringify(resolvedGardenContext, null, 2) : '',
+        JSON.stringify(gardenHealthContext, null, 2),
+        photoModal.alert ? `ALERT: ${photoModal.alert.description}` : '',
+        symptomsText.trim() ? `SINTOMI DICHIARATI: ${symptomsText.trim()}` : '',
+        notes.trim() ? `NOTE UTENTE: ${notes.trim()}` : '',
+        location.trim() ? `POSIZIONE OSSERVATA: ${location.trim()}` : '',
+      ].filter(Boolean).join('\n\n')
+
+      let aiNarrative = ''
+      try {
+        aiNarrative = await ContextAwareAIService.processRequest(
+          {
+            type: 'problem_diagnosis',
+            input: aiPrompt,
+            context: {
+              plantName: photoModal.alert?.plantName || healthContext.areaLabel,
+              urgency: 'high',
+              location: location || healthContext.areaLabel,
+            }
+          },
+          'health-ui',
+          activeGarden?.id,
+          undefined
+        )
+      } catch (aiError) {
+        console.warn('AI health diagnosis unavailable, using grounded fallback:', aiError)
+      }
+
+      const mockDiagnoses = getDiagnosisTemplates(healthContext, weather || undefined, microclimate)
 
       const selectedDiagnosis = mockDiagnoses[Math.floor(Math.random() * mockDiagnoses.length)]
       
@@ -789,7 +912,8 @@ export default function PlantHealthPage() {
           season: true,
           plant: true,
           weather: weather?.rainMm ? weather.rainMm > 2 : false
-        }
+        },
+        aiNarrative
       }
 
       setDiagnosisResult(result)

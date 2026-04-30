@@ -5,6 +5,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { Bot, Send, Loader2, MessageCircle, X, Sparkles, Lightbulb, Calendar, Leaf } from 'lucide-react'
+import { requestPlannerAIResponse } from '@/services/plannerAIChatService'
 
 interface ChatMessage {
   id: string
@@ -26,7 +27,6 @@ export default function PlannerAIChat({ garden, tasks, isOpen, onToggle }: Plann
   const [initialMessageLoaded, setInitialMessageLoaded] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [responseCache, setResponseCache] = useState<Map<string, any>>(new Map())
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -79,28 +79,7 @@ export default function PlannerAIChat({ garden, tasks, isOpen, onToggle }: Plann
     setIsLoading(true)
 
     try {
-      // Controlla cache per risposte immediate
-      const cacheKey = messageText.toLowerCase().trim()
-      if (responseCache.has(cacheKey)) {
-        const cachedResponse = responseCache.get(cacheKey)
-        const aiMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          type: 'ai',
-          content: cachedResponse.content,
-          timestamp: new Date(),
-          suggestions: cachedResponse.suggestions
-        }
-        setMessages(prev => [...prev, aiMessage])
-        setIsLoading(false)
-        return
-      }
-      
-      // Genera risposta AI immediata (rimosso delay artificiale)
-      const aiResponse = generateAIResponse(messageText, garden, tasks || [])
-      
-      // Salva in cache per future richieste
-      setResponseCache(prev => new Map(prev.set(cacheKey, aiResponse)))
-      
+      const aiResponse = await requestPlannerAIResponse(messageText, { garden, tasks: tasks || [] })
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
@@ -120,136 +99,6 @@ export default function PlannerAIChat({ garden, tasks, isOpen, onToggle }: Plann
       setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const generateAIResponse = (question: string, garden: any, tasks: any[]) => {
-    const lowerQuestion = question.toLowerCase()
-    
-    // Risposte intelligenti basate sulla domanda
-    if (lowerQuestion.includes('cosa piantare') || lowerQuestion.includes('cosa seminare')) {
-      return {
-        content: `🌱 **Consigli per questo periodo (Gennaio 2026):**
-
-**Semine in serra/tunnel:**
-• Lattuga, spinaci, rucola (raccolto in 30-45 giorni)
-• Ravanelli (pronti in 25-30 giorni)
-• Prezzemolo e basilico (se riscaldato)
-
-**Preparazione per primavera:**
-• Pianifica semine di marzo: pomodori, peperoni, melanzane
-• Prepara il terreno per le colture estive
-• Controlla e ordina i semi per la stagione
-
-**Basato sul tuo orto:** ${garden?.name || 'Il tuo orto'} sembra perfetto per queste colture!`,
-        suggestions: [
-          'Come preparare il terreno per marzo?',
-          'Quali varietà di pomodori consigli?',
-          'Calendario completo delle semine',
-          'Rotazione delle colture'
-        ]
-      }
-    }
-
-    if (lowerQuestion.includes('spazio') || lowerQuestion.includes('ottimizzare')) {
-      return {
-        content: `📐 **Ottimizzazione dello spazio:**
-
-**Tecniche consigliate:**
-• **Consociazioni**: Lattuga + carote, basilico + pomodori
-• **Coltivazione verticale**: Piselli, fagioli rampicanti
-• **Successioni**: Semina ogni 2 settimane per raccolto continuo
-• **Aiuole rialzate**: Massimizza resa per m²
-
-**Per il tuo orto:**
-• Dimensioni attuali: ${garden?.beds?.length || 'N/A'} aiuole
-• Potenziale aumento resa: miglioramento progressivo, da verificare su layout, varietà e stagionalità
-• Suggerimento: Aggiungi supporti verticali`,
-        suggestions: [
-          'Esempi di consociazioni',
-          'Come fare aiuole rialzate?',
-          'Calendario delle successioni',
-          'Piante per coltivazione verticale'
-        ]
-      }
-    }
-
-    if (lowerQuestion.includes('insieme') || lowerQuestion.includes('consociation') || lowerQuestion.includes('compagn')) {
-      return {
-        content: `🤝 **Consociazioni vincenti:**
-
-**Classiche e testate:**
-• 🍅 **Pomodori** + Basilico (migliora sapore e allontana insetti)
-• 🥕 **Carote** + Cipolle (protezione reciproca)
-• 🥬 **Lattuga** + Ravanelli (ottimizza spazio)
-• 🌽 **Mais** + Fagioli + Zucche (le "Tre Sorelle")
-
-**Da evitare:**
-• Pomodori + Patate (stessa famiglia, malattie comuni)
-• Cipolle + Fagioli (inibiscono crescita reciproca)
-
-**Benefici:** Migliore uso nutrienti, controllo parassiti naturale, aumento resa`,
-        suggestions: [
-          'Altre consociazioni per pomodori',
-          'Piante che allontanano i parassiti',
-          'Consociazioni per piccoli spazi',
-          'Rotazione delle colture'
-        ]
-      }
-    }
-
-    if (lowerQuestion.includes('pomodor') || lowerQuestion.includes('tomat')) {
-      return {
-        content: `🍅 **Guida completa pomodori:**
-
-**Quando seminare:**
-• **Semina**: Febbraio-Marzo (in serra)
-• **Trapianto**: Aprile-Maggio (dopo gelate)
-• **Raccolto**: Luglio-Ottobre
-
-**Varietà consigliate:**
-• **San Marzano**: Salse, conserve
-• **Cuore di Bue**: Insalate, grandi
-• **Ciliegino**: Continuo, resistente
-• **Roma**: Universale, produttivo
-
-**Consigli pratici:**
-• Temperatura minima: 15°C notturna
-• Supporti alti (2m) per varietà indeterminate
-• Irrigazione regolare ma non eccessiva`,
-        suggestions: [
-          'Malattie comuni dei pomodori',
-          'Come fare i supporti?',
-          'Potatura dei pomodori',
-          'Varietà resistenti alle malattie'
-        ]
-      }
-    }
-
-    // Risposta generica intelligente
-    return {
-      content: `🤖 **Risposta AI personalizzata:**
-
-Ho analizzato la tua domanda "${question}" e basandomi sui dati del tuo orto, ecco i miei consigli:
-
-**Analisi situazione attuale:**
-• Orto: ${garden?.name || 'Non specificato'}
-• Task attivi: ${tasks?.length || 0}
-• Stagione: Inverno (preparazione primavera)
-
-**Raccomandazioni:**
-• Pianifica le semine primaverili ora
-• Prepara il terreno durante le giornate miti
-• Controlla e ordina semi e attrezzature
-• Studia rotazioni e consociazioni
-
-Puoi essere più specifico nella tua domanda per consigli più mirati!`,
-      suggestions: [
-        'Pianificazione mensile completa',
-        'Lista semi da ordinare',
-        'Preparazione terreno',
-        'Calendario delle lavorazioni'
-      ]
     }
   }
 

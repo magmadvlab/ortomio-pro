@@ -38,9 +38,12 @@ import {
   type GardenEnvironmentalHistorySummary,
 } from '@/services/environmentalMonitoringService'
 import { scoreAgronomicPriority } from '@/services/agronomicPriorityService'
+import { buildAgronomicRefinedContext } from '@/services/agronomicRefinedContextService'
 import type {
   AgronomicHealthPriority,
+  AgronomicRefinedContext,
   AgronomicSignalKey,
+  SiteOperationalProfile,
   ResolvedAgronomicCropProfile,
 } from '@/types/agronomicKernel'
 
@@ -391,6 +394,24 @@ const DEFAULT_MONITORING_RULES: MonitoringRule[] = [
   },
 ]
 
+const normalizeSiteText = (value?: string | null) =>
+  value
+    ?.toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+
+const isColdAspect = (aspectDirection?: string | null) =>
+  ['north', 'nord', 'northeast', 'nord est'].includes(normalizeSiteText(aspectDirection) || '')
+
+const getHealthSitePressureScore = (siteContext?: SiteOperationalProfile | null) =>
+  siteContext
+    ? (siteContext.exposureClass === 'sheltered' ? 1 : 0) +
+      (typeof siteContext.dailySunHours === 'number' && siteContext.dailySunHours <= 4 ? 1 : 0) +
+      (typeof siteContext.shadowObstaclesCount === 'number' && siteContext.shadowObstaclesCount >= 2 ? 1 : 0) +
+      (isColdAspect(siteContext.aspectDirection) ? 1 : 0) +
+      (typeof siteContext.soilPh === 'number' && (siteContext.soilPh < 5.8 || siteContext.soilPh > 7.8) ? 1 : 0)
+    : 0
+
 type WeatherRiskProfile = {
   plantLabel: string
   description: string
@@ -413,6 +434,7 @@ type HealthEnvironmentalContext = {
   measuredFeedbackPressure: number
   measuredFeedbackNotes: string[]
   adaptiveLearning: AgronomicHealthLearningAdjustment
+  refinedContext?: AgronomicRefinedContext | null
 }
 
 export interface PlantHealthAnalysisOptions {
@@ -479,6 +501,20 @@ export class PlantHealthMonitoringService {
       measuredFeedbackPressure: measuredFeedbackContext.pressure,
       measuredFeedbackNotes: measuredFeedbackContext.notes,
       adaptiveLearning,
+      refinedContext: buildAgronomicRefinedContext({
+        cropProfile: agronomicProfile?.profile,
+        textValues: [garden.name, ...dominantPlantNames],
+        speciesLabel: dominantPlantNames[0],
+        gardenType: garden.gardenType,
+        altitudeMeters: garden.altitudeMeters,
+        dailySunHours: garden.dailySunHours,
+        sunExposure: garden.sunExposure,
+        aspectDirection: garden.aspectDirection,
+        windProtection: garden.windProtection,
+        soilType: garden.soilType,
+        soilPh: garden.soilPh,
+        shadowObstaclesCount: Array.isArray(garden.obstacles) ? garden.obstacles.length : undefined,
+      }).refinedContext,
     }
 
     for (const rule of this.rules.filter(
@@ -1051,20 +1087,41 @@ export class PlantHealthMonitoringService {
       adaptiveLearningNotes.length > 0
         ? ` Memoria sito-specifica: ${adaptiveLearningNotes.join(' ')}.`
         : ''
+    const siteContext = environmentalContext.refinedContext?.siteOperationalProfile
+    const siteContextClauses = [
+      typeof siteContext?.dailySunHours === 'number'
+        ? `${siteContext.dailySunHours} h sole`
+        : null,
+      siteContext?.exposureClass === 'sheltered'
+        ? 'sito riparato'
+        : siteContext?.exposureClass === 'exposed'
+          ? 'sito esposto'
+          : null,
+      isColdAspect(siteContext?.aspectDirection)
+        ? `esposizione ${siteContext?.aspectDirection}`
+        : null,
+      typeof siteContext?.shadowObstaclesCount === 'number' && siteContext.shadowObstaclesCount > 0
+        ? `${siteContext.shadowObstaclesCount} ostacoli d ombra`
+        : null,
+    ].filter((value): value is string => Boolean(value))
+    const siteContextSuffix =
+      siteContextClauses.length > 0
+        ? ` Contesto sito: ${siteContextClauses.join(', ')}.`
+        : ''
 
     if (context.id === 'vineyard') {
-      return `${rule.description} rilevate su ${plantName}. Concentrati sui filari piu umidi o chiusi.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}`
+      return `${rule.description} rilevate su ${plantName}. Concentrati sui filari piu umidi o chiusi.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}${siteContextSuffix}`
     }
 
     if (context.id === 'olive') {
-      return `${rule.description} rilevato su ${plantName}. Verifica chioma, olive e uniformita dell impianto.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}`
+      return `${rule.description} rilevato su ${plantName}. Verifica chioma, olive e uniformita dell impianto.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}${siteContextSuffix}`
     }
 
     if (context.id === 'orchard') {
-      return `${rule.description} rilevata su ${plantName}. Controlla insieme foglie, chioma e frutti.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}`
+      return `${rule.description} rilevata su ${plantName}. Controlla insieme foglie, chioma e frutti.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}${siteContextSuffix}`
     }
 
-    return `${rule.description} rilevata per ${plantName}.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}`
+    return `${rule.description} rilevata per ${plantName}.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}${siteContextSuffix}`
   }
 
   private shouldConsultAgronomist(rule: MonitoringRule): boolean {
@@ -1082,9 +1139,12 @@ export class PlantHealthMonitoringService {
           ? 3
           : 7
 
+    const siteContext = environmentalContext?.refinedContext?.siteOperationalProfile
+    const siteOffset = getHealthSitePressureScore(siteContext)
+
     return Math.max(
       1,
-      baseUrgency + (environmentalContext?.adaptiveLearning.urgencyDaysOffset || 0)
+      baseUrgency + (environmentalContext?.adaptiveLearning.urgencyDaysOffset || 0) + siteOffset
     )
   }
 
@@ -1467,6 +1527,28 @@ export class PlantHealthMonitoringService {
       adjustedConfidence -= 0.02
     }
 
+    const siteContext = environmentalContext.refinedContext?.siteOperationalProfile
+    if (siteContext) {
+      if (siteContext.exposureClass === 'sheltered') {
+        adjustedConfidence += 0.02
+      }
+      if (typeof siteContext.dailySunHours === 'number' && siteContext.dailySunHours <= 4) {
+        adjustedConfidence += 0.02
+      }
+      if (typeof siteContext.shadowObstaclesCount === 'number' && siteContext.shadowObstaclesCount >= 2) {
+        adjustedConfidence += 0.02
+      }
+      if (isColdAspect(siteContext.aspectDirection)) {
+        adjustedConfidence += 0.01
+      }
+      if (
+        typeof siteContext.soilPh === 'number' &&
+        (siteContext.soilPh < 5.8 || siteContext.soilPh > 7.8)
+      ) {
+        adjustedConfidence += 0.01
+      }
+    }
+
     const p0Signals = agronomicProfile.health.recommendedSignals.filter(
       (signal) => signal.priority === 'P0'
     )
@@ -1590,7 +1672,10 @@ export class PlantHealthMonitoringService {
 
     const typePriorityScore = this.getAlertTypeAgronomicWeight(alert.type, environmentalContext)
     const urgencyScore = Math.max(0, 14 - Math.min(alert.urgencyDays, 14)) * 2
-    const baseScore = severityScore + typePriorityScore + urgencyScore
+    const siteContext = environmentalContext.refinedContext?.siteOperationalProfile
+    const siteBoost =
+      (siteContext?.exposureClass === 'sheltered' ? 1 : 0) + getHealthSitePressureScore(siteContext)
+    const baseScore = severityScore + typePriorityScore + urgencyScore + siteBoost
     const priorityResult = scoreAgronomicPriority({
       baseScore,
       confidence: alert.confidence,
@@ -1605,6 +1690,7 @@ export class PlantHealthMonitoringService {
               environmentalContext.phenology.stageKey
             )
         ),
+      refinedContext: environmentalContext.refinedContext,
     })
     const phenologyScore =
       environmentalContext.phenology &&

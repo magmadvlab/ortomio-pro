@@ -7,9 +7,10 @@ interface DialogProps {
   children: React.ReactNode
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  ariaLabelledBy?: string
 }
 
-export function Dialog({ children, open = true, onOpenChange }: DialogProps) {
+export function Dialog({ children, open = true, onOpenChange, ariaLabelledBy }: DialogProps) {
   if (!open) return null
 
   return (
@@ -20,6 +21,9 @@ export function Dialog({ children, open = true, onOpenChange }: DialogProps) {
       <div 
         className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4" 
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={ariaLabelledBy}
       >
         {children}
       </div>
@@ -56,11 +60,12 @@ export function DialogHeader({ children, className = '' }: DialogHeaderProps) {
 interface DialogTitleProps {
   children: React.ReactNode
   className?: string
+  id?: string
 }
 
-export function DialogTitle({ children, className = '' }: DialogTitleProps) {
+export function DialogTitle({ children, className = '', id }: DialogTitleProps) {
   return (
-    <h2 className={`text-lg font-semibold text-gray-900 ${className}`}>
+    <h2 id={id} className={`text-lg font-semibold text-gray-900 ${className}`}>
       {children}
     </h2>
   )

@@ -46,6 +46,85 @@ test('buildAgronomicDecisionExplanation captures profile resolution and signal c
   assert.match(explanation.warnings.join(' '), /Segnali P0 mancanti/i)
 })
 
+test('buildAgronomicDecisionExplanation humanizes production intent in context rationale', () => {
+  const resolvedProfile = resolveAgronomicPriorityProfileSync({
+    fallbackProfileId: 'vineyard_quality',
+  })
+
+  assert.ok(resolvedProfile)
+
+  const priorityResult = scoreAgronomicPriority({
+    baseScore: 58,
+    confidence: 0.66,
+    resolvedProfile,
+    focus: 'quality',
+    availableSignals: ['quality_result'],
+    isCriticalStage: true,
+  })
+
+  const explanation = buildAgronomicDecisionExplanation({
+    source: 'phenology',
+    focus: 'quality',
+    priorityResult,
+    resolvedProfile,
+    availableSignals: ['quality_result'],
+    isCriticalStage: true,
+    refinedContext: {
+      cultivarContext: {
+        cultivarLabel: 'Italia',
+        productionIntent: 'table_grape',
+      },
+    },
+  })
+
+  assert.ok(
+    explanation.contextRationale?.includes('Intento produttivo: uva da tavola.')
+  )
+})
+
+test('buildAgronomicDecisionExplanation exposes site orientation and wind protection', () => {
+  const resolvedProfile = resolveAgronomicPriorityProfileSync({
+    fallbackProfileId: 'vineyard_quality',
+  })
+
+  assert.ok(resolvedProfile)
+
+  const priorityResult = scoreAgronomicPriority({
+    baseScore: 61,
+    confidence: 0.72,
+    resolvedProfile,
+    focus: 'water',
+    availableSignals: ['weather_current', 'soil_moisture_30cm'],
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 8.2,
+        aspectDirection: 'South',
+        windProtection: 'Low',
+        shadowObstaclesCount: 0,
+      },
+    },
+  })
+
+  const explanation = buildAgronomicDecisionExplanation({
+    source: 'prescription',
+    focus: 'water',
+    priorityResult,
+    resolvedProfile,
+    availableSignals: ['weather_current', 'soil_moisture_30cm'],
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 8.2,
+        aspectDirection: 'South',
+        windProtection: 'Low',
+        shadowObstaclesCount: 0,
+      },
+    },
+  })
+
+  assert.ok(explanation.contextRationale?.includes('Orientamento sito: South.'))
+  assert.ok(explanation.contextRationale?.includes('Protezione vento: Low.'))
+})
+
 test('buildAgronomicActionQueue preserves decision explanation in irrigation metadata', () => {
   const decisionExplanation: AgronomicDecisionExplanation = {
     source: 'irrigation',
@@ -68,6 +147,16 @@ test('buildAgronomicActionQueue preserves decision explanation in irrigation met
     agronomicRationale: ['Test rationale'],
     economicRationale: [],
     warnings: [],
+    refinedContext: {
+      cultivarContext: {
+        cultivarLabel: 'Sangiovese',
+        productionIntent: 'wine',
+      },
+      subSystemContext: {
+        systemType: 'vineyard',
+        irrigationMode: 'pressurized_irrigation',
+      },
+    },
   }
 
   const irrigationReport: EfficiencyReport = {
@@ -93,6 +182,11 @@ test('buildAgronomicActionQueue preserves decision explanation in irrigation met
     (queue[0]?.metadata?.decisionExplanation as AgronomicDecisionExplanation | undefined)?.signals
       .coveredP0Signals,
     ['weather_current']
+  )
+  assert.equal(
+    (queue[0]?.metadata?.refinedContext as AgronomicDecisionExplanation['refinedContext'])
+      ?.subSystemContext?.systemType,
+    'vineyard'
   )
 })
 
@@ -122,6 +216,12 @@ test('buildAgronomicActionQueue builds decision explanation for health alerts wi
   assert.equal(explanation?.profileResolution?.profileId, 'field_brassicas')
   assert.equal(explanation?.source, 'health')
   assert.equal(explanation?.focus, 'health')
+  assert.equal(explanation?.refinedContext?.cultivarContext?.speciesLabel, 'Broccoli')
+  assert.equal(
+    (queue[0]?.metadata?.refinedContext as AgronomicDecisionExplanation['refinedContext'])
+      ?.cultivarContext?.speciesLabel,
+    'Broccoli'
+  )
   assert.ok((queue[0]?.missingSignals.length || 0) >= 0)
 })
 
@@ -140,6 +240,15 @@ test('buildAgronomicActionQueue builds decision explanation for phenology candid
         cropNameHint: 'wine grape',
         availableSignals: ['phenology_observation', 'quality_result'],
         isDecisionCriticalStage: true,
+        refinedContext: {
+          cultivarContext: {
+            cultivarLabel: 'Sangiovese',
+            productionIntent: 'wine',
+          },
+          subSystemContext: {
+            systemType: 'vineyard',
+          },
+        },
       },
     ],
   })
@@ -150,4 +259,10 @@ test('buildAgronomicActionQueue builds decision explanation for phenology candid
   assert.equal(explanation?.profileResolution?.profileId, 'vineyard_quality')
   assert.equal(explanation?.source, 'phenology')
   assert.equal(explanation?.isCriticalStage, true)
+  assert.equal(explanation?.refinedContext?.cultivarContext?.productionIntent, 'wine')
+  assert.equal(
+    (queue[0]?.metadata?.refinedContext as AgronomicDecisionExplanation['refinedContext'])
+      ?.subSystemContext?.systemType,
+    'vineyard'
+  )
 })

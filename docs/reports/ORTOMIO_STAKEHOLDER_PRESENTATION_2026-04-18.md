@@ -1,4 +1,4 @@
-# ORTOMIO - PRESENTAZIONE PER STAKEHOLDER ACCADEMICI E TECNICI (2026-04-18)
+# ORTOMIO - PRESENTAZIONE PER STAKEHOLDER ACCADEMICI E TECNICI (2026-04-23)
 
 ## Premessa
 Questo documento non nasce come materiale marketing.
@@ -17,6 +17,7 @@ Regola metodologica:
 
 Documento tecnico di base da cui questo testo deriva:
 - `docs/reports/ORTOMIO_APPLICATION_CURRENT_STATE_2026-04-18.md`
+- aggiornato e riallineato allo stato verificato al 23 aprile 2026
 
 ## Contesto: AI e agricoltura
 L'uso dell'intelligenza artificiale in agricoltura ha valore reale solo quando non si limita a generare testo o suggerimenti generici.
@@ -66,6 +67,7 @@ Il livello di precisione gia raggiunto e significativo per una piattaforma appli
 - precisione colturale: profili agronomici distinti per 15 famiglie/verticali colturali
 - precisione operativa: collegamento tra suggerimento, task, esecuzione, feedback ed export
 - precisione contestuale: per i task agronomici piu evoluti il sistema conserva anche snapshot decisionale, confidence, segnali mancanti e contesto cultivar/sotto-sistema/sito
+- precisione di esecuzione mobile: nei principali moduli task-aware il sistema espone anche il contratto minimo di evidenze richieste prima del salvataggio operativo
 
 Il punto importante, pero, e questo:
 OrtoMio oggi e gia una base tecnica seria di decision support agronomico, ma non e ancora un sistema scientificamente calibrato e validato in modo completo su tutte le colture e su tutti i moduli.
@@ -110,6 +112,7 @@ Nel codice questa orchestrazione emerge come sequenza:
 Negli ultimi aggiornamenti questo passaggio si e rafforzato in due modi:
 - il contesto agronomico non e piu solo generico, ma puo includere cultivar, intento produttivo, sotto-sistema e profilo operativo del sito
 - i task agronomici esposti nel planner possono mostrare gia in frontend se l'esecuzione e pronta, parziale o da verificare, insieme a confidence e segnali mancanti
+- nei moduli di esecuzione principali aperti da questi task il sistema mostra ora anche il minimo set di evidenze operative attese, rendendo piu coerente il passaggio planner -> modulo -> registrazione
 
 Questo approccio e importante perche in agricoltura la decisione non e quasi mai un evento isolato.
 E un ciclo continuo di osservazione, scelta, azione, verifica e adattamento.
@@ -160,6 +163,11 @@ Una parte importante del codice collega:
 - storico
 
 Questa tracciabilita e molto rilevante, perche rende il sistema potenzialmente adatto non solo a suggerire, ma anche a misurare se la decisione presa abbia prodotto o meno un risultato.
+
+Va pero descritta con precisione:
+- il loop e piu forte sui task agronomici di nuova generazione che sui task manuali o legacy
+- la coerenza planner -> esecuzione e oggi particolarmente visibile in irrigazione, nutrizione, raccolta e lavorazioni
+- questo non equivale ancora a un ledger unico e perfettamente uniforme in tutto il prodotto
 
 ## 2.5 Precisione lungo il ciclo di vita colturale
 Un altro elemento rilevante e che il progetto non si concentra solo su un punto del ciclo.
@@ -346,6 +354,10 @@ Questa parte dimostra che il progetto non si e fermato alla visualizzazione dell
 - ritorno dal campo
 - confronto tra piano e applicazione reale
 
+La formulazione corretta per stakeholder, pero, e:
+- il ledger piano -> export -> esecuzione -> outcome esiste come architettura applicativa e in parte come persistenza reale
+- il valore scientifico del motore dipende ancora dalla sostituzione dei placeholder dati e dalla validazione sul campo
+
 Limiti attuali da esplicitare:
 - il recupero di NDVI, plant-level data e soil data e ancora placeholder in punti chiave del service
 - il valore del suolo nella fusione e ancora semplificato
@@ -471,7 +483,7 @@ OrtoMio oggi e gia in grado di funzionare come piattaforma operativa di gestione
 - monitoraggio salute
 - analytics e qualita
 - verticali woody
-- NDVI e prescription maps come architettura applicativa
+- NDVI e prescription maps come architettura applicativa gia impostata, ma ancora non pienamente chiusa e calibrata su dati reali in ogni passaggio
 
 Il livello attuale e quindi superiore a un software gestionale agricolo semplice.
 
@@ -506,6 +518,7 @@ Le priorita piu sensate sono:
 - rendere piu sistematica la raccolta di outcome
 - collegare in modo piu forte esecuzione, qualita e ROI
 - migliorare i benchmark per zona, coltura e stagione
+- completare la validazione runtime del loop mobile planner -> esecuzione -> outcome per i moduli task-aware piu recenti
 
 ### 7.4 Rendere piu mature le verticali specialistiche
 - oliveto: persistenza e storicizzazione piena di mosca olearia e maturazione
@@ -573,7 +586,9 @@ Integra struttura colturale, task, monitoraggio, motori decisionali e primi stru
 
 La parte piu forte oggi non e solo la presenza di moduli separati, ma il fatto che il sistema abbia gia iniziato a collegare segnali, contesto colturale, priorita operative, esecuzione e ritorno dal campo.
 
-Le aree oggi piu mature sono il motore irriguo, il motore di priorita agronomica, il verticale vigneto, il verticale frutteto e il modello agronomico per oliveto, oltre alla struttura generale di NDVI e prescription maps.
+Le aree oggi piu mature sono il motore irriguo, il motore di priorita agronomica, il verticale vigneto, il verticale frutteto, il modello agronomico per oliveto e il loop task-aware piu recente tra planner ed esecuzione.
+
+NDVI e prescription maps restano molto rilevanti come direzione tecnica e come architettura gia concreta, ma vanno ancora presentati come aree da consolidare e validare meglio su dati reali.
 
 Il passaggio da fare adesso non e inventare nuove promesse.
 Il passaggio corretto e consolidare, calibrare e validare.

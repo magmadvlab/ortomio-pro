@@ -138,6 +138,7 @@ export default function IntegratedSmartHub({
   const [droneTab, setDroneTab] = useState<'flights' | 'results' | 'create'>('flights')
   const [creating, setCreating] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [droneError, setDroneError] = useState<string | null>(null)
 
   // Action Buttons state
   const [wizardOpen, setWizardOpen] = useState(false)
@@ -179,46 +180,18 @@ export default function IntegratedSmartHub({
   const loadFlightPlans = async () => {
     try {
       setLoading(true)
-      // Simula caricamento piani di volo
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Dati di esempio
-      const mockPlans: DroneFlightPlan[] = [
-        {
-          id: '1',
-          name: 'Survey Completo Gennaio',
-          type: 'SURVEY',
-          status: 'COMPLETED',
-          scheduledDate: new Date(Date.now() - 86400000).toISOString(),
-          duration: 25,
-          altitude: 50,
-          waypoints: [],
-          results: {
-            imagesCapture: 156,
-            dataSize: 2.4,
-            batteryUsed: 78,
-            analysis: {
-              healthMap: { overallScore: 87 },
-              diseaseDetection: [{ type: 'Peronospora', severity: 'Low' }],
-              yieldEstimation: { totalEstimatedYield: 45.2 }
-            }
-          }
-        },
-        {
-          id: '2',
-          name: 'Monitoraggio Zone Critiche',
-          type: 'MONITORING',
-          status: 'PLANNED',
-          scheduledDate: new Date(Date.now() + 86400000).toISOString(),
-          duration: 15,
-          altitude: 30,
-          waypoints: []
-        }
-      ]
-      
-      setFlightPlans(mockPlans)
+      setDroneError(null)
+      const response = await fetch(`/api/drone/flight-plans?gardenId=${encodeURIComponent(garden.id)}`)
+      const payload = await response.json()
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || 'Impossibile caricare i piani drone')
+      }
+
+      setFlightPlans(payload.data || [])
     } catch (error) {
       console.error('Error loading flight plans:', error)
+      setDroneError(error instanceof Error ? error.message : 'Errore caricamento piani drone')
     } finally {
       setLoading(false)
     }
@@ -227,23 +200,23 @@ export default function IntegratedSmartHub({
   const createAutomaticFlight = async () => {
     try {
       setCreating(true)
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      const newPlan: DroneFlightPlan = {
-        id: Date.now().toString(),
-        name: `Volo Automatico ${new Date().toLocaleDateString('it-IT')}`,
-        type: 'SURVEY',
-        status: 'PLANNED',
-        scheduledDate: new Date(Date.now() + 3600000).toISOString(),
-        duration: 20,
-        altitude: 40,
-        waypoints: []
+      setDroneError(null)
+      const response = await fetch('/api/drone/auto-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gardenId: garden.id }),
+      })
+      const payload = await response.json()
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || 'Impossibile creare il piano drone')
       }
-      
-      setFlightPlans(prev => [newPlan, ...prev])
+
+      setFlightPlans(prev => [payload.data, ...prev])
       setDroneTab('flights')
     } catch (error) {
       console.error('Error creating flight:', error)
+      setDroneError(error instanceof Error ? error.message : 'Errore creazione piano drone')
     } finally {
       setCreating(false)
     }
@@ -251,35 +224,37 @@ export default function IntegratedSmartHub({
 
   const executeFlightPlan = async (flightPlanId: string) => {
     try {
+      setDroneError(null)
       setFlightPlans(prev => prev.map(plan => 
         plan.id === flightPlanId 
           ? { ...plan, status: 'IN_PROGRESS' as const }
           : plan
       ))
-      
-      // Simula esecuzione
-      setTimeout(() => {
-        setFlightPlans(prev => prev.map(plan => 
-          plan.id === flightPlanId 
-            ? { 
-                ...plan, 
-                status: 'COMPLETED' as const,
-                results: {
-                  imagesCapture: Math.floor(Math.random() * 200) + 50,
-                  dataSize: Math.random() * 3 + 1,
-                  batteryUsed: Math.floor(Math.random() * 40) + 60,
-                  analysis: {
-                    healthMap: { overallScore: Math.floor(Math.random() * 30) + 70 },
-                    diseaseDetection: [],
-                    yieldEstimation: { totalEstimatedYield: Math.random() * 50 + 20 }
-                  }
-                }
-              }
-            : plan
-        ))
-      }, 5000)
+
+      const response = await fetch('/api/drone/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ flightPlanId }),
+      })
+      const payload = await response.json()
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || 'Impossibile eseguire il piano drone')
+      }
+
+      setFlightPlans(prev => prev.map(plan =>
+        plan.id === flightPlanId
+          ? { ...plan, status: 'COMPLETED' as const, results: payload.data }
+          : plan
+      ))
     } catch (error) {
       console.error('Error executing flight:', error)
+      setDroneError(error instanceof Error ? error.message : 'Errore esecuzione piano drone')
+      setFlightPlans(prev => prev.map(plan =>
+        plan.id === flightPlanId
+          ? { ...plan, status: 'FAILED' as const }
+          : plan
+      ))
     }
   }
 
@@ -898,7 +873,7 @@ export default function IntegratedSmartHub({
                   🤖 Hub Intelligente Unificato
                 </h3>
                 <p className="text-sm text-blue-800">
-                  Sensori IoT • Irrigazione automatica • Droni DJI • 
+                  Sensori IoT • Irrigazione automatica • Drone scaffold •
                   Computer vision • AI analysis • Controllo centralizzato
                 </p>
               </div>
@@ -1966,7 +1941,7 @@ export default function IntegratedSmartHub({
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Operazioni Drone</h2>
-                <p className="text-gray-600">Monitoraggio aereo avanzato integrato</p>
+                <p className="text-gray-600">Pianificazione e risultati simulati tramite scaffold API interno</p>
               </div>
               <button
                 onClick={createAutomaticFlight}
@@ -1978,9 +1953,19 @@ export default function IntegratedSmartHub({
                 ) : (
                   <Plus size={16} />
                 )}
-                Volo Automatico
+                Genera Piano
               </button>
             </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-900">
+              Modulo in beta: i piani sono mantenuti nello scaffold interno e l'esecuzione produce risultati simulati. Non invia comandi a droni reali, non registra telemetria fisica e non sostituisce autorizzazioni o procedure di volo.
+            </div>
+
+            {droneError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800">
+                {droneError}
+              </div>
+            )}
 
             {/* Drone Sub-tabs */}
             <div className="flex space-x-1 bg-white rounded-lg p-1 shadow-md">
@@ -2016,12 +2001,12 @@ export default function IntegratedSmartHub({
                   <div className="bg-white rounded-lg shadow-md p-8 text-center">
                     <Drone className="mx-auto h-16 w-16 text-gray-400 mb-4" />
                     <h3 className="text-xl font-bold text-gray-900 mb-2">Nessun Volo Programmato</h3>
-                    <p className="text-gray-600 mb-4">Crea il tuo primo piano di volo automatico</p>
+                    <p className="text-gray-600 mb-4">Genera il primo piano di volo nello scaffold interno</p>
                     <button
                       onClick={createAutomaticFlight}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
-                      Crea Volo Automatico
+                      Genera Piano
                     </button>
                   </div>
                 ) : (
@@ -2049,7 +2034,7 @@ export default function IntegratedSmartHub({
                                 className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                               >
                                 <Play size={16} />
-                                Esegui
+                                Simula
                               </button>
                             )}
                           </div>
@@ -2088,7 +2073,7 @@ export default function IntegratedSmartHub({
                   <div className="bg-white rounded-lg shadow-md p-8 text-center">
                     <BarChart3 className="mx-auto h-16 w-16 text-gray-400 mb-4" />
                     <h3 className="text-xl font-bold text-gray-900 mb-2">Nessun Risultato</h3>
-                    <p className="text-gray-600">Esegui un volo per vedere i risultati</p>
+                    <p className="text-gray-600">Simula un piano per vedere i risultati dello scaffold</p>
                   </div>
                 ) : (
                   <div className="grid gap-4">
@@ -2148,9 +2133,9 @@ export default function IntegratedSmartHub({
                     className="p-6 border-2 border-dashed border-blue-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors disabled:opacity-50"
                   >
                     <Zap className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-                    <h4 className="text-lg font-semibold text-gray-900 mb-2">Volo Automatico</h4>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-2">Piano Automatico</h4>
                     <p className="text-sm text-gray-600">
-                      L'AI determina automaticamente il tipo di volo ottimale
+                      Lo scaffold determina un tipo di piano e waypoints indicativi
                     </p>
                   </button>
 

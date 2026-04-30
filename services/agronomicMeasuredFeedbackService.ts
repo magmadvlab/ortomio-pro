@@ -8,6 +8,7 @@ import {
   estimateIrrigationOperationEconomics,
   estimateMechanicalOperationEconomics,
 } from '@/services/agronomicOperationalEconomicsService'
+import { parseTaskExecutionQuickPayloadNotes } from '@/services/taskExecutionQuickPayloadService'
 
 export type AgronomicMeasuredFeedbackFocus =
   | 'water'
@@ -327,6 +328,7 @@ export function buildWateringMeasuredFeedback(
   const totalCost = Number(
     economicAssessments.reduce((sum, assessment) => sum + assessment.estimatedCost, 0).toFixed(2)
   )
+  const quickPayload = parseTaskExecutionQuickPayloadNotes(firstLog.notes)
 
   return {
     id: `agro_feedback:watering:${firstLog.taskId || firstLog.zoneId}:${getDateOnly(firstLog.date)}`,
@@ -356,6 +358,8 @@ export function buildWateringMeasuredFeedback(
           ? Number((averageAfter - averageBefore).toFixed(2))
           : null,
       averageAirTemperatureC: average(validLogs.map((log) => log.airTemperatureC)) ?? null,
+      quickOutcome: quickPayload.outcome,
+      followUpRequired: quickPayload.followUpRequired,
       estimatedWaterCost,
       estimatedEnergyCost,
       estimatedLaborCost,
@@ -462,6 +466,7 @@ export function buildHarvestMeasuredFeedback(
     harvest.quantity > 0
       ? Number((estimatedValue / (harvest.unit === 'g' ? harvest.quantity / 1000 : harvest.quantity)).toFixed(2))
       : null
+  const quickPayload = parseTaskExecutionQuickPayloadNotes(harvest.notes)
 
   return {
     id: `agro_feedback:harvest:${harvest.taskId || harvest.plantName}:${getDateOnly(harvest.date)}`,
@@ -479,6 +484,8 @@ export function buildHarvestMeasuredFeedback(
       qualityRating: harvest.rating ?? null,
       qualityScore,
       brix: harvest.brix ?? null,
+      quickOutcome: quickPayload.outcome,
+      followUpRequired: quickPayload.followUpRequired,
       estimatedUnitPrice,
       estimatedValue,
       cost: economics.estimatedCost,
@@ -524,6 +531,7 @@ export function buildMechanicalMeasuredFeedback(
       cost: log.cost,
     },
   })
+  const quickPayload = parseTaskExecutionQuickPayloadNotes(log.notes)
 
   return {
     id: `agro_feedback:mechanical:${options?.sourceTaskId || log.workType}:${getDateOnly(log.workDate)}`,
@@ -542,6 +550,8 @@ export function buildMechanicalMeasuredFeedback(
       durationMinutes: log.durationMinutes ?? null,
       areaCoveredSqm: log.areaCoveredSqm ?? null,
       depthCm: log.depthCm ?? null,
+      quickOutcome: quickPayload.outcome,
+      followUpRequired: quickPayload.followUpRequired,
       cost: economics.actualCost ?? economics.estimatedCost,
       estimatedCost: economics.estimatedCost,
       actualCost: economics.actualCost ?? null,

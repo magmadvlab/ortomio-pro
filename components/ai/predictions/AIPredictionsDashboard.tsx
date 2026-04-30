@@ -7,12 +7,14 @@ import DiseasePredictionsCard from './DiseasePredictionsCard'
 import YieldPredictionsCard from './YieldPredictionsCard'
 import ResourceOptimizationCard from './ResourceOptimizationCard'
 import type { DiseasePredicition, YieldPrediction, ResourceOptimization } from '@/services/aiPredictiveEngine'
+import type { AIGroundingContext } from '@/services/aiGroundingService'
 
 interface PredictionsData {
   diseasePredicitions: DiseasePredicition[]
   yieldPredictions: YieldPrediction[]
   resourceOptimizations: ResourceOptimization[]
   generatedAt: string
+  grounding?: AIGroundingContext | null
 }
 
 export default function AIPredictionsDashboard() {
@@ -33,19 +35,23 @@ export default function AIPredictionsDashboard() {
     
     try {
       setLoading(true)
-      // TODO: Implementare API endpoint
-      // const response = await fetch(`/api/ai/predictions?gardenId=${activeGarden.id}`)
-      // const result = await response.json()
-      
-      // Mock data per ora
-      const mockData: PredictionsData = {
-        diseasePredicitions: [],
-        yieldPredictions: [],
-        resourceOptimizations: [],
-        generatedAt: new Date().toISOString()
+      const response = await fetch('/api/ai/predictions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gardenId: activeGarden.id,
+          garden: activeGarden,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to load predictions: ${response.statusText}`)
       }
-      
-      setPredictions(mockData)
+
+      const result = await response.json()
+      setPredictions(result.data)
     } catch (error) {
       console.error('Error loading AI predictions:', error)
     } finally {
@@ -107,7 +113,7 @@ export default function AIPredictionsDashboard() {
                   AI Predictions
                 </h1>
                 <p className="text-sm text-gray-600">
-                  Predizioni intelligenti per {activeGarden.name}
+                  Superficie predittiva in consolidamento per {activeGarden.name}
                 </p>
               </div>
             </div>
@@ -129,6 +135,16 @@ export default function AIPredictionsDashboard() {
               </button>
             </div>
           </div>
+
+          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+            Le predizioni aggregano servizi con maturità diverse. I risultati vanno verificati con il contesto operativo e non sostituiscono una validazione agronomica.
+          </div>
+          {predictions?.grounding && (
+            <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+              Grounding: {predictions.grounding.siteContext.isControlledEnvironment ? 'ambiente controllato' : 'open field'} ·
+              fonte {predictions.grounding.source} · confidenza {Math.round(predictions.grounding.confidence * 100)}%
+            </div>
+          )}
 
           {/* Tabs */}
           <div className="mt-6 flex gap-2">

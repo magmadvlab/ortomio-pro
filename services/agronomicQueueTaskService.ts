@@ -280,6 +280,62 @@ const humanizeIrrigationMode = (value?: string | null): string | null => {
   }
 }
 
+const humanizeSiteExposureClass = (value?: string | null): string | null => {
+  switch (value) {
+    case 'exposed':
+      return 'Sito esposto'
+    case 'sheltered':
+      return 'Sito riparato'
+    case 'balanced':
+      return 'Esposizione bilanciata'
+    default:
+      return null
+  }
+}
+
+const humanizeSiteSlopeClass = (value?: string | null): string | null => {
+  switch (value) {
+    case 'steep':
+      return 'Pendenza forte'
+    case 'rolling':
+      return 'Pendenza moderata'
+    case 'flat':
+      return 'Pianeggiante'
+    default:
+      return null
+  }
+}
+
+const formatSiteMetricLabels = (
+  refinedContext: AgronomicRefinedContext
+): string[] => {
+  const siteProfile = refinedContext.siteOperationalProfile
+  if (!siteProfile) {
+    return []
+  }
+
+  return [
+    typeof siteProfile.altitudeMeters === 'number'
+      ? `Quota ${Math.round(siteProfile.altitudeMeters)} m`
+      : null,
+    typeof siteProfile.soilPh === 'number'
+      ? `pH ${siteProfile.soilPh.toFixed(1)}`
+      : null,
+    typeof siteProfile.dailySunHours === 'number'
+      ? `Sole ${siteProfile.dailySunHours.toFixed(1)} h`
+      : null,
+    siteProfile.aspectDirection
+      ? `Orientamento ${siteProfile.aspectDirection}`
+      : null,
+    siteProfile.windProtection
+      ? `Vento ${siteProfile.windProtection}`
+      : null,
+    typeof siteProfile.shadowObstaclesCount === 'number' && siteProfile.shadowObstaclesCount > 0
+      ? `Ombre ${siteProfile.shadowObstaclesCount}`
+      : null,
+  ].filter((value): value is string => Boolean(value))
+}
+
 const buildOperationalContextLabels = (
   refinedContext?: AgronomicRefinedContext | null
 ): string[] => {
@@ -302,9 +358,12 @@ const buildOperationalContextLabels = (
     refinedContext.siteOperationalProfile?.soilType
       ? `Suolo ${refinedContext.siteOperationalProfile.soilType}`
       : null,
+    humanizeSiteExposureClass(refinedContext.siteOperationalProfile?.exposureClass),
+    humanizeSiteSlopeClass(refinedContext.siteOperationalProfile?.slopeClass),
+    ...formatSiteMetricLabels(refinedContext),
   ].filter((value): value is string => Boolean(value))
 
-  return Array.from(new Set(rawLabels)).slice(0, 3)
+  return Array.from(new Set(rawLabels)).slice(0, 14)
 }
 
 const formatConfidenceLabel = (confidence: number): string =>

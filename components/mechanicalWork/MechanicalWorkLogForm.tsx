@@ -1,12 +1,16 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Tractor, Calendar, MapPin, Clock, Euro, User, CloudRain, Layers } from 'lucide-react'
+import { Tractor, Calendar, User, CloudRain, Layers } from 'lucide-react'
 import { Garden, GardenBed, GardenRow } from '@/types'
 import { WorkType, EquipmentType } from '@/logic/mechanicalWorkEngine'
 import { MechanicalWorkLog } from '@/services/mechanicalWorkService'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvidenceContract'
+import TaskExecutionFormContextSummary from '@/components/shared/TaskExecutionFormContextSummary'
+import TaskExecutionQuickFeedback from '@/components/shared/TaskExecutionQuickFeedback'
+import TaskExecutionQuickNotes from '@/components/shared/TaskExecutionQuickNotes'
+import { mergeTaskExecutionQuickPayloadNotes } from '@/services/taskExecutionQuickPayloadService'
 
 interface MechanicalWorkLogFormProps {
   garden: Garden
@@ -24,6 +28,8 @@ export function MechanicalWorkLogForm({
   sourceTaskId
 }: MechanicalWorkLogFormProps) {
   const { storageProvider } = useStorage()
+  const [quickOutcome, setQuickOutcome] = useState<'good' | 'attention' | 'critical' | null>(null)
+  const [quickFollowUpRequired, setQuickFollowUpRequired] = useState(false)
   const [formData, setFormData] = useState<Partial<MechanicalWorkLog>>({
     gardenId: garden.id,
     workDate: new Date().toISOString().split('T')[0],
@@ -36,6 +42,22 @@ export function MechanicalWorkLogForm({
   const [rows, setRows] = useState<GardenRow[]>([])
   const [selectedBeds, setSelectedBeds] = useState<string[]>(initialData?.bedIds || [])
   const [selectedRows, setSelectedRows] = useState<string[]>(initialData?.rowIds || [])
+
+  useEffect(() => {
+    if (!initialData) {
+      return
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      ...initialData,
+      gardenId: initialData.gardenId || prev.gardenId || garden.id,
+      workDate: initialData.workDate || prev.workDate || new Date().toISOString().split('T')[0],
+      completed: initialData.completed ?? prev.completed ?? true,
+    }))
+    setSelectedBeds(initialData.bedIds || [])
+    setSelectedRows(initialData.rowIds || [])
+  }, [garden.id, initialData])
 
   // Carica aiuole e file dal giardino
   useEffect(() => {
@@ -117,7 +139,13 @@ export function MechanicalWorkLogForm({
 
     setLoading(true)
     try {
-      await onSubmit(formData as MechanicalWorkLog)
+      await onSubmit({
+        ...formData,
+        notes: mergeTaskExecutionQuickPayloadNotes(formData.notes, {
+          outcome: quickOutcome,
+          followUpRequired: quickFollowUpRequired,
+        }),
+      } as MechanicalWorkLog)
     } catch (error) {
       console.error('Error submitting mechanical work log:', error)
       alert('Errore nel salvare la lavorazione')
@@ -128,7 +156,81 @@ export function MechanicalWorkLogForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <TaskExecutionFormContextSummary sourceTaskId={sourceTaskId} storageProvider={storageProvider} />
       <TaskExecutionEvidenceContract sourceTaskId={sourceTaskId} storageProvider={storageProvider} />
+      <TaskExecutionQuickFeedback
+        outcome={quickOutcome}
+        followUpRequired={quickFollowUpRequired}
+        onOutcomeChange={setQuickOutcome}
+        onFollowUpRequiredChange={setQuickFollowUpRequired}
+      />
+      <TaskExecutionQuickNotes
+        sourceTaskId={sourceTaskId}
+        storageProvider={storageProvider}
+        notes={formData.notes || ''}
+        extraTokens={[
+          quickOutcome ? `esito ${quickOutcome}` : '',
+          quickFollowUpRequired ? 'follow-up richiesto' : '',
+        ].filter(Boolean)}
+        onChange={(notes) => setFormData((prev) => ({ ...prev, notes }))}
+      />
+
+      <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Quick execution fields</p>
+        <p className="mt-1 text-xs text-emerald-900">
+          Registra subito i parametri minimi che rendono più leggibile la lavorazione eseguita.
+        </p>
+        <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Durata</label>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={formData.durationMinutes ?? ''}
+              onChange={e => setFormData({ ...formData, durationMinutes: e.target.value === '' ? undefined : parseInt(e.target.value) })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="min"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Area</label>
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              value={formData.areaCoveredSqm ?? ''}
+              onChange={e => setFormData({ ...formData, areaCoveredSqm: e.target.value === '' ? undefined : parseFloat(e.target.value) })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="m²"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Profondità</label>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={formData.depthCm ?? ''}
+              onChange={e => setFormData({ ...formData, depthCm: e.target.value === '' ? undefined : parseInt(e.target.value) })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="cm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Costo</label>
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              value={formData.cost ?? ''}
+              onChange={e => setFormData({ ...formData, cost: e.target.value === '' ? undefined : parseFloat(e.target.value) })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="€"
+            />
+          </div>
+        </div>
+      </div>
 
       {/* TIPO LAVORAZIONE */}
       <div>
@@ -285,75 +387,6 @@ export function MechanicalWorkLogForm({
         />
       </div>
 
-      {/* AREA E PROFONDITÀ */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            <MapPin size={16} className="inline mr-1.5" />
-            Area Lavorata (m²)
-          </label>
-          <input
-            type="number"
-            step="0.1"
-            value={formData.areaCoveredSqm || ''}
-            onChange={e => setFormData({ ...formData, areaCoveredSqm: parseFloat(e.target.value) })}
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5"
-            placeholder="es. 500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Profondità (cm)
-          </label>
-          <input
-            type="number"
-            value={formData.depthCm || ''}
-            onChange={e => setFormData({ ...formData, depthCm: parseInt(e.target.value) })}
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5"
-            placeholder="es. 30"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            es. 30-40 cm per aratura, 15-20 cm per fresatura
-          </p>
-        </div>
-      </div>
-
-      {/* DURATA E COSTO */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            <Clock size={16} className="inline mr-1.5" />
-            Durata (minuti)
-          </label>
-          <input
-            type="number"
-            value={formData.durationMinutes || ''}
-            onChange={e => setFormData({ ...formData, durationMinutes: parseInt(e.target.value) })}
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5"
-            placeholder="es. 120"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            <Euro size={16} className="inline mr-1.5" />
-            Costo (€)
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            value={formData.cost || ''}
-            onChange={e => setFormData({ ...formData, cost: parseFloat(e.target.value) })}
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5"
-            placeholder="es. 50.00"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Carburante + operatore + noleggio
-          </p>
-        </div>
-      </div>
-
       {/* OPERATORE */}
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -429,20 +462,6 @@ export function MechanicalWorkLogForm({
             </select>
           </div>
         </div>
-      </div>
-
-      {/* NOTE */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Note Aggiuntive
-        </label>
-        <textarea
-          value={formData.notes || ''}
-          onChange={e => setFormData({ ...formData, notes: e.target.value })}
-          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          rows={3}
-          placeholder="es. Terreno in buone condizioni, rimosse molte erbacce..."
-        />
       </div>
 
       {/* BUTTONS */}
