@@ -33,6 +33,12 @@ export async function GET(request: NextRequest) {
           status: 'PENDING',
           created_at: new Date().toISOString(),
           garden_id: gardenId,
+          context: resolvedContext?.structure.fieldRows?.length
+            ? {
+                fieldRows: resolvedContext.structure.fieldRows.length,
+                firstFieldRowId: resolvedContext.structure.fieldRows[0]?.id,
+              }
+            : undefined,
         }
       ])
     }
@@ -82,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseServerClient()
     if (!supabase) {
-      // Return mock response for development
+      // Return grounded mock response for local development
       return NextResponse.json({
         id: 'mock-new',
         user_id,
@@ -91,7 +97,8 @@ export async function POST(request: NextRequest) {
         title,
         description,
         status: 'PENDING',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        context: garden_id ? { garden_id } : undefined
       })
     }
 

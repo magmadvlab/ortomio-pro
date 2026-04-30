@@ -84,7 +84,9 @@ export default function AdvicePage() {
         ? await resolveGardenContext(storageProvider, activeGarden.id).catch(() => null)
         : null
       const garden = resolvedContext?.garden || activeGarden
+      const firstFieldRow = resolvedContext?.structure.fieldRows?.[0]
       const cropLabel = garden?.primaryCrop?.label || garden?.name || 'coltura attiva'
+      const rowLabel = firstFieldRow?.name || firstFieldRow?.cultivar || cropLabel
       const isControlled = Boolean(
         resolvedContext?.structure.indoorSpace ||
         resolvedContext?.structure.greenhouseSpace ||
@@ -106,8 +108,8 @@ export default function AdvicePage() {
           type: 'rotation',
           title: isControlled ? 'Rotazione/Turnazione del sistema' : 'Rotazione Colture',
           description: isControlled
-            ? `Il sistema risulta controllato: mantieni turnazione e pulizia del ciclo per ${cropLabel}, con attenzione ai carichi residui e alle finestre di riposo.`
-            : `Usa lo storico attività per pianificare una rotazione coerente attorno a ${cropLabel} e ridurre accumulo di patogeni.`,
+            ? `Il sistema risulta controllato: mantieni turnazione e pulizia del ciclo per ${rowLabel}, con attenzione ai carichi residui e alle finestre di riposo.`
+            : `Usa lo storico attività per pianificare una rotazione coerente attorno a ${rowLabel} e ridurre accumulo di patogeni.`,
           priority: 'high',
           confidence: isControlled ? 0.81 : 0.76,
           timing: 'Prossimi 10 giorni',
@@ -116,7 +118,7 @@ export default function AdvicePage() {
             title: 'Rivedi il ciclo',
             description: isControlled
               ? 'Controlla sequenza di coltivazione, pulizia e ripartenza del sistema'
-              : 'Definisci successioni colturali per i prossimi cicli',
+              : 'Definisci successioni colturali per i prossimi cicli e per il filare specifico',
             estimatedTime: '45 minuti',
             difficulty: 'medium',
           }],
@@ -131,8 +133,8 @@ export default function AdvicePage() {
           type: 'biological_control',
           title: 'Verifica controllo biologico',
           description: taskCount > 0
-            ? `Hai ${taskCount} task aperti: verifica se qualcuno riguarda trattamenti, monitoraggi o ispezioni su ${cropLabel}.`
-            : `Nessun task aperto rilevante: programma un controllo biologico di base su ${cropLabel}.`,
+            ? `Hai ${taskCount} task aperti: verifica se qualcuno riguarda trattamenti, monitoraggi o ispezioni su ${rowLabel}.`
+            : `Nessun task aperto rilevante: programma un controllo biologico di base su ${rowLabel}.`,
           priority: taskCount > 2 ? 'high' : 'medium',
           confidence: 0.74,
           plantName: cropLabel,
@@ -156,7 +158,7 @@ export default function AdvicePage() {
           title: isControlled ? 'Bilanciamento idrico del sistema' : 'Ottimizzazione Irrigazione',
           description: isControlled
             ? 'In ambiente controllato conta di più la stabilità: verifica portate, drenaggi e ritorni prima di aumentare i cicli.'
-            : 'Ricalibra l\'irrigazione sul contesto reale del giardino e sui task aperti per evitare sovra/interventi.',
+            : `Ricalibra l'irrigazione sul contesto reale del giardino e del filare ${rowLabel} per evitare sovra/interventi.`,
           priority: 'medium',
           confidence: isControlled ? 0.79 : 0.72,
           timing: 'Prossimi 3 giorni',
