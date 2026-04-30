@@ -209,7 +209,7 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPlants.map((plant) => (
-          <PlantCard
+            <PlantCard
               key={plant.task.id}
               plant={plant}
               gardenContext={{
@@ -224,6 +224,7 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
                 slopePercentage: (garden as any).slopePercentage ?? null,
                 hasIndoor: garden.hasIndoor ?? null,
                 hasGreenhouse: garden.hasGreenhouse ?? null,
+                fieldRowId: (plant.task as any).fieldRowId || (plant.task as any).rowId || null,
               } satisfies PlantMaturityContext}
               onHarvest={(task) => setHarvestingTask(task)}
               onViewDetails={(task) => setDetailsTask(task)}
