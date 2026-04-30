@@ -53,14 +53,21 @@ export default function PlannerAISuggestions({ garden, tasks, onCreateTasks }: P
     
     try {
       setLoading(true)
-      await resolveGardenContext(storageProvider, garden.id).catch(() => null)
+      const resolvedContext = await resolveGardenContext(storageProvider, garden.id).catch(() => null)
       const suggs = await collaborativeAIService.getSuggestions(user.id, {
         statuses: ['PENDING'],
         types: planningTypes,
         gardenId: garden.id
       })
       
-      setSuggestions(suggs)
+      setSuggestions(
+        suggs.map((suggestion) => ({
+          ...suggestion,
+          context: resolvedContext?.structure.fieldRows?.[0]?.name
+            ? `${suggestion.context || ''} | filare: ${resolvedContext.structure.fieldRows[0].name}`.trim()
+            : suggestion.context,
+        }))
+      )
     } catch (error) {
       console.error('Error loading suggestions:', error)
     } finally {
