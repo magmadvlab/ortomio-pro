@@ -831,14 +831,14 @@ export const harvestRecommendationService = {
 }
 
 export const monitoringDashboardService = {
-  async getPlantMonitoringDashboard(plantId: string): Promise<PlantMonitoringDashboard> {
+  async getPlantMonitoringDashboard(plantId: string, fieldRowId?: string): Promise<PlantMonitoringDashboard> {
     const [photos, currentMaturity, brixTrend, activeTreatments, effectiveness, recommendation] = await Promise.all([
-      plantPhotoService.getPlantPhotos(plantId),
-      maturityTrackingService.getCurrentMaturityStage(plantId),
-      brixManagementService.getBrixTrend(plantId),
-      treatmentTrackingService.getActiveTreatments(plantId),
-      treatmentTrackingService.calculateTreatmentEffectiveness(plantId),
-      harvestRecommendationService.generateHarvestRecommendation(plantId, '')
+      plantPhotoService.getPlantPhotos(plantId, fieldRowId),
+      maturityTrackingService.getCurrentMaturityStage(plantId, fieldRowId),
+      brixManagementService.getBrixTrend(plantId, fieldRowId),
+      treatmentTrackingService.getActiveTreatments(plantId, fieldRowId),
+      treatmentTrackingService.calculateTreatmentEffectiveness(plantId, fieldRowId),
+      harvestRecommendationService.generateHarvestRecommendation(plantId, '', fieldRowId)
     ])
 
     const photoStats = createPhotoTypeStats()
@@ -891,7 +891,7 @@ export const monitoringDashboardService = {
         min: brixTrend.min,
         max: brixTrend.max,
         trend: brixTrend.trend,
-        measurements: (await brixManagementService.getBrixHistory(plantId)).length
+        measurements: (await brixManagementService.getBrixHistory(plantId, fieldRowId)).length
       },
       activeIssues: activeTreatments.length,
       resolvedIssues: effectiveness.resolved,
