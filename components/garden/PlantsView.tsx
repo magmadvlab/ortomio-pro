@@ -7,6 +7,8 @@ import { getActivePlants } from '@/services/taskCalculationService'
 import { PlantCard } from './PlantCard'
 import { HarvestPromptModal } from '@/components/shared/HarvestPromptModal'
 import { useStorage } from '@/packages/core/hooks/useStorage'
+import type { PlantMaturityContext } from '@/utils/plantMaturityDetector'
+import { resolveGardenContext } from '@/services/gardenContextResolverService'
 
 interface PlantsViewProps {
   garden: Garden
@@ -207,9 +209,22 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPlants.map((plant) => (
-            <PlantCard
+          <PlantCard
               key={plant.task.id}
               plant={plant}
+              gardenContext={{
+                gardenId: garden.id,
+                gardenName: garden.name,
+                gardenType: garden.gardenType || null,
+                soilType: garden.soilType || null,
+                soilPh: garden.soilPh ?? null,
+                sunExposure: garden.sunExposure || null,
+                aspectDirection: garden.aspectDirection || null,
+                altitudeMeters: garden.altitudeMeters ?? null,
+                slopePercentage: (garden as any).slopePercentage ?? null,
+                hasIndoor: garden.hasIndoor ?? null,
+                hasGreenhouse: garden.hasGreenhouse ?? null,
+              } satisfies PlantMaturityContext}
               onHarvest={(task) => setHarvestingTask(task)}
               onViewDetails={(task) => setDetailsTask(task)}
             />
@@ -425,4 +440,3 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
     </div>
   )
 }
-

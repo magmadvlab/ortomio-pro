@@ -2,26 +2,27 @@
 
 import React, { useState } from 'react'
 import { GardenTask, HarvestLogData } from '@/types'
-import { calculateExpectedYield, getMaturityInfo } from '@/utils/plantMaturityDetector'
+import { calculateExpectedYield, getMaturityInfo, type PlantMaturityContext } from '@/utils/plantMaturityDetector'
 import { X, Camera, Star, Calendar } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 
 interface HarvestPromptModalProps {
   task: GardenTask
+  gardenContext?: PlantMaturityContext | null
   onHarvest: (harvestData: Omit<HarvestLogData, 'id' | 'gardenId'>) => void
   onSkip: () => void
 }
 
-export function HarvestPromptModal({ task, onHarvest, onSkip }: HarvestPromptModalProps) {
+export function HarvestPromptModal({ task, gardenContext, onHarvest, onSkip }: HarvestPromptModalProps) {
   const [quantity, setQuantity] = useState<string>('')
   const [unit, setUnit] = useState<'kg' | 'g' | 'units'>('kg')
   const [rating, setRating] = useState<HarvestLogData['rating']>(3)
   const [notes, setNotes] = useState<string>('')
   const [photo, setPhoto] = useState<string | null>(null)
   
-  const expectedYield = calculateExpectedYield(task)
-  const maturityInfo = getMaturityInfo(task)
+  const expectedYield = calculateExpectedYield(task, gardenContext)
+  const maturityInfo = getMaturityInfo(task, gardenContext)
   
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -227,7 +228,6 @@ export function HarvestPromptModal({ task, onHarvest, onSkip }: HarvestPromptMod
     </div>
   )
 }
-
 
 
 

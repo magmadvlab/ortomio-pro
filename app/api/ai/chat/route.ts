@@ -20,6 +20,7 @@ interface GlobalAIChatContextPayload {
   scope?: Record<string, unknown>
   summary?: string
   signals?: Record<string, unknown>
+  gardenContext?: Record<string, unknown>
   missingSignals?: string[]
   routingHints?: Array<{
     label: string
@@ -90,6 +91,7 @@ const parseChatContext = (value: unknown): GlobalAIChatContextPayload | null => 
     scope: sanitizeRecord(raw.scope),
     summary: sanitizeText(raw.summary),
     signals: sanitizeRecord(raw.signals),
+    gardenContext: sanitizeRecord(raw.gardenContext),
     missingSignals: Array.isArray(raw.missingSignals)
       ? raw.missingSignals.map((entry) => sanitizeText(entry, 80)).filter(Boolean).slice(0, 10) as string[]
       : undefined,
@@ -104,6 +106,7 @@ const buildGlobalChatPrompt = (message: string, context: GlobalAIChatContextPayl
         context.scope ? `SCOPE: ${JSON.stringify(context.scope)}` : null,
         context.summary ? `SINTESI: ${context.summary}` : null,
         context.signals ? `SEGNALI: ${JSON.stringify(context.signals)}` : null,
+        context.gardenContext ? `GARDEN_CONTEXT: ${JSON.stringify(context.gardenContext)}` : null,
         context.missingSignals?.length ? `SEGNALI MANCANTI: ${context.missingSignals.join(', ')}` : null,
         context.routingHints?.length
           ? `AZIONI NAVIGAZIONE DISPONIBILI: ${context.routingHints
@@ -212,5 +215,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
 

@@ -3,7 +3,7 @@
 import React from 'react'
 import { GardenTask } from '@/types'
 import { MapPin, ShoppingBasket } from 'lucide-react'
-import { isPlantMature } from '@/utils/plantMaturityDetector'
+import { isPlantMature, type PlantMaturityContext } from '@/utils/plantMaturityDetector'
 
 interface PlantCardProps {
   plant: {
@@ -13,11 +13,12 @@ interface PlantCardProps {
     zone: string
     daysActive: number
   }
+  gardenContext?: PlantMaturityContext | null
   onHarvest: (task: GardenTask) => void
   onViewDetails: (task: GardenTask) => void
 }
 
-export function PlantCard({ plant, onHarvest, onViewDetails }: PlantCardProps) {
+export function PlantCard({ plant, gardenContext, onHarvest, onViewDetails }: PlantCardProps) {
   const getStatusEmoji = (status: string) => {
     switch (status) {
       case 'ready': return '🥗'
@@ -37,7 +38,7 @@ export function PlantCard({ plant, onHarvest, onViewDetails }: PlantCardProps) {
   }
 
   // Verifica se la pianta è realmente matura usando isPlantMature
-  const isMature = isPlantMature(plant.task)
+  const isMature = isPlantMature(plant.task, gardenContext)
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">

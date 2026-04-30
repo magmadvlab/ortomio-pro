@@ -1,5 +1,6 @@
 import type { Garden, GardenTask, GardenZone } from '@/types'
 import type { FieldRow } from '@/types/fieldRow'
+import { resolveGardenContext } from '@/services/gardenContextResolverService'
 import {
   getScopedHealthMicroclimateSnapshot,
   healthRiskLevelToScore,
@@ -82,17 +83,20 @@ export async function getHealthScopeInsights(
     }
   })
 
+  const resolvedContext = await resolveGardenContext(storageProvider as any, garden.id).catch(() => null)
+  const sourceGarden = resolvedContext?.garden || garden
+
   const [zones, fieldRows] = await Promise.all([
     typeof storageProvider.getGardenZones === 'function'
-      ? storageProvider.getGardenZones(garden.id).catch(() => [])
+      ? storageProvider.getGardenZones(sourceGarden.id).catch(() => [])
       : Promise.resolve([]),
     typeof storageProvider.getFieldRows === 'function'
-      ? storageProvider.getFieldRows(garden.id).catch(() => [])
+      ? storageProvider.getFieldRows(sourceGarden.id).catch(() => [])
       : Promise.resolve([]),
   ])
   const devices =
     typeof storageProvider.getDevices === 'function'
-      ? await storageProvider.getDevices(garden.id).catch(() => [])
+      ? await storageProvider.getDevices(sourceGarden.id).catch(() => [])
       : []
 
   const zoneMap = new Map(zones.map((zone) => [zone.id, zone]))
@@ -107,7 +111,7 @@ export async function getHealthScopeInsights(
   const zoneSnapshots = new Map<string, HealthMicroclimateSnapshot>()
   await Promise.all(
     relevantZoneIds.map(async (zoneId) => {
-      const snapshot = await getScopedHealthMicroclimateSnapshot(garden, {
+      const snapshot = await getScopedHealthMicroclimateSnapshot(sourceGarden, {
         zoneId,
         devices,
       }).catch(() => null)
@@ -146,7 +150,7 @@ export async function getHealthScopeInsights(
     if (!row?.zoneId) continue
 
     const snapshot =
-      (await getScopedHealthMicroclimateSnapshot(garden, {
+      (await getScopedHealthMicroclimateSnapshot(sourceGarden, {
         zoneId: row.zoneId,
         fieldRowId: rowId,
         devices,

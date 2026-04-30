@@ -239,6 +239,8 @@ type TaskEnvironmentalHistorySummary =
   | GardenEnvironmentalHistorySummary
   | ZoneEnvironmentalHistorySummary
 
+type TaskWithFieldRow = GardenTask & { fieldRowId?: string }
+
 const WET_SOIL_SENSITIVE_TASK_TYPES = new Set<GardenTask['taskType']>([
   'Sowing',
   'Fertilize',
@@ -584,6 +586,12 @@ function resolveTaskEnvironmentalHistory(
   return histories.gardenSummary
 }
 
+function formatTaskLabel(task: GardenTask): string {
+  const scopedTask = task as TaskWithFieldRow
+  const rowLabel = scopedTask.fieldRowId ? ` - Filare ${scopedTask.fieldRowId}` : ''
+  return `${task.taskType} - ${task.plantName}${rowLabel}`
+}
+
 /**
  * Analizza tutti i task e riprogramma quelli non compatibili con meteo
  */
@@ -663,7 +671,7 @@ export async function rescheduleTasksBasedOnWeather(
 
         rescheduled.push({
           taskId: task.id,
-          taskName: `${task.taskType} - ${task.plantName}`,
+          taskName: formatTaskLabel(task),
           originalDate: format(scheduledDate, 'dd/MM/yyyy'),
           newDate: format(parseISO(newDate), 'dd/MM/yyyy'),
           reason: analysis.reason,
@@ -676,7 +684,7 @@ export async function rescheduleTasksBasedOnWeather(
         // Nessun giorno utile trovato - avvisa utente
         rescheduled.push({
           taskId: task.id,
-          taskName: `${task.taskType} - ${task.plantName}`,
+          taskName: formatTaskLabel(task),
           originalDate: format(scheduledDate, 'dd/MM/yyyy'),
           newDate: 'Da decidere',
           reason: `Meteo sfavorevole per 7+ giorni: ${analysis.reason}`,
@@ -745,7 +753,7 @@ export async function checkTomorrowTasksWeather(
 
       notifications.push({
         taskId: task.id,
-        taskName: `${task.taskType} - ${task.plantName}`,
+        taskName: formatTaskLabel(task),
         originalDate: 'Domani',
         newDate: newDate ? format(parseISO(newDate), 'dd/MM/yyyy') : 'Da decidere',
         reason: `⚠️ ${analysis.reason}`,

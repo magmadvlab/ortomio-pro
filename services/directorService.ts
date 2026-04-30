@@ -1158,7 +1158,7 @@ class DirectorService {
   async getUrgentActions(userId: string, gardenId?: string): Promise<PrioritizedAction[]> {
     const [suggestions, gardenForContext] = await Promise.all([
       collaborativeAIService.getActiveSuggestions(userId, gardenId),
-      gardenId ? this.getStorageProvider().getGarden(gardenId).catch(() => null) : Promise.resolve(null),
+      gardenId ? resolveGardenContext(this.getStorageProvider(), gardenId).then((resolved) => resolved?.garden || null) : Promise.resolve(null),
     ])
     const prioritized = await this.prioritizeSuggestions(suggestions)
     
@@ -1174,7 +1174,7 @@ class DirectorService {
   async getAllPrioritizedActions(userId: string, gardenId?: string): Promise<PrioritizedAction[]> {
     const [suggestions, gardenForContext] = await Promise.all([
       collaborativeAIService.getActiveSuggestions(userId, gardenId),
-      gardenId ? this.getStorageProvider().getGarden(gardenId).catch(() => null) : Promise.resolve(null),
+      gardenId ? resolveGardenContext(this.getStorageProvider(), gardenId).then((resolved) => resolved?.garden || null) : Promise.resolve(null),
     ])
     const prioritized = await this.prioritizeSuggestions(suggestions)
     

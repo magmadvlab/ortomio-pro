@@ -15,6 +15,7 @@ import { directorService } from '@/services/directorService'
 import { predictOptimalHarvestDate, predictYield, predictDiseaseRisk, predictWaterRequirement } from './predictiveAnalyticsService'
 import { getMasterSheetSync } from './plantMasterService'
 import { getWeatherForecast } from './weatherService'
+import { resolveGardenContext } from '@/services/gardenContextResolverService'
 
 export interface FieldRowPrediction {
   fieldRowId: string
@@ -82,11 +83,33 @@ export interface FieldRowPrediction {
 
 export interface FieldRowAnalysisContext {
   garden: Garden
+  gardenContext?: {
+    history?: unknown
+    structure?: unknown
+    site?: unknown
+    systems?: unknown
+    crop?: unknown
+    weather?: unknown
+  } | null
   fieldRows: any[]
   individualPlants: any[]
   recentOperations: any[]
   weatherForecast: any
   tasks: GardenTask[]
+}
+
+type FieldRowContext = {
+  gardenId: string
+  fieldRowId: string
+  fieldRowName: string
+  plantedDate?: string
+  cultivar?: string
+  zoneId?: string
+  areaSqm?: number
+  irrigationEnabled?: boolean
+  plantingAgeDays?: number
+  gardenContext?: FieldRowAnalysisContext['gardenContext']
+  weatherForecast?: FieldRowAnalysisContext['weatherForecast']
 }
 
 /**
@@ -159,6 +182,7 @@ export class FieldRowPredictiveService {
 
     // Master data per la coltura
     const masterData = fieldRow.cultivar ? getMasterSheetSync(fieldRow.cultivar) : null
+    const rowContext = this.buildFieldRowContext(fieldRow, context)
 
     // Crea task virtuale per le predizioni
     const virtualTask: GardenTask = {
@@ -175,10 +199,10 @@ export class FieldRowPredictiveService {
     }
 
     // Predizioni principali
-    const harvestPrediction = masterData ? await this.predictHarvest(virtualTask, masterData, context) : undefined
-    const yieldPrediction = masterData ? await this.predictYield(virtualTask, masterData, context, rowOperations) : undefined
-    const healthStatus = await this.analyzeHealthStatus(fieldRow, rowPlants, rowOperations, context)
-    const waterRequirement = masterData ? await this.predictWaterRequirement(virtualTask, masterData, context) : this.getDefaultWaterRequirement(fieldRow)
+    const harvestPrediction = masterData ? await this.predictHarvest(virtualTask, masterData, context, rowContext) : undefined
+    const yieldPrediction = masterData ? await this.predictYield(virtualTask, masterData, context, rowOperations, rowContext) : undefined
+    const healthStatus = await this.analyzeHealthStatus(fieldRow, rowPlants, rowOperations, context, rowContext)
+    const waterRequirement = masterData ? await this.predictWaterRequirement(virtualTask, masterData, context, rowContext) : this.getDefaultWaterRequirement(fieldRow, rowContext)
 
     // Operazioni consigliate
     const recommendedActions = await this.generateRecommendedActions(fieldRow, rowPlants, context, {
@@ -215,7 +239,8 @@ export class FieldRowPredictiveService {
    * Carica contesto per l'analisi
    */
   private async loadAnalysisContext(gardenId: string): Promise<FieldRowAnalysisContext> {
-    const [garden, fieldRows, individualPlants, tasks] = await Promise.all([
+    const [resolvedGardenContext, garden, fieldRows, individualPlants, tasks] = await Promise.all([
+      resolveGardenContext(this.storageProvider, gardenId).catch(() => null),
       this.storageProvider.getGarden(gardenId),
       this.storageProvider.getFieldRows(gardenId),
       this.storageProvider.getIndividualPlants?.(gardenId) || [],
@@ -236,7 +261,8 @@ export class FieldRowPredictiveService {
     }
 
     return {
-      garden,
+      garden: resolvedGardenContext?.garden || garden,
+      gardenContext: resolvedGardenContext || null,
       fieldRows: fieldRows || [],
       individualPlants,
       recentOperations,
@@ -279,7 +305,7 @@ export class FieldRowPredictiveService {
   /**
    * Predice data raccolto per field row
    */
-  private async predictHarvest(task: GardenTask, masterData: any, context: FieldRowAnalysisContext) {
+  private async predictHarvest(task: GardenTask, masterData: any, context: FieldRowAnalysisContext, rowContext?: FieldRowContext) {
     try {
       const prediction = await predictOptimalHarvestDate(task, masterData, context.garden)
       
@@ -307,7 +333,7 @@ export class FieldRowPredictiveService {
   /**
    * Predice resa per field row
    */
-  private async predictYield(task: GardenTask, masterData: any, context: FieldRowAnalysisContext, operations: any[]) {
+  private async predictYield(task: GardenTask, masterData: any, context: FieldRowAnalysisContext, operations: any[], rowContext?: FieldRowContext) {
     try {
       // Simula harvest logs da operazioni
       const harvestLogs = operations
@@ -339,6 +365,14 @@ export class FieldRowPredictiveService {
         optimizationTips.push('Aumenta irrigazione per condizioni secche')
       }
 
+      if (rowContext?.plantingAgeDays !== undefined) {
+        if (rowContext.plantingAgeDays < 21) {
+          optimizationTips.push('Filare giovane: privilegia stabilizzazione e irrigazione controllata')
+        } else if (rowContext.plantingAgeDays > 60) {
+          optimizationTips.push('Filare maturo: verifica stress produttivo e bilancia carico vegetativo')
+        }
+      }
+
       return {
         expectedKg: prediction.predictedYieldKg,
         expectedKgPerSqm: prediction.predictedYieldPerSqm,
@@ -354,7 +388,7 @@ export class FieldRowPredictiveService {
   /**
    * Analizza stato salute field row
    */
-  private async analyzeHealthStatus(fieldRow: any, plants: any[], operations: any[], context: FieldRowAnalysisContext) {
+  private async analyzeHealthStatus(fieldRow: any, plants: any[], operations: any[], context: FieldRowAnalysisContext, rowContext?: FieldRowContext) {
     let overallScore = 100
     const mainIssues: string[] = []
     const preventiveActions: string[] = []
@@ -369,6 +403,14 @@ export class FieldRowPredictiveService {
         overallScore -= 20
         mainIssues.push('Irrigazione non recente')
         preventiveActions.push('Verifica sistema irrigazione')
+      }
+    }
+
+    if (rowContext?.plantingAgeDays !== undefined) {
+      if (rowContext.plantingAgeDays <= 14) {
+        preventiveActions.push('Filare in avvio: monitora attecchimento e stress idrico')
+      } else if (rowContext.plantingAgeDays >= 45) {
+        preventiveActions.push('Filare consolidato: confronta vigore e carico con lo storico del garden')
       }
     }
 
@@ -427,12 +469,13 @@ export class FieldRowPredictiveService {
   /**
    * Predice fabbisogno idrico
    */
-  private async predictWaterRequirement(task: GardenTask, masterData: any, context: FieldRowAnalysisContext) {
+  private async predictWaterRequirement(task: GardenTask, masterData: any, context: FieldRowAnalysisContext, rowContext?: FieldRowContext) {
     try {
       const prediction = await predictWaterRequirement(task, masterData, context.garden)
       
       const next7Days = prediction.next7Days.reduce((sum, day) => sum + day.totalLiters, 0)
-      const dailyAverage = prediction.averageDailyRequirement * (context.garden.sizeSqMeters || 1)
+      const referenceArea = rowContext?.areaSqm || context.garden.sizeSqMeters || 1
+      const dailyAverage = prediction.averageDailyRequirement * referenceArea
       
       const irrigationSchedule: string[] = []
       prediction.next7Days.forEach((day, index) => {
@@ -446,6 +489,14 @@ export class FieldRowPredictiveService {
         rainAdjustment = `Riduci irrigazione: previsti ${context.weatherForecast.rainForecastMm}mm di pioggia`
       } else if (context.weatherForecast?.rainForecastMm === 0) {
         rainAdjustment = 'Aumenta irrigazione: nessuna pioggia prevista'
+      }
+
+      if (rowContext?.plantingAgeDays !== undefined) {
+        if (rowContext.plantingAgeDays < 21) {
+          rainAdjustment = `${rainAdjustment}. Filare giovane: evita sbalzi eccessivi.`
+        } else if (rowContext.plantingAgeDays > 60) {
+          rainAdjustment = `${rainAdjustment}. Filare adulto: calibra sui volumi storici del singolo filare.`
+        }
       }
 
       return {
@@ -463,15 +514,34 @@ export class FieldRowPredictiveService {
   /**
    * Fabbisogno idrico di default
    */
-  private getDefaultWaterRequirement(fieldRow: any) {
+  private getDefaultWaterRequirement(fieldRow: any, rowContext?: FieldRowContext) {
     const areaSqm = fieldRow?.length_meters * (fieldRow?.width_meters || 1) || 10
-    const dailyAverage = areaSqm * 2 // 2L per m² al giorno
+    const dailyAverage = (rowContext?.areaSqm || areaSqm) * 2 // 2L per m² al giorno
     
     return {
       next7Days: Math.round(dailyAverage * 7),
       dailyAverage: Math.round(dailyAverage),
       irrigationSchedule: ['Irrigazione standard giornaliera'],
       rainAdjustment: 'Verifica previsioni meteo'
+    }
+  }
+
+  private buildFieldRowContext(fieldRow: any, context: FieldRowAnalysisContext): FieldRowContext {
+    const plantedDate = fieldRow.planted_date || fieldRow.plantedDate || context.tasks.find(task => (task as any).fieldRowId === fieldRow.id)?.date
+    const plantingAgeDays = plantedDate ? this.daysSince(plantedDate) : undefined
+
+    return {
+      gardenId: context.garden.id,
+      fieldRowId: fieldRow.id,
+      fieldRowName: fieldRow.name,
+      plantedDate,
+      cultivar: fieldRow.cultivar,
+      zoneId: fieldRow.zoneId,
+      areaSqm: fieldRow.areaSqm || (fieldRow.length_meters && fieldRow.width_meters ? fieldRow.length_meters * fieldRow.width_meters : undefined),
+      irrigationEnabled: Boolean(fieldRow.irrigationConfig?.enabled),
+      plantingAgeDays,
+      gardenContext: context.gardenContext,
+      weatherForecast: context.weatherForecast,
     }
   }
 
