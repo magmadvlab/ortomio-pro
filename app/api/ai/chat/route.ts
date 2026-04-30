@@ -100,6 +100,9 @@ const parseChatContext = (value: unknown): GlobalAIChatContextPayload | null => 
 }
 
 const buildGlobalChatPrompt = (message: string, context: GlobalAIChatContextPayload | null): string => {
+  const fieldRowHint = context?.gardenContext
+    ? sanitizeText((context.gardenContext as Record<string, unknown>).fieldRowId, 120)
+    : undefined
   const contextBlock = context
     ? [
         `CONTESTO DICHIARATO: ${context.type}`,
@@ -107,6 +110,7 @@ const buildGlobalChatPrompt = (message: string, context: GlobalAIChatContextPayl
         context.summary ? `SINTESI: ${context.summary}` : null,
         context.signals ? `SEGNALI: ${JSON.stringify(context.signals)}` : null,
         context.gardenContext ? `GARDEN_CONTEXT: ${JSON.stringify(context.gardenContext)}` : null,
+        fieldRowHint ? `FIELD_ROW_ID: ${fieldRowHint}` : null,
         context.missingSignals?.length ? `SEGNALI MANCANTI: ${context.missingSignals.join(', ')}` : null,
         context.routingHints?.length
           ? `AZIONI NAVIGAZIONE DISPONIBILI: ${context.routingHints
@@ -215,4 +219,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
