@@ -181,4 +181,24 @@ test('director suggestionToAction lets wizard site context influence irrigation 
   assert.ok(exposedAction.priorityScore > shadedAction.priorityScore)
   assert.equal(exposedAction.refinedContext?.siteOperationalProfile?.soilType, 'Sandy')
   assert.equal(shadedAction.refinedContext?.siteOperationalProfile?.shadowObstaclesCount, 2)
+  assert.ok(
+    exposedAction.decisionExplanation?.contextRationale?.some((entry: string) =>
+      entry.includes('Orientamento sito: South.')
+    )
+  )
+  assert.ok(
+    exposedAction.decisionExplanation?.contextRationale?.some((entry: string) =>
+      entry.includes('Protezione vento: Low.')
+    )
+  )
+  assert.ok(
+    shadedAction.decisionExplanation?.contextRationale?.some((entry: string) =>
+      entry.includes('Orientamento sito: North.')
+    )
+  )
+  assert.ok(
+    shadedAction.decisionExplanation?.contextRationale?.some((entry: string) =>
+      entry.includes('Protezione vento: High.')
+    )
+  )
 })

@@ -309,3 +309,75 @@ test('calculateUrgency reacts to sheltered low-sun contexts', () => {
 
   assert.ok(shelteredUrgency > openUrgency)
 })
+
+test('health alert ordering reacts to north sheltered contexts more than south exposed ones', () => {
+  const service = new PlantHealthMonitoringService()
+  const alert = {
+    id: 'health-ctx-order',
+    type: 'disease_risk',
+    severity: 'medium',
+    plantName: 'Sangiovese',
+    description: 'Pressione fungina in aumento',
+    detectedAt: '2026-04-02T08:00:00.000Z',
+    suggestedActions: [],
+    photoRequired: true,
+    agronomistConsultation: false,
+    urgencyDays: 4,
+    confidence: 0.78,
+    triggers: ['humidity'],
+  } as const
+
+  const baseContext = {
+    cropContext: vineyardContext,
+    weatherData: null,
+    microclimate: null,
+    environmentalHistorySummary: null,
+    phenology: null,
+    devices: [],
+    agronomicProfile: null,
+    dominantPlantNames: ['Sangiovese'],
+    measuredFeedbackPressure: 0,
+    measuredFeedbackNotes: [],
+    adaptiveLearning: {
+      pressureBoost: 0,
+      urgencyDaysOffset: 0,
+      confidenceBoost: 0,
+      fungalHumidityThreshold: 80,
+      fungalRainThreshold: 1,
+      leafWetnessThreshold: 50,
+      heatStressTemperatureThreshold: 32,
+      hotDaysTriggerCount: 2,
+      notes: [],
+    },
+  }
+
+  const southExposedScore = (service as any).scoreHealthAlert(alert, {
+    ...baseContext,
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 8.4,
+        exposureClass: 'exposed',
+        aspectDirection: 'South',
+        windProtection: 'Low',
+        shadowObstaclesCount: 0,
+        soilPh: 6.7,
+      },
+    },
+  })
+
+  const northShelteredScore = (service as any).scoreHealthAlert(alert, {
+    ...baseContext,
+    refinedContext: {
+      siteOperationalProfile: {
+        dailySunHours: 3.1,
+        exposureClass: 'sheltered',
+        aspectDirection: 'North',
+        windProtection: 'High',
+        shadowObstaclesCount: 3,
+        soilPh: 8.0,
+      },
+    },
+  })
+
+  assert.ok(northShelteredScore > southExposedScore)
+})
