@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, Database, Settings, Activity, AlertTriangle } from 'lucide-react';
+import { Shield, Users, Database, Settings, Activity, AlertTriangle, RefreshCw, Mail } from 'lucide-react';
 import { getSupabaseClient } from '@/config/supabase';
 
 interface AdminStats {
@@ -9,6 +9,16 @@ interface AdminStats {
   totalGardens: number;
   activeUsers: number;
   systemHealth: 'healthy' | 'warning' | 'error';
+}
+
+interface AuthUserRow {
+  id: string;
+  email: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+  confirmed_at: string | null;
+  invited_at: string | null;
+  is_verified: boolean;
 }
 
 const AdminDashboard: React.FC = () => {
@@ -20,6 +30,9 @@ const AdminDashboard: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [authUsers, setAuthUsers] = useState<AuthUserRow[]>([]);
+  const [authUsersLoading, setAuthUsersLoading] = useState(false);
+  const [resendEmail, setResendEmail] = useState<string | null>(null);
 
   useEffect(() => {
     checkAdminAccess();
@@ -55,10 +68,59 @@ const AdminDashboard: React.FC = () => {
 
       setIsAdmin(true);
       await loadStats();
+      await loadAuthUsers();
     } catch (error) {
       console.error('Error checking admin access:', error);
       alert('Errore nel controllo dei permessi');
       window.location.href = '/app';
+    }
+  };
+
+  const loadAuthUsers = async () => {
+    try {
+      setAuthUsersLoading(true);
+      const response = await fetch('/api/admin/auth-users?per_page=50', {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Errore nel caricamento utenti auth');
+      }
+
+      const data = await response.json();
+      setAuthUsers(Array.isArray(data.users) ? data.users : []);
+    } catch (error) {
+      console.error('Error loading auth users:', error);
+      setAuthUsers([]);
+    } finally {
+      setAuthUsersLoading(false);
+    }
+  };
+
+  const resendVerification = async (email: string) => {
+    try {
+      setResendEmail(email);
+      const response = await fetch('/api/admin/auth-users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.error || 'Errore reinvio email');
+      }
+
+      await loadAuthUsers();
+      alert(`Email di verifica reinviata a ${email}`);
+    } catch (error: any) {
+      console.error('Error resending verification email:', error);
+      alert(error.message || 'Errore reinvio email');
+    } finally {
+      setResendEmail(null);
     }
   };
 
@@ -246,6 +308,74 @@ const AdminDashboard: React.FC = () => {
             <button className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
               Visualizza Report
             </button>
+          </div>
+        </div>
+
+        <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Utenti Auth Registrati</h3>
+            </div>
+            <button
+              onClick={loadAuthUsers}
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Aggiorna
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left border-b">
+                  <th className="py-2 pr-4">Email</th>
+                  <th className="py-2 pr-4">Verificato</th>
+                  <th className="py-2 pr-4">Creato</th>
+                  <th className="py-2 pr-4">Ultimo accesso</th>
+                  <th className="py-2 pr-4">Azione</th>
+                </tr>
+              </thead>
+              <tbody>
+                {authUsersLoading ? (
+                  <tr>
+                    <td className="py-4 text-gray-500" colSpan={5}>Caricamento utenti...</td>
+                  </tr>
+                ) : authUsers.length === 0 ? (
+                  <tr>
+                    <td className="py-4 text-gray-500" colSpan={5}>Nessun utente auth trovato.</td>
+                  </tr>
+                ) : (
+                  authUsers.map((user) => (
+                    <tr key={user.id} className="border-b last:border-b-0">
+                      <td className="py-3 pr-4 font-medium text-gray-900">{user.email || user.id}</td>
+                      <td className="py-3 pr-4">
+                        <span className={`px-2 py-1 rounded-full text-xs ${user.is_verified ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                          {user.is_verified ? 'Verificato' : 'Da verificare'}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-4 text-gray-600">{new Date(user.created_at).toLocaleString('it-IT')}</td>
+                      <td className="py-3 pr-4 text-gray-600">{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('it-IT') : '-'}</td>
+                      <td className="py-3 pr-4">
+                        {!user.is_verified && user.email ? (
+                          <button
+                            onClick={() => resendVerification(user.email as string)}
+                            disabled={resendEmail === user.email}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                            {resendEmail === user.email ? 'Invio...' : 'Reinvia'}
+                          </button>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
