@@ -174,6 +174,12 @@ function getPhoto(plantId: string, photoId: string): PlantPhoto | undefined {
   return readStore().photos.find(photo => photo.plantId === plantId && photo.id === photoId)
 }
 
+function matchFieldRow<T extends { fieldRowId?: string }>(items: T[], fieldRowId?: string): T[] {
+  if (!fieldRowId) return items
+  const scoped = items.filter(item => item.fieldRowId === fieldRowId)
+  return scoped.length > 0 ? scoped : items
+}
+
 function updatePhoto(photoId: string, updater: (photo: PlantPhoto) => PlantPhoto): PlantPhoto | null {
   return updateStore((store) => {
     const index = store.photos.findIndex(photo => photo.id === photoId)
@@ -272,6 +278,7 @@ export const plantPhotoService = {
       id: crypto.randomUUID(),
       plantId: request.plantId,
       gardenId: request.gardenId,
+      fieldRowId: request.fieldRowId,
       url,
       capturedAt: now,
       uploadedAt: now,
@@ -293,6 +300,7 @@ export const plantPhotoService = {
 
   async getPlantPhotos(
     plantId: string,
+    fieldRowId?: string,
     filters?: {
       photoType?: PlantPhoto['photoType']
       startDate?: string
@@ -302,6 +310,7 @@ export const plantPhotoService = {
     }
   ): Promise<PlantPhoto[]> {
     let photos = readStore().photos.filter(photo => photo.plantId === plantId)
+    photos = matchFieldRow(photos, fieldRowId)
 
     if (filters?.photoType) {
       photos = photos.filter(photo => photo.photoType === filters.photoType)
@@ -322,8 +331,8 @@ export const plantPhotoService = {
     return sortByDateDesc(photos, photo => photo.capturedAt)
   },
 
-  async getPhotoTimeline(plantId: string): Promise<Array<{ date: string; photos: PlantPhoto[]; events: string[] }>> {
-    const photos = await this.getPlantPhotos(plantId)
+  async getPhotoTimeline(plantId: string, fieldRowId?: string): Promise<Array<{ date: string; photos: PlantPhoto[]; events: string[] }>> {
+    const photos = await this.getPlantPhotos(plantId, fieldRowId)
     const grouped = photos.reduce<Record<string, PlantPhoto[]>>((accumulator, photo) => {
       const date = photo.capturedAt.split('T')[0]
       if (!accumulator[date]) {
@@ -413,6 +422,7 @@ export const maturityTrackingService = {
     plantId: string,
     gardenId: string,
     data: {
+      fieldRowId?: string
       stage: MaturityStage['stage']
       maturityPercentage: number
       indicators: MaturityStage['indicators']
@@ -424,6 +434,7 @@ export const maturityTrackingService = {
       id: crypto.randomUUID(),
       plantId,
       gardenId,
+      fieldRowId: data.fieldRowId,
       stage: data.stage,
       maturityPercentage: data.maturityPercentage,
       indicators: data.indicators,
@@ -452,25 +463,25 @@ export const maturityTrackingService = {
     return maturityStage
   },
 
-  async getMaturityHistory(plantId: string): Promise<MaturityStage[]> {
+  async getMaturityHistory(plantId: string, fieldRowId?: string): Promise<MaturityStage[]> {
     return sortByDateDesc(
-      readStore().maturityStages.filter(stage => stage.plantId === plantId),
+      matchFieldRow(readStore().maturityStages.filter(stage => stage.plantId === plantId), fieldRowId),
       stage => stage.assessedAt
     )
   },
 
-  async getCurrentMaturityStage(plantId: string): Promise<MaturityStage | null> {
-    const history = await this.getMaturityHistory(plantId)
+  async getCurrentMaturityStage(plantId: string, fieldRowId?: string): Promise<MaturityStage | null> {
+    const history = await this.getMaturityHistory(plantId, fieldRowId)
     return history[0] || null
   },
 
-  async getMaturityTrend(plantId: string): Promise<{
+  async getMaturityTrend(plantId: string, fieldRowId?: string): Promise<{
     currentPercentage: number
     weeklyIncrease: number
     projectedHarvestDate: string
     trend: 'fast' | 'normal' | 'slow'
   }> {
-    const history = await this.getMaturityHistory(plantId)
+    const history = await this.getMaturityHistory(plantId, fieldRowId)
 
     if (history.length < 2) {
       return {
@@ -512,6 +523,7 @@ export const treatmentTrackingService = {
     gardenId: string,
     operationId: string,
     data: {
+      fieldRowId?: string
       issueType: TreatmentTracking['issue']['type']
       issueName: string
       severity: TreatmentTracking['issue']['severity']
@@ -523,6 +535,7 @@ export const treatmentTrackingService = {
       id: crypto.randomUUID(),
       plantId,
       gardenId,
+      fieldRowId: data.fieldRowId,
       operationId,
       issue: {
         type: data.issueType,
@@ -586,14 +599,14 @@ export const treatmentTrackingService = {
     })
   },
 
-  async getActiveTreatments(plantId: string): Promise<TreatmentTracking[]> {
+  async getActiveTreatments(plantId: string, fieldRowId?: string): Promise<TreatmentTracking[]> {
     const treatments = readStore().treatments.filter(tracking =>
       tracking.plantId === plantId && tracking.outcome?.status !== 'resolved'
     )
-    return sortByDateDesc(treatments, tracking => tracking.updatedAt)
+    return sortByDateDesc(matchFieldRow(treatments, fieldRowId), tracking => tracking.updatedAt)
   },
 
-  async calculateTreatmentEffectiveness(plantId: string): Promise<{
+  async calculateTreatmentEffectiveness(plantId: string, fieldRowId?: string): Promise<{
     totalTreatments: number
     resolved: number
     improving: number
@@ -602,7 +615,7 @@ export const treatmentTrackingService = {
     avgEffectiveness: number
     avgDaysToResolution: number
   }> {
-    const treatments = readStore().treatments.filter(tracking => tracking.plantId === plantId)
+    const treatments = matchFieldRow(readStore().treatments.filter(tracking => tracking.plantId === plantId), fieldRowId)
     const completed = treatments.filter(tracking => tracking.outcome)
     const effectivenessValues = completed.map(tracking => tracking.outcome?.effectiveness || 0)
     const resolutionDays = completed
@@ -633,6 +646,7 @@ export const brixManagementService = {
       id: crypto.randomUUID(),
       plantId: request.plantId,
       gardenId: request.gardenId,
+      fieldRowId: request.fieldRowId,
       brixValue: request.value,
       measurementDate: new Date().toISOString(),
       method: request.method,
@@ -665,14 +679,14 @@ export const brixManagementService = {
     return measurement
   },
 
-  async getBrixHistory(plantId: string): Promise<BrixHistory[]> {
+  async getBrixHistory(plantId: string, fieldRowId?: string): Promise<BrixHistory[]> {
     return sortByDateDesc(
-      readStore().brixHistory.filter(item => item.plantId === plantId),
+      matchFieldRow(readStore().brixHistory.filter(item => item.plantId === plantId), fieldRowId),
       item => item.measurementDate
     )
   },
 
-  async getBrixTrend(plantId: string): Promise<{
+  async getBrixTrend(plantId: string, fieldRowId?: string): Promise<{
     current: number
     average: number
     min: number
@@ -680,7 +694,7 @@ export const brixManagementService = {
     trend: 'increasing' | 'stable' | 'decreasing'
     weeklyIncrease: number
   }> {
-    const history = await this.getBrixHistory(plantId)
+    const history = await this.getBrixHistory(plantId, fieldRowId)
     if (history.length === 0) {
       return { current: 0, average: 0, min: 0, max: 0, trend: 'stable', weeklyIncrease: 0 }
     }
@@ -721,11 +735,12 @@ export const brixManagementService = {
 export const harvestRecommendationService = {
   async generateHarvestRecommendation(
     plantId: string,
-    gardenId: string
+    gardenId: string,
+    fieldRowId?: string
   ): Promise<HarvestRecommendation> {
     const [maturityStage, brixTrend] = await Promise.all([
-      maturityTrackingService.getCurrentMaturityStage(plantId),
-      brixManagementService.getBrixTrend(plantId)
+      maturityTrackingService.getCurrentMaturityStage(plantId, fieldRowId),
+      brixManagementService.getBrixTrend(plantId, fieldRowId)
     ])
 
     const reasons: HarvestRecommendation['reasons'] = []
@@ -792,6 +807,7 @@ export const harvestRecommendationService = {
       id: crypto.randomUUID(),
       plantId,
       gardenId,
+      fieldRowId,
       recommendedDate: recommendedDate.toISOString().split('T')[0],
       confidence: Math.min(confidence, 95),
       reasons,
@@ -815,14 +831,14 @@ export const harvestRecommendationService = {
 }
 
 export const monitoringDashboardService = {
-  async getPlantMonitoringDashboard(plantId: string): Promise<PlantMonitoringDashboard> {
+  async getPlantMonitoringDashboard(plantId: string, fieldRowId?: string): Promise<PlantMonitoringDashboard> {
     const [photos, currentMaturity, brixTrend, activeTreatments, effectiveness, recommendation] = await Promise.all([
-      plantPhotoService.getPlantPhotos(plantId),
-      maturityTrackingService.getCurrentMaturityStage(plantId),
-      brixManagementService.getBrixTrend(plantId),
-      treatmentTrackingService.getActiveTreatments(plantId),
-      treatmentTrackingService.calculateTreatmentEffectiveness(plantId),
-      harvestRecommendationService.generateHarvestRecommendation(plantId, '')
+      plantPhotoService.getPlantPhotos(plantId, fieldRowId),
+      maturityTrackingService.getCurrentMaturityStage(plantId, fieldRowId),
+      brixManagementService.getBrixTrend(plantId, fieldRowId),
+      treatmentTrackingService.getActiveTreatments(plantId, fieldRowId),
+      treatmentTrackingService.calculateTreatmentEffectiveness(plantId, fieldRowId),
+      harvestRecommendationService.generateHarvestRecommendation(plantId, '', fieldRowId)
     ])
 
     const photoStats = createPhotoTypeStats()
@@ -875,7 +891,7 @@ export const monitoringDashboardService = {
         min: brixTrend.min,
         max: brixTrend.max,
         trend: brixTrend.trend,
-        measurements: (await brixManagementService.getBrixHistory(plantId)).length
+        measurements: (await brixManagementService.getBrixHistory(plantId, fieldRowId)).length
       },
       activeIssues: activeTreatments.length,
       resolvedIssues: effectiveness.resolved,

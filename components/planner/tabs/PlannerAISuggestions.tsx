@@ -10,6 +10,8 @@ import { Lightbulb, Filter, Calendar, CheckCircle, XCircle, Eye, AlertTriangle, 
 import { useGarden } from '@/packages/core/hooks/useGarden'
 import { useAuth } from '@/packages/core/hooks/useAuth'
 import { collaborativeAIService } from '@/services/collaborativeAIService'
+import { resolveGardenContext } from '@/services/gardenContextResolverService'
+import { useStorage } from '@/packages/core/hooks/useStorage'
 import AITransparencyPanel from '@/components/ai/AITransparencyPanel'
 import type { AISuggestion, AITransparencyLog } from '@/types/aiFeedback'
 
@@ -21,6 +23,7 @@ interface PlannerAISuggestionsProps {
 
 export default function PlannerAISuggestions({ garden, tasks, onCreateTasks }: PlannerAISuggestionsProps) {
   const { user } = useAuth()
+  const { storageProvider } = useStorage()
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedSuggestion, setSelectedSuggestion] = useState<AISuggestion | null>(null)
@@ -50,13 +53,21 @@ export default function PlannerAISuggestions({ garden, tasks, onCreateTasks }: P
     
     try {
       setLoading(true)
+      const resolvedContext = await resolveGardenContext(storageProvider, garden.id).catch(() => null)
       const suggs = await collaborativeAIService.getSuggestions(user.id, {
         statuses: ['PENDING'],
         types: planningTypes,
         gardenId: garden.id
       })
       
-      setSuggestions(suggs)
+      setSuggestions(
+        suggs.map((suggestion) => ({
+          ...suggestion,
+          context: resolvedContext?.structure.fieldRows?.[0]?.name
+            ? `${suggestion.context || ''} | filare: ${resolvedContext.structure.fieldRows[0].name}`.trim()
+            : suggestion.context,
+        }))
+      )
     } catch (error) {
       console.error('Error loading suggestions:', error)
     } finally {

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
+import { resolveGardenContext } from '@/services/gardenContextResolverService'
+import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,15 +17,28 @@ export async function GET(request: NextRequest) {
 
     const supabase = getSupabaseServerClient()
     if (!supabase) {
-      // Return mock data for development
+      const storageProvider = getDefaultStorageProvider()
+      const resolvedContext = gardenId
+        ? await resolveGardenContext(storageProvider, gardenId).catch(() => null)
+        : null
+
       return NextResponse.json([
         {
           id: 'mock-1',
-          title: 'Irrigazione Consigliata',
-          description: 'Le tue piante potrebbero beneficiare di irrigazione oggi',
+          title: resolvedContext?.garden?.name ? `Irrigazione consigliata per ${resolvedContext.garden.name}` : 'Irrigazione Consigliata',
+          description: resolvedContext?.garden?.primaryCrop?.label
+            ? `Le condizioni del garden ${resolvedContext.garden.primaryCrop.label} suggeriscono di verificare irrigazione e stress idrico`
+            : 'Le tue piante potrebbero beneficiare di irrigazione oggi',
           type: 'IRRIGATION',
           status: 'PENDING',
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          garden_id: gardenId,
+          context: resolvedContext?.structure.fieldRows?.length
+            ? {
+                fieldRows: resolvedContext.structure.fieldRows.length,
+                firstFieldRowId: resolvedContext.structure.fieldRows[0]?.id,
+              }
+            : undefined,
         }
       ])
     }
@@ -73,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseServerClient()
     if (!supabase) {
-      // Return mock response for development
+      // Return grounded mock response for local development
       return NextResponse.json({
         id: 'mock-new',
         user_id,
@@ -82,7 +97,8 @@ export async function POST(request: NextRequest) {
         title,
         description,
         status: 'PENDING',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        context: garden_id ? { garden_id } : undefined
       })
     }
 

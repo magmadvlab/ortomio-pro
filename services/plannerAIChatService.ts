@@ -38,12 +38,14 @@ const creditRecoverySuggestions = [
 
 const buildPlannerChatContext = ({ garden, tasks }: PlannerAIContextInput) => {
   const openTasks = (tasks || []).filter((task) => !task?.completed)
+  const fieldRowIds = Array.from(new Set((tasks || []).map((task) => task?.fieldRowId || task?.rowId).filter(Boolean)))
   const grounding = buildAIAssistantGroundingContext({
     scope: 'planner-chat',
     garden,
     extraSignals: [
       'eventuali vincoli meteo e sensori real-time',
       'conferma utente per scritture operative',
+      'contesto del field row quando il task lo espone',
     ],
     summary: `Planner assistivo con ${openTasks.length} task aperti su ${(tasks || []).length} totali.`,
   })
@@ -55,6 +57,7 @@ const buildPlannerChatContext = ({ garden, tasks }: PlannerAIContextInput) => {
       gardenName: garden?.name || null,
       totalTasks: (tasks || []).length,
       openTasks: openTasks.length,
+      fieldRows: fieldRowIds.length,
     },
     gardenContext: garden || null,
     summary: `Planner assistivo con ${openTasks.length} task aperti su ${(tasks || []).length} totali.`,
@@ -63,6 +66,7 @@ const buildPlannerChatContext = ({ garden, tasks }: PlannerAIContextInput) => {
         .slice(0, 5)
         .map((task) => task?.title)
         .filter(Boolean),
+      fieldRowIds,
     },
     missingSignals: grounding.missingSignals,
     routingHints: [

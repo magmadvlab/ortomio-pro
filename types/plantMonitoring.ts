@@ -7,6 +7,7 @@ export interface PlantPhoto {
   id: string
   plantId: string
   gardenId: string
+  fieldRowId?: string
   
   // Metadata foto
   url: string
@@ -58,6 +59,7 @@ export interface MaturityStage {
   id: string
   plantId: string
   gardenId: string
+  fieldRowId?: string
   
   // Fase maturazione
   stage: 'seedling' | 'vegetative' | 'flowering' | 'fruit_set' | 
@@ -93,6 +95,7 @@ export interface TreatmentTracking {
   id: string
   plantId: string
   gardenId: string
+  fieldRowId?: string
   operationId: string // Collegamento a PlantOperation
   
   // Issue identificato
@@ -143,6 +146,7 @@ export interface BrixHistory {
   id: string
   plantId: string
   gardenId: string
+  fieldRowId?: string
   
   // Misurazione
   brixValue: number
@@ -179,6 +183,7 @@ export interface HarvestRecommendation {
   id: string
   plantId: string
   gardenId: string
+  fieldRowId?: string
   
   // Raccomandazione
   recommendedDate: string // ISO date
@@ -278,6 +283,7 @@ export interface PlantMonitoringDashboard {
 export interface PhotoUploadRequest {
   plantId: string
   gardenId: string
+  fieldRowId?: string
   photoType: PlantPhoto['photoType']
   file: File
   linkedOperationId?: string
@@ -298,6 +304,7 @@ export interface AIPhotoAnalysisRequest {
 export interface BrixMeasurementRequest {
   plantId: string
   gardenId: string
+  fieldRowId?: string
   method: BrixHistory['method']
   value: number
   fruitLocation: BrixHistory['fruitSample']['location']

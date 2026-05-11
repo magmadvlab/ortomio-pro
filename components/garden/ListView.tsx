@@ -13,6 +13,7 @@ import { ManualTaskModal } from './ManualTaskModal'
 import { isPlantMature } from '@/utils/plantMaturityDetector'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useAuth } from '@/packages/core/hooks/useAuth'
+import { type PlantMaturityContext } from '@/utils/plantMaturityDetector'
 
 interface ListViewProps {
   garden: Garden
@@ -42,6 +43,19 @@ export function ListView({
   const [editingTask, setEditingTask] = useState<GardenTask | null>(null)
   const { storageProvider } = useStorage()
   const { user } = useAuth()
+  const gardenContext: PlantMaturityContext = {
+    gardenId: garden.id,
+    gardenName: garden.name,
+    gardenType: garden.gardenType || null,
+    soilType: garden.soilType || null,
+    soilPh: garden.soilPh ?? null,
+    sunExposure: garden.sunExposure || null,
+    aspectDirection: garden.aspectDirection || null,
+    altitudeMeters: garden.altitudeMeters ?? null,
+    slopePercentage: (garden as any).slopePercentage ?? null,
+    hasIndoor: garden.hasIndoor ?? null,
+    hasGreenhouse: garden.hasGreenhouse ?? null,
+  }
   
   // Filter tasks
   const filteredTasks = (tasks || []).filter(task => {
@@ -311,7 +325,7 @@ export function ListView({
                         )
 
                         // Check maturità sulla semina, non sul task corrente
-                        if (sowingTask && isPlantMature(sowingTask) && !sowingTask.harvestLogId) {
+                        if (sowingTask && isPlantMature(sowingTask, gardenContext) && !sowingTask.harvestLogId) {
                           setHarvestPromptTask(sowingTask)
                         }
 

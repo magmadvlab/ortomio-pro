@@ -13,12 +13,14 @@ import { maturityTrackingService } from '@/services/plantMonitoringService'
 interface MaturityTrackerProps {
   plantId: string
   gardenId: string
+  fieldRowId?: string
   plantName: string
 }
 
 export default function MaturityTracker({
   plantId,
   gardenId,
+  fieldRowId,
   plantName
 }: MaturityTrackerProps) {
   const [currentStage, setCurrentStage] = useState<MaturityStage | null>(null)
@@ -38,9 +40,9 @@ export default function MaturityTracker({
   const loadMaturityData = async () => {
     try {
       const [current, hist, trendData] = await Promise.all([
-        maturityTrackingService.getCurrentMaturityStage(plantId),
-        maturityTrackingService.getMaturityHistory(plantId),
-        maturityTrackingService.getMaturityTrend(plantId)
+        maturityTrackingService.getCurrentMaturityStage(plantId, fieldRowId),
+        maturityTrackingService.getMaturityHistory(plantId, fieldRowId),
+        maturityTrackingService.getMaturityTrend(plantId, fieldRowId)
       ])
       
       setCurrentStage(current)
@@ -59,6 +61,7 @@ export default function MaturityTracker({
 
     try {
       await maturityTrackingService.recordMaturityStage(plantId, gardenId, {
+        fieldRowId,
         stage: newStage.stage,
         maturityPercentage: newStage.maturityPercentage,
         indicators: newStage.indicators || {},

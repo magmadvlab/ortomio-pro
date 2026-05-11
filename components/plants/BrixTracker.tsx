@@ -13,12 +13,14 @@ import { brixManagementService } from '@/services/plantMonitoringService'
 interface BrixTrackerProps {
   plantId: string
   gardenId: string
+  fieldRowId?: string
   plantName: string
 }
 
 export default function BrixTracker({
   plantId,
   gardenId,
+  fieldRowId,
   plantName
 }: BrixTrackerProps) {
   const [history, setHistory] = useState<BrixHistory[]>([])
@@ -37,8 +39,8 @@ export default function BrixTracker({
   const loadBrixData = async () => {
     try {
       const [hist, trendData] = await Promise.all([
-        brixManagementService.getBrixHistory(plantId),
-        brixManagementService.getBrixTrend(plantId)
+        brixManagementService.getBrixHistory(plantId, fieldRowId),
+        brixManagementService.getBrixTrend(plantId, fieldRowId)
       ])
       
       setHistory(hist)
@@ -58,6 +60,7 @@ export default function BrixTracker({
       const request: BrixMeasurementRequest = {
         plantId,
         gardenId,
+        fieldRowId,
         method: newMeasurement.method!,
         value: newMeasurement.value,
         fruitLocation: newMeasurement.fruitLocation!,

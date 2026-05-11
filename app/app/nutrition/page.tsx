@@ -16,6 +16,7 @@ import { Garden } from '@/types'
 import LocationSelector from '@/components/shared/LocationSelector'
 import TaskExecutionBanner from '@/components/shared/TaskExecutionBanner'
 import type { TaskExecutionContext } from '@/services/taskExecutionLaunchService'
+import { resolveGardenContext } from '@/services/gardenContextResolverService'
 import {
   buildNutritionExecutionBootstrapState,
   parseTaskExecutionContext,
@@ -64,7 +65,8 @@ export default function NutritionPage() {
         const loadedGardens = await storageProvider.getGardens()
         setGardens(loadedGardens)
         if (loadedGardens.length > 0) {
-          setActiveGarden(loadedGardens[0])
+          const resolved = await resolveGardenContext(storageProvider, loadedGardens[0].id).catch(() => null)
+          setActiveGarden(resolved?.garden || loadedGardens[0])
         }
         loadTreatmentConfigs()
       } catch (error) {

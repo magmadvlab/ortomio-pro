@@ -123,46 +123,20 @@ export async function POST(request: NextRequest) {
       console.error('Auth error status:', authError.status)
 
       if (isConfirmationEmailError(authError)) {
-        const adminSupabase = getSupabaseServerClient()
-
-        if (adminSupabase) {
-          console.warn('Falling back to admin user creation because confirmation email delivery failed')
-          const fallbackMetadata = {
-            first_name: sanitizedBody.firstName,
-            last_name: sanitizedBody.lastName,
-            phone: sanitizedBody.phone,
-            company: sanitizedBody.company,
-            birth_date: normalizedBirthDate,
-            marketing_consent: sanitizedBody.marketingConsent
-          }
-
-          const existingUserId = authData?.user?.id
-          const adminAuthResult = existingUserId
-            ? await adminSupabase.auth.admin.updateUserById(existingUserId, {
-                email_confirm: true,
-                user_metadata: fallbackMetadata
-              })
-            : await adminSupabase.auth.admin.createUser({
-                email: body.email,
-                password: body.password,
-                email_confirm: true,
-                user_metadata: fallbackMetadata
-              })
-
-          const adminAuthData = adminAuthResult.data
-          const adminAuthError = adminAuthResult.error
-
-          if (!adminAuthError && adminAuthData.user) {
-            authData = {
-              user: adminAuthData.user,
-              session: null
-            }
-            authError = null
-            registrationMessage = 'Registrazione completata con successo! Puoi accedere subito.'
-          } else {
-            console.error('Admin fallback createUser error:', JSON.stringify(adminAuthError, null, 2))
-          }
-        }
+        return NextResponse.json({
+          success: false,
+          error: {
+            type: RegistrationErrorType.DATABASE_ERROR,
+            message: 'La registrazione e stata creata ma la mail di conferma non e partita. Controlla la configurazione SMTP/Supabase e riprova.',
+            code: 'REG_EMAIL_001',
+            details: [
+              'Verifica le impostazioni email del progetto Supabase',
+              'Controlla SMTP, sender e template di conferma',
+              'Usa la pagina di verifica per reinviare la mail dopo la correzione'
+            ]
+          },
+          requiresEmailVerification: true
+        } as RegistrationResponse, { status: 502 })
       }
     }
 
