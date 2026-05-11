@@ -17,6 +17,7 @@ import {
   calculateAdaptiveQualityPrice,
   resolveAdaptiveQualityPricingBenchmark,
 } from '@/services/adaptiveMarketPricingService'
+import { environmentalEvidenceLedgerService } from '@/services/environmentalEvidenceLedgerService'
 
 interface AnalyticsStats {
   totalTasks: number
@@ -57,6 +58,9 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<'month' | 'quarter' | 'year'>('month')
   const [activeTab, setActiveTab] = useState<'overview' | 'productivity' | 'efficiency' | 'sustainability'>('overview')
+  const [environmentalEvidenceSummary, setEnvironmentalEvidenceSummary] = useState(() =>
+    environmentalEvidenceLedgerService.summarize(activeGarden?.id)
+  )
 
   useEffect(() => {
     const loadData = async () => {
@@ -109,6 +113,10 @@ export default function AnalyticsPage() {
 
     void loadQualityContext()
   }, [activeGarden?.id, storageProvider])
+
+  useEffect(() => {
+    setEnvironmentalEvidenceSummary(environmentalEvidenceLedgerService.summarize(activeGarden?.id))
+  }, [activeGarden?.id])
 
   useEffect(() => {
     const loadHarvestPricing = async () => {
@@ -666,6 +674,25 @@ export default function AnalyticsPage() {
                   <p className="text-sm text-gray-600 mb-2">Readiness</p>
                   <p className="text-xs text-purple-700">Solo se registrata nei moduli certificazioni</p>
                 </div>
+              </div>
+
+              <div className="mt-8 text-left bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <p className="text-sm font-semibold text-gray-900 mb-2">Ledger evidenze ambientali</p>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-gray-500">Record</p>
+                    <p className="font-semibold text-gray-900">{environmentalEvidenceSummary.count}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Confidenza media</p>
+                    <p className="font-semibold text-gray-900">{environmentalEvidenceSummary.avgConfidence}%</p>
+                  </div>
+                </div>
+                {environmentalEvidenceSummary.latest && (
+                  <p className="mt-3 text-xs text-gray-600">
+                    Ultimo segnale: {environmentalEvidenceSummary.latest.kind} - {environmentalEvidenceSummary.latest.summary}
+                  </p>
+                )}
               </div>
             </div>
           </div>
